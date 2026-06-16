@@ -26,12 +26,12 @@ func TestIndexParams_get(t *testing.T) {
 		{name: "empty", params: IndexParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: IndexParams{IfPrimaryTerm: 42},
+			params: IndexParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_seq_no",
-			params: IndexParams{IfSeqNo: 42},
+			params: IndexParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{

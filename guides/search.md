@@ -119,7 +119,7 @@ For search-heavy applications, you can configure the client to automatically rou
 		return err
 	}
 
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{exampleIndex}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -132,7 +132,7 @@ For search-heavy applications, you can configure the client to automatically rou
 The search API allows you to search for documents in an index. The following example searches for ALL documents in the `movies` index:
 
 ```go
-	searchResp, err := client.Search(ctx, &opensearchapi.SearchReq{Index: []string{exampleIndex}})
+	searchResp, err := client.Search(ctx, &opensearchapi.SearchReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ You can also search for documents that match a specific query. The following exa
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Index:  []string{exampleIndex},
+			Indices:  []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{Q: `title: "dark knight"`},
 		},
 	)
@@ -173,7 +173,7 @@ The search API allows you to paginate through the search results. The following 
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
 				Size: 2,
@@ -200,7 +200,7 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:      `title: "dark knight"`,
 				Size:   2,
@@ -227,7 +227,7 @@ The scroll example above has one weakness: if the index is updated while you are
 	pitCreateResp, err := client.PIT.Create(
 		ctx,
 		&opensearchapi.CreatePITReq{
-			Index:  []string{exampleIndex},
+			Indices:  []string{exampleIndex},
 			Params: &opensearchapi.CreatePITParams{KeepAlive: time.Minute},
 		},
 	)
@@ -325,7 +325,7 @@ For production search workloads, you can optimize performance by ensuring search
 	searchResp, err := optimizedSearchClient.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
 				Size: 10,
@@ -364,7 +364,7 @@ The router automatically detects operation types and routes them to the most app
 
 	// Search operations automatically route to data nodes
 	_, err = client.Search(ctx, &opensearchapi.SearchReq{
-		Index: []string{exampleIndex},
+		Indices: []string{exampleIndex},
 	})
 	if err != nil {
 		return err
@@ -464,7 +464,7 @@ To exclude certain fields in the source response, use `SourceExcludes` as follow
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies"},
+			Indices:  []string{"movies"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

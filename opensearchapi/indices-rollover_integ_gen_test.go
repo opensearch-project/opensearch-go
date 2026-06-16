@@ -29,7 +29,7 @@ func TestIndicesRollover(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-rollover")
 	name := testutil.MustUniqueString(t, "test-indices-rollover")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	index += "-000001"
@@ -37,7 +37,7 @@ func TestIndicesRollover(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
-		Index:      []string{index},
+		Indices:    []string{index},
 		Name:       name,
 		BodyReader: strings.NewReader(`{"is_write_index":true}`),
 	})

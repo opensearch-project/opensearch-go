@@ -40,14 +40,14 @@ func TestCountReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CountReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CountReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_count",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.CountReq{Index: []string{"x"}, Body: &opensearchapi.CountBody{}},
+			req:        opensearchapi.CountReq{Indices: []string{"x"}, Body: &opensearchapi.CountBody{}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_count",
 			wantErr:    false,

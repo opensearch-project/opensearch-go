@@ -15,7 +15,7 @@ import (
 
 func BenchmarkGetRequest_Search(b *testing.B) {
 	req := opensearchapi.SearchReq{
-		Index: []string{"my-index"},
+		Indices: []string{"my-index"},
 	}
 	b.ReportAllocs()
 	for b.Loop() {
@@ -37,8 +37,8 @@ func BenchmarkGetRequest_IndicesCreate(b *testing.B) {
 
 func BenchmarkGetRequest_IndicesGetAlias(b *testing.B) {
 	req := opensearchapi.IndicesGetAliasReq{
-		Index: []string{"my-index"},
-		Name:  []string{"my-alias"},
+		Indices: []string{"my-index"},
+		Name:    []string{"my-alias"},
 	}
 	b.ReportAllocs()
 	for b.Loop() {

@@ -33,14 +33,14 @@ func TestAddPolicy(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-add-policy")
 	name := testutil.MustUniqueString(t, "test-add-policy")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Policy.AddPolicy(t.Context(), &ism.AddPolicyReq{Params: &ism.AddPolicyParams{Index: []string{name}}, Index: []string{index}, Body: &opensearchapi.ISMAddPolicyRequest{}})
+		resp, err := client.Policy.AddPolicy(t.Context(), &ism.AddPolicyReq{Params: &ism.AddPolicyParams{Indices: []string{name}}, Indices: []string{index}, Body: &opensearchapi.ISMAddPolicyRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -50,7 +50,7 @@ func TestAddPolicy(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Policy.AddPolicy(t.Context(), &ism.AddPolicyReq{Index: []string{index}, Body: &opensearchapi.ISMAddPolicyRequest{}})
+		res, err := failingClient.Policy.AddPolicy(t.Context(), &ism.AddPolicyReq{Indices: []string{index}, Body: &opensearchapi.ISMAddPolicyRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

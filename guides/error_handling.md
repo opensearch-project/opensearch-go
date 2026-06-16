@@ -89,7 +89,7 @@ Search operations return a `*PartialSearchError` when shards fail. The response 
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"events"},
+    Indices:      []string{"events"},
     BodyReader: body,
 })
 for _, sub := range opensearchapi.Errors(err) {
@@ -375,7 +375,7 @@ Search can return HTTP 200 with incomplete results when some shards fail.
 ```go
 func safeSearchOperation(client *opensearchapi.Client, ctx context.Context) error {
     resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-        Index: []string{"test"},
+        Indices: []string{"test"},
     })
     if err != nil {
         return fmt.Errorf("search request failed: %w", err)

@@ -28,8 +28,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/im-plugin/refresh-analyzer/
 type RefreshSearchAnalyzersReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -41,7 +41,7 @@ type RefreshSearchAnalyzersReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r RefreshSearchAnalyzersReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.ISMRefreshSearchAnalyzersPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

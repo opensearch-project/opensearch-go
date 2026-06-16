@@ -837,14 +837,14 @@ func (p CatClusterManagerPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-count/
 type CatCountPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatCountPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("count")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -924,14 +924,14 @@ func (p CatHelpPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-indices/
 type CatIndicesPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatIndicesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("indices")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1074,14 +1074,14 @@ func (p CatPluginsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-plugins/
 type CatRecoveryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatRecoveryPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("recovery")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1119,14 +1119,14 @@ func (p CatRepositoriesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segment-replication/
 type CatSegmentReplicationPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatSegmentReplicationPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("segment_replication")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1142,14 +1142,14 @@ func (p CatSegmentReplicationPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segments/
 type CatSegmentsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatSegmentsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("segments")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1165,14 +1165,14 @@ func (p CatSegmentsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-shards/
 type CatShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatShardsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("shards")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1543,14 +1543,14 @@ func (p ClusterGetWeightedRoutingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/
 type ClusterHealthPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ClusterHealthPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cluster")
 	pb.writeLit("health")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1757,8 +1757,8 @@ func (p ClusterReroutePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type ClusterStatePath struct {
-	Metric []string
-	Index  []string
+	Metric  []string
+	Indices []string
 }
 
 func (p ClusterStatePath) Build() (string, error) {
@@ -1766,13 +1766,13 @@ func (p ClusterStatePath) Build() (string, error) {
 	pb.writeLit("_cluster")
 	pb.writeLit("state")
 	switch {
-	case hasNonEmpty(p.Metric) && hasNonEmpty(p.Index):
+	case hasNonEmpty(p.Metric) && hasNonEmpty(p.Indices):
 		writeSegments(pb, p.Metric)
-		writeSegments(pb, p.Index)
+		writeSegments(pb, p.Indices)
 	case hasNonEmpty(p.Metric):
 		writeSegments(pb, p.Metric)
 	default:
-		if hasNonEmpty(p.Metric) || hasNonEmpty(p.Index) {
+		if hasNonEmpty(p.Metric) || hasNonEmpty(p.Indices) {
 			return "", explainClusterStatePath(p)
 		}
 	}
@@ -1784,8 +1784,8 @@ func (p ClusterStatePath) Build() (string, error) {
 // switch in ClusterStatePath.Build dispatches here from its
 // default: case after confirming at least one optional field is set.
 func explainClusterStatePath(p ClusterStatePath) error {
-	if hasNonEmpty(p.Index) && !hasNonEmpty(p.Metric) {
-		return fmt.Errorf("ClusterStatePath.Index requires ClusterStatePath.Metric: %w", errRequired)
+	if hasNonEmpty(p.Indices) && !hasNonEmpty(p.Metric) {
+		return fmt.Errorf("ClusterStatePath.Indices requires ClusterStatePath.Metric: %w", errRequired)
 	}
 	return fmt.Errorf("ClusterStatePath: invalid combination of fields: %w", errRequired)
 }
@@ -1858,12 +1858,12 @@ func explainClusterStatsPath(p ClusterStatsPath) error {
 //
 // See: https://opensearch.org/docs/latest/api-reference/count/
 type CountPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CountPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_count")
 	return pb.release(), nil
 }
@@ -1912,15 +1912,15 @@ func (p CreatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
 type CreatePITPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CreatePITPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("CreatePITPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("CreatePITPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	pb.writeLit("point_in_time")
 	return pb.release(), nil
@@ -2060,15 +2060,15 @@ func (p DeleteAllPitsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/delete-by-query/
 type DeleteByQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p DeleteByQueryPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("DeleteByQueryPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("DeleteByQueryPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_delete_by_query")
 	return pb.release(), nil
 }
@@ -2247,12 +2247,12 @@ func (p ExplainPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/supported-field-types/alias/#using-aliases-in-field-capabilities-api-operations
 type FieldCapsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p FieldCapsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_field_caps")
 	return pb.release(), nil
 }
@@ -2882,19 +2882,19 @@ func (p IndexPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesAddBlockPath struct {
-	Index []string
-	Block string
+	Indices []string
+	Block   string
 }
 
 func (p IndicesAddBlockPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesAddBlockPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesAddBlockPath.Indices: %w", errRequired)
 	}
 	if p.Block == "" {
 		return "", fmt.Errorf("IndicesAddBlockPath.Block: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_block")
 	pb.writeReq(p.Block)
 	return pb.release(), nil
@@ -2936,12 +2936,12 @@ func (p IndicesAnalyzePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clear-index-cache/
 type IndicesClearCachePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesClearCachePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_cache")
 	pb.writeLit("clear")
 	return pb.release(), nil
@@ -2989,15 +2989,15 @@ func (p IndicesClonePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/close-index/
 type IndicesClosePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesClosePath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesClosePath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesClosePath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_close")
 	return pb.release(), nil
 }
@@ -3086,15 +3086,15 @@ func (p IndicesDataStreamsStatsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/delete-index/
 type IndicesDeletePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesDeletePath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesDeletePath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesDeletePath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3110,19 +3110,19 @@ func (p IndicesDeletePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/#delete-aliases
 type IndicesDeleteAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesDeleteAliasPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesDeleteAliasPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesDeleteAliasPath.Indices: %w", errRequired)
 	}
 	if !hasNonEmpty(p.Name) {
 		return "", fmt.Errorf("IndicesDeleteAliasPath.Name: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_alias")
 	writeSegments(pb, p.Name)
 	return pb.release(), nil
@@ -3215,15 +3215,15 @@ func (p IndicesDeleteTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/exists/
 type IndicesExistsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesExistsPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesExistsPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesExistsPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3239,8 +3239,8 @@ func (p IndicesExistsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesExistsAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesExistsAliasPath) Build() (string, error) {
@@ -3248,7 +3248,7 @@ func (p IndicesExistsAliasPath) Build() (string, error) {
 		return "", fmt.Errorf("IndicesExistsAliasPath.Name: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_alias")
 	writeSegments(pb, p.Name)
 	return pb.release(), nil
@@ -3316,12 +3316,12 @@ func (p IndicesExistsTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesFlushPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesFlushPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_flush")
 	return pb.release(), nil
 }
@@ -3338,12 +3338,12 @@ func (p IndicesFlushPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesForcemergePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesForcemergePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_forcemerge")
 	return pb.release(), nil
 }
@@ -3360,15 +3360,15 @@ func (p IndicesForcemergePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-index/
 type IndicesGetPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesGetPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesGetPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3384,19 +3384,19 @@ func (p IndicesGetPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/
 type IndicesGetAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesGetAliasPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Name):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Name):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 		writeSegments(pb, p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 	case hasNonEmpty(p.Name):
 		pb.writeLit("_alias")
@@ -3441,8 +3441,8 @@ func (p IndicesGetDataStreamPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/index/
 type IndicesGetFieldMappingPath struct {
-	Index  []string
-	Fields []string
+	Indices []string
+	Fields  []string
 }
 
 func (p IndicesGetFieldMappingPath) Build() (string, error) {
@@ -3450,7 +3450,7 @@ func (p IndicesGetFieldMappingPath) Build() (string, error) {
 		return "", fmt.Errorf("IndicesGetFieldMappingPath.Fields: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	pb.writeLit("field")
 	writeSegments(pb, p.Fields)
@@ -3493,12 +3493,12 @@ func (p IndicesGetIndexTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/index/#get-a-mapping
 type IndicesGetMappingPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetMappingPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	return pb.release(), nil
 }
@@ -3515,19 +3515,19 @@ func (p IndicesGetMappingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-settings/
 type IndicesGetSettingsPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesGetSettingsPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Name):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Name):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_settings")
 		writeSegments(pb, p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_settings")
 	case hasNonEmpty(p.Name):
 		pb.writeLit("_settings")
@@ -3572,12 +3572,12 @@ func (p IndicesGetTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesGetUpgradePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetUpgradePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_upgrade")
 	return pb.release(), nil
 }
@@ -3594,15 +3594,15 @@ func (p IndicesGetUpgradePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/open-index/
 type IndicesOpenPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesOpenPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesOpenPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesOpenPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_open")
 	return pb.release(), nil
 }
@@ -3619,19 +3619,19 @@ func (p IndicesOpenPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-alias/
 type IndicesPutAliasPath struct {
-	Index []string
-	Name  string
+	Indices []string
+	Name    string
 }
 
 func (p IndicesPutAliasPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && p.Name != "":
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && p.Name != "":
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 		pb.writeReq(p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 	case p.Name != "":
 		pb.writeLit("_alias")
@@ -3679,15 +3679,15 @@ func (p IndicesPutIndexTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
 type IndicesPutMappingPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesPutMappingPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesPutMappingPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesPutMappingPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	return pb.release(), nil
 }
@@ -3704,12 +3704,12 @@ func (p IndicesPutMappingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-settings/
 type IndicesPutSettingsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesPutSettingsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_settings")
 	return pb.release(), nil
 }
@@ -3751,12 +3751,12 @@ func (p IndicesPutTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesRecoveryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesRecoveryPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_recovery")
 	return pb.release(), nil
 }
@@ -3773,12 +3773,12 @@ func (p IndicesRecoveryPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/remote-store/index/#refresh-level-and-request-level-durability
 type IndicesRefreshPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesRefreshPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_refresh")
 	return pb.release(), nil
 }
@@ -3853,12 +3853,12 @@ func (p IndicesRolloverPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesSegmentsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesSegmentsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_segments")
 	return pb.release(), nil
 }
@@ -3875,12 +3875,12 @@ func (p IndicesSegmentsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesShardStoresPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesShardStoresPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_shard_stores")
 	return pb.release(), nil
 }
@@ -4008,19 +4008,19 @@ func (p IndicesSplitPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesStatsPath struct {
-	Index  []string
-	Metric []string
+	Indices []string
+	Metric  []string
 }
 
 func (p IndicesStatsPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Metric):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Metric):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_stats")
 		writeSegments(pb, p.Metric)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_stats")
 	case hasNonEmpty(p.Metric):
 		pb.writeLit("_stats")
@@ -4063,12 +4063,12 @@ func (p IndicesUpdateAliasesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesUpgradePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesUpgradePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_upgrade")
 	return pb.release(), nil
 }
@@ -4085,12 +4085,12 @@ func (p IndicesUpgradePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesValidateQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesValidateQueryPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_validate")
 	pb.writeLit("query")
 	return pb.release(), nil
@@ -4348,7 +4348,7 @@ func (p InsightsTopQueriesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#add-policy
 type ISMAddPolicyPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMAddPolicyPath) Build() (string, error) {
@@ -4356,7 +4356,7 @@ func (p ISMAddPolicyPath) Build() (string, error) {
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("add")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4370,7 +4370,7 @@ func (p ISMAddPolicyPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#update-managed-index-policy
 type ISMChangePolicyPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMChangePolicyPath) Build() (string, error) {
@@ -4378,7 +4378,7 @@ func (p ISMChangePolicyPath) Build() (string, error) {
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("change_policy")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4442,7 +4442,7 @@ func (p ISMExistsPolicyPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#explain-index
 type ISMExplainPolicyPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMExplainPolicyPath) Build() (string, error) {
@@ -4450,7 +4450,7 @@ func (p ISMExplainPolicyPath) Build() (string, error) {
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("explain")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4554,17 +4554,17 @@ func (p ISMPutPolicyPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/refresh-analyzer/
 type ISMRefreshSearchAnalyzersPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMRefreshSearchAnalyzersPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("ISMRefreshSearchAnalyzersPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("ISMRefreshSearchAnalyzersPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_refresh_search_analyzers")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4578,7 +4578,7 @@ func (p ISMRefreshSearchAnalyzersPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#remove-policy
 type ISMRemovePolicyPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMRemovePolicyPath) Build() (string, error) {
@@ -4586,7 +4586,7 @@ func (p ISMRemovePolicyPath) Build() (string, error) {
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("remove")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4600,7 +4600,7 @@ func (p ISMRemovePolicyPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#retry-failed-index
 type ISMRetryIndexPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ISMRetryIndexPath) Build() (string, error) {
@@ -4608,7 +4608,7 @@ func (p ISMRetryIndexPath) Build() (string, error) {
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("retry")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4765,18 +4765,18 @@ func (p KNNTrainModelPath) Build() (string, error) {
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#warmup-operation
 type KNNWarmupPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p KNNWarmupPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("KNNWarmupPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("KNNWarmupPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_knn")
 	pb.writeLit("warmup")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4812,14 +4812,14 @@ func (p ListHelpPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-indices/
 type ListIndicesPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ListIndicesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_list")
 	pb.writeLit("indices")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4835,14 +4835,14 @@ func (p ListIndicesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-shards/
 type ListShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ListShardsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_list")
 	pb.writeLit("shards")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -7404,12 +7404,12 @@ func (p MLUploadModelPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
 type MsearchPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p MsearchPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_msearch")
 	return pb.release(), nil
 }
@@ -7426,12 +7426,12 @@ func (p MsearchPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type MsearchTemplatePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p MsearchTemplatePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_msearch")
 	pb.writeLit("template")
 	return pb.release(), nil
@@ -8298,12 +8298,12 @@ func (p QueryDatasourcesUpdatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/rank-eval/
 type RankEvalPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p RankEvalPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_rank_eval")
 	return pb.release(), nil
 }
@@ -8898,12 +8898,12 @@ func (p ScrollPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/search/
 type SearchPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	return pb.release(), nil
 }
@@ -9414,12 +9414,12 @@ func (p SearchRelevancePutSearchConfigurationsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type SearchShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchShardsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search_shards")
 	return pb.release(), nil
 }
@@ -9436,12 +9436,12 @@ func (p SearchShardsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type SearchTemplatePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchTemplatePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	pb.writeLit("template")
 	return pb.release(), nil
@@ -12545,15 +12545,15 @@ func (p UpdatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-by-query/
 type UpdateByQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p UpdateByQueryPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("UpdateByQueryPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("UpdateByQueryPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_update_by_query")
 	return pb.release(), nil
 }

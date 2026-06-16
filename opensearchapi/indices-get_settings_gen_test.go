@@ -40,7 +40,7 @@ func TestIndicesGetSettingsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesGetSettingsReq{Name: []string{"a", "b"}, Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesGetSettingsReq{Name: []string{"a", "b"}, Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_settings/a,b",
 			wantErr:    false,

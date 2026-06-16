@@ -37,7 +37,7 @@ func TestRefreshSearchAnalyzersReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        ism.RefreshSearchAnalyzersReq{Index: []string{"a", "b"}},
+			req:        ism.RefreshSearchAnalyzersReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_refresh_search_analyzers/a,b",
 			wantErr:    false,

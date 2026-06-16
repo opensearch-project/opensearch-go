@@ -40,7 +40,7 @@ func TestClusterStateReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.ClusterStateReq{Metric: []string{"a", "b"}, Index: []string{"a", "b"}},
+			req:        opensearchapi.ClusterStateReq{Metric: []string{"a", "b"}, Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/state/a,b/a,b",
 			wantErr:    false,

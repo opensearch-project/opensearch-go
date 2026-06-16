@@ -40,7 +40,7 @@ func TestCatIndicesReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CatIndicesReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CatIndicesReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/indices/a,b",
 			wantErr:    false,

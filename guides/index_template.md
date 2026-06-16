@@ -98,7 +98,7 @@ Now, when you create an index that matches the `books-*` pattern, OpenSearch wil
 	}
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-	getResp, err := client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Index: []string{"books-nonfiction"}})
+	getResp, err := client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Indices: []string{"books-nonfiction"}})
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ When we create an index named `books-fiction-romance`, OpenSearch will apply the
 	}
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-	getResp, err = client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Index: []string{"books-fiction-romance"}})
+	getResp, err = client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Indices: []string{"books-fiction-romance"}})
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ Let us clean up the created templates and indices:
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"books-*"},
+			Indices:  []string{"books-*"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
@@ -245,7 +245,7 @@ When we create an index named `books-fiction-horror`, OpenSearch will apply the 
 	}
 	fmt.Printf("Index created: %t\n", createResp.Acknowledged)
 
-	getResp, err = client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Index: []string{"books-fiction-horror"}})
+	getResp, err = client.Indices.Get(ctx, &opensearchapi.IndicesGetReq{Indices: []string{"books-fiction-horror"}})
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ Let's delete all resources created in this guide:
 	delResp, err = client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"books-*"},
+			Indices:  []string{"books-*"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

@@ -27,14 +27,14 @@ func TestManual_Cat(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cat")
 	alias := testutil.MustUniqueString(t, "alias-cat")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 	_, err = client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
-		Index: []string{index},
-		Name:  alias,
+		Indices: []string{index},
+		Name:    alias,
 	})
 	require.NoError(t, err)
 	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
@@ -66,8 +66,8 @@ func TestManual_Cat(t *testing.T) {
 			name: "indices",
 			call: func(ctx context.Context) (int, opensearchapi.Inspect, error) {
 				resp, err := client.Cat.Indices(ctx, &opensearchapi.CatIndicesReq{
-					Index:  []string{index},
-					Params: &opensearchapi.CatIndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
+					Indices: []string{index},
+					Params:  &opensearchapi.CatIndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}},
 				})
 				if err != nil {
 					return 0, opensearchapi.Inspect{}, err

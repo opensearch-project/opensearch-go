@@ -107,7 +107,7 @@ When you create a new document for an index, OpenSearch will automatically creat
 
 ```go
     // return status code 404 Not Found
-	existsResp, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
+	existsResp, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ When you create a new document for an index, OpenSearch will automatically creat
 	fmt.Printf("Index: %s\n", indexResp.Result)
 
     // return status code 200 OK
-	existsResp, err = client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
+	existsResp, err = client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
 	if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ The following example updates the `movies` index's number of replicas to `0`:
 	settingsPutResp, err := client.Indices.Settings.Put(
 		ctx,
 		&opensearchapi.IndicesPutSettingsReq{
-			Index:      []string{"burner"},
+			Indices:      []string{"burner"},
 			BodyReader: strings.NewReader(`{"index":{"number_of_replicas":0}}`),
 		},
 	)
@@ -153,7 +153,7 @@ The following example updates the `movies` index's mappings to add a new field n
 	mappingPutResp, err := client.Indices.Mapping.Put(
 		ctx,
 		&opensearchapi.IndicesPutMappingReq{
-			Index:      []string{"movies"},
+			Indices:      []string{"movies"},
 			BodyReader: strings.NewReader(`{"properties":{ "director":{"type":"text"}}}`),
 		},
 	)
@@ -171,7 +171,7 @@ Let's check if the index's settings and mappings have been updated by using the 
 	getResp, err := client.Indices.Get(
 		ctx,
 		&opensearchapi.IndicesGetReq{
-			Index: []string{"movies"},
+			Indices: []string{"movies"},
 		},
 	)
 	if err != nil {
@@ -225,7 +225,7 @@ The response body contains the index's settings and mappings:
 Let's delete the `movies` index by using the `client.Indices.Delete()` action:
 
 ```go
-	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Index: []string{"movies"}})
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Indices: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -238,7 +238,7 @@ We can also delete multiple indices at once:
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies", "paintings", "burner"},
+			Indices:  []string{"movies", "paintings", "burner"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

@@ -28,14 +28,14 @@ func TestSearchTemplate(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-search-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.SearchTemplate(t.Context(), &opensearchapi.SearchTemplateReq{Index: []string{index}, BodyReader: strings.NewReader("{\"source\":\"{\\\"query\\\":{\\\"match_all\\\":{}}}\",\"params\":{}}")})
+		resp, err := client.SearchTemplate(t.Context(), &opensearchapi.SearchTemplateReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"source\":\"{\\\"query\\\":{\\\"match_all\\\":{}}}\",\"params\":{}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestSearchTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.SearchTemplate(t.Context(), &opensearchapi.SearchTemplateReq{Index: []string{index}, BodyReader: strings.NewReader("{\"source\":\"{\\\"query\\\":{\\\"match_all\\\":{}}}\",\"params\":{}}")})
+		res, err := failingClient.SearchTemplate(t.Context(), &opensearchapi.SearchTemplateReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"source\":\"{\\\"query\\\":{\\\"match_all\\\":{}}}\",\"params\":{}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

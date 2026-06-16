@@ -36,7 +36,7 @@ func TestDeleteModel(t *testing.T) {
 	docID := testutil.MustUniqueString(t, "test-delete-model")
 	name := testutil.MustUniqueString(t, "test-delete-model")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})

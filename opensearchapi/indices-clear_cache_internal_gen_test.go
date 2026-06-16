@@ -76,7 +76,7 @@ func TestIndicesClearCacheParams_get(t *testing.T) {
 		},
 		{
 			name:   "index",
-			params: IndicesClearCacheParams{Index: []string{"a", "b"}},
+			params: IndicesClearCacheParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 		{

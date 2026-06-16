@@ -41,14 +41,14 @@ func TestMSearchTemplateReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.MSearchTemplateReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.MSearchTemplateReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_msearch/template",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.MSearchTemplateReq{Index: []string{"x"}, Body: strings.NewReader("{}")},
+			req:        opensearchapi.MSearchTemplateReq{Indices: []string{"x"}, Body: strings.NewReader("{}")},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_msearch/template",
 			wantErr:    false,

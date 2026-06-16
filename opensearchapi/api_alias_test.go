@@ -26,7 +26,7 @@ func TestManual_IndicesAlias(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-alias")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
@@ -43,8 +43,8 @@ func TestManual_IndicesAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("put/"+tt.name, func(t *testing.T) {
 			resp, err := client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
-				Index: []string{index},
-				Name:  tt.alias,
+				Indices: []string{index},
+				Name:    tt.alias,
 			})
 			require.NoError(t, err)
 			require.True(t, resp.Acknowledged)
@@ -55,8 +55,8 @@ func TestManual_IndicesAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("get/"+tt.name, func(t *testing.T) {
 			resp, err := client.Indices.GetAlias(t.Context(), &opensearchapi.IndicesGetAliasReq{
-				Index: []string{index},
-				Name:  []string{tt.alias},
+				Indices: []string{index},
+				Name:    []string{tt.alias},
 			})
 			require.NoError(t, err)
 			require.Contains(t, resp.Entries, index)
@@ -68,8 +68,8 @@ func TestManual_IndicesAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("exists/"+tt.name, func(t *testing.T) {
 			resp, err := client.Indices.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{
-				Index: []string{index},
-				Name:  []string{tt.alias},
+				Indices: []string{index},
+				Name:    []string{tt.alias},
 			})
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -79,8 +79,8 @@ func TestManual_IndicesAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run("delete/"+tt.name, func(t *testing.T) {
 			resp, err := client.Indices.DeleteAlias(t.Context(), &opensearchapi.IndicesDeleteAliasReq{
-				Index: []string{index},
-				Name:  []string{tt.alias},
+				Indices: []string{index},
+				Name:    []string{tt.alias},
 			})
 			require.NoError(t, err)
 			require.True(t, resp.Acknowledged)

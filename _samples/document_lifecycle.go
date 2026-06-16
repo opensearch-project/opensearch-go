@@ -211,7 +211,7 @@ func example() error {
 
 	//
 
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,7 @@ func example() error {
 	upByQueryResp, err := client.UpdateByQuery(
 		ctx,
 		&opensearchapi.UpdateByQueryReq{
-			Index:      []string{"movies"},
+			Indices:    []string{"movies"},
 			Params:     &opensearchapi.UpdateByQueryParams{Q: "year:<1990"},
 			BodyReader: strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
 		},
@@ -246,7 +246,7 @@ func example() error {
 	fmt.Printf("Del Doc:\n%s\n", respAsJson)
 
 	//
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -254,7 +254,7 @@ func example() error {
 	delByQueryResp, err := client.DeleteByQuery(
 		ctx,
 		&opensearchapi.DeleteByQueryReq{
-			Index:      []string{"movies"},
+			Indices:    []string{"movies"},
 			BodyReader: strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
 		},
 	)
@@ -272,8 +272,8 @@ func example() error {
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies", "paintings", "burner"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Indices: []string{"movies", "paintings", "burner"},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

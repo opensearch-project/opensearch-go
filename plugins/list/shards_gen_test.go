@@ -37,7 +37,7 @@ func TestShardsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        list.ShardsReq{Index: []string{"a", "b"}},
+			req:        list.ShardsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_list/shards/a,b",
 			wantErr:    false,

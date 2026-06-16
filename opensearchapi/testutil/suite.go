@@ -122,7 +122,7 @@ func (s *OpenSearchTestSuite) EnsureIndex(indexName string) {
 	ctx := t.Context()
 
 	resp, err := s.Client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
-		Index: []string{indexName},
+		Indices: []string{indexName},
 	})
 	if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
 		return
@@ -143,14 +143,14 @@ func (s *OpenSearchTestSuite) CleanupIndex(indexName string) {
 	ctx := context.Background()
 
 	resp, err := s.Client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
-		Index: []string{indexName},
+		Indices: []string{indexName},
 	})
 	if err != nil || resp == nil || resp.StatusCode != http.StatusOK {
 		return
 	}
 
 	_, err = s.Client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-		Index: []string{indexName},
+		Indices: []string{indexName},
 	})
 	require.NoError(t, err, "Should be able to delete index")
 }

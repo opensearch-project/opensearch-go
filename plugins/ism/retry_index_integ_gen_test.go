@@ -33,14 +33,14 @@ func TestRetryIndex(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-retry-index")
 	name := testutil.MustUniqueString(t, "test-retry-index")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.RetryIndex(t.Context(), &ism.RetryIndexReq{Params: &ism.RetryIndexParams{Index: []string{name}}, Index: []string{index}, Body: &opensearchapi.ISMRetryIndexRequest{}})
+		resp, err := client.RetryIndex(t.Context(), &ism.RetryIndexReq{Params: &ism.RetryIndexParams{Indices: []string{name}}, Indices: []string{index}, Body: &opensearchapi.ISMRetryIndexRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -50,7 +50,7 @@ func TestRetryIndex(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.RetryIndex(t.Context(), &ism.RetryIndexReq{Index: []string{index}, Body: &opensearchapi.ISMRetryIndexRequest{}})
+		res, err := failingClient.RetryIndex(t.Context(), &ism.RetryIndexReq{Indices: []string{index}, Body: &opensearchapi.ISMRetryIndexRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

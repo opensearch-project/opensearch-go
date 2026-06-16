@@ -159,8 +159,8 @@ func example() error {
 
 	// Cleanup.
 	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-		Index:  []string{sourceIndex, destIndex},
-		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+		Indices: []string{sourceIndex, destIndex},
+		Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 	})
 	if err != nil {
 		return err

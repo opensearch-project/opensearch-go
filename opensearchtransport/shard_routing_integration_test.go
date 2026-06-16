@@ -92,7 +92,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	createResp.Body.Close()
 
 	t.Cleanup(func() {
-		delPath, _ := ospath.IndicesDeletePath{Index: []string{index}}.Build()
+		delPath, _ := ospath.IndicesDeletePath{Indices: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
 			delPath, nil)
 		resp, _ := transport.Perform(delReq)
@@ -166,7 +166,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 func querySearchShardsForRouting(t *testing.T, transport *Client, ctx context.Context, index, routing string) int {
 	t.Helper()
 
-	p, _ := ospath.SearchShardsPath{Index: []string{index}}.Build()
+	p, _ := ospath.SearchShardsPath{Indices: []string{index}}.Build()
 	endpoint := url.URL{
 		Path:     p,
 		RawQuery: url.Values{"routing": {routing}}.Encode(),
@@ -331,7 +331,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	createResp.Body.Close()
 
 	t.Cleanup(func() {
-		delPath, _ := ospath.IndicesDeletePath{Index: []string{index}}.Build()
+		delPath, _ := ospath.IndicesDeletePath{Indices: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
 			delPath, nil)
 		resp, _ := transport.Perform(delReq)
@@ -353,7 +353,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	// The router cache creates index slots lazily (on first request).
 	// We need the slot to exist before DiscoverNodes so that
 	// fetchAndUpdateShardPlacement can populate its shardMap.
-	warmPath, _ := ospath.SearchPath{Index: []string{index}}.Build()
+	warmPath, _ := ospath.SearchPath{Indices: []string{index}}.Build()
 	warmReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		warmPath,
 		bytes.NewReader([]byte(`{"query":{"match_all":{}},"size":0}`)))
@@ -438,7 +438,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 					gt = groundTruth{shardNum: shardNum, nodeNames: nodes}
 
 					obs.reset()
-					searchPath, _ := ospath.SearchPath{Index: []string{index}}.Build()
+					searchPath, _ := ospath.SearchPath{Indices: []string{index}}.Build()
 					searchEndpoint := url.URL{
 						Path:     searchPath,
 						RawQuery: url.Values{"routing": {routing}}.Encode(),
@@ -541,7 +541,7 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 ) (shardNum int, nodeNames map[string]struct{}) {
 	t.Helper()
 
-	p, _ := ospath.SearchShardsPath{Index: []string{index}}.Build()
+	p, _ := ospath.SearchShardsPath{Indices: []string{index}}.Build()
 	endpoint := url.URL{
 		Path:     p,
 		RawQuery: url.Values{"routing": {routing}}.Encode(),
@@ -599,7 +599,7 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, observer *readinessObserver, ctx context.Context, index string) int {
 	t.Helper()
 
-	p, _ := ospath.ClusterStatePath{Metric: []string{"metadata"}, Index: []string{index}}.Build()
+	p, _ := ospath.ClusterStatePath{Metric: []string{"metadata"}, Indices: []string{index}}.Build()
 	endpoint := url.URL{
 		Path:     p,
 		RawQuery: url.Values{"filter_path": {"metadata.indices.*.routing_num_shards"}}.Encode(),

@@ -40,7 +40,7 @@ func TestClusterHealthReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.ClusterHealthReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.ClusterHealthReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cluster/health/a,b",
 			wantErr:    false,

@@ -26,12 +26,12 @@ func TestPutParams_get(t *testing.T) {
 		{name: "empty", params: PutParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: PutParams{IfPrimaryTerm: 42},
+			params: PutParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_seq_no",
-			params: PutParams{IfSeqNo: 42},
+			params: PutParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 	}

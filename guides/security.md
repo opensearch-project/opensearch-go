@@ -103,7 +103,7 @@ Every request struct in `opensearchapi` builds its URL through the shared `inter
 - percent-encodes characters that would change the _structure_ of the URL (`/`, `?`, `#`, `%`, whitespace, control bytes, and the `..` sequence), so a value can never escape its segment, add query parameters, or reach a different REST endpoint; and
 - passes everything else through unchanged, including `*`, `,`, `-`, `+`, `<`, `>`, and `_`.
 
-The second group is intentional: those characters are how multi-target syntax is expressed on the wire, and the client does not know whether a given string is meant as a literal name or as a pattern. `IndicesDeleteReq{Index: []string{"logs-2024.01.*"}}` and `IndicesDeleteReq{Index: []string{tenantID}}` look identical to the client; only the application knows whether the value on the right is a pattern by design or a literal that happens to contain `*`.
+The second group is intentional: those characters are how multi-target syntax is expressed on the wire, and the client does not know whether a given string is meant as a literal name or as a pattern. `IndicesDeleteReq{Indices: []string{"logs-2024.01.*"}}` and `IndicesDeleteReq{Indices: []string{tenantID}}` look identical to the client; only the application knows whether the value on the right is a pattern by design or a literal that happens to contain `*`.
 
 In other words, the client guarantees **URL-structural safety** (your value stays inside one path segment) but does not, and cannot, guarantee **target-selection safety** (your value resolves to exactly the indices you had in mind). That second property depends on what the value _means_, which is application knowledge.
 
@@ -138,7 +138,7 @@ Here is a concrete example showing input validation for a multi-tenant applicati
 // A user supplying "*" would delete all indices.
 func handleDeleteIndex(userInput string) error {
     _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-        Index: []string{userInput},
+        Indices: []string{userInput},
     })
     return err
 }
@@ -156,7 +156,7 @@ func handleDeleteIndex(tenantID, userInput string) error {
         return fmt.Errorf("index %q is not in tenant namespace", userInput)
     }
     _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-        Index: []string{userInput},
+        Indices: []string{userInput},
     })
     return err
 }
@@ -212,7 +212,7 @@ if err != nil {
     return fmt.Errorf("invalid tenant index: %w", err)
 }
 _, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-    Index: []string{idx},
+    Indices: []string{idx},
 })
 ```
 
@@ -238,7 +238,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
   ```go
   // Restrict wildcard expansion to open indices only (exclude closed and hidden).
   resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-      Index: []string{"logs-*"},
+      Indices: []string{"logs-*"},
       Body:  &opensearchapi.SearchBody{
           Query: &opensearchapi.CommonQueryDSLQueryContainer{
               MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
@@ -282,7 +282,7 @@ The `opensearchapi` package provides typed `Body` structs for most operations. U
 // containing a double quote breaks out of the JSON string and can
 // alter the query structure.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:      []string{"products"},
     BodyReader: strings.NewReader(fmt.Sprintf(
         `{"query":{"match":{"title":"%s"}}}`, userQuery,
     )),
@@ -300,7 +300,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 // opensearchutil.NewJSONReader (below) when only the union-shaped
 // `match` form fits the query you need.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
     Body: &opensearchapi.SearchBody{
         Query: &opensearchapi.CommonQueryDSLQueryContainer{
             MatchPhrase: map[string]string{
@@ -324,7 +324,7 @@ body := opensearchutil.NewJSONReader(map[string]any{
     },
 })
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:      []string{"products"},
     BodyReader: body,
 })
 ```
@@ -333,7 +333,7 @@ On the response side, use the typed response fields for structured access. When 
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
     Body:  &opensearchapi.SearchBody{Query: query},
 })
 if err != nil {

@@ -51,7 +51,7 @@ func TestCatRecoveryParams_get(t *testing.T) {
 		},
 		{
 			name:   "index",
-			params: CatRecoveryParams{Index: []string{"a", "b"}},
+			params: CatRecoveryParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"format": "json", "index": "a,b"},
 		},
 		{

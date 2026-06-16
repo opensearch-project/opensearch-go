@@ -337,7 +337,7 @@ func selectorShardMapReady(cache *indexSlotCache, index string, numShards int) f
 // green health for the given index.
 func selectorIndexGreen(transport *Client, ctx context.Context, indexName string) func() bool {
 	var seen atomic.Bool
-	p, _ := ospath.ClusterHealthPath{Index: []string{indexName}}.Build()
+	p, _ := ospath.ClusterHealthPath{Indices: []string{indexName}}.Build()
 	healthURL := url.URL{
 		Path:     p,
 		RawQuery: url.Values{"wait_for_status": {"green"}, "timeout": {"1s"}}.Encode(),

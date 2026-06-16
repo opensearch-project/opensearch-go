@@ -30,8 +30,8 @@ import (
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#warmup-operation
 type WarmupReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -43,7 +43,7 @@ type WarmupReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r WarmupReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.KNNWarmupPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

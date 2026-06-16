@@ -30,7 +30,7 @@ func TestBulkStream(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-bulk-stream")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})

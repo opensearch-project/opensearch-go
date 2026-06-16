@@ -181,14 +181,14 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 		t.Cleanup(func() {
 			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
-				Index:  []string{indexName},
-				Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+				Indices: []string{indexName},
+				Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 			})
 		})
 
 		client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-			Index:  []string{indexName},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			Indices: []string{indexName},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 		})
 		createResp, err := client.Indices.Create(
 			ctx,
@@ -208,7 +208,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		// Wait for the index to be fully ready before bulk indexing
 		for attempt := range 10 {
 			healthResp, healthErr := client.Cluster.Health(ctx, &opensearchapi.ClusterHealthReq{
-				Index: []string{indexName},
+				Indices: []string{indexName},
 				Params: &opensearchapi.ClusterHealthParams{
 					WaitForStatus: "green",
 					TimeoutParams: opensearchapi.TimeoutParams{
@@ -336,8 +336,8 @@ func TestBulkIndexerIntegration(t *testing.T) {
 
 					t.Cleanup(func() {
 						client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
-							Index:  []string{indexA, indexB, indexC},
-							Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+							Indices: []string{indexA, indexB, indexC},
+							Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
 						})
 					})
 
@@ -458,7 +458,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					}
 
 					res, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
-						Index: []string{indexA, indexB, indexC},
+						Indices: []string{indexA, indexB, indexC},
 					})
 					if err != nil {
 						t.Fatalf("Unexpected error checking indices: %v", err)

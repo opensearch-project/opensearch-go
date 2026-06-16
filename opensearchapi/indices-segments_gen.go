@@ -37,8 +37,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest
 type IndicesSegmentsReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -50,7 +50,7 @@ type IndicesSegmentsReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesSegmentsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesSegmentsPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

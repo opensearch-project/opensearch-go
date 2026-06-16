@@ -30,8 +30,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#update-managed-index-policy
 type ChangePolicyReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
@@ -51,7 +51,7 @@ type ChangePolicyReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r ChangePolicyReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.ISMChangePolicyPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -86,7 +86,7 @@ func (r ChangePolicyReq) GetRequest(method string) (*http.Request, error) {
 type ChangePolicyParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
-	Index []string
+	Indices []string
 }
 
 func (r ChangePolicyParams) get() map[string]string {
@@ -100,8 +100,8 @@ func (r ChangePolicyParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	return params

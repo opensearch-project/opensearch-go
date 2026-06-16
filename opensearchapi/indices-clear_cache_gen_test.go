@@ -40,7 +40,7 @@ func TestIndicesClearCacheReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesClearCacheReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesClearCacheReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_cache/clear",
 			wantErr:    false,

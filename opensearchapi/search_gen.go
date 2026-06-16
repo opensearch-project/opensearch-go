@@ -38,8 +38,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/search/
 type SearchReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
@@ -59,7 +59,7 @@ type SearchReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r SearchReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.SearchPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -206,7 +206,7 @@ type SearchParams struct {
 	// A comma-separated list of data streams, indexes, and aliases to search.
 	// Supports wildcards (`*`). To search all data streams and indexes, omit
 	// this parameter or use `*` or `_all`.
-	Index []string
+	Indices []string
 
 	// If `true`, format-based query failures (such as providing text to a
 	// numeric field) in the query string will be ignored. This parameter can
@@ -298,7 +298,7 @@ type SearchParams struct {
 	// page through more hits, use the `search_after` parameter.
 	//
 	// Default: 10.
-	Size int
+	Size *int
 
 	// A comma-separated list of <field>:<direction> pairs.
 	Sort []string
@@ -457,8 +457,8 @@ func (r SearchParams) get() map[string]string {
 		set("include_named_queries_score", strconv.FormatBool(*r.IncludeNamedQueriesScore))
 	}
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	if r.Lenient != nil {
@@ -513,8 +513,8 @@ func (r SearchParams) get() map[string]string {
 		set("seq_no_primary_term", strconv.FormatBool(*r.SeqNoPrimaryTerm))
 	}
 
-	if r.Size != 0 {
-		set("size", strconv.Itoa(r.Size))
+	if r.Size != nil {
+		set("size", strconv.Itoa(*r.Size))
 	}
 
 	if len(r.Sort) > 0 {

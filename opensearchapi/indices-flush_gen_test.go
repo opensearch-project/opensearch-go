@@ -40,7 +40,7 @@ func TestIndicesFlushReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesFlushReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesFlushReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_flush",
 			wantErr:    false,

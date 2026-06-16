@@ -26,7 +26,7 @@ func TestManual_Aggregation(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-agg")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
@@ -190,7 +190,7 @@ func TestManual_Aggregation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(tt.query),
 			})
 			require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestManual_Aggregation(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.Search(t.Context(), &opensearchapi.SearchReq{
-			Index:      []string{index},
+			Indices:    []string{index},
 			BodyReader: strings.NewReader(`{"size":0,"aggs":{"x":{"terms":{"field":"category"}}}}`),
 		})
 		require.Error(t, err)

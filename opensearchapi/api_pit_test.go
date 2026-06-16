@@ -29,7 +29,7 @@ func TestManual_PIT(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-pit")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
@@ -49,8 +49,8 @@ func TestManual_PIT(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			createResp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
-				Index:  []string{index},
-				Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
+				Indices: []string{index},
+				Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 			})
 			require.NoError(t, err)
 			require.NotNil(t, createResp.PITID)
@@ -86,8 +86,8 @@ func TestManual_PIT(t *testing.T) {
 
 	t.Run("delete all pits", func(t *testing.T) {
 		_, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
-			Index:  []string{index},
-			Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
+			Indices: []string{index},
+			Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 		})
 		require.NoError(t, err)
 

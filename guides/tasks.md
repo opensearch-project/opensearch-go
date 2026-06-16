@@ -266,7 +266,7 @@ func bulkByScrollStatus(status *opensearchapi.TasksTaskInfoBaseStatus) opensearc
 
 ```go
 	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-		Index:  []string{sourceIndex, destIndex},
+		Indices:  []string{sourceIndex, destIndex},
 		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 	})
 	if err != nil {

@@ -32,8 +32,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/delete-index/
 type IndicesDeleteReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -45,7 +45,7 @@ type IndicesDeleteReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesDeleteReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesDeletePath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

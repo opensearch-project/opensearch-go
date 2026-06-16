@@ -26,7 +26,7 @@ func TestManual_IndicesSettings(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-settings")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
@@ -53,7 +53,7 @@ func TestManual_IndicesSettings(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				putResp, err := client.Indices.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{
-					Index:      []string{index},
+					Indices:    []string{index},
 					BodyReader: strings.NewReader(tt.settings),
 				})
 				require.NoError(t, err)
@@ -61,7 +61,7 @@ func TestManual_IndicesSettings(t *testing.T) {
 				testutil.CompareRawJSONwithParsedJSON(t, putResp, putResp.Inspect().Response)
 
 				getResp, err := client.Indices.GetSettings(t.Context(), &opensearchapi.IndicesGetSettingsReq{
-					Index: []string{index},
+					Indices: []string{index},
 				})
 				require.NoError(t, err)
 				require.Contains(t, getResp.Entries, tt.checkKey)
@@ -87,7 +87,7 @@ func TestManual_IndicesMapping(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-mapping")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
@@ -110,7 +110,7 @@ func TestManual_IndicesMapping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			putResp, err := client.Indices.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(tt.mapping),
 			})
 			require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestManual_IndicesMapping(t *testing.T) {
 
 	t.Run("get mapping", func(t *testing.T) {
 		resp, err := client.Indices.GetMapping(t.Context(), &opensearchapi.IndicesGetMappingReq{
-			Index: []string{index},
+			Indices: []string{index},
 		})
 		require.NoError(t, err)
 		require.Contains(t, resp.Entries, index)

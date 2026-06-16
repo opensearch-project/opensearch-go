@@ -32,14 +32,14 @@ func TestRefreshSearchAnalyzers(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-refresh-search-analyzers")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Index: []string{index}})
+		resp, err := client.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -49,7 +49,7 @@ func TestRefreshSearchAnalyzers(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Index: []string{index}})
+		res, err := failingClient.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

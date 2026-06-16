@@ -26,7 +26,7 @@ func TestManual_DocumentGet(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-doc-get")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
@@ -92,7 +92,7 @@ func TestManual_DocumentMget(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-doc-mget")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	for _, id := range []string{"doc-1", "doc-2", "doc-3"} {
@@ -155,7 +155,7 @@ func TestManual_DocumentUpdate(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-doc-update")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	for _, id := range []string{"doc-1", "doc-2"} {
@@ -221,7 +221,7 @@ func TestManual_DeleteByQuery(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-del-by-query")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	for i := range 5 {
@@ -246,7 +246,7 @@ func TestManual_DeleteByQuery(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(tt.query),
 			})
 			require.NoError(t, err)
@@ -261,7 +261,7 @@ func TestManual_DeleteByQuery(t *testing.T) {
 		require.NoError(t, err)
 
 		res, err := failingClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{
-			Index:      []string{index},
+			Indices:    []string{index},
 			BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 		})
 		require.Error(t, err)

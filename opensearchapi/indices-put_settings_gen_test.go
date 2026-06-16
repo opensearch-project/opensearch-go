@@ -41,7 +41,7 @@ func TestIndicesPutSettingsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesPutSettingsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesPutSettingsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPut,
 			wantPath:   "/a,b/_settings",
 			wantErr:    false,

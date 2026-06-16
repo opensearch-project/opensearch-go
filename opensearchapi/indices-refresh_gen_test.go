@@ -40,7 +40,7 @@ func TestIndicesRefreshReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesRefreshReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesRefreshReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_refresh",
 			wantErr:    false,

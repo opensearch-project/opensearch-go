@@ -34,8 +34,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-plugins/
 type CatRecoveryReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -47,7 +47,7 @@ type CatRecoveryReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r CatRecoveryReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.CatRecoveryPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -92,7 +92,7 @@ type CatRecoveryParams struct {
 	// A comma-separated list of data streams, indexes, and aliases used to
 	// limit the request. Supports wildcards (`*`). To target all data streams
 	// and indexes, omit this parameter or use `*` or `_all`.
-	Index []string
+	Indices []string
 
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
@@ -126,8 +126,8 @@ func (r CatRecoveryParams) get() map[string]string {
 		set("detailed", strconv.FormatBool(*r.Detailed))
 	}
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	if r.Time != "" {

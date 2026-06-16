@@ -40,7 +40,7 @@ func TestIndicesOpenReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesOpenReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesOpenReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_open",
 			wantErr:    false,
@@ -77,7 +77,7 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Index: []string{"test"}})
+		resp, err := client.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Indices: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Index: []string{"test"}})
+		resp, err := errClient.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Indices: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -40,7 +40,7 @@ func TestCatRecoveryReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CatRecoveryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CatRecoveryReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/recovery/a,b",
 			wantErr:    false,

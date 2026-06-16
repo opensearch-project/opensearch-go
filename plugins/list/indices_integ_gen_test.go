@@ -33,14 +33,14 @@ func TestIndices(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices(t.Context(), &list.IndicesReq{Params: &list.IndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Index: []string{index}})
+		resp, err := client.Indices(t.Context(), &list.IndicesReq{Params: &list.IndicesParams{DebugParams: opensearchapi.DebugParams{Format: "json"}}, Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -50,7 +50,7 @@ func TestIndices(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices(t.Context(), &list.IndicesReq{Index: []string{index}})
+		res, err := failingClient.Indices(t.Context(), &list.IndicesReq{Indices: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

@@ -29,7 +29,7 @@ func TestIndicesGetIndexTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-get-index-template")
 	name := testutil.MustUniqueString(t, "test-indices-get-index-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{

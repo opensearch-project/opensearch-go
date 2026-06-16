@@ -37,7 +37,7 @@ func TestWarmupReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        knn.WarmupReq{Index: []string{"a", "b"}},
+			req:        knn.WarmupReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_knn/warmup/a,b",
 			wantErr:    false,

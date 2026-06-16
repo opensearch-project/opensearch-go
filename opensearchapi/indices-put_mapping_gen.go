@@ -36,8 +36,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
 type IndicesPutMappingReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
@@ -57,7 +57,7 @@ type IndicesPutMappingReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesPutMappingReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesPutMappingPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

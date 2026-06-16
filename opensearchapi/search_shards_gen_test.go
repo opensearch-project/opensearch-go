@@ -40,14 +40,14 @@ func TestSearchShardsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.SearchShardsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.SearchShardsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_search_shards",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.SearchShardsReq{Index: []string{"x"}, Body: &opensearchapi.SearchShardsBody{}},
+			req:        opensearchapi.SearchShardsReq{Indices: []string{"x"}, Body: &opensearchapi.SearchShardsBody{}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_search_shards",
 			wantErr:    false,

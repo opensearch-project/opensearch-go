@@ -27,7 +27,7 @@ func TestManual_Scroll(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-scroll")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	ndjson := strings.Join([]string{
@@ -47,7 +47,7 @@ func TestManual_Scroll(t *testing.T) {
 
 	t.Run("scroll lifecycle", func(t *testing.T) {
 		searchResp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
-			Index:      []string{index},
+			Indices:    []string{index},
 			BodyReader: strings.NewReader(`{"query":{"match_all":{}},"size":1}`),
 			Params:     &opensearchapi.SearchParams{Scroll: 1 * time.Minute},
 		})

@@ -30,8 +30,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#remove-policy
 type RemovePolicyReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -43,7 +43,7 @@ type RemovePolicyReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r RemovePolicyReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.ISMRemovePolicyPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (r RemovePolicyReq) GetRequest(method string) (*http.Request, error) {
 type RemovePolicyParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
-	Index []string
+	Indices []string
 }
 
 func (r RemovePolicyParams) get() map[string]string {
@@ -81,8 +81,8 @@ func (r RemovePolicyParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	return params

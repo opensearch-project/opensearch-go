@@ -41,7 +41,7 @@ func TestUpdateByQueryReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.UpdateByQueryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.UpdateByQueryReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_update_by_query",
 			wantErr:    false,
@@ -78,7 +78,7 @@ func TestUpdateByQuery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := client.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestUpdateByQuery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.UpdateByQuery(t.Context(), &opensearchapi.UpdateByQueryReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

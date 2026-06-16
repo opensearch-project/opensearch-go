@@ -40,7 +40,7 @@ func TestCatSegmentReplicationReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CatSegmentReplicationReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CatSegmentReplicationReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/segment_replication/a,b",
 			wantErr:    false,

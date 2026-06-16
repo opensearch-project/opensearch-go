@@ -37,7 +37,7 @@ func TestAddPolicyReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        ism.AddPolicyReq{Index: []string{"a", "b"}},
+			req:        ism.AddPolicyReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/add/a,b",
 			wantErr:    false,

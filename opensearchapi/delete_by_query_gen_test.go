@@ -41,7 +41,7 @@ func TestDeleteByQueryReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.DeleteByQueryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.DeleteByQueryReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_delete_by_query",
 			wantErr:    false,
@@ -78,7 +78,7 @@ func TestDeleteByQuery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestDeleteByQuery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -349,8 +349,8 @@ func TestCatCountPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatCountPath{}, wantPath: "/_cat/count", wantErr: false},
-		{name: "all fields", path: CatCountPath{Index: []string{"test-index"}}, wantPath: "/_cat/count/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatCountPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/count/a,b,c", wantErr: false},
+		{name: "all fields", path: CatCountPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/count/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatCountPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/count/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -453,8 +453,8 @@ func TestCatIndicesPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatIndicesPath{}, wantPath: "/_cat/indices", wantErr: false},
-		{name: "all fields", path: CatIndicesPath{Index: []string{"test-index"}}, wantPath: "/_cat/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatIndicesPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/indices/a,b,c", wantErr: false},
+		{name: "all fields", path: CatIndicesPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/indices/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatIndicesPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -630,8 +630,8 @@ func TestCatRecoveryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatRecoveryPath{}, wantPath: "/_cat/recovery", wantErr: false},
-		{name: "all fields", path: CatRecoveryPath{Index: []string{"test-index"}}, wantPath: "/_cat/recovery/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatRecoveryPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/recovery/a,b,c", wantErr: false},
+		{name: "all fields", path: CatRecoveryPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/recovery/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatRecoveryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/recovery/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -682,8 +682,8 @@ func TestCatSegmentReplicationPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatSegmentReplicationPath{}, wantPath: "/_cat/segment_replication", wantErr: false},
-		{name: "all fields", path: CatSegmentReplicationPath{Index: []string{"test-index"}}, wantPath: "/_cat/segment_replication/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentReplicationPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/segment_replication/a,b,c", wantErr: false},
+		{name: "all fields", path: CatSegmentReplicationPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/segment_replication/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatSegmentReplicationPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/segment_replication/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -709,8 +709,8 @@ func TestCatSegmentsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatSegmentsPath{}, wantPath: "/_cat/segments", wantErr: false},
-		{name: "all fields", path: CatSegmentsPath{Index: []string{"test-index"}}, wantPath: "/_cat/segments/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/segments/a,b,c", wantErr: false},
+		{name: "all fields", path: CatSegmentsPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/segments/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatSegmentsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/segments/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -736,8 +736,8 @@ func TestCatShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatShardsPath{}, wantPath: "/_cat/shards", wantErr: false},
-		{name: "all fields", path: CatShardsPath{Index: []string{"test-index"}}, wantPath: "/_cat/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/shards/a,b,c", wantErr: false},
+		{name: "all fields", path: CatShardsPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/shards/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1150,8 +1150,8 @@ func TestClusterHealthPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ClusterHealthPath{}, wantPath: "/_cluster/health", wantErr: false},
-		{name: "all fields", path: ClusterHealthPath{Index: []string{"test-index"}}, wantPath: "/_cluster/health/test-index", wantErr: false},
-		{name: "Index multi-value", path: ClusterHealthPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cluster/health/a,b,c", wantErr: false},
+		{name: "all fields", path: ClusterHealthPath{Indices: []string{"test-indices"}}, wantPath: "/_cluster/health/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ClusterHealthPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cluster/health/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1382,11 +1382,11 @@ func TestClusterStatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ClusterStatePath{}, wantPath: "/_cluster/state", wantErr: false},
-		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Index: []string{"test-index"}}, wantPath: "/_cluster/state/test-metric/test-index", wantErr: false},
+		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Indices: []string{"test-indices"}}, wantPath: "/_cluster/state/test-metric/test-indices", wantErr: false},
 		{name: "only Metric", path: ClusterStatePath{Metric: []string{"val-metric"}}, wantPath: "/_cluster/state/val-metric", wantErr: false},
-		{name: "only Index", path: ClusterStatePath{Index: []string{"val-index"}}, wantPath: "", wantErr: true},
+		{name: "only Indices", path: ClusterStatePath{Indices: []string{"val-indices"}}, wantPath: "", wantErr: true},
 		{name: "Metric multi-value", path: ClusterStatePath{Metric: []string{"a", "b", "c"}}, wantPath: "/_cluster/state/a,b,c", wantErr: false},
-		{name: "Index multi-value", path: ClusterStatePath{Index: []string{"a", "b", "c"}}, wantPath: "", wantErr: true},
+		{name: "Indices multi-value", path: ClusterStatePath{Indices: []string{"a", "b", "c"}}, wantPath: "", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1444,8 +1444,8 @@ func TestCountPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CountPath{}, wantPath: "/_count", wantErr: false},
-		{name: "all fields", path: CountPath{Index: []string{"test-index"}}, wantPath: "/test-index/_count", wantErr: false},
-		{name: "Index multi-value", path: CountPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_count", wantErr: false},
+		{name: "all fields", path: CountPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_count", wantErr: false},
+		{name: "Indices multi-value", path: CountPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_count", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1499,8 +1499,8 @@ func TestCreatePITPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: CreatePITPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: CreatePITPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search/point_in_time", wantErr: false},
-		{name: "Index multi-value", path: CreatePITPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/point_in_time", wantErr: false},
+		{name: "all fields", path: CreatePITPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search/point_in_time", wantErr: false},
+		{name: "Indices multi-value", path: CreatePITPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/point_in_time", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1656,8 +1656,8 @@ func TestDeleteByQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: DeleteByQueryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: DeleteByQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_delete_by_query", wantErr: false},
-		{name: "Index multi-value", path: DeleteByQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_delete_by_query", wantErr: false},
+		{name: "all fields", path: DeleteByQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_delete_by_query", wantErr: false},
+		{name: "Indices multi-value", path: DeleteByQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_delete_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1844,8 +1844,8 @@ func TestFieldCapsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: FieldCapsPath{}, wantPath: "/_field_caps", wantErr: false},
-		{name: "all fields", path: FieldCapsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_field_caps", wantErr: false},
-		{name: "Index multi-value", path: FieldCapsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_field_caps", wantErr: false},
+		{name: "all fields", path: FieldCapsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_field_caps", wantErr: false},
+		{name: "Indices multi-value", path: FieldCapsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_field_caps", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2490,10 +2490,10 @@ func TestIndicesAddBlockPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesAddBlockPath{}, wantPath: "", wantErr: true},
-		{name: "missing Index", path: IndicesAddBlockPath{Block: "req-block"}, wantPath: "", wantErr: true},
-		{name: "missing Block", path: IndicesAddBlockPath{Index: []string{"req-index"}}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesAddBlockPath{Index: []string{"test-index"}, Block: "test-block"}, wantPath: "/test-index/_block/test-block", wantErr: false},
-		{name: "Index multi-value", path: IndicesAddBlockPath{Index: []string{"a", "b", "c"}, Block: "req-block"}, wantPath: "/a,b,c/_block/req-block", wantErr: false},
+		{name: "missing Indices", path: IndicesAddBlockPath{Block: "req-block"}, wantPath: "", wantErr: true},
+		{name: "missing Block", path: IndicesAddBlockPath{Indices: []string{"req-indices"}}, wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesAddBlockPath{Indices: []string{"test-indices"}, Block: "test-block"}, wantPath: "/test-indices/_block/test-block", wantErr: false},
+		{name: "Indices multi-value", path: IndicesAddBlockPath{Indices: []string{"a", "b", "c"}, Block: "req-block"}, wantPath: "/a,b,c/_block/req-block", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2545,8 +2545,8 @@ func TestIndicesClearCachePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesClearCachePath{}, wantPath: "/_cache/clear", wantErr: false},
-		{name: "all fields", path: IndicesClearCachePath{Index: []string{"test-index"}}, wantPath: "/test-index/_cache/clear", wantErr: false},
-		{name: "Index multi-value", path: IndicesClearCachePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_cache/clear", wantErr: false},
+		{name: "all fields", path: IndicesClearCachePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_cache/clear", wantErr: false},
+		{name: "Indices multi-value", path: IndicesClearCachePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_cache/clear", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2600,8 +2600,8 @@ func TestIndicesClosePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesClosePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesClosePath{Index: []string{"test-index"}}, wantPath: "/test-index/_close", wantErr: false},
-		{name: "Index multi-value", path: IndicesClosePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_close", wantErr: false},
+		{name: "all fields", path: IndicesClosePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_close", wantErr: false},
+		{name: "Indices multi-value", path: IndicesClosePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_close", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2706,8 +2706,8 @@ func TestIndicesDeletePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesDeletePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesDeletePath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeletePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesDeletePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesDeletePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2733,11 +2733,11 @@ func TestIndicesDeleteAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesDeleteAliasPath{}, wantPath: "", wantErr: true},
-		{name: "missing Index", path: IndicesDeleteAliasPath{Name: []string{"req-name"}}, wantPath: "", wantErr: true},
-		{name: "missing Name", path: IndicesDeleteAliasPath{Index: []string{"req-index"}}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeleteAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesDeleteAliasPath{Index: []string{"req-index"}, Name: []string{"a", "b", "c"}}, wantPath: "/req-index/_alias/a,b,c", wantErr: false},
+		{name: "missing Indices", path: IndicesDeleteAliasPath{Name: []string{"req-name"}}, wantPath: "", wantErr: true},
+		{name: "missing Name", path: IndicesDeleteAliasPath{Indices: []string{"req-indices"}}, wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "Indices multi-value", path: IndicesDeleteAliasPath{Indices: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesDeleteAliasPath{Indices: []string{"req-indices"}, Name: []string{"a", "b", "c"}}, wantPath: "/req-indices/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2842,8 +2842,8 @@ func TestIndicesExistsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesExistsPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsPath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesExistsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesExistsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2869,8 +2869,8 @@ func TestIndicesExistsAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesExistsAliasPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "all fields", path: IndicesExistsAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "Indices multi-value", path: IndicesExistsAliasPath{Indices: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
 		{name: "Name multi-value", path: IndicesExistsAliasPath{Name: []string{"a", "b", "c"}}, wantPath: "/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -2950,8 +2950,8 @@ func TestIndicesFlushPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesFlushPath{}, wantPath: "/_flush", wantErr: false},
-		{name: "all fields", path: IndicesFlushPath{Index: []string{"test-index"}}, wantPath: "/test-index/_flush", wantErr: false},
-		{name: "Index multi-value", path: IndicesFlushPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_flush", wantErr: false},
+		{name: "all fields", path: IndicesFlushPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_flush", wantErr: false},
+		{name: "Indices multi-value", path: IndicesFlushPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_flush", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2977,8 +2977,8 @@ func TestIndicesForcemergePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesForcemergePath{}, wantPath: "/_forcemerge", wantErr: false},
-		{name: "all fields", path: IndicesForcemergePath{Index: []string{"test-index"}}, wantPath: "/test-index/_forcemerge", wantErr: false},
-		{name: "Index multi-value", path: IndicesForcemergePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_forcemerge", wantErr: false},
+		{name: "all fields", path: IndicesForcemergePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_forcemerge", wantErr: false},
+		{name: "Indices multi-value", path: IndicesForcemergePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_forcemerge", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3004,8 +3004,8 @@ func TestIndicesGetPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesGetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesGetPath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesGetPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3031,10 +3031,10 @@ func TestIndicesGetAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetAliasPath{}, wantPath: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesGetAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetAliasPath{Index: []string{"val-index"}}, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "all fields", path: IndicesGetAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesGetAliasPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_alias", wantErr: false},
 		{name: "only Name", path: IndicesGetAliasPath{Name: []string{"val-name"}}, wantPath: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetAliasPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetAliasPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
 		{name: "Name multi-value", path: IndicesGetAliasPath{Name: []string{"a", "b", "c"}}, wantPath: "/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3088,8 +3088,8 @@ func TestIndicesGetFieldMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesGetFieldMappingPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesGetFieldMappingPath{Index: []string{"test-index"}, Fields: []string{"test-fields"}}, wantPath: "/test-index/_mapping/field/test-fields", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetFieldMappingPath{Index: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, wantPath: "/a,b,c/_mapping/field/req-fields", wantErr: false},
+		{name: "all fields", path: IndicesGetFieldMappingPath{Indices: []string{"test-indices"}, Fields: []string{"test-fields"}}, wantPath: "/test-indices/_mapping/field/test-fields", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetFieldMappingPath{Indices: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, wantPath: "/a,b,c/_mapping/field/req-fields", wantErr: false},
 		{name: "Fields multi-value", path: IndicesGetFieldMappingPath{Fields: []string{"a", "b", "c"}}, wantPath: "/_mapping/field/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3142,8 +3142,8 @@ func TestIndicesGetMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetMappingPath{}, wantPath: "/_mapping", wantErr: false},
-		{name: "all fields", path: IndicesGetMappingPath{Index: []string{"test-index"}}, wantPath: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetMappingPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
+		{name: "all fields", path: IndicesGetMappingPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_mapping", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetMappingPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3169,10 +3169,10 @@ func TestIndicesGetSettingsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetSettingsPath{}, wantPath: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesGetSettingsPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_settings/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetSettingsPath{Index: []string{"val-index"}}, wantPath: "/val-index/_settings", wantErr: false},
+		{name: "all fields", path: IndicesGetSettingsPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_settings/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesGetSettingsPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_settings", wantErr: false},
 		{name: "only Name", path: IndicesGetSettingsPath{Name: []string{"val-name"}}, wantPath: "/_settings/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetSettingsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetSettingsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
 		{name: "Name multi-value", path: IndicesGetSettingsPath{Name: []string{"a", "b", "c"}}, wantPath: "/_settings/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3226,8 +3226,8 @@ func TestIndicesGetUpgradePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetUpgradePath{}, wantPath: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesGetUpgradePath{Index: []string{"test-index"}}, wantPath: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetUpgradePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesGetUpgradePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_upgrade", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetUpgradePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3253,8 +3253,8 @@ func TestIndicesOpenPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesOpenPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesOpenPath{Index: []string{"test-index"}}, wantPath: "/test-index/_open", wantErr: false},
-		{name: "Index multi-value", path: IndicesOpenPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_open", wantErr: false},
+		{name: "all fields", path: IndicesOpenPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_open", wantErr: false},
+		{name: "Indices multi-value", path: IndicesOpenPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_open", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3280,10 +3280,10 @@ func TestIndicesPutAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesPutAliasPath{}, wantPath: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesPutAliasPath{Index: []string{"test-index"}, Name: "test-name"}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesPutAliasPath{Index: []string{"val-index"}}, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "all fields", path: IndicesPutAliasPath{Indices: []string{"test-indices"}, Name: "test-name"}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesPutAliasPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_alias", wantErr: false},
 		{name: "only Name", path: IndicesPutAliasPath{Name: "val-name"}, wantPath: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutAliasPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutAliasPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3335,8 +3335,8 @@ func TestIndicesPutMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesPutMappingPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesPutMappingPath{Index: []string{"test-index"}}, wantPath: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutMappingPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
+		{name: "all fields", path: IndicesPutMappingPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_mapping", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutMappingPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3362,8 +3362,8 @@ func TestIndicesPutSettingsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesPutSettingsPath{}, wantPath: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesPutSettingsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_settings", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutSettingsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
+		{name: "all fields", path: IndicesPutSettingsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_settings", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutSettingsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3415,8 +3415,8 @@ func TestIndicesRecoveryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesRecoveryPath{}, wantPath: "/_recovery", wantErr: false},
-		{name: "all fields", path: IndicesRecoveryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_recovery", wantErr: false},
-		{name: "Index multi-value", path: IndicesRecoveryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_recovery", wantErr: false},
+		{name: "all fields", path: IndicesRecoveryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_recovery", wantErr: false},
+		{name: "Indices multi-value", path: IndicesRecoveryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_recovery", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3442,8 +3442,8 @@ func TestIndicesRefreshPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesRefreshPath{}, wantPath: "/_refresh", wantErr: false},
-		{name: "all fields", path: IndicesRefreshPath{Index: []string{"test-index"}}, wantPath: "/test-index/_refresh", wantErr: false},
-		{name: "Index multi-value", path: IndicesRefreshPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_refresh", wantErr: false},
+		{name: "all fields", path: IndicesRefreshPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_refresh", wantErr: false},
+		{name: "Indices multi-value", path: IndicesRefreshPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_refresh", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3522,8 +3522,8 @@ func TestIndicesSegmentsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesSegmentsPath{}, wantPath: "/_segments", wantErr: false},
-		{name: "all fields", path: IndicesSegmentsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_segments", wantErr: false},
-		{name: "Index multi-value", path: IndicesSegmentsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_segments", wantErr: false},
+		{name: "all fields", path: IndicesSegmentsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_segments", wantErr: false},
+		{name: "Indices multi-value", path: IndicesSegmentsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_segments", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3549,8 +3549,8 @@ func TestIndicesShardStoresPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesShardStoresPath{}, wantPath: "/_shard_stores", wantErr: false},
-		{name: "all fields", path: IndicesShardStoresPath{Index: []string{"test-index"}}, wantPath: "/test-index/_shard_stores", wantErr: false},
-		{name: "Index multi-value", path: IndicesShardStoresPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_shard_stores", wantErr: false},
+		{name: "all fields", path: IndicesShardStoresPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_shard_stores", wantErr: false},
+		{name: "Indices multi-value", path: IndicesShardStoresPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_shard_stores", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3684,10 +3684,10 @@ func TestIndicesStatsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesStatsPath{}, wantPath: "/_stats", wantErr: false},
-		{name: "all fields", path: IndicesStatsPath{Index: []string{"test-index"}, Metric: []string{"test-metric"}}, wantPath: "/test-index/_stats/test-metric", wantErr: false},
-		{name: "only Index", path: IndicesStatsPath{Index: []string{"val-index"}}, wantPath: "/val-index/_stats", wantErr: false},
+		{name: "all fields", path: IndicesStatsPath{Indices: []string{"test-indices"}, Metric: []string{"test-metric"}}, wantPath: "/test-indices/_stats/test-metric", wantErr: false},
+		{name: "only Indices", path: IndicesStatsPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_stats", wantErr: false},
 		{name: "only Metric", path: IndicesStatsPath{Metric: []string{"val-metric"}}, wantPath: "/_stats/val-metric", wantErr: false},
-		{name: "Index multi-value", path: IndicesStatsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_stats", wantErr: false},
+		{name: "Indices multi-value", path: IndicesStatsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_stats", wantErr: false},
 		{name: "Metric multi-value", path: IndicesStatsPath{Metric: []string{"a", "b", "c"}}, wantPath: "/_stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3739,8 +3739,8 @@ func TestIndicesUpgradePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesUpgradePath{}, wantPath: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesUpgradePath{Index: []string{"test-index"}}, wantPath: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesUpgradePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesUpgradePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_upgrade", wantErr: false},
+		{name: "Indices multi-value", path: IndicesUpgradePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3766,8 +3766,8 @@ func TestIndicesValidateQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesValidateQueryPath{}, wantPath: "/_validate/query", wantErr: false},
-		{name: "all fields", path: IndicesValidateQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_validate/query", wantErr: false},
-		{name: "Index multi-value", path: IndicesValidateQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_validate/query", wantErr: false},
+		{name: "all fields", path: IndicesValidateQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_validate/query", wantErr: false},
+		{name: "Indices multi-value", path: IndicesValidateQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_validate/query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4050,8 +4050,8 @@ func TestISMAddPolicyPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ISMAddPolicyPath{}, wantPath: "/_plugins/_ism/add", wantErr: false},
-		{name: "all fields", path: ISMAddPolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/add/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMAddPolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/add/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMAddPolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/add/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMAddPolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/add/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4077,8 +4077,8 @@ func TestISMChangePolicyPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ISMChangePolicyPath{}, wantPath: "/_plugins/_ism/change_policy", wantErr: false},
-		{name: "all fields", path: ISMChangePolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/change_policy/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMChangePolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/change_policy/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMChangePolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/change_policy/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMChangePolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/change_policy/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4156,8 +4156,8 @@ func TestISMExplainPolicyPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ISMExplainPolicyPath{}, wantPath: "/_plugins/_ism/explain", wantErr: false},
-		{name: "all fields", path: ISMExplainPolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/explain/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMExplainPolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/explain/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMExplainPolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/explain/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMExplainPolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/explain/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4285,8 +4285,8 @@ func TestISMRefreshSearchAnalyzersPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: ISMRefreshSearchAnalyzersPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: ISMRefreshSearchAnalyzersPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_refresh_search_analyzers/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMRefreshSearchAnalyzersPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_refresh_search_analyzers/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMRefreshSearchAnalyzersPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_refresh_search_analyzers/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRefreshSearchAnalyzersPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_refresh_search_analyzers/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4312,8 +4312,8 @@ func TestISMRemovePolicyPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ISMRemovePolicyPath{}, wantPath: "/_plugins/_ism/remove", wantErr: false},
-		{name: "all fields", path: ISMRemovePolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/remove/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMRemovePolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/remove/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMRemovePolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/remove/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRemovePolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/remove/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4339,8 +4339,8 @@ func TestISMRetryIndexPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ISMRetryIndexPath{}, wantPath: "/_plugins/_ism/retry", wantErr: false},
-		{name: "all fields", path: ISMRetryIndexPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/retry/test-index", wantErr: false},
-		{name: "Index multi-value", path: ISMRetryIndexPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/retry/a,b,c", wantErr: false},
+		{name: "all fields", path: ISMRetryIndexPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/retry/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRetryIndexPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/retry/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4499,8 +4499,8 @@ func TestKNNWarmupPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: KNNWarmupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: KNNWarmupPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_knn/warmup/test-index", wantErr: false},
-		{name: "Index multi-value", path: KNNWarmupPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
+		{name: "all fields", path: KNNWarmupPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_knn/warmup/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: KNNWarmupPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4551,8 +4551,8 @@ func TestListIndicesPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ListIndicesPath{}, wantPath: "/_list/indices", wantErr: false},
-		{name: "all fields", path: ListIndicesPath{Index: []string{"test-index"}}, wantPath: "/_list/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListIndicesPath{Index: []string{"a", "b", "c"}}, wantPath: "/_list/indices/a,b,c", wantErr: false},
+		{name: "all fields", path: ListIndicesPath{Indices: []string{"test-indices"}}, wantPath: "/_list/indices/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ListIndicesPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_list/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4578,8 +4578,8 @@ func TestListShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ListShardsPath{}, wantPath: "/_list/shards", wantErr: false},
-		{name: "all fields", path: ListShardsPath{Index: []string{"test-index"}}, wantPath: "/_list/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_list/shards/a,b,c", wantErr: false},
+		{name: "all fields", path: ListShardsPath{Indices: []string{"test-indices"}}, wantPath: "/_list/shards/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ListShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_list/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7236,8 +7236,8 @@ func TestMsearchPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: MsearchPath{}, wantPath: "/_msearch", wantErr: false},
-		{name: "all fields", path: MsearchPath{Index: []string{"test-index"}}, wantPath: "/test-index/_msearch", wantErr: false},
-		{name: "Index multi-value", path: MsearchPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch", wantErr: false},
+		{name: "all fields", path: MsearchPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_msearch", wantErr: false},
+		{name: "Indices multi-value", path: MsearchPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7263,8 +7263,8 @@ func TestMsearchTemplatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: MsearchTemplatePath{}, wantPath: "/_msearch/template", wantErr: false},
-		{name: "all fields", path: MsearchTemplatePath{Index: []string{"test-index"}}, wantPath: "/test-index/_msearch/template", wantErr: false},
-		{name: "Index multi-value", path: MsearchTemplatePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch/template", wantErr: false},
+		{name: "all fields", path: MsearchTemplatePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_msearch/template", wantErr: false},
+		{name: "Indices multi-value", path: MsearchTemplatePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -8176,8 +8176,8 @@ func TestRankEvalPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: RankEvalPath{}, wantPath: "/_rank_eval", wantErr: false},
-		{name: "all fields", path: RankEvalPath{Index: []string{"test-index"}}, wantPath: "/test-index/_rank_eval", wantErr: false},
-		{name: "Index multi-value", path: RankEvalPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_rank_eval", wantErr: false},
+		{name: "all fields", path: RankEvalPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_rank_eval", wantErr: false},
+		{name: "Indices multi-value", path: RankEvalPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_rank_eval", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -8793,8 +8793,8 @@ func TestSearchPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchPath{}, wantPath: "/_search", wantErr: false},
-		{name: "all fields", path: SearchPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search", wantErr: false},
-		{name: "Index multi-value", path: SearchPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search", wantErr: false},
+		{name: "all fields", path: SearchPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search", wantErr: false},
+		{name: "Indices multi-value", path: SearchPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9360,8 +9360,8 @@ func TestSearchShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchShardsPath{}, wantPath: "/_search_shards", wantErr: false},
-		{name: "all fields", path: SearchShardsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search_shards", wantErr: false},
-		{name: "Index multi-value", path: SearchShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search_shards", wantErr: false},
+		{name: "all fields", path: SearchShardsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search_shards", wantErr: false},
+		{name: "Indices multi-value", path: SearchShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search_shards", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9387,8 +9387,8 @@ func TestSearchTemplatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchTemplatePath{}, wantPath: "/_search/template", wantErr: false},
-		{name: "all fields", path: SearchTemplatePath{Index: []string{"test-index"}}, wantPath: "/test-index/_search/template", wantErr: false},
-		{name: "Index multi-value", path: SearchTemplatePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/template", wantErr: false},
+		{name: "all fields", path: SearchTemplatePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search/template", wantErr: false},
+		{name: "Indices multi-value", path: SearchTemplatePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12442,8 +12442,8 @@ func TestUpdateByQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: UpdateByQueryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: UpdateByQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_update_by_query", wantErr: false},
-		{name: "Index multi-value", path: UpdateByQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_update_by_query", wantErr: false},
+		{name: "all fields", path: UpdateByQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_update_by_query", wantErr: false},
+		{name: "Indices multi-value", path: UpdateByQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_update_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

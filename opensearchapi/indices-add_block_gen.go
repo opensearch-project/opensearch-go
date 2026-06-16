@@ -32,8 +32,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest
 type IndicesAddBlockReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Block specifies the path segment for the request URL.
 	Block string
@@ -48,8 +48,8 @@ type IndicesAddBlockReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesAddBlockReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesAddBlockPath{
-		Index: r.Index,
-		Block: r.Block,
+		Indices: r.Indices,
+		Block:   r.Block,
 	}.Build()
 	if err != nil {
 		return nil, err

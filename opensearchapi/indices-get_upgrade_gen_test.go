@@ -40,7 +40,7 @@ func TestIndicesGetUpgradeReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesGetUpgradeReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesGetUpgradeReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_upgrade",
 			wantErr:    false,

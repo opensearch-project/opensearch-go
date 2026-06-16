@@ -32,8 +32,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-shards/
 type CatShardsReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -45,7 +45,7 @@ type CatShardsReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r CatShardsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.CatShardsPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

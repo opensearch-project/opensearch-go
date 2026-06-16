@@ -41,7 +41,7 @@ func TestIndicesPutMappingReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesPutMappingReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesPutMappingReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_mapping",
 			wantErr:    false,
@@ -78,7 +78,7 @@ func TestIndicesPutMapping_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesPutMapping_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Indices: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

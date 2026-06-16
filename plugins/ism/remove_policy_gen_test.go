@@ -37,7 +37,7 @@ func TestRemovePolicyReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        ism.RemovePolicyReq{Index: []string{"a", "b"}},
+			req:        ism.RemovePolicyReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/remove/a,b",
 			wantErr:    false,

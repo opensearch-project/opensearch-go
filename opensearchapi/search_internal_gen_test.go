@@ -162,7 +162,7 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "index",
-			params: SearchParams{Index: []string{"a", "b"}},
+			params: SearchParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 		{
@@ -257,7 +257,7 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "size",
-			params: SearchParams{Size: 42},
+			params: SearchParams{Size: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"size": "42"},
 		},
 		{

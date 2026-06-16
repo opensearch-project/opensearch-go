@@ -196,7 +196,7 @@ func example() error {
 	fmt.Printf("Deleted document: %t\n", deleteResponse.Result == "deleted")
 
 	// Delete previously created index.
-	deleteIndex := &opensearchapi.IndicesDeleteReq{Index: []string{IndexName}}
+	deleteIndex := &opensearchapi.IndicesDeleteReq{Indices: []string{IndexName}}
 
 	deleteIndexResp, err := client.Indices.Delete(ctx, deleteIndex)
 	if err != nil {
@@ -397,7 +397,7 @@ func example() error {
 
 	fmt.Printf("created index: %s\n", createResp.Index)
 
-	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Index: []string{indexName}})
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
 	if err != nil {
 		return err
 	}

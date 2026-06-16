@@ -26,7 +26,7 @@ func TestRemovePolicyParams_get(t *testing.T) {
 		{name: "empty", params: RemovePolicyParams{}, want: nil},
 		{
 			name:   "index",
-			params: RemovePolicyParams{Index: []string{"a", "b"}},
+			params: RemovePolicyParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 	}

@@ -294,7 +294,7 @@ Note that while both `update` and `index` actions perform updates, they are not 
 To update documents that match a query, use the `update_by_query` API action. The following code decreases the `year` field of all documents with `year` greater than 2023:
 
 ```go
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -302,7 +302,7 @@ To update documents that match a query, use the `update_by_query` API action. Th
 	upByQueryResp, err := client.UpdateByQuery(
 		ctx,
 		&opensearchapi.UpdateByQueryReq{
-			Index:      []string{"movies"},
+			Indices:      []string{"movies"},
 			Params:     &opensearchapi.UpdateByQueryParams{Q: "year:<1990"},
 			BodyReader: strings.NewReader(`{"script": { "source": "ctx._source.year -= 1" } }`),
 		},
@@ -340,7 +340,7 @@ To delete a document, use the `delete` API action. The following code deletes th
 To delete documents that match a query, use the `delete_by_query` API action. The following code deletes all documents with `year` greater than 2023:
 
 ```go
-	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{"movies"}})
+	_, err = client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{"movies"}})
 	if err != nil {
 		return err
 	}
@@ -348,7 +348,7 @@ To delete documents that match a query, use the `delete_by_query` API action. Th
 	delByQueryResp, err := client.DeleteByQuery(
 		ctx,
 		&opensearchapi.DeleteByQueryReq{
-			Index:      []string{"movies"},
+			Indices:      []string{"movies"},
 			BodyReader: strings.NewReader(`{ "query": { "match": { "title": "The Lion King" } } }`),
 		},
 	)
@@ -372,7 +372,7 @@ To clean up the resources created in this guide, delete the `movies` index:
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies"},
+			Indices:  []string{"movies"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

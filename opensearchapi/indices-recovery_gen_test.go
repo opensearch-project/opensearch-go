@@ -40,7 +40,7 @@ func TestIndicesRecoveryReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesRecoveryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesRecoveryReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_recovery",
 			wantErr:    false,

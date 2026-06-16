@@ -40,7 +40,7 @@ func TestIndicesShardStoresReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesShardStoresReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesShardStoresReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_shard_stores",
 			wantErr:    false,

@@ -52,7 +52,7 @@ func example() error {
 You can clear the cache of an index or indices by using the `Indices.ClearCache()` action. The following example clears the cache of the `movies` index:
 
 ```go
-	clearCacheResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Index: []string{exampleIndex}})
+	clearCacheResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ By default, the `Indices.ClearCache()` action clears all types of cache. To clea
 	clearCacheResp, err = client.Indices.ClearCache(
 		ctx,
 		&opensearchapi.IndicesClearCacheReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Params: &opensearchapi.IndicesClearCacheParams{
 				Fielddata: opensearch.ToPointer(true),
 				Request:   opensearch.ToPointer(true),
@@ -84,7 +84,7 @@ By default, the `Indices.ClearCache()` action clears all types of cache. To clea
 Sometimes you might want to flush an index or indices to make sure that all data in the transaction log is persisted to the index. To flush an index or indices use the `Indices.Flush()` action. The following example flushes the `movies` index:
 
 ```go
-	flushResp, err := client.Indices.Flush(ctx, &opensearchapi.IndicesFlushReq{Index: []string{exampleIndex}})
+	flushResp, err := client.Indices.Flush(ctx, &opensearchapi.IndicesFlushReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ Sometimes you might want to flush an index or indices to make sure that all data
 You can refresh an index or indices to make sure that all changes are available for search. To refresh an index or indices use the `Indices.Refresh()` action:
 
 ```go
-	refreshResp, err := client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Index: []string{exampleIndex}})
+	refreshResp, err := client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -108,13 +108,13 @@ You can refresh an index or indices to make sure that all changes are available 
 You can close an index to prevent read and write operations on the index. A closed index does not have to maintain certain data structures that an opened index require, reducing the memory and disk space required by the index. The following example closes and reopens the `movies` index:
 
 ```go
-	closeResp, err := client.Indices.Close(ctx, &opensearchapi.IndicesCloseReq{Index: []string{exampleIndex}})
+	closeResp, err := client.Indices.Close(ctx, &opensearchapi.IndicesCloseReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Index closed: %t\n", closeResp.Acknowledged)
 
-	openResp, err := client.Indices.Open(ctx, &opensearchapi.IndicesOpenReq{Index: []string{exampleIndex}})
+	openResp, err := client.Indices.Open(ctx, &opensearchapi.IndicesOpenReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ You can force merge an index or indices to reduce the number of segments in the 
 	mergeResp, err := client.Indices.ForceMerge(
 		ctx,
 		&opensearchapi.IndicesForceMergeReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Params: &opensearchapi.IndicesForceMergeParams{
 				MaxNumSegments: 1,
 			},
@@ -153,7 +153,7 @@ You can clone an index to create a new index with the same mappings, data, and M
 	blockResp, err := client.Indices.AddBlock(
 		ctx,
 		opensearchapi.IndicesAddBlockReq{
-			Index: []string{exampleIndex},
+			Indices: []string{exampleIndex},
 			Block: "write",
 		},
 	)
@@ -177,7 +177,7 @@ You can clone an index to create a new index with the same mappings, data, and M
 	settingResp, err := client.Indices.Settings.Put(
 		ctx,
 		&opensearchapi.IndicesPutSettingsReq{
-			Index:      []string{exampleIndex},
+			Indices:      []string{exampleIndex},
 			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
 		},
 	)
@@ -230,7 +230,7 @@ You can split an index into another index with more primary shards. The source i
 	settingResp, err = client.Indices.Settings.Put(
 		ctx,
 		&opensearchapi.IndicesPutSettingsReq{
-			Index:      []string{"books"},
+			Indices:      []string{"books"},
 			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
 		},
 	)
@@ -248,7 +248,7 @@ Let's delete all the indices we created in this guide:
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies*", "books*"},
+			Indices:  []string{"movies*", "books*"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

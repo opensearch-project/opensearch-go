@@ -37,7 +37,7 @@ func TestRetryIndexReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        ism.RetryIndexReq{Index: []string{"a", "b"}},
+			req:        ism.RetryIndexReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/retry/a,b",
 			wantErr:    false,

@@ -40,7 +40,7 @@ func TestCatShardsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CatShardsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CatShardsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_cat/shards/a,b",
 			wantErr:    false,

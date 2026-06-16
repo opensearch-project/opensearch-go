@@ -27,7 +27,7 @@ func TestManual_IndicesCreate(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-create")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	t.Run("create and verify", func(t *testing.T) {
@@ -56,7 +56,7 @@ func TestManual_IndicesExists(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-exists")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
@@ -73,7 +73,7 @@ func TestManual_IndicesExists(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			resp, err := client.Indices.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: tt.index})
+			resp, err := client.Indices.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Indices: tt.index})
 			if tt.exists {
 				require.NoError(t, err)
 				require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -94,7 +94,7 @@ func TestManual_IndicesDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("delete existing", func(t *testing.T) {
-		resp, err := client.Indices.Delete(t.Context(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		resp, err := client.Indices.Delete(t.Context(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		require.NoError(t, err)
 		require.True(t, resp.Acknowledged)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -104,7 +104,7 @@ func TestManual_IndicesDelete(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Delete(t.Context(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		res, err := failingClient.Indices.Delete(t.Context(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
@@ -117,7 +117,7 @@ func TestManual_Index(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-index-doc")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	tests := []struct {
@@ -173,7 +173,7 @@ func TestManual_Search(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-search")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
@@ -196,7 +196,7 @@ func TestManual_Search(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(tt.body),
 			})
 			require.NoError(t, err)

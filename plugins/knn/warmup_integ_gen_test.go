@@ -32,14 +32,14 @@ func TestWarmup(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-warmup")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Warmup(t.Context(), &knn.WarmupReq{Index: []string{index}})
+		resp, err := client.Warmup(t.Context(), &knn.WarmupReq{Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -49,7 +49,7 @@ func TestWarmup(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Warmup(t.Context(), &knn.WarmupReq{Index: []string{index}})
+		res, err := failingClient.Warmup(t.Context(), &knn.WarmupReq{Indices: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

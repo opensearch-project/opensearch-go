@@ -28,14 +28,14 @@ func TestSearch(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-search")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
+		resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestSearch(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Search(t.Context(), &opensearchapi.SearchReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
+		res, err := failingClient.Search(t.Context(), &opensearchapi.SearchReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

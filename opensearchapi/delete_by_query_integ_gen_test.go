@@ -28,14 +28,14 @@ func TestDeleteByQuery(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-delete-by-query")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.DeleteByQueryParams{Refresh: "true"}})
+		resp, err := client.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.DeleteByQueryParams{Refresh: "true"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestDeleteByQuery(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Index: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.DeleteByQueryParams{Refresh: "true"}})
+		res, err := failingClient.DeleteByQuery(t.Context(), &opensearchapi.DeleteByQueryReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"query\":{\"match_all\":{}}}"), Params: &opensearchapi.DeleteByQueryParams{Refresh: "true"}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

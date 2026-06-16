@@ -29,7 +29,7 @@ func TestGetScript(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-get-script")
 	docID := testutil.MustUniqueString(t, "test-get-script")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.PutScript(t.Context(), opensearchapi.PutScriptReq{

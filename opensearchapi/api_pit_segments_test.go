@@ -31,7 +31,7 @@ func TestManual_PITSegments(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-pit-segments")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Doc.Index(t.Context(), opensearchapi.IndexReq{
@@ -43,8 +43,8 @@ func TestManual_PITSegments(t *testing.T) {
 	require.NoError(t, err)
 
 	createResp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{
-		Index:  []string{index},
-		Params: &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
+		Indices: []string{index},
+		Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, createResp.PITID)

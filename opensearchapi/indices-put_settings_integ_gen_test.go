@@ -28,14 +28,14 @@ func TestIndicesPutSettings(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-put-settings")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{Index: []string{index}, BodyReader: strings.NewReader("{\"index\":{\"number_of_replicas\":\"1\"}}")})
+		resp, err := client.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"index\":{\"number_of_replicas\":\"1\"}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestIndicesPutSettings(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{Index: []string{index}, BodyReader: strings.NewReader("{\"index\":{\"number_of_replicas\":\"1\"}}")})
+		res, err := failingClient.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{Indices: []string{index}, BodyReader: strings.NewReader("{\"index\":{\"number_of_replicas\":\"1\"}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

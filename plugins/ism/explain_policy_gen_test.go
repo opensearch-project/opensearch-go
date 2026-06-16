@@ -38,14 +38,14 @@ func TestExplainPolicyReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        ism.ExplainPolicyReq{Index: []string{"a", "b"}},
+			req:        ism.ExplainPolicyReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ism/explain/a,b",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        ism.ExplainPolicyReq{Index: []string{"x"}, Body: strings.NewReader("{}")},
+			req:        ism.ExplainPolicyReq{Indices: []string{"x"}, Body: strings.NewReader("{}")},
 			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ism/explain/x",
 			wantErr:    false,

@@ -26,12 +26,12 @@ func TestPutPoliciesParams_get(t *testing.T) {
 		{name: "empty", params: PutPoliciesParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: PutPoliciesParams{IfPrimaryTerm: 42},
+			params: PutPoliciesParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_seq_no",
-			params: PutPoliciesParams{IfSeqNo: 42},
+			params: PutPoliciesParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{

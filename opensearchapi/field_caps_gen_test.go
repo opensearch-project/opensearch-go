@@ -40,14 +40,14 @@ func TestFieldCapsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.FieldCapsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.FieldCapsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_field_caps",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.FieldCapsReq{Index: []string{"x"}, Body: &opensearchapi.FieldCapsBody{}},
+			req:        opensearchapi.FieldCapsReq{Indices: []string{"x"}, Body: &opensearchapi.FieldCapsBody{}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_field_caps",
 			wantErr:    false,

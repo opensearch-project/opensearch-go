@@ -35,8 +35,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/remote-store/index/#refresh-level-and-request-level-durability
 type IndicesRefreshReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -48,7 +48,7 @@ type IndicesRefreshReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesRefreshReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesRefreshPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

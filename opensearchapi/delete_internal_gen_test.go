@@ -26,12 +26,12 @@ func TestDeleteParams_get(t *testing.T) {
 		{name: "empty", params: DeleteParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: DeleteParams{IfPrimaryTerm: 42},
+			params: DeleteParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_seq_no",
-			params: DeleteParams{IfSeqNo: 42},
+			params: DeleteParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{

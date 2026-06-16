@@ -28,7 +28,7 @@ func TestIndicesDataStreamsStats(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-data-streams-stats")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	dsTemplate := index + "-tpl"

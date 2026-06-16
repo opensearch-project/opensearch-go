@@ -26,14 +26,14 @@ func TestIndicesExists(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-indices-exists")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Index.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{index}})
+		resp, err := client.Index.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Indices: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

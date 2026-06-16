@@ -29,7 +29,7 @@ func TestIngestGetPipeline(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-ingest-get-pipeline")
 	docID := testutil.MustUniqueString(t, "test-ingest-get-pipeline")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{

@@ -76,7 +76,7 @@ func example() error {
 	}
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-	_, err = client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
+	_, err = client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
 	fmt.Printf("%s\n", err)
 
 	indexResp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{Index: "burner", Body: strings.NewReader(`{"foo": "bar"}`)})
@@ -85,7 +85,7 @@ func example() error {
 	}
 	fmt.Printf("Index: %s\n", indexResp.Result)
 
-	existsResp, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Index: []string{"burner"}})
+	existsResp, err := client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{Indices: []string{"burner"}})
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func example() error {
 	settingsPutResp, err := client.Indices.Settings.Put(
 		ctx,
 		&opensearchapi.IndicesPutSettingsReq{
-			Index:      []string{"burner"},
+			Indices:    []string{"burner"},
 			BodyReader: strings.NewReader(`{"index":{"number_of_replicas":0}}`),
 		},
 	)
@@ -106,7 +106,7 @@ func example() error {
 	mappingPutResp, err := client.Indices.Mapping.Put(
 		ctx,
 		&opensearchapi.IndicesPutMappingReq{
-			Index:      []string{"movies"},
+			Indices:    []string{"movies"},
 			BodyReader: strings.NewReader(`{"properties":{ "director":{"type":"text"}}}`),
 		},
 	)
@@ -118,7 +118,7 @@ func example() error {
 	getResp, err := client.Indices.Get(
 		ctx,
 		&opensearchapi.IndicesGetReq{
-			Index: []string{"movies"},
+			Indices: []string{"movies"},
 		},
 	)
 	if err != nil {
@@ -133,8 +133,8 @@ func example() error {
 	delResp, err := client.Indices.Delete(
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies", "paintings", "burner"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Indices: []string{"movies", "paintings", "burner"},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

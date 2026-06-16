@@ -40,7 +40,7 @@ func TestIndicesSegmentsReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesSegmentsReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesSegmentsReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_segments",
 			wantErr:    false,

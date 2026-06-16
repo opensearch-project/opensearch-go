@@ -27,20 +27,20 @@ func TestIndicesExistsAlias(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-indices-exists-alias")
 	name := testutil.MustUniqueString(t, "test-indices-exists-alias")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
 	_, err = client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{
-		Index: []string{index},
-		Name:  name,
+		Indices: []string{index},
+		Name:    name,
 	})
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Index.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Index: []string{index}, Name: []string{name}})
+		resp, err := client.Index.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Indices: []string{index}, Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

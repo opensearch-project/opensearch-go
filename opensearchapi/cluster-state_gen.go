@@ -37,8 +37,8 @@ type ClusterStateReq struct {
 	// Metric specifies the list of path segments for the request URL.
 	Metric []string
 
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -50,8 +50,8 @@ type ClusterStateReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r ClusterStateReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.ClusterStatePath{
-		Metric: r.Metric,
-		Index:  r.Index,
+		Metric:  r.Metric,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

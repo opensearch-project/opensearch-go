@@ -36,7 +36,7 @@ func TestUpdateFeatureset(t *testing.T) {
 	docID := testutil.MustUniqueString(t, "test-update-featureset")
 	name := testutil.MustUniqueString(t, "test-update-featureset")
 	t.Cleanup(func() {
-		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = osClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index})

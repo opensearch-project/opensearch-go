@@ -35,8 +35,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clear-index-cache/
 type IndicesClearCacheReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -48,7 +48,7 @@ type IndicesClearCacheReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesClearCacheReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesClearCachePath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ type IndicesClearCacheParams struct {
 
 	// A comma-separated list of indexes; use `_all` or empty string to perform
 	// the operation on all indexes.
-	Index []string
+	Indices []string
 
 	// If `true`, clears the query cache.
 	Query *bool
@@ -150,8 +150,8 @@ func (r IndicesClearCacheParams) get() map[string]string {
 		set("ignore_unavailable", strconv.FormatBool(*r.IgnoreUnavailable))
 	}
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	if r.Query != nil {

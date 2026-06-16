@@ -35,8 +35,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/field-types/supported-field-types/alias/#using-aliases-in-field-capabilities-api-operations
 type FieldCapsReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
@@ -56,7 +56,7 @@ type FieldCapsReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r FieldCapsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.FieldCapsPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

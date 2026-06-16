@@ -96,7 +96,7 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 		},
 		{
 			name:   "index",
-			params: CatSegmentReplicationParams{Index: []string{"a", "b"}},
+			params: CatSegmentReplicationParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"format": "json", "index": "a,b"},
 		},
 		{

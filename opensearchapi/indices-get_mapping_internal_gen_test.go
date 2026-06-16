@@ -51,7 +51,7 @@ func TestIndicesGetMappingParams_get(t *testing.T) {
 		},
 		{
 			name:   "index",
-			params: IndicesGetMappingParams{Index: []string{"a", "b"}},
+			params: IndicesGetMappingParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 		{

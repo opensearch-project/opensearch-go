@@ -36,8 +36,8 @@ type IndicesGetFieldMappingReq struct {
 	// Fields specifies the list of path segments for the request URL.
 	Fields []string
 
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -49,8 +49,8 @@ type IndicesGetFieldMappingReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesGetFieldMappingReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesGetFieldMappingPath{
-		Fields: r.Fields,
-		Index:  r.Index,
+		Fields:  r.Fields,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

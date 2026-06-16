@@ -40,14 +40,14 @@ func TestIndicesValidateQueryReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesValidateQueryReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesValidateQueryReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_validate/query",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.IndicesValidateQueryReq{Index: []string{"x"}, Body: &opensearchapi.IndicesValidateQueryBody{}},
+			req:        opensearchapi.IndicesValidateQueryReq{Indices: []string{"x"}, Body: &opensearchapi.IndicesValidateQueryBody{}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_validate/query",
 			wantErr:    false,

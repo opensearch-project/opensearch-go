@@ -28,7 +28,7 @@ func TestClusterExistsComponentTemplate(t *testing.T) {
 	index := testutil.MustUniqueString(t, "test-cluster-exists-component-template")
 	name := testutil.MustUniqueString(t, "test-cluster-exists-component-template")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	_, err = client.Cluster.PutComponentTemplate(t.Context(), opensearchapi.ClusterPutComponentTemplateReq{

@@ -87,10 +87,10 @@ type UpdatePolicyParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The primary term of the policy to update.
-	IfPrimaryTerm int
+	IfPrimaryTerm *int
 
 	// The sequence number of the policy to update.
-	IfSeqNo int
+	IfSeqNo *int
 }
 
 func (r UpdatePolicyParams) get() map[string]string {
@@ -104,12 +104,12 @@ func (r UpdatePolicyParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if r.IfPrimaryTerm != 0 {
-		set("if_primary_term", strconv.Itoa(r.IfPrimaryTerm))
+	if r.IfPrimaryTerm != nil {
+		set("if_primary_term", strconv.Itoa(*r.IfPrimaryTerm))
 	}
 
-	if r.IfSeqNo != 0 {
-		set("if_seq_no", strconv.Itoa(r.IfSeqNo))
+	if r.IfSeqNo != nil {
+		set("if_seq_no", strconv.Itoa(*r.IfSeqNo))
 	}
 
 	return params

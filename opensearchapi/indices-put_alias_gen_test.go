@@ -41,7 +41,7 @@ func TestIndicesPutAliasReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.IndicesPutAliasReq{Name: "test-name", Index: []string{"a", "b"}},
+			req:        opensearchapi.IndicesPutAliasReq{Name: "test-name", Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPut,
 			wantPath:   "/a,b/_alias/test-name",
 			wantErr:    false,

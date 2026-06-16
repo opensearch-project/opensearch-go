@@ -75,10 +75,10 @@ type DeleteParams struct {
 	TimeoutParams
 	DebugParams
 	// Only perform the operation if the document has this primary term.
-	IfPrimaryTerm int
+	IfPrimaryTerm *int
 
 	// Only perform the operation if the document has this sequence number.
-	IfSeqNo int
+	IfSeqNo *int
 
 	// If `true`, OpenSearch refreshes the affected shards to make this
 	// operation visible to search, if `wait_for` then wait for a refresh to
@@ -114,12 +114,12 @@ func (r DeleteParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if r.IfPrimaryTerm != 0 {
-		set("if_primary_term", strconv.Itoa(r.IfPrimaryTerm))
+	if r.IfPrimaryTerm != nil {
+		set("if_primary_term", strconv.Itoa(*r.IfPrimaryTerm))
 	}
 
-	if r.IfSeqNo != 0 {
-		set("if_seq_no", strconv.Itoa(r.IfSeqNo))
+	if r.IfSeqNo != nil {
+		set("if_seq_no", strconv.Itoa(*r.IfSeqNo))
 	}
 
 	if r.Refresh != "" {

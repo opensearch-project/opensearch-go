@@ -33,8 +33,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/field-types/index/#get-a-mapping
 type IndicesGetMappingReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -46,7 +46,7 @@ type IndicesGetMappingReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesGetMappingReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesGetMappingPath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ type IndicesGetMappingParams struct {
 	// A comma-separated list of data streams, indexes, and aliases used to
 	// limit the request. Supports wildcards (`*`). To target all data streams
 	// and indexes, omit this parameter or use `*` or `_all`.
-	Index []string
+	Indices []string
 
 	// If `true`, the request retrieves information from the local node only.
 	//
@@ -120,8 +120,8 @@ func (r IndicesGetMappingParams) get() map[string]string {
 		set("ignore_unavailable", strconv.FormatBool(*r.IgnoreUnavailable))
 	}
 
-	if len(r.Index) > 0 {
-		set("index", strings.Join(r.Index, ","))
+	if len(r.Indices) > 0 {
+		set("index", strings.Join(r.Indices, ","))
 	}
 
 	if r.Local != nil {

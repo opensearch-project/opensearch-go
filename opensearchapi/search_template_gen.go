@@ -37,8 +37,8 @@ import (
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type SearchTemplateReq struct {
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Body specifies the typed request body. When non-nil, it is
 	// marshaled to JSON for the request payload.
@@ -58,7 +58,7 @@ type SearchTemplateReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r SearchTemplateReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.SearchTemplatePath{
-		Index: r.Index,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

@@ -40,7 +40,7 @@ func TestCreatePITReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.CreatePITReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.CreatePITReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_search/point_in_time",
 			wantErr:    false,
@@ -77,7 +77,7 @@ func TestCreatePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
+		resp, err := client.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestCreatePIT_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Index: []string{"test"}})
+		resp, err := errClient.PIT.Create(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -40,14 +40,14 @@ func TestRankEvalReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        opensearchapi.RankEvalReq{Index: []string{"a", "b"}},
+			req:        opensearchapi.RankEvalReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/a,b/_rank_eval",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
-			req:        opensearchapi.RankEvalReq{Index: []string{"x"}, Body: &opensearchapi.RankEvalBody{}},
+			req:        opensearchapi.RankEvalReq{Indices: []string{"x"}, Body: &opensearchapi.RankEvalBody{}},
 			wantMethod: http.MethodPost,
 			wantPath:   "/x/_rank_eval",
 			wantErr:    false,

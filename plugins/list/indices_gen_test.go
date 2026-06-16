@@ -37,7 +37,7 @@ func TestIndicesReq_GetRequest(t *testing.T) {
 		},
 		{
 			name:       "all path fields",
-			req:        list.IndicesReq{Index: []string{"a", "b"}},
+			req:        list.IndicesReq{Indices: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_list/indices/a,b",
 			wantErr:    false,

@@ -32,7 +32,7 @@ func TestUpdatePolicy(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-update-policy")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{Params: &sm.UpdatePolicyParams{IfPrimaryTerm: 1, IfSeqNo: 1}, PolicyName: name, Body: &opensearchapi.SMCreateUpdatePolicyRequest{}})
+		resp, err := client.Policy.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{Params: &sm.UpdatePolicyParams{IfPrimaryTerm: func(i int) *int { return &i }(1), IfSeqNo: func(i int) *int { return &i }(1)}, PolicyName: name, Body: &opensearchapi.SMCreateUpdatePolicyRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

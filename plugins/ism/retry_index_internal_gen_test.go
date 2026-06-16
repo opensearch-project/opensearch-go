@@ -26,7 +26,7 @@ func TestRetryIndexParams_get(t *testing.T) {
 		{name: "empty", params: RetryIndexParams{}, want: nil},
 		{
 			name:   "index",
-			params: RetryIndexParams{Index: []string{"a", "b"}},
+			params: RetryIndexParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 	}

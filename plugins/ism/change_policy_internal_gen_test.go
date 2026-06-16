@@ -26,7 +26,7 @@ func TestChangePolicyParams_get(t *testing.T) {
 		{name: "empty", params: ChangePolicyParams{}, want: nil},
 		{
 			name:   "index",
-			params: ChangePolicyParams{Index: []string{"a", "b"}},
+			params: ChangePolicyParams{Indices: []string{"a", "b"}},
 			want:   map[string]string{"index": "a,b"},
 		},
 	}

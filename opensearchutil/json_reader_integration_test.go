@@ -51,7 +51,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 
 		index := testutil.MustUniqueString(t, "test-json-reader")
 		t.Cleanup(func() {
-			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 		})
 
 		doc := struct {
@@ -75,7 +75,7 @@ func TestJSONReaderIntegration(t *testing.T) {
 			},
 		}
 		req := &opensearchapi.SearchReq{
-			Index:      []string{index},
+			Indices:    []string{index},
 			BodyReader: opensearchutil.NewJSONReader(&query),
 		}
 		res, err := client.Search(ctx, req)

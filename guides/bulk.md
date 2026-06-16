@@ -451,7 +451,7 @@ To clean up the resources created in this guide, delete the `movies` and `books`
 	delResp, err := client.Indices.Delete(
 		ctx,
 		opensearchapi.IndicesDeleteReq{
-			Index:  []string{"movies", "books"},
+			Indices:  []string{"movies", "books"},
 			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)

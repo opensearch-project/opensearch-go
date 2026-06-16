@@ -10,7 +10,7 @@ In v5 the `opensearchapi` package is code-generated from the [OpenSearch API spe
 
 ## A one-time conversion -- and why
 
-The renames in this guide (`Indices` -> `Index`, `DocumentID` -> `ID`, optional `Params` becoming `*Params`, partial-failure type renames) are unfortunate but unavoidable: this is the one-time cost of switching `opensearchapi` from hand-written types to a code-generated client sourced from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification).
+The renames in this guide (`DocumentID` -> `ID`, optional `Params` becoming `*Params`, partial-failure type renames) are unfortunate but unavoidable: this is the one-time cost of switching `opensearchapi` from hand-written types to a code-generated client sourced from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification).
 
 We're sorry for the churn. The trade is that future spec evolutions arrive as additive types and methods rather than coordinated rename pulls, the surface stays in lockstep with the server, and bug fixes flow through the spec instead of being re-translated by hand. After this conversion, you should not see another wave of renames at this scale.
 
@@ -28,26 +28,6 @@ The package qualifier (`opensearchapi.X`) does not change. The only edit per fil
 
 ## Field renames you'll hit
 
-### `Indices` -> `Index` on multi-index Req types
-
-The OpenSearch API uses `index` (not `indices`) for multi-index path parameters; v4's hand-written types pluralized to `Indices`. v5 matches the API.
-
-```go
-// v4
-client.Search(ctx, &opensearchapi.SearchReq{
-    Indices: []string{"products"},
-    Body:    body,
-})
-
-// v5
-client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
-    BodyReader: body,
-})
-```
-
-Affected Req types include `SearchReq`, `MSearchReq`, `IndicesGetReq`, `IndicesDeleteReq`, `IndicesRefreshReq`, and any other operation whose spec definition uses an `index` path parameter accepting a list. When in doubt, the gen file is the source of truth: grep `opensearchapi/` for the Req type and read its field list.
-
 ### Typed body vs. raw reader
 
 Operations with a request body now expose a typed `Body` field (e.g. `*SearchBody`) plus a `BodyReader io.Reader` escape hatch. Code passing a raw `io.Reader` moves from `Body` to `BodyReader`; code building a typed body uses `Body`.
@@ -63,8 +43,8 @@ client.Search(ctx, &opensearchapi.SearchReq{
 
 // v5
 client.Search(ctx, &opensearchapi.SearchReq{
-    Index:  []string{"products"},
-    Params: &opensearchapi.SearchParams{Size: 20},
+    Indices: []string{"products"},
+    Params:  &opensearchapi.SearchParams{Size: 20},
 })
 ```
 
@@ -183,7 +163,6 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 ## Quick checklist
 
 - Update import paths from `/v4` to `/v5`.
-- Rename `Indices` -> `Index` on Req structs that accept multi-index path parameters.
 - Move raw `io.Reader` bodies from `Body` to `BodyReader`.
 - Wrap `Params` literals in `&` (or use the `Params: nil` shorthand).
 - Move `Timeout`/`Pretty`/`Human`/`ErrorTrace` into the embedded `TimeoutParams`/`DebugParams`.

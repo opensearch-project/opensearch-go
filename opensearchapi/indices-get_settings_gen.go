@@ -38,8 +38,8 @@ type IndicesGetSettingsReq struct {
 	// Name specifies the list of path segments for the request URL.
 	Name []string
 
-	// Index specifies the list of path segments for the request URL.
-	Index []string
+	// Indices specifies the list of path segments for the request URL.
+	Indices []string
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -51,8 +51,8 @@ type IndicesGetSettingsReq struct {
 // GetRequest builds the HTTP request from the structured fields.
 func (r IndicesGetSettingsReq) GetRequest(method string) (*http.Request, error) {
 	path, err := ospath.IndicesGetSettingsPath{
-		Name:  r.Name,
-		Index: r.Index,
+		Name:    r.Name,
+		Indices: r.Indices,
 	}.Build()
 	if err != nil {
 		return nil, err

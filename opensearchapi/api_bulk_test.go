@@ -26,7 +26,7 @@ func TestManual_Bulk(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-bulk")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	tests := []struct {
@@ -107,7 +107,7 @@ func TestManual_Count(t *testing.T) {
 
 	index := testutil.MustUniqueString(t, "test-count")
 	t.Cleanup(func() {
-		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
 	body := strings.Join([]string{
@@ -132,13 +132,13 @@ func TestManual_Count(t *testing.T) {
 	}{
 		{
 			name:      "all documents",
-			req:       &opensearchapi.CountReq{Index: []string{index}},
+			req:       &opensearchapi.CountReq{Indices: []string{index}},
 			wantCount: 3,
 		},
 		{
 			name: "with match query",
 			req: &opensearchapi.CountReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(`{"query":{"term":{"title.keyword":"alpha"}}}`),
 			},
 			wantCount: 1,
@@ -146,7 +146,7 @@ func TestManual_Count(t *testing.T) {
 		{
 			name: "with match_all query",
 			req: &opensearchapi.CountReq{
-				Index:      []string{index},
+				Indices:    []string{index},
 				BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 			},
 			wantCount: 3,
@@ -166,7 +166,7 @@ func TestManual_Count(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Count(t.Context(), &opensearchapi.CountReq{Index: []string{index}})
+		res, err := failingClient.Count(t.Context(), &opensearchapi.CountReq{Indices: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
