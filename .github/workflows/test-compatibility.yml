@@ -49,6 +49,7 @@ jobs:
           - { opensearch_version: 3.4.0, node_count: 3 }
           - { opensearch_version: 3.5.0, node_count: 3 }
           - { opensearch_version: 3.6.0, node_count: 3 }
+          - { opensearch_version: 3.7.0, node_count: 3 }
           - { opensearch_version: latest, node_count: 3 }
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
