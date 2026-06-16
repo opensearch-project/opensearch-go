@@ -989,7 +989,7 @@ OpenSearch maintains separate thread pools for search, write, get, management, a
 
 When the client routes a search through a coordinator node (non-shard-exact path), OpenSearch fans out to data nodes using `max_concurrent_shard_requests` as the per-node concurrency limit. The client automatically tunes this parameter based on cluster-wide search thread pool pressure.
 
-**Why cluster-wide, not per-node.** Per-node AIMD drives _connection scoring_ — which coordinator to pick. But `max_concurrent_shard_requests` controls _data-node fan-out_ from the coordinator. A single coordinator's search pool pressure doesn't reflect the capacity of the data nodes it fans out to. The cluster-wide aggregate does.
+**Why cluster-wide, not per-node.** Per-node AIMD drives _connection scoring_ -- which coordinator to pick. But `max_concurrent_shard_requests` controls _data-node fan-out_ from the coordinator. A single coordinator's search pool pressure doesn't reflect the capacity of the data nodes it fans out to. The cluster-wide aggregate does.
 
 ```
     pollNodeStats()
@@ -1012,7 +1012,7 @@ When the client routes a search through a coordinator node (non-shard-exact path
 3. Congestion signal: `waitPerCompleted = totalDeltaWait / totalDeltaCompleted >= 1ms`
 4. AIMD: same state machine as per-node (slow start / congestion avoidance / multiplicative decrease)
 
-**Ceiling.** `clusterMaxCwnd` is the max of per-node search pool sizes (not the sum). Although `max_concurrent_shard_requests` is a coordinator-side global semaphore — it limits the total number of concurrent shard operations across all data nodes for a single search request — all those operations could land on a single node if it hosts enough shards. Using the max single-node pool size as the ceiling prevents a coordinator from dispatching more concurrent shard requests than the busiest data node can absorb in its search thread pool.
+**Ceiling.** `clusterMaxCwnd` is the max of per-node search pool sizes (not the sum). Although `max_concurrent_shard_requests` is a coordinator-side global semaphore -- it limits the total number of concurrent shard operations across all data nodes for a single search request -- all those operations could land on a single node if it hosts enough shards. Using the max single-node pool size as the ceiling prevents a coordinator from dispatching more concurrent shard requests than the busiest data node can absorb in its search thread pool.
 
 **Hot-shard resilience.** A single overloaded node is diluted by healthy peers in the aggregate. MCSR only drops when cluster-wide search pressure rises. Hot shards are a data distribution problem handled by the server's shard allocator, not a client fan-out knob.
 
@@ -1147,7 +1147,7 @@ When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is se
 
 ### Address Resolver
 
-When an `AddressResolverFunc` is configured, the client calls it for every node discovered via `/_nodes/http` before that node enters the connection pool. This allows rewriting the node's URL — for example, to redirect traffic through a sidecar proxy or to adapt hostnames for network topology differences between the cluster's internal publish addresses and the client's reachable addresses.
+When an `AddressResolverFunc` is configured, the client calls it for every node discovered via `/_nodes/http` before that node enters the connection pool. This allows rewriting the node's URL -- for example, to redirect traffic through a sidecar proxy or to adapt hostnames for network topology differences between the cluster's internal publish addresses and the client's reachable addresses.
 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
@@ -1185,12 +1185,12 @@ Partial failures are tolerated: nodes that return `(nil, error)` are dropped, bu
 
 Resolvers may perform network probes, so they run concurrently. The `MaxAddressResolvers` setting controls the degree of parallelism:
 
-| Value | Behavior                                                  |
-| ----- | --------------------------------------------------------- |
-| `0`   | (default) `min(len(nodes), GOMAXPROCS(0))` — auto-derived |
-| `1`   | Serial execution — one resolver call at a time            |
-| `>1`  | Explicit concurrency cap bounded by a weighted semaphore  |
-| `<0`  | Unlimited — all resolver calls launch simultaneously      |
+| Value | Behavior                                                   |
+| ----- | ---------------------------------------------------------- |
+| `0`   | (default) `min(len(nodes), GOMAXPROCS(0))` -- auto-derived |
+| `1`   | Serial execution -- one resolver call at a time            |
+| `>1`  | Explicit concurrency cap bounded by a weighted semaphore   |
+| `<0`  | Unlimited -- all resolver calls launch simultaneously      |
 
 The resolver inherits the discovery call's context, so cancellation and deadlines propagate automatically.
 
@@ -1218,7 +1218,7 @@ type AddressResolverRunnerFunc func(
 ) ([]ResolvedAddress, error)
 ```
 
-When `AddressResolverRunner` is set, it replaces the built-in concurrency/semaphore handler entirely — the `MaxAddressResolvers` setting is ignored. The runner may call `resolve` for each node, call it selectively, or compute URLs directly without calling it at all. If `AddressResolver` is not configured, `resolve` is `nil`.
+When `AddressResolverRunner` is set, it replaces the built-in concurrency/semaphore handler entirely -- the `MaxAddressResolvers` setting is ignored. The runner may call `resolve` for each node, call it selectively, or compute URLs directly without calling it at all. If `AddressResolver` is not configured, `resolve` is `nil`.
 
 Metrics (`AddressResolverCalls`, `AddressResolverErrors`) are instrumented automatically: each invocation of `resolve` increments the call counter, and errors increment the error counter, regardless of how the runner orchestrates calls.
 
@@ -1585,7 +1585,7 @@ Under round-robin, the probability a coordinator is in a **different** AZ from t
 P(cross_AZ) = (A - 1) / A
 ```
 
-For 3 AZs: P(cross_AZ) = 2/3 — two-thirds of coordinator proxy hops cross an AZ boundary.
+For 3 AZs: P(cross_AZ) = 2/3 -- two-thirds of coordinator proxy hops cross an AZ boundary.
 
 With affinity routing, the fraction of cross-AZ proxy hops eliminated is:
 

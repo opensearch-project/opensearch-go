@@ -928,7 +928,7 @@ func New(cfg Config) (*Client, error) {
 		}
 
 		// seed-fallback has no demotion path (it lives in c.seedFallbackPool, not
-		// c.mu.connectionPool), so it doesn't need its own cancel func — its
+		// c.mu.connectionPool), so it doesn't need its own cancel func -- its
 		// goroutines are cleaned up transitively when Client.Close() cancels the
 		// root context.
 		seedPool := &multiServerPool{
@@ -2421,7 +2421,7 @@ func initUserAgent() string {
 // newMultiServerPoolFromClientWithLock creates a multiServerPool initialized
 // with the client's current settings (timeouts, health check, cap, etc.). The
 // pool's mu-protected fields (ready, dead, members, activeCount) are left at
-// zero values — the caller is responsible for populating them.
+// zero values -- the caller is responsible for populating them.
 //
 // This is the single source of truth for client → pool settings propagation.
 // Used by promoteConnectionPoolWithLock (single→multi promotion) and

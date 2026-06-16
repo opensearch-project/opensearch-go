@@ -64,7 +64,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 		}
 	}`, numShards)
 
-	// Retry index creation — transient HTTP 500 can occur while the cluster
+	// Retry index creation -- transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
 	createPath, _ := ospath.IndicesCreatePath{Index: index}.Build()
@@ -303,7 +303,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		}
 	}`, numShards)
 
-	// Retry index creation — transient HTTP 500 can occur while the cluster
+	// Retry index creation -- transient HTTP 500 can occur while the cluster
 	// is still settling after heavy discovery/warmup activity.
 	var createResp *http.Response
 	createPath, _ := ospath.IndicesCreatePath{Index: index}.Build()

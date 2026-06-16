@@ -169,7 +169,7 @@ This change is invisible to almost all callers: the typed `Req` structs that the
 
 Every typed `Req.GetRequest()` method now constructs URL paths through the generated `internal/path/*Path` builders, which unconditionally percent-encode user-supplied segment values (via `url.PathEscape`, plus an explicit `/` -> `%2F` substitution). This closes the [#650] path-injection class of bugs: an `Index` value containing `../../_cluster/health` can no longer escape its segment to alter routing.
 
-Prior to this release, `buildPath` wrote segment values raw, which left the wire format ambiguous and the encoding contract undefined: callers who passed unencoded metacharacters got a malformed URL, and callers who passed pre-encoded values got the encoded bytes through to the server. Both interpretations existed simultaneously. The client now defines a single contract — pass raw, unencoded values; the client encodes — and applies it everywhere.
+Prior to this release, `buildPath` wrote segment values raw, which left the wire format ambiguous and the encoding contract undefined: callers who passed unencoded metacharacters got a malformed URL, and callers who passed pre-encoded values got the encoded bytes through to the server. Both interpretations existed simultaneously. The client now defines a single contract -- pass raw, unencoded values; the client encodes -- and applies it everywhere.
 
 The practical consequence for callers who were already passing pre-encoded values is that those values are now double-encoded:
 
@@ -365,7 +365,7 @@ After:
 
 ```go
 for _, f := range resp.Failures {
-    // Fields are available directly — no unmarshaling needed.
+    // Fields are available directly -- no unmarshaling needed.
     fmt.Println(f.Index, f.Status, f.Cause)
 }
 ```

@@ -235,16 +235,16 @@ All latency targets use `tc qdisc` with `netem` delay and require the cluster to
 Four predefined profiles cover common deployment topologies:
 
 ```
-# Asymmetric — simulates 3 availability zones at different distances
+# Asymmetric -- simulates 3 availability zones at different distances
 make cluster.latency.asymmetric    # node1=0ms, node2=50ms ±5ms, node3=150ms ±15ms
 
-# Symmetric — single data center, all nodes equidistant
+# Symmetric -- single data center, all nodes equidistant
 make cluster.latency.symmetric     # all nodes 1ms ±100us
 
-# Bimodal — 2 local nodes + 1 remote node
+# Bimodal -- 2 local nodes + 1 remote node
 make cluster.latency.bimodal       # node1=1ms, node2=1ms, node3=20ms
 
-# Graduated — wide spread across 3 tiers
+# Graduated -- wide spread across 3 tiers
 make cluster.latency.graduated     # node1=1ms, node2=10ms, node3=100ms
 ```
 
@@ -267,7 +267,7 @@ make demo.build     # Build bin/demo
 make demo.run       # Build and run with default affinity-visible settings
 ```
 
-`demo.run` connects to all three local nodes with request routing, node discovery, and periodic stats output. The binary accepts flags for concurrency, workload type, fanout, and report output — run `bin/demo -help` for the full list.
+`demo.run` connects to all three local nodes with request routing, node discovery, and periodic stats output. The binary accepts flags for concurrency, workload type, fanout, and report output -- run `bin/demo -help` for the full list.
 
 ## Verification Matrix
 
@@ -334,7 +334,7 @@ make gh.fail.summary
 Example output:
 
 ```
-Run 22722089811 — failed jobs:
+Run 22722089811 -- failed jobs:
   ✗ integ-test-compat (true, 2.19.5)
   ✗ integ-test-compat (false, 3.6.0)
 

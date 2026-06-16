@@ -193,7 +193,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 		if err != nil {
 			lastErr = err
 			t.Logf("Discovery attempt %d failed: %v", attempt, err)
-			// Brief pause before retry — gives resurrection goroutines
+			// Brief pause before retry -- gives resurrection goroutines
 			// time to complete health checks before the next DiscoverNodes
 			// replaces the pool and cancels the old generation's context.
 			select {
@@ -224,7 +224,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 			return m
 		}
 
-		// Pause between cycles — gives resurrection goroutines time to
+		// Pause between cycles -- gives resurrection goroutines time to
 		// process context cancellation before the next DiscoverNodes.
 		select {
 		case <-ctx.Done():

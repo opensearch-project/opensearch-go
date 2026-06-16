@@ -148,7 +148,7 @@ func TestNewClient_RouterEnvOptOut(t *testing.T) {
 // into the local Config copy passed into opensearch.NewClient; we
 // verify the discovery side-effect by checking the value the v5
 // NewClient passed forward (using a transport factory hook is overkill
-// here — the visible outcome is "no error; client built").
+// here -- the visible outcome is "no error; client built").
 //
 // Cannot run in parallel because t.Setenv mutates process state.
 func TestNewClient_RouterTruthyEnablesDiscovery(t *testing.T) {

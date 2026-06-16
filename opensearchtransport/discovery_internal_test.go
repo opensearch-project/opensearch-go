@@ -2340,7 +2340,7 @@ func TestDiscoverNodesBlocking(t *testing.T) {
 		tp.DiscoverNodes(t.Context())
 	})
 
-	// Wait for handler to be entered — discovery is now in-flight.
+	// Wait for handler to be entered -- discovery is now in-flight.
 	<-entered
 
 	// Goroutine B: should block in DiscoverNodes until A finishes.
@@ -2356,7 +2356,7 @@ func TestDiscoverNodesBlocking(t *testing.T) {
 	default:
 	}
 
-	// Release A — A finishes, B wakes up.
+	// Release A -- A finishes, B wakes up.
 	close(gate)
 	wg.Wait()
 

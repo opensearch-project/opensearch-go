@@ -152,7 +152,7 @@ func SkipIfNotSecure(t *testing.T) {
 // RequireMinNodes polls until the cluster has at least minNodes nodes, then
 // returns. If the node count stabilizes below the threshold (same count on
 // consecutive checks), the test is skipped immediately rather than burning
-// the full timeout — this handles single-node CI clusters that will never
+// the full timeout -- this handles single-node CI clusters that will never
 // grow.
 //
 // When the OPENSEARCH_NODE_COUNT environment variable is set (e.g., by CI or
@@ -246,7 +246,7 @@ func RequireMinNodes(t *testing.T, ctx context.Context, minNodes int) {
 		time.Sleep(pollDelay)
 	}
 
-	// Cluster is reachable but doesn't have enough nodes — skip.
+	// Cluster is reachable but doesn't have enough nodes -- skip.
 	t.Skipf("Skipping %s: cluster has %d node(s) after %d attempts, need at least %d",
 		t.Name(), lastTotal, maxAttempts, minNodes)
 }
