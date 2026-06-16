@@ -96,7 +96,8 @@ func (s *GenerateSuite) TestGenerateAPI() {
 	outDir := filepath.Join(s.tmpDir, "api")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{}, CompatConfig{V4Compat: true})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
+		CompatConfig{V4Compat: true})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -153,7 +154,8 @@ func (s *GenerateSuite) TestGenerateAPI_WithPlugins() {
 	outDir := filepath.Join(s.tmpDir, "api-plugins")
 	pluginsDir := filepath.Join(s.tmpDir, "plugins-with")
 
-	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{}, CompatConfig{V4Compat: true})
+	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
+		CompatConfig{V4Compat: true})
 	s.Require().NoError(err)
 
 	pluginDir := filepath.Join(pluginsDir, "knn")

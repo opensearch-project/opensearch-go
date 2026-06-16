@@ -181,7 +181,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			Index:      []string{"bench-index"},
 			BodyReader: strings.NewReader(body),
 			Params: &opensearchapi.SearchParams{
-				Size: 25,
+				Size: opensearch.ToPointer(25),
 				DebugParams: opensearchapi.DebugParams{
 					Pretty: true,
 				},

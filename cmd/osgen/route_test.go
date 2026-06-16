@@ -477,8 +477,14 @@ func TestApplyCompatPolicy(t *testing.T) {
 		wantFwdDeprecat bool // the surviving forwarder is marked deprecated
 	}{
 		{name: "compat off drops forwarder routes", cfg: CompatConfig{V4Compat: false}, wantRoutes: 1, wantForwarder: false},
-		{name: "compat on keeps forwarder, not deprecated", cfg: CompatConfig{V4Compat: true}, wantRoutes: 2, wantForwarder: true, wantFwdDeprecat: false},
-		{name: "deprecation marks forwarder only", cfg: CompatConfig{V4Compat: true, V4Deprecation: true}, wantRoutes: 2, wantForwarder: true, wantFwdDeprecat: true},
+		{
+			name: "compat on keeps forwarder, not deprecated",
+			cfg:  CompatConfig{V4Compat: true}, wantRoutes: 2, wantForwarder: true, wantFwdDeprecat: false,
+		},
+		{
+			name: "deprecation marks forwarder only",
+			cfg:  CompatConfig{V4Compat: true, V4Deprecation: true}, wantRoutes: 2, wantForwarder: true, wantFwdDeprecat: true,
+		},
 	}
 
 	for _, tt := range tests {

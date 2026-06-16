@@ -324,7 +324,11 @@ func paramTestValues(p ir.QueryParam) (string, string) {
 		fieldAssign = fmt.Sprintf(`%s: []string{"a", "b"}`, p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "a,b")
 	case ir.ParamInt:
-		fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
+		if p.GoType == "*int" {
+			fieldAssign = fmt.Sprintf("%s: func(i int) *int { return &i }(42)", p.GoName)
+		} else {
+			fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
+		}
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "42")
 	case ir.ParamString:
 		fallthrough
@@ -1285,7 +1289,11 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 			// Integ tests use a local bool var and pointer for required bool params.
 			fields = append(fields, fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName))
 		case ir.ParamInt:
-			fields = append(fields, p.GoName+": 1")
+			if p.GoType == "*int" {
+				fields = append(fields, fmt.Sprintf("%s: func(i int) *int { return &i }(1)", p.GoName))
+			} else {
+				fields = append(fields, p.GoName+": 1")
+			}
 		case ir.ParamList:
 			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
 		case ir.ParamString:
