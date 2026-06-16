@@ -30,6 +30,12 @@
 
 ## Upgrading to >= 5.0.0
 
+### Supported OpenSearch versions
+
+The 5.x client is supported (and CI-tested) against the OpenSearch releases still receiving patches within the last 12 months at each `opensearch-go` release: every release of the current major plus the latest release of the previous major. Today that is OpenSearch 2.19.x and all of 3.x. This set is re-evaluated at each release.
+
+If you run an OpenSearch line the project no longer patches (1.3.x through 2.18.x), stay on the 4.x client, which continues to support those versions. The 5.x client may still function against older servers, but those lines are not part of the tested matrix. See [`COMPATIBILITY.md`](COMPATIBILITY.md) for the full matrix.
+
 ### Partial Failure Errors (Config.Errors)
 
 Version 5.0.0 introduces typed partial-failure errors and a per-category bitmask that controls which categories surface as Go errors. OpenSearch returns HTTP 200 for many operations that partially succeed (bulk item failures, shard failures on search, replica failures on writes). The new model turns those partial failures into typed errors that callers can dispatch on; idiomatic partial error handling is shown below.

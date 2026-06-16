@@ -8,49 +8,28 @@ env:
 jobs:
   integ-test-compat:
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.entry.opensearch_version == 'latest' }}
+    continue-on-error: ${{ matrix.opensearch_version == 'latest' }}
     strategy:
       fail-fast: false
-      # OpenSearch <=2.17.x carries a node-join/node-left race condition
-      # (fixed in 2.18 via opensearch-project/OpenSearch#15521, backported
-      # via opensearch-project/OpenSearch#16118) that leaves a node in
-      # cluster state but disconnected at the transport layer, breaking
-      # NodesStats RPC fan-out indefinitely and hanging /_cat/nodes-based
-      # readiness gates. Single-node clusters cannot hit the race, so
-      # affected versions run with OPENSEARCH_NODE_COUNT=1 below.
+      # The supported set tracks the OpenSearch releases still receiving patches
+      # within the last 12 months at each opensearch-go release: every release of
+      # the current major plus the latest release of the previous major. Today
+      # that is 2.19.x and all of 3.x. See opensearch-project/opensearch-go#856.
+      # Re-evaluate this list at each release. All supported lines run as 3-node
+      # clusters.
       matrix:
         secured: ["true", "false"]
-        entry:
-          - { opensearch_version: 1.3.20, node_count: 1 }
-          - { opensearch_version: 2.0.1, node_count: 1 }
-          - { opensearch_version: 2.1.0, node_count: 1 }
-          - { opensearch_version: 2.2.1, node_count: 1 }
-          - { opensearch_version: 2.3.0, node_count: 1 }
-          - { opensearch_version: 2.4.1, node_count: 1 }
-          - { opensearch_version: 2.5.0, node_count: 1 }
-          - { opensearch_version: 2.6.0, node_count: 1 }
-          - { opensearch_version: 2.7.0, node_count: 1 }
-          - { opensearch_version: 2.8.0, node_count: 1 }
-          - { opensearch_version: 2.9.0, node_count: 1 }
-          - { opensearch_version: 2.10.0, node_count: 1 }
-          - { opensearch_version: 2.11.1, node_count: 1 }
-          - { opensearch_version: 2.12.0, node_count: 1 }
-          - { opensearch_version: 2.13.0, node_count: 1 }
-          - { opensearch_version: 2.14.0, node_count: 1 }
-          - { opensearch_version: 2.15.0, node_count: 1 }
-          - { opensearch_version: 2.16.0, node_count: 1 }
-          - { opensearch_version: 2.17.1, node_count: 1 }
-          - { opensearch_version: 2.18.0, node_count: 3 }
-          - { opensearch_version: 2.19.5, node_count: 3 }
-          - { opensearch_version: 3.0.0, node_count: 3 }
-          - { opensearch_version: 3.1.0, node_count: 3 }
-          - { opensearch_version: 3.2.0, node_count: 3 }
-          - { opensearch_version: 3.3.2, node_count: 3 }
-          - { opensearch_version: 3.4.0, node_count: 3 }
-          - { opensearch_version: 3.5.0, node_count: 3 }
-          - { opensearch_version: 3.6.0, node_count: 3 }
-          - { opensearch_version: 3.7.0, node_count: 3 }
-          - { opensearch_version: latest, node_count: 3 }
+        opensearch_version:
+          - 2.19.5
+          - 3.0.0
+          - 3.1.0
+          - 3.2.0
+          - 3.3.2
+          - 3.4.0
+          - 3.5.0
+          - 3.6.0
+          - 3.7.0
+          - latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -68,19 +47,13 @@ jobs:
 
       - name: Launch OpenSearch cluster
         run: |
-          export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
+          export OPENSEARCH_VERSION=${{ matrix.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
-          export OPENSEARCH_NODE_COUNT=${{ matrix.entry.node_count }}
+          export OPENSEARCH_NODE_COUNT=3
           make cluster.clean cluster.build cluster.start
           if [ "${SECURE_INTEGRATION}" = "true" ]; then
             CURL_URL="https://localhost:9200"
-            # Password changed in OpenSearch 2.12.0
-            function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-            if [ $(version ${OPENSEARCH_VERSION}) -ge $(version "2.12.0") ] || [ "${OPENSEARCH_VERSION}" = "latest" ]; then
-              CURL_OPTS="-sfku admin:myStrongPassword123!"
-            else
-              CURL_OPTS="-sfku admin:admin"
-            fi
+            CURL_OPTS="-sfku admin:myStrongPassword123!"
           else
             CURL_URL="http://localhost:9200"
             CURL_OPTS="-sf"
@@ -114,9 +87,9 @@ jobs:
 
       - name: Integration test
         run: |
-          export OPENSEARCH_VERSION=${{ matrix.entry.opensearch_version }}
+          export OPENSEARCH_VERSION=${{ matrix.opensearch_version }}
           export SECURE_INTEGRATION=${{ matrix.secured }}
-          export OPENSEARCH_NODE_COUNT=${{ matrix.entry.node_count }}
+          export OPENSEARCH_NODE_COUNT=3
           make cluster.get-cert test-integ-core test-integ-plugins race=true
 
       - name: Stop the OpenSearch cluster

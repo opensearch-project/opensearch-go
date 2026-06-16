@@ -160,6 +160,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Trim the CI compatibility matrix to the currently-patched OpenSearch set (2.19.x and 3.x) per the 12-month support policy; older lines (1.3.x - 2.18.x) are no longer part of the tested matrix and the 4.x client remains their supported path. No client code change ([#856](https://github.com/opensearch-project/opensearch-go/issues/856))
 - **BREAKING**: Module path is now `github.com/opensearch-project/opensearch-go/v5`. Update import paths from `/v4` to `/v5`; the in-source `opensearchapi.X` package qualifier is unchanged
 - **BREAKING**: The code-generated API package is now the canonical `opensearchapi/`, replacing the hand-written v4 package (formerly previewed at `v5preview/opensearchapi/`). Req/Resp/Params types are fully typed and generated from the OpenAPI spec. See [`opensearchapi/MIGRATING.md`](opensearchapi/MIGRATING.md) for the field-level delta (`DocumentID` -> `ID`, optional `Params` becoming `*Params`, shared parameters moving into embedded `TimeoutParams`/`DebugParams`, `BulkResp.Items` becoming `[]BulkItem`) ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - **BREAKING**: The default Router is now on by default. `opensearchapi.NewClient`/`NewDefaultClient`, `opensearch.NewClient`, and `opensearchtransport.New` inject `opensearchtransport.NewDefaultRouter` (and enable on-start discovery) unless `OPENSEARCH_GO_ROUTER=false`. In v4 the router was opt-in via `OPENSEARCH_GO_ROUTER=true` ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
@@ -209,6 +210,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Mark `opensearch.ToPointer` as deprecated; it remains fully functional but will be removed in a future major version. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
 ### Removed
+
 - Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
 - Stop emitting `opensearchapi.Client` sub-client fields that have no operations routed to them. `cmd/osgen` now emits a sub-client only when at least one operation targets it, dropping the previously-empty `Script`, `ComponentTemplate`, `IndexTemplate`, `Template`, and `DataStream` fields. Index-template and data-stream operations are reached through `client.Indices.*` (e.g. `client.Indices.PutIndexTemplate`, `client.Indices.CreateDataStream`); stored-script operations remain top-level on `Client`
 
