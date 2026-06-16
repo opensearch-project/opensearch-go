@@ -168,7 +168,7 @@ The request and response types are unchanged (`opensearchapi.IndexReq`, `opensea
 
 To ease migration, the client ships forwarder methods so existing call sites keep compiling. These forward to the canonical sub-client method:
 
-- Top-level `client.Bulk`, `client.Index`, `client.MGet`, and `client.Update` forward to their `client.Doc.*` equivalents (these four were top-level methods historically).
+- Top-level `client.Bulk`, `client.MGet`, and `client.Update` forward to their `client.Doc.*` equivalents (these were top-level methods historically). `client.Index` is not retained as a top-level forwarder: `Index` is the indices sub-client field on `Client`, and a field and method of that name cannot coexist; use `client.Doc.Index`.
 - `client.Document.Source` forwards to `client.Doc.GetSource`.
 - `client.PointInTime.Get` forwards to `client.PIT.GetAll`.
 

@@ -213,17 +213,19 @@ Router nil; unset or any non-falsy value makes [New] create a [NewDefaultRouter]
 (In the v4 line the router is off unless OPENSEARCH_GO_ROUTER is set to true.)
 Programmatic Config.Router always takes precedence.
 
-The opensearch package observes the same variable independently: unless
-OPENSEARCH_GO_ROUTER is explicitly false and opensearch.Config.DiscoverNodesOnStart
-has not been explicitly set, opensearch.NewClient enables on-start topology
-discovery so the router starts with fresh node information. opensearchtransport
-itself has no DiscoverNodesOnStart field; callers constructing the transport
-directly must trigger discovery themselves if desired.
+The opensearch package observes the same variable independently: when
+opensearch.Config.Router is nil and OPENSEARCH_GO_ROUTER is not explicitly false
+and opensearch.Config.DiscoverNodesOnStart has not been explicitly set,
+opensearch.NewClient enables on-start topology discovery so the router starts
+with fresh node information. (A caller-supplied programmatic Config.Router skips
+this env-var path entirely.) opensearchtransport itself has no
+DiscoverNodesOnStart field; callers constructing the transport directly must
+trigger discovery themselves if desired.
 
-In v5 the default will flip: the router will be on by default, and
-OPENSEARCH_GO_ROUTER=false will disable it. This variable is transitional and will be
-removed in v6, where the router is unconditionally enabled. Use the OPENSEARCH_GO_POLICY_*
-variables below to disable individual policies if needed.
+The router is on by default; OPENSEARCH_GO_ROUTER=false disables it. This variable
+is transitional and may be removed in a future major version where the router is
+unconditionally enabled. Use the OPENSEARCH_GO_POLICY_* variables below to disable
+individual policies if needed.
 
 # Policy Environment Variable Overrides
 

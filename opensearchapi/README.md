@@ -99,7 +99,7 @@ Operations are grouped into sub-clients that mirror the OpenSearch API namespace
 
 Component-template, index-template, legacy-template, and data-stream operations live on `client.Cluster` and `client.Indices` (e.g. `client.Cluster.GetComponentTemplate`, `client.Indices.GetIndexTemplate`, `client.Indices.GetTemplate`, `client.Indices.GetDataStream`). Script operations (`client.GetScript`, `client.PutScript`) live directly on `client`.
 
-Top-level operations (Search, Reindex, DeleteByQuery, UpdateByQuery, etc.) live directly on `client`. Document operations are canonical on `client.Doc` (with `client.Bulk`, `client.Index`, `client.MGet`, and `client.Update` retained as backward-compatible forwarders); point-in-time operations are on `client.PIT`.
+Top-level operations (Search, Reindex, DeleteByQuery, UpdateByQuery, etc.) live directly on `client`. Document operations are canonical on `client.Doc` (with `client.Bulk`, `client.MGet`, and `client.Update` retained as backward-compatible forwarders; `client.Index` is not, since `Index` is the indices sub-client field -- use `client.Doc.Index`); point-in-time operations are on `client.PIT`.
 
 ## Response Handling
 

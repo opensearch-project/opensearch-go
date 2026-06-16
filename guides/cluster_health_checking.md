@@ -174,6 +174,8 @@ Without the OpenSearch Security plugin, all requests are permitted and no authen
 
 When the Security plugin is enabled, the health check endpoint requires the `cluster:monitor/health` transport action privilege. This is a read-only monitoring action. The `local=true` parameter does not alter the permission check; the same privilege is required regardless.
 
+Health checking is one of several background monitoring features. For the complete set of `cluster:monitor/*` privileges the default router, node discovery, and stats-based congestion control require -- and a copy-paste least-privilege role covering all of them -- see [Cluster Permissions for Routing and Discovery](security.md#cluster-permissions-for-routing-and-discovery).
+
 ### Client Authentication
 
 The client must present valid credentials on every request, including health checks. OpenSearch supports three authentication mechanisms:
