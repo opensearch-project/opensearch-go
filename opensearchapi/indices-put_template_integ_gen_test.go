@@ -27,7 +27,7 @@ func TestIndicesPutTemplate(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-indices-put-template")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.PutTemplate(t.Context(), opensearchapi.IndicesPutTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-legacy-*\"]}")})
+		resp, err := client.Index.PutTemplate(t.Context(), opensearchapi.IndicesPutTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-legacy-*\"]}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +37,7 @@ func TestIndicesPutTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.PutTemplate(t.Context(), opensearchapi.IndicesPutTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-legacy-*\"]}")})
+		res, err := failingClient.Index.PutTemplate(t.Context(), opensearchapi.IndicesPutTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-legacy-*\"]}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

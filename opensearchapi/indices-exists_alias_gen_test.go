@@ -76,7 +76,7 @@ func TestIndicesExistsAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Name: []string{"test"}})
+		resp, err := client.Index.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Name: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)
@@ -95,7 +95,7 @@ func TestIndicesExistsAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Name: []string{"test"}})
+		resp, err := errClient.Index.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Name: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

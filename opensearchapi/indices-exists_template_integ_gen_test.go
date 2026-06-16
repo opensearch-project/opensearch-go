@@ -41,7 +41,7 @@ func TestIndicesExistsTemplate(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{name}})
+		resp, err := client.Index.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

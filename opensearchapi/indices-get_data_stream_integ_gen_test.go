@@ -49,7 +49,7 @@ func TestIndicesGetDataStream(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.GetDataStream(t.Context(), nil)
+		resp, err := client.Index.GetDataStream(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -59,7 +59,7 @@ func TestIndicesGetDataStream(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.GetDataStream(t.Context(), nil)
+		res, err := failingClient.Index.GetDataStream(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

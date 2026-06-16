@@ -30,7 +30,9 @@ type Client struct {
 	Dangling       danglingClient
 	Doc            documentClient
 	Document       documentClient
+	Index          indicesClient
 	Indices        indicesClient
+	Indexes        indicesClient
 	Nodes          nodesClient
 	PIT            pointInTimeClient
 	PointInTime    pointInTimeClient
@@ -51,20 +53,22 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	client.Cluster = clusterClient{apiClient: client}
 	client.Dangling = danglingClient{apiClient: client}
 	client.Doc = documentClient{apiClient: client}
-	client.Document = client.Doc
-	client.Indices = indicesClient{apiClient: client}
+	client.Index = indicesClient{apiClient: client}
 	client.Nodes = nodesClient{apiClient: client}
 	client.PIT = pointInTimeClient{apiClient: client}
-	client.PointInTime = client.PIT
 	client.Ingest = ingestClient{apiClient: client}
 	client.Tasks = tasksClient{apiClient: client}
 	client.Scroll = scrollClient{apiClient: client}
 	client.SearchPipeline = searchPipelineClient{apiClient: client}
 	client.Snapshot = snapshotClient{apiClient: client}
-	client.Indices.Alias = aliasClient{apiClient: client}
-	client.Indices.Mapping = mappingClient{apiClient: client}
-	client.Indices.Settings = settingsClient{apiClient: client}
+	client.Index.Alias = aliasClient{apiClient: client}
+	client.Index.Mapping = mappingClient{apiClient: client}
+	client.Index.Settings = settingsClient{apiClient: client}
 	client.Snapshot.Repository = repositoryClient{apiClient: client}
+	client.Document = client.Doc
+	client.Indices = client.Index
+	client.Indexes = client.Index
+	client.PointInTime = client.PIT
 	return client
 }
 

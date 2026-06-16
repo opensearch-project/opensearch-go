@@ -28,7 +28,7 @@ func TestIndicesCreateDataStream(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-indices-create-data-stream")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: name, Body: strings.NewReader("{}")})
+		resp, err := client.Index.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: name, Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -38,7 +38,7 @@ func TestIndicesCreateDataStream(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: name, Body: strings.NewReader("{}")})
+		res, err := failingClient.Index.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: name, Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

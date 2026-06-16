@@ -77,7 +77,7 @@ func TestIndicesDeleteDataStream_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.DeleteDataStream(t.Context(), &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"test"}})
+		resp, err := client.Index.DeleteDataStream(t.Context(), &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesDeleteDataStream_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.DeleteDataStream(t.Context(), &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"test"}})
+		resp, err := errClient.Index.DeleteDataStream(t.Context(), &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

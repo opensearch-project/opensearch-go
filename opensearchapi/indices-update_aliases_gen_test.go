@@ -71,7 +71,7 @@ func TestIndicesUpdateAliases_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -90,7 +90,7 @@ func TestIndicesUpdateAliases_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.UpdateAliases(t.Context(), &opensearchapi.IndicesUpdateAliasesReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

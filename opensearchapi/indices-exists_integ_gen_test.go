@@ -33,7 +33,7 @@ func TestIndicesExists(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{index}})
+		resp, err := client.Index.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

@@ -78,7 +78,7 @@ func TestIndicesPutSettings_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesPutSettings_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.PutSettings(t.Context(), &opensearchapi.IndicesPutSettingsReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

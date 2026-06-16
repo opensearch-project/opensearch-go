@@ -77,7 +77,7 @@ func TestIndicesGetAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.GetAlias(t.Context(), nil)
+		resp, err := client.Index.GetAlias(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesGetAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.GetAlias(t.Context(), nil)
+		resp, err := errClient.Index.GetAlias(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

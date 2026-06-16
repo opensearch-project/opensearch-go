@@ -77,7 +77,7 @@ func TestIndicesDeleteAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.DeleteAlias(t.Context(), &opensearchapi.IndicesDeleteAliasReq{Index: []string{"test"}, Name: []string{"test"}})
+		resp, err := client.Index.DeleteAlias(t.Context(), &opensearchapi.IndicesDeleteAliasReq{Index: []string{"test"}, Name: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesDeleteAlias_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.DeleteAlias(t.Context(), &opensearchapi.IndicesDeleteAliasReq{Index: []string{"test"}, Name: []string{"test"}})
+		resp, err := errClient.Index.DeleteAlias(t.Context(), &opensearchapi.IndicesDeleteAliasReq{Index: []string{"test"}, Name: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

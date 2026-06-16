@@ -77,7 +77,7 @@ func TestIndicesStats_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Stats(t.Context(), nil)
+		resp, err := client.Index.Stats(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesStats_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Stats(t.Context(), nil)
+		resp, err := errClient.Index.Stats(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

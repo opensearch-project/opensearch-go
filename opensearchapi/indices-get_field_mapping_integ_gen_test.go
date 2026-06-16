@@ -35,7 +35,7 @@ func TestIndicesGetFieldMapping(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.GetFieldMapping(t.Context(), &opensearchapi.IndicesGetFieldMappingReq{Index: []string{index}, Fields: []string{name}})
+		resp, err := client.Index.GetFieldMapping(t.Context(), &opensearchapi.IndicesGetFieldMappingReq{Index: []string{index}, Fields: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestIndicesGetFieldMapping(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.GetFieldMapping(t.Context(), &opensearchapi.IndicesGetFieldMappingReq{Index: []string{index}, Fields: []string{name}})
+		res, err := failingClient.Index.GetFieldMapping(t.Context(), &opensearchapi.IndicesGetFieldMappingReq{Index: []string{index}, Fields: []string{name}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

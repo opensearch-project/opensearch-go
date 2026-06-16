@@ -35,7 +35,7 @@ func TestIndicesPutAlias(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{Index: []string{index}, Name: name, Body: &opensearchapi.IndicesPutAliasBody{}})
+		resp, err := client.Index.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{Index: []string{index}, Name: name, Body: &opensearchapi.IndicesPutAliasBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestIndicesPutAlias(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{Index: []string{index}, Name: name, Body: &opensearchapi.IndicesPutAliasBody{}})
+		res, err := failingClient.Index.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{Index: []string{index}, Name: name, Body: &opensearchapi.IndicesPutAliasBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

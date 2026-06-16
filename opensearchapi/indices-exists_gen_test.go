@@ -76,7 +76,7 @@ func TestIndicesExists_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{"test"}})
+		resp, err := client.Index.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)
@@ -95,7 +95,7 @@ func TestIndicesExists_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{"test"}})
+		resp, err := errClient.Index.Exists(t.Context(), &opensearchapi.IndicesExistsReq{Index: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

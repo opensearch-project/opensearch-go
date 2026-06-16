@@ -40,7 +40,7 @@ func TestIndicesExistsAlias(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Index: []string{index}, Name: []string{name}})
+		resp, err := client.Index.ExistsAlias(t.Context(), &opensearchapi.IndicesExistsAliasReq{Index: []string{index}, Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)

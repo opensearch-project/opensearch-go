@@ -36,7 +36,7 @@ func TestIndicesClone(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: index, Target: name, Body: &opensearchapi.IndicesCloneBody{}})
+		resp, err := client.Index.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: index, Target: name, Body: &opensearchapi.IndicesCloneBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -46,7 +46,7 @@ func TestIndicesClone(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: index, Target: name, Body: &opensearchapi.IndicesCloneBody{}})
+		res, err := failingClient.Index.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: index, Target: name, Body: &opensearchapi.IndicesCloneBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

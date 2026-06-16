@@ -36,7 +36,7 @@ func TestIndicesSplit(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: index, Target: name, Body: &opensearchapi.IndicesSplitBody{}})
+		resp, err := client.Index.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: index, Target: name, Body: &opensearchapi.IndicesSplitBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -46,7 +46,7 @@ func TestIndicesSplit(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: index, Target: name, Body: &opensearchapi.IndicesSplitBody{}})
+		res, err := failingClient.Index.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: index, Target: name, Body: &opensearchapi.IndicesSplitBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

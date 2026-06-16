@@ -279,16 +279,3 @@ func (c documentClient) Index(ctx context.Context, req IndexReq) (*IndexResp, er
 	}
 	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }
-
-// Index creates or updates a document in an index.
-//
-// Path: /{index}/_doc
-//
-// Methods: POST, PUT
-//
-// Available: >= 1.0.0.
-//
-// See: https://opensearch.org/docs/latest/api-reference/document-apis/index-document/
-func (c Client) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
-	return c.Doc.Index(ctx, req)
-}

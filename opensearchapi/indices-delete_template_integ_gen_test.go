@@ -42,7 +42,7 @@ func TestIndicesDeleteTemplate(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.DeleteTemplate(t.Context(), opensearchapi.IndicesDeleteTemplateReq{Name: name})
+		resp, err := client.Index.DeleteTemplate(t.Context(), opensearchapi.IndicesDeleteTemplateReq{Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestIndicesDeleteTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.DeleteTemplate(t.Context(), opensearchapi.IndicesDeleteTemplateReq{Name: name})
+		res, err := failingClient.Index.DeleteTemplate(t.Context(), opensearchapi.IndicesDeleteTemplateReq{Name: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

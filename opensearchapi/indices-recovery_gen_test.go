@@ -77,7 +77,7 @@ func TestIndicesRecovery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Recovery(t.Context(), nil)
+		resp, err := client.Index.Recovery(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesRecovery_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Recovery(t.Context(), nil)
+		resp, err := errClient.Index.Recovery(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -78,7 +78,7 @@ func TestIndicesPutMapping_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesPutMapping_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{"test"}, BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -34,7 +34,7 @@ func TestIndicesGetUpgrade(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.GetUpgrade(t.Context(), &opensearchapi.IndicesGetUpgradeReq{Index: []string{index}})
+		resp, err := client.Index.GetUpgrade(t.Context(), &opensearchapi.IndicesGetUpgradeReq{Index: []string{index}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -44,7 +44,7 @@ func TestIndicesGetUpgrade(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.GetUpgrade(t.Context(), &opensearchapi.IndicesGetUpgradeReq{Index: []string{index}})
+		res, err := failingClient.Index.GetUpgrade(t.Context(), &opensearchapi.IndicesGetUpgradeReq{Index: []string{index}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

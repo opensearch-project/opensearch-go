@@ -77,7 +77,7 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
+		resp, err := client.Index.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
+		resp, err := errClient.Index.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Index: []string{"test"}, Block: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -78,7 +78,7 @@ func TestIndicesSplit_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesSplit_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.Split(t.Context(), opensearchapi.IndicesSplitReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

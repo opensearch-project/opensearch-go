@@ -42,7 +42,7 @@ func TestIndicesSimulateIndexTemplate(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-sim-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
+		resp, err := client.Index.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-sim-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -52,7 +52,7 @@ func TestIndicesSimulateIndexTemplate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-sim-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
+		res, err := failingClient.Index.SimulateIndexTemplate(t.Context(), opensearchapi.IndicesSimulateIndexTemplateReq{Name: name, BodyReader: strings.NewReader("{\"index_patterns\":[\"test-sim-*\"],\"template\":{\"settings\":{\"number_of_shards\":\"1\"}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

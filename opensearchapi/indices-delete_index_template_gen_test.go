@@ -77,7 +77,7 @@ func TestIndicesDeleteIndexTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: "test"})
+		resp, err := client.Index.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: "test"})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesDeleteIndexTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: "test"})
+		resp, err := errClient.Index.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: "test"})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -465,298 +465,292 @@ func TestDispatch_Index(t *testing.T) {
 	var _ func(context.Context, opensearchapi.IndexReq) (*opensearchapi.IndexResp, error) = c.Doc.Index
 }
 
-func TestV4Aliases_Index(t *testing.T) {
-	// Compile-time signature assertion.
-	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndexReq) (*opensearchapi.IndexResp, error) = c.Index
-}
-
 func TestDispatch_IndicesAddBlock(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesAddBlockReq) (*opensearchapi.IndicesAddBlockResp, error) = c.Indices.AddBlock
+	var _ func(context.Context, opensearchapi.IndicesAddBlockReq) (*opensearchapi.IndicesAddBlockResp, error) = c.Index.AddBlock
 }
 
 func TestDispatch_IndicesAnalyze(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesAnalyzeReq) (*opensearchapi.IndicesAnalyzeResp, error) = c.Indices.Analyze
+	var _ func(context.Context, opensearchapi.IndicesAnalyzeReq) (*opensearchapi.IndicesAnalyzeResp, error) = c.Index.Analyze
 }
 
 func TestDispatch_IndicesClearCache(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesClearCacheReq) (*opensearchapi.IndicesClearCacheResp, error) = c.Indices.ClearCache
+	var _ func(context.Context, *opensearchapi.IndicesClearCacheReq) (*opensearchapi.IndicesClearCacheResp, error) = c.Index.ClearCache
 }
 
 func TestDispatch_IndicesClone(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesCloneReq) (*opensearchapi.IndicesCloneResp, error) = c.Indices.Clone
+	var _ func(context.Context, opensearchapi.IndicesCloneReq) (*opensearchapi.IndicesCloneResp, error) = c.Index.Clone
 }
 
 func TestDispatch_IndicesClose(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesCloseReq) (*opensearchapi.IndicesCloseResp, error) = c.Indices.Close
+	var _ func(context.Context, *opensearchapi.IndicesCloseReq) (*opensearchapi.IndicesCloseResp, error) = c.Index.Close
 }
 
 func TestDispatch_IndicesCreate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesCreateReq) (*opensearchapi.IndicesCreateResp, error) = c.Indices.Create
+	var _ func(context.Context, opensearchapi.IndicesCreateReq) (*opensearchapi.IndicesCreateResp, error) = c.Index.Create
 }
 
 func TestDispatch_IndicesCreateDataStream(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesCreateDataStreamReq) (*opensearchapi.IndicesCreateDataStreamResp, error) = c.Indices.CreateDataStream
+	var _ func(context.Context, opensearchapi.IndicesCreateDataStreamReq) (*opensearchapi.IndicesCreateDataStreamResp, error) = c.Index.CreateDataStream
 }
 
 func TestDispatch_IndicesDataStreamsStats(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesDataStreamsStatsReq) (*opensearchapi.IndicesDataStreamsStatsResp, error) = c.Indices.DataStreamsStats
+	var _ func(context.Context, *opensearchapi.IndicesDataStreamsStatsReq) (*opensearchapi.IndicesDataStreamsStatsResp, error) = c.Index.DataStreamsStats
 }
 
 func TestDispatch_IndicesDelete(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesDeleteReq) (*opensearchapi.IndicesDeleteResp, error) = c.Indices.Delete
+	var _ func(context.Context, *opensearchapi.IndicesDeleteReq) (*opensearchapi.IndicesDeleteResp, error) = c.Index.Delete
 }
 
 func TestDispatch_IndicesDeleteAlias(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesDeleteAliasReq) (*opensearchapi.IndicesDeleteAliasResp, error) = c.Indices.DeleteAlias
+	var _ func(context.Context, *opensearchapi.IndicesDeleteAliasReq) (*opensearchapi.IndicesDeleteAliasResp, error) = c.Index.DeleteAlias
 }
 
 func TestDispatch_IndicesDeleteDataStream(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesDeleteDataStreamReq) (*opensearchapi.IndicesDeleteDataStreamResp, error) = c.Indices.DeleteDataStream
+	var _ func(context.Context, *opensearchapi.IndicesDeleteDataStreamReq) (*opensearchapi.IndicesDeleteDataStreamResp, error) = c.Index.DeleteDataStream
 }
 
 func TestDispatch_IndicesDeleteIndexTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesDeleteIndexTemplateReq) (*opensearchapi.IndicesDeleteIndexTemplateResp, error) = c.Indices.DeleteIndexTemplate
+	var _ func(context.Context, opensearchapi.IndicesDeleteIndexTemplateReq) (*opensearchapi.IndicesDeleteIndexTemplateResp, error) = c.Index.DeleteIndexTemplate
 }
 
 func TestDispatch_IndicesDeleteTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesDeleteTemplateReq) (*opensearchapi.IndicesDeleteTemplateResp, error) = c.Indices.DeleteTemplate
+	var _ func(context.Context, opensearchapi.IndicesDeleteTemplateReq) (*opensearchapi.IndicesDeleteTemplateResp, error) = c.Index.DeleteTemplate
 }
 
 func TestDispatch_IndicesExists(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesExistsReq) (*opensearch.Response, error) = c.Indices.Exists
+	var _ func(context.Context, *opensearchapi.IndicesExistsReq) (*opensearch.Response, error) = c.Index.Exists
 }
 
 func TestDispatch_IndicesExistsAlias(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesExistsAliasReq) (*opensearch.Response, error) = c.Indices.ExistsAlias
+	var _ func(context.Context, *opensearchapi.IndicesExistsAliasReq) (*opensearch.Response, error) = c.Index.ExistsAlias
 }
 
 func TestDispatch_IndicesExistsIndexTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesExistsIndexTemplateReq) (*opensearch.Response, error) = c.Indices.ExistsIndexTemplate
+	var _ func(context.Context, opensearchapi.IndicesExistsIndexTemplateReq) (*opensearch.Response, error) = c.Index.ExistsIndexTemplate
 }
 
 func TestDispatch_IndicesExistsTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesExistsTemplateReq) (*opensearch.Response, error) = c.Indices.ExistsTemplate
+	var _ func(context.Context, *opensearchapi.IndicesExistsTemplateReq) (*opensearch.Response, error) = c.Index.ExistsTemplate
 }
 
 func TestDispatch_IndicesFlush(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesFlushReq) (*opensearchapi.IndicesFlushResp, error) = c.Indices.Flush
+	var _ func(context.Context, *opensearchapi.IndicesFlushReq) (*opensearchapi.IndicesFlushResp, error) = c.Index.Flush
 }
 
 func TestDispatch_IndicesForceMerge(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesForceMergeReq) (*opensearchapi.IndicesForceMergeResp, error) = c.Indices.ForceMerge
+	var _ func(context.Context, *opensearchapi.IndicesForceMergeReq) (*opensearchapi.IndicesForceMergeResp, error) = c.Index.ForceMerge
 }
 
 func TestDispatch_IndicesGet(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetReq) (*opensearchapi.IndicesGetResp, error) = c.Indices.Get
+	var _ func(context.Context, *opensearchapi.IndicesGetReq) (*opensearchapi.IndicesGetResp, error) = c.Index.Get
 }
 
 func TestDispatch_IndicesGetAlias(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetAliasReq) (*opensearchapi.IndicesGetAliasResp, error) = c.Indices.GetAlias
+	var _ func(context.Context, *opensearchapi.IndicesGetAliasReq) (*opensearchapi.IndicesGetAliasResp, error) = c.Index.GetAlias
 }
 
 func TestDispatch_IndicesGetDataStream(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetDataStreamReq) (*opensearchapi.IndicesGetDataStreamResp, error) = c.Indices.GetDataStream
+	var _ func(context.Context, *opensearchapi.IndicesGetDataStreamReq) (*opensearchapi.IndicesGetDataStreamResp, error) = c.Index.GetDataStream
 }
 
 func TestDispatch_IndicesGetFieldMapping(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetFieldMappingReq) (*opensearchapi.IndicesGetFieldMappingResp, error) = c.Indices.GetFieldMapping
+	var _ func(context.Context, *opensearchapi.IndicesGetFieldMappingReq) (*opensearchapi.IndicesGetFieldMappingResp, error) = c.Index.GetFieldMapping
 }
 
 func TestDispatch_IndicesGetIndexTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesGetIndexTemplateReq) (*opensearchapi.IndicesGetIndexTemplateResp, error) = c.Indices.GetIndexTemplate
+	var _ func(context.Context, opensearchapi.IndicesGetIndexTemplateReq) (*opensearchapi.IndicesGetIndexTemplateResp, error) = c.Index.GetIndexTemplate
 }
 
 func TestDispatch_IndicesGetMapping(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetMappingReq) (*opensearchapi.IndicesGetMappingResp, error) = c.Indices.GetMapping
+	var _ func(context.Context, *opensearchapi.IndicesGetMappingReq) (*opensearchapi.IndicesGetMappingResp, error) = c.Index.GetMapping
 }
 
 func TestDispatch_IndicesGetSettings(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetSettingsReq) (*opensearchapi.IndicesGetSettingsResp, error) = c.Indices.GetSettings
+	var _ func(context.Context, *opensearchapi.IndicesGetSettingsReq) (*opensearchapi.IndicesGetSettingsResp, error) = c.Index.GetSettings
 }
 
 func TestDispatch_IndicesGetTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetTemplateReq) (*opensearchapi.IndicesGetTemplateResp, error) = c.Indices.GetTemplate
+	var _ func(context.Context, *opensearchapi.IndicesGetTemplateReq) (*opensearchapi.IndicesGetTemplateResp, error) = c.Index.GetTemplate
 }
 
 func TestDispatch_IndicesGetUpgrade(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesGetUpgradeReq) (*opensearchapi.IndicesGetUpgradeResp, error) = c.Indices.GetUpgrade
+	var _ func(context.Context, *opensearchapi.IndicesGetUpgradeReq) (*opensearchapi.IndicesGetUpgradeResp, error) = c.Index.GetUpgrade
 }
 
 func TestDispatch_IndicesOpen(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesOpenReq) (*opensearchapi.IndicesOpenResp, error) = c.Indices.Open
+	var _ func(context.Context, *opensearchapi.IndicesOpenReq) (*opensearchapi.IndicesOpenResp, error) = c.Index.Open
 }
 
 func TestDispatch_IndicesPutAlias(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesPutAliasReq) (*opensearchapi.IndicesPutAliasResp, error) = c.Indices.PutAlias
+	var _ func(context.Context, opensearchapi.IndicesPutAliasReq) (*opensearchapi.IndicesPutAliasResp, error) = c.Index.PutAlias
 }
 
 func TestDispatch_IndicesPutIndexTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesPutIndexTemplateReq) (*opensearchapi.IndicesPutIndexTemplateResp, error) = c.Indices.PutIndexTemplate
+	var _ func(context.Context, opensearchapi.IndicesPutIndexTemplateReq) (*opensearchapi.IndicesPutIndexTemplateResp, error) = c.Index.PutIndexTemplate
 }
 
 func TestDispatch_IndicesPutMapping(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesPutMappingReq) (*opensearchapi.IndicesPutMappingResp, error) = c.Indices.PutMapping
+	var _ func(context.Context, *opensearchapi.IndicesPutMappingReq) (*opensearchapi.IndicesPutMappingResp, error) = c.Index.PutMapping
 }
 
 func TestDispatch_IndicesPutSettings(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesPutSettingsReq) (*opensearchapi.IndicesPutSettingsResp, error) = c.Indices.PutSettings
+	var _ func(context.Context, *opensearchapi.IndicesPutSettingsReq) (*opensearchapi.IndicesPutSettingsResp, error) = c.Index.PutSettings
 }
 
 func TestDispatch_IndicesPutTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesPutTemplateReq) (*opensearchapi.IndicesPutTemplateResp, error) = c.Indices.PutTemplate
+	var _ func(context.Context, opensearchapi.IndicesPutTemplateReq) (*opensearchapi.IndicesPutTemplateResp, error) = c.Index.PutTemplate
 }
 
 func TestDispatch_IndicesRecovery(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesRecoveryReq) (*opensearchapi.IndicesRecoveryResp, error) = c.Indices.Recovery
+	var _ func(context.Context, *opensearchapi.IndicesRecoveryReq) (*opensearchapi.IndicesRecoveryResp, error) = c.Index.Recovery
 }
 
 func TestDispatch_IndicesRefresh(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesRefreshReq) (*opensearchapi.IndicesRefreshResp, error) = c.Indices.Refresh
+	var _ func(context.Context, *opensearchapi.IndicesRefreshReq) (*opensearchapi.IndicesRefreshResp, error) = c.Index.Refresh
 }
 
 func TestDispatch_IndicesResolveIndex(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesResolveIndexReq) (*opensearchapi.IndicesResolveIndexResp, error) = c.Indices.ResolveIndex
+	var _ func(context.Context, *opensearchapi.IndicesResolveIndexReq) (*opensearchapi.IndicesResolveIndexResp, error) = c.Index.ResolveIndex
 }
 
 func TestDispatch_IndicesRollover(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesRolloverReq) (*opensearchapi.IndicesRolloverResp, error) = c.Indices.Rollover
+	var _ func(context.Context, opensearchapi.IndicesRolloverReq) (*opensearchapi.IndicesRolloverResp, error) = c.Index.Rollover
 }
 
 func TestDispatch_IndicesSegments(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesSegmentsReq) (*opensearchapi.IndicesSegmentsResp, error) = c.Indices.Segments
+	var _ func(context.Context, *opensearchapi.IndicesSegmentsReq) (*opensearchapi.IndicesSegmentsResp, error) = c.Index.Segments
 }
 
 func TestDispatch_IndicesShardStores(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesShardStoresReq) (*opensearchapi.IndicesShardStoresResp, error) = c.Indices.ShardStores
+	var _ func(context.Context, *opensearchapi.IndicesShardStoresReq) (*opensearchapi.IndicesShardStoresResp, error) = c.Index.ShardStores
 }
 
 func TestDispatch_IndicesShrink(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesShrinkReq) (*opensearchapi.IndicesShrinkResp, error) = c.Indices.Shrink
+	var _ func(context.Context, opensearchapi.IndicesShrinkReq) (*opensearchapi.IndicesShrinkResp, error) = c.Index.Shrink
 }
 
 func TestDispatch_IndicesSimulateIndexTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesSimulateIndexTemplateReq) (*opensearchapi.IndicesSimulateIndexTemplateResp, error) = c.Indices.SimulateIndexTemplate
+	var _ func(context.Context, opensearchapi.IndicesSimulateIndexTemplateReq) (*opensearchapi.IndicesSimulateIndexTemplateResp, error) = c.Index.SimulateIndexTemplate
 }
 
 func TestDispatch_IndicesSimulateTemplate(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesSimulateTemplateReq) (*opensearchapi.IndicesSimulateTemplateResp, error) = c.Indices.SimulateTemplate
+	var _ func(context.Context, opensearchapi.IndicesSimulateTemplateReq) (*opensearchapi.IndicesSimulateTemplateResp, error) = c.Index.SimulateTemplate
 }
 
 func TestDispatch_IndicesSplit(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, opensearchapi.IndicesSplitReq) (*opensearchapi.IndicesSplitResp, error) = c.Indices.Split
+	var _ func(context.Context, opensearchapi.IndicesSplitReq) (*opensearchapi.IndicesSplitResp, error) = c.Index.Split
 }
 
 func TestDispatch_IndicesStats(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesStatsReq) (*opensearchapi.IndicesStatsResp, error) = c.Indices.Stats
+	var _ func(context.Context, *opensearchapi.IndicesStatsReq) (*opensearchapi.IndicesStatsResp, error) = c.Index.Stats
 }
 
 func TestDispatch_IndicesUpdateAliases(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesUpdateAliasesReq) (*opensearchapi.IndicesUpdateAliasesResp, error) = c.Indices.UpdateAliases
+	var _ func(context.Context, *opensearchapi.IndicesUpdateAliasesReq) (*opensearchapi.IndicesUpdateAliasesResp, error) = c.Index.UpdateAliases
 }
 
 func TestDispatch_IndicesUpgrade(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesUpgradeReq) (*opensearchapi.IndicesUpgradeResp, error) = c.Indices.Upgrade
+	var _ func(context.Context, *opensearchapi.IndicesUpgradeReq) (*opensearchapi.IndicesUpgradeResp, error) = c.Index.Upgrade
 }
 
 func TestDispatch_IndicesValidateQuery(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.IndicesValidateQueryReq) (*opensearchapi.IndicesValidateQueryResp, error) = c.Indices.ValidateQuery
+	var _ func(context.Context, *opensearchapi.IndicesValidateQueryReq) (*opensearchapi.IndicesValidateQueryResp, error) = c.Index.ValidateQuery
 }
 
 func TestDispatch_Info(t *testing.T) {

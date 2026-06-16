@@ -35,7 +35,7 @@ func TestIndicesPutMapping(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{index}, BodyReader: strings.NewReader("{\"properties\":{\"title\":{\"type\":\"text\"}}}")})
+		resp, err := client.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{index}, BodyReader: strings.NewReader("{\"properties\":{\"title\":{\"type\":\"text\"}}}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -45,7 +45,7 @@ func TestIndicesPutMapping(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{index}, BodyReader: strings.NewReader("{\"properties\":{\"title\":{\"type\":\"text\"}}}")})
+		res, err := failingClient.Index.PutMapping(t.Context(), &opensearchapi.IndicesPutMappingReq{Index: []string{index}, BodyReader: strings.NewReader("{\"properties\":{\"title\":{\"type\":\"text\"}}}")})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

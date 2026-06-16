@@ -78,7 +78,7 @@ func TestIndicesPutIndexTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesPutIndexTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{Name: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

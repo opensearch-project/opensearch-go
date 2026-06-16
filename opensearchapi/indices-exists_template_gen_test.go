@@ -76,7 +76,7 @@ func TestIndicesExistsTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
+		resp, err := client.Index.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Greater(t, resp.StatusCode, 0)
@@ -95,7 +95,7 @@ func TestIndicesExistsTemplate_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
+		resp, err := errClient.Index.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

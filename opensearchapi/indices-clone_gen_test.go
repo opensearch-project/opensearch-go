@@ -78,7 +78,7 @@ func TestIndicesClone_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := client.Index.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesClone_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
+		resp, err := errClient.Index.Clone(t.Context(), opensearchapi.IndicesCloneReq{Index: "test", Target: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

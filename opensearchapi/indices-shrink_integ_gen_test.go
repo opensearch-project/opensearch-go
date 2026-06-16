@@ -36,7 +36,7 @@ func TestIndicesShrink(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: index, Target: name, Body: &opensearchapi.IndicesShrinkBody{}})
+		resp, err := client.Index.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: index, Target: name, Body: &opensearchapi.IndicesShrinkBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -46,7 +46,7 @@ func TestIndicesShrink(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: index, Target: name, Body: &opensearchapi.IndicesShrinkBody{}})
+		res, err := failingClient.Index.Shrink(t.Context(), opensearchapi.IndicesShrinkReq{Index: index, Target: name, Body: &opensearchapi.IndicesShrinkBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

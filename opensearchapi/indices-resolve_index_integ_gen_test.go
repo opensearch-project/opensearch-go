@@ -26,7 +26,7 @@ func TestIndicesResolveIndex(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-indices-resolve-index")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
+		resp, err := client.Index.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -36,7 +36,7 @@ func TestIndicesResolveIndex(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
+		res, err := failingClient.Index.ResolveIndex(t.Context(), &opensearchapi.IndicesResolveIndexReq{Name: []string{name}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())

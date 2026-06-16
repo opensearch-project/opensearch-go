@@ -82,15 +82,21 @@ func (f *ClientsFragment) initStatements() []string {
 	for _, sc := range f.SubClients {
 		if sc.Parent == "Client" {
 			stmts = append(stmts, fmt.Sprintf("client.%s = %s{apiClient: client}", sc.FieldName, sc.TypeName))
-			for _, alias := range sc.Aliases {
-				stmts = append(stmts, fmt.Sprintf("client.%s = client.%s", alias, sc.FieldName))
-			}
 		}
 	}
 	for _, sc := range f.SubClients {
 		if sc.Parent != "Client" {
 			parentField := f.parentFieldName(sc.Parent)
 			stmts = append(stmts, fmt.Sprintf("client.%s.%s = %s{apiClient: client}", parentField, sc.FieldName, sc.TypeName))
+		}
+	}
+	// Assign top-level aliases last, so they copy the canonical sub-client value
+	// after its nested children have been populated.
+	for _, sc := range f.SubClients {
+		if sc.Parent == "Client" {
+			for _, alias := range sc.Aliases {
+				stmts = append(stmts, fmt.Sprintf("client.%s = client.%s", alias, sc.FieldName))
+			}
 		}
 	}
 	return stmts

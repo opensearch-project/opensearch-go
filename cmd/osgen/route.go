@@ -193,7 +193,7 @@ var subClientHierarchy = []subClientInfo{
 	{TypeName: "clusterClient", FieldName: "Cluster", Parent: "Client"},
 	{TypeName: "danglingClient", FieldName: "Dangling", Parent: "Client"},
 	{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
-	{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
+	{TypeName: "indicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
 	{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
 	{TypeName: "mappingClient", FieldName: "Mapping", Parent: "indicesClient"},
 	{TypeName: "settingsClient", FieldName: "Settings", Parent: "indicesClient"},
@@ -426,7 +426,6 @@ var compatForwarders = map[string][]compatForwarder{
 	"bulk":         {{ReceiverType: "Client", MethodName: "Bulk"}},
 	"get_all_pits": {{ReceiverType: "pointInTimeClient", MethodName: "Get"}},
 	"get_source":   {{ReceiverType: "documentClient", MethodName: "Source"}},
-	"index":        {{ReceiverType: "Client", MethodName: "Index"}},
 	"mget":         {{ReceiverType: "Client", MethodName: "MGet"}},
 	"update":       {{ReceiverType: "Client", MethodName: "Update"}},
 }

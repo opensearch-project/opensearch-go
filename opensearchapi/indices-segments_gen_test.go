@@ -77,7 +77,7 @@ func TestIndicesSegments_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.Segments(t.Context(), nil)
+		resp, err := client.Index.Segments(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -96,7 +96,7 @@ func TestIndicesSegments_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.Segments(t.Context(), nil)
+		resp, err := errClient.Index.Segments(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

@@ -97,6 +97,38 @@ func TestClientsFragment_Body_Aliases(t *testing.T) {
 	require.Equal(t, 1, strings.Count(body, "type pointInTimeClient struct"))
 }
 
+// TestClientsFragment_Body_AliasInitOrder verifies that a top-level alias is
+// assigned AFTER the canonical sub-client's nested children, so the alias copy
+// captures a fully-populated value (the indices sub-client has nested
+// Alias/Mapping/Settings children).
+func TestClientsFragment_Body_AliasInitOrder(t *testing.T) {
+	t.Parallel()
+
+	clients := []emit.SubClient{
+		{TypeName: "indicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
+		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
+	}
+
+	frag := &emit.ClientsFragment{SubClients: clients}
+	body, err := frag.Body()
+	require.NoError(t, err)
+
+	// Nested child is assigned onto the canonical field.
+	require.Contains(t, body, "client.Index.Alias = aliasClient{apiClient: client}")
+	// Aliases copy the canonical field.
+	require.Contains(t, body, "client.Indices = client.Index")
+	require.Contains(t, body, "client.Indexes = client.Index")
+
+	// The nested-child assignment must come BEFORE the alias copies, otherwise
+	// client.Indices.Alias would be a zero value.
+	nestedIdx := strings.Index(body, "client.Index.Alias = aliasClient{apiClient: client}")
+	indicesAliasIdx := strings.Index(body, "client.Indices = client.Index")
+	indexesAliasIdx := strings.Index(body, "client.Indexes = client.Index")
+	require.Positive(t, nestedIdx)
+	require.Less(t, nestedIdx, indicesAliasIdx, "nested child must be assigned before the Indices alias copy")
+	require.Less(t, nestedIdx, indexesAliasIdx, "nested child must be assigned before the Indexes alias copy")
+}
+
 func TestClientsFragment_Imports(t *testing.T) {
 	t.Parallel()
 

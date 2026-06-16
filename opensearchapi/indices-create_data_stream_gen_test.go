@@ -78,7 +78,7 @@ func TestIndicesCreateDataStream_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := client.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
+		resp, err := client.Index.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.NotNil(t, resp.Inspect().Response)
@@ -97,7 +97,7 @@ func TestIndicesCreateDataStream_Roundtrip(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		resp, err := errClient.Indices.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
+		resp, err := errClient.Index.CreateDataStream(t.Context(), opensearchapi.IndicesCreateDataStreamReq{Name: "test", Body: strings.NewReader("{}")})
 		require.Error(t, err)
 		require.NotNil(t, resp)
 	})

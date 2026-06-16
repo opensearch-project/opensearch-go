@@ -33,7 +33,7 @@ func TestIndicesCreate(t *testing.T) {
 	// index variable defined above; the operation itself creates the resource.
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
+		resp, err := client.Index.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -43,7 +43,7 @@ func TestIndicesCreate(t *testing.T) {
 		failingClient, err := osapitest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
+		res, err := failingClient.Index.Create(t.Context(), opensearchapi.IndicesCreateReq{Index: index, Body: &opensearchapi.IndicesCreateBody{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
