@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {
@@ -41,11 +41,11 @@ func example() error {
 
 	ctx := context.Background()
 
-	tempCreateResp, err := client.IndexTemplate.Create(
+	tempCreateResp, err := client.Indices.PutIndexTemplate(
 		ctx,
-		opensearchapi.IndexTemplateCreateReq{
-			IndexTemplate: "books",
-			Body: strings.NewReader(`{
+		opensearchapi.IndicesPutIndexTemplateReq{
+			Name: "books",
+			BodyReader: strings.NewReader(`{
     		"index_patterns": ["books-nonfiction"],
     		"template": {
     		  "settings": {
@@ -65,13 +65,13 @@ func example() error {
 	}
 	fmt.Printf("Index Tempalte created: %t\n", tempCreateResp.Acknowledged)
 
-	createResp, err := client.DataStream.Create(ctx, opensearchapi.DataStreamCreateReq{DataStream: "books-nonfiction"})
+	createResp, err := client.Indices.CreateDataStream(ctx, opensearchapi.IndicesCreateDataStreamReq{Name: "books-nonfiction"})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
-	getResp, err := client.DataStream.Get(ctx, nil)
+	getResp, err := client.Indices.GetDataStream(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ func example() error {
 	}
 	fmt.Printf("Get DataStream:\n%s\n", string(respAsJson))
 
-	getResp, err = client.DataStream.Get(ctx, &opensearchapi.DataStreamGetReq{DataStreams: []string{"books-nonfiction"}})
+	getResp, err = client.Indices.GetDataStream(ctx, &opensearchapi.IndicesGetDataStreamReq{Name: []string{"books-nonfiction"}})
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func example() error {
 	}
 	fmt.Printf("Get DataStream:\n%s\n", string(respAsJson))
 
-	statsResp, err := client.DataStream.Stats(ctx, nil)
+	statsResp, err := client.Indices.DataStreamsStats(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -101,13 +101,13 @@ func example() error {
 	}
 	fmt.Printf("Stats DataStream:\n%s\n", string(respAsJson))
 
-	delResp, err := client.DataStream.Delete(ctx, opensearchapi.DataStreamDeleteReq{DataStream: "books-nonfiction"})
+	delResp, err := client.Indices.DeleteDataStream(ctx, &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"books-nonfiction"}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("DataStream deleted: %t\n", delResp.Acknowledged)
 
-	delTempResp, err := client.IndexTemplate.Delete(ctx, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: "books"})
+	delTempResp, err := client.Indices.DeleteIndexTemplate(ctx, opensearchapi.IndicesDeleteIndexTemplateReq{Name: "books"})
 	if err != nil {
 		return err
 	}

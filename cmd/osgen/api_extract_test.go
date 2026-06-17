@@ -122,7 +122,8 @@ func TestBuildAPIOperation_PathFields(t *testing.T) {
 
 	op := ops[0]
 	require.Len(t, op.PathFields, 1)
-	require.Equal(t, "Index", op.PathFields[0].GoName)
+	// The array-capable "index" path parameter is pluralized to Indices.
+	require.Equal(t, "Indices", op.PathFields[0].GoName)
 	require.True(t, op.PathFields[0].IsList)
 }
 
@@ -147,9 +148,16 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	require.True(t, paramMap["allow_partial_results"].IsBool)
 	require.Equal(t, "*bool", paramMap["allow_partial_results"].GoType)
 
-	// Integer param.
+	// Integer param whose 0 is meaningful for this operation (search size=0
+	// returns aggregations with no hits) is promoted to *int so the != 0
+	// emission guard cannot drop a deliberate 0.
 	require.True(t, paramMap["size"].IsInt)
-	require.Equal(t, "int", paramMap["size"].GoType)
+	require.Equal(t, "*int", paramMap["size"].GoType)
+
+	// Integer param whose 0 is NOT meaningful stays a plain int (not in the
+	// per-operation allowlist).
+	require.True(t, paramMap["terminate_after"].IsInt)
+	require.Equal(t, "int", paramMap["terminate_after"].GoType)
 
 	// Duration param (non-shared; timeout is now a shared param).
 	require.True(t, paramMap["scroll"].IsDuration)
@@ -471,7 +479,8 @@ func TestBuildAPIOperation_PathFieldUnion(t *testing.T) {
 
 	op := ops[0]
 	require.Len(t, op.PathFields, 1)
-	require.Equal(t, "Index", op.PathFields[0].GoName)
+	// The array-capable "index" path parameter is pluralized to Indices.
+	require.Equal(t, "Indices", op.PathFields[0].GoName)
 	require.True(t, op.PathFields[0].IsList)
 }
 
@@ -603,6 +612,11 @@ func buildTestSpecWithQueryParams(t *testing.T) string {
 						},
 						map[string]any{
 							"name":   "size",
+							"in":     "query",
+							"schema": map[string]any{"type": "integer"},
+						},
+						map[string]any{
+							"name":   "terminate_after",
 							"in":     "query",
 							"schema": map[string]any{"type": "integer"},
 						},

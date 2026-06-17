@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestUnionFragment_Strict(t *testing.T) {
@@ -148,7 +148,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 	// the registry's CoreImport must be set for hasCrossPkgBranch to
 	// flag it.
 	crossPkgRegistry := ir.NewTypeRegistry("opensearchapi",
-		"github.com/opensearch-project/opensearch-go/v4/opensearchapi")
+		"github.com/opensearch-project/opensearch-go/v5/opensearchapi")
 	crossPkgRegistry.Register(&ir.Type{
 		Name:      "FieldSort",
 		SchemaRef: "#/test/FieldSort",
@@ -219,7 +219,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 					hasFmt = true
 				case "encoding/json":
 					hasJSON = true
-				case "github.com/opensearch-project/opensearch-go/v4/opensearchapi":
+				case "github.com/opensearch-project/opensearch-go/v5/opensearchapi":
 					hasCore = true
 				}
 			}

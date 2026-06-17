@@ -13,11 +13,13 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {
@@ -50,31 +52,31 @@ func example() error {
 You can clear the cache of an index or indices by using the `Indices.ClearCache()` action. The following example clears the cache of the `movies` index:
 
 ```go
-	clearCachResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Indices: []string{exampleIndex}})
+	clearCacheResp, err := client.Indices.ClearCache(ctx, &opensearchapi.IndicesClearCacheReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Cach cleared for %s shards\n", clearCacheResp.Shards.Total)
+	fmt.Printf("Cach cleared for %d shards\n", clearCacheResp.Shards.Total)
 ```
 
 By default, the `Indices.ClearCache()` action clears all types of cache. To clear specific types of cache pass the the `query`, `fielddata`, or `request` parameter to the action:
 
 ```go
-	clearCachResp, err := client.Indices.ClearCache(
+	clearCacheResp, err = client.Indices.ClearCache(
 		ctx,
 		&opensearchapi.IndicesClearCacheReq{
 			Indices: []string{exampleIndex},
-			Params: opensearchapi.IndicesClearCacheParams{
-				Fielddata: opensearchapi.ToPointer(true),
-				Request:   opensearchapi.ToPointer(true),
-				Query:     opensearchapi.ToPointer(true),
+			Params: &opensearchapi.IndicesClearCacheParams{
+				Fielddata: opensearch.ToPointer(true),
+				Request:   opensearch.ToPointer(true),
+				Query:     opensearch.ToPointer(true),
 			},
 		},
 	)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Cach cleared for %s shards\n", clearCacheResp.Shards.Total)
+	fmt.Printf("Cach cleared for %d shards\n", clearCacheResp.Shards.Total)
 ```
 
 ### Flush index
@@ -106,17 +108,21 @@ You can refresh an index or indices to make sure that all changes are available 
 You can close an index to prevent read and write operations on the index. A closed index does not have to maintain certain data structures that an opened index require, reducing the memory and disk space required by the index. The following example closes and reopens the `movies` index:
 
 ```go
-	closeResp, err := client.Indices.Close(ctx, opensearchapi.IndicesCloseReq{Index: exampleIndex})
+	closeResp, err := client.Indices.Close(ctx, &opensearchapi.IndicesCloseReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Index closed: %t\n", closeResp.Acknowledged)
 
-	openResp, err := client.Indices.Open(ctx, opensearchapi.IndicesOpenReq{Index: exampleIndex})
+	openResp, err := client.Indices.Open(ctx, &opensearchapi.IndicesOpenReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Index opended: %t\n", openResp.Acknowledged)
+	openRespJSON, err := json.MarshalIndent(openResp, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Index opened:\n%s\n", string(openRespJSON))
 ```
 
 ### Force merge index
@@ -124,12 +130,12 @@ You can close an index to prevent read and write operations on the index. A clos
 You can force merge an index or indices to reduce the number of segments in the index. This can be useful if you have a large number of small segments in the index. Merging segments reduces the memory footprint of the index. Do note that this action is resource intensive and it is only recommended for read-only indices. The following example force merges the `movies` index:
 
 ```go
-	mergeResp, err := client.Indices.Forcemerge(
+	mergeResp, err := client.Indices.ForceMerge(
 		ctx,
-		&opensearchapi.IndicesForcemergeReq{
+		&opensearchapi.IndicesForceMergeReq{
 			Indices: []string{exampleIndex},
-			Params: opensearchapi.IndicesForcemergeParams{
-				MaxNumSegments: opensearchapi.ToPointer(1),
+			Params: &opensearchapi.IndicesForceMergeParams{
+				MaxNumSegments: 1,
 			},
 		},
 	)
@@ -144,11 +150,11 @@ You can force merge an index or indices to reduce the number of segments in the 
 You can clone an index to create a new index with the same mappings, data, and MOST of the settings. The source index must be in read-only state for cloning. The following example blocks write operations from `movies` index, clones the said index to create a new index named `movies_clone`, then re-enables write:
 
 ```go
-	blockResp, err := client.Indices.Block(
+	blockResp, err := client.Indices.AddBlock(
 		ctx,
-		opensearchapi.IndicesBlockReq{
+		opensearchapi.IndicesAddBlockReq{
 			Indices: []string{exampleIndex},
-			Block:   "write",
+			Block: "write",
 		},
 	)
 	if err != nil {
@@ -169,12 +175,12 @@ You can clone an index to create a new index with the same mappings, data, and M
 	fmt.Printf("Cloned: %t\n", cloneResp.Acknowledged)
 
 	settingResp, err := client.Indices.Settings.Put(
-        ctx,
-        opensearchapi.SettingsPutReq{
-            Indices: []string{exampleIndex},
-            Body: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
-        },
-    )
+		ctx,
+		&opensearchapi.IndicesPutSettingsReq{
+			Indices:      []string{exampleIndex},
+			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
+		},
+	)
 	if err != nil {
 		return err
 	}
@@ -190,7 +196,7 @@ You can split an index into another index with more primary shards. The source i
 		ctx,
 		opensearchapi.IndicesCreateReq{
 			Index: "books",
-			Body: strings.NewReader(`{
+			BodyReader: strings.NewReader(`{
         "settings": {
             "index": {
                 "number_of_shards": 5,
@@ -211,9 +217,9 @@ You can split an index into another index with more primary shards. The source i
 	splitResp, err := client.Indices.Split(
 		ctx,
 		opensearchapi.IndicesSplitReq{
-			Index:  "books",
-			Target: "books-large",
-			Body:   strings.NewReader(`{"settings":{"index":{"number_of_shards": 10}}}`),
+			Index:      "books",
+			Target:     "books-large",
+			BodyReader: strings.NewReader(`{"settings":{"index":{"number_of_shards": 10}}}`),
 		},
 	)
 	if err != nil {
@@ -223,9 +229,9 @@ You can split an index into another index with more primary shards. The source i
 
 	settingResp, err = client.Indices.Settings.Put(
 		ctx,
-		opensearchapi.SettingsPutReq{
-			Indices: []string{"books"},
-			Body:    strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
+		&opensearchapi.IndicesPutSettingsReq{
+			Indices:      []string{"books"},
+			BodyReader: strings.NewReader(`{"index":{"blocks":{"write":null}}}`),
 		},
 	)
 	if err != nil {
@@ -241,9 +247,9 @@ Let's delete all the indices we created in this guide:
 ```go
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies*", "books*"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Indices:  []string{"movies*", "books*"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

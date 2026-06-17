@@ -4,170 +4,103 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 //
-//go:build integration && (core || opensearchapi)
+//go:build integration
 
 package opensearchapi_test
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	osapitest "github.com/opensearch-project/opensearch-go/v4/opensearchapi/internal/osapitest"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	osapitest "github.com/opensearch-project/opensearch-go/v5/opensearchapi/internal/osapitest"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 )
 
-func TestTemplateClient(t *testing.T) {
+func TestManual_IndexTemplate(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	failingClient, err := osapitest.CreateFailingClient(t)
-	require.NoError(t, err)
 
-	template := testutil.MustUniqueString(t, "test-template")
-	t.Cleanup(func() {
-		client.Template.Delete(context.Background(), opensearchapi.TemplateDeleteReq{Template: template})
-	})
-
-	type templateTests struct {
-		Name    string
-		Results func() (osapitest.Response, error)
-	}
-
-	testCases := []struct {
-		Name  string
-		Tests []templateTests
+	tests := []struct {
+		name     string
+		template string
+		body     string
 	}{
 		{
-			Name: "Create",
-			Tests: []templateTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Template.Create(
-							t.Context(),
-							opensearchapi.TemplateCreateReq{
-								Template: template,
-								Body: strings.NewReader(fmt.Sprintf(
-									`{"order":1,"index_patterns":["%s"],"aliases":{"%s-alias":{}},"version":1}`,
-									template, template,
-								)),
-							},
-						)
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Create(t.Context(), opensearchapi.TemplateCreateReq{Template: template})
-					},
-				},
-			},
+			name:     "basic template",
+			template: testutil.MustUniqueString(t, "tmpl-basic"),
+			body:     `{"index_patterns":["tmpl-basic-*"],"template":{"settings":{"number_of_replicas":"0"}}}`,
 		},
 		{
-			Name: "Get",
-			Tests: []templateTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Template.Get(t.Context(), &opensearchapi.TemplateGetReq{Templates: []string{template}})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Get(t.Context(), nil)
-					},
-				},
-			},
-		},
-		{
-			Name: "Exists",
-			Tests: []templateTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = client.Template.Exists(t.Context(), opensearchapi.TemplateExistsReq{Template: template})
-						return resp, err
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						var (
-							resp osapitest.DummyInspect
-							err  error
-						)
-						resp.Response, err = failingClient.Template.Exists(t.Context(), opensearchapi.TemplateExistsReq{Template: template})
-						return resp, err
-					},
-				},
-			},
-		},
-		{
-			Name: "Delete",
-			Tests: []templateTests{
-				{
-					Name: "with request",
-					Results: func() (osapitest.Response, error) {
-						return client.Template.Delete(t.Context(), opensearchapi.TemplateDeleteReq{Template: template})
-					},
-				},
-				{
-					Name: "inspect",
-					Results: func() (osapitest.Response, error) {
-						return failingClient.Template.Delete(t.Context(), opensearchapi.TemplateDeleteReq{Template: template})
-					},
-				},
-			},
+			name:     "template with mapping",
+			template: testutil.MustUniqueString(t, "tmpl-mapping"),
+			body:     `{"index_patterns":["tmpl-mapping-*"],"template":{"mappings":{"properties":{"status":{"type":"keyword"}}}}}`,
 		},
 	}
-	for _, value := range testCases {
-		t.Run(value.Name, func(t *testing.T) {
-			for _, testCase := range value.Tests {
-				t.Run(testCase.Name, func(t *testing.T) {
-					res, err := testCase.Results()
-					if testCase.Name == "inspect" {
-						require.Error(t, err)
-						require.NotNil(t, res)
-						osapitest.VerifyInspect(t, res.Inspect())
-					} else {
-						require.NoError(t, err)
-						require.NotNil(t, res)
-						require.NotNil(t, res.Inspect().Response)
-						if value.Name != "Get" && value.Name != "Exists" {
-							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-						}
-					}
-				})
-			}
+
+	for _, tt := range tests {
+		t.Cleanup(func() {
+			_, _ = client.Indices.DeleteIndexTemplate(context.Background(), opensearchapi.IndicesDeleteIndexTemplateReq{Name: tt.template})
 		})
 	}
-	t.Run("ValidateResponse", func(t *testing.T) {
-		t.Run("Get", func(t *testing.T) {
-			_, err := client.Template.Create(
-				t.Context(),
-				opensearchapi.TemplateCreateReq{
-					Template: template,
-					Body: strings.NewReader(fmt.Sprintf(
-						`{"order":1,"index_patterns":["%s"],"aliases":{"%s-alias":{}},"version":1}`,
-						template, template,
-					)),
-				},
-			)
+
+	for _, tt := range tests {
+		t.Run("create/"+tt.name, func(t *testing.T) {
+			resp, err := client.Indices.PutIndexTemplate(t.Context(), opensearchapi.IndicesPutIndexTemplateReq{
+				Name:       tt.template,
+				BodyReader: strings.NewReader(tt.body),
+			})
 			require.NoError(t, err)
-			resp, err := client.Template.Get(t.Context(), &opensearchapi.TemplateGetReq{Templates: []string{template}})
-			require.NoError(t, err)
-			require.NotNil(t, resp)
-			require.NotNil(t, resp.Inspect().Response)
-			testutil.CompareRawJSONwithParsedJSON(t, resp.Templates, resp.Inspect().Response)
+			require.True(t, resp.Acknowledged)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 		})
+	}
+
+	for _, tt := range tests {
+		t.Run("get/"+tt.name, func(t *testing.T) {
+			resp, err := client.Indices.GetIndexTemplate(t.Context(), opensearchapi.IndicesGetIndexTemplateReq{
+				Name: tt.template,
+			})
+			require.NoError(t, err)
+			require.NotEmpty(t, resp.IndexTemplates)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		})
+	}
+
+	for _, tt := range tests {
+		t.Run("exists/"+tt.name, func(t *testing.T) {
+			resp, err := client.Indices.ExistsIndexTemplate(t.Context(), opensearchapi.IndicesExistsIndexTemplateReq{
+				Name: tt.template,
+			})
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, resp.StatusCode)
+		})
+	}
+
+	for _, tt := range tests {
+		t.Run("delete/"+tt.name, func(t *testing.T) {
+			resp, err := client.Indices.DeleteIndexTemplate(t.Context(), opensearchapi.IndicesDeleteIndexTemplateReq{
+				Name: tt.template,
+			})
+			require.NoError(t, err)
+			require.True(t, resp.Acknowledged)
+			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
+		})
+	}
+
+	t.Run("inspect", func(t *testing.T) {
+		failingClient, err := osapitest.CreateFailingClient(t)
+		require.NoError(t, err)
+
+		res, err := failingClient.Indices.GetIndexTemplate(t.Context(), opensearchapi.IndicesGetIndexTemplateReq{
+			Name: "nonexistent",
+		})
+		require.Error(t, err)
+		require.NotNil(t, res)
+		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

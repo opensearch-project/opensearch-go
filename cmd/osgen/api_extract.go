@@ -16,7 +16,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // Content types and schema key suffixes used during extraction.
@@ -359,7 +359,7 @@ func buildAPIOperation(group string, ops []struct {
 			if _, isUnion := unionParams[pp.name]; isUnion {
 				continue
 			}
-			goName := pathFieldName(pp.name)
+			goName := pathFieldNameList(pp.name, pp.isList)
 			if seenPath[goName] {
 				continue
 			}
@@ -590,7 +590,6 @@ func extractQueryParamsUnion(group string, ops []struct {
 				seen[p.Name] = true
 
 				qp := apiQueryParam{
-					GoName:            pathFieldName(p.Name),
 					ParamName:         p.Name,
 					Description:       p.Description,
 					Required:          p.Required,
@@ -603,12 +602,22 @@ func extractQueryParamsUnion(group string, ops []struct {
 				if p.Schema != nil && p.Schema.Value != nil {
 					s := p.Schema.Value
 					qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
+					// Promote int -> *int for params whose 0 is a meaningful wire
+					// value, so it survives the != 0 emission guard.
+					if _, ok := zeroMeaningfulIntParams[opParam{group, p.Name}]; ok && qp.IsInt {
+						qp.GoType = "*int"
+					}
 					if s.Default != nil {
 						qp.Default = fmt.Sprintf("%v", s.Default)
 					}
 				} else {
 					qp.GoType = "string"
 				}
+
+				// Set GoName after classification so list-valued params can be
+				// pluralized (e.g. the array-capable "index" query param becomes
+				// Indices, matching the path-field naming).
+				qp.GoName = pathFieldNameList(p.Name, qp.IsList)
 
 				params = append(params, qp)
 			}
@@ -671,6 +680,54 @@ func sharedParamGroup(name string) ir.ParamGroup {
 		return g
 	}
 	return ir.ParamGroupOperation
+}
+
+// opParam identifies a query parameter by its operation group and wire name.
+// Used as the key for zeroMeaningfulIntParams so lookups are type-safe and
+// require no string parsing.
+type opParam struct {
+	group    string // x-operation-group, e.g. "search", "index"
+	wireName string // query-string parameter name, e.g. "if_seq_no"
+}
+
+// zeroMeaningfulIntParams are query parameters whose integer value 0 is a
+// meaningful wire value rather than a sentinel for "unset". These are generated
+// as *int (nil = omit, &0 = send 0) instead of plain int, which would drop 0
+// under the != 0 guard. Keyed by (operation group, wire name) because the same
+// wire name can be a 0-meaningful value for one operation and a page-size (where
+// 0 is meaningless) for another -- e.g. search size=0 returns aggregations with
+// no hits, but cat/list size=0 is not meaningful.
+//
+// Cases:
+//   - if_seq_no / if_primary_term (delete/index/update and the plugin policy
+//     writes ism.put_policy/put_policies, rollups.put, sm.update_policy,
+//     transforms.put): optimistic concurrency; a document that is the first
+//     write to its shard has _seq_no == 0, and the server's "unset" sentinel is
+//     -2, so if_seq_no=0 must be sendable. (The core _create operation does not
+//     accept these params -- it fails if the document already exists -- so it is
+//     intentionally absent.)
+//   - search size=0: the server builds an EmptyTopDocsCollectorContext, running
+//     aggregations while returning no hits -- distinct from omitting size.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var zeroMeaningfulIntParams = map[opParam]struct{}{
+	{"delete", "if_primary_term"}:           {},
+	{"delete", "if_seq_no"}:                 {},
+	{"index", "if_primary_term"}:            {},
+	{"index", "if_seq_no"}:                  {},
+	{"ism.put_policies", "if_primary_term"}: {},
+	{"ism.put_policies", "if_seq_no"}:       {},
+	{"ism.put_policy", "if_primary_term"}:   {},
+	{"ism.put_policy", "if_seq_no"}:         {},
+	{"rollups.put", "if_primary_term"}:      {},
+	{"rollups.put", "if_seq_no"}:            {},
+	{"search", "size"}:                      {},
+	{"sm.update_policy", "if_primary_term"}: {},
+	{"sm.update_policy", "if_seq_no"}:       {},
+	{"transforms.put", "if_primary_term"}:   {},
+	{"transforms.put", "if_seq_no"}:         {},
+	{"update", "if_primary_term"}:           {},
+	{"update", "if_seq_no"}:                 {},
 }
 
 // classifyParamSchema maps an OpenAPI schema to its Go type and type flags.

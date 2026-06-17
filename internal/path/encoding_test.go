@@ -18,8 +18,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 func captureWire(t *testing.T) (*httptest.Server, *struct{ Method, URI string }) {

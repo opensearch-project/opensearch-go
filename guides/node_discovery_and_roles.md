@@ -17,13 +17,13 @@ client, err := opensearch.NewClient(opensearch.Config{
 
 `DiscoverNodesOnStart` is a `*bool`. When set to a non-nil pointer to `true`, the client starts an asynchronous discovery cycle immediately after construction. When `nil` (the default), the client inherits the value from the `OPENSEARCH_GO_ROUTER` environment variable: if `OPENSEARCH_GO_ROUTER=true` auto-enables the router, `DiscoverNodesOnStart` is also set to `true` so that discovery begins as soon as the client is created.
 
-Because on-start discovery is asynchronous, the client uses the seed URLs for any requests sent before discovery completes. To guarantee topology data is available before the first request, call `client.DiscoverNodes(ctx)` after construction — see [Blocking Until Discovery Completes](#blocking-until-discovery-completes) below for an example. Set the pointer to `false` to skip on-start discovery; the client will not have topology data until the first periodic discovery cycle fires (controlled by `DiscoverNodesInterval`) or until `client.DiscoverNodes(ctx)` is called explicitly.
+Because on-start discovery is asynchronous, the client uses the seed URLs for any requests sent before discovery completes. To guarantee topology data is available before the first request, call `client.DiscoverNodes(ctx)` after construction -- see [Blocking Until Discovery Completes](#blocking-until-discovery-completes) below for an example. Set the pointer to `false` to skip on-start discovery; the client will not have topology data until the first periodic discovery cycle fires (controlled by `DiscoverNodesInterval`) or until `client.DiscoverNodes(ctx)` is called explicitly.
 
 When discovery is enabled, the client calls `/_nodes/http` to retrieve the full node list with roles and HTTP publish addresses. Hardware info (`allocated_processors`) is obtained separately: when a new node appears with `lcNeedsHardware` set, or when a node fails and may have been replaced with a different instance type, the next health check for that connection substitutes `/_nodes/_local/http,os` to discover the node's core count. This avoids fetching OS info on every discovery cycle; the info is requested only on transitions where it may have changed.
 
 ### Blocking Until Discovery Completes
 
-The on-start discovery runs asynchronously — `NewClient` returns immediately while discovery proceeds in the background. If your application needs topology data before sending the first request, call `DiscoverNodes` after construction:
+The on-start discovery runs asynchronously -- `NewClient` returns immediately while discovery proceeds in the background. If your application needs topology data before sending the first request, call `DiscoverNodes` after construction:
 
 ```go
 discoverOnStart := true
@@ -48,7 +48,7 @@ If on-start discovery is already running, `DiscoverNodes` waits for it to finish
 
 ### Automatic Discovery with the Router
 
-When using the `OPENSEARCH_GO_ROUTER` environment variable to enable the router, `DiscoverNodesOnStart` is set automatically — no code changes needed:
+When using the `OPENSEARCH_GO_ROUTER` environment variable to enable the router, `DiscoverNodesOnStart` is set automatically -- no code changes needed:
 
 ```bash
 export OPENSEARCH_GO_ROUTER=true
@@ -65,7 +65,7 @@ client, err := opensearch.NewClient(opensearch.Config{
 
 ### Manual Node Discovery
 
-Trigger a discovery cycle at any time. `DiscoverNodes` is blocking — it returns after discovery completes or the context is cancelled:
+Trigger a discovery cycle at any time. `DiscoverNodes` is blocking -- it returns after discovery completes or the context is cancelled:
 
 ```go
 ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -75,14 +75,14 @@ if err := client.DiscoverNodes(ctx); err != nil {
 }
 ```
 
-To take full control of when discovery runs, leave `DiscoverNodesInterval` at `0` (the default) and `DiscoverNodesOnStart` at `nil` or a pointer to `false`. This disables all automatic discovery — the client will only discover nodes when the caller explicitly calls `client.DiscoverNodes(ctx)`.
+To take full control of when discovery runs, leave `DiscoverNodesInterval` at `0` (the default) and `DiscoverNodesOnStart` at `nil` or a pointer to `false`. This disables all automatic discovery -- the client will only discover nodes when the caller explicitly calls `client.DiscoverNodes(ctx)`.
 
 ## Node Roles
 
 OpenSearch nodes have roles that determine their capabilities. The Go client provides constants for these roles:
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 opensearchtransport.RoleData                // Data nodes: store documents, handle indexing and search (1.0+)
 opensearchtransport.RoleIngest              // Ingest nodes: pre-process documents via pipelines (1.0+)
@@ -248,8 +248,8 @@ import (
     "log"
     "time"
 
-    "github.com/opensearch-project/opensearch-go/v4"
-    "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+    "github.com/opensearch-project/opensearch-go/v5"
+    "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 func main() {

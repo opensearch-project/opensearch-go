@@ -179,6 +179,10 @@ type DispatchEntry struct {
 	MethodName string
 	ReqType    string
 	RespType   string
+	// Forwarder marks an entry as a v4 compatibility forwarder. Such entries are
+	// rendered under a distinct TestV4Aliases_* function name so they never
+	// collide with the canonical TestDispatch_<TypePrefix> assertion.
+	Forwarder bool
 }
 
 // DispatchTestFragment renders compile-time dispatch signature assertions.
@@ -193,7 +197,7 @@ func (f *DispatchTestFragment) Imports() []Import {
 	return []Import{
 		{Path: "context"},
 		{Path: "testing"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
 		{Path: f.ImportPath},
 	}
 }
@@ -215,7 +219,7 @@ func (f *DispatchTestFragment) Body() (string, error) {
 var dispatchTestFragTmpl = template.Must(template.New("dispatchTest").Parse(`// suppress unused import
 var _ = (*opensearch.Response)(nil)
 {{range .Entries}}
-func TestDispatch_{{.TestName}}(t *testing.T) {
+func {{if .Forwarder}}TestV4Aliases_{{else}}TestDispatch_{{end}}{{.TestName}}(t *testing.T) {
 	// Compile-time signature assertion.
 	var c {{$.PkgName}}.Client
 	var _ func(context.Context, {{.ReqType}}) ({{.RespType}}, error) = {{- ""}}
@@ -419,9 +423,9 @@ var integTestFragTmpl = template.Must(template.New("integTest").Funcs(template.F
 {{- if .Config.FixtureCode}}
 	t.Cleanup(func() {
 {{- if .Config.IsPlugin}}
-		_, _ = osClient.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = osClient.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Indices: []string{index}})
 {{- else}}
-		_, _ = client.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Index: []string{index}})
+		_, _ = client.Indices.Delete(context.Background(), &{{.Config.CorePkgName}}.IndicesDeleteReq{Indices: []string{index}})
 {{- end}}
 	})
 

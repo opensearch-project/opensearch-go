@@ -11,11 +11,12 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {
@@ -37,11 +38,11 @@ func example() error {
 Next, create an index template with a data_stream section:
 
 ```go
-	tempCreateResp, err := client.IndexTemplate.Create(
+	tempCreateResp, err := client.Indices.PutIndexTemplate(
 		ctx,
-		opensearchapi.IndexTemplateCreateReq{
-		    IndexTemplate: "books",
-			Body: strings.NewReader(`{
+		opensearchapi.IndicesPutIndexTemplateReq{
+			Name: "books",
+			BodyReader: strings.NewReader(`{
     		    "index_patterns": ["books-nonfiction"],
     		    "template": {
     		      "settings": {
@@ -64,10 +65,10 @@ Next, create an index template with a data_stream section:
 
 ## Create Data Streams
 
-The `DataStream.Create()` action allows you to create a new Data Stream:
+The `Indices.CreateDataStream()` action allows you to create a new Data Stream:
 
 ```go
-	createResp, err := client.DataStream.Create(ctx, opensearchapi.DataStreamCreateReq{DataStream: "books-nonfiction"})
+	createResp, err := client.Indices.CreateDataStream(ctx, opensearchapi.IndicesCreateDataStreamReq{Name: "books-nonfiction"})
 	if err != nil {
 		return err
 	}
@@ -76,10 +77,10 @@ The `DataStream.Create()` action allows you to create a new Data Stream:
 
 ## Get Data Streams
 
-The `DataStream.Get()` action allows you to get information about Data Streams. Omitting the Request struct will get all DataStreams:
+The `Indices.GetDataStream()` action allows you to get information about Data Streams. Omitting the Request struct will get all DataStreams:
 
 ```go
-	getResp, err := client.DataStream.Get(ctx, nil)
+	getResp, err := client.Indices.GetDataStream(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -93,7 +94,7 @@ The `DataStream.Get()` action allows you to get information about Data Streams. 
 By specifying a Data Stream in the request you'll only see the requested Data Stream:
 
 ```go
-	getResp, err = client.DataStream.Get(ctx, &opensearchapi.DataStreamGetReq{DataStreams: []string{"books-nonfiction"}})
+	getResp, err = client.Indices.GetDataStream(ctx, &opensearchapi.IndicesGetDataStreamReq{Name: []string{"books-nonfiction"}})
 	if err != nil {
 		return err
 	}
@@ -106,10 +107,10 @@ By specifying a Data Stream in the request you'll only see the requested Data St
 
 ## Get Data Stream Stats
 
-The `DataStream.Stats()` action allows you to get stats about Data Streams:
+The `Indices.DataStreamsStats()` action allows you to get stats about Data Streams:
 
 ```go
-	statsResp, err := client.DataStream.Stats(ctx, nil)
+	statsResp, err := client.Indices.DataStreamsStats(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -122,10 +123,10 @@ The `DataStream.Stats()` action allows you to get stats about Data Streams:
 
 ## Delete Data Streams
 
-The `DataStream.Delete()` action allows you to delete a Data Stream:
+The `Indices.DeleteDataStream()` action allows you to delete a Data Stream:
 
 ```go
-	delResp, err := client.DataStream.Delete(ctx, opensearchapi.DataStreamDeleteReq{DataStream: "books-nonfiction"})
+	delResp, err := client.Indices.DeleteDataStream(ctx, &opensearchapi.IndicesDeleteDataStreamReq{Name: []string{"books-nonfiction"}})
 	if err != nil {
 		return err
 	}
@@ -137,7 +138,7 @@ The `DataStream.Delete()` action allows you to delete a Data Stream:
 To clean up the resources created in this guide, delete the index template:
 
 ```go
-	delTempResp, err := client.IndexTemplate.Delete(ctx, opensearchapi.IndexTemplateDeleteReq{IndexTemplate: "books"})
+	delTempResp, err := client.Indices.DeleteIndexTemplate(ctx, opensearchapi.IndicesDeleteIndexTemplateReq{Name: "books"})
 	if err != nil {
 		return err
 	}

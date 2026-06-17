@@ -23,11 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/errmask"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 const IndexName = "go-test-index1"
@@ -98,8 +98,8 @@ func example() error {
 	createIndexResponse, err := client.Indices.Create(
 		ctx,
 		opensearchapi.IndicesCreateReq{
-			Index: IndexName,
-			Body:  mapping,
+			Index:      IndexName,
+			BodyReader: mapping,
 		},
 	)
 
@@ -129,13 +129,13 @@ func example() error {
 	}
 
 	docId := "1"
-	insertResp, err := client.Index(
+	insertResp, err := client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
-			Index:      IndexName,
-			DocumentID: docId,
-			Body:       opensearchutil.NewJSONReader(&document),
-			Params: opensearchapi.IndexParams{
+			Index: IndexName,
+			ID:    docId,
+			Body:  opensearchutil.NewJSONReader(&document),
+			Params: &opensearchapi.IndexParams{
 				Refresh: "true",
 			},
 		},
@@ -159,7 +159,7 @@ func example() error {
 	searchResp, err := client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: content,
+			BodyReader: content,
 		},
 	)
 	if err != nil {
@@ -184,19 +184,19 @@ func example() error {
 	}
 
 	// Delete the document.
-	deleteReq := opensearchapi.DocumentDeleteReq{
-		Index:      IndexName,
-		DocumentID: docId,
+	deleteReq := opensearchapi.DeleteReq{
+		Index: IndexName,
+		ID:    docId,
 	}
 
-	deleteResponse, err := client.Document.Delete(ctx, deleteReq)
+	deleteResponse, err := client.Doc.Delete(ctx, deleteReq)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("Deleted document: %t\n", deleteResponse.Result == "deleted")
 
 	// Delete previously created index.
-	deleteIndex := opensearchapi.IndicesDeleteReq{Indices: []string{IndexName}}
+	deleteIndex := &opensearchapi.IndicesDeleteReq{Indices: []string{IndexName}}
 
 	deleteIndexResp, err := client.Indices.Delete(ctx, deleteIndex)
 	if err != nil {
@@ -254,10 +254,10 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/aws"
+	requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/aws"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 const IndexName = "go-test-index1"
@@ -327,9 +327,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/awsv2"
 )
 
 const endpoint = "" // e.g. https://opensearch-domain.region.com or Amazon OpenSearch Serverless endpoint
@@ -387,8 +387,8 @@ func example() error {
 	createResp, err := client.Indices.Create(
 		ctx,
 		opensearchapi.IndicesCreateReq{
-			Index: indexName,
-			Body:  mapping,
+			Index:      indexName,
+			BodyReader: mapping,
 		},
 	)
 	if err != nil {
@@ -397,7 +397,7 @@ func example() error {
 
 	fmt.Printf("created index: %s\n", createResp.Index)
 
-	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{Indices: []string{indexName}})
 	if err != nil {
 		return err
 	}
@@ -466,7 +466,7 @@ Key settings to verify on any custom transport:
 The `opensearchtransport.OperationClassifier` maps HTTP method+path pairs to structured `OperationID` values. This enables transparent metrics, tracing, or access-control middleware at the `http.RoundTripper` layer without per-operation wrapper code.
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+import "github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 
 // Build once, reuse across requests. Safe for concurrent use.
 classifier := opensearchtransport.NewOperationClassifier()
@@ -554,7 +554,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 | ----------------------------------- | ------------- | --------------------------------------------------------------------------- |
 | `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs)                         |
 | `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                                                     |
-| `OPENSEARCH_GO_ROUTER`              | `false`       | Auto-construct DefaultRouter when no Router is set                          |
+| `OPENSEARCH_GO_ROUTER`              | (on)          | Auto-construct DefaultRouter when no Router is set; set `false`/`0` to disable |
 | `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                                        |
 | `OPENSEARCH_GO_SHARD_REQUESTS`      | `true`        | Adaptive `max_concurrent_shard_requests` bounds                             |
 | `OPENSEARCH_GO_SHARD_COST`          | (defaults)    | Shard cost multipliers for connection scoring                               |

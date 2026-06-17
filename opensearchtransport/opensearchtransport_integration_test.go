@@ -38,11 +38,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 var _ = fmt.Print

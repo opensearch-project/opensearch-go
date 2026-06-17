@@ -349,8 +349,8 @@ func TestCatCountPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatCountPath{}, wantPath: "/_cat/count", wantErr: false},
-		{name: "all fields", path: CatCountPath{Index: []string{"test-index"}}, wantPath: "/_cat/count/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatCountPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/count/a,b,c", wantErr: false},
+		{name: "all fields", path: CatCountPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/count/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatCountPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/count/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -453,8 +453,8 @@ func TestCatIndicesPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatIndicesPath{}, wantPath: "/_cat/indices", wantErr: false},
-		{name: "all fields", path: CatIndicesPath{Index: []string{"test-index"}}, wantPath: "/_cat/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatIndicesPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/indices/a,b,c", wantErr: false},
+		{name: "all fields", path: CatIndicesPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/indices/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatIndicesPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -630,8 +630,8 @@ func TestCatRecoveryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatRecoveryPath{}, wantPath: "/_cat/recovery", wantErr: false},
-		{name: "all fields", path: CatRecoveryPath{Index: []string{"test-index"}}, wantPath: "/_cat/recovery/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatRecoveryPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/recovery/a,b,c", wantErr: false},
+		{name: "all fields", path: CatRecoveryPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/recovery/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatRecoveryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/recovery/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -682,8 +682,8 @@ func TestCatSegmentReplicationPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatSegmentReplicationPath{}, wantPath: "/_cat/segment_replication", wantErr: false},
-		{name: "all fields", path: CatSegmentReplicationPath{Index: []string{"test-index"}}, wantPath: "/_cat/segment_replication/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentReplicationPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/segment_replication/a,b,c", wantErr: false},
+		{name: "all fields", path: CatSegmentReplicationPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/segment_replication/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatSegmentReplicationPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/segment_replication/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -709,8 +709,8 @@ func TestCatSegmentsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatSegmentsPath{}, wantPath: "/_cat/segments", wantErr: false},
-		{name: "all fields", path: CatSegmentsPath{Index: []string{"test-index"}}, wantPath: "/_cat/segments/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatSegmentsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/segments/a,b,c", wantErr: false},
+		{name: "all fields", path: CatSegmentsPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/segments/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatSegmentsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/segments/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -736,8 +736,8 @@ func TestCatShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CatShardsPath{}, wantPath: "/_cat/shards", wantErr: false},
-		{name: "all fields", path: CatShardsPath{Index: []string{"test-index"}}, wantPath: "/_cat/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: CatShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cat/shards/a,b,c", wantErr: false},
+		{name: "all fields", path: CatShardsPath{Indices: []string{"test-indices"}}, wantPath: "/_cat/shards/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: CatShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cat/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1150,8 +1150,8 @@ func TestClusterHealthPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ClusterHealthPath{}, wantPath: "/_cluster/health", wantErr: false},
-		{name: "all fields", path: ClusterHealthPath{Index: []string{"test-index"}}, wantPath: "/_cluster/health/test-index", wantErr: false},
-		{name: "Index multi-value", path: ClusterHealthPath{Index: []string{"a", "b", "c"}}, wantPath: "/_cluster/health/a,b,c", wantErr: false},
+		{name: "all fields", path: ClusterHealthPath{Indices: []string{"test-indices"}}, wantPath: "/_cluster/health/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ClusterHealthPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_cluster/health/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1382,11 +1382,11 @@ func TestClusterStatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ClusterStatePath{}, wantPath: "/_cluster/state", wantErr: false},
-		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Index: []string{"test-index"}}, wantPath: "/_cluster/state/test-metric/test-index", wantErr: false},
+		{name: "all fields", path: ClusterStatePath{Metric: []string{"test-metric"}, Indices: []string{"test-indices"}}, wantPath: "/_cluster/state/test-metric/test-indices", wantErr: false},
 		{name: "only Metric", path: ClusterStatePath{Metric: []string{"val-metric"}}, wantPath: "/_cluster/state/val-metric", wantErr: false},
-		{name: "only Index", path: ClusterStatePath{Index: []string{"val-index"}}, wantPath: "", wantErr: true},
+		{name: "only Indices", path: ClusterStatePath{Indices: []string{"val-indices"}}, wantPath: "", wantErr: true},
 		{name: "Metric multi-value", path: ClusterStatePath{Metric: []string{"a", "b", "c"}}, wantPath: "/_cluster/state/a,b,c", wantErr: false},
-		{name: "Index multi-value", path: ClusterStatePath{Index: []string{"a", "b", "c"}}, wantPath: "", wantErr: true},
+		{name: "Indices multi-value", path: ClusterStatePath{Indices: []string{"a", "b", "c"}}, wantPath: "", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1444,8 +1444,8 @@ func TestCountPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: CountPath{}, wantPath: "/_count", wantErr: false},
-		{name: "all fields", path: CountPath{Index: []string{"test-index"}}, wantPath: "/test-index/_count", wantErr: false},
-		{name: "Index multi-value", path: CountPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_count", wantErr: false},
+		{name: "all fields", path: CountPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_count", wantErr: false},
+		{name: "Indices multi-value", path: CountPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_count", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1499,8 +1499,8 @@ func TestCreatePITPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: CreatePITPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: CreatePITPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search/point_in_time", wantErr: false},
-		{name: "Index multi-value", path: CreatePITPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/point_in_time", wantErr: false},
+		{name: "all fields", path: CreatePITPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search/point_in_time", wantErr: false},
+		{name: "Indices multi-value", path: CreatePITPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/point_in_time", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1656,8 +1656,8 @@ func TestDeleteByQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: DeleteByQueryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: DeleteByQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_delete_by_query", wantErr: false},
-		{name: "Index multi-value", path: DeleteByQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_delete_by_query", wantErr: false},
+		{name: "all fields", path: DeleteByQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_delete_by_query", wantErr: false},
+		{name: "Indices multi-value", path: DeleteByQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_delete_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1844,8 +1844,8 @@ func TestFieldCapsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: FieldCapsPath{}, wantPath: "/_field_caps", wantErr: false},
-		{name: "all fields", path: FieldCapsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_field_caps", wantErr: false},
-		{name: "Index multi-value", path: FieldCapsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_field_caps", wantErr: false},
+		{name: "all fields", path: FieldCapsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_field_caps", wantErr: false},
+		{name: "Indices multi-value", path: FieldCapsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_field_caps", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2490,10 +2490,10 @@ func TestIndicesAddBlockPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesAddBlockPath{}, wantPath: "", wantErr: true},
-		{name: "missing Index", path: IndicesAddBlockPath{Block: "req-block"}, wantPath: "", wantErr: true},
-		{name: "missing Block", path: IndicesAddBlockPath{Index: []string{"req-index"}}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesAddBlockPath{Index: []string{"test-index"}, Block: "test-block"}, wantPath: "/test-index/_block/test-block", wantErr: false},
-		{name: "Index multi-value", path: IndicesAddBlockPath{Index: []string{"a", "b", "c"}, Block: "req-block"}, wantPath: "/a,b,c/_block/req-block", wantErr: false},
+		{name: "missing Indices", path: IndicesAddBlockPath{Block: "req-block"}, wantPath: "", wantErr: true},
+		{name: "missing Block", path: IndicesAddBlockPath{Indices: []string{"req-indices"}}, wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesAddBlockPath{Indices: []string{"test-indices"}, Block: "test-block"}, wantPath: "/test-indices/_block/test-block", wantErr: false},
+		{name: "Indices multi-value", path: IndicesAddBlockPath{Indices: []string{"a", "b", "c"}, Block: "req-block"}, wantPath: "/a,b,c/_block/req-block", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2545,8 +2545,8 @@ func TestIndicesClearCachePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesClearCachePath{}, wantPath: "/_cache/clear", wantErr: false},
-		{name: "all fields", path: IndicesClearCachePath{Index: []string{"test-index"}}, wantPath: "/test-index/_cache/clear", wantErr: false},
-		{name: "Index multi-value", path: IndicesClearCachePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_cache/clear", wantErr: false},
+		{name: "all fields", path: IndicesClearCachePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_cache/clear", wantErr: false},
+		{name: "Indices multi-value", path: IndicesClearCachePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_cache/clear", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2600,8 +2600,8 @@ func TestIndicesClosePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesClosePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesClosePath{Index: []string{"test-index"}}, wantPath: "/test-index/_close", wantErr: false},
-		{name: "Index multi-value", path: IndicesClosePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_close", wantErr: false},
+		{name: "all fields", path: IndicesClosePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_close", wantErr: false},
+		{name: "Indices multi-value", path: IndicesClosePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_close", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2706,8 +2706,8 @@ func TestIndicesDeletePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesDeletePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesDeletePath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeletePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesDeletePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesDeletePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2733,11 +2733,11 @@ func TestIndicesDeleteAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesDeleteAliasPath{}, wantPath: "", wantErr: true},
-		{name: "missing Index", path: IndicesDeleteAliasPath{Name: []string{"req-name"}}, wantPath: "", wantErr: true},
-		{name: "missing Name", path: IndicesDeleteAliasPath{Index: []string{"req-index"}}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesDeleteAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesDeleteAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
-		{name: "Name multi-value", path: IndicesDeleteAliasPath{Index: []string{"req-index"}, Name: []string{"a", "b", "c"}}, wantPath: "/req-index/_alias/a,b,c", wantErr: false},
+		{name: "missing Indices", path: IndicesDeleteAliasPath{Name: []string{"req-name"}}, wantPath: "", wantErr: true},
+		{name: "missing Name", path: IndicesDeleteAliasPath{Indices: []string{"req-indices"}}, wantPath: "", wantErr: true},
+		{name: "all fields", path: IndicesDeleteAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "Indices multi-value", path: IndicesDeleteAliasPath{Indices: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "Name multi-value", path: IndicesDeleteAliasPath{Indices: []string{"req-indices"}, Name: []string{"a", "b", "c"}}, wantPath: "/req-indices/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2842,8 +2842,8 @@ func TestIndicesExistsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesExistsPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsPath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesExistsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesExistsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2869,8 +2869,8 @@ func TestIndicesExistsAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesExistsAliasPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesExistsAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesExistsAliasPath{Index: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
+		{name: "all fields", path: IndicesExistsAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "Indices multi-value", path: IndicesExistsAliasPath{Indices: []string{"a", "b", "c"}, Name: []string{"req-name"}}, wantPath: "/a,b,c/_alias/req-name", wantErr: false},
 		{name: "Name multi-value", path: IndicesExistsAliasPath{Name: []string{"a", "b", "c"}}, wantPath: "/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -2950,8 +2950,8 @@ func TestIndicesFlushPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesFlushPath{}, wantPath: "/_flush", wantErr: false},
-		{name: "all fields", path: IndicesFlushPath{Index: []string{"test-index"}}, wantPath: "/test-index/_flush", wantErr: false},
-		{name: "Index multi-value", path: IndicesFlushPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_flush", wantErr: false},
+		{name: "all fields", path: IndicesFlushPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_flush", wantErr: false},
+		{name: "Indices multi-value", path: IndicesFlushPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_flush", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2977,8 +2977,8 @@ func TestIndicesForcemergePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesForcemergePath{}, wantPath: "/_forcemerge", wantErr: false},
-		{name: "all fields", path: IndicesForcemergePath{Index: []string{"test-index"}}, wantPath: "/test-index/_forcemerge", wantErr: false},
-		{name: "Index multi-value", path: IndicesForcemergePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_forcemerge", wantErr: false},
+		{name: "all fields", path: IndicesForcemergePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_forcemerge", wantErr: false},
+		{name: "Indices multi-value", path: IndicesForcemergePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_forcemerge", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3004,8 +3004,8 @@ func TestIndicesGetPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesGetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesGetPath{Index: []string{"test-index"}}, wantPath: "/test-index", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
+		{name: "all fields", path: IndicesGetPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3031,10 +3031,10 @@ func TestIndicesGetAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetAliasPath{}, wantPath: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesGetAliasPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetAliasPath{Index: []string{"val-index"}}, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "all fields", path: IndicesGetAliasPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesGetAliasPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_alias", wantErr: false},
 		{name: "only Name", path: IndicesGetAliasPath{Name: []string{"val-name"}}, wantPath: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetAliasPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetAliasPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
 		{name: "Name multi-value", path: IndicesGetAliasPath{Name: []string{"a", "b", "c"}}, wantPath: "/_alias/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3088,8 +3088,8 @@ func TestIndicesGetFieldMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesGetFieldMappingPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesGetFieldMappingPath{Index: []string{"test-index"}, Fields: []string{"test-fields"}}, wantPath: "/test-index/_mapping/field/test-fields", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetFieldMappingPath{Index: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, wantPath: "/a,b,c/_mapping/field/req-fields", wantErr: false},
+		{name: "all fields", path: IndicesGetFieldMappingPath{Indices: []string{"test-indices"}, Fields: []string{"test-fields"}}, wantPath: "/test-indices/_mapping/field/test-fields", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetFieldMappingPath{Indices: []string{"a", "b", "c"}, Fields: []string{"req-fields"}}, wantPath: "/a,b,c/_mapping/field/req-fields", wantErr: false},
 		{name: "Fields multi-value", path: IndicesGetFieldMappingPath{Fields: []string{"a", "b", "c"}}, wantPath: "/_mapping/field/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3142,8 +3142,8 @@ func TestIndicesGetMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetMappingPath{}, wantPath: "/_mapping", wantErr: false},
-		{name: "all fields", path: IndicesGetMappingPath{Index: []string{"test-index"}}, wantPath: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetMappingPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
+		{name: "all fields", path: IndicesGetMappingPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_mapping", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetMappingPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3169,10 +3169,10 @@ func TestIndicesGetSettingsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetSettingsPath{}, wantPath: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesGetSettingsPath{Index: []string{"test-index"}, Name: []string{"test-name"}}, wantPath: "/test-index/_settings/test-name", wantErr: false},
-		{name: "only Index", path: IndicesGetSettingsPath{Index: []string{"val-index"}}, wantPath: "/val-index/_settings", wantErr: false},
+		{name: "all fields", path: IndicesGetSettingsPath{Indices: []string{"test-indices"}, Name: []string{"test-name"}}, wantPath: "/test-indices/_settings/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesGetSettingsPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_settings", wantErr: false},
 		{name: "only Name", path: IndicesGetSettingsPath{Name: []string{"val-name"}}, wantPath: "/_settings/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetSettingsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetSettingsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
 		{name: "Name multi-value", path: IndicesGetSettingsPath{Name: []string{"a", "b", "c"}}, wantPath: "/_settings/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3226,8 +3226,8 @@ func TestIndicesGetUpgradePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesGetUpgradePath{}, wantPath: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesGetUpgradePath{Index: []string{"test-index"}}, wantPath: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesGetUpgradePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesGetUpgradePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_upgrade", wantErr: false},
+		{name: "Indices multi-value", path: IndicesGetUpgradePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3253,8 +3253,8 @@ func TestIndicesOpenPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesOpenPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesOpenPath{Index: []string{"test-index"}}, wantPath: "/test-index/_open", wantErr: false},
-		{name: "Index multi-value", path: IndicesOpenPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_open", wantErr: false},
+		{name: "all fields", path: IndicesOpenPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_open", wantErr: false},
+		{name: "Indices multi-value", path: IndicesOpenPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_open", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3280,10 +3280,10 @@ func TestIndicesPutAliasPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesPutAliasPath{}, wantPath: "/_alias", wantErr: false},
-		{name: "all fields", path: IndicesPutAliasPath{Index: []string{"test-index"}, Name: "test-name"}, wantPath: "/test-index/_alias/test-name", wantErr: false},
-		{name: "only Index", path: IndicesPutAliasPath{Index: []string{"val-index"}}, wantPath: "/val-index/_alias", wantErr: false},
+		{name: "all fields", path: IndicesPutAliasPath{Indices: []string{"test-indices"}, Name: "test-name"}, wantPath: "/test-indices/_alias/test-name", wantErr: false},
+		{name: "only Indices", path: IndicesPutAliasPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_alias", wantErr: false},
 		{name: "only Name", path: IndicesPutAliasPath{Name: "val-name"}, wantPath: "/_alias/val-name", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutAliasPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutAliasPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_alias", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3335,8 +3335,8 @@ func TestIndicesPutMappingPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: IndicesPutMappingPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IndicesPutMappingPath{Index: []string{"test-index"}}, wantPath: "/test-index/_mapping", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutMappingPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
+		{name: "all fields", path: IndicesPutMappingPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_mapping", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutMappingPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_mapping", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3362,8 +3362,8 @@ func TestIndicesPutSettingsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesPutSettingsPath{}, wantPath: "/_settings", wantErr: false},
-		{name: "all fields", path: IndicesPutSettingsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_settings", wantErr: false},
-		{name: "Index multi-value", path: IndicesPutSettingsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
+		{name: "all fields", path: IndicesPutSettingsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_settings", wantErr: false},
+		{name: "Indices multi-value", path: IndicesPutSettingsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3415,8 +3415,8 @@ func TestIndicesRecoveryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesRecoveryPath{}, wantPath: "/_recovery", wantErr: false},
-		{name: "all fields", path: IndicesRecoveryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_recovery", wantErr: false},
-		{name: "Index multi-value", path: IndicesRecoveryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_recovery", wantErr: false},
+		{name: "all fields", path: IndicesRecoveryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_recovery", wantErr: false},
+		{name: "Indices multi-value", path: IndicesRecoveryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_recovery", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3442,8 +3442,8 @@ func TestIndicesRefreshPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesRefreshPath{}, wantPath: "/_refresh", wantErr: false},
-		{name: "all fields", path: IndicesRefreshPath{Index: []string{"test-index"}}, wantPath: "/test-index/_refresh", wantErr: false},
-		{name: "Index multi-value", path: IndicesRefreshPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_refresh", wantErr: false},
+		{name: "all fields", path: IndicesRefreshPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_refresh", wantErr: false},
+		{name: "Indices multi-value", path: IndicesRefreshPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_refresh", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3522,8 +3522,8 @@ func TestIndicesSegmentsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesSegmentsPath{}, wantPath: "/_segments", wantErr: false},
-		{name: "all fields", path: IndicesSegmentsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_segments", wantErr: false},
-		{name: "Index multi-value", path: IndicesSegmentsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_segments", wantErr: false},
+		{name: "all fields", path: IndicesSegmentsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_segments", wantErr: false},
+		{name: "Indices multi-value", path: IndicesSegmentsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_segments", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3549,8 +3549,8 @@ func TestIndicesShardStoresPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesShardStoresPath{}, wantPath: "/_shard_stores", wantErr: false},
-		{name: "all fields", path: IndicesShardStoresPath{Index: []string{"test-index"}}, wantPath: "/test-index/_shard_stores", wantErr: false},
-		{name: "Index multi-value", path: IndicesShardStoresPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_shard_stores", wantErr: false},
+		{name: "all fields", path: IndicesShardStoresPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_shard_stores", wantErr: false},
+		{name: "Indices multi-value", path: IndicesShardStoresPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_shard_stores", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3684,10 +3684,10 @@ func TestIndicesStatsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesStatsPath{}, wantPath: "/_stats", wantErr: false},
-		{name: "all fields", path: IndicesStatsPath{Index: []string{"test-index"}, Metric: []string{"test-metric"}}, wantPath: "/test-index/_stats/test-metric", wantErr: false},
-		{name: "only Index", path: IndicesStatsPath{Index: []string{"val-index"}}, wantPath: "/val-index/_stats", wantErr: false},
+		{name: "all fields", path: IndicesStatsPath{Indices: []string{"test-indices"}, Metric: []string{"test-metric"}}, wantPath: "/test-indices/_stats/test-metric", wantErr: false},
+		{name: "only Indices", path: IndicesStatsPath{Indices: []string{"val-indices"}}, wantPath: "/val-indices/_stats", wantErr: false},
 		{name: "only Metric", path: IndicesStatsPath{Metric: []string{"val-metric"}}, wantPath: "/_stats/val-metric", wantErr: false},
-		{name: "Index multi-value", path: IndicesStatsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_stats", wantErr: false},
+		{name: "Indices multi-value", path: IndicesStatsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_stats", wantErr: false},
 		{name: "Metric multi-value", path: IndicesStatsPath{Metric: []string{"a", "b", "c"}}, wantPath: "/_stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
@@ -3739,8 +3739,8 @@ func TestIndicesUpgradePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesUpgradePath{}, wantPath: "/_upgrade", wantErr: false},
-		{name: "all fields", path: IndicesUpgradePath{Index: []string{"test-index"}}, wantPath: "/test-index/_upgrade", wantErr: false},
-		{name: "Index multi-value", path: IndicesUpgradePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
+		{name: "all fields", path: IndicesUpgradePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_upgrade", wantErr: false},
+		{name: "Indices multi-value", path: IndicesUpgradePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_upgrade", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -3766,8 +3766,8 @@ func TestIndicesValidateQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: IndicesValidateQueryPath{}, wantPath: "/_validate/query", wantErr: false},
-		{name: "all fields", path: IndicesValidateQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_validate/query", wantErr: false},
-		{name: "Index multi-value", path: IndicesValidateQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_validate/query", wantErr: false},
+		{name: "all fields", path: IndicesValidateQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_validate/query", wantErr: false},
+		{name: "Indices multi-value", path: IndicesValidateQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_validate/query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4041,17 +4041,17 @@ func TestInsightsTopQueriesPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmAddPolicyPath_Build(t *testing.T) {
+func TestISMAddPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmAddPolicyPath
+		path     ISMAddPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmAddPolicyPath{}, wantPath: "/_plugins/_ism/add", wantErr: false},
-		{name: "all fields", path: IsmAddPolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/add/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmAddPolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/add/a,b,c", wantErr: false},
+		{name: "all empty", path: ISMAddPolicyPath{}, wantPath: "/_plugins/_ism/add", wantErr: false},
+		{name: "all fields", path: ISMAddPolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/add/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMAddPolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/add/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4068,17 +4068,17 @@ func TestIsmAddPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmChangePolicyPath_Build(t *testing.T) {
+func TestISMChangePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmChangePolicyPath
+		path     ISMChangePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmChangePolicyPath{}, wantPath: "/_plugins/_ism/change_policy", wantErr: false},
-		{name: "all fields", path: IsmChangePolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/change_policy/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmChangePolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/change_policy/a,b,c", wantErr: false},
+		{name: "all empty", path: ISMChangePolicyPath{}, wantPath: "/_plugins/_ism/change_policy", wantErr: false},
+		{name: "all fields", path: ISMChangePolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/change_policy/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMChangePolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/change_policy/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4095,16 +4095,16 @@ func TestIsmChangePolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmDeletePolicyPath_Build(t *testing.T) {
+func TestISMDeletePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmDeletePolicyPath
+		path     ISMDeletePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: IsmDeletePolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IsmDeletePolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: ISMDeletePolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: ISMDeletePolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4121,16 +4121,16 @@ func TestIsmDeletePolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmExistsPolicyPath_Build(t *testing.T) {
+func TestISMExistsPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmExistsPolicyPath
+		path     ISMExistsPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: IsmExistsPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IsmExistsPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: ISMExistsPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: ISMExistsPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4147,17 +4147,17 @@ func TestIsmExistsPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmExplainPolicyPath_Build(t *testing.T) {
+func TestISMExplainPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmExplainPolicyPath
+		path     ISMExplainPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmExplainPolicyPath{}, wantPath: "/_plugins/_ism/explain", wantErr: false},
-		{name: "all fields", path: IsmExplainPolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/explain/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmExplainPolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/explain/a,b,c", wantErr: false},
+		{name: "all empty", path: ISMExplainPolicyPath{}, wantPath: "/_plugins/_ism/explain", wantErr: false},
+		{name: "all fields", path: ISMExplainPolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/explain/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMExplainPolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/explain/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4174,15 +4174,15 @@ func TestIsmExplainPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmGetPoliciesPath_Build(t *testing.T) {
+func TestISMGetPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmGetPoliciesPath
+		path     ISMGetPoliciesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmGetPoliciesPath{}, wantPath: "/_plugins/_ism/policies", wantErr: false},
+		{name: "all empty", path: ISMGetPoliciesPath{}, wantPath: "/_plugins/_ism/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4199,16 +4199,16 @@ func TestIsmGetPoliciesPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmGetPolicyPath_Build(t *testing.T) {
+func TestISMGetPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmGetPolicyPath
+		path     ISMGetPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: IsmGetPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IsmGetPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: ISMGetPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: ISMGetPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4225,15 +4225,15 @@ func TestIsmGetPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmPutPoliciesPath_Build(t *testing.T) {
+func TestISMPutPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmPutPoliciesPath
+		path     ISMPutPoliciesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmPutPoliciesPath{}, wantPath: "/_plugins/_ism/policies", wantErr: false},
+		{name: "all empty", path: ISMPutPoliciesPath{}, wantPath: "/_plugins/_ism/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4250,16 +4250,16 @@ func TestIsmPutPoliciesPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmPutPolicyPath_Build(t *testing.T) {
+func TestISMPutPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmPutPolicyPath
+		path     ISMPutPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: IsmPutPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IsmPutPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
+		{name: "required fields empty", path: ISMPutPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: ISMPutPolicyPath{PolicyID: "test-policyid"}, wantPath: "/_plugins/_ism/policies/test-policyid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4276,17 +4276,17 @@ func TestIsmPutPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmRefreshSearchAnalyzersPath_Build(t *testing.T) {
+func TestISMRefreshSearchAnalyzersPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmRefreshSearchAnalyzersPath
+		path     ISMRefreshSearchAnalyzersPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: IsmRefreshSearchAnalyzersPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: IsmRefreshSearchAnalyzersPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_refresh_search_analyzers/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmRefreshSearchAnalyzersPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_refresh_search_analyzers/a,b,c", wantErr: false},
+		{name: "required fields empty", path: ISMRefreshSearchAnalyzersPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: ISMRefreshSearchAnalyzersPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_refresh_search_analyzers/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRefreshSearchAnalyzersPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_refresh_search_analyzers/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4303,17 +4303,17 @@ func TestIsmRefreshSearchAnalyzersPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmRemovePolicyPath_Build(t *testing.T) {
+func TestISMRemovePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmRemovePolicyPath
+		path     ISMRemovePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmRemovePolicyPath{}, wantPath: "/_plugins/_ism/remove", wantErr: false},
-		{name: "all fields", path: IsmRemovePolicyPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/remove/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmRemovePolicyPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/remove/a,b,c", wantErr: false},
+		{name: "all empty", path: ISMRemovePolicyPath{}, wantPath: "/_plugins/_ism/remove", wantErr: false},
+		{name: "all fields", path: ISMRemovePolicyPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/remove/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRemovePolicyPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/remove/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4330,17 +4330,17 @@ func TestIsmRemovePolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestIsmRetryIndexPath_Build(t *testing.T) {
+func TestISMRetryIndexPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     IsmRetryIndexPath
+		path     ISMRetryIndexPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: IsmRetryIndexPath{}, wantPath: "/_plugins/_ism/retry", wantErr: false},
-		{name: "all fields", path: IsmRetryIndexPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_ism/retry/test-index", wantErr: false},
-		{name: "Index multi-value", path: IsmRetryIndexPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/retry/a,b,c", wantErr: false},
+		{name: "all empty", path: ISMRetryIndexPath{}, wantPath: "/_plugins/_ism/retry", wantErr: false},
+		{name: "all fields", path: ISMRetryIndexPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_ism/retry/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ISMRetryIndexPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ism/retry/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4357,16 +4357,16 @@ func TestIsmRetryIndexPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnDeleteModelPath_Build(t *testing.T) {
+func TestKNNDeleteModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnDeleteModelPath
+		path     KNNDeleteModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: KnnDeleteModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: KnnDeleteModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: KNNDeleteModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: KNNDeleteModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4383,16 +4383,16 @@ func TestKnnDeleteModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnGetModelPath_Build(t *testing.T) {
+func TestKNNGetModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnGetModelPath
+		path     KNNGetModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: KnnGetModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: KnnGetModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: KNNGetModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: KNNGetModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4409,15 +4409,15 @@ func TestKnnGetModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnSearchModelsPath_Build(t *testing.T) {
+func TestKNNSearchModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnSearchModelsPath
+		path     KNNSearchModelsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: KnnSearchModelsPath{}, wantPath: "/_plugins/_knn/models/_search", wantErr: false},
+		{name: "all empty", path: KNNSearchModelsPath{}, wantPath: "/_plugins/_knn/models/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4434,20 +4434,20 @@ func TestKnnSearchModelsPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnStatsPath_Build(t *testing.T) {
+func TestKNNStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnStatsPath
+		path     KNNStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: KnnStatsPath{}, wantPath: "/_plugins/_knn/stats", wantErr: false},
-		{name: "all fields", path: KnnStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantPath: "/_plugins/_knn/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: KnnStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_plugins/_knn/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: KnnStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_knn/stats/val-stat", wantErr: false},
-		{name: "NodeID multi-value", path: KnnStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/a,b,c/stats", wantErr: false},
-		{name: "Stat multi-value", path: KnnStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/stats/a,b,c", wantErr: false},
+		{name: "all empty", path: KNNStatsPath{}, wantPath: "/_plugins/_knn/stats", wantErr: false},
+		{name: "all fields", path: KNNStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantPath: "/_plugins/_knn/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: KNNStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_plugins/_knn/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: KNNStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_knn/stats/val-stat", wantErr: false},
+		{name: "NodeID multi-value", path: KNNStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/a,b,c/stats", wantErr: false},
+		{name: "Stat multi-value", path: KNNStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4464,16 +4464,16 @@ func TestKnnStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnTrainModelPath_Build(t *testing.T) {
+func TestKNNTrainModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnTrainModelPath
+		path     KNNTrainModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: KnnTrainModelPath{}, wantPath: "/_plugins/_knn/models/_train", wantErr: false},
-		{name: "all fields", path: KnnTrainModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid/_train", wantErr: false},
+		{name: "all empty", path: KNNTrainModelPath{}, wantPath: "/_plugins/_knn/models/_train", wantErr: false},
+		{name: "all fields", path: KNNTrainModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_knn/models/test-modelid/_train", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4490,17 +4490,17 @@ func TestKnnTrainModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestKnnWarmupPath_Build(t *testing.T) {
+func TestKNNWarmupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     KnnWarmupPath
+		path     KNNWarmupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: KnnWarmupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: KnnWarmupPath{Index: []string{"test-index"}}, wantPath: "/_plugins/_knn/warmup/test-index", wantErr: false},
-		{name: "Index multi-value", path: KnnWarmupPath{Index: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
+		{name: "required fields empty", path: KNNWarmupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: KNNWarmupPath{Indices: []string{"test-indices"}}, wantPath: "/_plugins/_knn/warmup/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: KNNWarmupPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_plugins/_knn/warmup/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4551,8 +4551,8 @@ func TestListIndicesPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ListIndicesPath{}, wantPath: "/_list/indices", wantErr: false},
-		{name: "all fields", path: ListIndicesPath{Index: []string{"test-index"}}, wantPath: "/_list/indices/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListIndicesPath{Index: []string{"a", "b", "c"}}, wantPath: "/_list/indices/a,b,c", wantErr: false},
+		{name: "all fields", path: ListIndicesPath{Indices: []string{"test-indices"}}, wantPath: "/_list/indices/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ListIndicesPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_list/indices/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4578,8 +4578,8 @@ func TestListShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: ListShardsPath{}, wantPath: "/_list/shards", wantErr: false},
-		{name: "all fields", path: ListShardsPath{Index: []string{"test-index"}}, wantPath: "/_list/shards/test-index", wantErr: false},
-		{name: "Index multi-value", path: ListShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/_list/shards/a,b,c", wantErr: false},
+		{name: "all fields", path: ListShardsPath{Indices: []string{"test-indices"}}, wantPath: "/_list/shards/test-indices", wantErr: false},
+		{name: "Indices multi-value", path: ListShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/_list/shards/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4596,16 +4596,16 @@ func TestListShardsPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrAddFeaturesToSetPath_Build(t *testing.T) {
+func TestLTRAddFeaturesToSetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrAddFeaturesToSetPath
+		path     LTRAddFeaturesToSetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrAddFeaturesToSetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrAddFeaturesToSetPath{Store: "test-store", Name: "test-name"}, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures", wantErr: false},
+		{name: "required fields empty", path: LTRAddFeaturesToSetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRAddFeaturesToSetPath{Store: "test-store", Name: "test-name"}, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4622,18 +4622,18 @@ func TestLtrAddFeaturesToSetPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrAddFeaturesToSetByQueryPath_Build(t *testing.T) {
+func TestLTRAddFeaturesToSetByQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrAddFeaturesToSetByQueryPath
+		path     LTRAddFeaturesToSetByQueryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrAddFeaturesToSetByQueryPath{}, wantPath: "", wantErr: true},
-		{name: "missing Name", path: LtrAddFeaturesToSetByQueryPath{Query: "req-query"}, wantPath: "", wantErr: true},
-		{name: "missing Query", path: LtrAddFeaturesToSetByQueryPath{Name: "req-name"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrAddFeaturesToSetByQueryPath{Store: "test-store", Name: "test-name", Query: "test-query"}, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures/test-query", wantErr: false},
+		{name: "required fields empty", path: LTRAddFeaturesToSetByQueryPath{}, wantPath: "", wantErr: true},
+		{name: "missing Name", path: LTRAddFeaturesToSetByQueryPath{Query: "req-query"}, wantPath: "", wantErr: true},
+		{name: "missing Query", path: LTRAddFeaturesToSetByQueryPath{Name: "req-name"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRAddFeaturesToSetByQueryPath{Store: "test-store", Name: "test-name", Query: "test-query"}, wantPath: "/_ltr/test-store/_featureset/test-name/_addfeatures/test-query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4650,15 +4650,15 @@ func TestLtrAddFeaturesToSetByQueryPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCacheStatsPath_Build(t *testing.T) {
+func TestLTRCacheStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCacheStatsPath
+		path     LTRCacheStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrCacheStatsPath{}, wantPath: "/_ltr/_cachestats", wantErr: false},
+		{name: "all empty", path: LTRCacheStatsPath{}, wantPath: "/_ltr/_cachestats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4675,16 +4675,16 @@ func TestLtrCacheStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrClearCachePath_Build(t *testing.T) {
+func TestLTRClearCachePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrClearCachePath
+		path     LTRClearCachePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrClearCachePath{}, wantPath: "/_ltr/_clearcache", wantErr: false},
-		{name: "all fields", path: LtrClearCachePath{Store: "test-store"}, wantPath: "/_ltr/test-store/_clearcache", wantErr: false},
+		{name: "all empty", path: LTRClearCachePath{}, wantPath: "/_ltr/_clearcache", wantErr: false},
+		{name: "all fields", path: LTRClearCachePath{Store: "test-store"}, wantPath: "/_ltr/test-store/_clearcache", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4701,15 +4701,15 @@ func TestLtrClearCachePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateDefaultStorePath_Build(t *testing.T) {
+func TestLTRCreateDefaultStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateDefaultStorePath
+		path     LTRCreateDefaultStorePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrCreateDefaultStorePath{}, wantPath: "/_ltr", wantErr: false},
+		{name: "all empty", path: LTRCreateDefaultStorePath{}, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4726,16 +4726,16 @@ func TestLtrCreateDefaultStorePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateFeaturePath_Build(t *testing.T) {
+func TestLTRCreateFeaturePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateFeaturePath
+		path     LTRCreateFeaturePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrCreateFeaturePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrCreateFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRCreateFeaturePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRCreateFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4752,16 +4752,16 @@ func TestLtrCreateFeaturePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateFeaturesetPath_Build(t *testing.T) {
+func TestLTRCreateFeaturesetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateFeaturesetPath
+		path     LTRCreateFeaturesetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrCreateFeaturesetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrCreateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRCreateFeaturesetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRCreateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4778,16 +4778,16 @@ func TestLtrCreateFeaturesetPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateModelPath_Build(t *testing.T) {
+func TestLTRCreateModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateModelPath
+		path     LTRCreateModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrCreateModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrCreateModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRCreateModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRCreateModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4804,16 +4804,16 @@ func TestLtrCreateModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateModelFromSetPath_Build(t *testing.T) {
+func TestLTRCreateModelFromSetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateModelFromSetPath
+		path     LTRCreateModelFromSetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrCreateModelFromSetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrCreateModelFromSetPath{Store: "test-store", Name: "test-name"}, wantPath: "/_ltr/test-store/_featureset/test-name/_createmodel", wantErr: false},
+		{name: "required fields empty", path: LTRCreateModelFromSetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRCreateModelFromSetPath{Store: "test-store", Name: "test-name"}, wantPath: "/_ltr/test-store/_featureset/test-name/_createmodel", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4830,16 +4830,16 @@ func TestLtrCreateModelFromSetPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrCreateStorePath_Build(t *testing.T) {
+func TestLTRCreateStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrCreateStorePath
+		path     LTRCreateStorePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrCreateStorePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrCreateStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LTRCreateStorePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRCreateStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4856,15 +4856,15 @@ func TestLtrCreateStorePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrDeleteDefaultStorePath_Build(t *testing.T) {
+func TestLTRDeleteDefaultStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrDeleteDefaultStorePath
+		path     LTRDeleteDefaultStorePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrDeleteDefaultStorePath{}, wantPath: "/_ltr", wantErr: false},
+		{name: "all empty", path: LTRDeleteDefaultStorePath{}, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4881,16 +4881,16 @@ func TestLtrDeleteDefaultStorePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrDeleteFeaturePath_Build(t *testing.T) {
+func TestLTRDeleteFeaturePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrDeleteFeaturePath
+		path     LTRDeleteFeaturePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrDeleteFeaturePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrDeleteFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRDeleteFeaturePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRDeleteFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4907,16 +4907,16 @@ func TestLtrDeleteFeaturePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrDeleteFeaturesetPath_Build(t *testing.T) {
+func TestLTRDeleteFeaturesetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrDeleteFeaturesetPath
+		path     LTRDeleteFeaturesetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrDeleteFeaturesetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrDeleteFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRDeleteFeaturesetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRDeleteFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4933,16 +4933,16 @@ func TestLtrDeleteFeaturesetPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrDeleteModelPath_Build(t *testing.T) {
+func TestLTRDeleteModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrDeleteModelPath
+		path     LTRDeleteModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrDeleteModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrDeleteModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRDeleteModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRDeleteModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4959,16 +4959,16 @@ func TestLtrDeleteModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrDeleteStorePath_Build(t *testing.T) {
+func TestLTRDeleteStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrDeleteStorePath
+		path     LTRDeleteStorePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrDeleteStorePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrDeleteStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LTRDeleteStorePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRDeleteStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -4985,16 +4985,16 @@ func TestLtrDeleteStorePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrGetFeaturePath_Build(t *testing.T) {
+func TestLTRGetFeaturePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrGetFeaturePath
+		path     LTRGetFeaturePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrGetFeaturePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrGetFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRGetFeaturePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRGetFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5011,16 +5011,16 @@ func TestLtrGetFeaturePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrGetFeaturesetPath_Build(t *testing.T) {
+func TestLTRGetFeaturesetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrGetFeaturesetPath
+		path     LTRGetFeaturesetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrGetFeaturesetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrGetFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRGetFeaturesetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRGetFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5037,16 +5037,16 @@ func TestLtrGetFeaturesetPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrGetModelPath_Build(t *testing.T) {
+func TestLTRGetModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrGetModelPath
+		path     LTRGetModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrGetModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrGetModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRGetModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRGetModelPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_model/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5063,16 +5063,16 @@ func TestLtrGetModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrGetStorePath_Build(t *testing.T) {
+func TestLTRGetStorePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrGetStorePath
+		path     LTRGetStorePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrGetStorePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrGetStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
+		{name: "required fields empty", path: LTRGetStorePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRGetStorePath{Store: "test-store"}, wantPath: "/_ltr/test-store", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5089,15 +5089,15 @@ func TestLtrGetStorePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrListStoresPath_Build(t *testing.T) {
+func TestLTRListStoresPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrListStoresPath
+		path     LTRListStoresPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrListStoresPath{}, wantPath: "/_ltr", wantErr: false},
+		{name: "all empty", path: LTRListStoresPath{}, wantPath: "/_ltr", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5114,16 +5114,16 @@ func TestLtrListStoresPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrSearchFeaturesPath_Build(t *testing.T) {
+func TestLTRSearchFeaturesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrSearchFeaturesPath
+		path     LTRSearchFeaturesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrSearchFeaturesPath{}, wantPath: "/_ltr/_feature", wantErr: false},
-		{name: "all fields", path: LtrSearchFeaturesPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_feature", wantErr: false},
+		{name: "all empty", path: LTRSearchFeaturesPath{}, wantPath: "/_ltr/_feature", wantErr: false},
+		{name: "all fields", path: LTRSearchFeaturesPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_feature", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5140,16 +5140,16 @@ func TestLtrSearchFeaturesPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrSearchFeaturesetsPath_Build(t *testing.T) {
+func TestLTRSearchFeaturesetsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrSearchFeaturesetsPath
+		path     LTRSearchFeaturesetsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrSearchFeaturesetsPath{}, wantPath: "/_ltr/_featureset", wantErr: false},
-		{name: "all fields", path: LtrSearchFeaturesetsPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_featureset", wantErr: false},
+		{name: "all empty", path: LTRSearchFeaturesetsPath{}, wantPath: "/_ltr/_featureset", wantErr: false},
+		{name: "all fields", path: LTRSearchFeaturesetsPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_featureset", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5166,16 +5166,16 @@ func TestLtrSearchFeaturesetsPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrSearchModelsPath_Build(t *testing.T) {
+func TestLTRSearchModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrSearchModelsPath
+		path     LTRSearchModelsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrSearchModelsPath{}, wantPath: "/_ltr/_model", wantErr: false},
-		{name: "all fields", path: LtrSearchModelsPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_model", wantErr: false},
+		{name: "all empty", path: LTRSearchModelsPath{}, wantPath: "/_ltr/_model", wantErr: false},
+		{name: "all fields", path: LTRSearchModelsPath{Store: "test-store"}, wantPath: "/_ltr/test-store/_model", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5192,20 +5192,20 @@ func TestLtrSearchModelsPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrStatsPath_Build(t *testing.T) {
+func TestLTRStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrStatsPath
+		path     LTRStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: LtrStatsPath{}, wantPath: "/_plugins/_ltr/stats", wantErr: false},
-		{name: "all fields", path: LtrStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantPath: "/_plugins/_ltr/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: LtrStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_plugins/_ltr/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: LtrStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_ltr/stats/val-stat", wantErr: false},
-		{name: "NodeID multi-value", path: LtrStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ltr/a,b,c/stats", wantErr: false},
-		{name: "Stat multi-value", path: LtrStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ltr/stats/a,b,c", wantErr: false},
+		{name: "all empty", path: LTRStatsPath{}, wantPath: "/_plugins/_ltr/stats", wantErr: false},
+		{name: "all fields", path: LTRStatsPath{NodeID: []string{"test-nodeid"}, Stat: []string{"test-stat"}}, wantPath: "/_plugins/_ltr/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: LTRStatsPath{NodeID: []string{"val-nodeid"}}, wantPath: "/_plugins/_ltr/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: LTRStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_ltr/stats/val-stat", wantErr: false},
+		{name: "NodeID multi-value", path: LTRStatsPath{NodeID: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ltr/a,b,c/stats", wantErr: false},
+		{name: "Stat multi-value", path: LTRStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ltr/stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5222,16 +5222,16 @@ func TestLtrStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrUpdateFeaturePath_Build(t *testing.T) {
+func TestLTRUpdateFeaturePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrUpdateFeaturePath
+		path     LTRUpdateFeaturePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrUpdateFeaturePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrUpdateFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRUpdateFeaturePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRUpdateFeaturePath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_feature/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5248,16 +5248,16 @@ func TestLtrUpdateFeaturePath_Build(t *testing.T) {
 	}
 }
 
-func TestLtrUpdateFeaturesetPath_Build(t *testing.T) {
+func TestLTRUpdateFeaturesetPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     LtrUpdateFeaturesetPath
+		path     LTRUpdateFeaturesetPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: LtrUpdateFeaturesetPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: LtrUpdateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
+		{name: "required fields empty", path: LTRUpdateFeaturesetPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: LTRUpdateFeaturesetPath{Store: "test-store", ID: "test-id"}, wantPath: "/_ltr/test-store/_featureset/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5300,16 +5300,16 @@ func TestMgetPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlAddAgenticMemoryPath_Build(t *testing.T) {
+func TestMLAddAgenticMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlAddAgenticMemoryPath
+		path     MLAddAgenticMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlAddAgenticMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlAddAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories", wantErr: false},
+		{name: "required fields empty", path: MLAddAgenticMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLAddAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5326,18 +5326,18 @@ func TestMlAddAgenticMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlChunkModelPath_Build(t *testing.T) {
+func TestMLChunkModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlChunkModelPath
+		path     MLChunkModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlChunkModelPath{}, wantPath: "", wantErr: true},
-		{name: "missing ModelID", path: MlChunkModelPath{ChunkNumber: "req-chunknumber"}, wantPath: "", wantErr: true},
-		{name: "missing ChunkNumber", path: MlChunkModelPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlChunkModelPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantPath: "/_plugins/_ml/models/test-modelid/chunk/test-chunknumber", wantErr: false},
+		{name: "required fields empty", path: MLChunkModelPath{}, wantPath: "", wantErr: true},
+		{name: "missing ModelID", path: MLChunkModelPath{ChunkNumber: "req-chunknumber"}, wantPath: "", wantErr: true},
+		{name: "missing ChunkNumber", path: MLChunkModelPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLChunkModelPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantPath: "/_plugins/_ml/models/test-modelid/chunk/test-chunknumber", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5354,15 +5354,15 @@ func TestMlChunkModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateConnectorPath_Build(t *testing.T) {
+func TestMLCreateConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateConnectorPath
+		path     MLCreateConnectorPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlCreateConnectorPath{}, wantPath: "/_plugins/_ml/connectors/_create", wantErr: false},
+		{name: "all empty", path: MLCreateConnectorPath{}, wantPath: "/_plugins/_ml/connectors/_create", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5379,16 +5379,16 @@ func TestMlCreateConnectorPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateControllerPath_Build(t *testing.T) {
+func TestMLCreateControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateControllerPath
+		path     MLCreateControllerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlCreateControllerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlCreateControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLCreateControllerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLCreateControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5405,15 +5405,15 @@ func TestMlCreateControllerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateMemoryPath_Build(t *testing.T) {
+func TestMLCreateMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateMemoryPath
+		path     MLCreateMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlCreateMemoryPath{}, wantPath: "/_plugins/_ml/memory", wantErr: false},
+		{name: "all empty", path: MLCreateMemoryPath{}, wantPath: "/_plugins/_ml/memory", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5430,15 +5430,15 @@ func TestMlCreateMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateMemoryContainerPath_Build(t *testing.T) {
+func TestMLCreateMemoryContainerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateMemoryContainerPath
+		path     MLCreateMemoryContainerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlCreateMemoryContainerPath{}, wantPath: "/_plugins/_ml/memory_containers/_create", wantErr: false},
+		{name: "all empty", path: MLCreateMemoryContainerPath{}, wantPath: "/_plugins/_ml/memory_containers/_create", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5455,16 +5455,16 @@ func TestMlCreateMemoryContainerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateMemoryContainerSessionPath_Build(t *testing.T) {
+func TestMLCreateMemoryContainerSessionPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateMemoryContainerSessionPath
+		path     MLCreateMemoryContainerSessionPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlCreateMemoryContainerSessionPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlCreateMemoryContainerSessionPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/sessions", wantErr: false},
+		{name: "required fields empty", path: MLCreateMemoryContainerSessionPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLCreateMemoryContainerSessionPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/sessions", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5481,16 +5481,16 @@ func TestMlCreateMemoryContainerSessionPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateMessagePath_Build(t *testing.T) {
+func TestMLCreateMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateMessagePath
+		path     MLCreateMessagePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlCreateMessagePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlCreateMessagePath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
+		{name: "required fields empty", path: MLCreateMessagePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLCreateMessagePath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5507,15 +5507,15 @@ func TestMlCreateMessagePath_Build(t *testing.T) {
 	}
 }
 
-func TestMlCreateModelMetaPath_Build(t *testing.T) {
+func TestMLCreateModelMetaPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlCreateModelMetaPath
+		path     MLCreateModelMetaPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlCreateModelMetaPath{}, wantPath: "/_plugins/_ml/models/meta", wantErr: false},
+		{name: "all empty", path: MLCreateModelMetaPath{}, wantPath: "/_plugins/_ml/models/meta", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5532,16 +5532,16 @@ func TestMlCreateModelMetaPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteAgentPath_Build(t *testing.T) {
+func TestMLDeleteAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteAgentPath
+		path     MLDeleteAgentPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteAgentPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteAgentPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5558,19 +5558,19 @@ func TestMlDeleteAgentPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteAgenticMemoryPath_Build(t *testing.T) {
+func TestMLDeleteAgenticMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteAgenticMemoryPath
+		path     MLDeleteAgenticMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteAgenticMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "missing MemoryContainerID", path: MlDeleteAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing Type", path: MlDeleteAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing ID", path: MlDeleteAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+		{name: "required fields empty", path: MLDeleteAgenticMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "missing MemoryContainerID", path: MLDeleteAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing Type", path: MLDeleteAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing ID", path: MLDeleteAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5587,18 +5587,18 @@ func TestMlDeleteAgenticMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteAgenticMemoryQueryPath_Build(t *testing.T) {
+func TestMLDeleteAgenticMemoryQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteAgenticMemoryQueryPath
+		path     MLDeleteAgenticMemoryQueryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteAgenticMemoryQueryPath{}, wantPath: "", wantErr: true},
-		{name: "missing MemoryContainerID", path: MlDeleteAgenticMemoryQueryPath{Type: "req-type"}, wantPath: "", wantErr: true},
-		{name: "missing Type", path: MlDeleteAgenticMemoryQueryPath{MemoryContainerID: "req-memorycontainerid"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteAgenticMemoryQueryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_delete_by_query", wantErr: false},
+		{name: "required fields empty", path: MLDeleteAgenticMemoryQueryPath{}, wantPath: "", wantErr: true},
+		{name: "missing MemoryContainerID", path: MLDeleteAgenticMemoryQueryPath{Type: "req-type"}, wantPath: "", wantErr: true},
+		{name: "missing Type", path: MLDeleteAgenticMemoryQueryPath{MemoryContainerID: "req-memorycontainerid"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteAgenticMemoryQueryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_delete_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5615,16 +5615,16 @@ func TestMlDeleteAgenticMemoryQueryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteConnectorPath_Build(t *testing.T) {
+func TestMLDeleteConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteConnectorPath
+		path     MLDeleteConnectorPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteConnectorPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteConnectorPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5641,16 +5641,16 @@ func TestMlDeleteConnectorPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteControllerPath_Build(t *testing.T) {
+func TestMLDeleteControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteControllerPath
+		path     MLDeleteControllerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteControllerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteControllerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5667,16 +5667,16 @@ func TestMlDeleteControllerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteMemoryPath_Build(t *testing.T) {
+func TestMLDeleteMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteMemoryPath
+		path     MLDeleteMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5693,16 +5693,16 @@ func TestMlDeleteMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteMemoryContainerPath_Build(t *testing.T) {
+func TestMLDeleteMemoryContainerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteMemoryContainerPath
+		path     MLDeleteMemoryContainerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteMemoryContainerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteMemoryContainerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5719,16 +5719,16 @@ func TestMlDeleteMemoryContainerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteModelPath_Build(t *testing.T) {
+func TestMLDeleteModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteModelPath
+		path     MLDeleteModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5745,16 +5745,16 @@ func TestMlDeleteModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteModelGroupPath_Build(t *testing.T) {
+func TestMLDeleteModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteModelGroupPath
+		path     MLDeleteModelGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteModelGroupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteModelGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5771,16 +5771,16 @@ func TestMlDeleteModelGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeleteTaskPath_Build(t *testing.T) {
+func TestMLDeleteTaskPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeleteTaskPath
+		path     MLDeleteTaskPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeleteTaskPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeleteTaskPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
+		{name: "required fields empty", path: MLDeleteTaskPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeleteTaskPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5797,16 +5797,16 @@ func TestMlDeleteTaskPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlDeployModelPath_Build(t *testing.T) {
+func TestMLDeployModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlDeployModelPath
+		path     MLDeployModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlDeployModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlDeployModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_deploy", wantErr: false},
+		{name: "required fields empty", path: MLDeployModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLDeployModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_deploy", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5823,16 +5823,16 @@ func TestMlDeployModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlExecuteAgentPath_Build(t *testing.T) {
+func TestMLExecuteAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlExecuteAgentPath
+		path     MLExecuteAgentPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlExecuteAgentPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlExecuteAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid/_execute", wantErr: false},
+		{name: "required fields empty", path: MLExecuteAgentPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLExecuteAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid/_execute", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5849,16 +5849,16 @@ func TestMlExecuteAgentPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlExecuteAgentStreamPath_Build(t *testing.T) {
+func TestMLExecuteAgentStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlExecuteAgentStreamPath
+		path     MLExecuteAgentStreamPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlExecuteAgentStreamPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlExecuteAgentStreamPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid/_execute/stream", wantErr: false},
+		{name: "required fields empty", path: MLExecuteAgentStreamPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLExecuteAgentStreamPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid/_execute/stream", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5875,16 +5875,16 @@ func TestMlExecuteAgentStreamPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlExecuteAlgorithmPath_Build(t *testing.T) {
+func TestMLExecuteAlgorithmPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlExecuteAlgorithmPath
+		path     MLExecuteAlgorithmPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlExecuteAlgorithmPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlExecuteAlgorithmPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_execute/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MLExecuteAlgorithmPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLExecuteAlgorithmPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_execute/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5901,16 +5901,16 @@ func TestMlExecuteAlgorithmPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlExecuteToolPath_Build(t *testing.T) {
+func TestMLExecuteToolPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlExecuteToolPath
+		path     MLExecuteToolPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlExecuteToolPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlExecuteToolPath{ToolName: "test-toolname"}, wantPath: "/_plugins/_ml/tools/_execute/test-toolname", wantErr: false},
+		{name: "required fields empty", path: MLExecuteToolPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLExecuteToolPath{ToolName: "test-toolname"}, wantPath: "/_plugins/_ml/tools/_execute/test-toolname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5927,16 +5927,16 @@ func TestMlExecuteToolPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetAgentPath_Build(t *testing.T) {
+func TestMLGetAgentPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetAgentPath
+		path     MLGetAgentPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetAgentPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
+		{name: "required fields empty", path: MLGetAgentPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetAgentPath{AgentID: "test-agentid"}, wantPath: "/_plugins/_ml/agents/test-agentid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5953,19 +5953,19 @@ func TestMlGetAgentPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetAgenticMemoryPath_Build(t *testing.T) {
+func TestMLGetAgenticMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetAgenticMemoryPath
+		path     MLGetAgenticMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetAgenticMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "missing MemoryContainerID", path: MlGetAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing Type", path: MlGetAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing ID", path: MlGetAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+		{name: "required fields empty", path: MLGetAgenticMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "missing MemoryContainerID", path: MLGetAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing Type", path: MLGetAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing ID", path: MLGetAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -5982,15 +5982,15 @@ func TestMlGetAgenticMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetAllMemoriesPath_Build(t *testing.T) {
+func TestMLGetAllMemoriesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetAllMemoriesPath
+		path     MLGetAllMemoriesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetAllMemoriesPath{}, wantPath: "/_plugins/_ml/memory", wantErr: false},
+		{name: "all empty", path: MLGetAllMemoriesPath{}, wantPath: "/_plugins/_ml/memory", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6007,16 +6007,16 @@ func TestMlGetAllMemoriesPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetAllMessagesPath_Build(t *testing.T) {
+func TestMLGetAllMessagesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetAllMessagesPath
+		path     MLGetAllMessagesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetAllMessagesPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetAllMessagesPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
+		{name: "required fields empty", path: MLGetAllMessagesPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetAllMessagesPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/messages", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6033,15 +6033,15 @@ func TestMlGetAllMessagesPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetAllToolsPath_Build(t *testing.T) {
+func TestMLGetAllToolsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetAllToolsPath
+		path     MLGetAllToolsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetAllToolsPath{}, wantPath: "/_plugins/_ml/tools", wantErr: false},
+		{name: "all empty", path: MLGetAllToolsPath{}, wantPath: "/_plugins/_ml/tools", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6058,16 +6058,16 @@ func TestMlGetAllToolsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetConnectorPath_Build(t *testing.T) {
+func TestMLGetConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetConnectorPath
+		path     MLGetConnectorPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetConnectorPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MLGetConnectorPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6084,16 +6084,16 @@ func TestMlGetConnectorPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetControllerPath_Build(t *testing.T) {
+func TestMLGetControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetControllerPath
+		path     MLGetControllerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetControllerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLGetControllerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6110,16 +6110,16 @@ func TestMlGetControllerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetMemoryPath_Build(t *testing.T) {
+func TestMLGetMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetMemoryPath
+		path     MLGetMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MLGetMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6136,16 +6136,16 @@ func TestMlGetMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetMemoryContainerPath_Build(t *testing.T) {
+func TestMLGetMemoryContainerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetMemoryContainerPath
+		path     MLGetMemoryContainerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetMemoryContainerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+		{name: "required fields empty", path: MLGetMemoryContainerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6162,16 +6162,16 @@ func TestMlGetMemoryContainerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetMessagePath_Build(t *testing.T) {
+func TestMLGetMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetMessagePath
+		path     MLGetMessagePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetMessagePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetMessagePath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
+		{name: "required fields empty", path: MLGetMessagePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetMessagePath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6188,16 +6188,16 @@ func TestMlGetMessagePath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetMessageTracesPath_Build(t *testing.T) {
+func TestMLGetMessageTracesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetMessageTracesPath
+		path     MLGetMessageTracesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetMessageTracesPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetMessageTracesPath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid/traces", wantErr: false},
+		{name: "required fields empty", path: MLGetMessageTracesPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetMessageTracesPath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid/traces", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6214,16 +6214,16 @@ func TestMlGetMessageTracesPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetModelPath_Build(t *testing.T) {
+func TestMLGetModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetModelPath
+		path     MLGetModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLGetModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6240,16 +6240,16 @@ func TestMlGetModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetModelGroupPath_Build(t *testing.T) {
+func TestMLGetModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetModelGroupPath
+		path     MLGetModelGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetModelGroupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MLGetModelGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6266,15 +6266,15 @@ func TestMlGetModelGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetProfilePath_Build(t *testing.T) {
+func TestMLGetProfilePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetProfilePath
+		path     MLGetProfilePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetProfilePath{}, wantPath: "/_plugins/_ml/profile", wantErr: false},
+		{name: "all empty", path: MLGetProfilePath{}, wantPath: "/_plugins/_ml/profile", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6291,16 +6291,16 @@ func TestMlGetProfilePath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetProfileModelsPath_Build(t *testing.T) {
+func TestMLGetProfileModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetProfileModelsPath
+		path     MLGetProfileModelsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetProfileModelsPath{}, wantPath: "/_plugins/_ml/profile/models", wantErr: false},
-		{name: "all fields", path: MlGetProfileModelsPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/profile/models/test-modelid", wantErr: false},
+		{name: "all empty", path: MLGetProfileModelsPath{}, wantPath: "/_plugins/_ml/profile/models", wantErr: false},
+		{name: "all fields", path: MLGetProfileModelsPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/profile/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6317,16 +6317,16 @@ func TestMlGetProfileModelsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetProfileTasksPath_Build(t *testing.T) {
+func TestMLGetProfileTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetProfileTasksPath
+		path     MLGetProfileTasksPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetProfileTasksPath{}, wantPath: "/_plugins/_ml/profile/tasks", wantErr: false},
-		{name: "all fields", path: MlGetProfileTasksPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/profile/tasks/test-taskid", wantErr: false},
+		{name: "all empty", path: MLGetProfileTasksPath{}, wantPath: "/_plugins/_ml/profile/tasks", wantErr: false},
+		{name: "all fields", path: MLGetProfileTasksPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/profile/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6343,19 +6343,19 @@ func TestMlGetProfileTasksPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetStatsPath_Build(t *testing.T) {
+func TestMLGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetStatsPath
+		path     MLGetStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlGetStatsPath{}, wantPath: "/_plugins/_ml/stats", wantErr: false},
-		{name: "all fields", path: MlGetStatsPath{NodeID: "test-nodeid", Stat: []string{"test-stat"}}, wantPath: "/_plugins/_ml/test-nodeid/stats/test-stat", wantErr: false},
-		{name: "only NodeID", path: MlGetStatsPath{NodeID: "val-nodeid"}, wantPath: "/_plugins/_ml/val-nodeid/stats", wantErr: false},
-		{name: "only Stat", path: MlGetStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_ml/stats/val-stat", wantErr: false},
-		{name: "Stat multi-value", path: MlGetStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ml/stats/a,b,c", wantErr: false},
+		{name: "all empty", path: MLGetStatsPath{}, wantPath: "/_plugins/_ml/stats", wantErr: false},
+		{name: "all fields", path: MLGetStatsPath{NodeID: "test-nodeid", Stat: []string{"test-stat"}}, wantPath: "/_plugins/_ml/test-nodeid/stats/test-stat", wantErr: false},
+		{name: "only NodeID", path: MLGetStatsPath{NodeID: "val-nodeid"}, wantPath: "/_plugins/_ml/val-nodeid/stats", wantErr: false},
+		{name: "only Stat", path: MLGetStatsPath{Stat: []string{"val-stat"}}, wantPath: "/_plugins/_ml/stats/val-stat", wantErr: false},
+		{name: "Stat multi-value", path: MLGetStatsPath{Stat: []string{"a", "b", "c"}}, wantPath: "/_plugins/_ml/stats/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6372,16 +6372,16 @@ func TestMlGetStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetTaskPath_Build(t *testing.T) {
+func TestMLGetTaskPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetTaskPath
+		path     MLGetTaskPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetTaskPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetTaskPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
+		{name: "required fields empty", path: MLGetTaskPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetTaskPath{TaskID: "test-taskid"}, wantPath: "/_plugins/_ml/tasks/test-taskid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6398,16 +6398,16 @@ func TestMlGetTaskPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlGetToolPath_Build(t *testing.T) {
+func TestMLGetToolPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlGetToolPath
+		path     MLGetToolPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlGetToolPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlGetToolPath{ToolName: "test-toolname"}, wantPath: "/_plugins/_ml/tools/test-toolname", wantErr: false},
+		{name: "required fields empty", path: MLGetToolPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLGetToolPath{ToolName: "test-toolname"}, wantPath: "/_plugins/_ml/tools/test-toolname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6424,16 +6424,16 @@ func TestMlGetToolPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlLoadModelPath_Build(t *testing.T) {
+func TestMLLoadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlLoadModelPath
+		path     MLLoadModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlLoadModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlLoadModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_load", wantErr: false},
+		{name: "required fields empty", path: MLLoadModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLLoadModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_load", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6450,18 +6450,18 @@ func TestMlLoadModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlPredictPath_Build(t *testing.T) {
+func TestMLPredictPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlPredictPath
+		path     MLPredictPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlPredictPath{}, wantPath: "", wantErr: true},
-		{name: "missing AlgorithmName", path: MlPredictPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
-		{name: "missing ModelID", path: MlPredictPath{AlgorithmName: "req-algorithmname"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlPredictPath{AlgorithmName: "test-algorithmname", ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/_predict/test-algorithmname/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLPredictPath{}, wantPath: "", wantErr: true},
+		{name: "missing AlgorithmName", path: MLPredictPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
+		{name: "missing ModelID", path: MLPredictPath{AlgorithmName: "req-algorithmname"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLPredictPath{AlgorithmName: "test-algorithmname", ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/_predict/test-algorithmname/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6478,16 +6478,16 @@ func TestMlPredictPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlPredictModelPath_Build(t *testing.T) {
+func TestMLPredictModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlPredictModelPath
+		path     MLPredictModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlPredictModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlPredictModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_predict", wantErr: false},
+		{name: "required fields empty", path: MLPredictModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLPredictModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_predict", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6504,16 +6504,16 @@ func TestMlPredictModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlPredictModelStreamPath_Build(t *testing.T) {
+func TestMLPredictModelStreamPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlPredictModelStreamPath
+		path     MLPredictModelStreamPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlPredictModelStreamPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlPredictModelStreamPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_predict/stream", wantErr: false},
+		{name: "required fields empty", path: MLPredictModelStreamPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLPredictModelStreamPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_predict/stream", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6530,15 +6530,15 @@ func TestMlPredictModelStreamPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlRegisterAgentsPath_Build(t *testing.T) {
+func TestMLRegisterAgentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlRegisterAgentsPath
+		path     MLRegisterAgentsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlRegisterAgentsPath{}, wantPath: "/_plugins/_ml/agents/_register", wantErr: false},
+		{name: "all empty", path: MLRegisterAgentsPath{}, wantPath: "/_plugins/_ml/agents/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6555,15 +6555,15 @@ func TestMlRegisterAgentsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlRegisterModelPath_Build(t *testing.T) {
+func TestMLRegisterModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlRegisterModelPath
+		path     MLRegisterModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlRegisterModelPath{}, wantPath: "/_plugins/_ml/models/_register", wantErr: false},
+		{name: "all empty", path: MLRegisterModelPath{}, wantPath: "/_plugins/_ml/models/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6580,15 +6580,15 @@ func TestMlRegisterModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlRegisterModelGroupPath_Build(t *testing.T) {
+func TestMLRegisterModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlRegisterModelGroupPath
+		path     MLRegisterModelGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlRegisterModelGroupPath{}, wantPath: "/_plugins/_ml/model_groups/_register", wantErr: false},
+		{name: "all empty", path: MLRegisterModelGroupPath{}, wantPath: "/_plugins/_ml/model_groups/_register", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6605,15 +6605,15 @@ func TestMlRegisterModelGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlRegisterModelMetaPath_Build(t *testing.T) {
+func TestMLRegisterModelMetaPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlRegisterModelMetaPath
+		path     MLRegisterModelMetaPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlRegisterModelMetaPath{}, wantPath: "/_plugins/_ml/models/_register_meta", wantErr: false},
+		{name: "all empty", path: MLRegisterModelMetaPath{}, wantPath: "/_plugins/_ml/models/_register_meta", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6630,18 +6630,18 @@ func TestMlRegisterModelMetaPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchAgenticMemoryPath_Build(t *testing.T) {
+func TestMLSearchAgenticMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchAgenticMemoryPath
+		path     MLSearchAgenticMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlSearchAgenticMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "missing MemoryContainerID", path: MlSearchAgenticMemoryPath{Type: "req-type"}, wantPath: "", wantErr: true},
-		{name: "missing Type", path: MlSearchAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlSearchAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_search", wantErr: false},
+		{name: "required fields empty", path: MLSearchAgenticMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "missing MemoryContainerID", path: MLSearchAgenticMemoryPath{Type: "req-type"}, wantPath: "", wantErr: true},
+		{name: "missing Type", path: MLSearchAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLSearchAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6658,15 +6658,15 @@ func TestMlSearchAgenticMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchAgentsPath_Build(t *testing.T) {
+func TestMLSearchAgentsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchAgentsPath
+		path     MLSearchAgentsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchAgentsPath{}, wantPath: "/_plugins/_ml/agents/_search", wantErr: false},
+		{name: "all empty", path: MLSearchAgentsPath{}, wantPath: "/_plugins/_ml/agents/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6683,15 +6683,15 @@ func TestMlSearchAgentsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchConnectorsPath_Build(t *testing.T) {
+func TestMLSearchConnectorsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchConnectorsPath
+		path     MLSearchConnectorsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchConnectorsPath{}, wantPath: "/_plugins/_ml/connectors/_search", wantErr: false},
+		{name: "all empty", path: MLSearchConnectorsPath{}, wantPath: "/_plugins/_ml/connectors/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6708,15 +6708,15 @@ func TestMlSearchConnectorsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchMemoryPath_Build(t *testing.T) {
+func TestMLSearchMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchMemoryPath
+		path     MLSearchMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchMemoryPath{}, wantPath: "/_plugins/_ml/memory/_search", wantErr: false},
+		{name: "all empty", path: MLSearchMemoryPath{}, wantPath: "/_plugins/_ml/memory/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6733,15 +6733,15 @@ func TestMlSearchMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchMemoryContainerPath_Build(t *testing.T) {
+func TestMLSearchMemoryContainerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchMemoryContainerPath
+		path     MLSearchMemoryContainerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchMemoryContainerPath{}, wantPath: "/_plugins/_ml/memory_containers/_search", wantErr: false},
+		{name: "all empty", path: MLSearchMemoryContainerPath{}, wantPath: "/_plugins/_ml/memory_containers/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6758,16 +6758,16 @@ func TestMlSearchMemoryContainerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchMessagePath_Build(t *testing.T) {
+func TestMLSearchMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchMessagePath
+		path     MLSearchMessagePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlSearchMessagePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlSearchMessagePath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/_search", wantErr: false},
+		{name: "required fields empty", path: MLSearchMessagePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLSearchMessagePath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6784,15 +6784,15 @@ func TestMlSearchMessagePath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchModelGroupPath_Build(t *testing.T) {
+func TestMLSearchModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchModelGroupPath
+		path     MLSearchModelGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchModelGroupPath{}, wantPath: "/_plugins/_ml/model_groups/_search", wantErr: false},
+		{name: "all empty", path: MLSearchModelGroupPath{}, wantPath: "/_plugins/_ml/model_groups/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6809,15 +6809,15 @@ func TestMlSearchModelGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchModelsPath_Build(t *testing.T) {
+func TestMLSearchModelsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchModelsPath
+		path     MLSearchModelsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchModelsPath{}, wantPath: "/_plugins/_ml/models/_search", wantErr: false},
+		{name: "all empty", path: MLSearchModelsPath{}, wantPath: "/_plugins/_ml/models/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6834,15 +6834,15 @@ func TestMlSearchModelsPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlSearchTasksPath_Build(t *testing.T) {
+func TestMLSearchTasksPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlSearchTasksPath
+		path     MLSearchTasksPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlSearchTasksPath{}, wantPath: "/_plugins/_ml/tasks/_search", wantErr: false},
+		{name: "all empty", path: MLSearchTasksPath{}, wantPath: "/_plugins/_ml/tasks/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6859,16 +6859,16 @@ func TestMlSearchTasksPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlTrainPath_Build(t *testing.T) {
+func TestMLTrainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlTrainPath
+		path     MLTrainPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlTrainPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlTrainPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_train/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MLTrainPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLTrainPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_train/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6885,16 +6885,16 @@ func TestMlTrainPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlTrainPredictPath_Build(t *testing.T) {
+func TestMLTrainPredictPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlTrainPredictPath
+		path     MLTrainPredictPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlTrainPredictPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlTrainPredictPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_train_predict/test-algorithmname", wantErr: false},
+		{name: "required fields empty", path: MLTrainPredictPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLTrainPredictPath{AlgorithmName: "test-algorithmname"}, wantPath: "/_plugins/_ml/_train_predict/test-algorithmname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6911,16 +6911,16 @@ func TestMlTrainPredictPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUndeployModelPath_Build(t *testing.T) {
+func TestMLUndeployModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUndeployModelPath
+		path     MLUndeployModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlUndeployModelPath{}, wantPath: "/_plugins/_ml/models/_undeploy", wantErr: false},
-		{name: "all fields", path: MlUndeployModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_undeploy", wantErr: false},
+		{name: "all empty", path: MLUndeployModelPath{}, wantPath: "/_plugins/_ml/models/_undeploy", wantErr: false},
+		{name: "all fields", path: MLUndeployModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_undeploy", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6937,16 +6937,16 @@ func TestMlUndeployModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUnloadModelPath_Build(t *testing.T) {
+func TestMLUnloadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUnloadModelPath
+		path     MLUnloadModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlUnloadModelPath{}, wantPath: "/_plugins/_ml/models/_unload", wantErr: false},
-		{name: "all fields", path: MlUnloadModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_unload", wantErr: false},
+		{name: "all empty", path: MLUnloadModelPath{}, wantPath: "/_plugins/_ml/models/_unload", wantErr: false},
+		{name: "all fields", path: MLUnloadModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid/_unload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6963,19 +6963,19 @@ func TestMlUnloadModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateAgenticMemoryPath_Build(t *testing.T) {
+func TestMLUpdateAgenticMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateAgenticMemoryPath
+		path     MLUpdateAgenticMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateAgenticMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "missing MemoryContainerID", path: MlUpdateAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing Type", path: MlUpdateAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
-		{name: "missing ID", path: MlUpdateAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
+		{name: "required fields empty", path: MLUpdateAgenticMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "missing MemoryContainerID", path: MLUpdateAgenticMemoryPath{Type: "req-type", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing Type", path: MLUpdateAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", ID: "req-id"}, wantPath: "", wantErr: true},
+		{name: "missing ID", path: MLUpdateAgenticMemoryPath{MemoryContainerID: "req-memorycontainerid", Type: "req-type"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateAgenticMemoryPath{MemoryContainerID: "test-memorycontainerid", Type: "test-type", ID: "test-id"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid/memories/test-type/test-id", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -6992,16 +6992,16 @@ func TestMlUpdateAgenticMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateConnectorPath_Build(t *testing.T) {
+func TestMLUpdateConnectorPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateConnectorPath
+		path     MLUpdateConnectorPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateConnectorPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateConnectorPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateConnectorPath{ConnectorID: "test-connectorid"}, wantPath: "/_plugins/_ml/connectors/test-connectorid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7018,16 +7018,16 @@ func TestMlUpdateConnectorPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateControllerPath_Build(t *testing.T) {
+func TestMLUpdateControllerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateControllerPath
+		path     MLUpdateControllerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateControllerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateControllerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateControllerPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/controllers/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7044,16 +7044,16 @@ func TestMlUpdateControllerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateMemoryPath_Build(t *testing.T) {
+func TestMLUpdateMemoryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateMemoryPath
+		path     MLUpdateMemoryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateMemoryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateMemoryPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateMemoryPath{MemoryID: "test-memoryid"}, wantPath: "/_plugins/_ml/memory/test-memoryid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7070,16 +7070,16 @@ func TestMlUpdateMemoryPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateMemoryContainerPath_Build(t *testing.T) {
+func TestMLUpdateMemoryContainerPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateMemoryContainerPath
+		path     MLUpdateMemoryContainerPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateMemoryContainerPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateMemoryContainerPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateMemoryContainerPath{MemoryContainerID: "test-memorycontainerid"}, wantPath: "/_plugins/_ml/memory_containers/test-memorycontainerid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7096,16 +7096,16 @@ func TestMlUpdateMemoryContainerPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateMessagePath_Build(t *testing.T) {
+func TestMLUpdateMessagePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateMessagePath
+		path     MLUpdateMessagePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateMessagePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateMessagePath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateMessagePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateMessagePath{MessageID: "test-messageid"}, wantPath: "/_plugins/_ml/memory/message/test-messageid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7122,16 +7122,16 @@ func TestMlUpdateMessagePath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateModelPath_Build(t *testing.T) {
+func TestMLUpdateModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateModelPath
+		path     MLUpdateModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateModelPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateModelPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateModelPath{ModelID: "test-modelid"}, wantPath: "/_plugins/_ml/models/test-modelid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7148,16 +7148,16 @@ func TestMlUpdateModelPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUpdateModelGroupPath_Build(t *testing.T) {
+func TestMLUpdateModelGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUpdateModelGroupPath
+		path     MLUpdateModelGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUpdateModelGroupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUpdateModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
+		{name: "required fields empty", path: MLUpdateModelGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUpdateModelGroupPath{ModelGroupID: "test-modelgroupid"}, wantPath: "/_plugins/_ml/model_groups/test-modelgroupid", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7174,18 +7174,18 @@ func TestMlUpdateModelGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUploadChunkPath_Build(t *testing.T) {
+func TestMLUploadChunkPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUploadChunkPath
+		path     MLUploadChunkPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: MlUploadChunkPath{}, wantPath: "", wantErr: true},
-		{name: "missing ModelID", path: MlUploadChunkPath{ChunkNumber: "req-chunknumber"}, wantPath: "", wantErr: true},
-		{name: "missing ChunkNumber", path: MlUploadChunkPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
-		{name: "all fields", path: MlUploadChunkPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantPath: "/_plugins/_ml/models/test-modelid/upload_chunk/test-chunknumber", wantErr: false},
+		{name: "required fields empty", path: MLUploadChunkPath{}, wantPath: "", wantErr: true},
+		{name: "missing ModelID", path: MLUploadChunkPath{ChunkNumber: "req-chunknumber"}, wantPath: "", wantErr: true},
+		{name: "missing ChunkNumber", path: MLUploadChunkPath{ModelID: "req-modelid"}, wantPath: "", wantErr: true},
+		{name: "all fields", path: MLUploadChunkPath{ModelID: "test-modelid", ChunkNumber: "test-chunknumber"}, wantPath: "/_plugins/_ml/models/test-modelid/upload_chunk/test-chunknumber", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7202,15 +7202,15 @@ func TestMlUploadChunkPath_Build(t *testing.T) {
 	}
 }
 
-func TestMlUploadModelPath_Build(t *testing.T) {
+func TestMLUploadModelPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     MlUploadModelPath
+		path     MLUploadModelPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: MlUploadModelPath{}, wantPath: "/_plugins/_ml/models/_upload", wantErr: false},
+		{name: "all empty", path: MLUploadModelPath{}, wantPath: "/_plugins/_ml/models/_upload", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7236,8 +7236,8 @@ func TestMsearchPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: MsearchPath{}, wantPath: "/_msearch", wantErr: false},
-		{name: "all fields", path: MsearchPath{Index: []string{"test-index"}}, wantPath: "/test-index/_msearch", wantErr: false},
-		{name: "Index multi-value", path: MsearchPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch", wantErr: false},
+		{name: "all fields", path: MsearchPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_msearch", wantErr: false},
+		{name: "Indices multi-value", path: MsearchPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7263,8 +7263,8 @@ func TestMsearchTemplatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: MsearchTemplatePath{}, wantPath: "/_msearch/template", wantErr: false},
-		{name: "all fields", path: MsearchTemplatePath{Index: []string{"test-index"}}, wantPath: "/test-index/_msearch/template", wantErr: false},
-		{name: "Index multi-value", path: MsearchTemplatePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch/template", wantErr: false},
+		{name: "all fields", path: MsearchTemplatePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_msearch/template", wantErr: false},
+		{name: "Indices multi-value", path: MsearchTemplatePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_msearch/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7914,15 +7914,15 @@ func TestPingPath_Build(t *testing.T) {
 	}
 }
 
-func TestPplExplainPath_Build(t *testing.T) {
+func TestPPLExplainPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     PplExplainPath
+		path     PPLExplainPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: PplExplainPath{}, wantPath: "/_plugins/_ppl/_explain", wantErr: false},
+		{name: "all empty", path: PPLExplainPath{}, wantPath: "/_plugins/_ppl/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7939,15 +7939,15 @@ func TestPplExplainPath_Build(t *testing.T) {
 	}
 }
 
-func TestPplGetStatsPath_Build(t *testing.T) {
+func TestPPLGetStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     PplGetStatsPath
+		path     PPLGetStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: PplGetStatsPath{}, wantPath: "/_plugins/_ppl/stats", wantErr: false},
+		{name: "all empty", path: PPLGetStatsPath{}, wantPath: "/_plugins/_ppl/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7964,15 +7964,15 @@ func TestPplGetStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestPplPostStatsPath_Build(t *testing.T) {
+func TestPPLPostStatsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     PplPostStatsPath
+		path     PPLPostStatsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: PplPostStatsPath{}, wantPath: "/_plugins/_ppl/stats", wantErr: false},
+		{name: "all empty", path: PPLPostStatsPath{}, wantPath: "/_plugins/_ppl/stats", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -7989,15 +7989,15 @@ func TestPplPostStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestPplQueryPath_Build(t *testing.T) {
+func TestPPLQueryPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     PplQueryPath
+		path     PPLQueryPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: PplQueryPath{}, wantPath: "/_plugins/_ppl", wantErr: false},
+		{name: "all empty", path: PPLQueryPath{}, wantPath: "/_plugins/_ppl", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -8176,8 +8176,8 @@ func TestRankEvalPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: RankEvalPath{}, wantPath: "/_rank_eval", wantErr: false},
-		{name: "all fields", path: RankEvalPath{Index: []string{"test-index"}}, wantPath: "/test-index/_rank_eval", wantErr: false},
-		{name: "Index multi-value", path: RankEvalPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_rank_eval", wantErr: false},
+		{name: "all fields", path: RankEvalPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_rank_eval", wantErr: false},
+		{name: "Indices multi-value", path: RankEvalPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_rank_eval", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -8793,8 +8793,8 @@ func TestSearchPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchPath{}, wantPath: "/_search", wantErr: false},
-		{name: "all fields", path: SearchPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search", wantErr: false},
-		{name: "Index multi-value", path: SearchPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search", wantErr: false},
+		{name: "all fields", path: SearchPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search", wantErr: false},
+		{name: "Indices multi-value", path: SearchPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9360,8 +9360,8 @@ func TestSearchShardsPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchShardsPath{}, wantPath: "/_search_shards", wantErr: false},
-		{name: "all fields", path: SearchShardsPath{Index: []string{"test-index"}}, wantPath: "/test-index/_search_shards", wantErr: false},
-		{name: "Index multi-value", path: SearchShardsPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search_shards", wantErr: false},
+		{name: "all fields", path: SearchShardsPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search_shards", wantErr: false},
+		{name: "Indices multi-value", path: SearchShardsPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search_shards", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -9387,8 +9387,8 @@ func TestSearchTemplatePath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "all empty", path: SearchTemplatePath{}, wantPath: "/_search/template", wantErr: false},
-		{name: "all fields", path: SearchTemplatePath{Index: []string{"test-index"}}, wantPath: "/test-index/_search/template", wantErr: false},
-		{name: "Index multi-value", path: SearchTemplatePath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/template", wantErr: false},
+		{name: "all fields", path: SearchTemplatePath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_search/template", wantErr: false},
+		{name: "Indices multi-value", path: SearchTemplatePath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_search/template", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11410,16 +11410,16 @@ func TestSecurityAnalyticsSearchFindingCorrelationsPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmCreatePolicyPath_Build(t *testing.T) {
+func TestSMCreatePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmCreatePolicyPath
+		path     SMCreatePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmCreatePolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmCreatePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SMCreatePolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMCreatePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11436,16 +11436,16 @@ func TestSmCreatePolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmDeletePolicyPath_Build(t *testing.T) {
+func TestSMDeletePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmDeletePolicyPath
+		path     SMDeletePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmDeletePolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmDeletePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SMDeletePolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMDeletePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11462,16 +11462,16 @@ func TestSmDeletePolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmExplainPolicyPath_Build(t *testing.T) {
+func TestSMExplainPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmExplainPolicyPath
+		path     SMExplainPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmExplainPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmExplainPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_explain", wantErr: false},
+		{name: "required fields empty", path: SMExplainPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMExplainPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_explain", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11488,15 +11488,15 @@ func TestSmExplainPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmGetPoliciesPath_Build(t *testing.T) {
+func TestSMGetPoliciesPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmGetPoliciesPath
+		path     SMGetPoliciesPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: SmGetPoliciesPath{}, wantPath: "/_plugins/_sm/policies", wantErr: false},
+		{name: "all empty", path: SMGetPoliciesPath{}, wantPath: "/_plugins/_sm/policies", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11513,16 +11513,16 @@ func TestSmGetPoliciesPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmGetPolicyPath_Build(t *testing.T) {
+func TestSMGetPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmGetPolicyPath
+		path     SMGetPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmGetPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmGetPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SMGetPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMGetPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11539,16 +11539,16 @@ func TestSmGetPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmStartPolicyPath_Build(t *testing.T) {
+func TestSMStartPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmStartPolicyPath
+		path     SMStartPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmStartPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmStartPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_start", wantErr: false},
+		{name: "required fields empty", path: SMStartPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMStartPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_start", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11565,16 +11565,16 @@ func TestSmStartPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmStopPolicyPath_Build(t *testing.T) {
+func TestSMStopPolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmStopPolicyPath
+		path     SMStopPolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmStopPolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmStopPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_stop", wantErr: false},
+		{name: "required fields empty", path: SMStopPolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMStopPolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname/_stop", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -11591,16 +11591,16 @@ func TestSmStopPolicyPath_Build(t *testing.T) {
 	}
 }
 
-func TestSmUpdatePolicyPath_Build(t *testing.T) {
+func TestSMUpdatePolicyPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     SmUpdatePolicyPath
+		path     SMUpdatePolicyPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: SmUpdatePolicyPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: SmUpdatePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
+		{name: "required fields empty", path: SMUpdatePolicyPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: SMUpdatePolicyPath{PolicyName: "test-policyname"}, wantPath: "/_plugins/_sm/policies/test-policyname", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12380,15 +12380,15 @@ func TestTransformsStopPath_Build(t *testing.T) {
 	}
 }
 
-func TestUbiInitializePath_Build(t *testing.T) {
+func TestUBIInitializePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     UbiInitializePath
+		path     UBIInitializePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: UbiInitializePath{}, wantPath: "/_plugins/ubi/initialize", wantErr: false},
+		{name: "all empty", path: UBIInitializePath{}, wantPath: "/_plugins/ubi/initialize", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12442,8 +12442,8 @@ func TestUpdateByQueryPath_Build(t *testing.T) {
 		wantErr  bool
 	}{
 		{name: "required fields empty", path: UpdateByQueryPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: UpdateByQueryPath{Index: []string{"test-index"}}, wantPath: "/test-index/_update_by_query", wantErr: false},
-		{name: "Index multi-value", path: UpdateByQueryPath{Index: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_update_by_query", wantErr: false},
+		{name: "all fields", path: UpdateByQueryPath{Indices: []string{"test-indices"}}, wantPath: "/test-indices/_update_by_query", wantErr: false},
+		{name: "Indices multi-value", path: UpdateByQueryPath{Indices: []string{"a", "b", "c"}}, wantPath: "/a,b,c/_update_by_query", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12486,15 +12486,15 @@ func TestUpdateByQueryRethrottlePath_Build(t *testing.T) {
 	}
 }
 
-func TestWlmCreateQueryGroupPath_Build(t *testing.T) {
+func TestWLMCreateQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     WlmCreateQueryGroupPath
+		path     WLMCreateQueryGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: WlmCreateQueryGroupPath{}, wantPath: "/_wlm/query_group", wantErr: false},
+		{name: "all empty", path: WLMCreateQueryGroupPath{}, wantPath: "/_wlm/query_group", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12511,16 +12511,16 @@ func TestWlmCreateQueryGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestWlmDeleteQueryGroupPath_Build(t *testing.T) {
+func TestWLMDeleteQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     WlmDeleteQueryGroupPath
+		path     WLMDeleteQueryGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: WlmDeleteQueryGroupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: WlmDeleteQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "required fields empty", path: WLMDeleteQueryGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: WLMDeleteQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12537,16 +12537,16 @@ func TestWlmDeleteQueryGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestWlmGetQueryGroupPath_Build(t *testing.T) {
+func TestWLMGetQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     WlmGetQueryGroupPath
+		path     WLMGetQueryGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: WlmGetQueryGroupPath{}, wantPath: "/_wlm/query_group", wantErr: false},
-		{name: "all fields", path: WlmGetQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "all empty", path: WLMGetQueryGroupPath{}, wantPath: "/_wlm/query_group", wantErr: false},
+		{name: "all fields", path: WLMGetQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -12563,16 +12563,16 @@ func TestWlmGetQueryGroupPath_Build(t *testing.T) {
 	}
 }
 
-func TestWlmUpdateQueryGroupPath_Build(t *testing.T) {
+func TestWLMUpdateQueryGroupPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     WlmUpdateQueryGroupPath
+		path     WLMUpdateQueryGroupPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: WlmUpdateQueryGroupPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: WlmUpdateQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
+		{name: "required fields empty", path: WLMUpdateQueryGroupPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: WLMUpdateQueryGroupPath{Name: "test-name"}, wantPath: "/_wlm/query_group/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

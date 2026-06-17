@@ -14,13 +14,14 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // Path field name constants used in test generation to identify fields that
 // require special handling (dedicated test indices, valid enum values, etc.).
 const (
 	fieldIndex          = "Index"
+	fieldIndices        = "Indices"
 	fieldID             = "ID"
 	fieldDocumentID     = "DocumentID"
 	fieldNewIndex       = "NewIndex"
@@ -323,7 +324,11 @@ func paramTestValues(p ir.QueryParam) (string, string) {
 		fieldAssign = fmt.Sprintf(`%s: []string{"a", "b"}`, p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "a,b")
 	case ir.ParamInt:
-		fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
+		if p.GoType == "*int" {
+			fieldAssign = fmt.Sprintf("%s: func(i int) *int { return &i }(42)", p.GoName)
+		} else {
+			fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
+		}
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "42")
 	case ir.ParamString:
 		fallthrough
@@ -535,6 +540,14 @@ func buildDispatchTestFrag(ops []*ir.Operation, corePkg, coreImport string) *Dis
 				MethodName: route.MethodName,
 				FieldPath:  route.FieldPath,
 			}
+			// A compatibility forwarder shares the canonical op's TypePrefix, so
+			// give it a distinct test name keyed on its own receiver path and
+			// method (e.g. TestV4Aliases_Bulk, TestV4Aliases_DocSource) to avoid
+			// colliding with the canonical TestDispatch_<TypePrefix>.
+			if route.Forward != "" {
+				entry.Forwarder = true
+				entry.TestName = strings.ReplaceAll(route.FieldPath, ".", "") + route.MethodName
+			}
 
 			if op.IsPointerReq {
 				entry.ReqType = fmt.Sprintf("*%s.%sReq", corePkg, op.TypePrefix)
@@ -591,9 +604,11 @@ func optionalPathFieldAssign(f ir.PathBuilderField, skip map[string]bool) string
 		return ""
 	}
 	switch f.Name {
+	case fieldIndices:
+		return "Indices: []string{index}"
 	case fieldIndex:
 		if f.IsList {
-			return "Index: []string{index}"
+			return "Indices: []string{index}"
 		}
 		return "Index: index"
 	case fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
@@ -650,13 +665,13 @@ func classifyOpIR(op *ir.Operation, pkg, corePkg string, isPlugin bool, buildCfg
 	hasOptionalIndex := false
 	for _, f := range op.PathBuilder.Fields {
 		if !f.Required {
-			if f.Name == fieldIndex {
+			if f.Name == fieldIndex || f.Name == fieldIndices {
 				hasOptionalIndex = true
 			}
 			continue
 		}
 		switch f.Name {
-		case fieldIndex:
+		case fieldIndex, fieldIndices:
 			hasRequiredIndex = true
 		case fieldID, fieldDocumentID:
 			hasRequiredID = true
@@ -805,9 +820,11 @@ func buildReqLiteralIR(
 			continue
 		}
 		switch f.Name {
+		case fieldIndices:
+			fields = append(fields, "Indices: []string{index}")
 		case fieldIndex:
 			if f.IsList {
-				fields = append(fields, "Index: []string{index}")
+				fields = append(fields, "Indices: []string{index}")
 			} else {
 				fields = append(fields, "Index: index")
 			}
@@ -910,7 +927,7 @@ func buildDocFixtureIR(corePkg string, isPlugin bool) string {
 	return fmt.Sprintf(`_, err = %s.Indices.Create(t.Context(), %s.IndicesCreateReq{Index: index})
 	require.NoError(t, err)
 
-	_, err = %s.Index(t.Context(), %s.IndexReq{
+	_, err = %s.Doc.Index(t.Context(), %s.IndexReq{
 		Index:  index,
 		ID:     docID,
 		Body:   strings.NewReader(`+"`"+`{"title":"fixture"}`+"`"+`),
@@ -993,7 +1010,7 @@ func hasOptionalNameField(op *ir.Operation) bool {
 			continue
 		}
 		switch f.Name {
-		case fieldIndex, fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
+		case fieldIndex, fieldIndices, fieldID, fieldDocumentID, fieldNewIndex, fieldContext,
 			fieldMetric, fieldIndexMetric, fieldNodeIDOrMetric:
 			continue
 		default:
@@ -1170,7 +1187,7 @@ func buildAliasFixtureIR(corePkg string, isPlugin bool) string {
 	require.NoError(t, err)
 
 	_, err = %s.Indices.PutAlias(t.Context(), %s.IndicesPutAliasReq{
-		Index: []string{index},
+		Indices: []string{index},
 		Name: name,
 	})
 	require.NoError(t, err)`, c, corePkg, c, corePkg)
@@ -1186,7 +1203,7 @@ func buildWriteAliasFixtureIR(corePkg string, isPlugin bool) string {
 	require.NoError(t, err)
 
 	_, err = %s.Indices.PutAlias(t.Context(), %s.IndicesPutAliasReq{
-		Index: []string{index},
+		Indices: []string{index},
 		Name: name,
 		BodyReader: strings.NewReader(`+"`"+`{"is_write_index":true}`+"`"+`),
 	})
@@ -1272,7 +1289,11 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 			// Integ tests use a local bool var and pointer for required bool params.
 			fields = append(fields, fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName))
 		case ir.ParamInt:
-			fields = append(fields, p.GoName+": 1")
+			if p.GoType == "*int" {
+				fields = append(fields, fmt.Sprintf("%s: func(i int) *int { return &i }(1)", p.GoName))
+			} else {
+				fields = append(fields, p.GoName+": 1")
+			}
 		case ir.ParamList:
 			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
 		case ir.ParamString:
@@ -1350,16 +1371,17 @@ func routeOp(group, outDir, pluginsDir string) (string, string) {
 
 func importPathForGroup(group, corePkg, modulePath string) string {
 	prefix := groupPrefixIR(group)
-	core := coreImportPath(corePkg, modulePath)
 	if coreGroupPrefixes[prefix] {
-		return core
+		return coreImportPath(corePkg, modulePath)
 	}
-	return core + "/plugins/" + prefix
+	// Plugin packages are siblings of the core package at the module root,
+	// not nested under it.
+	return modulePath + "/" + ir.DefaultPluginsSubpath + "/" + prefix
 }
 
 // coreImportPath returns the full import path for the core API package.
-// When corePkg matches the default name, it uses the canonical subpath
-// (currently nested under v5preview/); otherwise it places the override
+// When corePkg matches the default name, it uses the canonical subpath;
+// otherwise it places the override
 // package directly under the module root for legacy compatibility.
 func coreImportPath(corePkg, modulePath string) string {
 	if corePkg == ir.DefaultCorePkgName {

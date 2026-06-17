@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // ParamsFragment renders the Params struct and its get() method.
@@ -120,6 +120,7 @@ func (f *ParamsFragment) Body() (string, error) {
 		"isBool":            func(k ir.ParamKind) bool { return k == ir.ParamBool },
 		"isList":            func(k ir.ParamKind) bool { return k == ir.ParamList },
 		"isInt":             func(k ir.ParamKind) bool { return k == ir.ParamInt },
+		"isIntPtr":          func(p ir.QueryParam) bool { return p.Kind == ir.ParamInt && p.GoType == "*int" },
 		"hasFormatOverride": HasFormatOverride,
 	}).Parse(paramsTmplStr))
 
@@ -183,6 +184,10 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 {{- else if isList .Kind}}
 	if len(r.{{.GoName}}) > 0 {
 		set("{{.WireName}}", strings.Join(r.{{.GoName}}, ","))
+	}
+{{- else if isIntPtr .}}
+	if r.{{.GoName}} != nil {
+		set("{{.WireName}}", strconv.Itoa(*r.{{.GoName}}))
 	}
 {{- else if isInt .Kind}}
 	if r.{{.GoName}} != 0 {

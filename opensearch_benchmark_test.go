@@ -37,9 +37,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 type FakeTransport struct {
@@ -151,17 +151,21 @@ func BenchmarkClientAPI(b *testing.B) {
 			body.WriteString(`	" }`)
 
 			req := opensearchapi.IndexReq{
-				Index:      "bench-index",
-				DocumentID: docID,
-				Body:       strings.NewReader(body.String()),
-				Params: opensearchapi.IndexParams{
+				Index: "bench-index",
+				ID:    docID,
+				Body:  strings.NewReader(body.String()),
+				Params: &opensearchapi.IndexParams{
 					Refresh: "true",
-					Pretty:  true,
-					Timeout: 100,
+					DebugParams: opensearchapi.DebugParams{
+						Pretty: true,
+					},
+					TimeoutParams: opensearchapi.TimeoutParams{
+						Timeout: 100,
+					},
 				},
 			}
 
-			_, err := client.Index(ctx, req)
+			_, err := client.Doc.Index(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
@@ -174,12 +178,16 @@ func BenchmarkClientAPI(b *testing.B) {
 		body := `{"foo" : "bar"}`
 
 		req := &opensearchapi.SearchReq{
-			Indices: []string{"bench-index"},
-			Body:    strings.NewReader(body),
-			Params: opensearchapi.SearchParams{
-				Size:    ptr(25),
-				Pretty:  true,
-				Timeout: 100,
+			Indices:    []string{"bench-index"},
+			BodyReader: strings.NewReader(body),
+			Params: &opensearchapi.SearchParams{
+				Size: opensearch.ToPointer(25),
+				DebugParams: opensearchapi.DebugParams{
+					Pretty: true,
+				},
+				TimeoutParams: opensearchapi.TimeoutParams{
+					Timeout: 100,
+				},
 			},
 		}
 
@@ -206,19 +214,19 @@ func BenchmarkClientAPI(b *testing.B) {
 
 			req := opensearchapi.BulkReq{
 				Body: strings.NewReader(body.String()),
-				Params: opensearchapi.BulkParams{
+				Params: &opensearchapi.BulkParams{
 					Refresh: "true",
-					Pretty:  true,
-					Timeout: 100,
+					DebugParams: opensearchapi.DebugParams{
+						Pretty: true,
+					},
+					TimeoutParams: opensearchapi.TimeoutParams{
+						Timeout: 100,
+					},
 				},
 			}
-			if _, err := client.Bulk(ctx, req); err != nil {
+			if _, err := client.Doc.Bulk(ctx, req); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
 		}
 	})
 }
-
-// ptr returns a pointer to v. It replaces the deprecated
-// opensearchapi.ToPointer for the one benchmark param that needs an *int.
-func ptr[T any](v T) *T { return &v }

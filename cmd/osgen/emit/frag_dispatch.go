@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // DispatchFragment renders one or more client dispatch methods for an operation.
@@ -144,7 +144,7 @@ const (
 
 // errmaskImportPath is the absolute import path used by every generated
 // dispatch handler that emits a wrapper check.
-const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v4/errmask"
+const errmaskImportPath = "github.com/opensearch-project/opensearch-go/v5/errmask"
 
 // wrapperApplyFunc reports whether the wrapper's emission template
 // applies to a given response shape. It is consulted before emission so
@@ -600,7 +600,9 @@ func (r *{{.RespType}}) MultiSearchItemFailures() *MultiSearchItemError {
 
 `, ctx)
 	}
-	// Flat-struct fallback (v4 shape; v5preview uses union always today).
+	// Fallback for responses that are not unions (a flat struct with a
+	// direct Error field). All multi-search responses generate as unions
+	// today, so this branch is currently unreached.
 	return execTpl("MultiSearchItemsMethod", `
 // MultiSearchItemFailures detects per-sub-response Error objects on a
 // {{.RespType}}. Returns nil when every sub-response succeeded.
@@ -758,6 +760,17 @@ func writeOperationConst(group string) string {
 const dispatchTemplateText = `{{- $op := .Operation -}}
 {{- $hasPartial := .HasPartialFailures -}}
 {{- range .Routes}}
+{{- if .Forward}}
+{{- if .Deprecated}}
+// Deprecated: use {{.Forward}} instead. This compatibility forwarder will be removed in a future major version.
+{{- else}}
+{{opMethodComment .MethodName $op}}
+{{- end}}
+func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsPointerReq}}*{{end}}{{$op.TypePrefix}}Req) ({{- ""}}
+	{{- if $op.IsNoBody}}*opensearch.Response{{else}}*{{$op.TypePrefix}}Resp{{end}}, error) {
+	return c.{{.Forward}}(ctx, req)
+}
+{{- else}}
 {{- if .Deprecated}}
 // Deprecated: use {{$op.TypePrefix}} via the parent client instead.
 {{- else}}
@@ -810,4 +823,5 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 {{- end}}
 {{- end}}
 }
+{{- end}}
 {{end}}`

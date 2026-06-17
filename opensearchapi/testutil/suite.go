@@ -15,8 +15,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/mod/semver"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // OpenSearchTestSuite provides a testify suite with automatic client setup and readiness checking
@@ -24,7 +24,6 @@ type OpenSearchTestSuite struct {
 	suite.Suite
 	Client *opensearchapi.Client
 
-	// Version information for test logic
 	Major, Minor, Patch int64
 }
 
@@ -32,12 +31,10 @@ type OpenSearchTestSuite struct {
 func (s *OpenSearchTestSuite) SetupSuite() {
 	t := s.T()
 
-	// Create client with automatic readiness checking
 	client, err := NewClient(t)
 	require.NoError(t, err, "Failed to create OpenSearch client")
 	s.Client = client
 
-	// Get and store version information for test use
 	major, minor, patch, err := GetVersion(t, t.Context(), s.Client)
 	require.NoError(t, err, "Failed to get OpenSearch version")
 
@@ -45,9 +42,7 @@ func (s *OpenSearchTestSuite) SetupSuite() {
 }
 
 // TearDownSuite is called once after all tests in the suite have run
-func (s *OpenSearchTestSuite) TearDownSuite() {
-	// Currently no cleanup needed for the client
-}
+func (s *OpenSearchTestSuite) TearDownSuite() {}
 
 // Version returns a formatted version string for logging
 func (s *OpenSearchTestSuite) Version() string {
@@ -55,8 +50,7 @@ func (s *OpenSearchTestSuite) Version() string {
 }
 
 // SkipIfVersion skips a test when the cluster version satisfies the given
-// operator and version constraint. See the package-level SkipIfVersion for
-// full documentation and examples.
+// operator and version constraint.
 func (s *OpenSearchTestSuite) SkipIfVersion(operator string, version string, testName string) {
 	t := s.T()
 	t.Helper()
@@ -121,52 +115,42 @@ func (s *OpenSearchTestSuite) RequireHealthyCluster() {
 
 // EnsureIndex creates an index if it doesn't exist
 func (s *OpenSearchTestSuite) EnsureIndex(indexName string) {
+	s.T().Helper()
+
 	t := s.T()
 	t.Helper()
 	ctx := t.Context()
 
-	// Check if index exists, create if it doesn't
-	exists, err := s.Client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
+	resp, err := s.Client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
 		Indices: []string{indexName},
 	})
-
-	// Only require no error if we got a nil response - 404s are expected
-	if err != nil && exists == nil {
-		require.NoError(t, err, "Should be able to check if index exists")
+	if err == nil && resp != nil && resp.StatusCode == http.StatusOK {
+		return
 	}
 
-	// If status is not 200, the index doesn't exist
-	if exists == nil || exists.StatusCode != http.StatusOK {
-		// Create the index
-		_, err := s.Client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
-			Index: indexName,
-		})
-		require.NoError(t, err, "Should be able to create index")
-	}
+	_, err = s.Client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
+		Index: indexName,
+	})
+	require.NoError(t, err, "Should be able to create index")
 }
 
 // CleanupIndex deletes an index if it exists
 func (s *OpenSearchTestSuite) CleanupIndex(indexName string) {
+	s.T().Helper()
+
 	t := s.T()
 	t.Helper()
 	ctx := context.Background()
 
-	// Check if index exists
-	exists, err := s.Client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{
+	resp, err := s.Client.Indices.Exists(ctx, &opensearchapi.IndicesExistsReq{
 		Indices: []string{indexName},
 	})
-
-	// Only require no error if we got a nil response - 404s are expected
-	if err != nil && exists == nil {
-		require.NoError(t, err, "Should be able to check if index exists")
+	if err != nil || resp == nil || resp.StatusCode != http.StatusOK {
+		return
 	}
 
-	// If status is 200, the index exists and should be deleted
-	if exists != nil && exists.StatusCode == http.StatusOK {
-		// Delete the index
-		_, err := s.Client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
-			Indices: []string{indexName},
-		})
-		require.NoError(t, err, "Should be able to delete index")
-	}
+	_, err = s.Client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+		Indices: []string{indexName},
+	})
+	require.NoError(t, err, "Should be able to delete index")
 }

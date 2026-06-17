@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestReqFragment_SimpleOp(t *testing.T) {
@@ -150,6 +150,8 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 			{GoName: "Timeout", WireName: "timeout", GoType: "time.Duration", Kind: ir.ParamDuration, Description: "Request timeout."},
 			{GoName: "Local", WireName: "local", GoType: "*bool", Kind: ir.ParamBool},
 			{GoName: "Level", WireName: "level", GoType: "string", Kind: ir.ParamString, Default: "cluster"},
+			{GoName: "Size", WireName: "size", GoType: "int", Kind: ir.ParamInt},
+			{GoName: "IfSeqNo", WireName: "if_seq_no", GoType: "*int", Kind: ir.ParamInt},
 		},
 	}
 
@@ -162,6 +164,12 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 	require.Contains(t, body, `formatDuration(r.Timeout)`)
 	require.Contains(t, body, `set("local", strconv.FormatBool(*r.Local))`)
 	require.Contains(t, body, `set("level", r.Level)`)
+	// Plain int: != 0 guard, value used directly.
+	require.Contains(t, body, "if r.Size != 0 {")
+	require.Contains(t, body, `set("size", strconv.Itoa(r.Size))`)
+	// Pointer int (0 is meaningful): nil guard, dereferenced value.
+	require.Contains(t, body, "if r.IfSeqNo != nil {")
+	require.Contains(t, body, `set("if_seq_no", strconv.Itoa(*r.IfSeqNo))`)
 	require.Contains(t, body, "// Default: cluster.")
 	require.Contains(t, body, "TimeoutParams")
 	require.Contains(t, body, "DebugParams")
@@ -222,7 +230,7 @@ func TestFileAssembly_ReqAndParams(t *testing.T) {
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
 
 	netIdx := strings.Index(output, `"net/http"`)
-	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v4/internal/build"`)
+	buildIdx := strings.Index(output, `"github.com/opensearch-project/opensearch-go/v5/internal/build"`)
 	require.Positive(t, netIdx, "missing net/http import")
 	require.Positive(t, buildIdx, "missing internal/build import")
 	require.Less(t, netIdx, buildIdx, "stdlib imports should precede local module imports")

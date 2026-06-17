@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestImportSetAdd(t *testing.T) {
@@ -33,7 +33,7 @@ func TestImportSetAddAlias(t *testing.T) {
 	t.Parallel()
 
 	var s emit.ImportSet
-	s.AddAlias("github.com/opensearch-project/opensearch-go/v4/internal/path", "ospath")
+	s.AddAlias("github.com/opensearch-project/opensearch-go/v5/internal/path", "ospath")
 
 	sorted := s.Sorted()
 	require.Len(t, sorted, 1)
@@ -64,8 +64,8 @@ func TestImportSetGrouped(t *testing.T) {
 	s.Add("context")
 	s.Add("net/http")
 	s.Add("github.com/stretchr/testify/require")
-	s.Add("github.com/opensearch-project/opensearch-go/v4")
-	s.AddAlias("github.com/opensearch-project/opensearch-go/v4/internal/path", "ospath")
+	s.Add("github.com/opensearch-project/opensearch-go/v5")
+	s.AddAlias("github.com/opensearch-project/opensearch-go/v5/internal/path", "ospath")
 
 	groups := s.Grouped()
 
@@ -80,7 +80,7 @@ func TestImportSetGrouped(t *testing.T) {
 
 	// Group 2: local module
 	require.Len(t, groups[2], 2)
-	require.Equal(t, "github.com/opensearch-project/opensearch-go/v4", groups[2][0].Path)
+	require.Equal(t, "github.com/opensearch-project/opensearch-go/v5", groups[2][0].Path)
 	require.Equal(t, "ospath", groups[2][1].Alias)
 }
 
@@ -95,7 +95,7 @@ func TestImportGroup(t *testing.T) {
 		{name: "stdlib", path: "context", want: 0},
 		{name: "stdlib nested", path: "net/http", want: 0},
 		{name: "third-party", path: "github.com/stretchr/testify/require", want: 1},
-		{name: "local root", path: "github.com/opensearch-project/opensearch-go/v4", want: 2},
+		{name: "local root", path: "github.com/opensearch-project/opensearch-go/v5", want: 2},
 		{name: "local sub", path: ir.DefaultCoreImportPath, want: 2},
 	}
 

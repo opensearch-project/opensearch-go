@@ -23,6 +23,7 @@ package opensearch_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -31,8 +32,22 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v5"
 )
+
+// String uses a value receiver and is non-consuming, so both Response and
+// *Response satisfy fmt.Stringer. These guards pin that contract so a revert to
+// a pointer-only receiver fails the build.
+var (
+	_ fmt.Stringer = opensearch.Response{}
+	_ fmt.Stringer = (*opensearch.Response)(nil)
+)
+
+func TestResponseValueIsStringer(t *testing.T) {
+	var v any = opensearch.Response{}
+	_, ok := v.(fmt.Stringer)
+	require.True(t, ok, "Response value must satisfy fmt.Stringer; String() is a value receiver")
+}
 
 func TestResponse(t *testing.T) {
 	t.Run("empty response", func(t *testing.T) {
@@ -57,25 +72,19 @@ func TestResponse(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(iotest.ErrReader(errors.New("io reader test"))), nil)
 		require.Equal(t, "[200 OK]", resp.Status())
 		require.Equal(t, "[200 OK] <error reading response body: io reader test>", resp.String())
-
-		// Even on the read-error path, String restores Body to a non-nil
-		// in-memory reader so callers never see a consumed/failed reader.
-		require.NotNil(t, resp.Body)
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Empty(t, body)
 	})
 
-	t.Run("String is non-consuming", func(t *testing.T) {
+	t.Run("repeated String is consistent for a live body", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader(`{"test": true}`)), nil)
 
-		// First call renders the body; it must restore Body so a second
-		// call (and any later body read) still sees the full payload.
-		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
-		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
-
-		body, err := io.ReadAll(resp.Body)
-		require.NoError(t, err)
-		require.Equal(t, `{"test": true}`, string(body))
+		// The first call reads Body to render it; the shared render cache makes
+		// every later call return the same text without re-reading, even though
+		// the underlying Body reader has now been consumed. (A value receiver
+		// cannot write Body back to the caller, so for a hand-built Response
+		// with only a live Body the reader itself is spent after the first
+		// render; the rawBody path produced by Client.Do stays fully
+		// non-consuming -- see the internal TestResponseString_RawBody test.)
+		require.Equal(t, `[200 OK] {"test": true}`, resp.String())
+		require.Equal(t, `[200 OK] {"test": true}`, resp.String())
 	})
 }

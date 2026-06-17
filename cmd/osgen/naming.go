@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 )
 
@@ -45,10 +46,65 @@ var idiomaticAbbreviations = []struct {
 // s, matching each pattern at PascalCase boundaries (followed by
 // uppercase, or end-of-string for entries with tailUpperOnly=false).
 func applyIdiomaticAbbreviations(s string) string {
+	// Normalize embedded acronyms first. A single spec token like
+	// "IsmTemplate" pascal-cases to "IsmTemplate" (titleSegment only expands
+	// whole, separately-delimited segments), leaving the acronym in mixed
+	// case. Canonicalizing "Ism" -> "ISM" here -- at PascalCase boundaries --
+	// keeps acronym casing consistent wherever it appears in an identifier
+	// (prefix or local part), which also lets deStutterPrefix match.
+	for _, a := range acronymBoundaryReplacements() {
+		s = replaceAtPascalBoundary(s, a.from, a.to, a.tailUpperOnly)
+	}
 	for _, a := range idiomaticAbbreviations {
 		s = replaceAtPascalBoundary(s, a.from, a.to, a.tailUpperOnly)
 	}
 	return s
+}
+
+// acronymBoundaryReplacements derives, from the acronyms table, the
+// substitutions that canonicalize a title-cased embedded acronym (e.g. "Ism",
+// "Knn") to its idiomatic all-caps form (e.g. "ISM", "KNN"). Two-letter and
+// longer acronyms qualify; single-letter "acronyms" would over-match, so they
+// are skipped. Each is applied at PascalCase boundaries (followed by an
+// uppercase letter or end-of-string), so "Ismael"-style words are untouched.
+//
+//nolint:gochecknoglobals // derived once from the acronyms table
+var acronymBoundaryReplacementsCache []struct {
+	from, to      string
+	tailUpperOnly bool
+}
+
+func acronymBoundaryReplacements() []struct {
+	from, to      string
+	tailUpperOnly bool
+} {
+	if acronymBoundaryReplacementsCache != nil {
+		return acronymBoundaryReplacementsCache
+	}
+	for lower, upper := range acronyms {
+		if len(lower) < 2 {
+			continue
+		}
+		title := strings.ToUpper(lower[:1]) + lower[1:]
+		if title == upper {
+			continue // already idiomatic (e.g. all-lowercase has no title form to fix)
+		}
+		acronymBoundaryReplacementsCache = append(acronymBoundaryReplacementsCache, struct {
+			from, to      string
+			tailUpperOnly bool
+		}{from: title, to: upper})
+	}
+	// Deterministic order: map iteration is random, and codegen output must be
+	// stable across runs. Longest-from first so multi-token acronyms can't be
+	// partially shadowed by a shorter one.
+	sort.Slice(acronymBoundaryReplacementsCache, func(i, j int) bool {
+		a, b := acronymBoundaryReplacementsCache[i].from, acronymBoundaryReplacementsCache[j].from
+		if len(a) != len(b) {
+			return len(a) > len(b)
+		}
+		return a < b
+	})
+	return acronymBoundaryReplacementsCache
 }
 
 // replaceAtPascalBoundary replaces every occurrence of old in s with
@@ -89,16 +145,24 @@ var acronyms = map[string]string{
 	"https": "HTTPS",
 	"id":    "ID",
 	"ip":    "IP",
+	"ism":   "ISM", // Index State Management
 	"json":  "JSON",
-	"pit":   "PIT",
+	"knn":   "KNN", // k-Nearest Neighbors
+	"ltr":   "LTR", // Learning to Rank
+	"ml":    "ML",  // Machine Learning
+	"pit":   "PIT", // Point In Time
+	"ppl":   "PPL", // Piped Processing Language
+	"sm":    "SM",  // Snapshot Management
 	"sql":   "SQL",
 	"ssl":   "SSL",
 	"tcp":   "TCP",
 	"tls":   "TLS",
 	"ttl":   "TTL",
+	"ubi":   "UBI", // User Behavior Insights
 	"uri":   "URI",
 	"url":   "URL",
 	"uuid":  "UUID",
+	"wlm":   "WLM", // Workload Management
 	"xml":   "XML",
 }
 
@@ -144,6 +208,33 @@ func pathFieldName(name string) string {
 		panic(fmt.Sprintf("pathFieldName(%q) produced invalid Go identifier %q", name, result))
 	}
 	return result
+}
+
+// listPathFieldNames maps a singular spec path-parameter name to the plural Go
+// field name used when that parameter accepts a comma-separated list. The
+// OpenSearch spec names multi-value path parameters in the singular (e.g.
+// "index", whose schema is the array-capable _common___Indices), but a Go
+// []string field reads naturally with a plural name. Only entries here are
+// pluralized; every other list parameter keeps its spec name.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var listPathFieldNames = map[string]string{
+	"index": "Indices",
+}
+
+// pathFieldNameList is pathFieldName with list awareness: when the parameter
+// accepts a list and has a plural override in listPathFieldNames, it returns
+// the plural form (e.g. "index" + list -> "Indices"). The scalar form of the
+// same parameter (isList false) is unaffected and stays "Index". Both the api
+// (Req struct) and paths (builder struct) subcommands call this so the two
+// generated field names stay in sync.
+func pathFieldNameList(name string, isList bool) string {
+	if isList {
+		if plural, ok := listPathFieldNames[name]; ok {
+			return plural
+		}
+	}
+	return pathFieldName(name)
 }
 
 // unexportedFieldName converts a spec parameter name to an unexported Go field

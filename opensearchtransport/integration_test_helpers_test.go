@@ -21,9 +21,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ospath "github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // getTestConfig returns a Config configured for the test environment (secure or insecure).
@@ -337,7 +337,7 @@ func selectorShardMapReady(cache *indexSlotCache, index string, numShards int) f
 // green health for the given index.
 func selectorIndexGreen(transport *Client, ctx context.Context, indexName string) func() bool {
 	var seen atomic.Bool
-	p, _ := ospath.ClusterHealthPath{Index: []string{indexName}}.Build()
+	p, _ := ospath.ClusterHealthPath{Indices: []string{indexName}}.Build()
 	healthURL := url.URL{
 		Path:     p,
 		RawQuery: url.Values{"wait_for_status": {"green"}, "timeout": {"1s"}}.Encode(),

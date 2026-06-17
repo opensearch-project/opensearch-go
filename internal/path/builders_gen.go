@@ -260,128 +260,128 @@ var (
 	_ builder = IngestionPausePath{}
 	_ builder = IngestionResumePath{}
 	_ builder = InsightsTopQueriesPath{}
-	_ builder = IsmAddPolicyPath{}
-	_ builder = IsmChangePolicyPath{}
-	_ builder = IsmDeletePolicyPath{}
-	_ builder = IsmExistsPolicyPath{}
-	_ builder = IsmExplainPolicyPath{}
-	_ builder = IsmGetPoliciesPath{}
-	_ builder = IsmGetPolicyPath{}
-	_ builder = IsmPutPoliciesPath{}
-	_ builder = IsmPutPolicyPath{}
-	_ builder = IsmRefreshSearchAnalyzersPath{}
-	_ builder = IsmRemovePolicyPath{}
-	_ builder = IsmRetryIndexPath{}
-	_ builder = KnnDeleteModelPath{}
-	_ builder = KnnGetModelPath{}
-	_ builder = KnnSearchModelsPath{}
-	_ builder = KnnStatsPath{}
-	_ builder = KnnTrainModelPath{}
-	_ builder = KnnWarmupPath{}
+	_ builder = ISMAddPolicyPath{}
+	_ builder = ISMChangePolicyPath{}
+	_ builder = ISMDeletePolicyPath{}
+	_ builder = ISMExistsPolicyPath{}
+	_ builder = ISMExplainPolicyPath{}
+	_ builder = ISMGetPoliciesPath{}
+	_ builder = ISMGetPolicyPath{}
+	_ builder = ISMPutPoliciesPath{}
+	_ builder = ISMPutPolicyPath{}
+	_ builder = ISMRefreshSearchAnalyzersPath{}
+	_ builder = ISMRemovePolicyPath{}
+	_ builder = ISMRetryIndexPath{}
+	_ builder = KNNDeleteModelPath{}
+	_ builder = KNNGetModelPath{}
+	_ builder = KNNSearchModelsPath{}
+	_ builder = KNNStatsPath{}
+	_ builder = KNNTrainModelPath{}
+	_ builder = KNNWarmupPath{}
 	_ builder = ListHelpPath{}
 	_ builder = ListIndicesPath{}
 	_ builder = ListShardsPath{}
-	_ builder = LtrAddFeaturesToSetPath{}
-	_ builder = LtrAddFeaturesToSetByQueryPath{}
-	_ builder = LtrCacheStatsPath{}
-	_ builder = LtrClearCachePath{}
-	_ builder = LtrCreateDefaultStorePath{}
-	_ builder = LtrCreateFeaturePath{}
-	_ builder = LtrCreateFeaturesetPath{}
-	_ builder = LtrCreateModelPath{}
-	_ builder = LtrCreateModelFromSetPath{}
-	_ builder = LtrCreateStorePath{}
-	_ builder = LtrDeleteDefaultStorePath{}
-	_ builder = LtrDeleteFeaturePath{}
-	_ builder = LtrDeleteFeaturesetPath{}
-	_ builder = LtrDeleteModelPath{}
-	_ builder = LtrDeleteStorePath{}
-	_ builder = LtrGetFeaturePath{}
-	_ builder = LtrGetFeaturesetPath{}
-	_ builder = LtrGetModelPath{}
-	_ builder = LtrGetStorePath{}
-	_ builder = LtrListStoresPath{}
-	_ builder = LtrSearchFeaturesPath{}
-	_ builder = LtrSearchFeaturesetsPath{}
-	_ builder = LtrSearchModelsPath{}
-	_ builder = LtrStatsPath{}
-	_ builder = LtrUpdateFeaturePath{}
-	_ builder = LtrUpdateFeaturesetPath{}
+	_ builder = LTRAddFeaturesToSetPath{}
+	_ builder = LTRAddFeaturesToSetByQueryPath{}
+	_ builder = LTRCacheStatsPath{}
+	_ builder = LTRClearCachePath{}
+	_ builder = LTRCreateDefaultStorePath{}
+	_ builder = LTRCreateFeaturePath{}
+	_ builder = LTRCreateFeaturesetPath{}
+	_ builder = LTRCreateModelPath{}
+	_ builder = LTRCreateModelFromSetPath{}
+	_ builder = LTRCreateStorePath{}
+	_ builder = LTRDeleteDefaultStorePath{}
+	_ builder = LTRDeleteFeaturePath{}
+	_ builder = LTRDeleteFeaturesetPath{}
+	_ builder = LTRDeleteModelPath{}
+	_ builder = LTRDeleteStorePath{}
+	_ builder = LTRGetFeaturePath{}
+	_ builder = LTRGetFeaturesetPath{}
+	_ builder = LTRGetModelPath{}
+	_ builder = LTRGetStorePath{}
+	_ builder = LTRListStoresPath{}
+	_ builder = LTRSearchFeaturesPath{}
+	_ builder = LTRSearchFeaturesetsPath{}
+	_ builder = LTRSearchModelsPath{}
+	_ builder = LTRStatsPath{}
+	_ builder = LTRUpdateFeaturePath{}
+	_ builder = LTRUpdateFeaturesetPath{}
 	_ builder = MgetPath{}
-	_ builder = MlAddAgenticMemoryPath{}
-	_ builder = MlChunkModelPath{}
-	_ builder = MlCreateConnectorPath{}
-	_ builder = MlCreateControllerPath{}
-	_ builder = MlCreateMemoryPath{}
-	_ builder = MlCreateMemoryContainerPath{}
-	_ builder = MlCreateMemoryContainerSessionPath{}
-	_ builder = MlCreateMessagePath{}
-	_ builder = MlCreateModelMetaPath{}
-	_ builder = MlDeleteAgentPath{}
-	_ builder = MlDeleteAgenticMemoryPath{}
-	_ builder = MlDeleteAgenticMemoryQueryPath{}
-	_ builder = MlDeleteConnectorPath{}
-	_ builder = MlDeleteControllerPath{}
-	_ builder = MlDeleteMemoryPath{}
-	_ builder = MlDeleteMemoryContainerPath{}
-	_ builder = MlDeleteModelPath{}
-	_ builder = MlDeleteModelGroupPath{}
-	_ builder = MlDeleteTaskPath{}
-	_ builder = MlDeployModelPath{}
-	_ builder = MlExecuteAgentPath{}
-	_ builder = MlExecuteAgentStreamPath{}
-	_ builder = MlExecuteAlgorithmPath{}
-	_ builder = MlExecuteToolPath{}
-	_ builder = MlGetAgentPath{}
-	_ builder = MlGetAgenticMemoryPath{}
-	_ builder = MlGetAllMemoriesPath{}
-	_ builder = MlGetAllMessagesPath{}
-	_ builder = MlGetAllToolsPath{}
-	_ builder = MlGetConnectorPath{}
-	_ builder = MlGetControllerPath{}
-	_ builder = MlGetMemoryPath{}
-	_ builder = MlGetMemoryContainerPath{}
-	_ builder = MlGetMessagePath{}
-	_ builder = MlGetMessageTracesPath{}
-	_ builder = MlGetModelPath{}
-	_ builder = MlGetModelGroupPath{}
-	_ builder = MlGetProfilePath{}
-	_ builder = MlGetProfileModelsPath{}
-	_ builder = MlGetProfileTasksPath{}
-	_ builder = MlGetStatsPath{}
-	_ builder = MlGetTaskPath{}
-	_ builder = MlGetToolPath{}
-	_ builder = MlLoadModelPath{}
-	_ builder = MlPredictPath{}
-	_ builder = MlPredictModelPath{}
-	_ builder = MlPredictModelStreamPath{}
-	_ builder = MlRegisterAgentsPath{}
-	_ builder = MlRegisterModelPath{}
-	_ builder = MlRegisterModelGroupPath{}
-	_ builder = MlRegisterModelMetaPath{}
-	_ builder = MlSearchAgenticMemoryPath{}
-	_ builder = MlSearchAgentsPath{}
-	_ builder = MlSearchConnectorsPath{}
-	_ builder = MlSearchMemoryPath{}
-	_ builder = MlSearchMemoryContainerPath{}
-	_ builder = MlSearchMessagePath{}
-	_ builder = MlSearchModelGroupPath{}
-	_ builder = MlSearchModelsPath{}
-	_ builder = MlSearchTasksPath{}
-	_ builder = MlTrainPath{}
-	_ builder = MlTrainPredictPath{}
-	_ builder = MlUndeployModelPath{}
-	_ builder = MlUnloadModelPath{}
-	_ builder = MlUpdateAgenticMemoryPath{}
-	_ builder = MlUpdateConnectorPath{}
-	_ builder = MlUpdateControllerPath{}
-	_ builder = MlUpdateMemoryPath{}
-	_ builder = MlUpdateMemoryContainerPath{}
-	_ builder = MlUpdateMessagePath{}
-	_ builder = MlUpdateModelPath{}
-	_ builder = MlUpdateModelGroupPath{}
-	_ builder = MlUploadChunkPath{}
-	_ builder = MlUploadModelPath{}
+	_ builder = MLAddAgenticMemoryPath{}
+	_ builder = MLChunkModelPath{}
+	_ builder = MLCreateConnectorPath{}
+	_ builder = MLCreateControllerPath{}
+	_ builder = MLCreateMemoryPath{}
+	_ builder = MLCreateMemoryContainerPath{}
+	_ builder = MLCreateMemoryContainerSessionPath{}
+	_ builder = MLCreateMessagePath{}
+	_ builder = MLCreateModelMetaPath{}
+	_ builder = MLDeleteAgentPath{}
+	_ builder = MLDeleteAgenticMemoryPath{}
+	_ builder = MLDeleteAgenticMemoryQueryPath{}
+	_ builder = MLDeleteConnectorPath{}
+	_ builder = MLDeleteControllerPath{}
+	_ builder = MLDeleteMemoryPath{}
+	_ builder = MLDeleteMemoryContainerPath{}
+	_ builder = MLDeleteModelPath{}
+	_ builder = MLDeleteModelGroupPath{}
+	_ builder = MLDeleteTaskPath{}
+	_ builder = MLDeployModelPath{}
+	_ builder = MLExecuteAgentPath{}
+	_ builder = MLExecuteAgentStreamPath{}
+	_ builder = MLExecuteAlgorithmPath{}
+	_ builder = MLExecuteToolPath{}
+	_ builder = MLGetAgentPath{}
+	_ builder = MLGetAgenticMemoryPath{}
+	_ builder = MLGetAllMemoriesPath{}
+	_ builder = MLGetAllMessagesPath{}
+	_ builder = MLGetAllToolsPath{}
+	_ builder = MLGetConnectorPath{}
+	_ builder = MLGetControllerPath{}
+	_ builder = MLGetMemoryPath{}
+	_ builder = MLGetMemoryContainerPath{}
+	_ builder = MLGetMessagePath{}
+	_ builder = MLGetMessageTracesPath{}
+	_ builder = MLGetModelPath{}
+	_ builder = MLGetModelGroupPath{}
+	_ builder = MLGetProfilePath{}
+	_ builder = MLGetProfileModelsPath{}
+	_ builder = MLGetProfileTasksPath{}
+	_ builder = MLGetStatsPath{}
+	_ builder = MLGetTaskPath{}
+	_ builder = MLGetToolPath{}
+	_ builder = MLLoadModelPath{}
+	_ builder = MLPredictPath{}
+	_ builder = MLPredictModelPath{}
+	_ builder = MLPredictModelStreamPath{}
+	_ builder = MLRegisterAgentsPath{}
+	_ builder = MLRegisterModelPath{}
+	_ builder = MLRegisterModelGroupPath{}
+	_ builder = MLRegisterModelMetaPath{}
+	_ builder = MLSearchAgenticMemoryPath{}
+	_ builder = MLSearchAgentsPath{}
+	_ builder = MLSearchConnectorsPath{}
+	_ builder = MLSearchMemoryPath{}
+	_ builder = MLSearchMemoryContainerPath{}
+	_ builder = MLSearchMessagePath{}
+	_ builder = MLSearchModelGroupPath{}
+	_ builder = MLSearchModelsPath{}
+	_ builder = MLSearchTasksPath{}
+	_ builder = MLTrainPath{}
+	_ builder = MLTrainPredictPath{}
+	_ builder = MLUndeployModelPath{}
+	_ builder = MLUnloadModelPath{}
+	_ builder = MLUpdateAgenticMemoryPath{}
+	_ builder = MLUpdateConnectorPath{}
+	_ builder = MLUpdateControllerPath{}
+	_ builder = MLUpdateMemoryPath{}
+	_ builder = MLUpdateMemoryContainerPath{}
+	_ builder = MLUpdateMessagePath{}
+	_ builder = MLUpdateModelPath{}
+	_ builder = MLUpdateModelGroupPath{}
+	_ builder = MLUploadChunkPath{}
+	_ builder = MLUploadModelPath{}
 	_ builder = MsearchPath{}
 	_ builder = MsearchTemplatePath{}
 	_ builder = MtermvectorsPath{}
@@ -408,10 +408,10 @@ var (
 	_ builder = ObservabilityListObjectsPath{}
 	_ builder = ObservabilityUpdateObjectPath{}
 	_ builder = PingPath{}
-	_ builder = PplExplainPath{}
-	_ builder = PplGetStatsPath{}
-	_ builder = PplPostStatsPath{}
-	_ builder = PplQueryPath{}
+	_ builder = PPLExplainPath{}
+	_ builder = PPLGetStatsPath{}
+	_ builder = PPLPostStatsPath{}
+	_ builder = PPLQueryPath{}
 	_ builder = PutScriptPath{}
 	_ builder = QueryDatasourceDeletePath{}
 	_ builder = QueryDatasourceRetrievePath{}
@@ -545,14 +545,14 @@ var (
 	_ builder = SecurityAnalyticsGetAlertsPath{}
 	_ builder = SecurityAnalyticsGetFindingsPath{}
 	_ builder = SecurityAnalyticsSearchFindingCorrelationsPath{}
-	_ builder = SmCreatePolicyPath{}
-	_ builder = SmDeletePolicyPath{}
-	_ builder = SmExplainPolicyPath{}
-	_ builder = SmGetPoliciesPath{}
-	_ builder = SmGetPolicyPath{}
-	_ builder = SmStartPolicyPath{}
-	_ builder = SmStopPolicyPath{}
-	_ builder = SmUpdatePolicyPath{}
+	_ builder = SMCreatePolicyPath{}
+	_ builder = SMDeletePolicyPath{}
+	_ builder = SMExplainPolicyPath{}
+	_ builder = SMGetPoliciesPath{}
+	_ builder = SMGetPolicyPath{}
+	_ builder = SMStartPolicyPath{}
+	_ builder = SMStopPolicyPath{}
+	_ builder = SMUpdatePolicyPath{}
 	_ builder = SnapshotCleanupRepositoryPath{}
 	_ builder = SnapshotClonePath{}
 	_ builder = SnapshotCreatePath{}
@@ -582,14 +582,14 @@ var (
 	_ builder = TransformsSearchPath{}
 	_ builder = TransformsStartPath{}
 	_ builder = TransformsStopPath{}
-	_ builder = UbiInitializePath{}
+	_ builder = UBIInitializePath{}
 	_ builder = UpdatePath{}
 	_ builder = UpdateByQueryPath{}
 	_ builder = UpdateByQueryRethrottlePath{}
-	_ builder = WlmCreateQueryGroupPath{}
-	_ builder = WlmDeleteQueryGroupPath{}
-	_ builder = WlmGetQueryGroupPath{}
-	_ builder = WlmUpdateQueryGroupPath{}
+	_ builder = WLMCreateQueryGroupPath{}
+	_ builder = WLMDeleteQueryGroupPath{}
+	_ builder = WLMGetQueryGroupPath{}
+	_ builder = WLMUpdateQueryGroupPath{}
 )
 
 // ---------------------------------------------------------------------------
@@ -837,14 +837,14 @@ func (p CatClusterManagerPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-count/
 type CatCountPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatCountPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("count")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -924,14 +924,14 @@ func (p CatHelpPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-indices/
 type CatIndicesPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatIndicesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("indices")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1074,14 +1074,14 @@ func (p CatPluginsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-plugins/
 type CatRecoveryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatRecoveryPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("recovery")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1119,14 +1119,14 @@ func (p CatRepositoriesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segment-replication/
 type CatSegmentReplicationPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatSegmentReplicationPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("segment_replication")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1142,14 +1142,14 @@ func (p CatSegmentReplicationPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segments/
 type CatSegmentsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatSegmentsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("segments")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1165,14 +1165,14 @@ func (p CatSegmentsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-shards/
 type CatShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CatShardsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cat")
 	pb.writeLit("shards")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1543,14 +1543,14 @@ func (p ClusterGetWeightedRoutingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/
 type ClusterHealthPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ClusterHealthPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_cluster")
 	pb.writeLit("health")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -1757,8 +1757,8 @@ func (p ClusterReroutePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type ClusterStatePath struct {
-	Metric []string
-	Index  []string
+	Metric  []string
+	Indices []string
 }
 
 func (p ClusterStatePath) Build() (string, error) {
@@ -1766,13 +1766,13 @@ func (p ClusterStatePath) Build() (string, error) {
 	pb.writeLit("_cluster")
 	pb.writeLit("state")
 	switch {
-	case hasNonEmpty(p.Metric) && hasNonEmpty(p.Index):
+	case hasNonEmpty(p.Metric) && hasNonEmpty(p.Indices):
 		writeSegments(pb, p.Metric)
-		writeSegments(pb, p.Index)
+		writeSegments(pb, p.Indices)
 	case hasNonEmpty(p.Metric):
 		writeSegments(pb, p.Metric)
 	default:
-		if hasNonEmpty(p.Metric) || hasNonEmpty(p.Index) {
+		if hasNonEmpty(p.Metric) || hasNonEmpty(p.Indices) {
 			return "", explainClusterStatePath(p)
 		}
 	}
@@ -1784,8 +1784,8 @@ func (p ClusterStatePath) Build() (string, error) {
 // switch in ClusterStatePath.Build dispatches here from its
 // default: case after confirming at least one optional field is set.
 func explainClusterStatePath(p ClusterStatePath) error {
-	if hasNonEmpty(p.Index) && !hasNonEmpty(p.Metric) {
-		return fmt.Errorf("ClusterStatePath.Index requires ClusterStatePath.Metric: %w", errRequired)
+	if hasNonEmpty(p.Indices) && !hasNonEmpty(p.Metric) {
+		return fmt.Errorf("ClusterStatePath.Indices requires ClusterStatePath.Metric: %w", errRequired)
 	}
 	return fmt.Errorf("ClusterStatePath: invalid combination of fields: %w", errRequired)
 }
@@ -1858,12 +1858,12 @@ func explainClusterStatsPath(p ClusterStatsPath) error {
 //
 // See: https://opensearch.org/docs/latest/api-reference/count/
 type CountPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CountPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_count")
 	return pb.release(), nil
 }
@@ -1912,15 +1912,15 @@ func (p CreatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
 type CreatePITPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p CreatePITPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("CreatePITPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("CreatePITPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	pb.writeLit("point_in_time")
 	return pb.release(), nil
@@ -2060,15 +2060,15 @@ func (p DeleteAllPitsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/delete-by-query/
 type DeleteByQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p DeleteByQueryPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("DeleteByQueryPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("DeleteByQueryPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_delete_by_query")
 	return pb.release(), nil
 }
@@ -2247,12 +2247,12 @@ func (p ExplainPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/supported-field-types/alias/#using-aliases-in-field-capabilities-api-operations
 type FieldCapsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p FieldCapsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_field_caps")
 	return pb.release(), nil
 }
@@ -2882,19 +2882,19 @@ func (p IndexPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesAddBlockPath struct {
-	Index []string
-	Block string
+	Indices []string
+	Block   string
 }
 
 func (p IndicesAddBlockPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesAddBlockPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesAddBlockPath.Indices: %w", errRequired)
 	}
 	if p.Block == "" {
 		return "", fmt.Errorf("IndicesAddBlockPath.Block: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_block")
 	pb.writeReq(p.Block)
 	return pb.release(), nil
@@ -2936,12 +2936,12 @@ func (p IndicesAnalyzePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clear-index-cache/
 type IndicesClearCachePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesClearCachePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_cache")
 	pb.writeLit("clear")
 	return pb.release(), nil
@@ -2989,15 +2989,15 @@ func (p IndicesClonePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/close-index/
 type IndicesClosePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesClosePath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesClosePath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesClosePath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_close")
 	return pb.release(), nil
 }
@@ -3086,15 +3086,15 @@ func (p IndicesDataStreamsStatsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/delete-index/
 type IndicesDeletePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesDeletePath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesDeletePath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesDeletePath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3110,19 +3110,19 @@ func (p IndicesDeletePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/#delete-aliases
 type IndicesDeleteAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesDeleteAliasPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesDeleteAliasPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesDeleteAliasPath.Indices: %w", errRequired)
 	}
 	if !hasNonEmpty(p.Name) {
 		return "", fmt.Errorf("IndicesDeleteAliasPath.Name: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_alias")
 	writeSegments(pb, p.Name)
 	return pb.release(), nil
@@ -3215,15 +3215,15 @@ func (p IndicesDeleteTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/exists/
 type IndicesExistsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesExistsPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesExistsPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesExistsPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3239,8 +3239,8 @@ func (p IndicesExistsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesExistsAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesExistsAliasPath) Build() (string, error) {
@@ -3248,7 +3248,7 @@ func (p IndicesExistsAliasPath) Build() (string, error) {
 		return "", fmt.Errorf("IndicesExistsAliasPath.Name: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_alias")
 	writeSegments(pb, p.Name)
 	return pb.release(), nil
@@ -3316,12 +3316,12 @@ func (p IndicesExistsTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesFlushPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesFlushPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_flush")
 	return pb.release(), nil
 }
@@ -3338,12 +3338,12 @@ func (p IndicesFlushPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesForcemergePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesForcemergePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_forcemerge")
 	return pb.release(), nil
 }
@@ -3360,15 +3360,15 @@ func (p IndicesForcemergePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-index/
 type IndicesGetPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesGetPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesGetPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -3384,19 +3384,19 @@ func (p IndicesGetPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/
 type IndicesGetAliasPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesGetAliasPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Name):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Name):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 		writeSegments(pb, p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 	case hasNonEmpty(p.Name):
 		pb.writeLit("_alias")
@@ -3441,8 +3441,8 @@ func (p IndicesGetDataStreamPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/index/
 type IndicesGetFieldMappingPath struct {
-	Index  []string
-	Fields []string
+	Indices []string
+	Fields  []string
 }
 
 func (p IndicesGetFieldMappingPath) Build() (string, error) {
@@ -3450,7 +3450,7 @@ func (p IndicesGetFieldMappingPath) Build() (string, error) {
 		return "", fmt.Errorf("IndicesGetFieldMappingPath.Fields: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	pb.writeLit("field")
 	writeSegments(pb, p.Fields)
@@ -3493,12 +3493,12 @@ func (p IndicesGetIndexTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/field-types/index/#get-a-mapping
 type IndicesGetMappingPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetMappingPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	return pb.release(), nil
 }
@@ -3515,19 +3515,19 @@ func (p IndicesGetMappingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-settings/
 type IndicesGetSettingsPath struct {
-	Index []string
-	Name  []string
+	Indices []string
+	Name    []string
 }
 
 func (p IndicesGetSettingsPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Name):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Name):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_settings")
 		writeSegments(pb, p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_settings")
 	case hasNonEmpty(p.Name):
 		pb.writeLit("_settings")
@@ -3572,12 +3572,12 @@ func (p IndicesGetTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesGetUpgradePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesGetUpgradePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_upgrade")
 	return pb.release(), nil
 }
@@ -3594,15 +3594,15 @@ func (p IndicesGetUpgradePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/open-index/
 type IndicesOpenPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesOpenPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesOpenPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesOpenPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_open")
 	return pb.release(), nil
 }
@@ -3619,19 +3619,19 @@ func (p IndicesOpenPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-alias/
 type IndicesPutAliasPath struct {
-	Index []string
-	Name  string
+	Indices []string
+	Name    string
 }
 
 func (p IndicesPutAliasPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && p.Name != "":
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && p.Name != "":
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 		pb.writeReq(p.Name)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_alias")
 	case p.Name != "":
 		pb.writeLit("_alias")
@@ -3679,15 +3679,15 @@ func (p IndicesPutIndexTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
 type IndicesPutMappingPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesPutMappingPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IndicesPutMappingPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("IndicesPutMappingPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_mapping")
 	return pb.release(), nil
 }
@@ -3704,12 +3704,12 @@ func (p IndicesPutMappingPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-settings/
 type IndicesPutSettingsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesPutSettingsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_settings")
 	return pb.release(), nil
 }
@@ -3751,12 +3751,12 @@ func (p IndicesPutTemplatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesRecoveryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesRecoveryPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_recovery")
 	return pb.release(), nil
 }
@@ -3773,12 +3773,12 @@ func (p IndicesRecoveryPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/remote-store/index/#refresh-level-and-request-level-durability
 type IndicesRefreshPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesRefreshPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_refresh")
 	return pb.release(), nil
 }
@@ -3853,12 +3853,12 @@ func (p IndicesRolloverPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesSegmentsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesSegmentsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_segments")
 	return pb.release(), nil
 }
@@ -3875,12 +3875,12 @@ func (p IndicesSegmentsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesShardStoresPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesShardStoresPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_shard_stores")
 	return pb.release(), nil
 }
@@ -4008,19 +4008,19 @@ func (p IndicesSplitPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesStatsPath struct {
-	Index  []string
-	Metric []string
+	Indices []string
+	Metric  []string
 }
 
 func (p IndicesStatsPath) Build() (string, error) {
 	pb := acquire()
 	switch {
-	case hasNonEmpty(p.Index) && hasNonEmpty(p.Metric):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices) && hasNonEmpty(p.Metric):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_stats")
 		writeSegments(pb, p.Metric)
-	case hasNonEmpty(p.Index):
-		writeSegments(pb, p.Index)
+	case hasNonEmpty(p.Indices):
+		writeSegments(pb, p.Indices)
 		pb.writeLit("_stats")
 	case hasNonEmpty(p.Metric):
 		pb.writeLit("_stats")
@@ -4063,12 +4063,12 @@ func (p IndicesUpdateAliasesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesUpgradePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesUpgradePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_upgrade")
 	return pb.release(), nil
 }
@@ -4085,12 +4085,12 @@ func (p IndicesUpgradePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesValidateQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p IndicesValidateQueryPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_validate")
 	pb.writeLit("query")
 	return pb.release(), nil
@@ -4339,65 +4339,65 @@ func (p InsightsTopQueriesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmAddPolicyPath (ism.add_policy)
+// ISMAddPolicyPath (ism.add_policy)
 // ---------------------------------------------------------------------------
 
-// IsmAddPolicyPath builds URL paths for the ism.add_policy operation.
+// ISMAddPolicyPath builds URL paths for the ism.add_policy operation.
 //
 // Adds a policy to an index.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#add-policy
-type IsmAddPolicyPath struct {
-	Index []string
+type ISMAddPolicyPath struct {
+	Indices []string
 }
 
-func (p IsmAddPolicyPath) Build() (string, error) {
+func (p ISMAddPolicyPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("add")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// IsmChangePolicyPath (ism.change_policy)
+// ISMChangePolicyPath (ism.change_policy)
 // ---------------------------------------------------------------------------
 
-// IsmChangePolicyPath builds URL paths for the ism.change_policy operation.
+// ISMChangePolicyPath builds URL paths for the ism.change_policy operation.
 //
 // Updates the managed index policy to a new policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#update-managed-index-policy
-type IsmChangePolicyPath struct {
-	Index []string
+type ISMChangePolicyPath struct {
+	Indices []string
 }
 
-func (p IsmChangePolicyPath) Build() (string, error) {
+func (p ISMChangePolicyPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("change_policy")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// IsmDeletePolicyPath (ism.delete_policy)
+// ISMDeletePolicyPath (ism.delete_policy)
 // ---------------------------------------------------------------------------
 
-// IsmDeletePolicyPath builds URL paths for the ism.delete_policy operation.
+// ISMDeletePolicyPath builds URL paths for the ism.delete_policy operation.
 //
 // Deletes a policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#delete-policy
-type IsmDeletePolicyPath struct {
+type ISMDeletePolicyPath struct {
 	PolicyID string
 }
 
-func (p IsmDeletePolicyPath) Build() (string, error) {
+func (p ISMDeletePolicyPath) Build() (string, error) {
 	if p.PolicyID == "" {
-		return "", fmt.Errorf("IsmDeletePolicyPath.PolicyID: %w", errRequired)
+		return "", fmt.Errorf("ISMDeletePolicyPath.PolicyID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4408,21 +4408,21 @@ func (p IsmDeletePolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmExistsPolicyPath (ism.exists_policy)
+// ISMExistsPolicyPath (ism.exists_policy)
 // ---------------------------------------------------------------------------
 
-// IsmExistsPolicyPath builds URL paths for the ism.exists_policy operation.
+// ISMExistsPolicyPath builds URL paths for the ism.exists_policy operation.
 //
 // Checks for the existence of a policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#get-policy
-type IsmExistsPolicyPath struct {
+type ISMExistsPolicyPath struct {
 	PolicyID string
 }
 
-func (p IsmExistsPolicyPath) Build() (string, error) {
+func (p ISMExistsPolicyPath) Build() (string, error) {
 	if p.PolicyID == "" {
-		return "", fmt.Errorf("IsmExistsPolicyPath.PolicyID: %w", errRequired)
+		return "", fmt.Errorf("ISMExistsPolicyPath.PolicyID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4433,40 +4433,40 @@ func (p IsmExistsPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmExplainPolicyPath (ism.explain_policy)
+// ISMExplainPolicyPath (ism.explain_policy)
 // ---------------------------------------------------------------------------
 
-// IsmExplainPolicyPath builds URL paths for the ism.explain_policy operation.
+// ISMExplainPolicyPath builds URL paths for the ism.explain_policy operation.
 //
 // Retrieves the currently applied policy on the specified indexes.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#explain-index
-type IsmExplainPolicyPath struct {
-	Index []string
+type ISMExplainPolicyPath struct {
+	Indices []string
 }
 
-func (p IsmExplainPolicyPath) Build() (string, error) {
+func (p ISMExplainPolicyPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("explain")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// IsmGetPoliciesPath (ism.get_policies)
+// ISMGetPoliciesPath (ism.get_policies)
 // ---------------------------------------------------------------------------
 
-// IsmGetPoliciesPath builds URL paths for the ism.get_policies operation.
+// ISMGetPoliciesPath builds URL paths for the ism.get_policies operation.
 //
 // Retrieves the policies.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#get-policy
-type IsmGetPoliciesPath struct {
+type ISMGetPoliciesPath struct {
 }
 
-func (p IsmGetPoliciesPath) Build() (string, error) {
+func (p ISMGetPoliciesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
@@ -4475,21 +4475,21 @@ func (p IsmGetPoliciesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmGetPolicyPath (ism.get_policy)
+// ISMGetPolicyPath (ism.get_policy)
 // ---------------------------------------------------------------------------
 
-// IsmGetPolicyPath builds URL paths for the ism.get_policy operation.
+// ISMGetPolicyPath builds URL paths for the ism.get_policy operation.
 //
 // Retrieves a specific policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#put-policy
-type IsmGetPolicyPath struct {
+type ISMGetPolicyPath struct {
 	PolicyID string
 }
 
-func (p IsmGetPolicyPath) Build() (string, error) {
+func (p ISMGetPolicyPath) Build() (string, error) {
 	if p.PolicyID == "" {
-		return "", fmt.Errorf("IsmGetPolicyPath.PolicyID: %w", errRequired)
+		return "", fmt.Errorf("ISMGetPolicyPath.PolicyID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4500,18 +4500,18 @@ func (p IsmGetPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmPutPoliciesPath (ism.put_policies)
+// ISMPutPoliciesPath (ism.put_policies)
 // ---------------------------------------------------------------------------
 
-// IsmPutPoliciesPath builds URL paths for the ism.put_policies operation.
+// ISMPutPoliciesPath builds URL paths for the ism.put_policies operation.
 //
 // Creates or updates policies.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
-type IsmPutPoliciesPath struct {
+type ISMPutPoliciesPath struct {
 }
 
-func (p IsmPutPoliciesPath) Build() (string, error) {
+func (p ISMPutPoliciesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
@@ -4520,21 +4520,21 @@ func (p IsmPutPoliciesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmPutPolicyPath (ism.put_policy)
+// ISMPutPolicyPath (ism.put_policy)
 // ---------------------------------------------------------------------------
 
-// IsmPutPolicyPath builds URL paths for the ism.put_policy operation.
+// ISMPutPolicyPath builds URL paths for the ism.put_policy operation.
 //
 // Creates or updates a policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
-type IsmPutPolicyPath struct {
+type ISMPutPolicyPath struct {
 	PolicyID string
 }
 
-func (p IsmPutPolicyPath) Build() (string, error) {
+func (p ISMPutPolicyPath) Build() (string, error) {
 	if p.PolicyID == "" {
-		return "", fmt.Errorf("IsmPutPolicyPath.PolicyID: %w", errRequired)
+		return "", fmt.Errorf("ISMPutPolicyPath.PolicyID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4545,91 +4545,91 @@ func (p IsmPutPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// IsmRefreshSearchAnalyzersPath (ism.refresh_search_analyzers)
+// ISMRefreshSearchAnalyzersPath (ism.refresh_search_analyzers)
 // ---------------------------------------------------------------------------
 
-// IsmRefreshSearchAnalyzersPath builds URL paths for the ism.refresh_search_analyzers operation.
+// ISMRefreshSearchAnalyzersPath builds URL paths for the ism.refresh_search_analyzers operation.
 //
 // Refreshes search analyzers in real time.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/refresh-analyzer/
-type IsmRefreshSearchAnalyzersPath struct {
-	Index []string
+type ISMRefreshSearchAnalyzersPath struct {
+	Indices []string
 }
 
-func (p IsmRefreshSearchAnalyzersPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("IsmRefreshSearchAnalyzersPath.Index: %w", errRequired)
+func (p ISMRefreshSearchAnalyzersPath) Build() (string, error) {
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("ISMRefreshSearchAnalyzersPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_refresh_search_analyzers")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// IsmRemovePolicyPath (ism.remove_policy)
+// ISMRemovePolicyPath (ism.remove_policy)
 // ---------------------------------------------------------------------------
 
-// IsmRemovePolicyPath builds URL paths for the ism.remove_policy operation.
+// ISMRemovePolicyPath builds URL paths for the ism.remove_policy operation.
 //
 // Removes a policy from an index.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#remove-policy
-type IsmRemovePolicyPath struct {
-	Index []string
+type ISMRemovePolicyPath struct {
+	Indices []string
 }
 
-func (p IsmRemovePolicyPath) Build() (string, error) {
+func (p ISMRemovePolicyPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("remove")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// IsmRetryIndexPath (ism.retry_index)
+// ISMRetryIndexPath (ism.retry_index)
 // ---------------------------------------------------------------------------
 
-// IsmRetryIndexPath builds URL paths for the ism.retry_index operation.
+// ISMRetryIndexPath builds URL paths for the ism.retry_index operation.
 //
 // Retries the failed action for an index.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#retry-failed-index
-type IsmRetryIndexPath struct {
-	Index []string
+type ISMRetryIndexPath struct {
+	Indices []string
 }
 
-func (p IsmRetryIndexPath) Build() (string, error) {
+func (p ISMRetryIndexPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ism")
 	pb.writeLit("retry")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// KnnDeleteModelPath (knn.delete_model)
+// KNNDeleteModelPath (knn.delete_model)
 // ---------------------------------------------------------------------------
 
-// KnnDeleteModelPath builds URL paths for the knn.delete_model operation.
+// KNNDeleteModelPath builds URL paths for the knn.delete_model operation.
 //
 // Used to delete a particular model in the cluster.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#delete-a-model
-type KnnDeleteModelPath struct {
+type KNNDeleteModelPath struct {
 	ModelID string
 }
 
-func (p KnnDeleteModelPath) Build() (string, error) {
+func (p KNNDeleteModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("KnnDeleteModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("KNNDeleteModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4640,23 +4640,23 @@ func (p KnnDeleteModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// KnnGetModelPath (knn.get_model)
+// KNNGetModelPath (knn.get_model)
 // ---------------------------------------------------------------------------
 
-// KnnGetModelPath builds URL paths for the knn.get_model operation.
+// KNNGetModelPath builds URL paths for the knn.get_model operation.
 //
 // Used to retrieve information about models present in the cluster.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#get-a-model
-type KnnGetModelPath struct {
+type KNNGetModelPath struct {
 	ModelID string
 }
 
-func (p KnnGetModelPath) Build() (string, error) {
+func (p KNNGetModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("KnnGetModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("KNNGetModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -4667,20 +4667,20 @@ func (p KnnGetModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// KnnSearchModelsPath (knn.search_models)
+// KNNSearchModelsPath (knn.search_models)
 // ---------------------------------------------------------------------------
 
-// KnnSearchModelsPath builds URL paths for the knn.search_models operation.
+// KNNSearchModelsPath builds URL paths for the knn.search_models operation.
 //
 // Use an OpenSearch query to search for models in the index.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#search-for-a-model
-type KnnSearchModelsPath struct {
+type KNNSearchModelsPath struct {
 }
 
-func (p KnnSearchModelsPath) Build() (string, error) {
+func (p KNNSearchModelsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_knn")
@@ -4690,22 +4690,22 @@ func (p KnnSearchModelsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// KnnStatsPath (knn.stats)
+// KNNStatsPath (knn.stats)
 // ---------------------------------------------------------------------------
 
-// KnnStatsPath builds URL paths for the knn.stats operation.
+// KNNStatsPath builds URL paths for the knn.stats operation.
 //
 // Provides information about the current status of the k-NN plugin.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#stats
-type KnnStatsPath struct {
+type KNNStatsPath struct {
 	NodeID []string
 	Stat   []string
 }
 
-func (p KnnStatsPath) Build() (string, error) {
+func (p KNNStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_knn")
@@ -4727,21 +4727,21 @@ func (p KnnStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// KnnTrainModelPath (knn.train_model)
+// KNNTrainModelPath (knn.train_model)
 // ---------------------------------------------------------------------------
 
-// KnnTrainModelPath builds URL paths for the knn.train_model operation.
+// KNNTrainModelPath builds URL paths for the knn.train_model operation.
 //
 // Create and train a model that can be used for initializing k-NN native library indexes during indexing.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#train-a-model
-type KnnTrainModelPath struct {
+type KNNTrainModelPath struct {
 	ModelID string
 }
 
-func (p KnnTrainModelPath) Build() (string, error) {
+func (p KNNTrainModelPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_knn")
@@ -4754,29 +4754,29 @@ func (p KnnTrainModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// KnnWarmupPath (knn.warmup)
+// KNNWarmupPath (knn.warmup)
 // ---------------------------------------------------------------------------
 
-// KnnWarmupPath builds URL paths for the knn.warmup operation.
+// KNNWarmupPath builds URL paths for the knn.warmup operation.
 //
 // Preloads native library files into memory, reducing initial search latency for specified indexes.
 //
 // Available: >= 1.0.0
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#warmup-operation
-type KnnWarmupPath struct {
-	Index []string
+type KNNWarmupPath struct {
+	Indices []string
 }
 
-func (p KnnWarmupPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("KnnWarmupPath.Index: %w", errRequired)
+func (p KNNWarmupPath) Build() (string, error) {
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("KNNWarmupPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_knn")
 	pb.writeLit("warmup")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4812,14 +4812,14 @@ func (p ListHelpPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-indices/
 type ListIndicesPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ListIndicesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_list")
 	pb.writeLit("indices")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
@@ -4835,34 +4835,34 @@ func (p ListIndicesPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-shards/
 type ListShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p ListShardsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_list")
 	pb.writeLit("shards")
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// LtrAddFeaturesToSetPath (ltr.add_features_to_set)
+// LTRAddFeaturesToSetPath (ltr.add_features_to_set)
 // ---------------------------------------------------------------------------
 
-// LtrAddFeaturesToSetPath builds URL paths for the ltr.add_features_to_set operation.
+// LTRAddFeaturesToSetPath builds URL paths for the ltr.add_features_to_set operation.
 //
 // Add features to an existing feature set in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrAddFeaturesToSetPath struct {
+type LTRAddFeaturesToSetPath struct {
 	Store string
 	Name  string
 }
 
-func (p LtrAddFeaturesToSetPath) Build() (string, error) {
+func (p LTRAddFeaturesToSetPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("LtrAddFeaturesToSetPath.Name: %w", errRequired)
+		return "", fmt.Errorf("LTRAddFeaturesToSetPath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -4876,26 +4876,26 @@ func (p LtrAddFeaturesToSetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrAddFeaturesToSetByQueryPath (ltr.add_features_to_set_by_query)
+// LTRAddFeaturesToSetByQueryPath (ltr.add_features_to_set_by_query)
 // ---------------------------------------------------------------------------
 
-// LtrAddFeaturesToSetByQueryPath builds URL paths for the ltr.add_features_to_set_by_query operation.
+// LTRAddFeaturesToSetByQueryPath builds URL paths for the ltr.add_features_to_set_by_query operation.
 //
 // Add features to an existing feature set in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrAddFeaturesToSetByQueryPath struct {
+type LTRAddFeaturesToSetByQueryPath struct {
 	Store string
 	Name  string
 	Query string
 }
 
-func (p LtrAddFeaturesToSetByQueryPath) Build() (string, error) {
+func (p LTRAddFeaturesToSetByQueryPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("LtrAddFeaturesToSetByQueryPath.Name: %w", errRequired)
+		return "", fmt.Errorf("LTRAddFeaturesToSetByQueryPath.Name: %w", errRequired)
 	}
 	if p.Query == "" {
-		return "", fmt.Errorf("LtrAddFeaturesToSetByQueryPath.Query: %w", errRequired)
+		return "", fmt.Errorf("LTRAddFeaturesToSetByQueryPath.Query: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -4910,18 +4910,18 @@ func (p LtrAddFeaturesToSetByQueryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCacheStatsPath (ltr.cache_stats)
+// LTRCacheStatsPath (ltr.cache_stats)
 // ---------------------------------------------------------------------------
 
-// LtrCacheStatsPath builds URL paths for the ltr.cache_stats operation.
+// LTRCacheStatsPath builds URL paths for the ltr.cache_stats operation.
 //
 // Retrieves cache statistics for all feature stores.
 //
 // Available: >= 2.19.0
-type LtrCacheStatsPath struct {
+type LTRCacheStatsPath struct {
 }
 
-func (p LtrCacheStatsPath) Build() (string, error) {
+func (p LTRCacheStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	pb.writeLit("_cachestats")
@@ -4929,19 +4929,19 @@ func (p LtrCacheStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrClearCachePath (ltr.clear_cache)
+// LTRClearCachePath (ltr.clear_cache)
 // ---------------------------------------------------------------------------
 
-// LtrClearCachePath builds URL paths for the ltr.clear_cache operation.
+// LTRClearCachePath builds URL paths for the ltr.clear_cache operation.
 //
 // Clears the store caches.
 //
 // Available: >= 2.19.0
-type LtrClearCachePath struct {
+type LTRClearCachePath struct {
 	Store string
 }
 
-func (p LtrClearCachePath) Build() (string, error) {
+func (p LTRClearCachePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	if p.Store != "" {
@@ -4952,40 +4952,40 @@ func (p LtrClearCachePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateDefaultStorePath (ltr.create_default_store)
+// LTRCreateDefaultStorePath (ltr.create_default_store)
 // ---------------------------------------------------------------------------
 
-// LtrCreateDefaultStorePath builds URL paths for the ltr.create_default_store operation.
+// LTRCreateDefaultStorePath builds URL paths for the ltr.create_default_store operation.
 //
 // Creates the default feature store.
 //
 // Available: >= 2.17.1
-type LtrCreateDefaultStorePath struct {
+type LTRCreateDefaultStorePath struct {
 }
 
-func (p LtrCreateDefaultStorePath) Build() (string, error) {
+func (p LTRCreateDefaultStorePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateFeaturePath (ltr.create_feature)
+// LTRCreateFeaturePath (ltr.create_feature)
 // ---------------------------------------------------------------------------
 
-// LtrCreateFeaturePath builds URL paths for the ltr.create_feature operation.
+// LTRCreateFeaturePath builds URL paths for the ltr.create_feature operation.
 //
 // Create or update a feature in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrCreateFeaturePath struct {
+type LTRCreateFeaturePath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrCreateFeaturePath) Build() (string, error) {
+func (p LTRCreateFeaturePath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrCreateFeaturePath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRCreateFeaturePath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -4998,22 +4998,22 @@ func (p LtrCreateFeaturePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateFeaturesetPath (ltr.create_featureset)
+// LTRCreateFeaturesetPath (ltr.create_featureset)
 // ---------------------------------------------------------------------------
 
-// LtrCreateFeaturesetPath builds URL paths for the ltr.create_featureset operation.
+// LTRCreateFeaturesetPath builds URL paths for the ltr.create_featureset operation.
 //
 // Create or update a feature set in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrCreateFeaturesetPath struct {
+type LTRCreateFeaturesetPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrCreateFeaturesetPath) Build() (string, error) {
+func (p LTRCreateFeaturesetPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrCreateFeaturesetPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRCreateFeaturesetPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5026,22 +5026,22 @@ func (p LtrCreateFeaturesetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateModelPath (ltr.create_model)
+// LTRCreateModelPath (ltr.create_model)
 // ---------------------------------------------------------------------------
 
-// LtrCreateModelPath builds URL paths for the ltr.create_model operation.
+// LTRCreateModelPath builds URL paths for the ltr.create_model operation.
 //
 // Create or update a model in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrCreateModelPath struct {
+type LTRCreateModelPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrCreateModelPath) Build() (string, error) {
+func (p LTRCreateModelPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrCreateModelPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRCreateModelPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5054,22 +5054,22 @@ func (p LtrCreateModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateModelFromSetPath (ltr.create_model_from_set)
+// LTRCreateModelFromSetPath (ltr.create_model_from_set)
 // ---------------------------------------------------------------------------
 
-// LtrCreateModelFromSetPath builds URL paths for the ltr.create_model_from_set operation.
+// LTRCreateModelFromSetPath builds URL paths for the ltr.create_model_from_set operation.
 //
 // Create a model from an existing feature set in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrCreateModelFromSetPath struct {
+type LTRCreateModelFromSetPath struct {
 	Store string
 	Name  string
 }
 
-func (p LtrCreateModelFromSetPath) Build() (string, error) {
+func (p LTRCreateModelFromSetPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("LtrCreateModelFromSetPath.Name: %w", errRequired)
+		return "", fmt.Errorf("LTRCreateModelFromSetPath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5083,21 +5083,21 @@ func (p LtrCreateModelFromSetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrCreateStorePath (ltr.create_store)
+// LTRCreateStorePath (ltr.create_store)
 // ---------------------------------------------------------------------------
 
-// LtrCreateStorePath builds URL paths for the ltr.create_store operation.
+// LTRCreateStorePath builds URL paths for the ltr.create_store operation.
 //
 // Creates a new feature store with the specified name.
 //
 // Available: >= 2.17.1
-type LtrCreateStorePath struct {
+type LTRCreateStorePath struct {
 	Store string
 }
 
-func (p LtrCreateStorePath) Build() (string, error) {
+func (p LTRCreateStorePath) Build() (string, error) {
 	if p.Store == "" {
-		return "", fmt.Errorf("LtrCreateStorePath.Store: %w", errRequired)
+		return "", fmt.Errorf("LTRCreateStorePath.Store: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5106,40 +5106,40 @@ func (p LtrCreateStorePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrDeleteDefaultStorePath (ltr.delete_default_store)
+// LTRDeleteDefaultStorePath (ltr.delete_default_store)
 // ---------------------------------------------------------------------------
 
-// LtrDeleteDefaultStorePath builds URL paths for the ltr.delete_default_store operation.
+// LTRDeleteDefaultStorePath builds URL paths for the ltr.delete_default_store operation.
 //
 // Deletes the default feature store.
 //
 // Available: >= 2.17.1
-type LtrDeleteDefaultStorePath struct {
+type LTRDeleteDefaultStorePath struct {
 }
 
-func (p LtrDeleteDefaultStorePath) Build() (string, error) {
+func (p LTRDeleteDefaultStorePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// LtrDeleteFeaturePath (ltr.delete_feature)
+// LTRDeleteFeaturePath (ltr.delete_feature)
 // ---------------------------------------------------------------------------
 
-// LtrDeleteFeaturePath builds URL paths for the ltr.delete_feature operation.
+// LTRDeleteFeaturePath builds URL paths for the ltr.delete_feature operation.
 //
 // Delete a feature from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrDeleteFeaturePath struct {
+type LTRDeleteFeaturePath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrDeleteFeaturePath) Build() (string, error) {
+func (p LTRDeleteFeaturePath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrDeleteFeaturePath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRDeleteFeaturePath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5152,22 +5152,22 @@ func (p LtrDeleteFeaturePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrDeleteFeaturesetPath (ltr.delete_featureset)
+// LTRDeleteFeaturesetPath (ltr.delete_featureset)
 // ---------------------------------------------------------------------------
 
-// LtrDeleteFeaturesetPath builds URL paths for the ltr.delete_featureset operation.
+// LTRDeleteFeaturesetPath builds URL paths for the ltr.delete_featureset operation.
 //
 // Delete a feature set from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrDeleteFeaturesetPath struct {
+type LTRDeleteFeaturesetPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrDeleteFeaturesetPath) Build() (string, error) {
+func (p LTRDeleteFeaturesetPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrDeleteFeaturesetPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRDeleteFeaturesetPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5180,22 +5180,22 @@ func (p LtrDeleteFeaturesetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrDeleteModelPath (ltr.delete_model)
+// LTRDeleteModelPath (ltr.delete_model)
 // ---------------------------------------------------------------------------
 
-// LtrDeleteModelPath builds URL paths for the ltr.delete_model operation.
+// LTRDeleteModelPath builds URL paths for the ltr.delete_model operation.
 //
 // Delete a model from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrDeleteModelPath struct {
+type LTRDeleteModelPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrDeleteModelPath) Build() (string, error) {
+func (p LTRDeleteModelPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrDeleteModelPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRDeleteModelPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5208,21 +5208,21 @@ func (p LtrDeleteModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrDeleteStorePath (ltr.delete_store)
+// LTRDeleteStorePath (ltr.delete_store)
 // ---------------------------------------------------------------------------
 
-// LtrDeleteStorePath builds URL paths for the ltr.delete_store operation.
+// LTRDeleteStorePath builds URL paths for the ltr.delete_store operation.
 //
 // Deletes a feature store with the specified name.
 //
 // Available: >= 2.17.1
-type LtrDeleteStorePath struct {
+type LTRDeleteStorePath struct {
 	Store string
 }
 
-func (p LtrDeleteStorePath) Build() (string, error) {
+func (p LTRDeleteStorePath) Build() (string, error) {
 	if p.Store == "" {
-		return "", fmt.Errorf("LtrDeleteStorePath.Store: %w", errRequired)
+		return "", fmt.Errorf("LTRDeleteStorePath.Store: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5231,22 +5231,22 @@ func (p LtrDeleteStorePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrGetFeaturePath (ltr.get_feature)
+// LTRGetFeaturePath (ltr.get_feature)
 // ---------------------------------------------------------------------------
 
-// LtrGetFeaturePath builds URL paths for the ltr.get_feature operation.
+// LTRGetFeaturePath builds URL paths for the ltr.get_feature operation.
 //
 // Get a feature from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrGetFeaturePath struct {
+type LTRGetFeaturePath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrGetFeaturePath) Build() (string, error) {
+func (p LTRGetFeaturePath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrGetFeaturePath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRGetFeaturePath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5259,22 +5259,22 @@ func (p LtrGetFeaturePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrGetFeaturesetPath (ltr.get_featureset)
+// LTRGetFeaturesetPath (ltr.get_featureset)
 // ---------------------------------------------------------------------------
 
-// LtrGetFeaturesetPath builds URL paths for the ltr.get_featureset operation.
+// LTRGetFeaturesetPath builds URL paths for the ltr.get_featureset operation.
 //
 // Get a feature set from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrGetFeaturesetPath struct {
+type LTRGetFeaturesetPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrGetFeaturesetPath) Build() (string, error) {
+func (p LTRGetFeaturesetPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrGetFeaturesetPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRGetFeaturesetPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5287,22 +5287,22 @@ func (p LtrGetFeaturesetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrGetModelPath (ltr.get_model)
+// LTRGetModelPath (ltr.get_model)
 // ---------------------------------------------------------------------------
 
-// LtrGetModelPath builds URL paths for the ltr.get_model operation.
+// LTRGetModelPath builds URL paths for the ltr.get_model operation.
 //
 // Get a model from the default feature store.
 //
 // Available: >= 2.19.0
-type LtrGetModelPath struct {
+type LTRGetModelPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrGetModelPath) Build() (string, error) {
+func (p LTRGetModelPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrGetModelPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRGetModelPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5315,21 +5315,21 @@ func (p LtrGetModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrGetStorePath (ltr.get_store)
+// LTRGetStorePath (ltr.get_store)
 // ---------------------------------------------------------------------------
 
-// LtrGetStorePath builds URL paths for the ltr.get_store operation.
+// LTRGetStorePath builds URL paths for the ltr.get_store operation.
 //
 // Checks if a store exists.
 //
 // Available: >= 2.17.1
-type LtrGetStorePath struct {
+type LTRGetStorePath struct {
 	Store string
 }
 
-func (p LtrGetStorePath) Build() (string, error) {
+func (p LTRGetStorePath) Build() (string, error) {
 	if p.Store == "" {
-		return "", fmt.Errorf("LtrGetStorePath.Store: %w", errRequired)
+		return "", fmt.Errorf("LTRGetStorePath.Store: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5338,37 +5338,37 @@ func (p LtrGetStorePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrListStoresPath (ltr.list_stores)
+// LTRListStoresPath (ltr.list_stores)
 // ---------------------------------------------------------------------------
 
-// LtrListStoresPath builds URL paths for the ltr.list_stores operation.
+// LTRListStoresPath builds URL paths for the ltr.list_stores operation.
 //
 // Lists all available feature stores.
 //
 // Available: >= 2.17.1
-type LtrListStoresPath struct {
+type LTRListStoresPath struct {
 }
 
-func (p LtrListStoresPath) Build() (string, error) {
+func (p LTRListStoresPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	return pb.release(), nil
 }
 
 // ---------------------------------------------------------------------------
-// LtrSearchFeaturesPath (ltr.search_features)
+// LTRSearchFeaturesPath (ltr.search_features)
 // ---------------------------------------------------------------------------
 
-// LtrSearchFeaturesPath builds URL paths for the ltr.search_features operation.
+// LTRSearchFeaturesPath builds URL paths for the ltr.search_features operation.
 //
 // Search for features in a feature store.
 //
 // Available: >= 2.19.0
-type LtrSearchFeaturesPath struct {
+type LTRSearchFeaturesPath struct {
 	Store string
 }
 
-func (p LtrSearchFeaturesPath) Build() (string, error) {
+func (p LTRSearchFeaturesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	if p.Store != "" {
@@ -5379,19 +5379,19 @@ func (p LtrSearchFeaturesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrSearchFeaturesetsPath (ltr.search_featuresets)
+// LTRSearchFeaturesetsPath (ltr.search_featuresets)
 // ---------------------------------------------------------------------------
 
-// LtrSearchFeaturesetsPath builds URL paths for the ltr.search_featuresets operation.
+// LTRSearchFeaturesetsPath builds URL paths for the ltr.search_featuresets operation.
 //
 // Search for feature sets in a feature store.
 //
 // Available: >= 2.19.0
-type LtrSearchFeaturesetsPath struct {
+type LTRSearchFeaturesetsPath struct {
 	Store string
 }
 
-func (p LtrSearchFeaturesetsPath) Build() (string, error) {
+func (p LTRSearchFeaturesetsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	if p.Store != "" {
@@ -5402,19 +5402,19 @@ func (p LtrSearchFeaturesetsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrSearchModelsPath (ltr.search_models)
+// LTRSearchModelsPath (ltr.search_models)
 // ---------------------------------------------------------------------------
 
-// LtrSearchModelsPath builds URL paths for the ltr.search_models operation.
+// LTRSearchModelsPath builds URL paths for the ltr.search_models operation.
 //
 // Search for models in a feature store.
 //
 // Available: >= 2.19.0
-type LtrSearchModelsPath struct {
+type LTRSearchModelsPath struct {
 	Store string
 }
 
-func (p LtrSearchModelsPath) Build() (string, error) {
+func (p LTRSearchModelsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_ltr")
 	if p.Store != "" {
@@ -5425,20 +5425,20 @@ func (p LtrSearchModelsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrStatsPath (ltr.stats)
+// LTRStatsPath (ltr.stats)
 // ---------------------------------------------------------------------------
 
-// LtrStatsPath builds URL paths for the ltr.stats operation.
+// LTRStatsPath builds URL paths for the ltr.stats operation.
 //
 // Provides information about the current status of the LTR plugin.
 //
 // Available: >= 2.19.0
-type LtrStatsPath struct {
+type LTRStatsPath struct {
 	NodeID []string
 	Stat   []string
 }
 
-func (p LtrStatsPath) Build() (string, error) {
+func (p LTRStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ltr")
@@ -5460,22 +5460,22 @@ func (p LtrStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrUpdateFeaturePath (ltr.update_feature)
+// LTRUpdateFeaturePath (ltr.update_feature)
 // ---------------------------------------------------------------------------
 
-// LtrUpdateFeaturePath builds URL paths for the ltr.update_feature operation.
+// LTRUpdateFeaturePath builds URL paths for the ltr.update_feature operation.
 //
 // Update a feature in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrUpdateFeaturePath struct {
+type LTRUpdateFeaturePath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrUpdateFeaturePath) Build() (string, error) {
+func (p LTRUpdateFeaturePath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrUpdateFeaturePath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRUpdateFeaturePath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5488,22 +5488,22 @@ func (p LtrUpdateFeaturePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// LtrUpdateFeaturesetPath (ltr.update_featureset)
+// LTRUpdateFeaturesetPath (ltr.update_featureset)
 // ---------------------------------------------------------------------------
 
-// LtrUpdateFeaturesetPath builds URL paths for the ltr.update_featureset operation.
+// LTRUpdateFeaturesetPath builds URL paths for the ltr.update_featureset operation.
 //
 // Update a feature set in the default feature store.
 //
 // Available: >= 2.19.0
-type LtrUpdateFeaturesetPath struct {
+type LTRUpdateFeaturesetPath struct {
 	Store string
 	ID    string
 }
 
-func (p LtrUpdateFeaturesetPath) Build() (string, error) {
+func (p LTRUpdateFeaturesetPath) Build() (string, error) {
 	if p.ID == "" {
-		return "", fmt.Errorf("LtrUpdateFeaturesetPath.ID: %w", errRequired)
+		return "", fmt.Errorf("LTRUpdateFeaturesetPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_ltr")
@@ -5540,21 +5540,21 @@ func (p MgetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlAddAgenticMemoryPath (ml.add_agentic_memory)
+// MLAddAgenticMemoryPath (ml.add_agentic_memory)
 // ---------------------------------------------------------------------------
 
-// MlAddAgenticMemoryPath builds URL paths for the ml.add_agentic_memory operation.
+// MLAddAgenticMemoryPath builds URL paths for the ml.add_agentic_memory operation.
 //
 // Add agentic memory to a memory container.
 //
 // Available: >= 3.3.0
-type MlAddAgenticMemoryPath struct {
+type MLAddAgenticMemoryPath struct {
 	MemoryContainerID string
 }
 
-func (p MlAddAgenticMemoryPath) Build() (string, error) {
+func (p MLAddAgenticMemoryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlAddAgenticMemoryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLAddAgenticMemoryPath.MemoryContainerID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5566,25 +5566,25 @@ func (p MlAddAgenticMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlChunkModelPath (ml.chunk_model)
+// MLChunkModelPath (ml.chunk_model)
 // ---------------------------------------------------------------------------
 
-// MlChunkModelPath builds URL paths for the ml.chunk_model operation.
+// MLChunkModelPath builds URL paths for the ml.chunk_model operation.
 //
 // Uploads model chunk.
 //
 // Deprecated: >= 2.7.0. Use `upload_chunk` instead.
-type MlChunkModelPath struct {
+type MLChunkModelPath struct {
 	ModelID     string
 	ChunkNumber string
 }
 
-func (p MlChunkModelPath) Build() (string, error) {
+func (p MLChunkModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlChunkModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLChunkModelPath.ModelID: %w", errRequired)
 	}
 	if p.ChunkNumber == "" {
-		return "", fmt.Errorf("MlChunkModelPath.ChunkNumber: %w", errRequired)
+		return "", fmt.Errorf("MLChunkModelPath.ChunkNumber: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5597,16 +5597,16 @@ func (p MlChunkModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateConnectorPath (ml.create_connector)
+// MLCreateConnectorPath (ml.create_connector)
 // ---------------------------------------------------------------------------
 
-// MlCreateConnectorPath builds URL paths for the ml.create_connector operation.
+// MLCreateConnectorPath builds URL paths for the ml.create_connector operation.
 //
 // Creates a standalone connector.
-type MlCreateConnectorPath struct {
+type MLCreateConnectorPath struct {
 }
 
-func (p MlCreateConnectorPath) Build() (string, error) {
+func (p MLCreateConnectorPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -5616,21 +5616,21 @@ func (p MlCreateConnectorPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateControllerPath (ml.create_controller)
+// MLCreateControllerPath (ml.create_controller)
 // ---------------------------------------------------------------------------
 
-// MlCreateControllerPath builds URL paths for the ml.create_controller operation.
+// MLCreateControllerPath builds URL paths for the ml.create_controller operation.
 //
 // Creates a controller.
 //
 // Available: >= 2.12.0
-type MlCreateControllerPath struct {
+type MLCreateControllerPath struct {
 	ModelID string
 }
 
-func (p MlCreateControllerPath) Build() (string, error) {
+func (p MLCreateControllerPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlCreateControllerPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLCreateControllerPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5641,18 +5641,18 @@ func (p MlCreateControllerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateMemoryPath (ml.create_memory)
+// MLCreateMemoryPath (ml.create_memory)
 // ---------------------------------------------------------------------------
 
-// MlCreateMemoryPath builds URL paths for the ml.create_memory operation.
+// MLCreateMemoryPath builds URL paths for the ml.create_memory operation.
 //
 // Create a memory.
 //
 // Available: >= 2.12.0
-type MlCreateMemoryPath struct {
+type MLCreateMemoryPath struct {
 }
 
-func (p MlCreateMemoryPath) Build() (string, error) {
+func (p MLCreateMemoryPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -5661,18 +5661,18 @@ func (p MlCreateMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateMemoryContainerPath (ml.create_memory_container)
+// MLCreateMemoryContainerPath (ml.create_memory_container)
 // ---------------------------------------------------------------------------
 
-// MlCreateMemoryContainerPath builds URL paths for the ml.create_memory_container operation.
+// MLCreateMemoryContainerPath builds URL paths for the ml.create_memory_container operation.
 //
 // Create a memory container.
 //
 // Available: >= 3.3.0
-type MlCreateMemoryContainerPath struct {
+type MLCreateMemoryContainerPath struct {
 }
 
-func (p MlCreateMemoryContainerPath) Build() (string, error) {
+func (p MLCreateMemoryContainerPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -5682,21 +5682,21 @@ func (p MlCreateMemoryContainerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateMemoryContainerSessionPath (ml.create_memory_container_session)
+// MLCreateMemoryContainerSessionPath (ml.create_memory_container_session)
 // ---------------------------------------------------------------------------
 
-// MlCreateMemoryContainerSessionPath builds URL paths for the ml.create_memory_container_session operation.
+// MLCreateMemoryContainerSessionPath builds URL paths for the ml.create_memory_container_session operation.
 //
 // Create session in a memory container.
 //
 // Available: >= 3.3.0
-type MlCreateMemoryContainerSessionPath struct {
+type MLCreateMemoryContainerSessionPath struct {
 	MemoryContainerID string
 }
 
-func (p MlCreateMemoryContainerSessionPath) Build() (string, error) {
+func (p MLCreateMemoryContainerSessionPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlCreateMemoryContainerSessionPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLCreateMemoryContainerSessionPath.MemoryContainerID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5709,21 +5709,21 @@ func (p MlCreateMemoryContainerSessionPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateMessagePath (ml.create_message)
+// MLCreateMessagePath (ml.create_message)
 // ---------------------------------------------------------------------------
 
-// MlCreateMessagePath builds URL paths for the ml.create_message operation.
+// MLCreateMessagePath builds URL paths for the ml.create_message operation.
 //
 // Create a message.
 //
 // Available: >= 2.12.0
-type MlCreateMessagePath struct {
+type MLCreateMessagePath struct {
 	MemoryID string
 }
 
-func (p MlCreateMessagePath) Build() (string, error) {
+func (p MLCreateMessagePath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlCreateMessagePath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLCreateMessagePath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5735,18 +5735,18 @@ func (p MlCreateMessagePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlCreateModelMetaPath (ml.create_model_meta)
+// MLCreateModelMetaPath (ml.create_model_meta)
 // ---------------------------------------------------------------------------
 
-// MlCreateModelMetaPath builds URL paths for the ml.create_model_meta operation.
+// MLCreateModelMetaPath builds URL paths for the ml.create_model_meta operation.
 //
 // Registers model metadata.
 //
 // Deprecated: >= 2.7.0. Use `_register_meta` instead.
-type MlCreateModelMetaPath struct {
+type MLCreateModelMetaPath struct {
 }
 
-func (p MlCreateModelMetaPath) Build() (string, error) {
+func (p MLCreateModelMetaPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -5756,21 +5756,21 @@ func (p MlCreateModelMetaPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteAgentPath (ml.delete_agent)
+// MLDeleteAgentPath (ml.delete_agent)
 // ---------------------------------------------------------------------------
 
-// MlDeleteAgentPath builds URL paths for the ml.delete_agent operation.
+// MLDeleteAgentPath builds URL paths for the ml.delete_agent operation.
 //
 // Delete an agent.
 //
 // Available: >= 2.13.0
-type MlDeleteAgentPath struct {
+type MLDeleteAgentPath struct {
 	AgentID string
 }
 
-func (p MlDeleteAgentPath) Build() (string, error) {
+func (p MLDeleteAgentPath) Build() (string, error) {
 	if p.AgentID == "" {
-		return "", fmt.Errorf("MlDeleteAgentPath.AgentID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgentPath.AgentID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5781,29 +5781,29 @@ func (p MlDeleteAgentPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteAgenticMemoryPath (ml.delete_agentic_memory)
+// MLDeleteAgenticMemoryPath (ml.delete_agentic_memory)
 // ---------------------------------------------------------------------------
 
-// MlDeleteAgenticMemoryPath builds URL paths for the ml.delete_agentic_memory operation.
+// MLDeleteAgenticMemoryPath builds URL paths for the ml.delete_agentic_memory operation.
 //
 // Delete a specific memory by its type and ID.
 //
 // Available: >= 3.3.0
-type MlDeleteAgenticMemoryPath struct {
+type MLDeleteAgenticMemoryPath struct {
 	MemoryContainerID string
 	Type              string
 	ID                string
 }
 
-func (p MlDeleteAgenticMemoryPath) Build() (string, error) {
+func (p MLDeleteAgenticMemoryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlDeleteAgenticMemoryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgenticMemoryPath.MemoryContainerID: %w", errRequired)
 	}
 	if p.Type == "" {
-		return "", fmt.Errorf("MlDeleteAgenticMemoryPath.Type: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgenticMemoryPath.Type: %w", errRequired)
 	}
 	if p.ID == "" {
-		return "", fmt.Errorf("MlDeleteAgenticMemoryPath.ID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgenticMemoryPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5817,25 +5817,25 @@ func (p MlDeleteAgenticMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteAgenticMemoryQueryPath (ml.delete_agentic_memory_query)
+// MLDeleteAgenticMemoryQueryPath (ml.delete_agentic_memory_query)
 // ---------------------------------------------------------------------------
 
-// MlDeleteAgenticMemoryQueryPath builds URL paths for the ml.delete_agentic_memory_query operation.
+// MLDeleteAgenticMemoryQueryPath builds URL paths for the ml.delete_agentic_memory_query operation.
 //
 // Delete multiple memories using a query to match specific criteria.
 //
 // Available: >= 3.3.0
-type MlDeleteAgenticMemoryQueryPath struct {
+type MLDeleteAgenticMemoryQueryPath struct {
 	MemoryContainerID string
 	Type              string
 }
 
-func (p MlDeleteAgenticMemoryQueryPath) Build() (string, error) {
+func (p MLDeleteAgenticMemoryQueryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlDeleteAgenticMemoryQueryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgenticMemoryQueryPath.MemoryContainerID: %w", errRequired)
 	}
 	if p.Type == "" {
-		return "", fmt.Errorf("MlDeleteAgenticMemoryQueryPath.Type: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteAgenticMemoryQueryPath.Type: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5849,19 +5849,19 @@ func (p MlDeleteAgenticMemoryQueryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteConnectorPath (ml.delete_connector)
+// MLDeleteConnectorPath (ml.delete_connector)
 // ---------------------------------------------------------------------------
 
-// MlDeleteConnectorPath builds URL paths for the ml.delete_connector operation.
+// MLDeleteConnectorPath builds URL paths for the ml.delete_connector operation.
 //
 // Deletes a standalone connector.
-type MlDeleteConnectorPath struct {
+type MLDeleteConnectorPath struct {
 	ConnectorID string
 }
 
-func (p MlDeleteConnectorPath) Build() (string, error) {
+func (p MLDeleteConnectorPath) Build() (string, error) {
 	if p.ConnectorID == "" {
-		return "", fmt.Errorf("MlDeleteConnectorPath.ConnectorID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteConnectorPath.ConnectorID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5872,21 +5872,21 @@ func (p MlDeleteConnectorPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteControllerPath (ml.delete_controller)
+// MLDeleteControllerPath (ml.delete_controller)
 // ---------------------------------------------------------------------------
 
-// MlDeleteControllerPath builds URL paths for the ml.delete_controller operation.
+// MLDeleteControllerPath builds URL paths for the ml.delete_controller operation.
 //
 // Deletes a controller.
 //
 // Available: >= 2.12.0
-type MlDeleteControllerPath struct {
+type MLDeleteControllerPath struct {
 	ModelID string
 }
 
-func (p MlDeleteControllerPath) Build() (string, error) {
+func (p MLDeleteControllerPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlDeleteControllerPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteControllerPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5897,21 +5897,21 @@ func (p MlDeleteControllerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteMemoryPath (ml.delete_memory)
+// MLDeleteMemoryPath (ml.delete_memory)
 // ---------------------------------------------------------------------------
 
-// MlDeleteMemoryPath builds URL paths for the ml.delete_memory operation.
+// MLDeleteMemoryPath builds URL paths for the ml.delete_memory operation.
 //
 // Delete a memory.
 //
 // Available: >= 2.12.0
-type MlDeleteMemoryPath struct {
+type MLDeleteMemoryPath struct {
 	MemoryID string
 }
 
-func (p MlDeleteMemoryPath) Build() (string, error) {
+func (p MLDeleteMemoryPath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlDeleteMemoryPath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteMemoryPath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5922,21 +5922,21 @@ func (p MlDeleteMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteMemoryContainerPath (ml.delete_memory_container)
+// MLDeleteMemoryContainerPath (ml.delete_memory_container)
 // ---------------------------------------------------------------------------
 
-// MlDeleteMemoryContainerPath builds URL paths for the ml.delete_memory_container operation.
+// MLDeleteMemoryContainerPath builds URL paths for the ml.delete_memory_container operation.
 //
 // Delete a memory container.
 //
 // Available: >= 3.3.0
-type MlDeleteMemoryContainerPath struct {
+type MLDeleteMemoryContainerPath struct {
 	MemoryContainerID string
 }
 
-func (p MlDeleteMemoryContainerPath) Build() (string, error) {
+func (p MLDeleteMemoryContainerPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlDeleteMemoryContainerPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteMemoryContainerPath.MemoryContainerID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5947,21 +5947,21 @@ func (p MlDeleteMemoryContainerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteModelPath (ml.delete_model)
+// MLDeleteModelPath (ml.delete_model)
 // ---------------------------------------------------------------------------
 
-// MlDeleteModelPath builds URL paths for the ml.delete_model operation.
+// MLDeleteModelPath builds URL paths for the ml.delete_model operation.
 //
 // Deletes a model.
 //
 // Available: >= 1.3.0
-type MlDeleteModelPath struct {
+type MLDeleteModelPath struct {
 	ModelID string
 }
 
-func (p MlDeleteModelPath) Build() (string, error) {
+func (p MLDeleteModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlDeleteModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5972,19 +5972,19 @@ func (p MlDeleteModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteModelGroupPath (ml.delete_model_group)
+// MLDeleteModelGroupPath (ml.delete_model_group)
 // ---------------------------------------------------------------------------
 
-// MlDeleteModelGroupPath builds URL paths for the ml.delete_model_group operation.
+// MLDeleteModelGroupPath builds URL paths for the ml.delete_model_group operation.
 //
 // Deletes a model group.
-type MlDeleteModelGroupPath struct {
+type MLDeleteModelGroupPath struct {
 	ModelGroupID string
 }
 
-func (p MlDeleteModelGroupPath) Build() (string, error) {
+func (p MLDeleteModelGroupPath) Build() (string, error) {
 	if p.ModelGroupID == "" {
-		return "", fmt.Errorf("MlDeleteModelGroupPath.ModelGroupID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteModelGroupPath.ModelGroupID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -5995,21 +5995,21 @@ func (p MlDeleteModelGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeleteTaskPath (ml.delete_task)
+// MLDeleteTaskPath (ml.delete_task)
 // ---------------------------------------------------------------------------
 
-// MlDeleteTaskPath builds URL paths for the ml.delete_task operation.
+// MLDeleteTaskPath builds URL paths for the ml.delete_task operation.
 //
 // Deletes a task.
 //
 // Available: >= 1.3.0
-type MlDeleteTaskPath struct {
+type MLDeleteTaskPath struct {
 	TaskID string
 }
 
-func (p MlDeleteTaskPath) Build() (string, error) {
+func (p MLDeleteTaskPath) Build() (string, error) {
 	if p.TaskID == "" {
-		return "", fmt.Errorf("MlDeleteTaskPath.TaskID: %w", errRequired)
+		return "", fmt.Errorf("MLDeleteTaskPath.TaskID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6020,21 +6020,21 @@ func (p MlDeleteTaskPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlDeployModelPath (ml.deploy_model)
+// MLDeployModelPath (ml.deploy_model)
 // ---------------------------------------------------------------------------
 
-// MlDeployModelPath builds URL paths for the ml.deploy_model operation.
+// MLDeployModelPath builds URL paths for the ml.deploy_model operation.
 //
 // Deploys a model.
 //
 // Available: >= 2.7.0
-type MlDeployModelPath struct {
+type MLDeployModelPath struct {
 	ModelID string
 }
 
-func (p MlDeployModelPath) Build() (string, error) {
+func (p MLDeployModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlDeployModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLDeployModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6046,21 +6046,21 @@ func (p MlDeployModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlExecuteAgentPath (ml.execute_agent)
+// MLExecuteAgentPath (ml.execute_agent)
 // ---------------------------------------------------------------------------
 
-// MlExecuteAgentPath builds URL paths for the ml.execute_agent operation.
+// MLExecuteAgentPath builds URL paths for the ml.execute_agent operation.
 //
 // Execute an agent.
 //
 // Available: >= 2.13.0
-type MlExecuteAgentPath struct {
+type MLExecuteAgentPath struct {
 	AgentID string
 }
 
-func (p MlExecuteAgentPath) Build() (string, error) {
+func (p MLExecuteAgentPath) Build() (string, error) {
 	if p.AgentID == "" {
-		return "", fmt.Errorf("MlExecuteAgentPath.AgentID: %w", errRequired)
+		return "", fmt.Errorf("MLExecuteAgentPath.AgentID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6072,21 +6072,21 @@ func (p MlExecuteAgentPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlExecuteAgentStreamPath (ml.execute_agent_stream)
+// MLExecuteAgentStreamPath (ml.execute_agent_stream)
 // ---------------------------------------------------------------------------
 
-// MlExecuteAgentStreamPath builds URL paths for the ml.execute_agent_stream operation.
+// MLExecuteAgentStreamPath builds URL paths for the ml.execute_agent_stream operation.
 //
 // Execute an agent in streaming mode.
 //
 // Available: >= 3.3.0
-type MlExecuteAgentStreamPath struct {
+type MLExecuteAgentStreamPath struct {
 	AgentID string
 }
 
-func (p MlExecuteAgentStreamPath) Build() (string, error) {
+func (p MLExecuteAgentStreamPath) Build() (string, error) {
 	if p.AgentID == "" {
-		return "", fmt.Errorf("MlExecuteAgentStreamPath.AgentID: %w", errRequired)
+		return "", fmt.Errorf("MLExecuteAgentStreamPath.AgentID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6099,21 +6099,21 @@ func (p MlExecuteAgentStreamPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlExecuteAlgorithmPath (ml.execute_algorithm)
+// MLExecuteAlgorithmPath (ml.execute_algorithm)
 // ---------------------------------------------------------------------------
 
-// MlExecuteAlgorithmPath builds URL paths for the ml.execute_algorithm operation.
+// MLExecuteAlgorithmPath builds URL paths for the ml.execute_algorithm operation.
 //
 // Execute an algorithm.
 //
 // Available: >= 2.0.0
-type MlExecuteAlgorithmPath struct {
+type MLExecuteAlgorithmPath struct {
 	AlgorithmName string
 }
 
-func (p MlExecuteAlgorithmPath) Build() (string, error) {
+func (p MLExecuteAlgorithmPath) Build() (string, error) {
 	if p.AlgorithmName == "" {
-		return "", fmt.Errorf("MlExecuteAlgorithmPath.AlgorithmName: %w", errRequired)
+		return "", fmt.Errorf("MLExecuteAlgorithmPath.AlgorithmName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6124,21 +6124,21 @@ func (p MlExecuteAlgorithmPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlExecuteToolPath (ml.execute_tool)
+// MLExecuteToolPath (ml.execute_tool)
 // ---------------------------------------------------------------------------
 
-// MlExecuteToolPath builds URL paths for the ml.execute_tool operation.
+// MLExecuteToolPath builds URL paths for the ml.execute_tool operation.
 //
 // Execute a tool.
 //
 // Available: >= 3.3.0
-type MlExecuteToolPath struct {
+type MLExecuteToolPath struct {
 	ToolName string
 }
 
-func (p MlExecuteToolPath) Build() (string, error) {
+func (p MLExecuteToolPath) Build() (string, error) {
 	if p.ToolName == "" {
-		return "", fmt.Errorf("MlExecuteToolPath.ToolName: %w", errRequired)
+		return "", fmt.Errorf("MLExecuteToolPath.ToolName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6150,21 +6150,21 @@ func (p MlExecuteToolPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetAgentPath (ml.get_agent)
+// MLGetAgentPath (ml.get_agent)
 // ---------------------------------------------------------------------------
 
-// MlGetAgentPath builds URL paths for the ml.get_agent operation.
+// MLGetAgentPath builds URL paths for the ml.get_agent operation.
 //
 // Get an agent.
 //
 // Available: >= 2.13.0
-type MlGetAgentPath struct {
+type MLGetAgentPath struct {
 	AgentID string
 }
 
-func (p MlGetAgentPath) Build() (string, error) {
+func (p MLGetAgentPath) Build() (string, error) {
 	if p.AgentID == "" {
-		return "", fmt.Errorf("MlGetAgentPath.AgentID: %w", errRequired)
+		return "", fmt.Errorf("MLGetAgentPath.AgentID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6175,29 +6175,29 @@ func (p MlGetAgentPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetAgenticMemoryPath (ml.get_agentic_memory)
+// MLGetAgenticMemoryPath (ml.get_agentic_memory)
 // ---------------------------------------------------------------------------
 
-// MlGetAgenticMemoryPath builds URL paths for the ml.get_agentic_memory operation.
+// MLGetAgenticMemoryPath builds URL paths for the ml.get_agentic_memory operation.
 //
 // Get a specific memory by its type and ID.
 //
 // Available: >= 3.3.0
-type MlGetAgenticMemoryPath struct {
+type MLGetAgenticMemoryPath struct {
 	MemoryContainerID string
 	Type              string
 	ID                string
 }
 
-func (p MlGetAgenticMemoryPath) Build() (string, error) {
+func (p MLGetAgenticMemoryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlGetAgenticMemoryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLGetAgenticMemoryPath.MemoryContainerID: %w", errRequired)
 	}
 	if p.Type == "" {
-		return "", fmt.Errorf("MlGetAgenticMemoryPath.Type: %w", errRequired)
+		return "", fmt.Errorf("MLGetAgenticMemoryPath.Type: %w", errRequired)
 	}
 	if p.ID == "" {
-		return "", fmt.Errorf("MlGetAgenticMemoryPath.ID: %w", errRequired)
+		return "", fmt.Errorf("MLGetAgenticMemoryPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6211,18 +6211,18 @@ func (p MlGetAgenticMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetAllMemoriesPath (ml.get_all_memories)
+// MLGetAllMemoriesPath (ml.get_all_memories)
 // ---------------------------------------------------------------------------
 
-// MlGetAllMemoriesPath builds URL paths for the ml.get_all_memories operation.
+// MLGetAllMemoriesPath builds URL paths for the ml.get_all_memories operation.
 //
 // Get all memories.
 //
 // Available: >= 2.12.0
-type MlGetAllMemoriesPath struct {
+type MLGetAllMemoriesPath struct {
 }
 
-func (p MlGetAllMemoriesPath) Build() (string, error) {
+func (p MLGetAllMemoriesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6231,21 +6231,21 @@ func (p MlGetAllMemoriesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetAllMessagesPath (ml.get_all_messages)
+// MLGetAllMessagesPath (ml.get_all_messages)
 // ---------------------------------------------------------------------------
 
-// MlGetAllMessagesPath builds URL paths for the ml.get_all_messages operation.
+// MLGetAllMessagesPath builds URL paths for the ml.get_all_messages operation.
 //
 // Get all messages in a memory.
 //
 // Available: >= 2.12.0
-type MlGetAllMessagesPath struct {
+type MLGetAllMessagesPath struct {
 	MemoryID string
 }
 
-func (p MlGetAllMessagesPath) Build() (string, error) {
+func (p MLGetAllMessagesPath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlGetAllMessagesPath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLGetAllMessagesPath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6257,18 +6257,18 @@ func (p MlGetAllMessagesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetAllToolsPath (ml.get_all_tools)
+// MLGetAllToolsPath (ml.get_all_tools)
 // ---------------------------------------------------------------------------
 
-// MlGetAllToolsPath builds URL paths for the ml.get_all_tools operation.
+// MLGetAllToolsPath builds URL paths for the ml.get_all_tools operation.
 //
 // Get tools.
 //
 // Available: >= 2.12.0
-type MlGetAllToolsPath struct {
+type MLGetAllToolsPath struct {
 }
 
-func (p MlGetAllToolsPath) Build() (string, error) {
+func (p MLGetAllToolsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6277,21 +6277,21 @@ func (p MlGetAllToolsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetConnectorPath (ml.get_connector)
+// MLGetConnectorPath (ml.get_connector)
 // ---------------------------------------------------------------------------
 
-// MlGetConnectorPath builds URL paths for the ml.get_connector operation.
+// MLGetConnectorPath builds URL paths for the ml.get_connector operation.
 //
 // Retrieves a standalone connector.
 //
 // Available: >= 2.11.0
-type MlGetConnectorPath struct {
+type MLGetConnectorPath struct {
 	ConnectorID string
 }
 
-func (p MlGetConnectorPath) Build() (string, error) {
+func (p MLGetConnectorPath) Build() (string, error) {
 	if p.ConnectorID == "" {
-		return "", fmt.Errorf("MlGetConnectorPath.ConnectorID: %w", errRequired)
+		return "", fmt.Errorf("MLGetConnectorPath.ConnectorID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6302,21 +6302,21 @@ func (p MlGetConnectorPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetControllerPath (ml.get_controller)
+// MLGetControllerPath (ml.get_controller)
 // ---------------------------------------------------------------------------
 
-// MlGetControllerPath builds URL paths for the ml.get_controller operation.
+// MLGetControllerPath builds URL paths for the ml.get_controller operation.
 //
 // Retrieves a controller.
 //
 // Available: >= 2.12.0
-type MlGetControllerPath struct {
+type MLGetControllerPath struct {
 	ModelID string
 }
 
-func (p MlGetControllerPath) Build() (string, error) {
+func (p MLGetControllerPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlGetControllerPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLGetControllerPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6327,21 +6327,21 @@ func (p MlGetControllerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetMemoryPath (ml.get_memory)
+// MLGetMemoryPath (ml.get_memory)
 // ---------------------------------------------------------------------------
 
-// MlGetMemoryPath builds URL paths for the ml.get_memory operation.
+// MLGetMemoryPath builds URL paths for the ml.get_memory operation.
 //
 // Get a memory.
 //
 // Available: >= 2.12.0
-type MlGetMemoryPath struct {
+type MLGetMemoryPath struct {
 	MemoryID string
 }
 
-func (p MlGetMemoryPath) Build() (string, error) {
+func (p MLGetMemoryPath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlGetMemoryPath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLGetMemoryPath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6352,21 +6352,21 @@ func (p MlGetMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetMemoryContainerPath (ml.get_memory_container)
+// MLGetMemoryContainerPath (ml.get_memory_container)
 // ---------------------------------------------------------------------------
 
-// MlGetMemoryContainerPath builds URL paths for the ml.get_memory_container operation.
+// MLGetMemoryContainerPath builds URL paths for the ml.get_memory_container operation.
 //
 // Get a memory container.
 //
 // Available: >= 3.3.0
-type MlGetMemoryContainerPath struct {
+type MLGetMemoryContainerPath struct {
 	MemoryContainerID string
 }
 
-func (p MlGetMemoryContainerPath) Build() (string, error) {
+func (p MLGetMemoryContainerPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlGetMemoryContainerPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLGetMemoryContainerPath.MemoryContainerID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6377,21 +6377,21 @@ func (p MlGetMemoryContainerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetMessagePath (ml.get_message)
+// MLGetMessagePath (ml.get_message)
 // ---------------------------------------------------------------------------
 
-// MlGetMessagePath builds URL paths for the ml.get_message operation.
+// MLGetMessagePath builds URL paths for the ml.get_message operation.
 //
 // Get a message.
 //
 // Available: >= 2.12.0
-type MlGetMessagePath struct {
+type MLGetMessagePath struct {
 	MessageID string
 }
 
-func (p MlGetMessagePath) Build() (string, error) {
+func (p MLGetMessagePath) Build() (string, error) {
 	if p.MessageID == "" {
-		return "", fmt.Errorf("MlGetMessagePath.MessageID: %w", errRequired)
+		return "", fmt.Errorf("MLGetMessagePath.MessageID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6403,21 +6403,21 @@ func (p MlGetMessagePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetMessageTracesPath (ml.get_message_traces)
+// MLGetMessageTracesPath (ml.get_message_traces)
 // ---------------------------------------------------------------------------
 
-// MlGetMessageTracesPath builds URL paths for the ml.get_message_traces operation.
+// MLGetMessageTracesPath builds URL paths for the ml.get_message_traces operation.
 //
 // Get a message traces.
 //
 // Available: >= 2.12.0
-type MlGetMessageTracesPath struct {
+type MLGetMessageTracesPath struct {
 	MessageID string
 }
 
-func (p MlGetMessageTracesPath) Build() (string, error) {
+func (p MLGetMessageTracesPath) Build() (string, error) {
 	if p.MessageID == "" {
-		return "", fmt.Errorf("MlGetMessageTracesPath.MessageID: %w", errRequired)
+		return "", fmt.Errorf("MLGetMessageTracesPath.MessageID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6430,21 +6430,21 @@ func (p MlGetMessageTracesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetModelPath (ml.get_model)
+// MLGetModelPath (ml.get_model)
 // ---------------------------------------------------------------------------
 
-// MlGetModelPath builds URL paths for the ml.get_model operation.
+// MLGetModelPath builds URL paths for the ml.get_model operation.
 //
 // Retrieves a model.
 //
 // Available: >= 1.3.0
-type MlGetModelPath struct {
+type MLGetModelPath struct {
 	ModelID string
 }
 
-func (p MlGetModelPath) Build() (string, error) {
+func (p MLGetModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlGetModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLGetModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6455,19 +6455,19 @@ func (p MlGetModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetModelGroupPath (ml.get_model_group)
+// MLGetModelGroupPath (ml.get_model_group)
 // ---------------------------------------------------------------------------
 
-// MlGetModelGroupPath builds URL paths for the ml.get_model_group operation.
+// MLGetModelGroupPath builds URL paths for the ml.get_model_group operation.
 //
 // Retrieves a model group.
-type MlGetModelGroupPath struct {
+type MLGetModelGroupPath struct {
 	ModelGroupID string
 }
 
-func (p MlGetModelGroupPath) Build() (string, error) {
+func (p MLGetModelGroupPath) Build() (string, error) {
 	if p.ModelGroupID == "" {
-		return "", fmt.Errorf("MlGetModelGroupPath.ModelGroupID: %w", errRequired)
+		return "", fmt.Errorf("MLGetModelGroupPath.ModelGroupID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6478,18 +6478,18 @@ func (p MlGetModelGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetProfilePath (ml.get_profile)
+// MLGetProfilePath (ml.get_profile)
 // ---------------------------------------------------------------------------
 
-// MlGetProfilePath builds URL paths for the ml.get_profile operation.
+// MLGetProfilePath builds URL paths for the ml.get_profile operation.
 //
 // Get a profile.
 //
 // Available: >= 2.4.0
-type MlGetProfilePath struct {
+type MLGetProfilePath struct {
 }
 
-func (p MlGetProfilePath) Build() (string, error) {
+func (p MLGetProfilePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6498,19 +6498,19 @@ func (p MlGetProfilePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetProfileModelsPath (ml.get_profile_models)
+// MLGetProfileModelsPath (ml.get_profile_models)
 // ---------------------------------------------------------------------------
 
-// MlGetProfileModelsPath builds URL paths for the ml.get_profile_models operation.
+// MLGetProfileModelsPath builds URL paths for the ml.get_profile_models operation.
 //
 // Get a profile models.
 //
 // Available: >= 2.4.0
-type MlGetProfileModelsPath struct {
+type MLGetProfileModelsPath struct {
 	ModelID string
 }
 
-func (p MlGetProfileModelsPath) Build() (string, error) {
+func (p MLGetProfileModelsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6523,19 +6523,19 @@ func (p MlGetProfileModelsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetProfileTasksPath (ml.get_profile_tasks)
+// MLGetProfileTasksPath (ml.get_profile_tasks)
 // ---------------------------------------------------------------------------
 
-// MlGetProfileTasksPath builds URL paths for the ml.get_profile_tasks operation.
+// MLGetProfileTasksPath builds URL paths for the ml.get_profile_tasks operation.
 //
 // Get a profile tasks.
 //
 // Available: >= 2.4.0
-type MlGetProfileTasksPath struct {
+type MLGetProfileTasksPath struct {
 	TaskID string
 }
 
-func (p MlGetProfileTasksPath) Build() (string, error) {
+func (p MLGetProfileTasksPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6548,20 +6548,20 @@ func (p MlGetProfileTasksPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetStatsPath (ml.get_stats)
+// MLGetStatsPath (ml.get_stats)
 // ---------------------------------------------------------------------------
 
-// MlGetStatsPath builds URL paths for the ml.get_stats operation.
+// MLGetStatsPath builds URL paths for the ml.get_stats operation.
 //
 // Get stats.
 //
 // Available: >= 1.3.0
-type MlGetStatsPath struct {
+type MLGetStatsPath struct {
 	NodeID string
 	Stat   []string
 }
 
-func (p MlGetStatsPath) Build() (string, error) {
+func (p MLGetStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6583,21 +6583,21 @@ func (p MlGetStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetTaskPath (ml.get_task)
+// MLGetTaskPath (ml.get_task)
 // ---------------------------------------------------------------------------
 
-// MlGetTaskPath builds URL paths for the ml.get_task operation.
+// MLGetTaskPath builds URL paths for the ml.get_task operation.
 //
 // Retrieves a task.
 //
 // Available: >= 1.3.0
-type MlGetTaskPath struct {
+type MLGetTaskPath struct {
 	TaskID string
 }
 
-func (p MlGetTaskPath) Build() (string, error) {
+func (p MLGetTaskPath) Build() (string, error) {
 	if p.TaskID == "" {
-		return "", fmt.Errorf("MlGetTaskPath.TaskID: %w", errRequired)
+		return "", fmt.Errorf("MLGetTaskPath.TaskID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6608,21 +6608,21 @@ func (p MlGetTaskPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlGetToolPath (ml.get_tool)
+// MLGetToolPath (ml.get_tool)
 // ---------------------------------------------------------------------------
 
-// MlGetToolPath builds URL paths for the ml.get_tool operation.
+// MLGetToolPath builds URL paths for the ml.get_tool operation.
 //
 // Get tools.
 //
 // Available: >= 2.12.0
-type MlGetToolPath struct {
+type MLGetToolPath struct {
 	ToolName string
 }
 
-func (p MlGetToolPath) Build() (string, error) {
+func (p MLGetToolPath) Build() (string, error) {
 	if p.ToolName == "" {
-		return "", fmt.Errorf("MlGetToolPath.ToolName: %w", errRequired)
+		return "", fmt.Errorf("MLGetToolPath.ToolName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6633,21 +6633,21 @@ func (p MlGetToolPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlLoadModelPath (ml.load_model)
+// MLLoadModelPath (ml.load_model)
 // ---------------------------------------------------------------------------
 
-// MlLoadModelPath builds URL paths for the ml.load_model operation.
+// MLLoadModelPath builds URL paths for the ml.load_model operation.
 //
 // Deploys a model.
 //
 // Deprecated: >= 2.7.0. Use `deploy_model` instead.
-type MlLoadModelPath struct {
+type MLLoadModelPath struct {
 	ModelID string
 }
 
-func (p MlLoadModelPath) Build() (string, error) {
+func (p MLLoadModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlLoadModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLLoadModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6659,25 +6659,25 @@ func (p MlLoadModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlPredictPath (ml.predict)
+// MLPredictPath (ml.predict)
 // ---------------------------------------------------------------------------
 
-// MlPredictPath builds URL paths for the ml.predict operation.
+// MLPredictPath builds URL paths for the ml.predict operation.
 //
 // Predicts new data with trained model.
 //
 // Available: >= 1.3.0
-type MlPredictPath struct {
+type MLPredictPath struct {
 	AlgorithmName string
 	ModelID       string
 }
 
-func (p MlPredictPath) Build() (string, error) {
+func (p MLPredictPath) Build() (string, error) {
 	if p.AlgorithmName == "" {
-		return "", fmt.Errorf("MlPredictPath.AlgorithmName: %w", errRequired)
+		return "", fmt.Errorf("MLPredictPath.AlgorithmName: %w", errRequired)
 	}
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlPredictPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLPredictPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6689,21 +6689,21 @@ func (p MlPredictPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlPredictModelPath (ml.predict_model)
+// MLPredictModelPath (ml.predict_model)
 // ---------------------------------------------------------------------------
 
-// MlPredictModelPath builds URL paths for the ml.predict_model operation.
+// MLPredictModelPath builds URL paths for the ml.predict_model operation.
 //
 // Predicts a model.
 //
 // Available: >= 2.12.0
-type MlPredictModelPath struct {
+type MLPredictModelPath struct {
 	ModelID string
 }
 
-func (p MlPredictModelPath) Build() (string, error) {
+func (p MLPredictModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlPredictModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLPredictModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6715,21 +6715,21 @@ func (p MlPredictModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlPredictModelStreamPath (ml.predict_model_stream)
+// MLPredictModelStreamPath (ml.predict_model_stream)
 // ---------------------------------------------------------------------------
 
-// MlPredictModelStreamPath builds URL paths for the ml.predict_model_stream operation.
+// MLPredictModelStreamPath builds URL paths for the ml.predict_model_stream operation.
 //
 // Predicts a model in streaming mode.
 //
 // Available: >= 3.3.0
-type MlPredictModelStreamPath struct {
+type MLPredictModelStreamPath struct {
 	ModelID string
 }
 
-func (p MlPredictModelStreamPath) Build() (string, error) {
+func (p MLPredictModelStreamPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlPredictModelStreamPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLPredictModelStreamPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6742,18 +6742,18 @@ func (p MlPredictModelStreamPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlRegisterAgentsPath (ml.register_agents)
+// MLRegisterAgentsPath (ml.register_agents)
 // ---------------------------------------------------------------------------
 
-// MlRegisterAgentsPath builds URL paths for the ml.register_agents operation.
+// MLRegisterAgentsPath builds URL paths for the ml.register_agents operation.
 //
 // Register an agent.
 //
 // Available: >= 2.13.0
-type MlRegisterAgentsPath struct {
+type MLRegisterAgentsPath struct {
 }
 
-func (p MlRegisterAgentsPath) Build() (string, error) {
+func (p MLRegisterAgentsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6763,18 +6763,18 @@ func (p MlRegisterAgentsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlRegisterModelPath (ml.register_model)
+// MLRegisterModelPath (ml.register_model)
 // ---------------------------------------------------------------------------
 
-// MlRegisterModelPath builds URL paths for the ml.register_model operation.
+// MLRegisterModelPath builds URL paths for the ml.register_model operation.
 //
 // Registers a model.
 //
 // Available: >= 2.7.0
-type MlRegisterModelPath struct {
+type MLRegisterModelPath struct {
 }
 
-func (p MlRegisterModelPath) Build() (string, error) {
+func (p MLRegisterModelPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6784,16 +6784,16 @@ func (p MlRegisterModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlRegisterModelGroupPath (ml.register_model_group)
+// MLRegisterModelGroupPath (ml.register_model_group)
 // ---------------------------------------------------------------------------
 
-// MlRegisterModelGroupPath builds URL paths for the ml.register_model_group operation.
+// MLRegisterModelGroupPath builds URL paths for the ml.register_model_group operation.
 //
 // Registers a model group.
-type MlRegisterModelGroupPath struct {
+type MLRegisterModelGroupPath struct {
 }
 
-func (p MlRegisterModelGroupPath) Build() (string, error) {
+func (p MLRegisterModelGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6803,18 +6803,18 @@ func (p MlRegisterModelGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlRegisterModelMetaPath (ml.register_model_meta)
+// MLRegisterModelMetaPath (ml.register_model_meta)
 // ---------------------------------------------------------------------------
 
-// MlRegisterModelMetaPath builds URL paths for the ml.register_model_meta operation.
+// MLRegisterModelMetaPath builds URL paths for the ml.register_model_meta operation.
 //
 // Registers model metadata.
 //
 // Available: >= 2.7.0
-type MlRegisterModelMetaPath struct {
+type MLRegisterModelMetaPath struct {
 }
 
-func (p MlRegisterModelMetaPath) Build() (string, error) {
+func (p MLRegisterModelMetaPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6824,25 +6824,25 @@ func (p MlRegisterModelMetaPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchAgenticMemoryPath (ml.search_agentic_memory)
+// MLSearchAgenticMemoryPath (ml.search_agentic_memory)
 // ---------------------------------------------------------------------------
 
-// MlSearchAgenticMemoryPath builds URL paths for the ml.search_agentic_memory operation.
+// MLSearchAgenticMemoryPath builds URL paths for the ml.search_agentic_memory operation.
 //
 // Search for memories of a specific type within a memory container.
 //
 // Available: >= 3.3.0
-type MlSearchAgenticMemoryPath struct {
+type MLSearchAgenticMemoryPath struct {
 	MemoryContainerID string
 	Type              string
 }
 
-func (p MlSearchAgenticMemoryPath) Build() (string, error) {
+func (p MLSearchAgenticMemoryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlSearchAgenticMemoryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLSearchAgenticMemoryPath.MemoryContainerID: %w", errRequired)
 	}
 	if p.Type == "" {
-		return "", fmt.Errorf("MlSearchAgenticMemoryPath.Type: %w", errRequired)
+		return "", fmt.Errorf("MLSearchAgenticMemoryPath.Type: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6856,18 +6856,18 @@ func (p MlSearchAgenticMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchAgentsPath (ml.search_agents)
+// MLSearchAgentsPath (ml.search_agents)
 // ---------------------------------------------------------------------------
 
-// MlSearchAgentsPath builds URL paths for the ml.search_agents operation.
+// MLSearchAgentsPath builds URL paths for the ml.search_agents operation.
 //
 // Search agents.
 //
 // Available: >= 2.13.0
-type MlSearchAgentsPath struct {
+type MLSearchAgentsPath struct {
 }
 
-func (p MlSearchAgentsPath) Build() (string, error) {
+func (p MLSearchAgentsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6877,18 +6877,18 @@ func (p MlSearchAgentsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchConnectorsPath (ml.search_connectors)
+// MLSearchConnectorsPath (ml.search_connectors)
 // ---------------------------------------------------------------------------
 
-// MlSearchConnectorsPath builds URL paths for the ml.search_connectors operation.
+// MLSearchConnectorsPath builds URL paths for the ml.search_connectors operation.
 //
 // Searches for standalone connectors.
 //
 // Available: >= 2.11.0
-type MlSearchConnectorsPath struct {
+type MLSearchConnectorsPath struct {
 }
 
-func (p MlSearchConnectorsPath) Build() (string, error) {
+func (p MLSearchConnectorsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6898,18 +6898,18 @@ func (p MlSearchConnectorsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchMemoryPath (ml.search_memory)
+// MLSearchMemoryPath (ml.search_memory)
 // ---------------------------------------------------------------------------
 
-// MlSearchMemoryPath builds URL paths for the ml.search_memory operation.
+// MLSearchMemoryPath builds URL paths for the ml.search_memory operation.
 //
 // Search memory.
 //
 // Available: >= 2.12.0
-type MlSearchMemoryPath struct {
+type MLSearchMemoryPath struct {
 }
 
-func (p MlSearchMemoryPath) Build() (string, error) {
+func (p MLSearchMemoryPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6919,18 +6919,18 @@ func (p MlSearchMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchMemoryContainerPath (ml.search_memory_container)
+// MLSearchMemoryContainerPath (ml.search_memory_container)
 // ---------------------------------------------------------------------------
 
-// MlSearchMemoryContainerPath builds URL paths for the ml.search_memory_container operation.
+// MLSearchMemoryContainerPath builds URL paths for the ml.search_memory_container operation.
 //
 // Search memory containers.
 //
 // Available: >= 3.3.0
-type MlSearchMemoryContainerPath struct {
+type MLSearchMemoryContainerPath struct {
 }
 
-func (p MlSearchMemoryContainerPath) Build() (string, error) {
+func (p MLSearchMemoryContainerPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6940,21 +6940,21 @@ func (p MlSearchMemoryContainerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchMessagePath (ml.search_message)
+// MLSearchMessagePath (ml.search_message)
 // ---------------------------------------------------------------------------
 
-// MlSearchMessagePath builds URL paths for the ml.search_message operation.
+// MLSearchMessagePath builds URL paths for the ml.search_message operation.
 //
 // Search messages.
 //
 // Available: >= 2.12.0
-type MlSearchMessagePath struct {
+type MLSearchMessagePath struct {
 	MemoryID string
 }
 
-func (p MlSearchMessagePath) Build() (string, error) {
+func (p MLSearchMessagePath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlSearchMessagePath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLSearchMessagePath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -6966,18 +6966,18 @@ func (p MlSearchMessagePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchModelGroupPath (ml.search_model_group)
+// MLSearchModelGroupPath (ml.search_model_group)
 // ---------------------------------------------------------------------------
 
-// MlSearchModelGroupPath builds URL paths for the ml.search_model_group operation.
+// MLSearchModelGroupPath builds URL paths for the ml.search_model_group operation.
 //
 // Searches for model groups.
 //
 // Available: >= 2.9.0
-type MlSearchModelGroupPath struct {
+type MLSearchModelGroupPath struct {
 }
 
-func (p MlSearchModelGroupPath) Build() (string, error) {
+func (p MLSearchModelGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -6987,18 +6987,18 @@ func (p MlSearchModelGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchModelsPath (ml.search_models)
+// MLSearchModelsPath (ml.search_models)
 // ---------------------------------------------------------------------------
 
-// MlSearchModelsPath builds URL paths for the ml.search_models operation.
+// MLSearchModelsPath builds URL paths for the ml.search_models operation.
 //
 // Searches for models.
 //
 // Available: >= 1.3.0
-type MlSearchModelsPath struct {
+type MLSearchModelsPath struct {
 }
 
-func (p MlSearchModelsPath) Build() (string, error) {
+func (p MLSearchModelsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -7008,18 +7008,18 @@ func (p MlSearchModelsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlSearchTasksPath (ml.search_tasks)
+// MLSearchTasksPath (ml.search_tasks)
 // ---------------------------------------------------------------------------
 
-// MlSearchTasksPath builds URL paths for the ml.search_tasks operation.
+// MLSearchTasksPath builds URL paths for the ml.search_tasks operation.
 //
 // Searches for tasks.
 //
 // Available: >= 1.3.0
-type MlSearchTasksPath struct {
+type MLSearchTasksPath struct {
 }
 
-func (p MlSearchTasksPath) Build() (string, error) {
+func (p MLSearchTasksPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -7029,21 +7029,21 @@ func (p MlSearchTasksPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlTrainPath (ml.train)
+// MLTrainPath (ml.train)
 // ---------------------------------------------------------------------------
 
-// MlTrainPath builds URL paths for the ml.train operation.
+// MLTrainPath builds URL paths for the ml.train operation.
 //
 // Trains a model synchronously.
 //
 // Available: >= 1.3.0
-type MlTrainPath struct {
+type MLTrainPath struct {
 	AlgorithmName string
 }
 
-func (p MlTrainPath) Build() (string, error) {
+func (p MLTrainPath) Build() (string, error) {
 	if p.AlgorithmName == "" {
-		return "", fmt.Errorf("MlTrainPath.AlgorithmName: %w", errRequired)
+		return "", fmt.Errorf("MLTrainPath.AlgorithmName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7054,21 +7054,21 @@ func (p MlTrainPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlTrainPredictPath (ml.train_predict)
+// MLTrainPredictPath (ml.train_predict)
 // ---------------------------------------------------------------------------
 
-// MlTrainPredictPath builds URL paths for the ml.train_predict operation.
+// MLTrainPredictPath builds URL paths for the ml.train_predict operation.
 //
 // Trains a model and predicts against the same training dataset.
 //
 // Available: >= 1.3.0
-type MlTrainPredictPath struct {
+type MLTrainPredictPath struct {
 	AlgorithmName string
 }
 
-func (p MlTrainPredictPath) Build() (string, error) {
+func (p MLTrainPredictPath) Build() (string, error) {
 	if p.AlgorithmName == "" {
-		return "", fmt.Errorf("MlTrainPredictPath.AlgorithmName: %w", errRequired)
+		return "", fmt.Errorf("MLTrainPredictPath.AlgorithmName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7079,19 +7079,19 @@ func (p MlTrainPredictPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUndeployModelPath (ml.undeploy_model)
+// MLUndeployModelPath (ml.undeploy_model)
 // ---------------------------------------------------------------------------
 
-// MlUndeployModelPath builds URL paths for the ml.undeploy_model operation.
+// MLUndeployModelPath builds URL paths for the ml.undeploy_model operation.
 //
 // Undeploys a model.
 //
 // Available: >= 2.7.0
-type MlUndeployModelPath struct {
+type MLUndeployModelPath struct {
 	ModelID string
 }
 
-func (p MlUndeployModelPath) Build() (string, error) {
+func (p MLUndeployModelPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -7104,19 +7104,19 @@ func (p MlUndeployModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUnloadModelPath (ml.unload_model)
+// MLUnloadModelPath (ml.unload_model)
 // ---------------------------------------------------------------------------
 
-// MlUnloadModelPath builds URL paths for the ml.unload_model operation.
+// MLUnloadModelPath builds URL paths for the ml.unload_model operation.
 //
 // Unloads a model.
 //
 // Deprecated: >= 2.7.0. Use `undeploy_model` instead.
-type MlUnloadModelPath struct {
+type MLUnloadModelPath struct {
 	ModelID string
 }
 
-func (p MlUnloadModelPath) Build() (string, error) {
+func (p MLUnloadModelPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -7129,29 +7129,29 @@ func (p MlUnloadModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateAgenticMemoryPath (ml.update_agentic_memory)
+// MLUpdateAgenticMemoryPath (ml.update_agentic_memory)
 // ---------------------------------------------------------------------------
 
-// MlUpdateAgenticMemoryPath builds URL paths for the ml.update_agentic_memory operation.
+// MLUpdateAgenticMemoryPath builds URL paths for the ml.update_agentic_memory operation.
 //
 // Update a specific memory by its type and ID.
 //
 // Available: >= 3.3.0
-type MlUpdateAgenticMemoryPath struct {
+type MLUpdateAgenticMemoryPath struct {
 	MemoryContainerID string
 	Type              string
 	ID                string
 }
 
-func (p MlUpdateAgenticMemoryPath) Build() (string, error) {
+func (p MLUpdateAgenticMemoryPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlUpdateAgenticMemoryPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateAgenticMemoryPath.MemoryContainerID: %w", errRequired)
 	}
 	if p.Type == "" {
-		return "", fmt.Errorf("MlUpdateAgenticMemoryPath.Type: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateAgenticMemoryPath.Type: %w", errRequired)
 	}
 	if p.ID == "" {
-		return "", fmt.Errorf("MlUpdateAgenticMemoryPath.ID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateAgenticMemoryPath.ID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7165,21 +7165,21 @@ func (p MlUpdateAgenticMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateConnectorPath (ml.update_connector)
+// MLUpdateConnectorPath (ml.update_connector)
 // ---------------------------------------------------------------------------
 
-// MlUpdateConnectorPath builds URL paths for the ml.update_connector operation.
+// MLUpdateConnectorPath builds URL paths for the ml.update_connector operation.
 //
 // Updates a standalone connector.
 //
 // Available: >= 2.12.0
-type MlUpdateConnectorPath struct {
+type MLUpdateConnectorPath struct {
 	ConnectorID string
 }
 
-func (p MlUpdateConnectorPath) Build() (string, error) {
+func (p MLUpdateConnectorPath) Build() (string, error) {
 	if p.ConnectorID == "" {
-		return "", fmt.Errorf("MlUpdateConnectorPath.ConnectorID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateConnectorPath.ConnectorID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7190,21 +7190,21 @@ func (p MlUpdateConnectorPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateControllerPath (ml.update_controller)
+// MLUpdateControllerPath (ml.update_controller)
 // ---------------------------------------------------------------------------
 
-// MlUpdateControllerPath builds URL paths for the ml.update_controller operation.
+// MLUpdateControllerPath builds URL paths for the ml.update_controller operation.
 //
 // Updates a controller.
 //
 // Available: >= 2.12.0
-type MlUpdateControllerPath struct {
+type MLUpdateControllerPath struct {
 	ModelID string
 }
 
-func (p MlUpdateControllerPath) Build() (string, error) {
+func (p MLUpdateControllerPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlUpdateControllerPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateControllerPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7215,21 +7215,21 @@ func (p MlUpdateControllerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateMemoryPath (ml.update_memory)
+// MLUpdateMemoryPath (ml.update_memory)
 // ---------------------------------------------------------------------------
 
-// MlUpdateMemoryPath builds URL paths for the ml.update_memory operation.
+// MLUpdateMemoryPath builds URL paths for the ml.update_memory operation.
 //
 // Update a memory.
 //
 // Available: >= 2.12.0
-type MlUpdateMemoryPath struct {
+type MLUpdateMemoryPath struct {
 	MemoryID string
 }
 
-func (p MlUpdateMemoryPath) Build() (string, error) {
+func (p MLUpdateMemoryPath) Build() (string, error) {
 	if p.MemoryID == "" {
-		return "", fmt.Errorf("MlUpdateMemoryPath.MemoryID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateMemoryPath.MemoryID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7240,21 +7240,21 @@ func (p MlUpdateMemoryPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateMemoryContainerPath (ml.update_memory_container)
+// MLUpdateMemoryContainerPath (ml.update_memory_container)
 // ---------------------------------------------------------------------------
 
-// MlUpdateMemoryContainerPath builds URL paths for the ml.update_memory_container operation.
+// MLUpdateMemoryContainerPath builds URL paths for the ml.update_memory_container operation.
 //
 // Update a memory container.
 //
 // Available: >= 3.3.0
-type MlUpdateMemoryContainerPath struct {
+type MLUpdateMemoryContainerPath struct {
 	MemoryContainerID string
 }
 
-func (p MlUpdateMemoryContainerPath) Build() (string, error) {
+func (p MLUpdateMemoryContainerPath) Build() (string, error) {
 	if p.MemoryContainerID == "" {
-		return "", fmt.Errorf("MlUpdateMemoryContainerPath.MemoryContainerID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateMemoryContainerPath.MemoryContainerID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7265,21 +7265,21 @@ func (p MlUpdateMemoryContainerPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateMessagePath (ml.update_message)
+// MLUpdateMessagePath (ml.update_message)
 // ---------------------------------------------------------------------------
 
-// MlUpdateMessagePath builds URL paths for the ml.update_message operation.
+// MLUpdateMessagePath builds URL paths for the ml.update_message operation.
 //
 // Update a message.
 //
 // Available: >= 2.12.0
-type MlUpdateMessagePath struct {
+type MLUpdateMessagePath struct {
 	MessageID string
 }
 
-func (p MlUpdateMessagePath) Build() (string, error) {
+func (p MLUpdateMessagePath) Build() (string, error) {
 	if p.MessageID == "" {
-		return "", fmt.Errorf("MlUpdateMessagePath.MessageID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateMessagePath.MessageID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7291,21 +7291,21 @@ func (p MlUpdateMessagePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateModelPath (ml.update_model)
+// MLUpdateModelPath (ml.update_model)
 // ---------------------------------------------------------------------------
 
-// MlUpdateModelPath builds URL paths for the ml.update_model operation.
+// MLUpdateModelPath builds URL paths for the ml.update_model operation.
 //
 // Updates a model.
 //
 // Available: >= 2.12.0
-type MlUpdateModelPath struct {
+type MLUpdateModelPath struct {
 	ModelID string
 }
 
-func (p MlUpdateModelPath) Build() (string, error) {
+func (p MLUpdateModelPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlUpdateModelPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateModelPath.ModelID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7316,21 +7316,21 @@ func (p MlUpdateModelPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUpdateModelGroupPath (ml.update_model_group)
+// MLUpdateModelGroupPath (ml.update_model_group)
 // ---------------------------------------------------------------------------
 
-// MlUpdateModelGroupPath builds URL paths for the ml.update_model_group operation.
+// MLUpdateModelGroupPath builds URL paths for the ml.update_model_group operation.
 //
 // Updates a model group.
 //
 // Available: >= 2.9.0
-type MlUpdateModelGroupPath struct {
+type MLUpdateModelGroupPath struct {
 	ModelGroupID string
 }
 
-func (p MlUpdateModelGroupPath) Build() (string, error) {
+func (p MLUpdateModelGroupPath) Build() (string, error) {
 	if p.ModelGroupID == "" {
-		return "", fmt.Errorf("MlUpdateModelGroupPath.ModelGroupID: %w", errRequired)
+		return "", fmt.Errorf("MLUpdateModelGroupPath.ModelGroupID: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7341,25 +7341,25 @@ func (p MlUpdateModelGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUploadChunkPath (ml.upload_chunk)
+// MLUploadChunkPath (ml.upload_chunk)
 // ---------------------------------------------------------------------------
 
-// MlUploadChunkPath builds URL paths for the ml.upload_chunk operation.
+// MLUploadChunkPath builds URL paths for the ml.upload_chunk operation.
 //
 // Uploads model chunk.
 //
 // Available: >= 2.7.0
-type MlUploadChunkPath struct {
+type MLUploadChunkPath struct {
 	ModelID     string
 	ChunkNumber string
 }
 
-func (p MlUploadChunkPath) Build() (string, error) {
+func (p MLUploadChunkPath) Build() (string, error) {
 	if p.ModelID == "" {
-		return "", fmt.Errorf("MlUploadChunkPath.ModelID: %w", errRequired)
+		return "", fmt.Errorf("MLUploadChunkPath.ModelID: %w", errRequired)
 	}
 	if p.ChunkNumber == "" {
-		return "", fmt.Errorf("MlUploadChunkPath.ChunkNumber: %w", errRequired)
+		return "", fmt.Errorf("MLUploadChunkPath.ChunkNumber: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -7372,18 +7372,18 @@ func (p MlUploadChunkPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// MlUploadModelPath (ml.upload_model)
+// MLUploadModelPath (ml.upload_model)
 // ---------------------------------------------------------------------------
 
-// MlUploadModelPath builds URL paths for the ml.upload_model operation.
+// MLUploadModelPath builds URL paths for the ml.upload_model operation.
 //
 // Registers a model.
 //
 // Deprecated: >= 2.7.0. Use `register_model` instead.
-type MlUploadModelPath struct {
+type MLUploadModelPath struct {
 }
 
-func (p MlUploadModelPath) Build() (string, error) {
+func (p MLUploadModelPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ml")
@@ -7404,12 +7404,12 @@ func (p MlUploadModelPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
 type MsearchPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p MsearchPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_msearch")
 	return pb.release(), nil
 }
@@ -7426,12 +7426,12 @@ func (p MsearchPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type MsearchTemplatePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p MsearchTemplatePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_msearch")
 	pb.writeLit("template")
 	return pb.release(), nil
@@ -8061,20 +8061,20 @@ func (p PingPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// PplExplainPath (ppl.explain)
+// PPLExplainPath (ppl.explain)
 // ---------------------------------------------------------------------------
 
-// PplExplainPath builds URL paths for the ppl.explain operation.
+// PPLExplainPath builds URL paths for the ppl.explain operation.
 //
 // Returns the execution plan for a PPL query.
 //
 // Available: >= 1.0.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/sql-ppl-api/
-type PplExplainPath struct {
+type PPLExplainPath struct {
 }
 
-func (p PplExplainPath) Build() (string, error) {
+func (p PPLExplainPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ppl")
@@ -8083,20 +8083,20 @@ func (p PplExplainPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// PplGetStatsPath (ppl.get_stats)
+// PPLGetStatsPath (ppl.get_stats)
 // ---------------------------------------------------------------------------
 
-// PplGetStatsPath builds URL paths for the ppl.get_stats operation.
+// PPLGetStatsPath builds URL paths for the ppl.get_stats operation.
 //
 // Retrieves performance metrics for the PPL plugin.
 //
 // Available: >= 1.0.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/monitoring/
-type PplGetStatsPath struct {
+type PPLGetStatsPath struct {
 }
 
-func (p PplGetStatsPath) Build() (string, error) {
+func (p PPLGetStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ppl")
@@ -8105,20 +8105,20 @@ func (p PplGetStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// PplPostStatsPath (ppl.post_stats)
+// PPLPostStatsPath (ppl.post_stats)
 // ---------------------------------------------------------------------------
 
-// PplPostStatsPath builds URL paths for the ppl.post_stats operation.
+// PPLPostStatsPath builds URL paths for the ppl.post_stats operation.
 //
 // Retrieves filtered performance metrics for the PPL plugin.
 //
 // Available: >= 1.0.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/monitoring/
-type PplPostStatsPath struct {
+type PPLPostStatsPath struct {
 }
 
-func (p PplPostStatsPath) Build() (string, error) {
+func (p PPLPostStatsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ppl")
@@ -8127,20 +8127,20 @@ func (p PplPostStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// PplQueryPath (ppl.query)
+// PPLQueryPath (ppl.query)
 // ---------------------------------------------------------------------------
 
-// PplQueryPath builds URL paths for the ppl.query operation.
+// PPLQueryPath builds URL paths for the ppl.query operation.
 //
 // Executes a PPL query against OpenSearch indexes.
 //
 // Available: >= 1.0.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/sql-ppl-api/
-type PplQueryPath struct {
+type PPLQueryPath struct {
 }
 
-func (p PplQueryPath) Build() (string, error) {
+func (p PPLQueryPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_ppl")
@@ -8298,12 +8298,12 @@ func (p QueryDatasourcesUpdatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/rank-eval/
 type RankEvalPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p RankEvalPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_rank_eval")
 	return pb.release(), nil
 }
@@ -8898,12 +8898,12 @@ func (p ScrollPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/search/
 type SearchPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	return pb.release(), nil
 }
@@ -9414,12 +9414,12 @@ func (p SearchRelevancePutSearchConfigurationsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest
 type SearchShardsPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchShardsPath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search_shards")
 	return pb.release(), nil
 }
@@ -9436,12 +9436,12 @@ func (p SearchShardsPath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type SearchTemplatePath struct {
-	Index []string
+	Indices []string
 }
 
 func (p SearchTemplatePath) Build() (string, error) {
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_search")
 	pb.writeLit("template")
 	return pb.release(), nil
@@ -11527,21 +11527,21 @@ func (p SecurityAnalyticsSearchFindingCorrelationsPath) Build() (string, error) 
 }
 
 // ---------------------------------------------------------------------------
-// SmCreatePolicyPath (sm.create_policy)
+// SMCreatePolicyPath (sm.create_policy)
 // ---------------------------------------------------------------------------
 
-// SmCreatePolicyPath builds URL paths for the sm.create_policy operation.
+// SMCreatePolicyPath builds URL paths for the sm.create_policy operation.
 //
 // Creates a snapshot management policy.
 //
 // Available: >= 2.1.0
-type SmCreatePolicyPath struct {
+type SMCreatePolicyPath struct {
 	PolicyName string
 }
 
-func (p SmCreatePolicyPath) Build() (string, error) {
+func (p SMCreatePolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmCreatePolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMCreatePolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11552,21 +11552,21 @@ func (p SmCreatePolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmDeletePolicyPath (sm.delete_policy)
+// SMDeletePolicyPath (sm.delete_policy)
 // ---------------------------------------------------------------------------
 
-// SmDeletePolicyPath builds URL paths for the sm.delete_policy operation.
+// SMDeletePolicyPath builds URL paths for the sm.delete_policy operation.
 //
 // Deletes a snapshot management policy.
 //
 // Available: >= 2.1.0
-type SmDeletePolicyPath struct {
+type SMDeletePolicyPath struct {
 	PolicyName string
 }
 
-func (p SmDeletePolicyPath) Build() (string, error) {
+func (p SMDeletePolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmDeletePolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMDeletePolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11577,21 +11577,21 @@ func (p SmDeletePolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmExplainPolicyPath (sm.explain_policy)
+// SMExplainPolicyPath (sm.explain_policy)
 // ---------------------------------------------------------------------------
 
-// SmExplainPolicyPath builds URL paths for the sm.explain_policy operation.
+// SMExplainPolicyPath builds URL paths for the sm.explain_policy operation.
 //
 // Explains the state of the snapshot management policy.
 //
 // Available: >= 2.1.0
-type SmExplainPolicyPath struct {
+type SMExplainPolicyPath struct {
 	PolicyName string
 }
 
-func (p SmExplainPolicyPath) Build() (string, error) {
+func (p SMExplainPolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmExplainPolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMExplainPolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11603,18 +11603,18 @@ func (p SmExplainPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmGetPoliciesPath (sm.get_policies)
+// SMGetPoliciesPath (sm.get_policies)
 // ---------------------------------------------------------------------------
 
-// SmGetPoliciesPath builds URL paths for the sm.get_policies operation.
+// SMGetPoliciesPath builds URL paths for the sm.get_policies operation.
 //
 // Retrieves all snapshot management policies with optional pagination and filtering.
 //
 // Available: >= 2.1.0
-type SmGetPoliciesPath struct {
+type SMGetPoliciesPath struct {
 }
 
-func (p SmGetPoliciesPath) Build() (string, error) {
+func (p SMGetPoliciesPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("_sm")
@@ -11623,21 +11623,21 @@ func (p SmGetPoliciesPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmGetPolicyPath (sm.get_policy)
+// SMGetPolicyPath (sm.get_policy)
 // ---------------------------------------------------------------------------
 
-// SmGetPolicyPath builds URL paths for the sm.get_policy operation.
+// SMGetPolicyPath builds URL paths for the sm.get_policy operation.
 //
 // Retrieves a specific snapshot management policy by name.
 //
 // Available: >= 2.1.0
-type SmGetPolicyPath struct {
+type SMGetPolicyPath struct {
 	PolicyName string
 }
 
-func (p SmGetPolicyPath) Build() (string, error) {
+func (p SMGetPolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmGetPolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMGetPolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11648,21 +11648,21 @@ func (p SmGetPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmStartPolicyPath (sm.start_policy)
+// SMStartPolicyPath (sm.start_policy)
 // ---------------------------------------------------------------------------
 
-// SmStartPolicyPath builds URL paths for the sm.start_policy operation.
+// SMStartPolicyPath builds URL paths for the sm.start_policy operation.
 //
 // Starts a snapshot management policy.
 //
 // Available: >= 2.1.0
-type SmStartPolicyPath struct {
+type SMStartPolicyPath struct {
 	PolicyName string
 }
 
-func (p SmStartPolicyPath) Build() (string, error) {
+func (p SMStartPolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmStartPolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMStartPolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11674,21 +11674,21 @@ func (p SmStartPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmStopPolicyPath (sm.stop_policy)
+// SMStopPolicyPath (sm.stop_policy)
 // ---------------------------------------------------------------------------
 
-// SmStopPolicyPath builds URL paths for the sm.stop_policy operation.
+// SMStopPolicyPath builds URL paths for the sm.stop_policy operation.
 //
 // Stops a snapshot management policy.
 //
 // Available: >= 2.1.0
-type SmStopPolicyPath struct {
+type SMStopPolicyPath struct {
 	PolicyName string
 }
 
-func (p SmStopPolicyPath) Build() (string, error) {
+func (p SMStopPolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmStopPolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMStopPolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -11700,21 +11700,21 @@ func (p SmStopPolicyPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// SmUpdatePolicyPath (sm.update_policy)
+// SMUpdatePolicyPath (sm.update_policy)
 // ---------------------------------------------------------------------------
 
-// SmUpdatePolicyPath builds URL paths for the sm.update_policy operation.
+// SMUpdatePolicyPath builds URL paths for the sm.update_policy operation.
 //
 // Updates an existing snapshot management policy. Requires `if_seq_no` and `if_primary_term`.
 //
 // Available: >= 2.1.0
-type SmUpdatePolicyPath struct {
+type SMUpdatePolicyPath struct {
 	PolicyName string
 }
 
-func (p SmUpdatePolicyPath) Build() (string, error) {
+func (p SMUpdatePolicyPath) Build() (string, error) {
 	if p.PolicyName == "" {
-		return "", fmt.Errorf("SmUpdatePolicyPath.PolicyName: %w", errRequired)
+		return "", fmt.Errorf("SMUpdatePolicyPath.PolicyName: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -12483,18 +12483,18 @@ func (p TransformsStopPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// UbiInitializePath (ubi.initialize)
+// UBIInitializePath (ubi.initialize)
 // ---------------------------------------------------------------------------
 
-// UbiInitializePath builds URL paths for the ubi.initialize operation.
+// UBIInitializePath builds URL paths for the ubi.initialize operation.
 //
 // Initializes the UBI indexes.
 //
 // Available: >= 1.0.0
-type UbiInitializePath struct {
+type UBIInitializePath struct {
 }
 
-func (p UbiInitializePath) Build() (string, error) {
+func (p UBIInitializePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("ubi")
@@ -12545,15 +12545,15 @@ func (p UpdatePath) Build() (string, error) {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-by-query/
 type UpdateByQueryPath struct {
-	Index []string
+	Indices []string
 }
 
 func (p UpdateByQueryPath) Build() (string, error) {
-	if !hasNonEmpty(p.Index) {
-		return "", fmt.Errorf("UpdateByQueryPath.Index: %w", errRequired)
+	if !hasNonEmpty(p.Indices) {
+		return "", fmt.Errorf("UpdateByQueryPath.Indices: %w", errRequired)
 	}
 	pb := acquire()
-	writeSegments(pb, p.Index)
+	writeSegments(pb, p.Indices)
 	pb.writeLit("_update_by_query")
 	return pb.release(), nil
 }
@@ -12585,18 +12585,18 @@ func (p UpdateByQueryRethrottlePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// WlmCreateQueryGroupPath (wlm.create_query_group)
+// WLMCreateQueryGroupPath (wlm.create_query_group)
 // ---------------------------------------------------------------------------
 
-// WlmCreateQueryGroupPath builds URL paths for the wlm.create_query_group operation.
+// WLMCreateQueryGroupPath builds URL paths for the wlm.create_query_group operation.
 //
 // Creates a new query group and sets the resource limits for the new query group.
 //
 // Available: >= 2.17.0
-type WlmCreateQueryGroupPath struct {
+type WLMCreateQueryGroupPath struct {
 }
 
-func (p WlmCreateQueryGroupPath) Build() (string, error) {
+func (p WLMCreateQueryGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_wlm")
 	pb.writeLit("query_group")
@@ -12604,21 +12604,21 @@ func (p WlmCreateQueryGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// WlmDeleteQueryGroupPath (wlm.delete_query_group)
+// WLMDeleteQueryGroupPath (wlm.delete_query_group)
 // ---------------------------------------------------------------------------
 
-// WlmDeleteQueryGroupPath builds URL paths for the wlm.delete_query_group operation.
+// WLMDeleteQueryGroupPath builds URL paths for the wlm.delete_query_group operation.
 //
 // Deletes the specified query group.
 //
 // Available: >= 2.17.0
-type WlmDeleteQueryGroupPath struct {
+type WLMDeleteQueryGroupPath struct {
 	Name string
 }
 
-func (p WlmDeleteQueryGroupPath) Build() (string, error) {
+func (p WLMDeleteQueryGroupPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("WlmDeleteQueryGroupPath.Name: %w", errRequired)
+		return "", fmt.Errorf("WLMDeleteQueryGroupPath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_wlm")
@@ -12628,19 +12628,19 @@ func (p WlmDeleteQueryGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// WlmGetQueryGroupPath (wlm.get_query_group)
+// WLMGetQueryGroupPath (wlm.get_query_group)
 // ---------------------------------------------------------------------------
 
-// WlmGetQueryGroupPath builds URL paths for the wlm.get_query_group operation.
+// WLMGetQueryGroupPath builds URL paths for the wlm.get_query_group operation.
 //
 // Retrieves the specified query group. If no query group is specified, all query groups in the cluster are retrieved.
 //
 // Available: >= 2.17.0
-type WlmGetQueryGroupPath struct {
+type WLMGetQueryGroupPath struct {
 	Name string
 }
 
-func (p WlmGetQueryGroupPath) Build() (string, error) {
+func (p WLMGetQueryGroupPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_wlm")
 	pb.writeLit("query_group")
@@ -12651,21 +12651,21 @@ func (p WlmGetQueryGroupPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// WlmUpdateQueryGroupPath (wlm.update_query_group)
+// WLMUpdateQueryGroupPath (wlm.update_query_group)
 // ---------------------------------------------------------------------------
 
-// WlmUpdateQueryGroupPath builds URL paths for the wlm.update_query_group operation.
+// WLMUpdateQueryGroupPath builds URL paths for the wlm.update_query_group operation.
 //
 // Updates the specified query group.
 //
 // Available: >= 2.17.0
-type WlmUpdateQueryGroupPath struct {
+type WLMUpdateQueryGroupPath struct {
 	Name string
 }
 
-func (p WlmUpdateQueryGroupPath) Build() (string, error) {
+func (p WLMUpdateQueryGroupPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("WlmUpdateQueryGroupPath.Name: %w", errRequired)
+		return "", fmt.Errorf("WLMUpdateQueryGroupPath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_wlm")

@@ -13,13 +13,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 func main() {
@@ -45,15 +47,15 @@ Next, create a source index with some test data:
 	destIndex := "task-dest"
 
 	client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{
-		Index: sourceIndex,
-		Body:  strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
+		Index:      sourceIndex,
+		BodyReader: strings.NewReader(`{"settings": {"number_of_shards": 1, "number_of_replicas": 0}}`),
 	})
 
 	// Index a document
-	client.Index(ctx, opensearchapi.IndexReq{
+	client.Doc.Index(ctx, opensearchapi.IndexReq{
 		Index: sourceIndex,
 		Body:  strings.NewReader(`{"title": "Test Document", "year": 2024}`),
-		Params: opensearchapi.IndexParams{
+		Params: &opensearchapi.IndexParams{
 			Refresh: "true",
 		},
 	})
@@ -61,24 +63,30 @@ Next, create a source index with some test data:
 
 ## Submitting Async Tasks
 
-Long-running operations like reindex, delete_by_query, and update_by_query can be submitted asynchronously by setting `WaitForCompletion` to `false`. The response contains a task ID that can be used to poll for completion.
+Long-running operations like reindex, delete_by_query, and update_by_query can be submitted asynchronously by setting `WaitForCompletion` to `false`. The response body has a dynamic schema and is captured as raw JSON, so unmarshal it to read the task ID.
 
 ### Async Reindex
 
 ```go
-	reindexResp, err := client.Reindex(ctx, opensearchapi.ReindexReq{
-		Body: opensearchutil.NewJSONReader(map[string]any{
+	reindexResp, err := client.Reindex(ctx, &opensearchapi.ReindexReq{
+		BodyReader: opensearchutil.NewJSONReader(map[string]any{
 			"source": map[string]any{"index": sourceIndex},
 			"dest":   map[string]any{"index": destIndex},
 		}),
-		Params: opensearchapi.ReindexParams{
-			WaitForCompletion: opensearchapi.ToPointer(false),
+		Params: &opensearchapi.ReindexParams{
+			WaitForCompletion: opensearch.ToPointer(false),
 		},
 	})
 	if err != nil {
 		return err
 	}
-	taskID := reindexResp.Task
+	var reindexTask struct {
+		Task string `json:"task"`
+	}
+	if err := json.Unmarshal(reindexResp.Body, &reindexTask); err != nil {
+		return err
+	}
+	taskID := reindexTask.Task
 	fmt.Printf("Task submitted: %s\n", taskID)
 ```
 
@@ -110,21 +118,22 @@ Use `Tasks.Get` to poll a task by ID. The `Completed` field indicates whether th
 
 ## Inspecting Task Status
 
-The `Status` field on a task is a `json.RawMessage` because its shape depends on the task type. The client provides typed structs and parse helpers for each known status type.
+The `Status` field on a task is a discriminated union (`*opensearchapi.TasksTaskInfoBaseStatus`) because its shape depends on the task type. Call `Type()` to determine which branch was decoded, then call the matching accessor. The raw JSON is always available via `RawJSON()`.
 
 ### BulkByScroll Tasks (reindex, delete_by_query, update_by_query)
 
-For reindex, delete_by_query, and update_by_query tasks, use `ParseTaskStatus` to unmarshal the status into a typed struct:
+For reindex, delete_by_query, and update_by_query tasks, call `BulkByScrollTaskStatus()` to get the typed struct. Note that `Created` and `Updated` are pointers and should be nil-checked:
 
 ```go
-	status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
-	if err != nil {
-		return err
-	}
+	status := taskResp.Task.Status.BulkByScrollTaskStatus()
 
 	fmt.Printf("Total: %d\n", status.Total)
-	fmt.Printf("Created: %d\n", status.Created)
-	fmt.Printf("Updated: %d\n", status.Updated)
+	if status.Created != nil {
+		fmt.Printf("Created: %d\n", *status.Created)
+	}
+	if status.Updated != nil {
+		fmt.Printf("Updated: %d\n", *status.Updated)
+	}
 	fmt.Printf("Deleted: %d\n", status.Deleted)
 	fmt.Printf("Batches: %d\n", status.Batches)
 	fmt.Printf("Version conflicts: %d\n", status.VersionConflicts)
@@ -133,66 +142,51 @@ For reindex, delete_by_query, and update_by_query tasks, use `ParseTaskStatus` t
 	fmt.Printf("Retries (search): %d\n", status.Retries.Search)
 ```
 
-For sliced requests, the `Slices` field contains per-slice status. Each element is a `BulkByScrollTaskStatusOrException` — either a nested `BulkByScrollTaskStatus` (on success) or a `BulkByScrollTaskException` (on failure):
+For sliced requests, the `Slices` field contains per-slice status. Each element is a `BulkByScrollTaskStatusSlicesItem` -- a discriminated union that is either a nested `BulkByScrollTaskStatus` (on success) or an `ErrorCause` (on failure). Call `Type()` then the matching accessor:
 
 ```go
 	for i, slice := range status.Slices {
-		if slice.Status != nil {
-			fmt.Printf("Slice %d: %d total\n", i, slice.Status.Total)
-		}
-		if slice.Exception != nil {
-			fmt.Printf("Slice %d failed: %s\n", i, slice.Exception.Reason)
+		switch slice.Type() {
+		case opensearchapi.BulkByScrollTaskStatusSlicesItemBulkByScrollTaskStatusType:
+			sliceStatus := slice.BulkByScrollTaskStatus()
+			fmt.Printf("Slice %d: %d total\n", i, sliceStatus.Total)
+		case opensearchapi.BulkByScrollTaskStatusSlicesItemExceptionType:
+			exc := slice.Exception()
+			reason := ""
+			if exc.Reason != nil {
+				reason = *exc.Reason
+			}
+			fmt.Printf("Slice %d failed: %s\n", i, reason)
 		}
 	}
 ```
 
 ### Replication Tasks
 
-For replication tasks (e.g. index, delete, bulk shard operations), use `ParseTaskStatus`:
+For replication tasks (e.g. index, delete, bulk shard operations), call `TasksReplicationTaskStatus()`:
 
 ```go
-	replStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.ReplicationTaskStatus](taskResp.Task.Status)
-	if err != nil {
-		return err
-	}
+	replStatus := taskResp.Task.Status.TasksReplicationTaskStatus()
 	fmt.Printf("Phase: %s\n", replStatus.Phase)
-```
-
-### Primary-Replica Resync Tasks
-
-For primary-replica resync tasks, use `ParseTaskStatus`:
-
-```go
-	resyncStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.ResyncTaskStatus](taskResp.Task.Status)
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Phase: %s\n", resyncStatus.Phase)
-	fmt.Printf("Total operations: %d\n", resyncStatus.TotalOperations)
-	fmt.Printf("Resynced: %d\n", resyncStatus.ResyncedOperations)
-	fmt.Printf("Skipped: %d\n", resyncStatus.SkippedOperations)
 ```
 
 ### Persistent Tasks
 
-For persistent task executors, use `ParseTaskStatus`:
+For persistent task executors, call `TasksPersistentTaskStatus()`:
 
 ```go
-	persistStatus, err := opensearchapi.ParseTaskStatus[opensearchapi.PersistentTaskStatus](taskResp.Task.Status)
-	if err != nil {
-		return err
-	}
+	persistStatus := taskResp.Task.Status.TasksPersistentTaskStatus()
 	fmt.Printf("State: %s\n", persistStatus.State)
 ```
 
 ### Unknown Task Types
 
-For task types without a dedicated struct, unmarshal the raw JSON directly:
+For task types without a dedicated branch, inspect the raw JSON directly:
 
 ```go
 	if taskResp.Task.Status != nil {
 		var raw map[string]any
-		if err := json.Unmarshal(taskResp.Task.Status, &raw); err != nil {
+		if err := json.Unmarshal(taskResp.Task.Status.RawJSON(), &raw); err != nil {
 			return err
 		}
 		fmt.Printf("Raw status: %v\n", raw)
@@ -201,28 +195,45 @@ For task types without a dedicated struct, unmarshal the raw JSON directly:
 
 ## Listing Tasks
 
-Use `Tasks.List` to see all running tasks on the cluster:
+Use `Tasks.List` to see all running tasks on the cluster. The response body has a dynamic schema and is captured as raw JSON, so unmarshal it into a struct that matches the fields you need:
 
 ```go
 	listResp, err := client.Tasks.List(ctx, nil)
 	if err != nil {
 		return err
 	}
-	for nodeID, node := range listResp.Nodes {
+	var taskList struct {
+		Nodes map[string]struct {
+			Name  string         `json:"name"`
+			Tasks map[string]any `json:"tasks"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(listResp.Body, &taskList); err != nil {
+		return err
+	}
+	for nodeID, node := range taskList.Nodes {
 		fmt.Printf("Node %s (%s): %d tasks\n", node.Name, nodeID, len(node.Tasks))
 	}
 ```
 
 ## Cancelling Tasks
 
-Long-running tasks can be cancelled by task ID:
+Long-running tasks can be cancelled by task ID. The response body has a dynamic schema and is captured as raw JSON:
 
 ```go
 	cancelResp, err := client.Tasks.Cancel(ctx, opensearchapi.TasksCancelReq{TaskID: taskID})
 	if err != nil {
 		return err
 	}
-	for _, node := range cancelResp.Nodes {
+	var cancelled struct {
+		Nodes map[string]struct {
+			Tasks map[string]any `json:"tasks"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(cancelResp.Body, &cancelled); err != nil {
+		return err
+	}
+	for _, node := range cancelled.Nodes {
 		for id := range node.Tasks {
 			fmt.Printf("Cancelled task: %s\n", id)
 		}
@@ -231,33 +242,32 @@ Long-running tasks can be cancelled by task ID:
 
 ## Status Type Reference
 
-The OpenSearch server returns different status structures depending on the task type. All status types have been present since OpenSearch 1.0.0.
+The OpenSearch server returns different status structures depending on the task type. The `Status` field is a discriminated union (`*opensearchapi.TasksTaskInfoBaseStatus`); call `Type()` to determine the branch, then the matching accessor.
 
-| Task Type                                 | Call                                      | Status Struct            | Key Fields                                                                |
-| ----------------------------------------- | ----------------------------------------- | ------------------------ | ------------------------------------------------------------------------- |
-| reindex, delete_by_query, update_by_query | `ParseTaskStatus[BulkByScrollTaskStatus]` | `BulkByScrollTaskStatus` | total, created, updated, deleted, batches, retries, throttle info, slices |
-| replication (index, delete, bulk shard)   | `ParseTaskStatus[ReplicationTaskStatus]`  | `ReplicationTaskStatus`  | phase                                                                     |
-| primary-replica resync                    | `ParseTaskStatus[ResyncTaskStatus]`       | `ResyncTaskStatus`       | phase, totalOperations, resyncedOperations, skippedOperations             |
-| persistent task executor                  | `ParseTaskStatus[PersistentTaskStatus]`   | `PersistentTaskStatus`   | state                                                                     |
+| Task Type                                 | Accessor                       | Status Struct                | Key Fields                                                                |
+| ----------------------------------------- | ------------------------------ | ---------------------------- | ------------------------------------------------------------------------- |
+| reindex, delete_by_query, update_by_query | `BulkByScrollTaskStatus()`     | `BulkByScrollTaskStatus`     | total, created, updated, deleted, batches, retries, throttle info, slices |
+| replication (index, delete, bulk shard)   | `TasksReplicationTaskStatus()` | `TasksReplicationTaskStatus` | phase                                                                     |
+| persistent task executor                  | `TasksPersistentTaskStatus()`  | `TasksPersistentTaskStatus`  | state                                                                     |
 
-For any unrecognized task type, the `Status` field remains available as `json.RawMessage` for direct unmarshaling.
+For any unrecognized task type, the raw JSON is available via `Status.RawJSON()` for direct unmarshaling, or `Status.Map()` for a `map[string]json.RawMessage`.
 
 ### Shorthand Helpers
 
-If you parse the same status type frequently, you can define a short alias in your own code:
+If you read the same status type frequently, you can define a short helper in your own code:
 
 ```go
-func parseBulkByScrollStatus(raw json.RawMessage) (*opensearchapi.BulkByScrollTaskStatus, error) {
-	return opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](raw)
+func bulkByScrollStatus(status *opensearchapi.TasksTaskInfoBaseStatus) opensearchapi.BulkByScrollTaskStatus {
+	return status.BulkByScrollTaskStatus()
 }
 ```
 
 ## Cleanup
 
 ```go
-	delResp, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
-		Indices: []string{sourceIndex, destIndex},
-		Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+		Indices:  []string{sourceIndex, destIndex},
+		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 	})
 	if err != nil {
 		return err

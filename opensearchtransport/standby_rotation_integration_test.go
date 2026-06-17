@@ -18,10 +18,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/test/readiness"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	tptestutil "github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/internal/test/readiness"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	tptestutil "github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil"
 )
 
 // discoveryPause is the delay between DiscoverNodes calls in retry loops.
@@ -193,7 +193,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 		if err != nil {
 			lastErr = err
 			t.Logf("Discovery attempt %d failed: %v", attempt, err)
-			// Brief pause before retry — gives resurrection goroutines
+			// Brief pause before retry -- gives resurrection goroutines
 			// time to complete health checks before the next DiscoverNodes
 			// replaces the pool and cancels the old generation's context.
 			select {
@@ -224,7 +224,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) op
 			return m
 		}
 
-		// Pause between cycles — gives resurrection goroutines time to
+		// Pause between cycles -- gives resurrection goroutines time to
 		// process context cancellation before the next DiscoverNodes.
 		select {
 		case <-ctx.Done():

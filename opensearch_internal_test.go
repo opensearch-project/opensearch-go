@@ -42,9 +42,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/build"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
 var called int
@@ -295,6 +295,78 @@ func TestClientInterfe(t *testing.T) {
 	})
 }
 
+// TestResponseString_RawBody verifies that String renders from the buffered
+// rawBody set by Do and never consumes Body, so a value copy (as fmt makes)
+// renders the body and Body remains readable afterwards.
+func TestResponseString_RawBody(t *testing.T) {
+	c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+	require.NoError(t, err)
+
+	type versionInfo struct {
+		Number string `json:"number"`
+	}
+	type rootResp struct {
+		Version versionInfo `json:"version"`
+	}
+
+	var got rootResp
+	resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.rawBody, "Do should buffer the decoded body into rawBody")
+
+	// A value copy renders the buffered body without draining Body.
+	valueCopy := *resp
+	rendered := valueCopy.String()
+	require.Contains(t, rendered, `"number" : "1.0.0"`)
+
+	// Body is still fully readable after rendering.
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	require.Contains(t, string(body), `"number" : "1.0.0"`)
+}
+
+// TestResponseString_ErrorBodyNotDrained reproduces the canonical error-handling
+// flow: logging an error response with String() must not drain Body, so a
+// subsequent ParseError still sees the real API error. Do buffers error-response
+// bodies into rawBody, so String takes the rawBody fast-path and never touches
+// Body. Without that buffering, the value-receiver String would consume the
+// single-use error stream and ParseError would read an empty body.
+func TestResponseString_ErrorBodyNotDrained(t *testing.T) {
+	const errBody = `{"error":{"type":"index_not_found_exception","reason":"no such index"},"status":404}`
+
+	rt := mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusNotFound,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(errBody)),
+		}, nil
+	})
+	c, err := NewClient(Config{Transport: rt})
+	require.NoError(t, err)
+
+	type rootResp struct {
+		Version struct{ Number string } `json:"version"`
+	}
+	var got rootResp
+	resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.True(t, resp.IsError())
+	require.NotNil(t, resp.rawBody, "Do should buffer error-response bodies into rawBody")
+
+	// Logging the error via String (value copy, as fmt makes) must not drain Body.
+	valueCopy := *resp
+	_ = valueCopy.String()
+
+	// ParseError still reads the intact body and surfaces the real API error,
+	// not ErrJSONUnmarshalBody from an empty payload.
+	perr := ParseError(resp)
+	require.Error(t, perr)
+	require.NotErrorIs(t, perr, ErrJSONUnmarshalBody)
+	require.Contains(t, perr.Error(), "index_not_found_exception")
+}
+
 // fakeTransport is an opensearchtransport.Interface that returns a fixed
 // (response, error) pair, used to exercise Client.Do's handling of the
 // (resp != nil, err != nil) contract that Perform may now return.
@@ -342,8 +414,13 @@ func TestDoPerformErrorClassification(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
+			// Disable on-start discovery: this test swaps c.Transport after
+			// construction, which would race with the discovery goroutine that
+			// the default (router-on) config otherwise spawns.
+			noDiscovery := false
 			c, err := NewClient(Config{
-				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+				DiscoverNodesOnStart: &noDiscovery,
 			})
 			require.NoError(t, err)
 

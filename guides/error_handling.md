@@ -34,7 +34,7 @@ This design maximizes availability but requires careful error checking in client
 
 ## Automatic Partial Failure Errors (Recommended)
 
-Configure the client's error mask to control which categories of partial failure surface as typed Go errors. In v4, partial failures are masked by default (preserving pre-bitfield behavior); opt in by setting `Config.Errors: errmask.New()`. In v5+ the default flips and partial failures surface as typed errors automatically.
+Configure the client's error mask to control which categories of partial failure surface as typed Go errors. By default, partial failures surface as typed errors automatically (`Config.Errors == nil` resolves to `errmask.Empty`). To suppress them and restore the older mask-everything behavior, set `Config.Errors: errmask.New(errmask.All)` or use the `OPENSEARCH_GO_ERROR_MASK` environment variable.
 
 > **Where category names come from.** Partial-failure categories (`BulkItems`, `SearchShards`, `WriteShards`, `MultiSearchItems`, ...) are stable identifiers in the client surface. The bit constant on `errmask` uses the PascalCase form (`errmask.BulkItems`); the env-var token is the lowercase snake_case form (`bulk_items`, `search_shards`, `write_shards`). The categories are derived from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), but you do not need to read the spec to use them -- the [Error Type Reference](#error-type-reference) below lists every category, and new categories arrive as additive surface in subsequent client releases.
 
@@ -54,31 +54,8 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 When the `BulkItems` bit is unmasked, bulk operations return a `*PartialBulkError` whenever any items fail. The response is still fully populated -- callers can inspect both the error and the response.
 
-**v4** (`github.com/opensearch-project/opensearch-go/v4/opensearchapi`):
-
 ```go
-resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialBulkError:
-        // resp is fully populated -- inspect individual items
-        log.Printf("%d/%d items failed",
-            len(e.FailedItems),
-            e.SucceededCount+len(e.FailedItems))
-        for _, item := range e.FailedItems {
-            log.Printf("  %s %s/%s: %s",
-                item.Error.Type, item.Index, item.ID, item.Error.Reason)
-        }
-    default:
-        return err // transport or HTTP error
-    }
-}
-```
-
-**v5preview** (`github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi`):
-
-```go
-resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+resp, err := client.Doc.Bulk(ctx, opensearchapi.BulkReq{Body: body})
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
     case *opensearchapi.PartialBulkError:
@@ -86,7 +63,7 @@ for _, sub := range opensearchapi.Errors(err) {
             len(e.FailedItems),
             e.SucceededCount+len(e.FailedItems))
         for _, item := range e.FailedItems {
-            // BulkRespItem.ID, BulkRespItem.Error, and ErrorCause.Reason are pointers in v5preview.
+            // BulkRespItem.ID, BulkRespItem.Error, and ErrorCause.Reason are pointers.
             id := ""
             if item.ID != nil {
                 id = *item.ID
@@ -108,33 +85,12 @@ for _, sub := range opensearchapi.Errors(err) {
 
 ### Search Operations
 
-Search operations return a `*PartialSearchError` when shards fail. The response contains whatever hits came back from the successful shards.
-
-**v4** (`SearchReq` field is `Indices`):
+Search operations return a `*PartialSearchError` when shards fail. The response contains whatever hits came back from the successful shards. Multi-index `Req` types use the `Index` field:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Indices: []string{"events"},
-    Body:    body,
-})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialSearchError:
-        log.Printf("%d/%d shards failed, got %d hits",
-            e.FailedShards, e.TotalShards,
-            len(resp.Hits.Hits))
-    default:
-        return err
-    }
-}
-```
-
-**v5preview** (`SearchReq` field is `Index`):
-
-```go
-resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"events"},
-    Body:  body,
+    Indices:      []string{"events"},
+    BodyReader: body,
 })
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
@@ -152,31 +108,10 @@ Multi-search (`MSearch`, `MSearchTemplate`) and scroll (`Scroll.Get`) operations
 
 ### Write Operations
 
-Index, Create, Update, and Delete operations return a `*ShardFailureError` when the primary shard succeeds but replica shards fail. The `Operation` field identifies which write operation was performed.
-
-**v4** (document ID field is `DocumentID`):
+Index, Create, Update, and Delete operations return a `*ShardFailureError` when the primary shard succeeds but replica shards fail. The `Operation` field identifies which write operation was performed. The document ID field is `ID`:
 
 ```go
-resp, err := client.Index(ctx, opensearchapi.IndexReq{
-    Index:      "test",
-    DocumentID: "1",
-    Body:       strings.NewReader(`{"field": "value"}`),
-})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed (primary succeeded)",
-            e.Operation, e.FailedShards, e.TotalShards)
-    default:
-        return err
-    }
-}
-```
-
-**v5preview** (document ID field is `ID`):
-
-```go
-resp, err := client.Index(ctx, opensearchapi.IndexReq{
+resp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
     Index: "test",
     ID:    "1",
     Body:  strings.NewReader(`{"field": "value"}`),
@@ -219,13 +154,12 @@ Two patterns cover every partial-failure use case. Pick the one that matches you
 **Treat any server or API failure as a hard error** -- the simplest and most idiomatic Go path. Use this when the operation has no meaningful "partial success" -- any error is a reason to stop:
 
 ```go
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
 // resp is fully populated; partial failures (if any) are folded into err
-// when the wrapper bits are unmasked (the v5preview default, or v4 with
-// Config.Errors: errmask.New()).
+// when the wrapper bits are unmasked (the default).
 ```
 
 **Inspect categories with a `for`/`switch`** -- when partial error handling is appropriate. Partial error handling lets the client and its application recover from known failure modes they can tolerate (e.g. continue serving a search with a few failed shards, or retry only the bulk items the server rejected) instead of failing the whole operation. The `default` arm catches transport / HTTP / decode errors and any partial-failure category added in a future release:
@@ -312,34 +246,32 @@ Treat `As`/`Has` and the per-Resp helpers against the partial-failure error type
 
 ### Error Type Reference
 
-| Error Type               | Returned By                                                                                              | Key fields                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `*PartialBulkError`      | `Bulk`, `BulkStream` (v5preview)                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                              |
-| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT` (v5preview) | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
-| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                  | `Operation string`, `FailedShards int`, `TotalShards int`                       |
-| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                         | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
-| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                                          | `Unwrap() []error` (multi-error contract)                                       |
-| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                  | `Unwrap() []error`                                                              |
+| Error Type               | Returned By                                                                                  | Key fields                                                                      |
+| ------------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `*PartialBulkError`      | `Bulk`, `BulkStream`                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                              |
+| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT` | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
+| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                      | `Operation string`, `FailedShards int`, `TotalShards int`                       |
+| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                             | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
+| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                              | `Unwrap() []error` (multi-error contract)                                       |
+| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                      | `Unwrap() []error`                                                              |
 
 Every single-bit error type implements the `PartialFailureError` interface and works with `errors.As`. Per-op multi-error containers (`*MSearchErrors`, ...) implement `Unwrap() []error`, so `errors.As` against any sub-error type still matches whether the response carried one or many.
 
-The high-level error type names match across `opensearchapi/` (v4) and `v5preview/opensearchapi/`. The internal field types diverge because v5preview is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):
+The error types expose top-level fields directly. The internal field types are generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):
 
-| Field role                      | v4 (`opensearchapi`)    | v5preview (`v5preview/opensearchapi`) |
-| ------------------------------- | ----------------------- | ------------------------------------- |
-| Per-shard failure element       | `ResponseShardsFailure` | `ShardSearchFailure`                  |
-| Per-sub-response error envelope | inline `*DocumentError` | embedded `ErrorRespBase`              |
-| Shard envelope on responses     | `ResponseShards`        | `ShardStatistics`                     |
+| Field role                      | Type                     |
+| ------------------------------- | ------------------------ |
+| Per-shard failure element       | `ShardSearchFailure`     |
+| Per-sub-response error envelope | embedded `ErrorRespBase` |
+| Shard envelope on responses     | `ShardStatistics`        |
 
-Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) compiles unchanged across both surfaces. Code that walks the per-shard failure slice needs to switch type names. Multi-index `Req` types also diverge: v4's `SearchReq.Indices` is `Index` in v5preview (see [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full surface delta).
+Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) needs nothing further. Code that walks the per-shard failure slice uses the `ShardSearchFailure` element type. Multi-index `Req` types use the `Index` field (e.g. `SearchReq.Index []string`); see [`opensearchapi/MIGRATING.md`](../opensearchapi/MIGRATING.md) for the full surface delta.
 
 ---
 
 ## Manual Partial Failure Checking
 
-When the relevant wrapper bits are masked (the v4 default), callers must inspect response fields directly. The sections below document this pattern.
-
-> **Field-name note for v5preview readers**: examples in this section use v4 field names. v5preview callers should substitute `Index` for `Indices` on multi-index Req types (e.g. `SearchReq.Index`), use `ID` instead of `DocumentID` on `IndexReq`, and switch the import path to `github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi`. See [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full delta.
+When the relevant wrapper bits are masked, callers must inspect response fields directly. The sections below document this pattern.
 
 ### 1. Bulk Operations
 
@@ -354,11 +286,11 @@ import (
     "log"
     "strings"
 
-    "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+    "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func safeBulkOperation(client *opensearchapi.Client, ctx context.Context) error {
-    resp, err := client.Bulk(ctx, opensearchapi.BulkReq{
+    resp, err := client.Doc.Bulk(ctx, opensearchapi.BulkReq{
         Body: strings.NewReader(`{ "index": { "_index": "test" } }
 { "field": "value1" }
 { "index": { "_index": "test" } }
@@ -373,13 +305,18 @@ func safeBulkOperation(client *opensearchapi.Client, ctx context.Context) error 
     if resp.Errors {
         log.Printf("Bulk operation had partial failures")
 
-        // Examine each item to find failures
+        // Examine each item to find failures. resp.Items is []BulkItem;
+        // each BulkItem has one non-nil *BulkRespItem named for the operation.
         for i, item := range resp.Items {
-            for action, details := range item {
-                if details.Status >= 300 {
+            for action, details := range bulkItemOps(item) {
+                if details.Status >= 300 && details.Error != nil {
+                    reason := ""
+                    if details.Error.Reason != nil {
+                        reason = *details.Error.Reason
+                    }
                     log.Printf("Item %d (%s) failed: status=%d, error=%s: %s",
                         i, action, details.Status,
-                        details.Error.Type, details.Error.Reason)
+                        details.Error.Type, reason)
                 }
             }
         }
@@ -393,7 +330,7 @@ func safeBulkOperation(client *opensearchapi.Client, ctx context.Context) error 
         // Example: Fail if more than half failed
         failedCount := 0
         for _, item := range resp.Items {
-            for _, details := range item {
+            for _, details := range bulkItemOps(item) {
                 if details.Status >= 300 {
                     failedCount++
                 }
@@ -411,6 +348,23 @@ func safeBulkOperation(client *opensearchapi.Client, ctx context.Context) error 
     }
 
     return nil
+}
+
+// bulkItemOps returns the non-nil per-operation result of a BulkItem keyed by
+// operation name, so call sites can iterate uniformly.
+func bulkItemOps(item opensearchapi.BulkItem) map[string]*opensearchapi.BulkRespItem {
+    ops := make(map[string]*opensearchapi.BulkRespItem, 1)
+    switch {
+    case item.Index != nil:
+        ops["index"] = item.Index
+    case item.Create != nil:
+        ops["create"] = item.Create
+    case item.Update != nil:
+        ops["update"] = item.Update
+    case item.Delete != nil:
+        ops["delete"] = item.Delete
+    }
+    return ops
 }
 ```
 
@@ -433,10 +387,19 @@ func safeSearchOperation(client *opensearchapi.Client, ctx context.Context) erro
         log.Printf("Shards: %d total, %d successful, %d failed",
             resp.Shards.Total, resp.Shards.Successful, resp.Shards.Failed)
 
-        // Log failure details
+        // Log failure details. ShardSearchFailure.Index is *string and
+        // Reason.Reason is *string.
         for _, failure := range resp.Shards.Failures {
+            index := ""
+            if failure.Index != nil {
+                index = *failure.Index
+            }
+            reason := ""
+            if failure.Reason.Reason != nil {
+                reason = *failure.Reason.Reason
+            }
             log.Printf("Shard failure: shard=%d, index=%s, reason=%s",
-                failure.Shard, failure.Index, failure.Reason.Reason)
+                failure.Shard, index, reason)
         }
 
         // Calculate failure rate
@@ -465,7 +428,7 @@ Write operations return HTTP 201 or 200 if the primary shard succeeds, even if a
 
 ```go
 func safeIndexOperation(client *opensearchapi.Client, ctx context.Context) error {
-    resp, err := client.Index(ctx, opensearchapi.IndexReq{
+    resp, err := client.Doc.Index(ctx, opensearchapi.IndexReq{
         Index: "test",
         Body:  strings.NewReader(`{"field": "value"}`),
     })
@@ -506,7 +469,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
     Errors: &mask,
 })
 
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     // Catches transport errors, HTTP errors, AND partial failures.
     return err
@@ -519,14 +482,14 @@ if err != nil {
 
 ```go
 // WRONG - Missing partial failure checks
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
 log.Println("Success!") // Danger: resp.Errors may be true
 
 // CORRECT - Check partial failures
-resp, err := client.Bulk(ctx, req)
+resp, err := client.Doc.Bulk(ctx, req)
 if err != nil {
     return err
 }
@@ -571,7 +534,7 @@ func bulkWithRetry(client *opensearchapi.Client, ctx context.Context, items []st
     currentItems := items
 
     for attempt := 0; attempt < maxRetries; attempt++ {
-        resp, err := client.Bulk(ctx, buildBulkRequest(currentItems))
+        resp, err := client.Doc.Bulk(ctx, buildBulkRequest(currentItems))
         if err != nil {
             return err
         }
@@ -583,15 +546,15 @@ func bulkWithRetry(client *opensearchapi.Client, ctx context.Context, items []st
         // Collect failed items for retry
         var failedItems []string
         for i, item := range resp.Items {
-            for _, details := range item {
-                if details.Status >= 300 {
-                    // Check if error is retryable
-                    if details.Error != nil && isRetryable(details.Error.Type) {
-                        failedItems = append(failedItems, currentItems[i])
-                    } else if details.Error != nil {
-                        log.Printf("Non-retryable error: %s", details.Error.Type)
-                    }
-                }
+            details := bulkItemResult(item)
+            if details == nil || details.Status < 300 {
+                continue
+            }
+            // Check if error is retryable
+            if details.Error != nil && isRetryable(details.Error.Type) {
+                failedItems = append(failedItems, currentItems[i])
+            } else if details.Error != nil {
+                log.Printf("Non-retryable error: %s", details.Error.Type)
             }
         }
 
@@ -615,6 +578,22 @@ func isRetryable(errType string) bool {
         "timeout_exception":                true,
     }
     return retryableTypes[errType]
+}
+
+// bulkItemResult returns the single non-nil per-operation result carried by a
+// BulkItem, or nil if none is set.
+func bulkItemResult(item opensearchapi.BulkItem) *opensearchapi.BulkRespItem {
+    switch {
+    case item.Index != nil:
+        return item.Index
+    case item.Create != nil:
+        return item.Create
+    case item.Update != nil:
+        return item.Update
+    case item.Delete != nil:
+        return item.Delete
+    }
+    return nil
 }
 ```
 
@@ -646,12 +625,14 @@ func (m *OperationMetrics) Record(resp *opensearchapi.BulkResp) {
         m.PartialFailures++
 
         for _, item := range resp.Items {
-            for _, details := range item {
-                if details.Status < 300 {
-                    m.SuccessfulItems++
-                } else {
-                    m.FailedItems++
-                }
+            details := bulkItemResult(item)
+            if details == nil {
+                continue
+            }
+            if details.Status < 300 {
+                m.SuccessfulItems++
+            } else {
+                m.FailedItems++
             }
         }
     } else {
@@ -704,7 +685,7 @@ import (
     "strings"
     "time"
 
-    "github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+    "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 type BulkIndexer struct {
@@ -728,7 +709,7 @@ func (b *BulkIndexer) Index(ctx context.Context, docs []Document) error {
             }
         }
 
-        resp, err := b.client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+        resp, err := b.client.Doc.Bulk(ctx, opensearchapi.BulkReq{Body: body})
         if err != nil {
             log.Printf("Bulk request failed: %v", err)
             continue
@@ -745,22 +726,39 @@ func (b *BulkIndexer) Index(ctx context.Context, docs []Document) error {
         permanentFailures := 0
 
         for i, item := range resp.Items {
-            for action, details := range item {
-                if details.Status >= 300 {
-                    if details.Error != nil && isRetryableError(details.Error.Type) {
-                        retryableDocs = append(retryableDocs, docs[i])
-                        log.Printf("Retryable failure: item=%d, action=%s, error=%s",
-                            i, action, details.Error.Type)
-                    } else if details.Error != nil {
-                        permanentFailures++
-                        log.Printf("Permanent failure: item=%d, action=%s, error=%s: %s",
-                            i, action, details.Error.Type, details.Error.Reason)
-                    } else {
-                        permanentFailures++
-                        log.Printf("Permanent failure: item=%d, action=%s, status=%d (no error details)",
-                            i, action, details.Status)
-                    }
+            // resp.Items is []BulkItem; each carries one non-nil
+            // *BulkRespItem named for the operation.
+            var action string
+            var details *opensearchapi.BulkRespItem
+            switch {
+            case item.Index != nil:
+                action, details = "index", item.Index
+            case item.Create != nil:
+                action, details = "create", item.Create
+            case item.Update != nil:
+                action, details = "update", item.Update
+            case item.Delete != nil:
+                action, details = "delete", item.Delete
+            }
+            if details == nil || details.Status < 300 {
+                continue
+            }
+            if details.Error != nil && isRetryableError(details.Error.Type) {
+                retryableDocs = append(retryableDocs, docs[i])
+                log.Printf("Retryable failure: item=%d, action=%s, error=%s",
+                    i, action, details.Error.Type)
+            } else if details.Error != nil {
+                permanentFailures++
+                reason := ""
+                if details.Error.Reason != nil {
+                    reason = *details.Error.Reason
                 }
+                log.Printf("Permanent failure: item=%d, action=%s, error=%s: %s",
+                    i, action, details.Error.Type, reason)
+            } else {
+                permanentFailures++
+                log.Printf("Permanent failure: item=%d, action=%s, status=%d (no error details)",
+                    i, action, details.Status)
             }
         }
 

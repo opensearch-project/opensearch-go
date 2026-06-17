@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {
@@ -33,12 +33,11 @@ func example() error {
 		return err
 	}
 
-	// Create an opensearchapi.Client directly from the existing opensearch.Client
-	// This is useful when you want to:
-	// - Share the same underlying connection pool between clients
-	// - Wrap an existing client without recreating the transport
-	// - Maintain a single configured client instance
-	apiClient := opensearchapi.NewFromClient(osClient)
+	// Create an opensearchapi.Client that reuses the existing client's configuration.
+	apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: *osClient.GetConfig()})
+	if err != nil {
+		return err
+	}
 
 	fmt.Println("Successfully created opensearchapi.Client from opensearch.Client")
 	fmt.Printf("Both clients share the same transport and configuration\n")

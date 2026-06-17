@@ -35,11 +35,12 @@ import (
 	"io"
 	"net/http"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 const defaultFlushInterval = 30 * time.Second
@@ -544,24 +545,28 @@ func (w *worker) flush(ctx context.Context) error {
 	req := opensearchapi.BulkReq{
 		Index: w.bi.config.Index,
 		Body:  w.buf,
-		Params: opensearchapi.BulkParams{
+		Params: &opensearchapi.BulkParams{
 			Pipeline:            w.bi.config.Pipeline,
 			Refresh:             w.bi.config.Refresh,
 			Routing:             w.bi.config.Routing,
-			Source:              w.bi.config.Source,
+			Source:              strings.Join(w.bi.config.Source, ","),
 			SourceExcludes:      w.bi.config.SourceExcludes,
 			SourceIncludes:      w.bi.config.SourceIncludes,
-			Timeout:             w.bi.config.Timeout,
 			WaitForActiveShards: w.bi.config.WaitForActiveShards,
 
-			Pretty:     w.bi.config.Pretty,
-			Human:      w.bi.config.Human,
-			ErrorTrace: w.bi.config.ErrorTrace,
+			TimeoutParams: opensearchapi.TimeoutParams{
+				Timeout: w.bi.config.Timeout,
+			},
+			DebugParams: opensearchapi.DebugParams{
+				Pretty:     w.bi.config.Pretty,
+				Human:      w.bi.config.Human,
+				ErrorTrace: w.bi.config.ErrorTrace,
+			},
 		},
 		Header: w.bi.config.Header,
 	}
 
-	blk, err = w.bi.config.Client.Bulk(ctx, req)
+	blk, err = w.bi.config.Client.Doc.Bulk(ctx, req)
 	// Treat opensearchapi.PartialBulkError as success-with-failed-items:
 	// the indexer's whole job is per-item dispatch, so the per-item loop
 	// below already handles `info.Error != nil`. A real flush failure
@@ -580,12 +585,18 @@ func (w *worker) flush(ctx context.Context) error {
 		)
 
 		item = w.items[i]
-		// The OpenSearch bulk response contains an array of maps like this:
-		//   [ { "index": { ... } }, { "create": { ... } }, ... ]
-		// We range over the map, to set the last key and value as "op" and "info".
-		for k, v := range blkItem {
-			op = k
-			info = v
+		// Each BulkItem carries exactly one non-nil operation result keyed by
+		// the action that produced it. Select that action as "op" and its
+		// result as "info".
+		switch {
+		case blkItem.Index != nil:
+			op, info = actionIndex, *blkItem.Index
+		case blkItem.Create != nil:
+			op, info = actionCreate, *blkItem.Create
+		case blkItem.Delete != nil:
+			op, info = actionDelete, *blkItem.Delete
+		case blkItem.Update != nil:
+			op, info = actionUpdate, *blkItem.Update
 		}
 		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
 			w.bi.stats.numFailed.Add(1)

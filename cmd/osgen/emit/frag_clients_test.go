@@ -7,12 +7,13 @@
 package emit_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestClientsFragment_Body(t *testing.T) {
@@ -64,6 +65,70 @@ func TestClientsFragment_Body(t *testing.T) {
 	}
 }
 
+// TestClientsFragment_Body_Aliases verifies that a top-level sub-client with
+// Aliases emits an extra field per alias and an init statement assigning each
+// alias to the canonical field, with only one struct type declared.
+func TestClientsFragment_Body_Aliases(t *testing.T) {
+	t.Parallel()
+
+	clients := []emit.SubClient{
+		{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
+		{TypeName: "pointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
+	}
+
+	frag := &emit.ClientsFragment{SubClients: clients}
+	body, err := frag.Body()
+	require.NoError(t, err)
+
+	// Canonical + alias fields, both typed as the same sub-client.
+	require.Contains(t, body, "Doc documentClient")
+	require.Contains(t, body, "Document documentClient")
+	require.Contains(t, body, "PIT pointInTimeClient")
+	require.Contains(t, body, "PointInTime pointInTimeClient")
+
+	// Canonical init plus alias assignment to the canonical field.
+	require.Contains(t, body, "client.Doc = documentClient{apiClient: client}")
+	require.Contains(t, body, "client.Document = client.Doc")
+	require.Contains(t, body, "client.PIT = pointInTimeClient{apiClient: client}")
+	require.Contains(t, body, "client.PointInTime = client.PIT")
+
+	// The aliased type is declared exactly once (no duplicate struct decl).
+	require.Equal(t, 1, strings.Count(body, "type documentClient struct"))
+	require.Equal(t, 1, strings.Count(body, "type pointInTimeClient struct"))
+}
+
+// TestClientsFragment_Body_AliasInitOrder verifies that a top-level alias is
+// assigned AFTER the canonical sub-client's nested children, so the alias copy
+// captures a fully-populated value (the indices sub-client has nested
+// Alias/Mapping/Settings children).
+func TestClientsFragment_Body_AliasInitOrder(t *testing.T) {
+	t.Parallel()
+
+	clients := []emit.SubClient{
+		{TypeName: "indicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
+		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
+	}
+
+	frag := &emit.ClientsFragment{SubClients: clients}
+	body, err := frag.Body()
+	require.NoError(t, err)
+
+	// Nested child is assigned onto the canonical field.
+	require.Contains(t, body, "client.Index.Alias = aliasClient{apiClient: client}")
+	// Aliases copy the canonical field.
+	require.Contains(t, body, "client.Indices = client.Index")
+	require.Contains(t, body, "client.Indexes = client.Index")
+
+	// The nested-child assignment must come BEFORE the alias copies, otherwise
+	// client.Indices.Alias would be a zero value.
+	nestedIdx := strings.Index(body, "client.Index.Alias = aliasClient{apiClient: client}")
+	indicesAliasIdx := strings.Index(body, "client.Indices = client.Index")
+	indexesAliasIdx := strings.Index(body, "client.Indexes = client.Index")
+	require.Positive(t, nestedIdx)
+	require.Less(t, nestedIdx, indicesAliasIdx, "nested child must be assigned before the Indices alias copy")
+	require.Less(t, nestedIdx, indexesAliasIdx, "nested child must be assigned before the Indexes alias copy")
+}
+
 func TestClientsFragment_Imports(t *testing.T) {
 	t.Parallel()
 
@@ -92,9 +157,9 @@ func TestNewClientsFile_Render(t *testing.T) {
 
 	output := string(src)
 	require.Contains(t, output, "package "+ir.DefaultCorePkgName)
-	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4"`)
-	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4/internal/apiutil"`)
-	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v4/errmask"`)
+	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v5"`)
+	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v5/internal/apiutil"`)
+	require.Contains(t, output, `"github.com/opensearch-project/opensearch-go/v5/errmask"`)
 }
 
 func TestNewClientsFile_NilWhenEmpty(t *testing.T) {

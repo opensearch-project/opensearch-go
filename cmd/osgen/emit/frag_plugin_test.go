@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestPluginClientFragment_Body(t *testing.T) {
@@ -66,7 +66,7 @@ func TestPluginClientFragment_Imports(t *testing.T) {
 
 	require.True(t, paths["context"], "missing context import")
 	require.True(t, paths["fmt"], "missing fmt import")
-	require.True(t, paths["github.com/opensearch-project/opensearch-go/v4"], "missing opensearch import")
+	require.True(t, paths["github.com/opensearch-project/opensearch-go/v5"], "missing opensearch import")
 }
 
 func TestPluginTestHelperFragment_Body(t *testing.T) {
@@ -74,8 +74,8 @@ func TestPluginTestHelperFragment_Body(t *testing.T) {
 
 	frag := &emit.PluginTestHelperFragment{
 		Pkg:          "ossecurity",
-		PluginImport: "github.com/opensearch-project/opensearch-go/v4/plugins/security",
-		CoreImport:   "github.com/opensearch-project/opensearch-go/v4",
+		PluginImport: "github.com/opensearch-project/opensearch-go/v5/plugins/security",
+		CoreImport:   "github.com/opensearch-project/opensearch-go/v5",
 		CorePkg:      ir.DefaultCorePkgName,
 	}
 

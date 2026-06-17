@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // Environment variable names for feature configuration.
@@ -73,19 +73,16 @@ const (
 	// envRouter controls whether the DefaultRouter is created automatically
 	// when no programmatic Config.Router is set. Parsed as strconv.ParseBool.
 	//
-	// In v4 the router is off by default; set to "true" to enable scored,
+	// The router is on by default; set to "false" to disable scored,
 	// role-aware request routing without code changes. Programmatic
 	// Config.Router always takes precedence: if already set, this env var
 	// is ignored.
 	//
-	// In v5 the default will flip: the router will be on by default, and
-	// setting this to "false" will disable it.
-	//
-	// This variable is transitional: it will be removed in v6, where the
-	// router is unconditionally on (disable individual policies via
+	// This variable is transitional: it will be removed once the router is
+	// unconditionally on (disable individual policies via
 	// OPENSEARCH_GO_POLICY_* instead).
 	//
-	// Example: OPENSEARCH_GO_ROUTER=true
+	// Example: OPENSEARCH_GO_ROUTER=false
 	envRouter = envvars.Router
 )
 

@@ -132,6 +132,19 @@ test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
 
+build-samples:  ## Compile and vet each _samples/*.go program
+	@printf "\033[2m-> Building _samples...\033[0m\n"
+	@failed=0; \
+	for f in _samples/*.go; do \
+		printf "   %s\n" "$$f"; \
+		go build -o /dev/null "$$f" || failed=1; \
+		go vet "$$f" || failed=1; \
+	done; \
+	if [ $$failed -ne 0 ]; then \
+		printf "\033[31m-> _samples build/vet failed\033[0m\n"; \
+		exit 1; \
+	fi
+
 coverage:  ## Print test coverage report
 	@$(MAKE) gen-coverage
 	@go tool cover -func=$(PWD)/tmp/total.cov
@@ -159,8 +172,8 @@ OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specifi
 
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
-GEN_OSAPI_DIR   := $(REPO_ROOT)/v5preview/opensearchapi
-GEN_PLUGINS_DIR := $(GEN_OSAPI_DIR)/plugins
+GEN_OSAPI_DIR   := $(REPO_ROOT)/opensearchapi
+GEN_PLUGINS_DIR := $(REPO_ROOT)/plugins
 
 # Version filtering defaults for code generation.
 # Override on the command line to scope generated code to a version window:
@@ -182,7 +195,7 @@ fetch-opensearch-spec-force: ## Re-download the OpenSearch OpenAPI spec from ups
 	@printf "\033[2m-> Downloading %s...\033[0m\n" "$(OPENAPI_SPEC)"
 	@curl -sSfL "$(OPENAPI_SPEC_URL)" -o "$(OPENAPI_SPEC)"
 
-clean-gen:  ## Remove all generated Go files (v5preview/opensearchapi, plugins, internal/path)
+clean-gen:  ## Remove all generated Go files (opensearchapi, plugins, internal/path)
 	@printf "\033[2m-> Removing generated files...\033[0m\n"
 	@rm -f $(GEN_PATH_DIR)/builders_gen.go $(GEN_PATH_DIR)/builders_gen_test.go
 	@rm -f $(GEN_OSAPI_DIR)/*_gen.go $(GEN_OSAPI_DIR)/*_gen_test.go
@@ -218,7 +231,7 @@ test-gen: regen  ## Regen then run unit + integration tests (ensures tests use f
 	@$(MAKE) test-unit
 	@printf "\033[2m-> Running integration tests...\033[0m\n"
 	$(eval SECURE_INTEGRATION ?= true)
-	@SECURE_INTEGRATION=$(SECURE_INTEGRATION) go test -v -tags=integration -count=1 -timeout=5m ./v5preview/opensearchapi/...
+	@SECURE_INTEGRATION=$(SECURE_INTEGRATION) go test -v -tags=integration -count=1 -timeout=5m ./opensearchapi/...
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters
@@ -352,7 +365,6 @@ godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
-	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchtransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchutil"
 	@printf "\n"
@@ -889,5 +901,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.runtime cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples
 .SILENT: lint.markdown

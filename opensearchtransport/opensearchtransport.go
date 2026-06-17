@@ -50,9 +50,9 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
-	"github.com/opensearch-project/opensearch-go/v4/internal/version"
-	"github.com/opensearch-project/opensearch-go/v4/signer"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/version"
+	"github.com/opensearch-project/opensearch-go/v5/signer"
 )
 
 const (
@@ -344,8 +344,9 @@ type Config struct {
 	//
 	//   - When Config.Router is set, this field is ignored (the user's router
 	//     was already constructed with its own configuration).
-	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER=true triggers
-	//     auto-construction, this field is applied via [WithShardCosts].
+	//   - When Config.Router is nil and OPENSEARCH_GO_ROUTER is not explicitly
+	//     false (so a router is auto-constructed), this field is applied via
+	//     [WithShardCosts].
 	//   - Otherwise (no router), this field has no effect.
 	//
 	// When a router is constructed, OPENSEARCH_GO_SHARD_COST takes precedence
@@ -814,7 +815,7 @@ func New(cfg Config) (*Client, error) {
 	ctx, cancel := context.WithCancel(parent)
 
 	router := cfg.Router
-	if router == nil && envvars.Truthy(envRouter) {
+	if router == nil && !envvars.Falsy(envRouter) {
 		var opts []RouterOption
 		if cfg.ShardCostConfig != "" {
 			opts = append(opts, WithShardCosts(cfg.ShardCostConfig))
@@ -927,7 +928,7 @@ func New(cfg Config) (*Client, error) {
 		}
 
 		// seed-fallback has no demotion path (it lives in c.seedFallbackPool, not
-		// c.mu.connectionPool), so it doesn't need its own cancel func — its
+		// c.mu.connectionPool), so it doesn't need its own cancel func -- its
 		// goroutines are cleaned up transitively when Client.Close() cancels the
 		// root context.
 		seedPool := &multiServerPool{
@@ -1167,7 +1168,7 @@ func (c *Client) Close() error {
 // [io.NopCloser] over a [bytes.Reader] before returning, so the underlying
 // TCP connection is drained and returned to the connection pool even if the
 // caller never reads the body. This is the right behavior for the typed
-// [github.com/opensearch-project/opensearch-go/v4.Do] helpers, which decode
+// [github.com/opensearch-project/opensearch-go/v5.Do] helpers, which decode
 // the buffered body into a Go value.
 //
 // Perform may return a non-nil *http.Response together with a non-nil error.
@@ -1182,9 +1183,10 @@ func (c *Client) Close() error {
 // a hard transport failure where no response is available. The same contract
 // applies to any custom [Interface] implementation.
 //
-// Deprecated: Perform will be removed in v5. Use [Client.Stream] when you
+// Deprecated: Perform follows the legacy buffered-response contract and will
+// be removed before the first stable release. Use [Client.Stream] when you
 // need raw byte forwarding (the caller owns the body), or the typed
-// [github.com/opensearch-project/opensearch-go/v4.Do] helpers when you want
+// [github.com/opensearch-project/opensearch-go/v5.Do] helpers when you want
 // a decoded Go value (the SDK owns the body).
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	res, err := c.Stream(req)
@@ -1222,7 +1224,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 // the seed URL fallback identically to [Client.Perform]; the only difference
 // is that Stream returns the raw RoundTrip body instead of buffering it.
 //
-// Pairs with [github.com/opensearch-project/opensearch-go/v4.Do]: use Do[T]
+// Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
 // for typed, decoded results (the SDK owns the body), use Stream for raw
 // byte forwarding (the caller owns the body).
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {
@@ -2419,7 +2421,7 @@ func initUserAgent() string {
 // newMultiServerPoolFromClientWithLock creates a multiServerPool initialized
 // with the client's current settings (timeouts, health check, cap, etc.). The
 // pool's mu-protected fields (ready, dead, members, activeCount) are left at
-// zero values — the caller is responsible for populating them.
+// zero values -- the caller is responsible for populating them.
 //
 // This is the single source of truth for client → pool settings propagation.
 // Used by promoteConnectionPoolWithLock (single→multi promotion) and

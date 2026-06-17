@@ -7,9 +7,9 @@
 package main
 
 import (
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // convertToIR translates the legacy apiOperation slice and typeRegistry into
@@ -98,6 +98,7 @@ func convertOperation(op *apiOperation) *ir.Operation {
 			FieldPath:    fieldPath,
 			TopLevel:     dr.TopLevel,
 			Deprecated:   dr.Deprecated,
+			Forward:      dr.Forward,
 		})
 	}
 

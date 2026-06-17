@@ -18,7 +18,7 @@
 
 # Security
 
-This guide covers security best practices for using the OpenSearch Go client. Examples use the `v5preview/opensearchapi` package (spec-generated, typed request bodies, pointer params). The same principles apply to the `opensearchapi` package, which uses `io.Reader` bodies instead of typed structs.
+This guide covers security best practices for using the OpenSearch Go client. Examples use the `opensearchapi` package (spec-generated, typed request bodies, pointer params).
 
 ## TLS and Certificate Verification
 
@@ -98,12 +98,12 @@ This section covers how the Go client passes those values to the server, the sec
 
 ### How the Client Encodes Path Parameters
 
-Every request struct in `v5preview/opensearchapi` and `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
+Every request struct in `opensearchapi` builds its URL through the shared `internal/path` package. For each caller-supplied path segment (an index name, a document ID, a template name, and so on) the client:
 
 - percent-encodes characters that would change the _structure_ of the URL (`/`, `?`, `#`, `%`, whitespace, control bytes, and the `..` sequence), so a value can never escape its segment, add query parameters, or reach a different REST endpoint; and
 - passes everything else through unchanged, including `*`, `,`, `-`, `+`, `<`, `>`, and `_`.
 
-The second group is intentional: those characters are how multi-target syntax is expressed on the wire, and the client does not know whether a given string is meant as a literal name or as a pattern. `IndicesDeleteReq{Index: []string{"logs-2024.01.*"}}` and `IndicesDeleteReq{Index: []string{tenantID}}` look identical to the client; only the application knows whether the value on the right is a pattern by design or a literal that happens to contain `*`.
+The second group is intentional: those characters are how multi-target syntax is expressed on the wire, and the client does not know whether a given string is meant as a literal name or as a pattern. `IndicesDeleteReq{Indices: []string{"logs-2024.01.*"}}` and `IndicesDeleteReq{Indices: []string{tenantID}}` look identical to the client; only the application knows whether the value on the right is a pattern by design or a literal that happens to contain `*`.
 
 In other words, the client guarantees **URL-structural safety** (your value stays inside one path segment) but does not, and cannot, guarantee **target-selection safety** (your value resolves to exactly the indices you had in mind). That second property depends on what the value _means_, which is application knowledge.
 
@@ -138,7 +138,7 @@ Here is a concrete example showing input validation for a multi-tenant applicati
 // A user supplying "*" would delete all indices.
 func handleDeleteIndex(userInput string) error {
     _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-        Index: []string{userInput},
+        Indices: []string{userInput},
     })
     return err
 }
@@ -156,7 +156,7 @@ func handleDeleteIndex(tenantID, userInput string) error {
         return fmt.Errorf("index %q is not in tenant namespace", userInput)
     }
     _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-        Index: []string{userInput},
+        Indices: []string{userInput},
     })
     return err
 }
@@ -212,7 +212,7 @@ if err != nil {
     return fmt.Errorf("invalid tenant index: %w", err)
 }
 _, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-    Index: []string{idx},
+    Indices: []string{idx},
 })
 ```
 
@@ -238,7 +238,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
   ```go
   // Restrict wildcard expansion to open indices only (exclude closed and hidden).
   resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-      Index: []string{"logs-*"},
+      Indices: []string{"logs-*"},
       Body:  &opensearchapi.SearchBody{
           Query: &opensearchapi.CommonQueryDSLQueryContainer{
               MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
@@ -275,14 +275,14 @@ Until this is available, applications that accept index names from external inpu
 
 ## Request Body Construction
 
-The `v5preview/opensearchapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
+The `opensearchapi` package provides typed `Body` structs for most operations. Using the typed struct is the safest approach because the compiler enforces the schema and `json.Marshal` handles escaping automatically. String interpolation into JSON is a security risk because unescaped input can alter the structure of the request.
 
 ```go
 // WRONG: string interpolation into a raw body reader. A search term
 // containing a double quote breaks out of the JSON string and can
 // alter the query structure.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:      []string{"products"},
     BodyReader: strings.NewReader(fmt.Sprintf(
         `{"query":{"match":{"title":"%s"}}}`, userQuery,
     )),
@@ -300,7 +300,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 // opensearchutil.NewJSONReader (below) when only the union-shaped
 // `match` form fits the query you need.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
     Body: &opensearchapi.SearchBody{
         Query: &opensearchapi.CommonQueryDSLQueryContainer{
             MatchPhrase: map[string]string{
@@ -324,7 +324,7 @@ body := opensearchutil.NewJSONReader(map[string]any{
     },
 })
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:      []string{"products"},
     BodyReader: body,
 })
 ```
@@ -333,7 +333,7 @@ On the response side, use the typed response fields for structured access. When 
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
     Body:  &opensearchapi.SearchBody{Query: query},
 })
 if err != nil {
@@ -416,18 +416,63 @@ When providing a custom `http.Transport`, always clone `http.DefaultTransport` f
 
 When `DiscoverNodesOnStart` or `DiscoverNodesInterval` is enabled, the client queries the cluster for its node topology. This is useful for load balancing but means the client trusts the addresses returned by the cluster. In environments where the cluster network is segmented from the application network, verify that discovered node addresses are reachable and expected.
 
+## Cluster Permissions for Routing and Discovery
+
+In v5 the client enables the default router unless `OPENSEARCH_GO_ROUTER=false`. The router, node discovery, stats-driven congestion control, and health checking all issue read-only `cluster:monitor/*` monitoring calls in the background. When the Security plugin is enabled, a service account needs the corresponding privileges for these features to work; without them the client degrades gracefully (see below), but you lose scored routing and topology awareness.
+
+Every endpoint the routing and discovery machinery calls maps to a cluster-level monitoring action. No index-level privileges are required.
+
+| Endpoint                                       | Method | Used by                           | Required privilege            |
+| ---------------------------------------------- | ------ | --------------------------------- | ----------------------------- |
+| `/`                                            | GET    | Baseline health check             | none (works unauthenticated)  |
+| `/_cluster/health?local=true`                  | GET    | Health-based capability probing   | `cluster:monitor/health`      |
+| `/_nodes/http`                                 | GET    | Node discovery (topology)         | `cluster:monitor/nodes/info`  |
+| `/_nodes/_local/http,os,thread_pool`           | GET    | Hardware/thread-pool discovery    | `cluster:monitor/nodes/info`  |
+| `/_nodes/_local/stats/jvm,breaker,thread_pool` | GET    | AIMD congestion-window scoring    | `cluster:monitor/nodes/stats` |
+| `/_cat/shards?format=json`                     | GET    | Shard placement (rendezvous hash) | `cluster:monitor/shards`      |
+| `/_cluster/state/metadata/{index}`             | GET    | Shard routing metadata            | `cluster:monitor/state`       |
+
+### Copy-paste role
+
+This role grants exactly the privileges above, enabling every routing and discovery feature:
+
+```yaml
+opensearch_go_client_routing:
+  reserved: false
+  cluster_permissions:
+    - "cluster:monitor/health" # GET /_cluster/health?local=true
+    - "cluster:monitor/nodes/info" # GET /_nodes/http, /_nodes/_local/http,os,thread_pool
+    - "cluster:monitor/nodes/stats" # GET /_nodes/_local/stats/jvm,breaker,thread_pool
+    - "cluster:monitor/shards" # GET /_cat/shards
+    - "cluster:monitor/state" # GET /_cluster/state/metadata/*
+```
+
+The built-in `cluster_monitor` role (which grants `cluster:monitor/*`) is a superset of this list and also works; the role above is the least-privilege equivalent. Map either to your service account, then grant the index-level privileges your application's own reads and writes require (for example `indices:data/read/*`, `indices:data/write/*`) -- those are separate from the routing privileges above and depend on your workload.
+
+### Running with fewer privileges
+
+Each feature fails closed and independently, so a partial privilege set is safe:
+
+- **No privileges at all**: the client still works. It uses `GET /` for baseline health and routes without topology, stats, or shard awareness (round-robin with coordinating-node preference).
+- **Only `cluster:monitor/health`**: adds health-based node avoidance. See [Cluster Health Checking](cluster_health_checking.md#required-permissions) for the full capability-detection lifecycle and the minimal health-only role.
+- **Missing `cluster:monitor/nodes/stats`**: discovery and shard routing still work; the congestion window stays at its default instead of adapting to node load.
+- **A privilege revoked at runtime**: a `401`/`403` on a monitoring call disables only that feature, retried later; in-flight requests are unaffected.
+
+To turn the background routing calls off entirely rather than grant privileges, set `OPENSEARCH_GO_ROUTER=false` (see [Default Router Injection](../opensearchapi/README.md#default-router-injection)).
+
 ## Quick Reference
 
-| Practice                                                                | Risk if Omitted                                     |
-| ----------------------------------------------------------------------- | --------------------------------------------------- |
-| Use TLS with CA verification (`CACert`)                                 | Credential theft, data interception                 |
-| Load credentials from environment or secrets manager                    | Credential exposure in source control and logs      |
-| Validate user-supplied index names before use                           | Unintended cross-index operations via wildcards     |
-| Use typed `Body` structs; fall back to `BodyReader` with `json.Marshal` | JSON injection, request structure manipulation      |
-| Filter error details before returning to end users                      | Internal topology and query disclosure              |
-| Set request timeouts (transport or context)                             | Resource exhaustion from slow/unresponsive clusters |
-| Clone `http.DefaultTransport` for custom transports                     | Connection pool exhaustion, disabled HTTP/2         |
-| Review `ExpandWildcards` on multi-index operations                      | Operations affecting more indices than intended     |
+| Practice                                                                                | Risk if Omitted                                                                     |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Use TLS with CA verification (`CACert`)                                                 | Credential theft, data interception                                                 |
+| Load credentials from environment or secrets manager                                    | Credential exposure in source control and logs                                      |
+| Validate user-supplied index names before use                                           | Unintended cross-index operations via wildcards                                     |
+| Use typed `Body` structs; fall back to `BodyReader` with `json.Marshal`                 | JSON injection, request structure manipulation                                      |
+| Filter error details before returning to end users                                      | Internal topology and query disclosure                                              |
+| Set request timeouts (transport or context)                                             | Resource exhaustion from slow/unresponsive clusters                                 |
+| Clone `http.DefaultTransport` for custom transports                                     | Connection pool exhaustion, disabled HTTP/2                                         |
+| Review `ExpandWildcards` on multi-index operations                                      | Operations affecting more indices than intended                                     |
+| Grant `cluster:monitor/*` (or the least-privilege routing role) to the client's account | Router/discovery silently degrade to round-robin without topology or load awareness |
 
 | Concern                                               | Client Behavior                                                            | Recommended Application Behavior                                                 |
 | ----------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |

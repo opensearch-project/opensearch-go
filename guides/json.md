@@ -25,8 +25,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func main() {
@@ -45,9 +45,9 @@ func example() error {
 
 ## Using Do for Typed Responses
 
-When you need to call an API that `opensearchapi` doesn't cover — plugin endpoints, newly released server APIs, or internal custom endpoints — use `opensearch.Do()` to execute a request and automatically unmarshal the JSON response into a struct.
+When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoints, newly released server APIs, or internal custom endpoints -- use `opensearch.Do()` to execute a request and automatically unmarshal the JSON response into a struct.
 
-The `Client.Do()` method accepts `any` for its response parameter, which means passing a non-pointer compiles but fails at runtime during JSON unmarshaling. The generic `opensearch.Do[T]()` function catches this mistake at compile time. `Client.Do()` is marked with a `Deprecated` doc annotation to steer callers toward the safer alternative — it remains fully functional and will not be removed, but `staticcheck` SA1019 will flag cross-package usage as a nudge.
+The `Client.Do()` method accepts `any` for its response parameter, which means passing a non-pointer compiles but fails at runtime during JSON unmarshaling. The generic `opensearch.Do[T]()` function catches this mistake at compile time. `Client.Do()` is marked with a `Deprecated` doc annotation to steer callers toward the safer alternative -- it remains fully functional and will not be removed, but `staticcheck` SA1019 will flag cross-package usage as a nudge.
 
 First, define a request type that satisfies `opensearch.Request`:
 

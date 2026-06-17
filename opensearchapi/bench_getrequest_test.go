@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 func BenchmarkGetRequest_Search(b *testing.B) {
@@ -35,10 +35,10 @@ func BenchmarkGetRequest_IndicesCreate(b *testing.B) {
 	}
 }
 
-func BenchmarkGetRequest_DocumentGet(b *testing.B) {
-	req := opensearchapi.DocumentGetReq{
-		Index:      "my-index",
-		DocumentID: "doc-1",
+func BenchmarkGetRequest_IndicesGetAlias(b *testing.B) {
+	req := opensearchapi.IndicesGetAliasReq{
+		Indices: []string{"my-index"},
+		Name:    []string{"my-alias"},
 	}
 	b.ReportAllocs()
 	for b.Loop() {

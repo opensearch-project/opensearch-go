@@ -48,10 +48,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 var infoBody = `{
@@ -279,7 +279,10 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-						if request.URL.Path == "/" {
+						// The default router (on by default in v5) issues node
+						// discovery requests; only count actual bulk requests so
+						// the fixture sequence stays aligned.
+						if request.URL.Path != "/_bulk" {
 							return infoResponse()
 						}
 
@@ -429,6 +432,11 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 							}
 							return time.Duration(i) * 100 * time.Millisecond
 						},
+						// Disable on-start discovery: the default (router-on)
+						// config would issue node-discovery requests that hit the
+						// mock concurrently with the bulk worker, racing on the
+						// countReqs counter below.
+						DiscoverNodesOnStart: func() *bool { b := false; return &b }(),
 					},
 				}
 				if testutil.IsDebugEnabled(t) {

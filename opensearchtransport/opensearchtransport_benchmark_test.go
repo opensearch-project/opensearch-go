@@ -36,7 +36,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
 // FakeTransport is a test http.RoundTripper that returns a fresh response per

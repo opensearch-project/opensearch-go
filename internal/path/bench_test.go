@@ -9,11 +9,11 @@ package path_test
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
 func BenchmarkBuild_Search(b *testing.B) {
-	p := path.SearchPath{Index: []string{"my-index"}}
+	p := path.SearchPath{Indices: []string{"my-index"}}
 	b.ReportAllocs()
 	for b.Loop() {
 		s, _ := p.Build()
@@ -22,7 +22,7 @@ func BenchmarkBuild_Search(b *testing.B) {
 }
 
 func BenchmarkBuild_SearchMultiIndex(b *testing.B) {
-	p := path.SearchPath{Index: []string{"idx-1", "idx-2", "idx-3"}}
+	p := path.SearchPath{Indices: []string{"idx-1", "idx-2", "idx-3"}}
 	b.ReportAllocs()
 	for b.Loop() {
 		s, _ := p.Build()
@@ -40,7 +40,7 @@ func BenchmarkBuild_NodesInfo(b *testing.B) {
 }
 
 func BenchmarkBuild_IndicesGetAlias(b *testing.B) {
-	p := path.IndicesGetAliasPath{Index: []string{"my-index"}, Name: []string{"my-alias"}}
+	p := path.IndicesGetAliasPath{Indices: []string{"my-index"}, Name: []string{"my-alias"}}
 	b.ReportAllocs()
 	for b.Loop() {
 		s, _ := p.Build()

@@ -48,7 +48,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport/testutil/mockhttp"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
 // TestDiscovery tests the node discovery functionality
@@ -89,7 +89,7 @@ func TestDiscovery(t *testing.T) {
 
 		// Define the _nodes stats structure
 		// NOTE: This parallels opensearchapi structs but cannot import them due to circular dependencies:
-		// opensearchapi -> opensearch-go/v4 -> opensearchtransport
+		// opensearchapi -> opensearch-go/v5 -> opensearchtransport
 		type nodesStats struct {
 			Total      int `json:"total"`
 			Successful int `json:"successful"`
@@ -327,7 +327,7 @@ func TestDiscovery(t *testing.T) {
 
 	t.Run("Role based nodes discovery", func(t *testing.T) {
 		// NOTE: Transport tests cannot import opensearchapi due to circular dependencies:
-		// opensearchapi -> opensearch-go/v4 -> opensearchtransport
+		// opensearchapi -> opensearch-go/v5 -> opensearchtransport
 		// Therefore, we create minimal test response structures that match the API format
 		// needed by the discovery logic. These are NOT duplicates - they are test utilities
 		// that simulate the actual API responses without importing the real API structs.
@@ -2340,7 +2340,7 @@ func TestDiscoverNodesBlocking(t *testing.T) {
 		tp.DiscoverNodes(t.Context())
 	})
 
-	// Wait for handler to be entered — discovery is now in-flight.
+	// Wait for handler to be entered -- discovery is now in-flight.
 	<-entered
 
 	// Goroutine B: should block in DiscoverNodes until A finishes.
@@ -2356,7 +2356,7 @@ func TestDiscoverNodesBlocking(t *testing.T) {
 	default:
 	}
 
-	// Release A — A finishes, B wakes up.
+	// Release A -- A finishes, B wakes up.
 	close(gate)
 	wg.Wait()
 

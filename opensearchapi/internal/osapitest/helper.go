@@ -15,8 +15,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // Response is a dummy interface to run tests with Inspect()
@@ -24,9 +24,7 @@ type Response interface {
 	Inspect() opensearchapi.Inspect
 }
 
-// CreateFailingClient returns an opensearchapi.Client that always return 400 with an empty object as body.
-// The httptest server is closed via t.Cleanup; background pollers are stopped automatically
-// when t.Context() is cancelled at test end.
+// CreateFailingClient returns an opensearchapi.Client that always returns 400 with an empty object as body.
 func CreateFailingClient(t *testing.T) (*opensearchapi.Client, error) {
 	t.Helper()
 
@@ -53,14 +51,4 @@ func VerifyInspect(t *testing.T, inspect opensearchapi.Inspect) {
 	require.NotNil(t, inspect.Response, "Inspect().Response must not be nil")
 	require.Equal(t, http.StatusBadRequest, inspect.Response.StatusCode)
 	require.NotEmpty(t, inspect.Response.Body)
-}
-
-// DummyInspect is a struct to match the Response interface that is used for testing
-type DummyInspect struct {
-	Response *opensearch.Response
-}
-
-// Inspect is a fuction of DummyInspect use to match the Response interface
-func (r DummyInspect) Inspect() opensearchapi.Inspect {
-	return opensearchapi.Inspect{Response: r.Response}
 }

@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
 // ---------------------------------------------------------------------------
@@ -228,7 +228,10 @@ func TestErrorsAs(t *testing.T) {
 		},
 		{
 			name: "opensearchapi.PartialBulkError wrapped",
-			err:  fmt.Errorf("wrapped: %w", &opensearchapi.PartialBulkError{SucceededCount: 5, FailedItems: make([]opensearchapi.BulkRespItem, 2)}),
+			err: fmt.Errorf("wrapped: %w", &opensearchapi.PartialBulkError{
+				SucceededCount: 5,
+				FailedItems:    make([]opensearchapi.BulkRespItem, 2),
+			}),
 			targetNew: func() any {
 				var t *opensearchapi.PartialBulkError
 				return &t

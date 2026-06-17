@@ -9,7 +9,7 @@ package ir_test
 import (
 	"testing"
 
-	"github.com/opensearch-project/opensearch-go/v4/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestTypeRegistryRegisterAndLookup(t *testing.T) {

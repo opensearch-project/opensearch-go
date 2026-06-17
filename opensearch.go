@@ -41,11 +41,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4/internal/envvars"
-	"github.com/opensearch-project/opensearch-go/v4/internal/path"
-	"github.com/opensearch-project/opensearch-go/v4/internal/version"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/signer"
+	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
+	"github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/version"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/signer"
 )
 
 const (
@@ -124,12 +124,12 @@ type Config struct {
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is
-	// also nil and OPENSEARCH_GO_ROUTER is truthy, this is treated as true
-	// so the client starts populating topology before the first request.
-	// Any explicitly set value (true or false) is respected as-is and
-	// suppresses the env-var inheritance. When Router is set programmatically
-	// the env var is ignored entirely; the caller is responsible for
-	// triggering discovery if desired.
+	// also nil and OPENSEARCH_GO_ROUTER is not explicitly false, this is
+	// treated as true so the client starts populating topology before the
+	// first request. Any explicitly set value (true or false) is respected
+	// as-is and suppresses the env-var inheritance. When Router is set
+	// programmatically the env var is ignored entirely; the caller is
+	// responsible for triggering discovery if desired.
 	DiscoverNodesOnStart  *bool
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
@@ -365,10 +365,10 @@ func NewClient(cfg Config) (*Client, error) {
 
 	// When the caller did not set DiscoverNodesOnStart and no programmatic
 	// Router was provided, inherit on-start discovery from OPENSEARCH_GO_ROUTER
-	// only when that variable is explicitly truthy. A non-truthy or unparseable
-	// value leaves DiscoverNodesOnStart nil so the documented "unset" semantics
-	// are preserved.
-	if cfg.DiscoverNodesOnStart == nil && cfg.Router == nil && envvars.Truthy(envRouter) {
+	// unless that variable is explicitly falsy. An explicit "false" disables
+	// on-start discovery; unset or any non-falsy value enables it, matching the
+	// router's on-by-default behavior.
+	if cfg.DiscoverNodesOnStart == nil && cfg.Router == nil && !envvars.Falsy(envRouter) {
 		t := true
 		cfg.DiscoverNodesOnStart = &t
 	}
@@ -428,10 +428,11 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 
 // Perform delegates to Transport to execute a request and return a response.
 //
-// Deprecated: Perform follows the v4 buffered-response contract and will be
-// removed in v5 alongside [opensearchtransport.Client.Perform]. Use [Client.Stream]
-// when you need raw byte forwarding (the caller owns the body) or the typed
-// [Do] helpers when you want a decoded Go value.
+// Deprecated: Perform follows the legacy buffered-response contract and will
+// be removed before the first stable release, alongside
+// [opensearchtransport.Client.Perform]. Use [Client.Stream] when you need raw
+// byte forwarding (the caller owns the body) or the typed [Do] helpers when
+// you want a decoded Go value.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	if req.Header == nil {
 		// Pre-allocate for the headers the transport layer sets on every
@@ -511,6 +512,7 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		StatusCode: resp.StatusCode,
 		Header:     resp.Header,
 		Body:       resp.Body,
+		render:     &renderCache{},
 	}
 
 	if err != nil {
@@ -539,6 +541,23 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		if err := json.Unmarshal(data, dataPointer); err != nil {
 			return response, fmt.Errorf("%w, status: %d, body: %s, err: %w", ErrJSONUnmarshalBody, resp.StatusCode, data, err)
 		}
+	}
+
+	if resp.Body != nil && response.IsError() {
+		// Buffer error-response bodies into rawBody so String renders via the
+		// rawBody fast-path (never draining Body) and a subsequent ParseError
+		// still reads an intact Body. Without this, a value-receiver String
+		// call (e.g. log.Printf("%s", resp)) would consume the single-use
+		// error Body and leave ParseError with an empty payload. In the
+		// default buffered mode Perform already returned an in-memory
+		// NopCloser, so this just copies bytes already resident in memory.
+		data, rerr := io.ReadAll(resp.Body)
+		if rerr != nil {
+			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, rerr)
+		}
+
+		response.rawBody = data
+		response.Body = io.NopCloser(bytes.NewReader(data))
 	}
 
 	return response, nil
@@ -645,11 +664,11 @@ func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
 
 // ToPointer converts any value to a pointer, mainly used for request parameters
 //
-// Deprecated: ToPointer will be removed in v5. The helper is intentionally not
-// part of the public API going forward; consumers within this module use the
-// unexported `ptr` defined per-package. Once the module's go directive moves
-// to 1.26, callers can drop any wrapper in favor of the native new(value)
-// form (e.g. new(false)).
+// Deprecated: ToPointer will be removed in a future major version. The helper is
+// intentionally not part of the public API going forward; consumers within this
+// module use the unexported `ptr` defined per-package. Once the module's go
+// directive moves to 1.26, callers can drop any wrapper in favor of the native
+// new(value) form (e.g. new(false)).
 func ToPointer[V any](value V) *V {
 	return ptr(value)
 }

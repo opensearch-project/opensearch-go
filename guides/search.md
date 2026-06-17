@@ -20,10 +20,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchtransport"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchutil"
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil"
 )
 
 func main() {
@@ -80,11 +80,11 @@ For search-heavy applications, you can configure the client to automatically rou
 	fmt.Printf("Created: %t\n", createResp.Acknowledged)
 
 	for i := 1; i < 11; i++ {
-		_, err = client.Index(
+		_, err = client.Doc.Index(
 			ctx,
 			opensearchapi.IndexReq{
-				Index:      exampleIndex,
-				DocumentID: strconv.Itoa(i),
+				Index: exampleIndex,
+				ID:    strconv.Itoa(i),
 				Body: opensearchutil.NewJSONReader(map[string]any{
 					"title":    fmt.Sprintf("The Dark Knight %d", i),
 					"director": "Christopher Nolan",
@@ -97,7 +97,7 @@ For search-heavy applications, you can configure the client to automatically rou
 		}
 	}
 
-	_, err = client.Index(
+	_, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: exampleIndex,
@@ -108,7 +108,7 @@ For search-heavy applications, you can configure the client to automatically rou
 		return err
 	}
 
-	_, err = client.Index(
+	_, err = client.Doc.Index(
 		ctx,
 		opensearchapi.IndexReq{
 			Index: exampleIndex,
@@ -149,8 +149,8 @@ You can also search for documents that match a specific query. The following exa
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Indices: []string{exampleIndex},
-			Params:  opensearchapi.SearchParams{Query: `title: "dark knight"`},
+			Indices:  []string{exampleIndex},
+			Params: &opensearchapi.SearchParams{Q: `title: "dark knight"`},
 		},
 	)
 	if err != nil {
@@ -174,11 +174,11 @@ The search API allows you to paginate through the search results. The following 
 		ctx,
 		&opensearchapi.SearchReq{
 			Indices: []string{exampleIndex},
-			Params: opensearchapi.SearchParams{
-				Query: `title: "dark knight"`,
-				Size:  opensearchapi.ToPointer(2),
-				From:  opensearchapi.ToPointer(5),
-				Sort:  []string{"year:desc"},
+			Params: &opensearchapi.SearchParams{
+				Q:    `title: "dark knight"`,
+				Size: 2,
+				From: 5,
+				Sort: []string{"year:desc"},
 			},
 		},
 	)
@@ -201,9 +201,9 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 		ctx,
 		&opensearchapi.SearchReq{
 			Indices: []string{exampleIndex},
-			Params: opensearchapi.SearchParams{
-				Query:  `title: "dark knight"`,
-				Size:   opensearchapi.ToPointer(2),
+			Params: &opensearchapi.SearchParams{
+				Q:      `title: "dark knight"`,
+				Size:   2,
 				Sort:   []string{"year:desc"},
 				Scroll: time.Minute,
 			},
@@ -224,11 +224,11 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 The scroll example above has one weakness: if the index is updated while you are scrolling through the results, they will be paginated inconsistently. To avoid this, you should use the "Point in Time" feature. The following example demonstrates how to use the `point_in_time` and `pit_id` parameters to paginate through the search results:
 
 ```go
-	pitCreateResp, err := client.PointInTime.Create(
+	pitCreateResp, err := client.PIT.Create(
 		ctx,
-		opensearchapi.PointInTimeCreateReq{
-			Indices: []string{exampleIndex},
-			Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: time.Minute},
+		&opensearchapi.CreatePITReq{
+			Indices:  []string{exampleIndex},
+			Params: &opensearchapi.CreatePITParams{KeepAlive: time.Minute},
 		},
 	)
 	if err != nil {
@@ -238,14 +238,14 @@ The scroll example above has one weakness: if the index is updated while you are
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: opensearchutil.NewJSONReader(map[string]any{
+			BodyReader: opensearchutil.NewJSONReader(map[string]any{
 				"pit": map[string]any{
-					"id":         pitCreateResp.PitID,
+					"id":         pitCreateResp.PITID,
 					"keep_alive": "1m",
 				},
 			}),
-			Params: opensearchapi.SearchParams{
-				Size: opensearchapi.ToPointer(5),
+			Params: &opensearchapi.SearchParams{
+				Size: 5,
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -262,15 +262,15 @@ The scroll example above has one weakness: if the index is updated while you are
 	searchResp, err = client.Search(
 		ctx,
 		&opensearchapi.SearchReq{
-			Body: opensearchutil.NewJSONReader(map[string]any{
+			BodyReader: opensearchutil.NewJSONReader(map[string]any{
 				"pit": map[string]any{
-					"id":         pitCreateResp.PitID,
+					"id":         pitCreateResp.PITID,
 					"keep_alive": "1m",
 				},
 				"search_after": []string{"1994"},
 			}),
-			Params: opensearchapi.SearchParams{
-				Size: opensearchapi.ToPointer(5),
+			Params: &opensearchapi.SearchParams{
+				Size: 5,
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -284,7 +284,7 @@ The scroll example above has one weakness: if the index is updated while you are
 	}
 	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 
-	_, err = client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{PitID: []string{pitCreateResp.PitID}})
+	_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []string{*pitCreateResp.PITID}}})
 	if err != nil {
 		return err
 	}
@@ -326,9 +326,9 @@ For production search workloads, you can optimize performance by ensuring search
 		ctx,
 		&opensearchapi.SearchReq{
 			Indices: []string{exampleIndex},
-			Params: opensearchapi.SearchParams{
-				Query: `title: "dark knight"`,
-				Size:  opensearchapi.ToPointer(10),
+			Params: &opensearchapi.SearchParams{
+				Q:    `title: "dark knight"`,
+				Size: 10,
 			},
 		},
 	)
@@ -395,11 +395,11 @@ The router provides automatic routing based on the operation being performed:
 The source API returns the source of the documents with included or excluded fields. The following example returns all fields from document source in the `movies` index:
 
 ```go
-	sourceResp, err := client.Document.Source(
+	sourceResp, err := client.Doc.GetSource(
 		ctx,
-		opensearchapi.DocumentSourceReq{
-			Index:      "movies",
-			DocumentID: "1",
+		opensearchapi.GetSourceReq{
+			Index: "movies",
+			ID:    "1",
 		},
 	)
 	if err != nil {
@@ -415,12 +415,12 @@ The source API returns the source of the documents with included or excluded fie
 To include certain fields in the source response, use `SourceIncludes` or `Source`(this field is deprecated and `SourceIncludes` is recommended to be used instead). To get only required fields:
 
 ```go
-	sourceResp, err := client.Document.Source(
+	sourceResp, err := client.Doc.GetSource(
 		ctx,
-		opensearchapi.DocumentSourceReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params: opensearchapi.DocumentSourceParams{
+		opensearchapi.GetSourceReq{
+			Index: "movies",
+			ID:    "1",
+			Params: &opensearchapi.GetSourceParams{
 				SourceIncludes: []string{"title"},
 			},
 		},
@@ -438,12 +438,12 @@ To include certain fields in the source response, use `SourceIncludes` or `Sourc
 To exclude certain fields in the source response, use `SourceExcludes` as follows:
 
 ```go
-	sourceResp, err = client.Document.Source(
+	sourceResp, err = client.Doc.GetSource(
 		ctx,
-		opensearchapi.DocumentSourceReq{
-			Index:      "movies",
-			DocumentID: "1",
-			Params: opensearchapi.DocumentSourceParams{
+		opensearchapi.GetSourceReq{
+			Index: "movies",
+			ID:    "1",
+			Params: &opensearchapi.GetSourceParams{
 				SourceExcludes: []string{"title"},
 			},
 		},
@@ -463,9 +463,9 @@ To exclude certain fields in the source response, use `SourceExcludes` as follow
 ```go
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices: []string{"movies"},
-			Params:  opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearchapi.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Indices:  []string{"movies"},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

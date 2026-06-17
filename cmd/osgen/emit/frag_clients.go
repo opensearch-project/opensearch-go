@@ -17,6 +17,10 @@ type SubClient struct {
 	TypeName  string // e.g. "catClient"
 	FieldName string // exported field on parent (e.g. "Cat")
 	Parent    string // parent client type ("Client" or "indicesClient")
+	// Aliases are extra exported field names on the parent that point at the
+	// same sub-client value as FieldName, for compatibility (e.g. "Document"
+	// aliasing "Doc"). Only honored for top-level (Parent == "Client") clients.
+	Aliases []string
 }
 
 // ClientsFragment renders the Client struct, sub-client types, clientInit, Inspect
@@ -28,9 +32,9 @@ type ClientsFragment struct {
 // Imports returns the imports the Clients fragment needs.
 func (f *ClientsFragment) Imports() []Import {
 	return []Import{
-		{Path: "github.com/opensearch-project/opensearch-go/v4"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4/internal/apiutil"},
-		{Path: "github.com/opensearch-project/opensearch-go/v4/errmask"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5/internal/apiutil"},
+		{Path: "github.com/opensearch-project/opensearch-go/v5/errmask"},
 	}
 }
 
@@ -86,6 +90,15 @@ func (f *ClientsFragment) initStatements() []string {
 			stmts = append(stmts, fmt.Sprintf("client.%s.%s = %s{apiClient: client}", parentField, sc.FieldName, sc.TypeName))
 		}
 	}
+	// Assign top-level aliases last, so they copy the canonical sub-client value
+	// after its nested children have been populated.
+	for _, sc := range f.SubClients {
+		if sc.Parent == "Client" {
+			for _, alias := range sc.Aliases {
+				stmts = append(stmts, fmt.Sprintf("client.%s = client.%s", alias, sc.FieldName))
+			}
+		}
+	}
 	return stmts
 }
 
@@ -123,7 +136,11 @@ type Client struct {
 	Client *opensearch.Client
 	errors *errMaskWidth
 {{- range .TopLevel}}
+	{{- $typeName := .TypeName}}
 	{{.FieldName}} {{.TypeName}}
+{{- range .Aliases}}
+	{{.}} {{$typeName}}
+{{- end}}
 {{- end}}
 }
 
