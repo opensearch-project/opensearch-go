@@ -398,7 +398,7 @@ func (w *worker) run(ctx context.Context) {
 
 				if err := w.writeMeta(item); err != nil {
 					if item.OnFailure != nil {
-						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
 					}
 
 					w.bi.stats.numFailed.Add(1)
@@ -409,7 +409,7 @@ func (w *worker) run(ctx context.Context) {
 
 				if err := w.writeBody(ctx, &item); err != nil {
 					if item.OnFailure != nil {
-						item.OnFailure(ctx, item, opensearchapi.BulkRespItem{}, err)
+						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
 					}
 					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
@@ -601,7 +601,7 @@ func (w *worker) flush(ctx context.Context) error {
 		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
 			w.bi.stats.numFailed.Add(1)
 			if item.OnFailure != nil {
-				item.OnFailure(ctx, item, info, nil)
+				item.OnFailure(ctx, item, bulkRespItemForOnFailure(info), nil)
 			}
 		} else {
 			w.bi.stats.numFlushed.Add(1)
@@ -630,7 +630,7 @@ func (w *worker) handleBulkError(ctx context.Context, err error) error {
 	w.bi.stats.numFailed.Add(uint64(len(w.items)))
 
 	// info (the response item) will be empty since the bulk request failed
-	var info opensearchapi.BulkRespItem
+	info := bulkRespItemForOnFailure(opensearchapi.BulkRespItem{})
 	for i := range w.items {
 		if item := w.items[i]; item.OnFailure != nil {
 			item.OnFailure(ctx, item, info, err)
@@ -638,4 +638,13 @@ func (w *worker) handleBulkError(ctx context.Context, err error) error {
 	}
 
 	return err
+}
+
+// bulkRespItemForOnFailure ensures BulkRespItem.Error is non-nil so OnFailure
+// callbacks can safely read Error.Type and Error.Reason without nil checks.
+func bulkRespItemForOnFailure(item opensearchapi.BulkRespItem) opensearchapi.BulkRespItem {
+	if item.Error == nil {
+		item.Error = &opensearchapi.ErrorCause{}
+	}
+	return item
 }
