@@ -199,7 +199,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 ### Environment-variable override
 
-`OPENSEARCH_GO_ERROR_MASK` accepts a comma-separated list of `+`/`-` tokens applied left-to-right on top of `Config.Errors`. Tokens are the lowercase snake_case form of an error category name -- `bulk_items` for the `BulkItems` bit, `search_shards` for `SearchShards`, `write_shards` for `WriteShards`, `multi_search_items` for `MultiSearchItems`, and so on. The full list of categories appears in the [Error type reference](#error-type-reference) below.
+`OPENSEARCH_GO_ERROR_MASK` accepts a comma-separated list of `+`/`-` tokens applied left-to-right on top of `Config.Errors`. Tokens are the lowercase snake_case form of an error category name -- `bulk_items` for the `BulkItems` bit, `search_shards` for `SearchShards`, `write_shards` for `WriteShards`, `multi_search_items` for `MultiSearchItems`, and so on. The exhaustive list of accepted tokens, defaults, and parsing rules is in [guides/envvars.md](../guides/envvars.md#opensearch_go_error_mask-tokens). The [Error type reference](#error-type-reference) below lists the corresponding Go types.
 
 ```sh
 # Mask everything except bulk-item errors

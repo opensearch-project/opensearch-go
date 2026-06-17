@@ -548,24 +548,7 @@ Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Re
 
 ## Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization. A complete reference is in [Request Routing: Configuration Reference](guides/routing.md#14-configuration-reference). Quick summary:
-
-| Variable                            | Default       | Description                                                                 |
-| ----------------------------------- | ------------- | --------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_REQUEST_TIMEOUT`     | 0 (none)      | Per-attempt HTTP request timeout (duration or secs)                         |
-| `OPENSEARCH_GO_DEBUG`               | `false`       | Debug logging to stderr                                                     |
-| `OPENSEARCH_GO_ROUTER`              | (on)          | Auto-construct DefaultRouter when no Router is set; set `false`/`0` to disable |
-| `OPENSEARCH_GO_ROUTING_CONFIG`      | (all enabled) | Shard-exact routing (`-shard_exact`)                                        |
-| `OPENSEARCH_GO_SHARD_REQUESTS`      | `true`        | Adaptive `max_concurrent_shard_requests` bounds                             |
-| `OPENSEARCH_GO_SHARD_COST`          | (defaults)    | Shard cost multipliers for connection scoring                               |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG`    | (all enabled) | Skip specific discovery calls                                               |
-| `OPENSEARCH_GO_FALLBACK`            | `true`        | Seed URL fallback when all pools exhausted                                  |
-| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | auto (5s-30s) | Stats polling interval                                                      |
-| `OPENSEARCH_GO_POLICY_*`            | (all enabled) | Disable specific routing policies (10 variables)                            |
-| `OPENSEARCH_GO_ACTIVE_LIST_CAP`     | auto          | Max active connections per pool                                             |
-| `OPENSEARCH_GO_STANDBY_*`           | (see guide)   | Standby rotation and promotion tuning (3 variables)                         |
-| `OPENSEARCH_GO_OVERLOADED_*`        | (see guide)   | JVM heap and breaker thresholds (2 variables)                               |
-| `OPENSEARCH_GO_ERROR_MASK`          | (version-dep) | Mask partial-failure categories (`+`/`-` tokens; overrides `Config.Errors`) |
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. The canonical reference for every variable — accepted values, defaults, meanings, and the tokens accepted by `OPENSEARCH_GO_ERROR_MASK` — is [guides/envvars.md](guides/envvars.md). The sections below link to the relevant categories in that guide.
 
 ## Guides by Topic
 
