@@ -100,7 +100,7 @@ func BenchmarkClient(b *testing.B) {
 			// goroutines (cluster-health/node-stats tickers) exit. Without
 			// this the bench leaks goroutines linearly with b.N and the Go
 			// runtime eventually starves the bench loop itself.
-			_ = c.Transport.(*opensearchtransport.Client).Close()
+			_ = c.Transport.(*opensearchtransport.Transport).Close()
 		}
 	})
 }

@@ -269,7 +269,7 @@ func (m *_NodesMeta) formatFailures() string {
 // the cluster. If another discovery is already in progress, DiscoverNodes
 // blocks until that discovery completes (or ctx is cancelled) and returns
 // its result.
-func (c *Client) DiscoverNodes(ctx context.Context) error {
+func (c *Transport) DiscoverNodes(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -321,7 +321,7 @@ func (c *Client) DiscoverNodes(ctx context.Context) error {
 // This is used by the internal discoveryLoop, which must never block on
 // another discovery. It could be exported in the future if callers need
 // fire-and-forget semantics on the public API.
-func (c *Client) tryDiscoverNodes(ctx context.Context) error {
+func (c *Transport) tryDiscoverNodes(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -340,7 +340,7 @@ func (c *Client) tryDiscoverNodes(ctx context.Context) error {
 // Called with c.discoverMu held. It sets inProgress = true, releases the
 // lock for I/O, then re-acquires it on completion to clear inProgress,
 // store the result, and wake any waiters.
-func (c *Client) doDiscoverNodes(ctx context.Context) error {
+func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	c.discoverMu.inProgress = true
 	c.discoverMu.Unlock()
 
@@ -425,7 +425,7 @@ func (c *Client) doDiscoverNodes(ctx context.Context) error {
 
 // rotateStandbyConnections performs one standby rotation cycle, health-checking
 // a standby connection and swapping it with a random active connection.
-func (c *Client) rotateStandbyConnections(ctx context.Context) {
+func (c *Transport) rotateStandbyConnections(ctx context.Context) {
 	if c.router != nil {
 		if n, err := c.router.RotateStandby(ctx, c.standbyRotationCount); err != nil {
 			if dl := loadDebugLogger(); dl != nil {
@@ -449,7 +449,7 @@ func (c *Client) rotateStandbyConnections(ctx context.Context) {
 }
 
 // nodeDiscoveryAsyncStart handles discovery with asynchronous connection startup - prioritizes fast startup.
-func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
+func (c *Transport) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
 	// Async start - assume all connections are ready for fast startup
 	readyConnections := make([]*Connection, 0, len(discovered))
 
@@ -483,7 +483,7 @@ func (c *Client) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeI
 //
 // updateConnectionPool uses this contract: oldConn == newConn means unchanged,
 // oldConn != newConn means remove+add (regardless of role comparison).
-func (c *Client) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
+func (c *Transport) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
 	// Build lookup of existing connections by URL to resolve pointers.
 	c.mu.RLock()
 	currentPool := c.mu.connectionPool
@@ -539,7 +539,7 @@ func canReuseConnection(conn *Connection, node nodeInfo) bool {
 // can distinguish them from reused connections (which retain their policy-pool
 // lifecycle -- lcActive, lcStandby, etc.). The caller is responsible for
 // transitioning new connections to the appropriate lifecycle after health checking.
-func (c *Client) createConnection(node nodeInfo) *Connection {
+func (c *Transport) createConnection(node nodeInfo) *Connection {
 	// Build role set for efficient O(1) lookups
 	node.roleSet = newRoleSet(node.Roles)
 
@@ -596,7 +596,7 @@ func storeThreadPoolSizes(conn *Connection, pools map[string]nodeInfoThreadPool)
 // result wins and the connection is resurrected. If deadSince is newer (set concurrently
 // during the health check window), the dead state is preserved. Zero means no timestamp
 // comparison (cold start -- no existing connections to compare against).
-func (c *Client) updateConnectionPool(
+func (c *Transport) updateConnectionPool(
 	ctx context.Context, healthCheckedAt time.Time, readyConnections, deadConnections []*Connection,
 ) error {
 	totalNodes := len(readyConnections) + len(deadConnections)
@@ -891,7 +891,7 @@ func computeWeights(conns []*Connection) {
 // based on discovered hardware info. Uses the minimum allocatedProcessors across
 // all nodes (the bottleneck) to derive serverMaxNewConnsPerSec, clientsPerServer,
 // and healthCheckRate. Skips recalculation if no nodes have known core counts.
-func (c *Client) recalculateCapacityModel(conns []*Connection) {
+func (c *Transport) recalculateCapacityModel(conns []*Connection) {
 	minCores := 0
 	for _, conn := range conns {
 		if ap := conn.loadAllocatedProcessors(); ap > 0 {
@@ -915,7 +915,7 @@ func (c *Client) recalculateCapacityModel(conns []*Connection) {
 
 // findConnectionByURL attempts to find a connection in the pool by URL.
 // This helper extracts connections from different pool types to get their role information.
-func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connection {
+func (c *Transport) findConnectionByURL(pool ConnectionPool, url string) *Connection {
 	switch p := pool.(type) {
 	case *singleServerPool:
 		if p.connection != nil && p.connection.URL.String() == url {
@@ -943,7 +943,7 @@ func (c *Client) findConnectionByURL(pool ConnectionPool, url string) *Connectio
 
 // createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
-func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
+func (c *Transport) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
 	// Single node - check if demotion from multiServerPool is needed
 	if _, isStatusPool := c.mu.connectionPool.(*multiServerPool); isStatusPool {
 		// Demote from multi-node to single-node pool
@@ -969,7 +969,7 @@ func (c *Client) createOrUpdateSingleNodePool(readyConnections, deadConnections 
 
 // createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
 // Caller must hold c.mu.Lock().
-func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
+func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
 	// Multi-node - check if promotion from singleServerPool is needed
 	if _, isSinglePool := c.mu.connectionPool.(*singleServerPool); isSinglePool {
 		// Promote from single-node to multi-node pool
@@ -1097,7 +1097,7 @@ func (c *Client) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConne
 	return allConnsPool
 }
 
-func (c *Client) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
+func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	scheme := c.urls[0].Scheme
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
@@ -1274,7 +1274,7 @@ type resolvedNode struct {
 // (errors.Join of all resolver errors). This protocol is specific to the
 // built-in handler; a future abstraction could let users control partial
 // failure behavior.
-func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
 	results := make([]resolvedNode, len(pending))
 
 	var sem *semaphore.Weighted
@@ -1382,7 +1382,7 @@ func (c *Client) resolveDiscoveredNodes(ctx context.Context, pending []discovery
 // and a debug log is emitted. Validating here surfaces the misuse at
 // resolver time rather than letting a malformed URL flow into the connection
 // pool and fail later as a confusing HTTP error.
-func (c *Client) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
+func (c *Transport) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
 	if resolved == nil || resolved.String() == defaultURL.String() {
 		return defaultURL
 	}
@@ -1451,7 +1451,7 @@ func newInstrumentedResolver(resolve AddressResolverFunc, m *metrics) AddressRes
 // nodes, wraps the per-node AddressResolverFunc with metrics instrumentation,
 // invokes the runner, then converts results back to []nodeInfo while handling
 // rewrite detection, metrics, and observer events.
-func (c *Client) runAddressResolverRunner(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
 	nodeInfos := make([]NodeInfo, len(pending))
 	byID := make(map[string]discoveryPendingNode, len(pending))
 	for i, p := range pending {
@@ -1516,7 +1516,7 @@ func (c *Client) runAddressResolverRunner(ctx context.Context, pending []discove
 	return out, nil
 }
 
-func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
+func (c *Transport) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	var (
 		host string
 		port string
@@ -1577,7 +1577,7 @@ func (c *Client) getNodeURL(node nodeInfo, scheme string) *url.URL {
 // A "refresh now" request (requestDiscoveryNow) is also supported:
 // it sets a separate atomic flag that causes the loop to run a full
 // node + catalog discovery on its next wake, then resets the interval.
-func (c *Client) discoveryLoop() {
+func (c *Transport) discoveryLoop() {
 	nextNodes := time.Now().Add(c.discoverNodesInterval)
 	var nextCat time.Time // zero = nothing scheduled
 
@@ -1653,7 +1653,7 @@ func (c *Client) discoveryLoop() {
 // requestCatRefresh signals the discovery loop that shard placement data
 // may be stale (e.g., a connection error suggests a node went down).
 // Lock-free: sets an atomic flag consumed by discoveryLoop.
-func (c *Client) requestCatRefresh() {
+func (c *Transport) requestCatRefresh() {
 	c.catRefreshNeeded.Store(true)
 }
 
@@ -1661,7 +1661,7 @@ func (c *Client) requestCatRefresh() {
 // catalog discovery on its next wake-up, rather than waiting for the
 // regular interval. Used after large topology changes.
 // Lock-free: sets an atomic flag consumed by discoveryLoop.
-func (c *Client) requestDiscoveryNow() {
+func (c *Transport) requestDiscoveryNow() {
 	c.discoveryNeeded.Store(true)
 }
 
@@ -1680,7 +1680,7 @@ const catRefreshTimeout = 10 * time.Second
 // clearAllNeedsCatUpdate clears the lcNeedsCatUpdate flag on all connections
 // in the pool. Called after a successful /_cat/shards refresh confirms current
 // shard placement.
-func (c *Client) clearAllNeedsCatUpdate() {
+func (c *Transport) clearAllNeedsCatUpdate() {
 	c.mu.RLock()
 	pool := c.mu.connectionPool
 	c.mu.RUnlock()
@@ -1704,7 +1704,7 @@ func (c *Client) clearAllNeedsCatUpdate() {
 //
 // Gated by discoveryFeatures: when catShardsEnabled() returns false,
 // the entire fetch is skipped.
-func (c *Client) fetchAndUpdateShardPlacement(ctx context.Context) {
+func (c *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
 	if !c.discoveryFeatures.catShardsEnabled() {
 		return
 	}
@@ -1840,7 +1840,7 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // Requires the indices:monitor/stats cluster permission. If the client's
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
-func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
+func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
@@ -2011,7 +2011,7 @@ func (c *Client) getShardPlacement(ctx context.Context) (map[string]*indexShardP
 //
 //	OperationRouting.java:calculateScaledShardId
 //	MetadataCreateIndexService.java:calculateNumRoutingShards
-func (c *Client) fetchRoutingNumShards(ctx context.Context, shardPlacement map[string]*indexShardPlacement) {
+func (c *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement map[string]*indexShardPlacement) {
 	if c.router == nil || len(shardPlacement) == 0 {
 		return
 	}
@@ -2091,7 +2091,7 @@ type indexRoutingMeta struct {
 // shards are RELOCATING or INITIALIZING. The server's shard routing formula
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
-func (c *Client) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
+func (c *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
 	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)

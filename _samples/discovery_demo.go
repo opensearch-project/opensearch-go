@@ -125,7 +125,7 @@ func main() {
 	fmt.Println("5. Bulk -> ingest nodes, Search -> data/search nodes")
 }
 
-func makeRequest(ctx context.Context, transport *opensearchtransport.Client, method, path, label string) error {
+func makeRequest(ctx context.Context, transport *opensearchtransport.Transport, method, path, label string) error {
 	req, err := http.NewRequestWithContext(ctx, method, path, nil)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
@@ -147,7 +147,7 @@ func makeRequest(ctx context.Context, transport *opensearchtransport.Client, met
 	return nil
 }
 
-func printMetrics(transport *opensearchtransport.Client, phase string) {
+func printMetrics(transport *opensearchtransport.Transport, phase string) {
 	m, err := transport.Metrics()
 	if err != nil {
 		log.Printf("Failed to get metrics: %s", err)

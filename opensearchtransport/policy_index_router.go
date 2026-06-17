@@ -370,15 +370,15 @@ func (p *IndexRouter) DiscoveryUpdate(added, removed, _ []*Connection) error {
 }
 
 // loadPoolInfoReady returns true if the pointer is non-nil and set.
-// Nil-safe: returns false (pre-quorum fallback) when no Client is wired up,
+// Nil-safe: returns false (pre-quorum fallback) when no Transport is wired up,
 // e.g. in unit tests that construct policies directly.
 func loadPoolInfoReady(p *atomic.Bool) bool {
 	return p != nil && p.Load()
 }
 
 // loadClusterSearchCwnd returns the cluster-wide search cwnd from the atomic
-// pointer. Nil-safe: returns 0 when no Client is wired up (e.g., tests
-// without a full Client). A return value <= 0 signals the cluster aggregate
+// pointer. Nil-safe: returns 0 when no Transport is wired up (e.g., tests
+// without a full Transport). A return value <= 0 signals the cluster aggregate
 // is not yet available.
 func loadClusterSearchCwnd(p *atomic.Int32) int32 {
 	if p == nil {

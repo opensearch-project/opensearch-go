@@ -98,7 +98,7 @@ For full usage and rationale see [`opensearchapi/README.md` Default Router Injec
 
 ### `DiscoverNodes()` blocking semantics
 
-`opensearch.Client.DiscoverNodes()` and `opensearchtransport.Client.DiscoverNodes()` now **block** when an in-flight discovery cycle is active and return that cycle's error verbatim, instead of the previous immediate `nil` no-op.
+`opensearch.Client.DiscoverNodes()` and `opensearchtransport.Transport.DiscoverNodes()` now **block** when an in-flight discovery cycle is active and return that cycle's error verbatim, instead of the previous immediate `nil` no-op.
 
 The previous "fire-and-forget" behavior masked discovery failures: a caller that handed control back after a failing discovery saw `err == nil` and continued against a stale node list. The new behavior surfaces the failure synchronously so callers can react (retry, alert, fall back to seed nodes).
 
@@ -125,6 +125,22 @@ if err := client.DiscoverNodes(ctx); err != nil {
 ```
 
 The signature already changed earlier in this version to take `context.Context` (see CHANGELOG); this is a behavioral change on top of the signature change.
+
+### `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
+
+The concrete `opensearchtransport.Client` type was renamed to `opensearchtransport.Transport`. The type owns HTTP round-trip concerns -- connection pooling, retries, node selection, and discovery -- so `Transport` reflects its role and avoids colliding conceptually with the API clients above it (`opensearch.Client` and `opensearchapi.Client`).
+
+The `Client` name is removed entirely; there is no compatibility alias. Update any references to the concrete type:
+
+```go
+// Before
+var t *opensearchtransport.Client
+
+// After
+var t *opensearchtransport.Transport
+```
+
+The `opensearchtransport.New` constructor is unchanged -- it already returns `*Transport`, so callers that only use `New(...)` need no changes. `opensearch.Client` and `opensearchapi.Client` are unaffected by this rename.
 
 ### `opensearchtransport.Route` interface gained `OpID()`
 

@@ -430,7 +430,7 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 //
 // Deprecated: Perform follows the legacy buffered-response contract and will
 // be removed before the first stable release, alongside
-// [opensearchtransport.Client.Perform]. Use [Client.Stream] when you need raw
+// [opensearchtransport.Transport.Perform]. Use [Client.Stream] when you need raw
 // byte forwarding (the caller owns the body) or the typed [Do] helpers when
 // you want a decoded Go value.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
@@ -446,7 +446,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 }
 
 // Streamer is implemented by transports that expose an unbuffered Stream
-// path: [opensearchtransport.Client] satisfies it. Custom [opensearchtransport.Interface]
+// path: [opensearchtransport.Transport] satisfies it. Custom [opensearchtransport.Interface]
 // implementations may opt in by adding a Stream method with the same
 // signature; [Client.Stream] reports [ErrTransportMissingMethodStream] when
 // the underlying transport does not.

@@ -96,14 +96,14 @@ func TestClientConfiguration(t *testing.T) {
 	t.Run("With empty", func(t *testing.T) {
 		c, err := NewDefaultClient()
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, defaultURL, u)
 	})
 
 	t.Run("With URL from Addresses", func(t *testing.T) {
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://localhost:8080", u)
 	})
 
@@ -113,7 +113,7 @@ func TestClientConfiguration(t *testing.T) {
 
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://opensearch.com", u)
 	})
 
@@ -123,7 +123,7 @@ func TestClientConfiguration(t *testing.T) {
 
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://localhost:8080", u)
 	})
 
@@ -163,7 +163,7 @@ func TestClientConfiguration(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://admin:admin@localhost:8080", u)
 	})
 
@@ -176,7 +176,7 @@ func TestClientConfiguration(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
+		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://localhost:8080", u)
 	})
 

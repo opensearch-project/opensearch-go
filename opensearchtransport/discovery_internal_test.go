@@ -1606,7 +1606,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
 		conn.state.Store(int64(newConnState(lcActive)))
 
-		client := &Client{}
+		client := &Transport{}
 		// Start with an existing singleServerPool (what you'd have in practice)
 		client.mu.connectionPool = &singleServerPool{}
 
@@ -1623,7 +1623,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
 		conn.state.Store(int64(newConnState(lcDead)))
 
-		client := &Client{}
+		client := &Transport{}
 		client.mu.connectionPool = &singleServerPool{}
 
 		client.mu.Lock()
@@ -1644,7 +1644,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 		msp.mu.activeCount = 1
 		msp.mu.dead = []*Connection{}
 
-		client := &Client{}
+		client := &Transport{}
 		client.mu.connectionPool = msp
 
 		client.mu.Lock()
@@ -1664,7 +1664,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 		newConn := &Connection{URL: &url.URL{Scheme: "http", Host: "new:9200"}}
 		newConn.state.Store(int64(newConnState(lcActive)))
 
-		client := &Client{}
+		client := &Transport{}
 		client.mu.connectionPool = existingPool
 
 		client.mu.Lock()
@@ -1682,7 +1682,7 @@ func TestFindConnectionByURL(t *testing.T) {
 	t.Run("finds in singleServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
 		pool := &singleServerPool{connection: conn}
-		client := &Client{}
+		client := &Transport{}
 
 		found := client.findConnectionByURL(pool, "http://node1:9200")
 		require.Equal(t, conn, found)
@@ -1691,7 +1691,7 @@ func TestFindConnectionByURL(t *testing.T) {
 	t.Run("returns nil when not in singleServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
 		pool := &singleServerPool{connection: conn}
-		client := &Client{}
+		client := &Transport{}
 
 		found := client.findConnectionByURL(pool, "http://other:9200")
 		require.Nil(t, found)
@@ -1702,7 +1702,7 @@ func TestFindConnectionByURL(t *testing.T) {
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{conn}
 		pool.mu.dead = []*Connection{}
-		client := &Client{}
+		client := &Transport{}
 
 		found := client.findConnectionByURL(pool, "http://node1:9200")
 		require.Equal(t, conn, found)
@@ -1713,7 +1713,7 @@ func TestFindConnectionByURL(t *testing.T) {
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.dead = []*Connection{conn}
-		client := &Client{}
+		client := &Transport{}
 
 		found := client.findConnectionByURL(pool, "http://dead:9200")
 		require.Equal(t, conn, found)
@@ -1723,7 +1723,7 @@ func TestFindConnectionByURL(t *testing.T) {
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
 		pool.mu.dead = []*Connection{}
-		client := &Client{}
+		client := &Transport{}
 
 		found := client.findConnectionByURL(pool, "http://missing:9200")
 		require.Nil(t, found)
@@ -1744,7 +1744,7 @@ func TestRecalculateCapacityModel(t *testing.T) {
 			makeConnWithCores("c:9200", 4),
 		}
 
-		client := &Client{
+		client := &Transport{
 			serverMaxNewConnsPerSec: 0,
 			clientsPerServer:        0,
 			healthCheckRate:         0,
@@ -1763,7 +1763,7 @@ func TestRecalculateCapacityModel(t *testing.T) {
 			makeConnWithCores("a:9200", 0),
 		}
 
-		client := &Client{
+		client := &Transport{
 			serverMaxNewConnsPerSec: 99.0,
 			clientsPerServer:        99.0,
 			healthCheckRate:         99.0,
@@ -1788,9 +1788,9 @@ func TestUpdateConnectionPool(t *testing.T) {
 		return c
 	}
 
-	newDiscoveryClient := func() *Client {
+	newDiscoveryClient := func() *Transport {
 		ctx, cancel := context.WithCancel(context.Background())
-		client := &Client{
+		client := &Transport{
 			ctx:        ctx,
 			cancelFunc: cancel,
 			urls:       []*url.URL{{Scheme: "http", Host: "seed:9200"}},
@@ -2316,7 +2316,7 @@ func gatedErrorNodesHandler(t *testing.T, entered chan<- struct{}, gate <-chan s
 
 // newGatedDiscoverClient creates a transport Client wired to the given
 // handler routes, with discoverMu.cond properly initialized.
-func newGatedDiscoverClient(t *testing.T, routes mockhttp.HandlerMap) *Client {
+func newGatedDiscoverClient(t *testing.T, routes mockhttp.HandlerMap) *Transport {
 	t.Helper()
 	transport := mockhttp.NewTransportFromRoutes(t, routes)
 	u, _ := url.Parse("http://127.0.0.1:9200")
@@ -2464,7 +2464,7 @@ func TestDiscoverNodesSequential(t *testing.T) {
 // cancellation and could suppress a legitimate retry. The waiter now gets the
 // errDiscoveryInterrupted sentinel instead.
 func TestDiscoverNodesWaiterDoesNotInheritRunnerCancellation(t *testing.T) {
-	c := &Client{}
+	c := &Transport{}
 	c.discoverMu.cond = sync.NewCond(&c.discoverMu)
 
 	// Simulate an in-progress discovery whose runner was cancelled.
@@ -2560,7 +2560,7 @@ func TestTryDiscoverNodesStartsDiscovery(t *testing.T) {
 // neither context.Canceled nor context.DeadlineExceeded -- the waiter should
 // receive the runner's error verbatim, not the errDiscoveryInterrupted sentinel.
 func TestDiscoverNodesWaiterReceivesNonCtxRunnerError(t *testing.T) {
-	c := &Client{}
+	c := &Transport{}
 	c.discoverMu.cond = sync.NewCond(&c.discoverMu)
 
 	runnerErr := fmt.Errorf("simulated discovery failure")

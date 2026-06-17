@@ -30,7 +30,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("simple URL", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 		c.setReqURL(u, req)
@@ -42,7 +42,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("URL with base path", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200/prefix")
 		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 		c.setReqURL(u, req)
@@ -52,7 +52,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("URL with trailing slash base path", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200/prefix/")
 		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 		c.setReqURL(u, req)
@@ -62,7 +62,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("URL with just slash path", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200/")
 		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
 		c.setReqURL(u, req)
@@ -72,7 +72,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("URL with empty path", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/my-index/_doc/1", nil)
 		c.setReqURL(u, req)
@@ -82,7 +82,7 @@ func TestSetReqURL(t *testing.T) {
 
 	t.Run("deep path prefix", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("http://proxy:8080/api/v1/opensearch")
 		req, _ := http.NewRequest(http.MethodGet, "/_cat/indices", nil)
 		c.setReqURL(u, req)
@@ -96,7 +96,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("auth from URL userinfo", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://admin:password@node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -109,7 +109,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("auth from client credentials", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{username: "admin", password: "secret"}
+		c := &Transport{username: "admin", password: "secret"}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -122,7 +122,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("skips when Authorization header present", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{username: "admin", password: "secret"}
+		c := &Transport{username: "admin", password: "secret"}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", "Bearer token")
@@ -133,7 +133,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("no auth when no credentials", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -143,7 +143,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("URL userinfo takes precedence over client creds", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{username: "client-user", password: "client-pass"}
+		c := &Transport{username: "client-user", password: "client-pass"}
 		u, _ := url.Parse("https://url-user:url-pass@node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -156,7 +156,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("partial client creds do not set auth", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{username: "admin"} // no password
+		c := &Transport{username: "admin"} // no password
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -171,14 +171,14 @@ func TestSignRequest_Coverage(t *testing.T) {
 
 	t.Run("nil signer returns nil", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		require.NoError(t, c.signRequest(req))
 	})
 
 	t.Run("signer adds header", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{signer: &mockSigner{SampleKey: "X-Auth", SampleValue: "signed"}}
+		c := &Transport{signer: &mockSigner{SampleKey: "X-Auth", SampleValue: "signed"}}
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		require.NoError(t, c.signRequest(req))
 		require.Equal(t, "signed", req.Header.Get("X-Auth"))
@@ -186,7 +186,7 @@ func TestSignRequest_Coverage(t *testing.T) {
 
 	t.Run("signer error propagates", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{signer: &mockSigner{ReturnError: true}}
+		c := &Transport{signer: &mockSigner{ReturnError: true}}
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		err := c.signRequest(req)
 		require.Error(t, err)
@@ -199,14 +199,14 @@ func TestClose_Coverage(t *testing.T) {
 
 	t.Run("closes without cancel func", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		require.NoError(t, c.Close())
 	})
 
 	t.Run("closes with cancel func", func(t *testing.T) {
 		t.Parallel()
 		ctx, cancel := context.WithCancel(context.Background())
-		c := &Client{
+		c := &Transport{
 			cancelFunc: cancel,
 			ctx:        ctx,
 			transport:  http.DefaultTransport,
@@ -218,7 +218,7 @@ func TestClose_Coverage(t *testing.T) {
 	t.Run("closes transport with CloseIdleConnections", func(t *testing.T) {
 		t.Parallel()
 		closed := false
-		c := &Client{transport: &closeableTransport{fn: func() { closed = true }}}
+		c := &Transport{transport: &closeableTransport{fn: func() { closed = true }}}
 		require.NoError(t, c.Close())
 		require.True(t, closed)
 	})
@@ -247,7 +247,7 @@ func TestDemoteConnectionPoolWithLock(t *testing.T) {
 		pool.mu.ready = []*Connection{conn}
 		pool.mu.activeCount = 1
 
-		c := &Client{}
+		c := &Transport{}
 		c.mu.connectionPool = pool
 
 		result := c.demoteConnectionPoolWithLock()
@@ -263,7 +263,7 @@ func TestDemoteConnectionPoolWithLock(t *testing.T) {
 		pool := &multiServerPool{}
 		pool.mu.dead = []*Connection{conn}
 
-		c := &Client{}
+		c := &Transport{}
 		c.mu.connectionPool = pool
 
 		result := c.demoteConnectionPoolWithLock()
@@ -274,7 +274,7 @@ func TestDemoteConnectionPoolWithLock(t *testing.T) {
 	t.Run("multi pool with no connections", func(t *testing.T) {
 		t.Parallel()
 		pool := &multiServerPool{}
-		c := &Client{}
+		c := &Transport{}
 		c.mu.connectionPool = pool
 
 		result := c.demoteConnectionPoolWithLock()
@@ -287,7 +287,7 @@ func TestDemoteConnectionPoolWithLock(t *testing.T) {
 		conn := &Connection{URL: u, Name: "single"}
 		pool := &singleServerPool{connection: conn}
 
-		c := &Client{}
+		c := &Transport{}
 		c.mu.connectionPool = pool
 
 		result := c.demoteConnectionPoolWithLock()
@@ -304,7 +304,7 @@ func TestApplyConnectionFiltering(t *testing.T) {
 
 	t.Run("excludes dedicated cluster managers", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{includeDedicatedClusterManagers: false}
+		c := &Transport{includeDedicatedClusterManagers: false}
 
 		data := makeConn("data-1", []string{"data", "ingest"})
 		cm := makeConn("cm-1", []string{"cluster_manager"})
@@ -320,7 +320,7 @@ func TestApplyConnectionFiltering(t *testing.T) {
 
 	t.Run("includes all when flag is true", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{includeDedicatedClusterManagers: true}
+		c := &Transport{includeDedicatedClusterManagers: true}
 
 		data := makeConn("data-1", []string{"data"})
 		cm := makeConn("cm-1", []string{"cluster_manager"})
@@ -333,7 +333,7 @@ func TestApplyConnectionFiltering(t *testing.T) {
 
 	t.Run("filters dead list too", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{includeDedicatedClusterManagers: false}
+		c := &Transport{includeDedicatedClusterManagers: false}
 
 		dataDead := makeConn("data-dead", []string{"data"})
 		cmDead := makeConn("cm-dead", []string{"cluster_manager"})
@@ -352,7 +352,7 @@ func TestLogRoundTrip_Coverage(t *testing.T) {
 	t.Run("logs with nil response and error", func(t *testing.T) {
 		t.Parallel()
 		ml := &logCapture{}
-		c := &Client{logger: ml}
+		c := &Transport{logger: ml}
 
 		req, _ := http.NewRequest(http.MethodGet, "http://localhost:9200/_search", nil)
 		c.logRoundTrip(req, nil, fmt.Errorf("connection refused"), time.Now(), time.Millisecond)
@@ -364,7 +364,7 @@ func TestLogRoundTrip_Coverage(t *testing.T) {
 	t.Run("logs with response body enabled", func(t *testing.T) {
 		t.Parallel()
 		ml := &logCapture{respBodyEnabled: true}
-		c := &Client{logger: ml}
+		c := &Transport{logger: ml}
 
 		req, _ := http.NewRequest(http.MethodGet, "http://localhost:9200/_search", nil)
 		res := &http.Response{
@@ -383,7 +383,7 @@ func TestLogRoundTrip_Coverage(t *testing.T) {
 	t.Run("logs with http.NoBody response", func(t *testing.T) {
 		t.Parallel()
 		ml := &logCapture{respBodyEnabled: true}
-		c := &Client{logger: ml}
+		c := &Transport{logger: ml}
 
 		req, _ := http.NewRequest(http.MethodGet, "http://localhost:9200/", nil)
 		res := &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
@@ -606,8 +606,8 @@ func TestBackoffRetry(t *testing.T) {
 func TestCalculateNodeStatsInterval(t *testing.T) {
 	t.Parallel()
 
-	makeClient := func(readyConns int, clientsPerServer, healthCheckRate float64) *Client {
-		c := &Client{}
+	makeClient := func(readyConns int, clientsPerServer, healthCheckRate float64) *Transport {
+		c := &Transport{}
 		c.clientsPerServer = clientsPerServer
 		c.healthCheckRate = healthCheckRate
 

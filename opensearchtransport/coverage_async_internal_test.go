@@ -64,7 +64,7 @@ func TestHealthCheckWithRetries(t *testing.T) {
 	t.Run("success on first attempt", func(t *testing.T) {
 		t.Parallel()
 
-		c := &Client{
+		c := &Transport{
 			healthCheckTimeout: 100 * time.Millisecond,
 			healthCheckJitter:  0,
 			transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
@@ -80,7 +80,7 @@ func TestHealthCheckWithRetries(t *testing.T) {
 	t.Run("all retries fail", func(t *testing.T) {
 		t.Parallel()
 
-		c := &Client{
+		c := &Transport{
 			healthCheckTimeout: 10 * time.Millisecond,
 			healthCheckJitter:  0,
 			transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
@@ -103,7 +103,7 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 
 	t.Run("nil healthCheck is no-op", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{} // healthCheck is nil
+		c := &Transport{} // healthCheck is nil
 		conn := createTestConnection("http://localhost:9200")
 		c.scheduleProactiveHealthCheck(conn) // should not panic
 	})
@@ -113,7 +113,7 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 		var checked atomic.Int32
 		ctx := t.Context()
 
-		c := &Client{
+		c := &Transport{
 			ctx:                     ctx,
 			resurrectTimeoutInitial: time.Millisecond,
 			healthCheck: func(ctx context.Context, conn *Connection, u *url.URL) (*http.Response, error) {
@@ -135,7 +135,7 @@ func TestScheduleProactiveHealthCheck(t *testing.T) {
 		var checked atomic.Int32
 		ctx := t.Context()
 
-		c := &Client{
+		c := &Transport{
 			ctx:                     ctx,
 			resurrectTimeoutInitial: 5 * time.Second, // long throttle
 			healthCheck: func(ctx context.Context, conn *Connection, u *url.URL) (*http.Response, error) {
@@ -169,7 +169,7 @@ func TestPollNodeStats(t *testing.T) {
 
 	t.Run("singleServerPool with nil connection is skipped", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		c.mu.connectionPool = &singleServerPool{connection: nil}
 
 		// Should not panic -- nil connection means nothing to poll.
@@ -178,7 +178,7 @@ func TestPollNodeStats(t *testing.T) {
 
 	t.Run("no-op for nil pool", func(t *testing.T) {
 		t.Parallel()
-		c := &Client{}
+		c := &Transport{}
 		c.pollNodeStats() // should not panic
 	})
 }

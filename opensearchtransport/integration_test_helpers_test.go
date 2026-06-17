@@ -67,7 +67,7 @@ type routeObserver interface {
 //
 // The selector resets the observer, fires a GET / probe, and checks whether
 // the observer captured a RouteEvent.
-func selectorRouteObserved(transport *Client, ctx context.Context, obs routeObserver) func() bool {
+func selectorRouteObserved(transport *Transport, ctx context.Context, obs routeObserver) func() bool {
 	var seen atomic.Bool
 	return func() bool {
 		if seen.Load() {
@@ -167,7 +167,7 @@ func getTestConfigWithReadiness(t *testing.T, urls []*url.URL) (Config, *readine
 // (its OnSuccess/OnFailure are no-ops). Treat NeedsCatUpdate clearance
 // as the readiness signal in that mode instead of waiting for
 // IsDead/IsStandby to flip.
-func transportLensFSMCheck(transport *Client) readiness.FSMCheck {
+func transportLensFSMCheck(transport *Transport) readiness.FSMCheck {
 	singleNode := expectedNodeCount() == 1
 	return func(_ context.Context, cluster *readiness.Cluster) error {
 		metrics, err := transport.Metrics()
@@ -228,7 +228,7 @@ func expectedNodeCount() int {
 // named, and have no pending needsCatUpdate flag (shard placement is fresh).
 // observer may be nil; when non-nil it provides push-based lifecycle
 // transitions alongside the polling fallback.
-func requireMinReadyConns(t *testing.T, transport *Client, observer *readinessObserver, ctx context.Context, minConns int) {
+func requireMinReadyConns(t *testing.T, transport *Transport, observer *readinessObserver, ctx context.Context, minConns int) {
 	t.Helper()
 	opts := []readiness.Option{
 		readiness.WithMinNodes(minConns),
@@ -250,7 +250,7 @@ func requireMinReadyConns(t *testing.T, transport *Client, observer *readinessOb
 // is nil, requireMinConnsObs otherwise. Lets shared helpers accept an
 // optional observer without forking the call sites.
 func requireMinConnsObsOrPoll(
-	t *testing.T, transport *Client, observer *readinessObserver,
+	t *testing.T, transport *Transport, observer *readinessObserver,
 	ctx context.Context, minConns int, selector func() bool,
 ) {
 	t.Helper()
@@ -264,7 +264,7 @@ func requireMinConnsObsOrPoll(
 // requireMinConns mirrors the old testutil.RequireMinConns shape: it
 // triggers discovery, mirrors the transport pool into the readiness FSM,
 // and gates satisfaction on a custom selector.
-func requireMinConns(t *testing.T, transport *Client, ctx context.Context, minConns int, selector func() bool) {
+func requireMinConns(t *testing.T, transport *Transport, ctx context.Context, minConns int, selector func() bool) {
 	t.Helper()
 	readiness.Wait(t, ctx, readiness.LayerConnReady,
 		readiness.WithMinNodes(minConns),
@@ -279,7 +279,7 @@ func requireMinConns(t *testing.T, transport *Client, ctx context.Context, minCo
 // as a fallback for state the observer doesn't expose (e.g. shard-cache
 // freshness via NeedsCatUpdate).
 func requireMinConnsObs(
-	t *testing.T, transport *Client, observer *readinessObserver,
+	t *testing.T, transport *Transport, observer *readinessObserver,
 	ctx context.Context, minConns int, selector func() bool,
 ) {
 	t.Helper()
@@ -296,7 +296,7 @@ func requireMinConnsObs(
 
 // discoverFSMCheck triggers a node-discovery cycle each tick. Errors are
 // recorded as transient so polling continues.
-func discoverFSMCheck(transport *Client) readiness.FSMCheck {
+func discoverFSMCheck(transport *Transport) readiness.FSMCheck {
 	return func(ctx context.Context, cluster *readiness.Cluster) error {
 		if err := transport.DiscoverNodes(ctx); err != nil {
 			cluster.RecordError(err)
@@ -335,7 +335,7 @@ func selectorShardMapReady(cache *indexSlotCache, index string, numShards int) f
 
 // selectorIndexGreen returns a selector that passes when the cluster reports
 // green health for the given index.
-func selectorIndexGreen(transport *Client, ctx context.Context, indexName string) func() bool {
+func selectorIndexGreen(transport *Transport, ctx context.Context, indexName string) func() bool {
 	var seen atomic.Bool
 	p, _ := ospath.ClusterHealthPath{Indices: []string{indexName}}.Build()
 	healthURL := url.URL{
@@ -367,7 +367,7 @@ func selectorIndexGreen(transport *Client, ctx context.Context, indexName string
 // clusterNodeCount queries /_nodes via the transport and returns the total
 // number of nodes reported by the cluster. The transport must already be
 // warmed up (able to serve requests) before calling this.
-func clusterNodeCount(t *testing.T, transport *Client, ctx context.Context) int {
+func clusterNodeCount(t *testing.T, transport *Transport, ctx context.Context) int {
 	t.Helper()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes", nil)
