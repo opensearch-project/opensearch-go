@@ -860,6 +860,132 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.Empty(t, idsExpectedToFail, "missing failure callbacks for item IDs")
 			},
 		},
+		{
+			name: "per-item OnFailure can read Error fields without nil checks",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				const bulkBody = `{
+  "took": 1,
+  "errors": true,
+  "items": [
+    {
+      "create": {
+        "_index": "i",
+        "_id": "1",
+        "status": 409,
+        "error": {
+          "type": "version_conflict_engine_exception",
+          "reason": "already exists"
+        }
+      }
+    },
+    {"delete": {"_index": "i", "_id": "2", "status": 404, "result": "not_found"}}
+  ]
+}`
+				client, _ := opensearchapi.NewClient(
+					opensearchapi.Config{
+						Client: opensearch.Config{
+							Transport: &mockTransport{
+								RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+									if request.URL.Path == "/" {
+										return infoResponse()
+									}
+									return &http.Response{Body: io.NopCloser(strings.NewReader(bulkBody))}, nil
+								},
+							},
+						},
+					},
+				)
+
+				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
+
+				var (
+					errorObjectFailure bool
+					statusOnlyFailure  bool
+				)
+				readErrorFields := func(_ context.Context, _ BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+					require.NoError(t, err)
+					require.NotNil(t, resp.Error)
+					_ = resp.Error.Type
+					_ = resp.Error.Reason
+					if resp.Error.Type != "" {
+						errorObjectFailure = true
+					}
+					if resp.Status == http.StatusNotFound {
+						statusOnlyFailure = true
+					}
+				}
+
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "create", DocumentID: "1",
+					Body: strings.NewReader(`{"title":"bar"}`), OnFailure: readErrorFields,
+				}))
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "delete", DocumentID: "2",
+					Body: strings.NewReader(`{"title":"baz"}`), OnFailure: readErrorFields,
+				}))
+				require.NoError(t, bi.Close(context.Background()))
+
+				require.True(t, errorObjectFailure, "expected error-object failure callback")
+				require.True(t, statusOnlyFailure, "expected status-only failure callback")
+			},
+		},
+		{
+			name: "per-item OnFailure on writeMeta and writeBody errors",
+			run: func(t *testing.T) {
+				t.Helper()
+
+				client, _ := opensearchapi.NewClient(opensearchapi.Config{
+					Client: opensearch.Config{
+						Transport: &mockTransport{
+							RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+								if request.URL.Path == "/" {
+									return infoResponse()
+								}
+								return &http.Response{Body: io.NopCloser(strings.NewReader(`{"items":[]}`))}, nil
+							},
+						},
+					},
+				})
+
+				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
+
+				var (
+					metaFailureCalled bool
+					bodyFailureCalled bool
+				)
+				onFailure := func(_ context.Context, _ BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+					require.Error(t, err)
+					require.NotNil(t, resp.Error)
+					_ = resp.Error.Type
+					_ = resp.Error.Reason
+				}
+
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action:              "index",
+					DocumentID:          "meta-fail",
+					WaitForActiveShards: math.NaN(),
+					OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+						onFailure(ctx, item, resp, err)
+						metaFailureCalled = true
+					},
+				}))
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action:     "index",
+					DocumentID: "body-fail",
+					Body:       failingReadBody{},
+					OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
+						onFailure(ctx, item, resp, err)
+						bodyFailureCalled = true
+					},
+				}))
+				require.NoError(t, bi.Close(context.Background()))
+
+				require.True(t, metaFailureCalled, "expected writeMeta OnFailure callback")
+				require.True(t, bodyFailureCalled, "expected writeBody OnFailure callback")
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -871,6 +997,16 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 
 func strPointer(s string) *string {
 	return &s
+}
+
+type failingReadBody struct{}
+
+func (failingReadBody) Read(_ []byte) (int, error) {
+	return 0, errors.New("body read failed")
+}
+
+func (failingReadBody) Seek(int64, int) (int64, error) {
+	return 0, nil
 }
 
 func int64Pointer(i int64) *int64 {
