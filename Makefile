@@ -132,6 +132,19 @@ test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
 
+build-samples:  ## Compile and vet each _samples/*.go program
+	@printf "\033[2m-> Building _samples...\033[0m\n"
+	@failed=0; \
+	for f in _samples/*.go; do \
+		printf "   %s\n" "$$f"; \
+		go build -o /dev/null "$$f" || failed=1; \
+		go vet "$$f" || failed=1; \
+	done; \
+	if [ $$failed -ne 0 ]; then \
+		printf "\033[31m-> _samples build/vet failed\033[0m\n"; \
+		exit 1; \
+	fi
+
 coverage:  ## Print test coverage report
 	@$(MAKE) gen-coverage
 	@go tool cover -func=$(PWD)/tmp/total.cov
@@ -888,5 +901,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.runtime cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples
 .SILENT: lint.markdown
