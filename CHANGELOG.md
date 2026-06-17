@@ -158,6 +158,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
 - Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
 - Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
+- Add `guides/envvars.md` as the canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, parsing rules, and the exhaustive `OPENSEARCH_GO_ERROR_MASK` token list. Fix `OPENSEARCH_GO_ROUTER` default in `routing.md` from incorrect `false` to correct `true`. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
 
 ### Changed
 
