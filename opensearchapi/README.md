@@ -175,135 +175,13 @@ params := opensearchapi.SomeParams{
 
 OpenSearch returns HTTP 200 even when a request only partially succeeded: bulk operations whose items failed individually, searches that lost some shards, writes whose replica shards rejected the request. `opensearchapi` turns those partial failures into typed Go errors so they surface through the idiomatic `if err != nil` path.
 
-### Default behavior
+By default (`Config.Errors == nil` resolves to `errmask.Empty`) every category is reported; set `Config.Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to mask categories. Dispatch on the typed errors with a `for`/`switch` over `opensearchapi.Errors(err)`.
 
-`Config.Errors` is a `*errmask.ErrorMask` pointer. A set bit suppresses (masks) that category; an unset bit reports it.
-
-| Value                               | Meaning                                 |
-| ----------------------------------- | --------------------------------------- |
-| `nil` (default)                     | `errmask.Empty` -- report everything    |
-| `errmask.New()`                     | Report every category                   |
-| `errmask.New(errmask.All)`          | Mask everything (mimics the v4 default) |
-| `errmask.New(errmask.SearchShards)` | Mask only that category                 |
-
-`errmask.None` and `errmask.Unknown` are aliases for `errmask.Empty`. The named values are constants and are not addressable, so build the `*errmask.ErrorMask` with `errmask.New(...)`.
-
-```go
-import "github.com/opensearch-project/opensearch-go/v5/errmask"
-
-client, err := opensearchapi.NewClient(opensearchapi.Config{
-    Client: opensearch.Config{Addresses: []string{"https://localhost:9200"}},
-    Errors: errmask.New(errmask.SearchShards), // mask only SearchShards
-})
-```
-
-### Environment-variable override
-
-`OPENSEARCH_GO_ERROR_MASK` accepts a comma-separated list of `+`/`-` tokens applied left-to-right on top of `Config.Errors`. Tokens are the lowercase snake_case form of an error category name -- `bulk_items` for the `BulkItems` bit, `search_shards` for `SearchShards`, `write_shards` for `WriteShards`, `multi_search_items` for `MultiSearchItems`, and so on. The exhaustive list of accepted tokens, defaults, and parsing rules is in [guides/envvars.md](../guides/envvars.md#opensearch_go_error_mask-tokens). The [Error type reference](#error-type-reference) below lists the corresponding Go types.
-
-```sh
-# Mask everything except bulk-item errors
-export OPENSEARCH_GO_ERROR_MASK="+all,-bulk_items"
-
-# Only mask search-shard failures; report every other category
-export OPENSEARCH_GO_ERROR_MASK="search_shards"
-
-# Mask everything (mimics the v4 default)
-export OPENSEARCH_GO_ERROR_MASK="all"
-
-# Report everything (the default)
-export OPENSEARCH_GO_ERROR_MASK="none"
-```
-
-Unknown tokens are silently dropped (forward-compatible) and reported via the debug logger when `OPENSEARCH_GO_DEBUG=true`.
-
-### Inspecting errors with `opensearchapi.Errors`
-
-Operations that can return more than one category of partial failure on the same response (today: `MSearch`, `MSearchTemplate`) sometimes do. The dispatch handler applies a runtime-collapse rule:
-
-- 0 sub-errors fired: returns `nil`.
-- 1 sub-error fired: returns the bare sub-error.
-- 2+ sub-errors fired: returns a per-op container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`.
-
-`opensearchapi.Errors(err) []error` flattens both shapes into a uniform slice, so a single switch handles every case:
-
-```go
-resp, err := client.MSearch(ctx, req)
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialSearchError:
-        log.Printf("shard agg: %d/%d shards failed", e.FailedShards, e.TotalShards)
-    case *opensearchapi.MultiSearchItemError:
-        log.Printf("%d sub-queries failed", len(e.Items))
-    default:
-        return err // transport / HTTP / decoding error
-    }
-}
-// resp is fully populated even on partial failure -- continue using it.
-```
-
-`opensearchapi.Errors(nil)` returns `nil`. A non-partial `err` (transport, HTTP, decode) returns a single-element slice containing `err`. New wrapper categories added later are picked up by adding a `case`; the `default` keeps existing call sites safe.
-
-### Error type reference
-
-| Error Type               | Returned By                                                                                  | Key Fields                                                             |
-| ------------------------ | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `*PartialBulkError`      | `Bulk`, `BulkStream`                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                     |
-| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `CreatePIT`, `Count` | `FailedShards int`, `TotalShards int`, `Failures []ShardSearchFailure` |
-| `*ShardFailureError`     | `Index`, `Doc.Create`, `Doc.Delete`, `Update`                                                | `Operation string`, `FailedShards int`, `TotalShards int`              |
-| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                             | `Items []MultiSearchItemFailure`, `SucceededCount int`                 |
-| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                              | `Unwrap() []error` (multi-error contract)                              |
-| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                      | `Unwrap() []error`                                                     |
-
-All single-bit error types implement the `PartialFailureError` interface and work with `errors.As`. Per-op multi-error containers (`*MSearchErrors`, ...) implement `Unwrap() []error`, so `errors.As` against any sub-error type still matches whether the response carried one or many.
-
-### Recommended pattern
-
-Two patterns cover every partial-failure use case. Pick the one that matches your operation's tolerance:
-
-**Treat any server or API failure as a hard error** -- the simplest and most idiomatic Go path. Use this when the operation has no meaningful "partial success" -- any error is a reason to stop:
-
-```go
-resp, err := client.Doc.Bulk(ctx, req)
-if err != nil {
-    return err
-}
-// resp is fully populated; partial failures (if any) are folded into err.
-```
-
-**Inspect categories with a `for`/`switch`** -- when partial error handling is appropriate. Partial error handling lets the client and its application recover from known failure modes they can tolerate (e.g. continue serving a search with a few failed shards, or retry only the bulk items that the server rejected) instead of failing the whole operation. The `default` arm catches transport / HTTP / decode errors and any partial-failure category added in a future release:
-
-```go
-resp, err := client.MSearch(ctx, req)
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialSearchError:
-        log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
-    case *opensearchapi.MultiSearchItemError:
-        log.Printf("%d sub-queries failed", len(e.Items))
-    default:
-        return err
-    }
-}
-// resp is fully populated; use it regardless of partial failure.
-```
-
-`opensearchapi.Errors(err)` flattens every error shape into a uniform slice -- single sub-error, multi-wrapper container, transport error, or `nil` (returns `nil`). The switch is the only pattern this guide recommends for category-aware handling: it stays correct when the API adds new categories, and a missing `case` is reviewable / lint-able.
-
-### Helper functions
-
-```go
-// Test whether an error is a partial failure (any type).
-if opensearchapi.IsPartialFailure(err) { /* ... */ }
-
-// Suppress all partial failures (best-effort operations).
-err = opensearchapi.ToleratePartialFailures(err)
-
-// Threshold-based tolerance: nil unless success rate drops below 99%.
-err = opensearchapi.RequireSuccessRate(err, 0.99)
-```
+[`guides/usage-error_handling.md`](../guides/usage-error_handling.md) is the canonical reference for the full model: the error-mask configuration and env-var override, the [error type reference table](../guides/usage-error_handling.md#error-type-reference), the recommended `for`/`switch` pattern, the `IsPartialFailure`/`ToleratePartialFailures`/`RequireSuccessRate` helpers, and why a type switch is preferred over `errors.As`/`Has` or per-Resp helpers. The exhaustive `OPENSEARCH_GO_ERROR_MASK` token list lives in [`guides/config-envvars.md`](../guides/config-envvars.md#opensearch_go_error_mask-tokens).
 
 ### Operation constants for `ShardFailureError.Operation`
+
+`*ShardFailureError` (returned by `Index`, `Doc.Create`, `Doc.Delete`, `Update`) carries an `Operation` field whose value is one of:
 
 ```go
 opensearchapi.OperationIndex   // "index"
@@ -312,17 +190,9 @@ opensearchapi.OperationUpdate  // "update"
 opensearchapi.OperationDelete  // "delete"
 ```
 
-### Why a type switch, not `errors.As`, `Has`, or per-Resp helpers
-
-The set of partial-failure categories grows as the OpenSearch API evolves: a future server release can add a category today's call sites have never seen. A type switch over `opensearchapi.Errors(err)` makes that growth visible -- review and static analysis can grep for the switch and flag missing cases, and the `default` arm keeps existing call sites safe in the meantime.
-
-`errors.As` and `Has`-style helpers and per-Resp helper methods (`resp.BulkItemFailures()`, `resp.SearchShardFailures()`, ...) all answer the same narrow question: "did _this_ category happen?" None of them can tell a call site that a _new_ category appeared and is being silently dropped. Treat them as an antipattern. The per-Resp helpers exist on the response types as engine machinery for the dispatch and remain available for focused inspection of a known category, but new code should use the type switch.
-
-For the full best-practices guide (retry strategies, threshold tuning, manual partial-failure inspection), see [`../guides/error_handling.md`](../guides/error_handling.md).
-
 ## Default Router Injection
 
-`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil, so requests are routed by node role by default. Set `Config.Client.Router` to supply your own, or `OPENSEARCH_GO_ROUTER=false` to opt out. See [`../guides/routing.md`](../guides/routing.md) for the routing model.
+`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil, so requests are routed by node role by default. Set `Config.Client.Router` to supply your own, or `OPENSEARCH_GO_ROUTER=false` to opt out. See [`../guides/transport-routing.md`](../guides/transport-routing.md) for the routing model.
 
 The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
 
@@ -348,7 +218,7 @@ client, _ = opensearchapi.NewClient(opensearchapi.Config{
 
 A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: &false` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`.
 
-For routing semantics (role awareness, AIMD, shard-cost weighting) see [`../guides/routing.md`](../guides/routing.md). For node discovery see [`../guides/node_discovery_and_roles.md`](../guides/node_discovery_and_roles.md).
+For routing semantics (role awareness, AIMD, shard-cost weighting) see [`../guides/transport-routing.md`](../guides/transport-routing.md). For node discovery see [`../guides/transport-node_discovery_and_roles.md`](../guides/transport-node_discovery_and_roles.md).
 
 ## Plugins
 
