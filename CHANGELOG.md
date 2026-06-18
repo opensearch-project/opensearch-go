@@ -88,8 +88,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Bitfield flags use `+`/`-` prefix convention for explicit opt-in/out; zero-initialized = all features enabled
   - `WithShardExactRouting(bool)` `RouterOption` for programmatic control (env var overrides)
   - Evaluated once at client init time; immutable after
-  - Document environment variables in `guides/routing.md`
-  - Document read-after-write visibility guarantees with operation-aware routing in `guides/routing.md`
+  - Document environment variables in `guides/transport-routing.md`
+  - Document read-after-write visibility guarantees with operation-aware routing in `guides/transport-routing.md`
 - Add adaptive `max_concurrent_shard_requests` derived from cluster-wide AIMD congestion window ([#800](https://github.com/opensearch-project/opensearch-go/issues/800))
 - Add partial failure error types (`PartialBulkError`, `PartialSearchError`, `ShardFailureError`, `MultiSearchItemError`) that surface HTTP 200 partial failures as typed Go errors, controlled by a per-category `errmask.ErrorMask` bitfield on `Config.Errors` ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
   - `PartialBulkError` returned from `Bulk` when `resp.Errors` is true, carries `FailedItems` and `SucceededCount`
@@ -128,7 +128,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - Fires after the entire retry loop when all router policies and connection pools return `ErrNoConnections`
   - On success: triggers immediate cluster rediscovery to repopulate router pools
   - `OPENSEARCH_GO_FALLBACK=false` disables seed fallback (enabled by default)
-- Add consolidated environment variable reference in `guides/routing.md` and `USER_GUIDE.md` ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add consolidated environment variable reference in `guides/transport-routing.md` and `USER_GUIDE.md` ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Add connection pool health probes with cluster-aware resurrection timing ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
   - Auto-discover server core count from `/_nodes/http,os,thread_pool` to derive all rate-limiting and congestion window parameters (default: 8 cores)
   - Weighted round-robin for heterogeneous clusters: nodes with more cores get proportionally more traffic via GCD-normalized duplicate pointers in the ready list
@@ -152,20 +152,21 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - `cluster.heterogeneous.roles` assigns distinct node roles (cluster_manager+ingest, data+ingest, data)
   - `cluster.homogeneous` removes all overrides to reset to default configuration
   - `cluster.status` now shows per-node roles and allocated processors via `_nodes/http,os`
-- Add request routing guide (`guides/routing.md`) consolidating routing architecture, connection scoring, pool lifecycle, cost model, and configuration reference ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
+- Add request routing guide (`guides/transport-routing.md`) consolidating routing architecture, connection scoring, pool lifecycle, cost model, and configuration reference ([#786](https://github.com/opensearch-project/opensearch-go/pull/786))
 - Add per-item `Error` field to `MGetResp`, `MTermvectorsResp`, and `MSearchResp` for detecting partial failures in multi-document operations ([#797](https://github.com/opensearch-project/opensearch-go/issues/797))
 - Add `DocumentError` type for structured per-item error information in multi-document responses
 - Add `BulkByScrollFailure` type for structured failure information in `_delete_by_query`, `_update_by_query`, and `_reindex` responses
 - Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
 - Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
 - Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
-- Add `guides/envvars.md` as the canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, parsing rules, and the exhaustive `OPENSEARCH_GO_ERROR_MASK` token list. Fix `OPENSEARCH_GO_ROUTER` default in `routing.md` from incorrect `false` to correct `true`. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
+- Add `guides/config-envvars.md` as the canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, parsing rules, and the exhaustive `OPENSEARCH_GO_ERROR_MASK` token list. Fix `OPENSEARCH_GO_ROUTER` default in `transport-routing.md` from incorrect `false` to correct `true`. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
 
 ### Changed
 
+- Reorganize the documentation. Split `UPGRADING.md` into a version-history index plus per-major-version guides (`UPGRADING_V5.md` through `UPGRADING_V2.md`) and rename `opensearchapi/MIGRATING.md` to `opensearchapi/UPGRADING_V4_TO_V5.md`. Group the `guides/` and `_samples/` files by subsystem (`transport-`, `indexing-`, `usage-`, `config-`) and add a `guides/README.md` index. Make `guides/usage-error_handling.md` the single source for partial-error handling and `guides/transport-retry_backoff.md` the single source for resurrection-timeout config, replacing the duplicated copies in `opensearchapi/README.md` and `guides/transport-routing.md` with links. Add package documentation (`doc.go`) for `opensearchapi`, `plugins`, `signer`, and `signer/awsv2`. No functional change; the `signer/awsv2` `doc.go` carries a `Deprecated:` directive (see Deprecated below)
 - Trim the CI compatibility matrix to the currently-patched OpenSearch set (2.19.x and 3.x) per the 12-month support policy; older lines (1.3.x - 2.18.x) are no longer part of the tested matrix and the 4.x client remains their supported path. No client code change ([#856](https://github.com/opensearch-project/opensearch-go/issues/856))
 - **BREAKING**: Module path is now `github.com/opensearch-project/opensearch-go/v5`. Update import paths from `/v4` to `/v5`; the in-source `opensearchapi.X` package qualifier is unchanged
-- **BREAKING**: The code-generated API package is now the canonical `opensearchapi/`, replacing the hand-written v4 package (formerly previewed at `v5preview/opensearchapi/`). Req/Resp/Params types are fully typed and generated from the OpenAPI spec. See [`opensearchapi/MIGRATING.md`](opensearchapi/MIGRATING.md) for the field-level delta (`DocumentID` -> `ID`, optional `Params` becoming `*Params`, shared parameters moving into embedded `TimeoutParams`/`DebugParams`, `BulkResp.Items` becoming `[]BulkItem`) ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
+- **BREAKING**: The code-generated API package is now the canonical `opensearchapi/`, replacing the hand-written v4 package (formerly previewed at `v5preview/opensearchapi/`). Req/Resp/Params types are fully typed and generated from the OpenAPI spec. See [`opensearchapi/UPGRADING_V4_TO_V5.md`](opensearchapi/UPGRADING_V4_TO_V5.md) for the field-level delta (`DocumentID` -> `ID`, optional `Params` becoming `*Params`, shared parameters moving into embedded `TimeoutParams`/`DebugParams`, `BulkResp.Items` becoming `[]BulkItem`) ([#650](https://github.com/opensearch-project/opensearch-go/issues/650))
 - **BREAKING**: The default Router is now on by default. `opensearchapi.NewClient`/`NewDefaultClient`, `opensearch.NewClient`, and `opensearchtransport.New` inject `opensearchtransport.NewDefaultRouter` (and enable on-start discovery) unless `OPENSEARCH_GO_ROUTER=false`. In v4 the router was opt-in via `OPENSEARCH_GO_ROUTER=true` ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
 - **BREAKING**: Partial-failure errors are now reported by default. `Config.Errors == nil` resolves to `errmask.Empty` (report every partial-failure category) instead of v4's `errmask.All` (mask everything). Set `Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to restore v4-style masking ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
 - **BREAKING**: `cmd/osgen` now treats the OpenSearch plugin acronyms `ISM`, `KNN`, `LTR`, `ML`, `PPL`, `SM`, `UBI`, and `WLM` as initialisms, so generated identifiers are all-uppercase per Go convention (matching the existing `API`, `HTTP`, `JSON`, etc. handling). Renames every affected `*_gen.go` type, path builder, and method, e.g. `IsmPolicy` -> `ISMPolicy`, `KnnStats` -> `KNNStats`, `SmPolicy` -> `SMPolicy`. Update any direct references to the renamed identifiers; the lowercase plugin package names (`ism`, `knn`, ...) are unchanged ([#863](https://github.com/opensearch-project/opensearch-go/issues/863))
@@ -210,6 +211,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 
+- Mark the `signer/awsv2` package deprecated via a godoc `Deprecated:` directive in favor of `signer/aws`, which provides the same AWS SDK for Go v2 SigV4 signing and enables credential caching by default. The package remains fully functional; the directive is tooling-visible (`staticcheck` SA1019, gopls) and will nudge downstream callers toward `signer/aws`
 - Mark `opensearchtransport.Transport.Perform` and the `opensearch.Client.Perform` passthrough as deprecated; both remain fully functional in v4 (still buffering the response body via `io.ReadAll` + `NopCloser`) and will be removed in a future major version. New code should call `opensearch.Do[T]` for typed, decoded results or `opensearchtransport.Transport.Stream` / `opensearch.Client.Stream` for raw byte forwarding.
 - Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
 - Mark `opensearch.ToPointer` as deprecated; it remains fully functional but will be removed in a future major version. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
