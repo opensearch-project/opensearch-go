@@ -41,14 +41,14 @@ func TestExplainReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ExplainReq{Index: "test-index", ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/test-index/_explain/test-id",
 			wantErr:    false,
 		},
 		{
 			name:       "body triggers POST",
 			req:        opensearchapi.ExplainReq{Index: "test", ID: "test", Body: &opensearchapi.ExplainBody{}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/test/_explain/test",
 			wantErr:    false,
 		},

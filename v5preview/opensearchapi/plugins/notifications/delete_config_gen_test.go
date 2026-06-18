@@ -11,6 +11,7 @@
 package notifications_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteConfigReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        notifications.DeleteConfigReq{ConfigID: "test-configid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_notifications/configs/test-configid",
 			wantErr:    false,
 		},

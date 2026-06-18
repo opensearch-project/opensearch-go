@@ -11,6 +11,7 @@
 package ubi_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestInitializeReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ubi.InitializeReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/ubi/initialize",
 			wantErr:    false,
 		},

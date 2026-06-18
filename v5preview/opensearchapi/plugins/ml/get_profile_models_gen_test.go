@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetProfileModelsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.GetProfileModelsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/profile/models",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ml.GetProfileModelsReq{ModelID: "test-modelid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/profile/models/test-modelid",
 			wantErr:    false,
 		},

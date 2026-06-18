@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi/testutil"
@@ -135,12 +134,12 @@ func TestSecurityConfigClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						ossectest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 						testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 					}
 				})

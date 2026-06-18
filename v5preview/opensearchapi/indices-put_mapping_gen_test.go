@@ -42,7 +42,7 @@ func TestIndicesPutMappingReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesPutMappingReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_mapping",
 			wantErr:    false,
 		},

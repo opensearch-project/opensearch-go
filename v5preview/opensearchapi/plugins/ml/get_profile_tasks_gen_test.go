@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetProfileTasksReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.GetProfileTasksReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/profile/tasks",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        ml.GetProfileTasksReq{TaskID: "test-taskid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ml/profile/tasks/test-taskid",
 			wantErr:    false,
 		},

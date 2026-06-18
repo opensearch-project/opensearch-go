@@ -11,6 +11,7 @@
 package ml_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateMemoryContainerReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ml.CreateMemoryContainerReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_plugins/_ml/memory_containers/_create",
 			wantErr:    false,
 		},

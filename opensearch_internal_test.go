@@ -40,7 +40,6 @@ import (
 	"testing"
 	"testing/iotest"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/internal/build"
@@ -98,14 +97,14 @@ func TestClientConfiguration(t *testing.T) {
 		c, err := NewDefaultClient()
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, defaultURL, u)
+		require.Equal(t, defaultURL, u)
 	})
 
 	t.Run("With URL from Addresses", func(t *testing.T) {
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, "http://localhost:8080", u)
+		require.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With URL from OPENSEARCH_URL", func(t *testing.T) {
@@ -115,7 +114,7 @@ func TestClientConfiguration(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, "http://opensearch.com", u)
+		require.Equal(t, "http://opensearch.com", u)
 	})
 
 	t.Run("With URL from environment and cfg.Addresses", func(t *testing.T) {
@@ -125,14 +124,14 @@ func TestClientConfiguration(t *testing.T) {
 		c, err := NewClient(Config{Addresses: []string{"http://localhost:8080//"}, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, "http://localhost:8080", u)
+		require.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With invalid URL", func(t *testing.T) {
 		u := ":foo"
 		_, err := NewClient(Config{Addresses: []string{u}})
 
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("With invalid URL from environment", func(t *testing.T) {
@@ -140,7 +139,7 @@ func TestClientConfiguration(t *testing.T) {
 		defer func() { os.Setenv(envOpenSearchURL, "") }()
 
 		_, err := NewDefaultClient()
-		assert.Error(t, err)
+		require.Error(t, err)
 	})
 
 	t.Run("With skip check", func(t *testing.T) {
@@ -153,7 +152,7 @@ func TestClientConfiguration(t *testing.T) {
 					}, nil
 				}),
 			})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 	})
 
 	t.Run("With User:Password", func(t *testing.T) {
@@ -165,7 +164,7 @@ func TestClientConfiguration(t *testing.T) {
 		)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, "http://admin:admin@localhost:8080", u)
+		require.Equal(t, "http://admin:admin@localhost:8080", u)
 	})
 
 	t.Run("With DiscoverNodes on start", func(t *testing.T) {
@@ -178,7 +177,7 @@ func TestClientConfiguration(t *testing.T) {
 		)
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Client).URLs()[0].String()
-		assert.Equal(t, "http://localhost:8080", u)
+		require.Equal(t, "http://localhost:8080", u)
 	})
 
 	t.Run("With failing creation", func(t *testing.T) {
@@ -189,7 +188,7 @@ func TestClientConfiguration(t *testing.T) {
 				CACert:    []byte{1},
 			},
 		)
-		assert.ErrorIs(t, err, ErrCreateTransport)
+		require.ErrorIs(t, err, ErrCreateTransport)
 	})
 }
 
@@ -205,7 +204,7 @@ func TestClientInterfe(t *testing.T) {
 			res.Body.Close()
 		}
 
-		assert.Equal(t, called-1, call, "Expected client to call transport")
+		require.Equal(t, called-1, call, "Expected client to call transport")
 	})
 
 	t.Run("Do()", func(t *testing.T) {
@@ -214,8 +213,8 @@ func TestClientInterfe(t *testing.T) {
 
 		req := testReq{}
 		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
 	})
 
 	t.Run("Generic Do()", func(t *testing.T) {
@@ -253,8 +252,8 @@ func TestClientInterfe(t *testing.T) {
 
 		req := testReq{Error: true}
 		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
-		assert.Error(t, err)
-		assert.Nil(t, resp)
+		require.Error(t, err)
+		require.Nil(t, resp)
 	})
 
 	t.Run("Do() Unmarshal error", func(t *testing.T) {
@@ -267,8 +266,8 @@ func TestClientInterfe(t *testing.T) {
 		req := testReq{Path: "/"}
 		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
 		require.Error(t, err)
-		assert.ErrorIs(t, err, ErrJSONUnmarshalBody)
-		assert.NotNil(t, resp)
+		require.ErrorIs(t, err, ErrJSONUnmarshalBody)
+		require.NotNil(t, resp)
 	})
 
 	t.Run("Do() io read error", func(t *testing.T) {
@@ -291,9 +290,92 @@ func TestClientInterfe(t *testing.T) {
 		req := testReq{}
 		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
 		require.Error(t, err)
-		assert.ErrorIs(t, err, ErrReadBody)
-		assert.NotNil(t, resp)
+		require.ErrorIs(t, err, ErrReadBody)
+		require.NotNil(t, resp)
 	})
+}
+
+// fakeTransport is an opensearchtransport.Interface that returns a fixed
+// (response, error) pair, used to exercise Client.Do's handling of the
+// (resp != nil, err != nil) contract that Perform may now return.
+type fakeTransport struct {
+	resp *http.Response
+	err  error
+}
+
+func (f fakeTransport) Perform(*http.Request) (*http.Response, error) {
+	return f.resp, f.err
+}
+
+// TestDoPerformErrorClassification verifies that Client.Do only labels a
+// returned error as ErrReadBody when it is a genuine body-read failure
+// (signaled by opensearchtransport.ErrResponseBodyRead). An unrelated transport
+// error returned alongside a response -- e.g. context cancellation during retry
+// backoff -- must surface with its identity intact and without the misleading
+// "failed to read body" prefix.
+func TestDoPerformErrorClassification(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		performErr  error
+		wantReadErr bool   // expect errors.Is(err, ErrReadBody)
+		wantIs      error  // an error the result must still wrap (nil to skip)
+		wantNotMsg  string // substring that must NOT appear in the message (empty to skip)
+	}{
+		{
+			name:        "genuine body-read failure is labeled ErrReadBody",
+			performErr:  fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, io.ErrUnexpectedEOF),
+			wantReadErr: true,
+			wantIs:      io.ErrUnexpectedEOF,
+		},
+		{
+			name:        "context cancellation during backoff is not ErrReadBody",
+			performErr:  context.Canceled,
+			wantReadErr: false,
+			wantIs:      context.Canceled,
+			wantNotMsg:  "failed to read body",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c, err := NewClient(Config{
+				Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+			})
+			require.NoError(t, err)
+
+			// Replace the transport with one that returns a fixed
+			// (response, error) pair so Do exercises the (resp != nil,
+			// err != nil) classification path.
+			c.Transport = fakeTransport{
+				resp: &http.Response{
+					StatusCode: http.StatusServiceUnavailable,
+					Header:     http.Header{},
+					Body:       io.NopCloser(strings.NewReader("")),
+				},
+				err: tt.performErr,
+			}
+
+			resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
+			require.Error(t, err)
+			require.NotNil(t, resp, "response must be returned alongside the error")
+
+			if tt.wantReadErr {
+				require.ErrorIs(t, err, ErrReadBody)
+			} else {
+				require.NotErrorIs(t, err, ErrReadBody)
+			}
+			if tt.wantIs != nil {
+				require.ErrorIs(t, err, tt.wantIs)
+			}
+			if tt.wantNotMsg != "" {
+				require.NotContains(t, err.Error(), tt.wantNotMsg)
+			}
+		})
+	}
 }
 
 func TestAddrsToURLs(t *testing.T) {
@@ -345,17 +427,17 @@ func TestAddrsToURLs(t *testing.T) {
 
 			if tc.err != nil {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tc.err.Error())
+				require.Contains(t, err.Error(), tc.err.Error())
 			}
 
 			for i := range tc.urls {
-				assert.Equal(t, tc.urls[i].Scheme, res[i].Scheme, tc.name)
+				require.Equal(t, tc.urls[i].Scheme, res[i].Scheme, tc.name)
 			}
 			for i := range tc.urls {
-				assert.Equal(t, tc.urls[i].Host, res[i].Host, tc.name)
+				require.Equal(t, tc.urls[i].Host, res[i].Host, tc.name)
 			}
 			for i := range tc.urls {
-				assert.Equal(t, tc.urls[i].Path, res[i].Path, tc.name)
+				require.Equal(t, tc.urls[i].Path, res[i].Path, tc.name)
 			}
 		})
 	}
@@ -371,7 +453,7 @@ func TestClientMetrics(t *testing.T) {
 	m, err := c.Metrics()
 	require.NoError(t, err)
 
-	assert.LessOrEqual(t, m.Requests, 1, m)
+	require.LessOrEqual(t, m.Requests, 1, m)
 }
 
 func TestParseElasticsearchVersion(t *testing.T) {
@@ -424,17 +506,17 @@ func TestParseElasticsearchVersion(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
-			assert.Equal(t, major, tt.major)
-			assert.Equal(t, minor, tt.minor)
-			assert.Equal(t, patch, tt.patch)
+			require.Equal(t, major, tt.major)
+			require.Equal(t, minor, tt.minor)
+			require.Equal(t, patch, tt.patch)
 		})
 	}
 }
 
 func TestToPointer(t *testing.T) {
 	testPointer := ToPointer(true)
-	assert.NotNil(t, testPointer)
-	assert.True(t, *testPointer)
+	require.NotNil(t, testPointer)
+	require.True(t, *testPointer)
 }
 
 func TestClientGetConfig(t *testing.T) {

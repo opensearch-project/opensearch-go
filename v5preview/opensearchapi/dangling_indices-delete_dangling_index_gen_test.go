@@ -41,7 +41,7 @@ func TestDanglingIndicesDeleteDanglingIndexReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.DanglingIndicesDeleteDanglingIndexReq{IndexUUID: "test-indexuuid"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_dangling/test-indexuuid",
 			wantErr:    false,
 		},

@@ -35,7 +35,7 @@ func TestClusterDeleteWeightedRoutingReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ClusterDeleteWeightedRoutingReq{},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_cluster/routing/awareness/weights",
 			wantErr:    false,
 		},

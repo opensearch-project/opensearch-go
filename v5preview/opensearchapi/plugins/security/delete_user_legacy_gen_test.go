@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestDeleteUserLegacyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        security.DeleteUserLegacyReq{Username: "test-username"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/_security/api/user/test-username",
 			wantErr:    false,
 		},

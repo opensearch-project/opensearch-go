@@ -41,7 +41,7 @@ func TestDeleteByQueryRethrottleReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.DeleteByQueryRethrottleReq{TaskID: "test-taskid"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_delete_by_query/test-taskid/_rethrottle",
 			wantErr:    false,
 		},

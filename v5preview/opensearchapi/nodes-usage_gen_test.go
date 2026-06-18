@@ -34,14 +34,14 @@ func TestNodesUsageReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.NodesUsageReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/usage",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.NodesUsageReq{Metric: []string{"a", "b"}, NodeID: []string{"a", "b"}},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_nodes/a,b/usage/a,b",
 			wantErr:    false,
 		},

@@ -11,6 +11,7 @@
 package ism_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestExistsPolicyReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        ism.ExistsPolicyReq{PolicyID: "test-policyid"},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/_plugins/_ism/policies/test-policyid",
 			wantErr:    false,
 		},

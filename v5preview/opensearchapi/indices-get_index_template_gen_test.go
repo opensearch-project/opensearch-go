@@ -34,14 +34,14 @@ func TestIndicesGetIndexTemplateReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.IndicesGetIndexTemplateReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_index_template",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.IndicesGetIndexTemplateReq{Name: "test-name"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_index_template/test-name",
 			wantErr:    false,
 		},

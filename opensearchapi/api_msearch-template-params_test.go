@@ -12,7 +12,7 @@ package opensearchapi
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMSearchTemplateParams_get(t *testing.T) {
@@ -99,7 +99,7 @@ func TestMSearchTemplateParams_get(t *testing.T) {
 				ErrorTrace:            tt.fields.ErrorTrace,
 				FilterPath:            tt.fields.FilterPath,
 			}
-			assert.Equalf(t, tt.want, r.get(), "get()")
+			require.Equalf(t, tt.want, r.get(), "get()")
 		})
 	}
 }

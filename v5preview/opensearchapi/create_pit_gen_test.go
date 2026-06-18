@@ -41,7 +41,7 @@ func TestCreatePITReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.CreatePITReq{Index: []string{"a", "b"}},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/a,b/_search/point_in_time",
 			wantErr:    false,
 		},

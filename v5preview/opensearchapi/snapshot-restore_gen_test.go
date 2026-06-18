@@ -42,7 +42,7 @@ func TestSnapshotRestoreReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SnapshotRestoreReq{Repository: "test-repository", Snapshot: "test-snapshot"},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_snapshot/test-repository/test-snapshot/_restore",
 			wantErr:    false,
 		},

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -28,7 +27,7 @@ func TestRenderSearchTemplate(t *testing.T) {
 
 	if testutil.IsSecure(t) {
 		major, patch, _, err := testutil.GetVersion(t, t.Context(), client)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		if major == 2 && (patch == 10 || patch == 11) {
 			t.Skipf("Skipping %s due to: https://github.com/opensearch-project/security/issues/3672", t.Name())
 		}
@@ -59,7 +58,7 @@ func TestRenderSearchTemplate(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp)
+		require.NotEmpty(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
@@ -69,7 +68,7 @@ func TestRenderSearchTemplate(t *testing.T) {
 
 		res, err := failingClient.RenderSearchTemplate(t.Context(), opensearchapi.RenderSearchTemplateReq{})
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

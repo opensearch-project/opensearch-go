@@ -41,7 +41,7 @@ func TestGetScriptReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.GetScriptReq{ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_scripts/test-id",
 			wantErr:    false,
 		},

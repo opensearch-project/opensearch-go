@@ -11,6 +11,7 @@
 package ltr_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCacheStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ltr.CacheStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_ltr/_cachestats",
 			wantErr:    false,
 		},

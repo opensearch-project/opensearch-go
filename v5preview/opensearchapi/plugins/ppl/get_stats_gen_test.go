@@ -11,6 +11,7 @@
 package ppl_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestGetStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        ppl.GetStatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_ppl/stats",
 			wantErr:    false,
 		},

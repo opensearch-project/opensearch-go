@@ -67,6 +67,14 @@ const (
 var (
 	reGoVersion          = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 	errHealthCheckFailed = errors.New("connection health check error")
+
+	// ErrResponseBodyRead identifies an error that occurred while buffering the
+	// response body inside [Client.Perform]. Callers that receive a non-nil
+	// response together with a non-nil error can use [errors.Is] against this
+	// sentinel to distinguish a genuine body-read failure from an unrelated
+	// transport error returned alongside a response (for example, context
+	// cancellation during retry backoff after a retryable status was received).
+	ErrResponseBodyRead = errors.New("error reading response body")
 )
 
 // getConnectionFromPool gets a connection and handles client locking internally.
@@ -86,6 +94,16 @@ func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
 }
 
 // Interface is the HTTP client contract used by the OpenSearch API layer.
+//
+// Implementations may return a non-nil *http.Response together with a non-nil
+// error (for example, when the response was received but buffering its body
+// failed). Callers must treat a nil response, not a non-nil error, as the
+// signal for a hard transport failure. See [Client.Perform] for details.
+//
+// TODO(v5): add Stream(*http.Request) (*http.Response, error) to this
+// interface and remove the deprecated Perform. Stream is currently exposed
+// only as a concrete [*Client] method to avoid a v4 interface change; v5
+// will swap the surfaces.
 type Interface interface {
 	Perform(*http.Request) (*http.Response, error)
 }
@@ -147,20 +165,6 @@ type Config struct {
 	// can block, preventing indefinite hangs on stalled connections.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
-
-	// DisableResponseBuffering, when true, skips reading and buffering the
-	// entire response body in Perform(). The caller receives the raw response
-	// body from the underlying RoundTrip and is responsible for fully reading
-	// and closing it to release the connection back to the pool.
-	//
-	// This is useful for proxy and streaming use cases where the caller wants
-	// to forward the response incrementally rather than buffering it in memory.
-	// With HTTP/2, streams are independent so draining is not required for
-	// connection reuse. With HTTP/1.1, the caller must fully read the body
-	// before it can be reused.
-	//
-	// Default: false (existing behavior -- body is fully buffered).
-	DisableResponseBuffering bool
 
 	CompressRequestBody bool
 
@@ -429,9 +433,8 @@ type Client struct {
 
 	healthCheck HealthCheckFunc
 
-	compressRequestBody      bool
-	disableResponseBuffering bool
-	pooledGzipCompressor     *gzipCompressor
+	compressRequestBody  bool
+	pooledGzipCompressor *gzipCompressor
 
 	metrics *metrics
 
@@ -841,8 +844,7 @@ func New(cfg Config) (*Client, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressRequestBody:      cfg.CompressRequestBody,
-		disableResponseBuffering: cfg.DisableResponseBuffering,
+		compressRequestBody: cfg.CompressRequestBody,
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1120,8 +1122,71 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// Perform executes the request and returns a response or error.
+// Perform executes the request and returns a buffered response.
+//
+// The response body is fully read into memory and replaced with an
+// [io.NopCloser] over a [bytes.Reader] before returning, so the underlying
+// TCP connection is drained and returned to the connection pool even if the
+// caller never reads the body. This is the right behavior for the typed
+// [github.com/opensearch-project/opensearch-go/v4.Do] helpers, which decode
+// the buffered body into a Go value.
+//
+// Perform may return a non-nil *http.Response together with a non-nil error.
+// This happens when the request reached a server and a response was received,
+// but a subsequent step failed -- most notably when buffering the response
+// body fails (see [ErrResponseBodyRead]), or when the request context is
+// cancelled during retry backoff after a retryable status was received. In
+// those cases the returned response is still usable (its body, if any, holds
+// whatever bytes were read before the failure).
+//
+// Callers must therefore treat resp == nil, not err != nil, as the signal for
+// a hard transport failure where no response is available. The same contract
+// applies to any custom [Interface] implementation.
+//
+// Deprecated: Perform will be removed in v5. Use [Client.Stream] when you
+// need raw byte forwarding (the caller owns the body), or the typed
+// [github.com/opensearch-project/opensearch-go/v4.Do] helpers when you want
+// a decoded Go value (the SDK owns the body).
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
+	res, err := c.Stream(req)
+
+	// Read, close and replace the http response body to close the connection.
+	// Callers that want to stream raw bytes should call [Client.Stream]
+	// directly; Perform exists for the typed Do helpers and for backward
+	// compatibility with v4 callers that relied on a buffered body.
+	if res != nil && res.Body != nil {
+		body, rerr := io.ReadAll(res.Body)
+		res.Body.Close()
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		if rerr != nil && err == nil {
+			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
+		}
+	}
+
+	return res, err
+}
+
+// Stream executes the request and returns the raw [http.Response] from the
+// underlying [http.RoundTripper]. The caller owns the response body: Stream
+// does not read or close res.Body. Use Stream when you want to forward or
+// relay raw bytes downstream without interpreting them (for example, a
+// reverse proxy streaming a response to its own client).
+//
+// Stream may return a non-nil *http.Response together with a non-nil error
+// (for example, when the request context is cancelled during retry backoff
+// after a retryable status was received). Callers must therefore treat
+// resp == nil, not err != nil, as the signal for a hard transport failure.
+//
+// Stream mutates req.URL to point at the selected backend (Scheme/Host) so
+// that signing, retry, and routing all see the resolved address. It performs
+// retry, signing, header injection, request-body compression, metrics, and
+// the seed URL fallback identically to [Client.Perform]; the only difference
+// is that Stream returns the raw RoundTrip body instead of buffering it.
+//
+// Pairs with [github.com/opensearch-project/opensearch-go/v4.Do]: use Do[T]
+// for typed, decoded results (the SDK owns the body), use Stream for raw
+// byte forwarding (the caller owns the body).
+func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 	var (
 		res *http.Response
 		err error
@@ -1204,6 +1269,12 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 			// (ErrNoConnections), break to allow post-loop seed fallback.
 			err = fmt.Errorf("cannot get connection: %w", err)
 			if errors.Is(err, ErrNoConnections) {
+				// No round-trip occurred this iteration -- clear any stale
+				// response from a prior retryable status (e.g. 503 from the
+				// previous attempt) so the documented (resp == nil signals
+				// hard transport failure) invariant holds when seed fallback
+				// is unavailable.
+				res = nil
 				break
 			}
 			return nil, err
@@ -1455,17 +1526,6 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 		res, err = c.performSeedFallback(req.Context(), req)
 	}
 
-	// Read, close and replace the http response body to close the connection.
-	// Skipped when DisableResponseBuffering is set -- the caller is responsible
-	// for fully reading and closing the body.
-	if !c.disableResponseBuffering && res != nil && res.Body != nil {
-		body, err := io.ReadAll(res.Body)
-		res.Body.Close()
-		if err == nil {
-			res.Body = io.NopCloser(bytes.NewReader(body))
-		}
-	}
-
 	// TODO: Consider wrapping the error with request context.
 	return res, err
 }
@@ -1699,7 +1759,7 @@ func (c *Client) setReqGlobalHeader(req *http.Request) {
 			req.Header = make(http.Header, len(c.header))
 		}
 		for k, v := range c.header {
-			if req.Header.Get(k) != k {
+			if _, ok := req.Header[http.CanonicalHeaderKey(k)]; !ok {
 				for _, vv := range v {
 					req.Header.Add(k, vv)
 				}
@@ -1857,6 +1917,8 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 
 	if res.StatusCode != http.StatusOK {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 		return nil, fmt.Errorf("%w: status %d", errHealthCheckFailed, res.StatusCode)
@@ -1868,6 +1930,8 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -1932,6 +1996,8 @@ func (c *Client) hardwareInfoHealthCheck(
 
 	if res.StatusCode != http.StatusOK {
 		if res.Body != nil {
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 		// Non-200 (e.g. 403 from security plugin) -- fall back to baseline.
@@ -1948,6 +2014,8 @@ func (c *Client) hardwareInfoHealthCheck(
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
+		//nolint:errcheck // best-effort drain before close on a cleanup path
+		io.Copy(io.Discard, res.Body)
 		res.Body.Close()
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -2057,6 +2125,13 @@ func (c *Client) fetchClusterHealth(ctx context.Context, u *url.URL, applyModifi
 	}
 	defer func() {
 		if res.Body != nil {
+			// Drain on close: raw RoundTrip path with no Perform buffering
+			// safety net. Closing a partially-read body (the non-200 early
+			// return below, or the io.ReadAll error path) would otherwise
+			// defeat keep-alive. On the success path io.ReadAll has already
+			// reached EOF, so the drain is a cheap no-op.
+			//nolint:errcheck // best-effort drain before close on a cleanup path
+			io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 	}()

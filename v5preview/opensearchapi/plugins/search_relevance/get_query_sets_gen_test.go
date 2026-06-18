@@ -11,6 +11,7 @@
 package search_relevance_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestGetQuerySetsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        search_relevance.GetQuerySetsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/query_sets",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        search_relevance.GetQuerySetsReq{QuerySetID: "test-querysetid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_search_relevance/query_sets/test-querysetid",
 			wantErr:    false,
 		},

@@ -54,6 +54,11 @@ func NewClient(client *opensearch.Client) *Client {
 }
 
 // do calls [opensearch.Do] and checks the response for errors.
+//
+// [opensearch.Do] routes through the buffered [opensearchtransport.Client.Perform],
+// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
+// connection has been drained and returned to the pool. The helper only needs
+// to translate IsError into a typed error.
 func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
 	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
 	if err != nil {

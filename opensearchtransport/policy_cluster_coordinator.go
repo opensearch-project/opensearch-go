@@ -249,7 +249,7 @@ func (p *CoordinatorPolicy) Eval(ctx context.Context, req *http.Request) (NextHo
 // PolicySnapshot returns a point-in-time snapshot of this policy's pool.
 func (p *CoordinatorPolicy) PolicySnapshot() PolicySnapshot {
 	if p.pool == nil {
-		return PolicySnapshot{Name: "coordinator"}
+		return PolicySnapshot{Name: policyTypeNameCoordinator}
 	}
 	snap := p.pool.snapshot()
 	snap.Enabled = psIsEnabled(p.policyState.Load())

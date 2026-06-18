@@ -11,6 +11,7 @@
 package security_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,7 +31,7 @@ func TestCreateUpdateTenancyConfigReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        security.CreateUpdateTenancyConfigReq{},
-			wantMethod: "PUT",
+			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/_security/api/tenancy/config",
 			wantErr:    false,
 		},

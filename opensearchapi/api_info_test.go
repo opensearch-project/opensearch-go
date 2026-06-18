@@ -11,7 +11,6 @@ package opensearchapi_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -25,14 +24,14 @@ func TestInfo(t *testing.T) {
 	t.Run("with nil request", func(t *testing.T) {
 		resp, err := client.Info(t.Context(), nil)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp)
+		require.NotEmpty(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
 	t.Run("with request", func(t *testing.T) {
 		resp, err := client.Info(t.Context(), &opensearchapi.InfoReq{})
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp)
+		require.NotEmpty(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
@@ -42,7 +41,7 @@ func TestInfo(t *testing.T) {
 
 		res, err := failingClient.Info(t.Context(), nil)
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

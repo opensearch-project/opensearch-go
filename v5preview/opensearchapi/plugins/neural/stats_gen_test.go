@@ -11,6 +11,7 @@
 package neural_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -30,14 +31,14 @@ func TestStatsReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        neural.StatsReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_neural/stats",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        neural.StatsReq{Stat: []string{"a", "b"}, NodeID: "test-nodeid"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/_neural/test-nodeid/stats/a,b",
 			wantErr:    false,
 		},

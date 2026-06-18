@@ -51,6 +51,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 				"status":400
 			}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StructError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusBadRequest, e.Status)
@@ -88,6 +89,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 				"status":400
 			}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StructError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusBadRequest, e.Status)
@@ -108,6 +110,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusMethodNotAllowed,
 			body:       `{"error":"Incorrect HTTP method for uri [/_doc] and method [POST], allowed: [HEAD, DELETE, PUT, GET]","status":405}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StringError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusMethodNotAllowed, e.Status)
@@ -119,6 +122,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusNotFound,
 			body:       `{"_index":"index","_id":"2","matched":false}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.StringError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, http.StatusNotFound, e.Status)
@@ -130,6 +134,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"error":"no handler found for uri [/_plugins/_security/xxx] and method [GET]"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.Error
 				require.ErrorAs(t, err, &e)
 				require.Contains(t, e.Err, "no handler found for uri [/_plugins/_security/xxx] and method [GET]")
@@ -140,6 +145,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"status":"error","reason":"Invalid configuration","invalid_keys":{"keys":"dynamic"}}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.ReasonError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, "error", e.Status)
@@ -151,6 +157,7 @@ func TestParseError_TypedErrors(t *testing.T) {
 			statusCode: http.StatusBadRequest,
 			body:       `{"status":"BAD_REQUEST","message":"Wrong request body"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var e *opensearch.MessageError
 				require.ErrorAs(t, err, &e)
 				require.Equal(t, "BAD_REQUEST", e.Status)
@@ -242,6 +249,7 @@ func TestStructError_Unmarshal(t *testing.T) {
 			name: "status as string instead of int",
 			body: `{"status": "400"}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var jsonError *json.UnmarshalTypeError
 				require.ErrorAs(t, err, &jsonError)
 			},
@@ -250,6 +258,7 @@ func TestStructError_Unmarshal(t *testing.T) {
 			name: "error as number triggers StringError",
 			body: `{"error": 0, "status": 500}`,
 			check: func(t *testing.T, err error) {
+				t.Helper()
 				var errStr *opensearch.StringError
 				require.ErrorAs(t, err, &errStr)
 			},
@@ -267,22 +276,63 @@ func TestStructError_Unmarshal(t *testing.T) {
 	}
 }
 
-func TestParseError_PreservesBody(t *testing.T) {
+// TestParseError_BodyState exercises the Body invariant on both arms: on
+// success ParseError must restore Body with the original bytes, and on the
+// io.ReadAll error path it must still leave resp.Body in a usable state -- a
+// NopCloser the caller can Read or Close without observing a closed reader.
+func TestParseError_BodyState(t *testing.T) {
 	t.Parallel()
 
-	expectedBody := `{"error":{"type":"resource_already_exists_exception","reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"},"status":400}`
+	const okBody = `{"error":{"type":"resource_already_exists_exception",` +
+		`"reason":"index [test/HU2mN_RMRXGcS38j3yV-VQ] already exists"},"status":400}`
 
-	resp := opensearch.NewResponse(
-		http.StatusBadRequest,
-		io.NopCloser(strings.NewReader(expectedBody)),
-		nil,
-	)
+	syntheticReadErr := errors.New("synthetic read failure")
 
-	err := opensearch.ParseError(resp)
-	require.Error(t, err)
+	tests := []struct {
+		name       string
+		statusCode int
+		body       io.ReadCloser
+		// expectedBody, when non-empty, is JSON-compared against what the
+		// restored Body produces after ParseError returns.
+		expectedBody string
+		// errIs lists sentinel errors the returned err must wrap.
+		errIs []error
+	}{
+		{
+			name:         "success path restores body bytes",
+			statusCode:   http.StatusBadRequest,
+			body:         io.NopCloser(strings.NewReader(okBody)),
+			expectedBody: okBody,
+		},
+		{
+			name:       "read error path leaves body readable",
+			statusCode: http.StatusInternalServerError,
+			body:       io.NopCloser(iotest.ErrReader(syntheticReadErr)),
+			errIs:      []error{opensearch.ErrReadBody, syntheticReadErr},
+		},
+	}
 
-	body, readErr := io.ReadAll(resp.Body)
-	require.NoError(t, readErr)
-	require.NotEmpty(t, body)
-	require.JSONEq(t, expectedBody, string(body))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			resp := opensearch.NewResponse(tt.statusCode, tt.body, nil)
+			err := opensearch.ParseError(resp)
+			require.Error(t, err)
+
+			for _, target := range tt.errIs {
+				require.ErrorIs(t, err, target)
+			}
+
+			require.NotNil(t, resp.Body, "Body must be restored, not left nil")
+			body, readErr := io.ReadAll(resp.Body)
+			require.NoError(t, readErr, "restored Body must be readable without error")
+			require.NoError(t, resp.Body.Close())
+
+			if tt.expectedBody != "" {
+				require.NotEmpty(t, body)
+				require.JSONEq(t, tt.expectedBody, string(body))
+			}
+		})
+	}
 }

@@ -35,7 +35,7 @@ func TestReindexReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.ReindexReq{},
-			wantMethod: "POST",
+			wantMethod: http.MethodPost,
 			wantPath:   "/_reindex",
 			wantErr:    false,
 		},

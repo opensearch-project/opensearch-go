@@ -41,7 +41,7 @@ func TestDeleteScriptReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.DeleteScriptReq{ID: "test-id"},
-			wantMethod: "DELETE",
+			wantMethod: http.MethodDelete,
 			wantPath:   "/_scripts/test-id",
 			wantErr:    false,
 		},

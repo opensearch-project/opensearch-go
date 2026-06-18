@@ -102,108 +102,110 @@ const (
 	GroupSearchRelevanceGetStats     = "search_relevance.get_stats"
 )
 
-// Wrappers is the canonical order of wrapper schemas. Parallels the bit
+// Wrappers returns the canonical order of wrapper schemas. Parallels the bit
 // positions in errmask so a Wrappers index N corresponds to errmask bit
-// 1<<N.
-//
-//nolint:gochecknoglobals // const-ish read-only catalog
-var Wrappers = []string{
-	WrapperBulkItems,
-	WrapperSearchShards,
-	WrapperWriteShards,
-	WrapperBroadcastShards,
-	WrapperNodeFailures,
-	WrapperBulkByScrollFailures,
-	WrapperTaskFailures,
-	WrapperMultiSearchItems,
-	WrapperMultiDocItems,
-	WrapperSnapshotCreateShardFailures,
-	WrapperSnapshotGetShardFailures,
-	WrapperSimulateDocFailures,
-	WrapperRankEvalFailures,
-	WrapperIngestionShardFailures,
-	WrapperPitNodeFailures,
+// 1<<N. Returning a fresh slice (rather than exporting a package var) keeps
+// the catalog immutable from a caller's perspective.
+func Wrappers() []string {
+	return []string{
+		WrapperBulkItems,
+		WrapperSearchShards,
+		WrapperWriteShards,
+		WrapperBroadcastShards,
+		WrapperNodeFailures,
+		WrapperBulkByScrollFailures,
+		WrapperTaskFailures,
+		WrapperMultiSearchItems,
+		WrapperMultiDocItems,
+		WrapperSnapshotCreateShardFailures,
+		WrapperSnapshotGetShardFailures,
+		WrapperSimulateDocFailures,
+		WrapperRankEvalFailures,
+		WrapperIngestionShardFailures,
+		WrapperPitNodeFailures,
+	}
 }
 
-// OperationWrappers is the hardcoded per-operation map: x-operation-group
-// (the spec's "Group" string -- see ir.Operation.Group) -> wrapper-schema
-// names that operation may surface.
+// OperationWrappers returns the hardcoded per-operation map:
+// x-operation-group (the spec's "Group" string -- see ir.Operation.Group) ->
+// wrapper-schema names that operation may surface.
 //
 // Every entry in this map is what would otherwise be the
 // `x-error-responses` array on the upstream operation. When the spec
 // gains a native extension, swap this lookup for one driven by the
 // parsed extension; the code in cmd/osgen/api_extract.go is the only
-// caller.
-//
-//nolint:gochecknoglobals // const-ish read-only catalog
-var OperationWrappers = map[string][]string{
-	// _core
-	// NOTE: bulk and bulk_stream also surface WriteShards (per-item replica
-	// failures) per the spec proposal, but the wire shape lives inside
-	// items[].error rather than at top-level _shards -- emit a dedicated
-	// handler when we add per-item write inspection. Until then the
-	// catalog records the wrapper so the user-facing bit is reserved.
-	GroupBulk:            {WrapperBulkItems},
-	GroupBulkStream:      {WrapperBulkItems},
-	GroupSearch:          {WrapperSearchShards},
-	GroupScroll:          {WrapperSearchShards},
-	GroupSearchTemplate:  {WrapperSearchShards},
-	GroupCreatePIT:       {WrapperSearchShards},
-	GroupCount:           {WrapperSearchShards},
-	GroupIndex:           {WrapperWriteShards},
-	GroupCreate:          {WrapperWriteShards},
-	GroupUpdate:          {WrapperWriteShards},
-	GroupDelete:          {WrapperWriteShards},
-	GroupReindex:         {WrapperBulkByScrollFailures},
-	GroupUpdateByQuery:   {WrapperBulkByScrollFailures},
-	GroupDeleteByQuery:   {WrapperBulkByScrollFailures},
-	GroupMSearch:         {WrapperSearchShards, WrapperMultiSearchItems},
-	GroupMSearchTemplate: {WrapperSearchShards, WrapperMultiSearchItems},
-	GroupMGet:            {WrapperMultiDocItems},
-	GroupMTermvectors:    {WrapperMultiDocItems},
-	GroupRankEval:        {WrapperRankEvalFailures},
-	GroupGetAllPITs:      {WrapperPitNodeFailures},
+// caller. Returning a fresh map (rather than exporting a package var) keeps
+// the catalog immutable from a caller's perspective.
+func OperationWrappers() map[string][]string {
+	return map[string][]string{
+		// _core
+		// NOTE: bulk and bulk_stream also surface WriteShards (per-item replica
+		// failures) per the spec proposal, but the wire shape lives inside
+		// items[].error rather than at top-level _shards -- emit a dedicated
+		// handler when we add per-item write inspection. Until then the
+		// catalog records the wrapper so the user-facing bit is reserved.
+		GroupBulk:            {WrapperBulkItems},
+		GroupBulkStream:      {WrapperBulkItems},
+		GroupSearch:          {WrapperSearchShards},
+		GroupScroll:          {WrapperSearchShards},
+		GroupSearchTemplate:  {WrapperSearchShards},
+		GroupCreatePIT:       {WrapperSearchShards},
+		GroupCount:           {WrapperSearchShards},
+		GroupIndex:           {WrapperWriteShards},
+		GroupCreate:          {WrapperWriteShards},
+		GroupUpdate:          {WrapperWriteShards},
+		GroupDelete:          {WrapperWriteShards},
+		GroupReindex:         {WrapperBulkByScrollFailures},
+		GroupUpdateByQuery:   {WrapperBulkByScrollFailures},
+		GroupDeleteByQuery:   {WrapperBulkByScrollFailures},
+		GroupMSearch:         {WrapperSearchShards, WrapperMultiSearchItems},
+		GroupMSearchTemplate: {WrapperSearchShards, WrapperMultiSearchItems},
+		GroupMGet:            {WrapperMultiDocItems},
+		GroupMTermvectors:    {WrapperMultiDocItems},
+		GroupRankEval:        {WrapperRankEvalFailures},
+		GroupGetAllPITs:      {WrapperPitNodeFailures},
 
-	// indices
-	GroupIndicesRefresh:          {WrapperBroadcastShards},
-	GroupIndicesFlush:            {WrapperBroadcastShards},
-	GroupIndicesForceMerge:       {WrapperBroadcastShards},
-	GroupIndicesClearCache:       {WrapperBroadcastShards},
-	GroupIndicesValidateQuery:    {WrapperBroadcastShards},
-	GroupIndicesSegments:         {WrapperBroadcastShards},
-	GroupIndicesStats:            {WrapperBroadcastShards},
-	GroupIndicesUpgrade:          {WrapperBroadcastShards},
-	GroupIndicesDataStreamsStats: {WrapperBroadcastShards},
+		// indices
+		GroupIndicesRefresh:          {WrapperBroadcastShards},
+		GroupIndicesFlush:            {WrapperBroadcastShards},
+		GroupIndicesForceMerge:       {WrapperBroadcastShards},
+		GroupIndicesClearCache:       {WrapperBroadcastShards},
+		GroupIndicesValidateQuery:    {WrapperBroadcastShards},
+		GroupIndicesSegments:         {WrapperBroadcastShards},
+		GroupIndicesStats:            {WrapperBroadcastShards},
+		GroupIndicesUpgrade:          {WrapperBroadcastShards},
+		GroupIndicesDataStreamsStats: {WrapperBroadcastShards},
 
-	// cluster / nodes / dangling
-	GroupClusterStats:              {WrapperNodeFailures},
-	GroupNodesInfo:                 {WrapperNodeFailures},
-	GroupNodesStats:                {WrapperNodeFailures},
-	GroupNodesUsage:                {WrapperNodeFailures},
-	GroupNodesReloadSecureSettings: {WrapperNodeFailures},
-	GroupDanglingIndicesList:       {WrapperNodeFailures},
+		// cluster / nodes / dangling
+		GroupClusterStats:              {WrapperNodeFailures},
+		GroupNodesInfo:                 {WrapperNodeFailures},
+		GroupNodesStats:                {WrapperNodeFailures},
+		GroupNodesUsage:                {WrapperNodeFailures},
+		GroupNodesReloadSecureSettings: {WrapperNodeFailures},
+		GroupDanglingIndicesList:       {WrapperNodeFailures},
 
-	// tasks
-	GroupTasksList:   {WrapperTaskFailures},
-	GroupTasksCancel: {WrapperTaskFailures},
+		// tasks
+		GroupTasksList:   {WrapperTaskFailures},
+		GroupTasksCancel: {WrapperTaskFailures},
 
-	// snapshot
-	GroupSnapshotCreate: {WrapperSnapshotCreateShardFailures},
-	GroupSnapshotGet:    {WrapperSnapshotGetShardFailures},
+		// snapshot
+		GroupSnapshotCreate: {WrapperSnapshotCreateShardFailures},
+		GroupSnapshotGet:    {WrapperSnapshotGetShardFailures},
 
-	// ingest / ingestion
-	GroupIngestSimulate:    {WrapperSimulateDocFailures},
-	GroupIngestionGetState: {WrapperBroadcastShards},
-	GroupIngestionPause:    {WrapperIngestionShardFailures},
-	GroupIngestionResume:   {WrapperIngestionShardFailures},
+		// ingest / ingestion
+		GroupIngestSimulate:    {WrapperSimulateDocFailures},
+		GroupIngestionGetState: {WrapperBroadcastShards},
+		GroupIngestionPause:    {WrapperIngestionShardFailures},
+		GroupIngestionResume:   {WrapperIngestionShardFailures},
 
-	// asynchronous_search (plugin)
-	GroupAsynchronousSearchSearch: {WrapperSearchShards},
-	GroupAsynchronousSearchGet:    {WrapperSearchShards},
+		// asynchronous_search (plugin)
+		GroupAsynchronousSearchSearch: {WrapperSearchShards},
+		GroupAsynchronousSearchGet:    {WrapperSearchShards},
 
-	// search_relevance (plugin)
-	GroupSearchRelevanceGetNodeStats: {WrapperNodeFailures},
-	GroupSearchRelevanceGetStats:     {WrapperNodeFailures},
+		// search_relevance (plugin)
+		GroupSearchRelevanceGetNodeStats: {WrapperNodeFailures},
+		GroupSearchRelevanceGetStats:     {WrapperNodeFailures},
+	}
 }
 
 // For looks up the wrappers declared for a given operation group. Returns
@@ -211,7 +213,7 @@ var OperationWrappers = map[string][]string{
 // slice is sorted (canonical order from Wrappers) so codegen output stays
 // deterministic across runs.
 func For(group string) []string {
-	raw, ok := OperationWrappers[group]
+	raw, ok := OperationWrappers()[group]
 	if !ok {
 		return nil
 	}
@@ -223,8 +225,9 @@ func sortedCanonical(in []string) []string {
 	if len(in) == 0 {
 		return nil
 	}
-	idx := make(map[string]int, len(Wrappers))
-	for i, w := range Wrappers {
+	wrappers := Wrappers()
+	idx := make(map[string]int, len(wrappers))
+	for i, w := range wrappers {
 		idx[w] = i
 	}
 	out := make([]string, len(in))

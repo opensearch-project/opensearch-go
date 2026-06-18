@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -64,7 +63,7 @@ func TestBulkClient(t *testing.T) {
 				test.Request,
 			)
 			require.NoError(t, err)
-			assert.NotEmpty(t, res)
+			require.NotEmpty(t, res)
 			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 		})
 	}
@@ -74,7 +73,7 @@ func TestBulkClient(t *testing.T) {
 
 		res, err := failingClient.Bulk(t.Context(), opensearchapi.BulkReq{Index: index})
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

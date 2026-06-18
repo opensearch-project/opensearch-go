@@ -32,6 +32,7 @@ package opensearchtransport
 import (
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof" // Import pprof handlers for benchmark profiling
 	"net/url"
@@ -44,25 +45,39 @@ func init() {
 	// Start pprof server for benchmark profiling
 	// Can be customized via environment variables:
 	// PPROF_ADDR=":6061" go test -bench=.
-	// Set PPROF_ADDR="" to disable
+	// Set PPROF_ADDR="disabled" to disable
 	pprofAddr := os.Getenv("PPROF_ADDR")
 	if pprofAddr == "" {
 		pprofAddr = "localhost:6060"
 	}
 
-	if pprofAddr != "disabled" {
-		go func() {
-			server := &http.Server{
-				Addr:         pprofAddr,
-				ReadTimeout:  5 * time.Second,
-				WriteTimeout: 5 * time.Second,
-			}
-			// pprof handlers are registered by the import above
-			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				log.Printf("pprof server failed to start on %s: %v", pprofAddr, err)
-			}
-		}()
+	if pprofAddr == "disabled" {
+		return
 	}
+
+	// Validate the address before use. This rejects malformed input (including
+	// any CR/LF that could forge log lines) up front, so the sanitized host/port
+	// is all that ever reaches the logger.
+	host, port, err := net.SplitHostPort(pprofAddr)
+	if err != nil {
+		log.Printf("ignoring invalid PPROF_ADDR: %v", err)
+		return
+	}
+	addr := net.JoinHostPort(host, port)
+
+	go func() {
+		server := &http.Server{
+			Addr:         addr,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+		}
+		// pprof handlers are registered by the import above. The error from
+		// ListenAndServe already names the address, so it need not be echoed
+		// separately (which would also re-introduce env-derived data here).
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("pprof server failed to start: %v", err)
+		}
+	}()
 }
 
 func initSingleServerPool() *singleServerPool {

@@ -41,7 +41,7 @@ func TestExistsSourceReq_GetRequest(t *testing.T) {
 		{
 			name:       "all path fields",
 			req:        opensearchapi.ExistsSourceReq{Index: "test-index", ID: "test-id"},
-			wantMethod: "HEAD",
+			wantMethod: http.MethodHead,
 			wantPath:   "/test-index/_source/test-id",
 			wantErr:    false,
 		},

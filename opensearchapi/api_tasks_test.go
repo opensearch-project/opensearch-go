@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -107,12 +106,12 @@ func TestTasksClient(t *testing.T) {
 				res, err := testCase.Results()
 				if testCase.Name == "inspect" {
 					require.Error(t, err)
-					assert.NotNil(t, res)
+					require.NotNil(t, res)
 					osapitest.VerifyInspect(t, res.Inspect())
 				} else {
 					require.NoError(t, err)
 					require.NotNil(t, res)
-					assert.NotNil(t, res.Inspect().Response)
+					require.NotNil(t, res.Inspect().Response)
 					testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 				}
 			})
@@ -193,12 +192,12 @@ func TestTasksClient(t *testing.T) {
 				res, err := testCase.Results()
 				if testCase.Name == "inspect" {
 					require.Error(t, err)
-					assert.NotNil(t, res)
+					require.NotNil(t, res)
 					osapitest.VerifyInspect(t, res.Inspect())
 				} else {
 					require.NoError(t, err)
 					require.NotNil(t, res)
-					assert.NotNil(t, res.Inspect().Response)
+					require.NotNil(t, res.Inspect().Response)
 
 					// Verify Status field is populated for reindex tasks
 					// and can be unmarshaled into BulkByScrollTaskStatus.
@@ -208,8 +207,8 @@ func TestTasksClient(t *testing.T) {
 
 					status, err := opensearchapi.ParseTaskStatus[opensearchapi.BulkByScrollTaskStatus](taskResp.Task.Status)
 					require.NoError(t, err, "status should parse as BulkByScrollTaskStatus")
-					assert.GreaterOrEqual(t, status.Total, int64(0), "total should be non-negative")
-					assert.GreaterOrEqual(t, status.Batches, int32(0), "batches should be non-negative")
+					require.GreaterOrEqual(t, status.Total, int64(0), "total should be non-negative")
+					require.GreaterOrEqual(t, status.Batches, int32(0), "batches should be non-negative")
 				}
 			})
 		}
@@ -289,12 +288,12 @@ func TestTasksClient(t *testing.T) {
 				res, err := testCase.Results()
 				if testCase.Name == "inspect" {
 					require.Error(t, err)
-					assert.NotNil(t, res)
+					require.NotNil(t, res)
 					osapitest.VerifyInspect(t, res.Inspect())
 				} else {
 					require.NoError(t, err)
 					require.NotNil(t, res)
-					assert.NotNil(t, res.Inspect().Response)
+					require.NotNil(t, res.Inspect().Response)
 					testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 				}
 			})

@@ -34,14 +34,14 @@ func TestSearchPipelineGetReq_GetRequest(t *testing.T) {
 		{
 			name:       "empty request",
 			req:        opensearchapi.SearchPipelineGetReq{},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_search/pipeline",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
 			req:        opensearchapi.SearchPipelineGetReq{ID: "test-id"},
-			wantMethod: "GET",
+			wantMethod: http.MethodGet,
 			wantPath:   "/_search/pipeline/test-id",
 			wantErr:    false,
 		},

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -371,12 +370,12 @@ func TestDocumentClient(t *testing.T) {
 					res, err := testCase.Results()
 					if testCase.Name == "inspect" {
 						require.Error(t, err)
-						assert.NotNil(t, res)
+						require.NotNil(t, res)
 						osapitest.VerifyInspect(t, res.Inspect())
 					} else {
 						require.NoError(t, err)
 						require.NotNil(t, res)
-						assert.NotNil(t, res.Inspect().Response)
+						require.NotNil(t, res.Inspect().Response)
 						if !strings.Contains(value.Name, "Exists") && value.Name != "Source" {
 							testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
 						}
@@ -405,7 +404,7 @@ func TestDocumentClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			require.NotNil(t, res)
-			assert.NotNil(t, res.Inspect().Response)
+			require.NotNil(t, res.Inspect().Response)
 			testutil.CompareRawJSONwithParsedJSON(t, res.Source, res.Inspect().Response)
 		})
 		t.Run("Fields", func(t *testing.T) {
@@ -446,9 +445,9 @@ func TestDocumentClient(t *testing.T) {
 			)
 			require.NoError(t, err)
 			require.NotNil(t, res)
-			assert.NotNil(t, res.Inspect().Response)
+			require.NotNil(t, res.Inspect().Response)
 			testutil.CompareRawJSONwithParsedJSON(t, res, res.Inspect().Response)
-			assert.NotEmpty(t, res.Fields)
+			require.NotEmpty(t, res.Fields)
 		})
 	})
 }

@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
@@ -100,7 +99,7 @@ func TestTermvectors(t *testing.T) {
 			},
 		)
 		require.NoError(t, err)
-		assert.NotEmpty(t, resp)
+		require.NotEmpty(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 
@@ -110,7 +109,7 @@ func TestTermvectors(t *testing.T) {
 
 		res, err := failingClient.Termvectors(t.Context(), opensearchapi.TermvectorsReq{Index: testIndex})
 		require.Error(t, err)
-		assert.NotNil(t, res)
+		require.NotNil(t, res)
 		osapitest.VerifyInspect(t, res.Inspect())
 	})
 }

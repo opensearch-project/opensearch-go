@@ -23,39 +23,50 @@ package opensearch_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"testing/iotest"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v4"
+)
+
+// Response must satisfy fmt.Stringer by value (not just by pointer) so that
+// passing a Response value to fmt.Print*/fmt.Sprintf("%s", ...) calls String()
+// rather than printing the struct fields. String() uses a value receiver on the
+// v4 line; changing it to a pointer receiver would silently break this for
+// callers holding a Response value.
+var (
+	_ fmt.Stringer = opensearch.Response{}
+	_ fmt.Stringer = (*opensearch.Response)(nil)
 )
 
 func TestResponse(t *testing.T) {
 	t.Run("empty response", func(t *testing.T) {
 		resp := opensearch.NewResponse(0, nil, nil)
-		assert.Equal(t, "[0 <nil>]", resp.Status())
-		assert.Equal(t, "[0 <nil>]", resp.String())
+		require.Equal(t, "[0 <nil>]", resp.Status())
+		require.Equal(t, "[0 <nil>]", resp.String())
 	})
 
 	t.Run("with StatusCode", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, nil, nil)
-		assert.Equal(t, "[200 OK]", resp.Status())
-		assert.Equal(t, "[200 OK]", resp.String())
+		require.Equal(t, "[200 OK]", resp.Status())
+		require.Equal(t, "[200 OK]", resp.String())
 	})
 
 	t.Run("with StatusCode and Body", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(strings.NewReader("{\"test\": true}")), nil)
-		assert.Equal(t, "[200 OK]", resp.Status())
-		assert.Equal(t, "[200 OK] {\"test\": true}", resp.String())
+		require.Equal(t, "[200 OK]", resp.Status())
+		require.Equal(t, "[200 OK] {\"test\": true}", resp.String())
 	})
 
 	t.Run("with StatusCode and failing Body", func(t *testing.T) {
 		resp := opensearch.NewResponse(http.StatusOK, io.NopCloser(iotest.ErrReader(errors.New("io reader test"))), nil)
-		assert.Equal(t, "[200 OK]", resp.Status())
-		assert.Equal(t, "[200 OK] <error reading response body: io reader test>", resp.String())
+		require.Equal(t, "[200 OK]", resp.Status())
+		require.Equal(t, "[200 OK] <error reading response body: io reader test>", resp.String())
 	})
 }
