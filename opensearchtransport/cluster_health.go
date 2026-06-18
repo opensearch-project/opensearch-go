@@ -128,7 +128,7 @@ func (c *Transport) calculateNodeStatsInterval() time.Duration {
 // regardless of pool type. Updates per-pool AIMD congestion windows and
 // evaluates node-level overload state.
 //
-// Connection pointers are shared across all policies (see guides/routing.md
+// Connection pointers are shared across all policies (see guides/transport-routing.md
 // "Shared Connections Across Policies"). Polling a connection updates the
 // authoritative atomic state on the Connection itself, which is immediately
 // visible to every policy.

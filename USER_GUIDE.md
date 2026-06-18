@@ -1,8 +1,8 @@
 - [User Guide](#user-guide)
   - [Example](#example)
   - [Amazon OpenSearch Service](#amazon-opensearch-service)
-    - [AWS SDK v1](#aws-sdk-v1)
-    - [AWS SDK v2](#aws-sdk-v2)
+    - [AWS SDK (v2)](#aws-sdk-v2)
+    - [Alternative: Using signer/awsv2](#alternative-using-signerawsv2)
   - [Custom Transport](#custom-transport)
   - [Guides by Topic](#guides-by-topic)
 
@@ -47,7 +47,7 @@ func example() error {
 	}
 
 	// Surface partial failures (bulk item errors, shard failures) as Go
-	// errors. See guides/error_handling.md for the per-category bitmask.
+	// errors. See guides/usage-error_handling.md for the per-category bitmask.
 	errMask := errmask.Empty
 	discoverOnStart := true
 	client, err := opensearchapi.NewClient(
@@ -67,7 +67,7 @@ func example() error {
 			},
 
 			// Optional: Surface partial failures (bulk item errors, shard failures)
-			// as Go errors. See guides/error_handling.md for details.
+			// as Go errors. See guides/usage-error_handling.md for details.
 			Errors: &errMask,
 		},
 	)
@@ -238,7 +238,7 @@ To read more about SigV4 see [Signature Version 4 signing process](https://docs.
 
 Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
 
-### AWS SDK v2 (Recommended)
+### AWS SDK (v2)
 
 **Migration Note**: If you were previously using `signer/aws` with AWS SDK v1, you need to update your imports and configuration as shown below.
 
@@ -544,26 +544,26 @@ OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
 OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
-Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/routing.md#policy-override-variables) for full documentation.
+Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
 
 ## Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. The canonical reference for every variable — accepted values, defaults, meanings, and the tokens accepted by `OPENSEARCH_GO_ERROR_MASK` — is [guides/envvars.md](guides/envvars.md). The sections below link to the relevant categories in that guide.
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. The canonical reference for every variable — accepted values, defaults, meanings, and the tokens accepted by `OPENSEARCH_GO_ERROR_MASK` — is [guides/config-envvars.md](guides/config-envvars.md). The sections below link to the relevant categories in that guide.
 
 ## Guides by Topic
 
-- [**Security**](guides/security.md) - TLS, credentials, input validation, index patterns, error disclosure
-- [Index Lifecycle](guides/index_lifecycle.md)
-- [Document Lifecycle](guides/document_lifecycle.md)
-- [Search](guides/search.md)
-- [Bulk](guides/bulk.md)
-- [Advanced Index Actions](guides/advanced_index_actions.md)
-- [Index Templates](guides/index_template.md)
-- [Data Streams](guides/data_streams.md)
-- [Making Raw JSON REST Requests](guides/json.md)
-- [Request Routing](guides/routing.md)
-- [Cluster Health Checking](guides/cluster_health_checking.md)
-- [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
-- [Response Body Buffering](guides/response_buffering.md)
-- [Retry and Backoff](guides/retry_backoff.md)
-- [Error Handling](guides/error_handling.md)
+- [**Security**](guides/config-security.md) - TLS, credentials, input validation, index patterns, error disclosure
+- [Index Lifecycle](guides/indexing-index_lifecycle.md)
+- [Document Lifecycle](guides/indexing-document_lifecycle.md)
+- [Search](guides/usage-search.md)
+- [Bulk](guides/indexing-bulk.md)
+- [Advanced Index Actions](guides/indexing-advanced_index_actions.md)
+- [Index Templates](guides/indexing-index_template.md)
+- [Data Streams](guides/indexing-data_streams.md)
+- [Making Raw JSON REST Requests](guides/usage-json.md)
+- [Request Routing](guides/transport-routing.md)
+- [Cluster Health Checking](guides/transport-cluster_health_checking.md)
+- [Node Discovery and Role Management](guides/transport-node_discovery_and_roles.md)
+- [Response Body Buffering](guides/transport-response_buffering.md)
+- [Retry and Backoff](guides/transport-retry_backoff.md)
+- [Error Handling](guides/usage-error_handling.md)

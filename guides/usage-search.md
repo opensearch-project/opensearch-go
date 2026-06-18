@@ -1,6 +1,6 @@
 # Search
 
-> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. For static query strings, raw JSON is acceptable. When building bodies from user-supplied values, always use structured serialization. See [Security](security.md#request-body-construction) for details.
+> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. For static query strings, raw JSON is acceptable. When building bodies from user-supplied values, always use structured serialization. See [Security](config-security.md#request-body-construction) for details.
 
 OpenSearch provides a powerful search API that allows you to search for documents in an index. The search API supports a number of parameters that allow you to customize the search operation. In this guide, we will explore the search API and its parameters.
 

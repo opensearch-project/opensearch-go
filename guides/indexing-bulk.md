@@ -4,7 +4,7 @@ In this guide, you'll learn how to use the OpenSearch Golang Client API to perfo
 
 > **Surface note**: the `bulk` API returns `BulkResp.Items` as `[]BulkItem` -- a struct with named fields per operation (`Index`, `Create`, `Update`, `Delete`), each a `*BulkRespItem`. `BulkRespItem.ID` is a `*string`, so deref before formatting. Multi-index `Req` types use `Index []string` (e.g. `IndicesDeleteReq.Index`); `BulkReq.Index` (singular, the default per-request `_index`) is unchanged. See the [Handling errors](#handling-errors) section for an example.
 >
-> See [`opensearchapi/MIGRATING.md`](../opensearchapi/MIGRATING.md) for the full delta from the hand-written v4 surface.
+> See [`opensearchapi/UPGRADING_V4_TO_V5.md`](../opensearchapi/UPGRADING_V4_TO_V5.md) for the full delta from the hand-written v4 surface.
 
 ## Setup
 
@@ -234,7 +234,7 @@ You can mix and match the different operations in a single request. The followin
 
 The `bulk` API returns an array of responses for each operation in the request body. Each response contains a `status` field that indicates whether the operation was successful or not. If the operation was successful, the `status` field is set to a `2xx` code. Otherwise, the response contains an error message in the `error` field.
 
-For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Doc.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
+For comprehensive error handling patterns including retry strategies, retryable error classification, and partial failure monitoring, see [Error Handling and Partial Failures](usage-error_handling.md). When `Config.Errors` is set to unmask the `BulkItems` category, item failures surface as a typed `*opensearchapi.PartialBulkError` returned by `client.Doc.Bulk(...)` -- the loop below is the manual fallback for callers who choose to inspect the response directly.
 
 The following code shows an example on how to look for errors in the response. `BulkResp.Items` is `[]BulkItem`; each `BulkItem` has named operation fields (`Index`, `Create`, `Update`, `Delete`), and `BulkRespItem.Error.Reason` is a `*string`:
 
@@ -357,7 +357,7 @@ Setting `_id` on each bulk item makes the outcome recoverable. After a timeout o
 //   GET /events/_mget { "ids": ["evt-20260226-0001", "evt-20260226-0002"] }
 ```
 
-For retry strategies that account for this failure mode, see [Error Handling and Partial Failures](error_handling.md).
+For retry strategies that account for this failure mode, see [Error Handling and Partial Failures](usage-error_handling.md).
 
 ## Performance Optimization for Bulk Operations
 

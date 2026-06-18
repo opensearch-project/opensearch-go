@@ -1,6 +1,6 @@
 # Tasks
 
-> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. See [Security](security.md#request-body-construction) for details on safe body construction.
+> **Note:** Examples in this guide use `opensearchutil.NewJSONReader` for request bodies that contain dynamic values. See [Security](config-security.md#request-body-construction) for details on safe body construction.
 
 In this guide, you'll learn how to use the OpenSearch Golang Client API to manage asynchronous tasks. You'll learn how to submit long-running operations asynchronously, poll for their completion, and inspect task status.
 
