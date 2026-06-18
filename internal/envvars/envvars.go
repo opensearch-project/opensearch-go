@@ -75,6 +75,14 @@ const StandbyPromotionChecks = "OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS"
 // Debug enables verbose internal logging via [strconv.ParseBool].
 const Debug = "OPENSEARCH_GO_DEBUG"
 
+// PolicyDump dumps the router's policy tree (the structural "DOM": the
+// dot-delimited node paths used by OPENSEARCH_GO_POLICY_* path matchers) at
+// client initialization when set to a truthy value. The dump is written
+// through the debug logger, so it is only emitted when [Debug] is also
+// enabled. Parsed via [strconv.ParseBool]. It is not an OPENSEARCH_GO_POLICY_*
+// override: the override parser only reads the fixed set of policy type names.
+const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
+
 // ErrorMask is a comma-separated bitfield spec controlling which categories
 // of partial-failure errors API methods mask (ignore) instead of returning
 // as typed Go errors. Tokens are the lowercase snake_case wrapper-schema

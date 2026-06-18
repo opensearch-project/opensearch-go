@@ -6,6 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `OPENSEARCH_GO_POLICY_DUMP` environment variable: when set with `OPENSEARCH_GO_DEBUG=true`, dumps the router's policy tree (the dot-delimited node paths that `OPENSEARCH_GO_POLICY_*` matchers target, each labeled with its pool or role) to the debug logger at client initialization. The dump walks the structural tree so router wrappers that share an inner policy instance are each rendered in full. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
 - Add a `build-samples` Makefile target and a CI job that compiles and vets every `_samples/*.go` program, so example breakage is caught (the `_samples` directory is excluded from `go build ./...` because Go ignores `_`-prefixed paths)
 - Group document operations under a `client.Doc` sub-client and point-in-time operations under `client.PIT` (`Create`/`Delete`/`GetAll`/`DeleteAll`); `client.Document` and `client.PointInTime` remain as field aliases. The indices sub-client's canonical field is `client.Index`, with `client.Indices` and `client.Indexes` as aliases. `cmd/osgen` gains `--emit-v4-compat` (default true) to emit backward-compatibility forwarders so top-level `client.Bulk`/`MGet`/`Update`, `client.Document.Source`, and `client.PointInTime.Get` keep working (`client.Index` is not forwarded -- it is the indices sub-client field; use `client.Doc.Index`), and `--emit-v4-deprecation` (default false) to mark those forwarders deprecated
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
@@ -158,6 +159,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `Routing` and `Fields` to `MGetResp.Docs` to match the full OpenSearch `_mget` response format
 - Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
 - Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
+- Add `guides/envvars.md` as the canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, parsing rules, and the exhaustive `OPENSEARCH_GO_ERROR_MASK` token list. Fix `OPENSEARCH_GO_ROUTER` default in `routing.md` from incorrect `false` to correct `true`. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
 
 ### Changed
 

@@ -7,7 +7,9 @@
 package opensearchtransport
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"slices"
@@ -398,4 +400,96 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 			applyPolicyOverridesRecursive(child, overrides, paths)
 		}
 	}
+}
+
+// writePolicyTree renders the router's policy tree (the structural "DOM") to w,
+// one indented line per node, in the same traversal order the client uses to
+// assign override paths. Each line is the dot-delimited node path followed by a
+// human-readable label (pool name for router nodes, role key for role nodes),
+// because paths alone (router[6] vs router[10]) do not say which pool or role a
+// node serves. These are the paths OPENSEARCH_GO_POLICY_* matchers target.
+//
+// Unlike [buildPolicyPaths], which returns a pointer-keyed map and therefore
+// collapses router wrappers that share a single inner policy instance (the
+// default router has 12 router nodes but only 5 distinct inner policies), this
+// walk visits the structural tree directly, so every node — including the
+// shared subtrees — is rendered exactly once at each path it occupies.
+//
+// It takes an io.Writer rather than the debug logger so the rendering is pure
+// and unit-testable against a bytes.Buffer; the debug-gating lives at the call
+// site (see dumpPolicyTreeIfDebug).
+func writePolicyTree(w io.Writer, root Policy) {
+	var lines []string
+	var walk func(p Policy, parentPath string, siblingCounts map[string]int)
+	walk = func(p Policy, parentPath string, siblingCounts map[string]int) {
+		typeName := policyTypeNameUnknown
+		if typed, ok := p.(policyTyped); ok {
+			typeName = typed.policyTypeName()
+		}
+
+		idx := siblingCounts[typeName]
+		siblingCounts[typeName] = idx + 1
+
+		path := fmt.Sprintf("%s[%d]", typeName, idx)
+		if parentPath != "" {
+			path = parentPath + "." + path
+		}
+
+		if label := policyNodeLabel(p); label != "" {
+			lines = append(lines, fmt.Sprintf("%s  %s", path, label))
+		} else {
+			lines = append(lines, path)
+		}
+
+		if walker, ok := p.(policyTreeWalker); ok {
+			children := walker.childPolicies()
+			// Sort children by structural identity so sibling indices match
+			// the paths assigned by buildPolicyPaths / the override matcher.
+			slices.SortFunc(children, func(a, b Policy) int {
+				return strings.Compare(policySortKey(a), policySortKey(b))
+			})
+			childCounts := make(map[string]int)
+			for _, child := range children {
+				walk(child, path, childCounts)
+			}
+		}
+	}
+	walk(root, "", make(map[string]int))
+
+	fmt.Fprintf(w, "Router policy tree (%d nodes); target these paths with OPENSEARCH_GO_POLICY_*:\n", len(lines))
+	for _, line := range lines {
+		fmt.Fprintf(w, "  %s\n", line)
+	}
+}
+
+// policyNodeLabel returns a short human-readable annotation for a policy node,
+// or "" when the node type carries no distinguishing data. It surfaces the same
+// fields policySortKey uses (router pool name, role key) so a path dump tells an
+// operator what each node actually does.
+func policyNodeLabel(p Policy) string {
+	switch v := p.(type) {
+	case *poolRouter:
+		if v.poolName == "" {
+			return ""
+		}
+		return "pool=" + v.poolName
+	case *RolePolicy:
+		return "role=" + v.requiredRoleKey
+	default:
+		return ""
+	}
+}
+
+// dumpPolicyTreeIfDebug writes the policy tree through the debug logger when one
+// is installed (i.e. when OPENSEARCH_GO_DEBUG is truthy). It is a no-op
+// otherwise, so callers may invoke it unconditionally once they have decided the
+// dump was requested (OPENSEARCH_GO_POLICY_DUMP).
+func dumpPolicyTreeIfDebug(root Policy) {
+	dl := loadDebugLogger()
+	if dl == nil {
+		return
+	}
+	var buf bytes.Buffer
+	writePolicyTree(&buf, root)
+	dl.Logf("%s", buf.String())
 }

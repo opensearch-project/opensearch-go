@@ -1958,6 +1958,8 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 
 ## 14. Configuration Reference
 
+> The canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, meanings, and tokens — is [envvars.md](envvars.md). The tables below document the routing-specific variables in the context of the router. See `envvars.md` for the connection, discovery, error-mask, and debugging variables as well.
+
 ### Client Configuration
 
 | Setting                   | Default      | Env Override                              | Description                                            |
@@ -2011,7 +2013,7 @@ if err != nil {
 
 ### Feature Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. Environment variable settings override programmatic configuration values.
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. Environment variable settings override programmatic configuration values. For the full canonical reference of every variable across all categories (connection, discovery, error masking, debugging, pool tuning), see [envvars.md](envvars.md). The tables below cover the routing-specific subset.
 
 #### Debug and Diagnostics
 
@@ -2023,7 +2025,7 @@ All `OPENSEARCH_GO_*` environment variables are evaluated once at client initial
 
 | Variable                         | Format                          | Default        | Description                                                                                  |
 | -------------------------------- | ------------------------------- | -------------- | -------------------------------------------------------------------------------------------- |
-| `OPENSEARCH_GO_ROUTER`           | Bool                            | `false`        | Auto-construct the DefaultRouter when no programmatic `Config.Router` is set                 |
+| `OPENSEARCH_GO_ROUTER`           | Bool                            | `true`         | Auto-construct the DefaultRouter when no programmatic `Config.Router` is set                 |
 | `OPENSEARCH_GO_ROUTING_CONFIG`   | Comma-separated flags/key=value | (all enabled)  | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`)             |
 | `OPENSEARCH_GO_SHARD_REQUESTS`   | Bool or `min:max`               | `true` (5:256) | Adaptive `max_concurrent_shard_requests`. `true`/`false`, `10:512`, `10:`, `:512`, or `10`   |
 | `OPENSEARCH_GO_SHARD_COST`       | See format below                | (defaults)     | Override shard cost multipliers used in connection scoring                                   |
@@ -2158,7 +2160,7 @@ client, _ := opensearch.NewClient(opensearch.Config{
 
 ### Policy Override Variables
 
-Each policy type has a corresponding environment variable:
+Each policy type has a corresponding environment variable. The full reference for all `OPENSEARCH_GO_POLICY_*` variables (accepted values, defaults, parsing rules) is in [envvars.md](envvars.md#policy-overrides).
 
 | Variable                               | Policy Type       |
 | -------------------------------------- | ----------------- |
