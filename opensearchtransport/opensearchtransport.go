@@ -1093,6 +1093,13 @@ func New(cfg Config) (*Transport, error) {
 			if overrides := parsePolicyOverrides(); len(overrides) > 0 {
 				applyPolicyOverrides(routerPolicy, overrides)
 			}
+			// OPENSEARCH_GO_POLICY_DUMP prints the policy tree ("DOM") so an
+			// operator can see the exact node paths to target with
+			// OPENSEARCH_GO_POLICY_* matchers. Debug-gated: emits only when a
+			// debug logger is installed (OPENSEARCH_GO_DEBUG truthy).
+			if envvars.Truthy(envvars.PolicyDump) {
+				dumpPolicyTreeIfDebug(routerPolicy)
+			}
 		}
 
 		// Initialize router with seed URLs immediately (without blocking)

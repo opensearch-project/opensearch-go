@@ -2,6 +2,38 @@
 
 Canonical reference for every `OPENSEARCH_GO_*` runtime environment variable. Each variable is read once at client initialization and is immutable after. Environment variable values override their programmatic configuration equivalents.
 
+## Why so many environment variables?
+
+The client exposes a large number of operational dials — routing behavior, discovery cadence, overload thresholds, connection-pool sizing, partial-failure handling — and every one of them is configurable in code (`opensearch.Config`, `opensearchapi.Config`, and `RouterOption`s). Each environment variable is an **override** for one of those programmatic settings, so an operator can retune a deployment to meet an organization's operational needs without changing source or rebuilding the binary. The variables are not an alternative configuration system; they are deploy-time escape hatches over the in-code defaults.
+
+## Quick reference
+
+Every runtime variable, its default, and a one-line summary. Use this as the table of contents — each variable links to its detailed entry below.
+
+| Variable                                                                      | Default                      | Summary                               |
+| ----------------------------------------------------------------------------- | ---------------------------- | ------------------------------------- |
+| [`OPENSEARCH_URL`](#connection)                                               | unset                        | Seed addresses                        |
+| [`OPENSEARCH_GO_REQUEST_TIMEOUT`](#connection)                                | `0` (none)                   | Per-attempt timeout                   |
+| [`OPENSEARCH_GO_ROUTER`](#routing)                                            | `true`                       | Auto-construct DefaultRouter          |
+| [`OPENSEARCH_GO_ROUTING_CONFIG`](#routing)                                    | all enabled                  | Shard-exact and adaptive MCSR toggles |
+| [`OPENSEARCH_GO_SHARD_COST`](#routing)                                        | defaults                     | Shard cost multipliers                |
+| [`OPENSEARCH_GO_SHARD_REQUESTS`](#routing)                                    | `true` (5:256)               | Adaptive MCSR bounds                  |
+| [`OPENSEARCH_GO_DISCOVERY_CONFIG`](#discovery)                                | all enabled                  | Discovery call toggles                |
+| [`OPENSEARCH_GO_FALLBACK`](#discovery)                                        | `true`                       | Seed URL fallback                     |
+| [`OPENSEARCH_GO_NODE_STATS_INTERVAL`](#load-shedding-and-stats-polling)       | auto                         | Stats polling interval                |
+| [`OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD`](#load-shedding-and-stats-polling) | `85`                         | JVM heap overload threshold           |
+| [`OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`](#load-shedding-and-stats-polling)  | `0.90`                       | Breaker ratio overload threshold      |
+| [`OPENSEARCH_GO_ACTIVE_LIST_CAP`](#connection-pool-tuning)                    | auto                         | Max active connections per pool       |
+| [`OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL`](#connection-pool-tuning)          | `0` (use discovery interval) | Standby rotation interval             |
+| [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle           |
+| [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion        |
+| [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging                         |
+| [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask         |
+| [`OPENSEARCH_GO_POLICY_*`](#policy-overrides)                                 | all enabled                  | Per-policy disable (10 variables)     |
+| [`OPENSEARCH_GO_POLICY_DUMP`](#finding-the-paths-the-router-dom)              | `false`                      | Dump router policy tree (debug-gated) |
+
+Build, test, and code-generation variables (not read by the client at runtime) are listed under [Build, test, and development](#build-test-and-development).
+
 ## Parsing rules
 
 **Boolean variables.** Parsed with Go's `strconv.ParseBool`. Truthy values: `1`, `t`, `T`, `TRUE`, `true`, `True`. Falsy values: `0`, `f`, `F`, `FALSE`, `false`, `False`. Empty, unset, or unparseable values fall back to the documented default.
@@ -111,20 +143,22 @@ export OPENSEARCH_GO_ERROR_MASK="none"
 
 ## Policy overrides
 
-Ten variables let operators disable specific routing policies at startup without code changes. All policies are enabled by default. Set a variable to `false` or `0` to disable all instances of that policy type.
+Ten variables let operators disable specific routing policies at startup without code changes. All policies are enabled by default. Set a variable to `false` or `0` to disable all instances of that policy type. Each policy type links to its `godoc`.
 
-| Variable                               | Policy type       | Meaning                                                    |
-| -------------------------------------- | ----------------- | ---------------------------------------------------------- |
-| `OPENSEARCH_GO_POLICY_CHAIN`           | PolicyChain       | Controls whether the chain iterates its children           |
-| `OPENSEARCH_GO_POLICY_MUX`             | MuxPolicy         | Controls the multiplexer that fans-out routes by pool name |
-| `OPENSEARCH_GO_POLICY_IFENABLED`       | IfEnabledPolicy   | Controls conditional policy branching                      |
-| `OPENSEARCH_GO_POLICY_ROUTER`          | poolRouter        | Controls connection-scoring routing                        |
-| `OPENSEARCH_GO_POLICY_ROLE`            | RolePolicy        | Controls role-filtered node selection                      |
-| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | RoundRobinPolicy  | Controls round-robin fallback selection                    |
-| `OPENSEARCH_GO_POLICY_COORDINATOR`     | CoordinatorPolicy | Controls coordinating-only node routing                    |
-| `OPENSEARCH_GO_POLICY_NULL`            | NullPolicy        | Controls the terminal no-op policy                         |
-| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | IndexRouter       | Controls per-index fan-out routing                         |
-| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | DocRouter         | Controls document-ID-based shard targeting                 |
+| Variable                               | Policy type                                                                                                                    | Meaning                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `OPENSEARCH_GO_POLICY_CHAIN`           | [`PolicyChain`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#PolicyChain)             | Controls whether the chain iterates its children           |
+| `OPENSEARCH_GO_POLICY_MUX`             | [`MuxPolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#MuxPolicy)                 | Controls the multiplexer that fans-out routes by pool name |
+| `OPENSEARCH_GO_POLICY_IFENABLED`       | [`IfEnabledPolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#IfEnabledPolicy)     | Controls conditional policy branching                      |
+| `OPENSEARCH_GO_POLICY_ROUTER`          | `poolRouter` (unexported)                                                                                                      | Controls connection-scoring routing                        |
+| `OPENSEARCH_GO_POLICY_ROLE`            | [`RolePolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#RolePolicy)               | Controls role-filtered node selection                      |
+| `OPENSEARCH_GO_POLICY_ROUNDROBIN`      | [`RoundRobinPolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#RoundRobinPolicy)   | Controls round-robin fallback selection                    |
+| `OPENSEARCH_GO_POLICY_COORDINATOR`     | [`CoordinatorPolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#CoordinatorPolicy) | Controls coordinating-only node routing                    |
+| `OPENSEARCH_GO_POLICY_NULL`            | [`NullPolicy`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NullPolicy)               | Controls the terminal no-op policy                         |
+| `OPENSEARCH_GO_POLICY_INDEX_ROUTER`    | [`IndexRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#IndexRouter)             | Controls per-index fan-out routing                         |
+| `OPENSEARCH_GO_POLICY_DOCUMENT_ROUTER` | [`DocRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#DocRouter)                 | Controls document-ID-based shard targeting                 |
+
+`OPENSEARCH_GO_POLICY_ROUTER` targets the unexported `poolRouter` type, which has no `godoc` page; it is the connection-scoring wrapper around each role policy.
 
 ### Value format
 
@@ -137,16 +171,100 @@ OPENSEARCH_GO_POLICY_ROUTER=false    # plain role-based routing, no scoring
 
 Setting `true` is a no-op (same as unset — all policies are enabled by default).
 
-**Path matchers (disable specific instances):** comma-separated `path=bool` items. The path is matched first as a regex, then as a string prefix:
+Overrides are applied once at startup and cannot be changed at runtime. See [Routing: Policy Override Variables](routing.md#policy-override-variables) for the full reference.
+
+## Targeting specific policy instances (path matchers)
+
+Instead of a bare bool, an `OPENSEARCH_GO_POLICY_*` value may be a comma-separated list of `path=bool` items that target individual nodes in the router's policy tree. The path is matched first as a regular expression, then (if that does not compile or match) as a string prefix:
 
 ```bash
-OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false
-OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false
+# Disable one exact node: the search-pool router's search-role branch
+# (see the labeled tree below to find this path)
+OPENSEARCH_GO_POLICY_ROUTER=ifenabled[0].chain[0].mux[0].router[8]=false
+
+# Disable every role node under any router via regex
+OPENSEARCH_GO_POLICY_ROLE=.*router.*role.*=false
 ```
 
-**Fallback:** a value with no `=` is treated as a regex pattern that disables matching policies.
+A value with no `=` is treated as a regex pattern that disables matching nodes (the `=false` is implied).
 
-Policy paths and override actions are logged to stderr when `OPENSEARCH_GO_DEBUG=true`. Overrides are applied once at startup and cannot be changed at runtime. See [Routing: Policy Override Variables](routing.md#policy-override-variables) for the full reference.
+### Finding the paths: the router "DOM"
+
+Path matchers target the dot-delimited node paths the client assigns when it walks the policy tree. There is no public API that returns this tree, so to discover the paths for **your** router, set `OPENSEARCH_GO_POLICY_DUMP=true` **together with** `OPENSEARCH_GO_DEBUG=true` and read the dump from stderr at client initialization:
+
+```bash
+OPENSEARCH_GO_DEBUG=true OPENSEARCH_GO_POLICY_DUMP=true ./your-app
+```
+
+`OPENSEARCH_GO_POLICY_DUMP` writes through the debug logger, so it produces output only when `OPENSEARCH_GO_DEBUG` is also truthy. It does not change routing behavior; it only prints the tree.
+
+For reference, the **default router** (the tree built by [`NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when `OPENSEARCH_GO_ROUTER` is on) produces this 58-node tree. Each `router` node is labeled with the thread pool it scores for, and each `role` node with the role it selects, because the bare path (`router[0]` vs `router[8]`) does not say which pool or role a node serves. Your tree may differ if you supply a custom router or `RouterOption`s:
+
+```text
+Router policy tree (58 nodes); target these paths with OPENSEARCH_GO_POLICY_*:
+  ifenabled[0]
+  ifenabled[0].chain[0]
+  ifenabled[0].chain[0].mux[0]
+  ifenabled[0].chain[0].mux[0].router[0]  pool=flush
+  ifenabled[0].chain[0].mux[0].router[0].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[0].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[0].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[1]  pool=force_merge
+  ifenabled[0].chain[0].mux[0].router[1].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[1].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[1].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[2]  pool=get
+  ifenabled[0].chain[0].mux[0].router[2].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[2].ifenabled[0].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[2].ifenabled[0].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[2].ifenabled[0].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[2].ifenabled[0].role[0]  role=search
+  ifenabled[0].chain[0].mux[0].router[3]  pool=management
+  ifenabled[0].chain[0].mux[0].router[3].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[3].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[3].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[4]  pool=management
+  ifenabled[0].chain[0].mux[0].router[4].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[4].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[4].ifenabled[0].role[0]  role=ingest
+  ifenabled[0].chain[0].mux[0].router[5]  pool=management
+  ifenabled[0].chain[0].mux[0].router[5].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[5].ifenabled[0].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[5].ifenabled[0].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[5].ifenabled[0].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[5].ifenabled[0].role[0]  role=search
+  ifenabled[0].chain[0].mux[0].router[6]  pool=management
+  ifenabled[0].chain[0].mux[0].router[6].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[6].ifenabled[0].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[6].ifenabled[0].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[6].ifenabled[0].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[6].ifenabled[0].role[0]  role=warm
+  ifenabled[0].chain[0].mux[0].router[7]  pool=refresh
+  ifenabled[0].chain[0].mux[0].router[7].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[7].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[7].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[8]  pool=search
+  ifenabled[0].chain[0].mux[0].router[8].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[8].ifenabled[0].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[8].ifenabled[0].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[8].ifenabled[0].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[8].ifenabled[0].role[0]  role=search
+  ifenabled[0].chain[0].mux[0].router[9]  pool=write
+  ifenabled[0].chain[0].mux[0].router[9].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[9].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[9].ifenabled[0].role[0]  role=data
+  ifenabled[0].chain[0].mux[0].router[10]  pool=write
+  ifenabled[0].chain[0].mux[0].router[10].ifenabled[0]
+  ifenabled[0].chain[0].mux[0].router[10].ifenabled[0].null[0]
+  ifenabled[0].chain[0].mux[0].router[10].ifenabled[0].role[0]  role=ingest
+  ifenabled[0].chain[0].roundrobin[0]
+  ifenabled[0].router[0]
+  ifenabled[0].router[0].role[0]  role=coordinating_only
+```
+
+Reading the tree: the `mux[0]` fans requests out to one `router` per (operation, pool) pairing; each router scores connections for its `pool` and delegates to an `ifenabled`/`role` subtree that selects nodes by role (with `null` as the give-up branch). Several routers wrap the same underlying role policy (e.g. every `role=data` leaf), so the same logical policy appears at multiple paths; a path matcher targets the position in the tree, not the shared instance. The labels (`pool=`, `role=`) are not part of the path — match on the path text to the left of the two-space gap.
+
+Node lines are emitted in tree-traversal order (depth-first, siblings ordered as the matcher orders them), so the printed order is the order the override matcher walks. Override actions are also logged to stderr when `OPENSEARCH_GO_DEBUG=true`.
 
 ---
 
@@ -164,28 +282,3 @@ These variables are **not read by the client at runtime**. They configure the te
 | `TEST_PARALLEL`                   | test harness   | Integer                                 | CPU cores / 2 (min 1) | Max parallel test functions (`go test -parallel`).                                              |
 | `OPENSEARCH_GO_SKIP_JSON_COMPARE` | test harness   | presence (any value, including empty)   | unset                 | When set, skips request/response JSON comparison. Detected by presence, not a parsed bool.      |
 | `OSGEN_SKIP_GIT_CHECK`            | `cmd/osgen`    | Bool                                    | `false`               | Bypass the git-root safety check during code generation.                                        |
-
----
-
-## Quick reference
-
-| Variable                                  | Default                      | Summary                               |
-| ----------------------------------------- | ---------------------------- | ------------------------------------- |
-| `OPENSEARCH_URL`                          | unset                        | Seed addresses                        |
-| `OPENSEARCH_GO_ROUTER`                    | `true`                       | Auto-construct DefaultRouter          |
-| `OPENSEARCH_GO_ROUTING_CONFIG`            | all enabled                  | Shard-exact and adaptive MCSR toggles |
-| `OPENSEARCH_GO_SHARD_COST`                | defaults                     | Shard cost multipliers                |
-| `OPENSEARCH_GO_SHARD_REQUESTS`            | `true` (5:256)               | Adaptive MCSR bounds                  |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG`          | all enabled                  | Discovery call toggles                |
-| `OPENSEARCH_GO_FALLBACK`                  | `true`                       | Seed URL fallback                     |
-| `OPENSEARCH_GO_REQUEST_TIMEOUT`           | `0` (none)                   | Per-attempt timeout                   |
-| `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | auto                         | Stats polling interval                |
-| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | `85`                         | JVM heap overload threshold           |
-| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | `0.90`                       | Breaker ratio overload threshold      |
-| `OPENSEARCH_GO_ACTIVE_LIST_CAP`           | auto                         | Max active connections per pool       |
-| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | `0` (use discovery interval) | Standby rotation interval             |
-| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT`    | `1`                          | Standby rotations per cycle           |
-| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`  | `3`                          | Health checks before promotion        |
-| `OPENSEARCH_GO_DEBUG`                     | `false`                      | Debug logging                         |
-| `OPENSEARCH_GO_ERROR_MASK`                | report all (v5+)             | Partial-failure category mask         |
-| `OPENSEARCH_GO_POLICY_*`                  | all enabled                  | Per-policy disable (10 variables)     |

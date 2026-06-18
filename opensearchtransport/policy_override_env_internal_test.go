@@ -7,8 +7,10 @@
 package opensearchtransport
 
 import (
+	"bytes"
 	"context"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -374,9 +376,110 @@ func TestPolicyOverride_FullFlow(t *testing.T) {
 	require.True(t, found, "no RoundRobinPolicy found in tree")
 }
 
+// countPolicyNodes returns the number of structural nodes in a policy tree,
+// counting shared-but-distinct positions once each (matching writePolicyTree).
+func countPolicyNodes(p Policy) int {
+	n := 1
+	if w, ok := p.(policyTreeWalker); ok {
+		for _, c := range w.childPolicies() {
+			n += countPolicyNodes(c)
+		}
+	}
+	return n
+}
+
 // parsePolicyOverridesForTest is a test helper that sets an env var and returns parsed overrides.
 func parsePolicyOverridesForTest(t *testing.T, envKey, envVal string) []policyOverride {
 	t.Helper()
 	t.Setenv(envKey, envVal)
 	return parsePolicyOverrides()
+}
+
+// --- writePolicyTree ---
+
+func TestWritePolicyTree(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// build returns the root policy to dump. Built per-case so trees stay
+		// isolated and the table reads as input -> expected output.
+		build func() (Policy, error)
+		// wantPaths are node paths that must appear in the rendered output.
+		wantPaths []string
+	}{
+		{
+			name:      "single leaf",
+			build:     func() (Policy, error) { return NewNullPolicy(), nil },
+			wantPaths: []string{"null[0]"},
+		},
+		{
+			name:      "roundrobin leaf",
+			build:     func() (Policy, error) { return NewRoundRobinPolicy(), nil },
+			wantPaths: []string{"roundrobin[0]"},
+		},
+		{
+			name: "chain of two leaves",
+			build: func() (Policy, error) {
+				role, err := NewRolePolicy(RoleData)
+				if err != nil {
+					return nil, err
+				}
+				return NewPolicy(role, NewNullPolicy()), nil
+			},
+			wantPaths: []string{"chain[0]", "chain[0].role[0]", "chain[0].null[0]"},
+		},
+		{
+			name:  "default policy",
+			build: func() (Policy, error) { return NewDefaultPolicy() },
+			// NewDefaultPolicy roots at an ifenabled node (see
+			// TestBuildPolicyPaths_DefaultPolicy); deeper paths are asserted
+			// generically below against the structural node count.
+			wantPaths: []string{"ifenabled[0]"},
+		},
+		{
+			name:      "roundrobin default",
+			build:     func() (Policy, error) { return NewRoundRobinDefaultPolicy(), nil },
+			wantPaths: []string{"chain[0]"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			root, err := tt.build()
+			require.NoError(t, err)
+
+			var buf bytes.Buffer
+			writePolicyTree(&buf, root)
+			out := buf.String()
+
+			// Header reports the tree and points operators at the override var.
+			require.Contains(t, out, "Router policy tree")
+			require.Contains(t, out, "OPENSEARCH_GO_POLICY_*")
+
+			// Row-specific paths must be present.
+			for _, p := range tt.wantPaths {
+				require.Contains(t, out, p)
+			}
+
+			// Invariant: render is deterministic.
+			var buf2 bytes.Buffer
+			writePolicyTree(&buf2, root)
+			require.Equal(t, out, buf2.String(), "render must be deterministic")
+
+			// Invariant: one rendered node line per structural node. This is
+			// stronger than comparing against buildPolicyPaths, whose
+			// pointer-keyed map collapses router wrappers that share an inner
+			// policy instance; the dump must show every structural node.
+			var nodeLines int
+			for line := range strings.SplitSeq(strings.TrimRight(out, "\n"), "\n") {
+				if strings.HasPrefix(line, "  ") {
+					nodeLines++
+				}
+			}
+			require.Equal(t, countPolicyNodes(root), nodeLines,
+				"every structural node must be rendered exactly once")
+		})
+	}
 }
