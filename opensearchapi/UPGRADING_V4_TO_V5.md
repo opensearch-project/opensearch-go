@@ -2,7 +2,7 @@
 
 This guide enumerates every code change a v4 caller needs to make to move to the v5 API surface. The package name is identical (`opensearchapi`); the import path changes from `/v4` to `/v5`, so most call sites only need the new import plus a handful of surface tweaks documented below.
 
-For runtime semantics (partial-failure errors, default Router) see [`README.md`](README.md). For the version-history rationale see [`../UPGRADING.md`](../UPGRADING.md). For best-practices guidance see [`../guides/error_handling.md`](../guides/error_handling.md).
+For runtime semantics (partial-failure errors, default Router) see [`README.md`](README.md). For the version-history rationale see [`../UPGRADING.md`](../UPGRADING.md). For best-practices guidance see [`../guides/usage-error_handling.md`](../guides/usage-error_handling.md).
 
 ## Status
 
@@ -175,6 +175,6 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 ## See also
 
 - [`README.md`](README.md) - full v5 usage guide.
-- [`../guides/error_handling.md`](../guides/error_handling.md) - error-handling best practices.
+- [`../guides/usage-error_handling.md`](../guides/usage-error_handling.md) - error-handling best practices.
 - [`../UPGRADING.md`](../UPGRADING.md) - version-history index.
 - [`plugins/README.md`](../plugins/README.md) - plugin client usage.
