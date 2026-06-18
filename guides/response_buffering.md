@@ -2,16 +2,16 @@
 
 The OpenSearch Go client exposes two entry points for issuing requests, each with a different response-body ownership contract. Pick the one that matches your use case; do not mix them.
 
-| Entry point                         | Body ownership | Buffering            | Use when                                                                 |
-| ----------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
-| `opensearch.Do[T]`                  | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |
-| `opensearchtransport.Client.Stream` | Caller         | Unbuffered (raw)     | You want to forward or relay raw bytes downstream (proxy, streaming).    |
+| Entry point                            | Body ownership | Buffering            | Use when                                                                 |
+| -------------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
+| `opensearch.Do[T]`                     | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |
+| `opensearchtransport.Transport.Stream` | Caller         | Unbuffered (raw)     | You want to forward or relay raw bytes downstream (proxy, streaming).    |
 
 There is intentionally no typed streaming helper. "Stream and decode into `T`" is a contradiction: if you want `T`, use `Do[T]`; if you want bytes, use `Stream`.
 
 ## `Do[T]`: typed, buffered, default
 
-`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Client.Perform`, which:
+`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Transport.Perform`, which:
 
 1. Reads the entire response body into memory.
 2. Closes the underlying body.
@@ -40,7 +40,7 @@ fmt.Println(resp.Status)
 
 ## `Stream`: raw, unbuffered, caller owns the body
 
-`opensearchtransport.Client.Stream` returns the raw `*http.Response` from the underlying `http.RoundTripper`. The SDK does not read or close `res.Body`; the caller does. Stream still performs routing, retries, signing, header injection, request-body compression, and the seed URL fallback identically to `Perform`.
+`opensearchtransport.Transport.Stream` returns the raw `*http.Response` from the underlying `http.RoundTripper`. The SDK does not read or close `res.Body`; the caller does. Stream still performs routing, retries, signing, header injection, request-body compression, and the seed URL fallback identically to `Perform`.
 
 `opensearch.Client` exposes a `Stream` passthrough so callers do not need to type-assert `c.Transport`:
 
@@ -99,4 +99,4 @@ In both cases, always call `res.Body.Close()` when done.
 
 ## Deprecation note
 
-`opensearchtransport.Client.Perform` and `opensearch.Client.Perform` are deprecated and will be removed before the first stable release. They remain fully functional in the meantime; the buffered-response contract is unchanged. New code should call `Do[T]` for typed results or `Stream` for raw byte forwarding.
+`opensearchtransport.Transport.Perform` and `opensearch.Client.Perform` are deprecated and will be removed before the first stable release. They remain fully functional in the meantime; the buffered-response contract is unchanged. New code should call `Do[T]` for typed results or `Stream` for raw byte forwarding.

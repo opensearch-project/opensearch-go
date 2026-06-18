@@ -65,8 +65,8 @@ func validClusterHealthResponse() string {
 
 // newTestClient creates a minimal Client suitable for health check testing with the given transport.
 // Uses small timeouts and zero jitter for fast, deterministic tests.
-func newTestClient(transport http.RoundTripper) *Client {
-	return &Client{
+func newTestClient(transport http.RoundTripper) *Transport {
+	return &Transport{
 		transport:             transport,
 		healthCheckTimeout:    1 * time.Second,
 		healthCheckJitter:     0.0,
@@ -703,9 +703,9 @@ func TestHealthCheckRequestModifier(t *testing.T) {
 // newTestClientWithPool creates a Client with a connection pool set for testing
 // periodic refresh methods (pollClusterHealth, snapshotClusterHealthConnections, etc.).
 // Uses small timeouts and zero jitter for fast, deterministic tests.
-func newTestClientWithPool(transport http.RoundTripper, pool ConnectionPool) *Client {
+func newTestClientWithPool(transport http.RoundTripper, pool ConnectionPool) *Transport {
 	ctx, cancel := context.WithCancel(context.Background())
-	t := &Client{
+	t := &Transport{
 		transport:             transport,
 		healthCheckTimeout:    1 * time.Second,
 		healthCheckJitter:     0.0,
@@ -720,7 +720,7 @@ func newTestClientWithPool(transport http.RoundTripper, pool ConnectionPool) *Cl
 }
 
 func TestCalculateClusterHealthRefreshInterval(t *testing.T) {
-	makeClient := func(liveConns int, clientsPerServer, pollRate float64) *Client {
+	makeClient := func(liveConns int, clientsPerServer, pollRate float64) *Transport {
 		conns := make([]*Connection, liveConns)
 		for i := range conns {
 			conns[i] = &Connection{URL: &url.URL{Host: fmt.Sprintf("node%d:9200", i)}}
@@ -1087,8 +1087,8 @@ func TestClusterHealthCheck_TransientFallback(t *testing.T) {
 }
 
 func TestEvaluateOverload(t *testing.T) {
-	makeClient := func() *Client {
-		return &Client{
+	makeClient := func() *Transport {
+		return &Transport{
 			overloadedHeapThreshold: defaultOverloadedHeapThreshold,
 			overloadedBreakerRatio:  defaultOverloadedBreakerRatio,
 		}
@@ -1654,8 +1654,8 @@ func TestSnapshotClusterHealthConnectionsEdgeCases(t *testing.T) {
 func TestEvaluateOverload_DebugLogging(t *testing.T) {
 	enableTestDebugLogger(t)
 
-	makeClient := func() *Client {
-		return &Client{
+	makeClient := func() *Transport {
+		return &Transport{
 			overloadedHeapThreshold: defaultOverloadedHeapThreshold,
 			overloadedBreakerRatio:  defaultOverloadedBreakerRatio,
 		}

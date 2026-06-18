@@ -58,7 +58,7 @@ func ExampleNewDefaultClient() {
 		log.Fatalf("Error getting the response: %s\n", err)
 	}
 
-	log.Print(client.Client.Transport.(*opensearchtransport.Client).URLs())
+	log.Print(client.Client.Transport.(*opensearchtransport.Transport).URLs())
 }
 
 func ExampleNewClient() {
@@ -82,7 +82,7 @@ func ExampleNewClient() {
 	}
 
 	client, _ := opensearchapi.NewClient(cfg)
-	log.Print(client.Client.Transport.(*opensearchtransport.Client).URLs())
+	log.Print(client.Client.Transport.(*opensearchtransport.Transport).URLs())
 }
 
 func ExampleNewClient_logger() {

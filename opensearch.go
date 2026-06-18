@@ -430,7 +430,7 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 //
 // Deprecated: Perform follows the legacy buffered-response contract and will
 // be removed before the first stable release, alongside
-// [opensearchtransport.Client.Perform]. Use [Client.Stream] when you need raw
+// [opensearchtransport.Transport.Perform]. Use [Client.Stream] when you need raw
 // byte forwarding (the caller owns the body) or the typed [Do] helpers when
 // you want a decoded Go value.
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
@@ -446,7 +446,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 }
 
 // Streamer is implemented by transports that expose an unbuffered Stream
-// path: [opensearchtransport.Client] satisfies it. Custom [opensearchtransport.Interface]
+// path: [opensearchtransport.Transport] satisfies it. Custom [opensearchtransport.Interface]
 // implementations may opt in by adding a Stream method with the same
 // signature; [Client.Stream] reports [ErrTransportMissingMethodStream] when
 // the underlying transport does not.
@@ -529,28 +529,15 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		return response, fmt.Errorf("status: %d, err: %w", resp.StatusCode, err)
 	}
 
-	if dataPointer != nil && resp.Body != nil && !response.IsError() {
-		data, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
-		}
-
-		response.rawBody = data
-		response.Body = io.NopCloser(bytes.NewReader(data))
-
-		if err := json.Unmarshal(data, dataPointer); err != nil {
-			return response, fmt.Errorf("%w, status: %d, body: %s, err: %w", ErrJSONUnmarshalBody, resp.StatusCode, data, err)
-		}
-	}
-
-	if resp.Body != nil && response.IsError() {
-		// Buffer error-response bodies into rawBody so String renders via the
-		// rawBody fast-path (never draining Body) and a subsequent ParseError
-		// still reads an intact Body. Without this, a value-receiver String
-		// call (e.g. log.Printf("%s", resp)) would consume the single-use
-		// error Body and leave ParseError with an empty payload. In the
-		// default buffered mode Perform already returned an in-memory
-		// NopCloser, so this just copies bytes already resident in memory.
+	if resp.Body != nil {
+		// Buffer the response payload into rawBody for every Do response --
+		// success, error, and no-decode (nil dataPointer) alike -- so the
+		// value-receiver String renders via the rawBody fast-path and never
+		// drains Body, and a subsequent ParseError still reads an intact Body.
+		// Without this, a String call (e.g. log.Printf("%s", resp)) would
+		// consume the single-use Body. In the default buffered mode Perform
+		// already returned an in-memory NopCloser, so this just copies bytes
+		// already resident in memory.
 		data, rerr := io.ReadAll(resp.Body)
 		if rerr != nil {
 			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, rerr)
@@ -558,6 +545,12 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 
 		response.rawBody = data
 		response.Body = io.NopCloser(bytes.NewReader(data))
+
+		if dataPointer != nil && !response.IsError() {
+			if err := json.Unmarshal(data, dataPointer); err != nil {
+				return response, fmt.Errorf("%w, status: %d, body: %s, err: %w", ErrJSONUnmarshalBody, resp.StatusCode, data, err)
+			}
+		}
 	}
 
 	return response, nil

@@ -152,7 +152,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 }
 
 // testCustomHealthCheckFunction tests a custom health check function.
-func testCustomHealthCheckFunction(t *testing.T, client *Client, serverURL *url.URL, customHealthCheckCalled *bool) {
+func testCustomHealthCheckFunction(t *testing.T, client *Transport, serverURL *url.URL, customHealthCheckCalled *bool) {
 	t.Helper()
 	pool, ok := client.mu.connectionPool.(*multiServerPool)
 	if !ok {

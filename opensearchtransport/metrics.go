@@ -180,7 +180,7 @@ func (ps PolicySnapshot) String() string {
 // Receives parallel slices of connections and their metrics; the callback
 // modifies cms elements in place (e.g., setting MCSR). Policies register
 // callbacks during [policyConfigurable.configurePolicySettings]; the
-// [Client.Metrics] method invokes them once per snapshot. Callbacks must be
+// [Transport.Metrics] method invokes them once per snapshot. Callbacks must be
 // safe for concurrent use and should be cheap (atomic loads, no allocations).
 type ConnectionMetricCallback func(conns []*Connection, cms []ConnectionMetric) error
 
@@ -239,7 +239,7 @@ func (m *metrics) incrementResponse(statusCode int) {
 }
 
 // Metrics returns the transport metrics.
-func (c *Client) Metrics() (Metrics, error) {
+func (c *Transport) Metrics() (Metrics, error) {
 	if c.metrics == nil {
 		return Metrics{}, errors.New("transport metrics not enabled")
 	}

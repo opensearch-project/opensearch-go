@@ -15,7 +15,7 @@ import "sync/atomic"
 // Methods should return quickly to avoid blocking transport operations.
 //
 // Observer methods may be called while internal locks are held. Implementations
-// must NOT call back into the Client, connection pool, or any method that
+// must NOT call back into the Transport, connection pool, or any method that
 // acquires transport-internal locks. Violating this contract will cause a
 // deadlock.
 type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routing + resolver observer needs all 15 event methods

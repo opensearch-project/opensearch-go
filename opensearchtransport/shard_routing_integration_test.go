@@ -6,7 +6,7 @@
 
 //go:build integration && (core || opensearchtransport)
 
-package opensearchtransport //nolint:testpackage // requires internal access to Client and transport internals
+package opensearchtransport //nolint:testpackage // requires internal access to Transport and transport internals
 
 import (
 	"bytes"
@@ -163,7 +163,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 
 // querySearchShardsForRouting calls /{index}/_search_shards?routing=X and
 // returns the shard number from the server's response.
-func querySearchShardsForRouting(t *testing.T, transport *Client, ctx context.Context, index, routing string) int {
+func querySearchShardsForRouting(t *testing.T, transport *Transport, ctx context.Context, index, routing string) int {
 	t.Helper()
 
 	p, _ := ospath.SearchShardsPath{Indices: []string{index}}.Build()
@@ -209,7 +209,7 @@ func querySearchShardsForRouting(t *testing.T, transport *Client, ctx context.Co
 }
 
 // indexDoc indexes a JSON document at /{index}/_doc/{id}.
-func indexDoc(t *testing.T, transport *Client, ctx context.Context, index, docID, body string) {
+func indexDoc(t *testing.T, transport *Transport, ctx context.Context, index, docID, body string) {
 	t.Helper()
 
 	p, _ := ospath.IndexPath{Index: index, ID: docID}.Build()
@@ -228,7 +228,7 @@ func indexDoc(t *testing.T, transport *Client, ctx context.Context, index, docID
 }
 
 // waitForGreen polls discovery and cluster health until the index is green.
-func waitForGreen(t *testing.T, transport *Client, observer *readinessObserver, ctx context.Context, indexName string) {
+func waitForGreen(t *testing.T, transport *Transport, observer *readinessObserver, ctx context.Context, indexName string) {
 	t.Helper()
 	requireMinConnsObsOrPoll(t, transport, observer, ctx, 1, selectorIndexGreen(transport, ctx, indexName))
 }
@@ -537,7 +537,7 @@ func (o *integrationShardObserver) lastEvent() *RouteEvent {
 // querySearchShardsWithNodes calls /{index}/_search_shards?routing=X and
 // returns both the shard number and the set of node names hosting that shard.
 func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns document the two result values
-	t *testing.T, transport *Client, ctx context.Context, index, routing string,
+	t *testing.T, transport *Transport, ctx context.Context, index, routing string,
 ) (shardNum int, nodeNames map[string]struct{}) {
 	t.Helper()
 
@@ -596,7 +596,7 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 // java.io.OptionalDataException when the cluster state is still settling
 // after index creation. The function polls discovery between retries to
 // keep connections fresh.
-func fetchRoutingNumShardsForTest(t *testing.T, transport *Client, observer *readinessObserver, ctx context.Context, index string) int {
+func fetchRoutingNumShardsForTest(t *testing.T, transport *Transport, observer *readinessObserver, ctx context.Context, index string) int {
 	t.Helper()
 
 	p, _ := ospath.ClusterStatePath{Metric: []string{"metadata"}, Indices: []string{index}}.Build()

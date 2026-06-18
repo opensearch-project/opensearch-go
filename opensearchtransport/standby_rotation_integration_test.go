@@ -144,7 +144,7 @@ func warmupSelections(rounds, skip int) int {
 
 // drainWarmup pumps enough requests through the transport to complete warmup
 // on all connections, allowing deferred cap enforcement to fire.
-func drainWarmup(transport *opensearchtransport.Client) {
+func drainWarmup(transport *opensearchtransport.Transport) {
 	const (
 		nodeCount          = 3
 		warmupRounds       = 4
@@ -173,7 +173,7 @@ func drainWarmup(transport *opensearchtransport.Client) {
 // Returns the final metrics. Handles transient discovery failures (e.g., EOF)
 // by retrying. Each cycle's DiscoverNodes + drainWarmup provides natural
 // backoff without explicit sleeps.
-func discoverWithStandby(t *testing.T, transport *opensearchtransport.Client) opensearchtransport.Metrics {
+func discoverWithStandby(t *testing.T, transport *opensearchtransport.Transport) opensearchtransport.Metrics {
 	t.Helper()
 
 	var m opensearchtransport.Metrics

@@ -69,7 +69,7 @@ var (
 	errHealthCheckFailed = errors.New("connection health check error")
 
 	// ErrResponseBodyRead identifies an error that occurred while buffering the
-	// response body inside [Client.Perform]. Callers that receive a non-nil
+	// response body inside [Transport.Perform]. Callers that receive a non-nil
 	// response together with a non-nil error can use [errors.Is] against this
 	// sentinel to distinguish a genuine body-read failure from an unrelated
 	// transport error returned alongside a response (for example, context
@@ -78,7 +78,7 @@ var (
 )
 
 // getConnectionFromPool gets a connection and handles client locking internally.
-func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
+func getConnectionFromPool(c *Transport, req *http.Request) (*Connection, error) {
 	if c.router != nil {
 		// Use request routing
 		hop, err := c.router.Route(req.Context(), req)
@@ -98,11 +98,11 @@ func getConnectionFromPool(c *Client, req *http.Request) (*Connection, error) {
 // Implementations may return a non-nil *http.Response together with a non-nil
 // error (for example, when the response was received but buffering its body
 // failed). Callers must treat a nil response, not a non-nil error, as the
-// signal for a hard transport failure. See [Client.Perform] for details.
+// signal for a hard transport failure. See [Transport.Perform] for details.
 //
 // TODO(v5): add Stream(*http.Request) (*http.Response, error) to this
 // interface and remove the deprecated Perform. Stream is currently exposed
-// only as a concrete [*Client] method to avoid a v4 interface change; v5
+// only as a concrete [*Transport] method to avoid a v4 interface change; v5
 // will swap the surfaces.
 type Interface interface {
 	Perform(*http.Request) (*http.Response, error)
@@ -397,8 +397,9 @@ type Config struct {
 	AddressResolverRunner AddressResolverRunnerFunc
 }
 
-// Client represents the HTTP client.
-type Client struct {
+// Transport manages HTTP round-trip concerns: connection pooling, retries,
+// node selection, and discovery.
+type Transport struct {
 	urls      []*url.URL
 	username  string
 	password  string
@@ -527,7 +528,7 @@ type Client struct {
 // New creates new transport client.
 //
 // http.DefaultTransport will be used if no transport is passed in the configuration.
-func New(cfg Config) (*Client, error) {
+func New(cfg Config) (*Transport, error) {
 	if cfg.Transport == nil {
 		cfg.Transport = http.DefaultTransport
 	}
@@ -828,7 +829,7 @@ func New(cfg Config) (*Client, error) {
 		}
 	}
 
-	client := Client{
+	client := Transport{
 		urls:     cfg.URLs,
 		username: cfg.Username,
 		password: cfg.Password,
@@ -929,7 +930,7 @@ func New(cfg Config) (*Client, error) {
 
 		// seed-fallback has no demotion path (it lives in c.seedFallbackPool, not
 		// c.mu.connectionPool), so it doesn't need its own cancel func -- its
-		// goroutines are cleaned up transitively when Client.Close() cancels the
+		// goroutines are cleaned up transitively when Transport.Close() cancels the
 		// root context.
 		seedPool := &multiServerPool{
 			name:                         "seed-fallback",
@@ -1149,7 +1150,7 @@ func New(cfg Config) (*Client, error) {
 // The discovery loop goroutine exits when the context is cancelled.
 //
 //nolint:unparam // Returns error to satisfy io.Closer interface; CloseIdleConnections() is void
-func (c *Client) Close() error {
+func (c *Transport) Close() error {
 	if c.cancelFunc != nil {
 		c.cancelFunc()
 	}
@@ -1184,15 +1185,15 @@ func (c *Client) Close() error {
 // applies to any custom [Interface] implementation.
 //
 // Deprecated: Perform follows the legacy buffered-response contract and will
-// be removed before the first stable release. Use [Client.Stream] when you
+// be removed before the first stable release. Use [Transport.Stream] when you
 // need raw byte forwarding (the caller owns the body), or the typed
 // [github.com/opensearch-project/opensearch-go/v5.Do] helpers when you want
 // a decoded Go value (the SDK owns the body).
-func (c *Client) Perform(req *http.Request) (*http.Response, error) {
+func (c *Transport) Perform(req *http.Request) (*http.Response, error) {
 	res, err := c.Stream(req)
 
 	// Read, close and replace the http response body to close the connection.
-	// Callers that want to stream raw bytes should call [Client.Stream]
+	// Callers that want to stream raw bytes should call [Transport.Stream]
 	// directly; Perform exists for the typed Do helpers and for backward
 	// compatibility with v4 callers that relied on a buffered body.
 	if res != nil && res.Body != nil {
@@ -1221,13 +1222,13 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 // Stream mutates req.URL to point at the selected backend (Scheme/Host) so
 // that signing, retry, and routing all see the resolved address. It performs
 // retry, signing, header injection, request-body compression, metrics, and
-// the seed URL fallback identically to [Client.Perform]; the only difference
+// the seed URL fallback identically to [Transport.Perform]; the only difference
 // is that Stream returns the raw RoundTrip body instead of buffering it.
 //
 // Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
 // for typed, decoded results (the SDK owns the body), use Stream for raw
 // byte forwarding (the caller owns the body).
-func (c *Client) Stream(req *http.Request) (*http.Response, error) {
+func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 	var (
 		res *http.Response
 		err error
@@ -1579,7 +1580,7 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) (*http.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -1664,7 +1665,7 @@ func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*h
 //
 // This ensures that a burst of in-flight requests all receiving Connection: close (e.g., during
 // a graceful shutdown) produces at most one health check per resurrectTimeoutInitial interval.
-func (c *Client) scheduleProactiveHealthCheck(conn *Connection) {
+func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	if c.healthCheck == nil {
 		return
 	}
@@ -1732,13 +1733,13 @@ func (c *Client) scheduleProactiveHealthCheck(conn *Connection) {
 }
 
 // URLs returns a list of transport URLs.
-func (c *Client) URLs() []*url.URL {
+func (c *Transport) URLs() []*url.URL {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.mu.connectionPool.URLs()
 }
 
-func (c *Client) setReqURL(u *url.URL, req *http.Request) {
+func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
@@ -1765,7 +1766,7 @@ func (c *Client) setReqURL(u *url.URL, req *http.Request) {
 	}
 }
 
-func (c *Client) setReqAuth(u *url.URL, req *http.Request) {
+func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 	if _, ok := req.Header["Authorization"]; !ok {
 		if u.User != nil {
 			password, _ := u.User.Password()
@@ -1780,21 +1781,21 @@ func (c *Client) setReqAuth(u *url.URL, req *http.Request) {
 	}
 }
 
-func (c *Client) signRequest(req *http.Request) error {
+func (c *Transport) signRequest(req *http.Request) error {
 	if c.signer != nil {
 		return c.signer.SignRequest(req)
 	}
 	return nil
 }
 
-func (c *Client) setReqUserAgent(req *http.Request) {
+func (c *Transport) setReqUserAgent(req *http.Request) {
 	if req.Header == nil {
 		req.Header = make(http.Header, 1)
 	}
 	req.Header.Set("User-Agent", c.userAgent)
 }
 
-func (c *Client) setReqGlobalHeader(req *http.Request) {
+func (c *Transport) setReqGlobalHeader(req *http.Request) {
 	if len(c.header) > 0 {
 		if req.Header == nil {
 			req.Header = make(http.Header, len(c.header))
@@ -1809,7 +1810,7 @@ func (c *Client) setReqGlobalHeader(req *http.Request) {
 	}
 }
 
-func (c *Client) logRoundTrip(
+func (c *Transport) logRoundTrip(
 	req *http.Request,
 	res *http.Response,
 	err error,
@@ -1842,7 +1843,7 @@ func (c *Client) logRoundTrip(
 // This method is exported so users can wrap it with custom logging or metrics.
 //
 //nolint:nonamedreturns // named returns required for deferred metrics tracking
-func (c *Client) DefaultHealthCheck(ctx context.Context, conn *Connection, u *url.URL) (res *http.Response, err error) {
+func (c *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u *url.URL) (res *http.Response, err error) {
 	// Track health check outcomes (success/failure) at the top-level entry point.
 	// Type-specific counters (baseline vs cluster health) are incremented in the
 	// respective methods to accurately count fallback paths.
@@ -1920,7 +1921,7 @@ func (c *Client) DefaultHealthCheck(ctx context.Context, conn *Connection, u *ur
 
 // baselineHealthCheck performs the standard GET / health check against an OpenSearch node.
 // It validates the response contains core fields (name, cluster_name, version.number).
-func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
+func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
 	if c.metrics != nil {
 		c.metrics.healthChecks.Add(1)
 	}
@@ -1997,7 +1998,7 @@ func (c *Client) baselineHealthCheck(ctx context.Context, u *url.URL, applyModif
 // allocatedProcessors and per-pool cwnd ceilings, then clears
 // lcNeedsHardware. On any failure it falls back to the baseline health
 // check so the connection is not penalized for a hardware info failure.
-func (c *Client) hardwareInfoHealthCheck(
+func (c *Transport) hardwareInfoHealthCheck(
 	ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request),
 ) (*http.Response, error) {
 	if c.metrics != nil {
@@ -2127,7 +2128,9 @@ func (c *Client) hardwareInfoHealthCheck(
 //
 // The caller is responsible for interpreting the status code and deciding how to
 // handle auth failures, transient errors, and state transitions.
-func (c *Client) fetchClusterHealth(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*ClusterHealthLocal, int, error) {
+func (c *Transport) fetchClusterHealth(
+	ctx context.Context, u *url.URL, applyModifier func(*http.Request),
+) (*ClusterHealthLocal, int, error) {
 	if c.metrics != nil {
 		c.metrics.clusterHealthChecks.Add(1)
 	}
@@ -2222,7 +2225,7 @@ func resetClusterHealth(conn *Connection) {
 //     as transient; falls back to GET / without changing state.
 //   - 429: Thread pool rejection (backpressure). Transient; falls back to GET /.
 //   - 5xx: Server error or node not ready. Transient; falls back to GET /.
-func (c *Client) clusterHealthCheck(
+func (c *Transport) clusterHealthCheck(
 	ctx context.Context,
 	conn *Connection,
 	u *url.URL,
@@ -2289,7 +2292,7 @@ func (c *Client) clusterHealthCheck(
 //     and will retry the probe after MaxRetryClusterHealth elapses (default 4h).
 //   - Transient errors (5xx, network, timeout): Leaves state at pending and does NOT
 //     record a timestamp, so the probe is retried on the very next health check cycle.
-func (c *Client) probeClusterHealthLocal(ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request)) {
+func (c *Transport) probeClusterHealthLocal(ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request)) {
 	health, statusCode, err := c.fetchClusterHealth(ctx, u, applyModifier)
 	if err != nil {
 		// Transient error -- leave at pending (0), retry next health check
@@ -2363,7 +2366,7 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 // On success, records the RTT of the final (successful) attempt to the
 // connection's rttRing so that connection scoring has data even for connections
 // that have never been through the resurrection path.
-func (c *Client) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
+func (c *Transport) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
 	// Use the provided maxRetries parameter, but respect client's timeout/jitter config
 	baseDelay := c.healthCheckTimeout / 2 // Start with half the timeout as base delay
 	if baseDelay <= 0 {
@@ -2428,7 +2431,7 @@ func initUserAgent() string {
 // createOrUpdateMultiNodePoolWithLock (first multi-node discovery).
 //
 // Caller must hold c.mu.Lock().
-func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
+func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
 	ctx, cancel := context.WithCancel(c.ctx)
 	pool := &multiServerPool{
 		name:                         name,
@@ -2456,7 +2459,7 @@ func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *
 // promoteConnectionPoolWithLock converts a singleServerPool to multiServerPool while preserving
 // metrics, timeout settings, and client configuration. MUST be called while holding client write lock.
 // Returns existing pool unchanged if already a multiServerPool.
-func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
+func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *singleServerPool:
 		// Promote from single to multi-node pool using client-configured timeouts
@@ -2512,7 +2515,7 @@ func (c *Client) promoteConnectionPoolWithLock(readyConnections, deadConnections
 // demoteConnectionPoolWithLock converts a multiServerPool to singleServerPool while preserving
 // metrics and selecting the best available connection. MUST be called while holding client write lock.
 // Returns existing pool unchanged if already a singleServerPool.
-func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
+func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *multiServerPool:
 		// Cancel the old pool's context to clean up stale background goroutines.
@@ -2557,7 +2560,7 @@ func (c *Client) demoteConnectionPoolWithLock() *singleServerPool {
 }
 
 // applyConnectionFiltering applies client-level filtering for dedicated cluster managers
-func (c *Client) applyConnectionFiltering(readyConnections, deadConnections []*Connection, filteredReady, filteredDead *[]*Connection) {
+func (c *Transport) applyConnectionFiltering(readyConnections, deadConnections []*Connection, filteredReady, filteredDead *[]*Connection) {
 	for _, conn := range readyConnections {
 		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
 			if dl := loadDebugLogger(); dl != nil {

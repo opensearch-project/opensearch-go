@@ -61,12 +61,10 @@ type renderCache struct {
 // handling: copy with bytes.Clone if either is needed, or use
 // HijackBody to transfer ownership to the caller.
 //
-// Populated for both success and error responses buffered by Client.Do
-// (the default buffered mode). Returns nil when:
-//
-//   - The response was streamed without buffering (DisableResponseBuffering).
-//   - The Response was constructed directly (e.g. via NewResponse) rather
-//     than returned by Client.Do.
+// Populated for every response returned by Client.Do -- success, error, and
+// no-decode (nil dataPointer) alike. Returns nil only when the Response was
+// constructed directly (e.g. via NewResponse) or obtained through the
+// unbuffered Client.Stream path rather than Client.Do.
 func (r *Response) RawBody() []byte {
 	return r.rawBody
 }
@@ -96,14 +94,13 @@ func NewResponse(statusCode int, body io.ReadCloser, header http.Header) *Respon
 // String returns the response status and body as a string.
 //
 // String uses a value receiver, so both Response and *Response satisfy
-// fmt.Stringer. For any Response returned by Client.Do (success or error, in
-// the default buffered mode) it renders from the buffered rawBody and never
-// touches Body, so logging a response does not drain it. For a Response
-// holding only an unbuffered Body -- a streamed response
-// (DisableResponseBuffering) or a hand-built Response -- String reads Body
-// once to render it; repeat calls stay consistent via an internal cache, but
-// a value receiver cannot restore the caller's Body field, so that single-use
-// stream is consumed.
+// fmt.Stringer. For any Response returned by Client.Do it renders from the
+// buffered rawBody and never touches Body, so logging a response does not
+// drain it. For a Response holding only an unbuffered Body -- one obtained via
+// Client.Stream or constructed by hand -- String reads Body once to render it;
+// repeat calls stay consistent via an internal cache, but a value receiver
+// cannot restore the caller's Body field, so that single-use stream is
+// consumed.
 func (r Response) String() string {
 	body, rerr, ok := r.renderedBody()
 	if !ok {

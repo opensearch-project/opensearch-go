@@ -233,7 +233,7 @@ func TestClearAllNeedsCatUpdate(t *testing.T) {
 
 		// Build a minimal Client with a multiServerPool.
 		pool := testPool(conns)
-		client := &Client{}
+		client := &Transport{}
 		client.mu.connectionPool = pool
 
 		client.clearAllNeedsCatUpdate()
@@ -254,7 +254,7 @@ func TestRequestCatRefresh(t *testing.T) {
 
 	t.Run("sets atomic flag", func(t *testing.T) {
 		t.Parallel()
-		client := &Client{}
+		client := &Transport{}
 		require.False(t, client.catRefreshNeeded.Load(), "flag should start false")
 
 		client.requestCatRefresh()
@@ -263,7 +263,7 @@ func TestRequestCatRefresh(t *testing.T) {
 
 	t.Run("idempotent", func(t *testing.T) {
 		t.Parallel()
-		client := &Client{}
+		client := &Transport{}
 
 		client.requestCatRefresh()
 		client.requestCatRefresh()
@@ -272,7 +272,7 @@ func TestRequestCatRefresh(t *testing.T) {
 
 	t.Run("swap clears flag", func(t *testing.T) {
 		t.Parallel()
-		client := &Client{}
+		client := &Transport{}
 
 		client.requestCatRefresh()
 		require.True(t, client.catRefreshNeeded.Swap(false), "swap should return true")
@@ -289,7 +289,7 @@ func TestRequestDiscoveryNow(t *testing.T) {
 
 	t.Run("sets atomic flag", func(t *testing.T) {
 		t.Parallel()
-		client := &Client{}
+		client := &Transport{}
 		require.False(t, client.discoveryNeeded.Load(), "flag should start false")
 
 		client.requestDiscoveryNow()
