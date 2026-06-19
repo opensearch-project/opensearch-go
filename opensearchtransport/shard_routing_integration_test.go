@@ -76,7 +76,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 			return false
 		}
 		createReq.Header.Set("Content-Type", "application/json")
-		resp, perfErr := transport.Perform(createReq)
+		resp, perfErr := transport.Stream(createReq)
 		if perfErr != nil {
 			return false
 		}
@@ -95,7 +95,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 		delPath, _ := ospath.IndicesDeletePath{Indices: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
 			delPath, nil)
-		resp, _ := transport.Perform(delReq)
+		resp, _ := transport.Stream(delReq)
 		if resp != nil {
 			resp.Body.Close()
 		}
@@ -174,7 +174,7 @@ func querySearchShardsForRouting(t *testing.T, transport *Transport, ctx context
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), nil)
 	require.NoError(t, err)
 
-	resp, err := transport.Perform(req)
+	resp, err := transport.Stream(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -218,7 +218,7 @@ func indexDoc(t *testing.T, transport *Transport, ctx context.Context, index, do
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := transport.Perform(req)
+	resp, err := transport.Stream(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -315,7 +315,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			return false
 		}
 		createReq.Header.Set("Content-Type", "application/json")
-		resp, perfErr := transport.Perform(createReq)
+		resp, perfErr := transport.Stream(createReq)
 		if perfErr != nil {
 			return false
 		}
@@ -334,7 +334,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		delPath, _ := ospath.IndicesDeletePath{Indices: []string{index}}.Build()
 		delReq, _ := http.NewRequestWithContext(context.Background(), http.MethodDelete,
 			delPath, nil)
-		resp, _ := transport.Perform(delReq)
+		resp, _ := transport.Stream(delReq)
 		if resp != nil {
 			resp.Body.Close()
 		}
@@ -359,7 +359,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 		bytes.NewReader([]byte(`{"query":{"match_all":{}},"size":0}`)))
 	require.NoError(t, err)
 	warmReq.Header.Set("Content-Type", "application/json")
-	warmResp, err := transport.Perform(warmReq)
+	warmResp, err := transport.Stream(warmReq)
 	require.NoError(t, err)
 	warmResp.Body.Close()
 
@@ -451,7 +451,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 					}
 					searchReq.Header.Set("Content-Type", "application/json")
 
-					resp, perfErr := transport.Perform(searchReq)
+					resp, perfErr := transport.Stream(searchReq)
 					if perfErr != nil {
 						lastFailure = fmt.Sprintf("Perform error: %v", perfErr)
 						_ = transport.DiscoverNodes(ctx)
@@ -549,7 +549,7 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.String(), nil)
 	require.NoError(t, err)
 
-	resp, err := transport.Perform(req)
+	resp, err := transport.Stream(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
@@ -612,7 +612,7 @@ func fetchRoutingNumShardsForTest(t *testing.T, transport *Transport, observer *
 			return false
 		}
 
-		resp, err := transport.Perform(req)
+		resp, err := transport.Stream(req)
 		if err != nil {
 			return false
 		}

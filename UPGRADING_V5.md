@@ -155,6 +155,33 @@ type Route interface {
 
 External code that implements `Route` (custom routing policies) must add an `OpID() OperationID` method returning the [`OperationID`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#OperationID) for the route -- typically the `Op*` constant matching the route's HTTP method+path. Built-in routes built via `NewRouteMux` are populated automatically; only hand-written `Route` implementations are affected.
 
+## `Perform` removed; `Stream` is now the transport interface method
+
+`opensearchtransport.Interface` previously required `Perform(*http.Request) (*http.Response, error)`, which buffered the entire response body before returning. It now requires `Stream(*http.Request) (*http.Response, error)`, which returns the raw, unbuffered body. The caller owns the body and must close it.
+
+**Custom transport implementations** must rename `Perform` to `Stream` and stop pre-buffering the body:
+
+```go
+// Before
+func (t *MyTransport) Perform(req *http.Request) (*http.Response, error) {
+    resp, err := t.inner.RoundTrip(req)
+    // ... any buffering logic ...
+    return resp, err
+}
+
+// After
+func (t *MyTransport) Stream(req *http.Request) (*http.Response, error) {
+    return t.inner.RoundTrip(req)
+}
+```
+
+**Callers of `(*opensearch.Client).Perform`** should switch to the appropriate alternative:
+
+- Use `client.Stream(req)` for raw byte forwarding (proxy/streaming use cases). You are responsible for closing `resp.Body`.
+- Use `opensearch.Do[T](ctx, client, method, req, &result)` for typed, decoded responses.
+
+The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.
+
 ## `Response.RawBody()` for buffered response bytes
 
 `Response.Body` remains a public `io.ReadCloser` field; reading it is unchanged:

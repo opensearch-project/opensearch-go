@@ -131,7 +131,7 @@ func makeRequest(ctx context.Context, transport *opensearchtransport.Transport, 
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	res, err := transport.Perform(req)
+	res, err := transport.Stream(req)
 	if err != nil {
 		return fmt.Errorf("perform request: %w", err)
 	}

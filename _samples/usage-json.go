@@ -48,12 +48,12 @@ func example() error {
 		return err
 	}
 
-	infoResponse, err := client.Client.Perform(infoRequest)
+	infoResponse, err := client.Client.Stream(infoRequest)
 	if err != nil {
 		return err
 	}
-
 	resBody, err := io.ReadAll(infoResponse.Body)
+	infoResponse.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -85,11 +85,12 @@ func example() error {
 		return err
 	}
 	createIndexRequest.Header["Content-Type"] = []string{"application/json"}
-	createIndexResp, err := client.Client.Perform(createIndexRequest)
+	createIndexResp, err := client.Client.Stream(createIndexRequest)
 	if err != nil {
 		return err
 	}
 	createIndexRespBody, err := io.ReadAll(createIndexResp.Body)
+	createIndexResp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -111,11 +112,12 @@ func example() error {
 		return err
 	}
 	searchRequest.Header["Content-Type"] = []string{"application/json"}
-	searchResp, err := client.Client.Perform(searchRequest)
+	searchResp, err := client.Client.Stream(searchRequest)
 	if err != nil {
 		return err
 	}
 	searchRespBody, err := io.ReadAll(searchResp.Body)
+	searchResp.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -127,11 +129,12 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	deleteIndexResp, err := client.Client.Perform(deleteIndexRequest)
+	deleteIndexResp, err := client.Client.Stream(deleteIndexRequest)
 	if err != nil {
 		return err
 	}
 	deleteIndexRespBody, err := io.ReadAll(deleteIndexResp.Body)
+	deleteIndexResp.Body.Close()
 	if err != nil {
 		return err
 	}

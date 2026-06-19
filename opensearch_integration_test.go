@@ -248,7 +248,7 @@ type TestTransport struct {
 	t       *testing.T
 }
 
-func (tr *TestTransport) Perform(req *http.Request) (*http.Response, error) {
+func (tr *TestTransport) Stream(req *http.Request) (*http.Response, error) {
 	// Use centralized URL construction
 	u := mockhttp.GetOpenSearchURL(tr.t)
 	req.URL.Scheme = u.Scheme
@@ -363,7 +363,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
 		require.NoError(t, err)
 
-		resp, err := newClient.Perform(req)
+		resp, err := newClient.Stream(req)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		defer resp.Body.Close()
@@ -403,7 +403,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 		req, err := build.Request(http.MethodGet, "/", nil, nil, nil)
 		require.NoError(t, err)
 
-		resp1, err := osClient.Perform(req)
+		resp1, err := osClient.Stream(req)
 		require.NoError(t, err)
 		require.NotNil(t, resp1)
 		defer resp1.Body.Close()

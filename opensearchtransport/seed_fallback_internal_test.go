@@ -50,7 +50,7 @@ func TestSeedFallback(t *testing.T) {
 		tp.mu.Unlock()
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		require.NoError(t, err)
 		require.NotNil(t, res)
 		require.Equal(t, http.StatusOK, res.StatusCode)
@@ -79,7 +79,7 @@ func TestSeedFallback(t *testing.T) {
 		require.NotNil(t, tp.seedFallbackPool)
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, res.StatusCode)
 		if res.Body != nil {
@@ -107,7 +107,7 @@ func TestSeedFallback(t *testing.T) {
 		require.Nil(t, tp.seedFallbackPool)
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-		res, err := tp.Perform(req) //nolint:bodyclose // error path: res is nil
+		res, err := tp.Stream(req) //nolint:bodyclose // error path: res is nil
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrNoConnections)
 		require.Nil(t, res)
@@ -131,7 +131,7 @@ func TestSeedFallback(t *testing.T) {
 		require.NotNil(t, tp.seedFallbackPool)
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-		res, err := tp.Perform(req) //nolint:bodyclose // error path: res is nil
+		res, err := tp.Stream(req) //nolint:bodyclose // error path: res is nil
 		require.Error(t, err)
 		require.Nil(t, res)
 		require.Contains(t, err.Error(), "seed fallback request failed")
@@ -195,7 +195,7 @@ func TestSeedFallback(t *testing.T) {
 		tp.seedFallbackPool.mu.RUnlock()
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, res.StatusCode)
 		if res.Body != nil {

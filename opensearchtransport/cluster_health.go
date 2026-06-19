@@ -227,7 +227,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 	}
 	if res.Body != nil {
 		// Drain on close so http.Transport can reuse the connection. This is a
-		// raw RoundTrip path with no Perform buffering safety net, so closing a
+		// raw RoundTrip path via Stream; body is caller-owned, so closing a
 		// partially-read body (e.g. on the non-200 early return below) would
 		// otherwise defeat keep-alive. On the success path io.ReadAll has
 		// already reached EOF, so the drain is a cheap no-op.

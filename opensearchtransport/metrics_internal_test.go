@@ -153,7 +153,7 @@ func TestMetrics(t *testing.T) {
 		tp.metrics.zombieConnections.Store(5)
 
 		req, _ := http.NewRequest(http.MethodHead, "/", nil)
-		resp, err := tp.Perform(req)
+		resp, err := tp.Stream(req)
 		if err == nil {
 			defer resp.Body.Close()
 		}
@@ -219,7 +219,7 @@ func TestMetrics(t *testing.T) {
 		})
 
 		req, _ := http.NewRequest(http.MethodHead, "/", nil)
-		if resp, err := tp.Perform(req); err == nil {
+		if resp, err := tp.Stream(req); err == nil {
 			resp.Body.Close()
 		}
 

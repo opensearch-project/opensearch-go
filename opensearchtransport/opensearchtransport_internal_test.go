@@ -335,7 +335,7 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 	})
 }
 
-func TestTransportPerform(t *testing.T) {
+func TestTransportStream(t *testing.T) {
 	t.Run("Executes", func(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(
@@ -351,7 +351,7 @@ func TestTransportPerform(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -480,14 +480,14 @@ func TestTransportPerform(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Perform(req)
+		_, err := tp.Stream(req)
 		if err.Error() != `cannot get connection: no connections available` {
 			t.Fatalf("Expected error `cannot get connection: no connections available`: but got error %q", err)
 		}
 	})
 }
 
-func TestTransportPerformRetries(t *testing.T) {
+func TestTransportStreamRetries(t *testing.T) {
 	t.Run("Retry request on network error and return the response", func(t *testing.T) {
 		var (
 			i       int
@@ -517,7 +517,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -560,7 +560,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -603,7 +603,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -641,7 +641,7 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -688,7 +688,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err == nil {
 			t.Fatalf("Expected error, got: %v", err)
 		}
@@ -724,7 +724,7 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader("FOOBAR"))
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -765,7 +765,7 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(foobar))
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -812,7 +812,7 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(expectedBody))
 		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Perform(req)
+		_, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -843,7 +843,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err == nil {
 			t.Fatalf("Expected error, got: %v", err)
 		}
@@ -879,7 +879,7 @@ func TestTransportPerformRetries(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		//nolint:bodyclose // Mock response does not have a body to close
-		tp.Perform(req)
+		tp.Stream(req)
 
 		if count := i.Load(); count != 1 {
 			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
@@ -923,7 +923,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		end := time.Since(start)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
@@ -964,7 +964,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req = req.WithContext(ctx)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Perform(req)
+		_, err := tp.Stream(req)
 		if !errors.Is(err, context.DeadlineExceeded) {
 			t.Fatalf("expected context.DeadlineExceeded, got %s", err)
 		}
@@ -1007,7 +1007,7 @@ func TestTransportPerformRetries(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
 		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Perform(req)
+		_, err := tp.Stream(req)
 		if err == nil {
 			t.Fatalf("Expected error, got: %v", err)
 		}
@@ -1115,7 +1115,7 @@ func TestMaxRetries(t *testing.T) {
 			})
 
 			//nolint:bodyclose // Mock response does not have a body to close
-			c.Perform(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
+			c.Stream(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
 
 			if test.expectedCallCount != callCount {
 				t.Errorf("Bad retry call count, got : %d, want : %d", callCount, test.expectedCallCount)
@@ -1181,7 +1181,7 @@ func TestRequestCompression(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
 
 			//nolint:bodyclose // Mock response does not have a body to close
-			res, err := tp.Perform(req)
+			res, err := tp.Stream(req)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -1193,132 +1193,84 @@ func TestRequestCompression(t *testing.T) {
 	}
 }
 
-// TestPerformStreamBuffering covers the v4 split between Perform (buffered)
-// and Stream (raw, caller-owned body): the same handler must produce a
-// re-readable in-memory body when called via Perform and a live, un-drained,
-// caller-closeable body when called via Stream. Both entry points must
-// rewrite req.URL.Host to the selected backend address; that side effect is
-// load-bearing for downstream signing and routing.
-func TestPerformStreamBuffering(t *testing.T) {
+// TestStreamBuffering verifies that Stream returns the body unbuffered: the
+// underlying body must not be read or closed before the caller drains it, and
+// req.URL.Host must be rewritten to the selected backend (load-bearing for
+// downstream signing and routing).
+func TestStreamBuffering(t *testing.T) {
 	const largeBody = "ABCDEFGHIJ"
 
-	tests := []struct {
-		name           string
-		viaStream      bool // true => call tp.Stream, false => call tp.Perform
-		wantBodyRead   bool // body Read() must have been called before the helper returned
-		wantBodyClosed bool // body Close() must have been called before the helper returned
-	}{
-		{name: "Perform buffers", viaStream: false, wantBodyRead: true, wantBodyClosed: true},
-		{name: "Stream leaves body untouched", viaStream: true, wantBodyRead: false, wantBodyClosed: false},
-	}
+	var (
+		bodyRead   atomic.Bool
+		bodyClosed atomic.Bool
+	)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var (
-				bodyRead   atomic.Bool
-				bodyClosed atomic.Bool
-			)
+	u, err := url.Parse("http://backend.example:9200")
+	require.NoError(t, err)
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
+		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"X-Test": []string{"yes"}},
+				Body: &trackingReadCloser{
+					Reader:  strings.NewReader(largeBody),
+					onRead:  func() { bodyRead.Store(true) },
+					onClose: func() { bodyClosed.Store(true) },
+				},
+			}, nil
+		}),
+	})
+	require.NoError(t, err)
 
-			u, err := url.Parse("http://backend.example:9200")
-			require.NoError(t, err)
-			tp, err := New(Config{
-				URLs:              []*url.URL{u},
-				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
-				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-					return &http.Response{
-						StatusCode: http.StatusOK,
-						Header:     http.Header{"X-Test": []string{"yes"}},
-						Body: &trackingReadCloser{
-							Reader:  strings.NewReader(largeBody),
-							onRead:  func() { bodyRead.Store(true) },
-							onClose: func() { bodyClosed.Store(true) },
-						},
-					}, nil
-				}),
-			})
-			require.NoError(t, err)
+	req, err := http.NewRequest(http.MethodGet, "/test", nil)
+	require.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodGet, "/test", nil)
-			require.NoError(t, err)
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	require.Equal(t, "yes", res.Header.Get("X-Test"))
 
-			var res *http.Response
-			if tt.viaStream {
-				res, err = tp.Stream(req)
-			} else {
-				res, err = tp.Perform(req)
-			}
-			require.NoError(t, err)
-			require.NotNil(t, res)
-			require.Equal(t, http.StatusOK, res.StatusCode)
-			require.Equal(t, "yes", res.Header.Get("X-Test"))
+	// Stream routes the request through the configured backend, so req.URL.Host
+	// must reflect the selected connection.
+	require.Equal(t, "backend.example:9200", req.URL.Host,
+		"req.URL.Host must be rewritten to the selected backend")
 
-			// Both paths route the request through the configured backend,
-			// so req.URL.Host must reflect the selected connection.
-			require.Equal(t, "backend.example:9200", req.URL.Host,
-				"req.URL.Host must be rewritten to the selected backend")
+	// Body must not be touched until the caller drains it.
+	require.False(t, bodyRead.Load(), "Stream must not read body before caller")
+	require.False(t, bodyClosed.Load(), "Stream must not close body before caller")
 
-			require.Equal(t, tt.wantBodyRead, bodyRead.Load(),
-				"unexpected bodyRead state before caller drains the body")
-			require.Equal(t, tt.wantBodyClosed, bodyClosed.Load(),
-				"unexpected bodyClosed state before caller drains the body")
+	got, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	require.NoError(t, res.Body.Close())
+	require.Equal(t, largeBody, string(got))
 
-			// Body content is identical regardless of entry point.
-			got, err := io.ReadAll(res.Body)
-			require.NoError(t, err)
-			require.NoError(t, res.Body.Close())
-			require.Equal(t, largeBody, string(got))
-
-			if tt.viaStream {
-				// After the caller drains and closes, the underlying
-				// trackingReadCloser must finally be observed as both
-				// read and closed.
-				require.True(t, bodyRead.Load(), "Stream caller must end up reading the body")
-				require.True(t, bodyClosed.Load(), "Stream caller must end up closing the body")
-			}
-		})
-	}
+	require.True(t, bodyRead.Load(), "Stream caller must end up reading the body")
+	require.True(t, bodyClosed.Load(), "Stream caller must end up closing the body")
 }
 
-// TestStreamNilBody verifies Stream tolerates a response with no body, and
-// confirms that Perform's wrapper does the same (Perform is a thin Stream
-// caller, but the nil-body branch in the wrapper is worth pinning).
+// TestStreamNilBody verifies Stream tolerates a response with no body.
 func TestStreamNilBody(t *testing.T) {
-	tests := []struct {
-		name      string
-		viaStream bool
-	}{
-		{name: "Stream nil body", viaStream: true},
-		{name: "Perform nil body", viaStream: false},
-	}
+	u, err := url.Parse("http://backend.example:9200")
+	require.NoError(t, err)
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
+		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusNoContent}, nil
+		}),
+	})
+	require.NoError(t, err)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			u, err := url.Parse("http://backend.example:9200")
-			require.NoError(t, err)
-			tp, err := New(Config{
-				URLs:              []*url.URL{u},
-				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
-				Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
-					return &http.Response{StatusCode: http.StatusNoContent}, nil
-				}),
-			})
-			require.NoError(t, err)
+	req, err := http.NewRequest(http.MethodHead, "/test", nil)
+	require.NoError(t, err)
 
-			req, err := http.NewRequest(http.MethodHead, "/test", nil)
-			require.NoError(t, err)
-
-			var res *http.Response
-			if tt.viaStream {
-				//nolint:bodyclose // Response has no body
-				res, err = tp.Stream(req)
-			} else {
-				//nolint:bodyclose // Response has no body
-				res, err = tp.Perform(req)
-			}
-			require.NoError(t, err)
-			require.Equal(t, http.StatusNoContent, res.StatusCode)
-		})
-	}
+	//nolint:bodyclose // Response has no body
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusNoContent, res.StatusCode)
 }
 
 // trackingReadCloser wraps a Reader and records whether Read and Close were called.
@@ -1359,7 +1311,7 @@ func TestRequestSigning(t *testing.T) {
 		)
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Perform(req)
+		_, err := tp.Stream(req)
 		if err == nil {
 			t.Fatal("Expected error, but, no error found")
 		}

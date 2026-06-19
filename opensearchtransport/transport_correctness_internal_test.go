@@ -106,11 +106,10 @@ func TestSetReqGlobalHeaderOverride(t *testing.T) {
 	}
 }
 
-// TestPerformSurfacesBodyReadError verifies the := shadowing fix: when buffering
-// the response body fails, Perform returns the response (so the caller can still
-// inspect status) together with an error wrapping ErrResponseBodyRead, rather
-// than silently swallowing the read failure and returning err == nil.
-func TestPerformSurfacesBodyReadError(t *testing.T) {
+// TestStreamReturnsBodyUnbuffered verifies that Stream returns the raw response
+// body without reading or closing it: a failing body reader must not be
+// triggered by Stream itself — the caller owns the body lifecycle.
+func TestStreamReturnsBodyUnbuffered(t *testing.T) {
 	t.Parallel()
 
 	body := &errReadCloser{err: errors.New("truncated body")}
@@ -129,11 +128,10 @@ func TestPerformSurfacesBodyReadError(t *testing.T) {
 	req, err := http.NewRequest(http.MethodGet, "/test", nil)
 	require.NoError(t, err)
 
-	//nolint:bodyclose // body is a NopCloser over the buffered (empty) bytes
-	res, err := tp.Perform(req)
-	require.Error(t, err)
-	require.ErrorIs(t, err, ErrResponseBodyRead)
-	require.NotNil(t, res, "response must be returned alongside the read error")
+	res, err := tp.Stream(req)
+	require.NoError(t, err, "Stream must not read the body, so the read error must not surface here")
+	require.NotNil(t, res)
 	require.Equal(t, http.StatusOK, res.StatusCode)
-	require.True(t, body.closed, "original body must be closed after the failed read")
+	require.False(t, body.closed, "Stream must not close the body before the caller does")
+	res.Body.Close()
 }

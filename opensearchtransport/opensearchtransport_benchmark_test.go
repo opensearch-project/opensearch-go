@@ -79,7 +79,7 @@ func BenchmarkTransport(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
-			res, err := tp.Perform(req)
+			res, err := tp.Stream(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %q", err)
 			}
@@ -105,7 +105,7 @@ func BenchmarkTransport(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
-			res, err := tp.Perform(req)
+			res, err := tp.Stream(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %q", err)
 			}

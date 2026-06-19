@@ -193,13 +193,13 @@ func TestClientConfiguration(t *testing.T) {
 }
 
 func TestClientInterfe(t *testing.T) {
-	t.Run("Perform()", func(t *testing.T) {
+	t.Run("Stream()", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
 		call := called
 
-		res, err := c.Perform(&http.Request{URL: &url.URL{Path: "/test"}, Header: make(http.Header)})
+		res, err := c.Stream(&http.Request{URL: &url.URL{Path: "/test"}, Header: make(http.Header)})
 		if err == nil && res != nil && res.Body != nil {
 			res.Body.Close()
 		}
@@ -369,41 +369,41 @@ func TestResponseString_ErrorBodyNotDrained(t *testing.T) {
 
 // fakeTransport is an opensearchtransport.Interface that returns a fixed
 // (response, error) pair, used to exercise Client.Do's handling of the
-// (resp != nil, err != nil) contract that Perform may now return.
+// (resp != nil, err != nil) contract that Stream may return.
 type fakeTransport struct {
 	resp *http.Response
 	err  error
 }
 
-func (f fakeTransport) Perform(*http.Request) (*http.Response, error) {
+func (f fakeTransport) Stream(*http.Request) (*http.Response, error) {
 	return f.resp, f.err
 }
 
-// TestDoPerformErrorClassification verifies that Client.Do only labels a
+// TestDoStreamErrorClassification verifies that Client.Do only labels a
 // returned error as ErrReadBody when it is a genuine body-read failure
 // (signaled by opensearchtransport.ErrResponseBodyRead). An unrelated transport
 // error returned alongside a response -- e.g. context cancellation during retry
 // backoff -- must surface with its identity intact and without the misleading
 // "failed to read body" prefix.
-func TestDoPerformErrorClassification(t *testing.T) {
+func TestDoStreamErrorClassification(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name        string
-		performErr  error
+		streamErr   error
 		wantReadErr bool   // expect errors.Is(err, ErrReadBody)
 		wantIs      error  // an error the result must still wrap (nil to skip)
 		wantNotMsg  string // substring that must NOT appear in the message (empty to skip)
 	}{
 		{
 			name:        "genuine body-read failure is labeled ErrReadBody",
-			performErr:  fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, io.ErrUnexpectedEOF),
+			streamErr:   fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, io.ErrUnexpectedEOF),
 			wantReadErr: true,
 			wantIs:      io.ErrUnexpectedEOF,
 		},
 		{
 			name:        "context cancellation during backoff is not ErrReadBody",
-			performErr:  context.Canceled,
+			streamErr:   context.Canceled,
 			wantReadErr: false,
 			wantIs:      context.Canceled,
 			wantNotMsg:  "failed to read body",
@@ -433,7 +433,7 @@ func TestDoPerformErrorClassification(t *testing.T) {
 					Header:     http.Header{},
 					Body:       io.NopCloser(strings.NewReader("")),
 				},
-				err: tt.performErr,
+				err: tt.streamErr,
 			}
 
 			resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
@@ -453,6 +453,50 @@ func TestDoPerformErrorClassification(t *testing.T) {
 			}
 		})
 	}
+}
+
+// headerCapturingTransport records the request header it is handed so a test
+// can assert Client.Do never dispatches a request with a nil Header map.
+type headerCapturingTransport struct {
+	gotHeader http.Header
+	called    bool
+}
+
+func (h *headerCapturingTransport) Stream(req *http.Request) (*http.Response, error) {
+	h.called = true
+	h.gotHeader = req.Header
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{},
+		Body:       io.NopCloser(strings.NewReader("{}")),
+	}, nil
+}
+
+// TestDoInitializesNilRequestHeader guards the contract that Client.Do routes
+// through Client.Stream, which allocates req.Header when a Request builds one
+// with a nil Header. A custom transport that touches req.Header (e.g. calls
+// req.SetBasicAuth) would otherwise panic with "assignment to entry in nil
+// map". Regression test for the Perform -> Stream transition.
+func TestDoInitializesNilRequestHeader(t *testing.T) {
+	t.Parallel()
+
+	noDiscovery := false
+	c, err := NewClient(Config{
+		Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
+		DiscoverNodesOnStart: &noDiscovery,
+	})
+	require.NoError(t, err)
+
+	tr := &headerCapturingTransport{}
+	c.Transport = tr
+
+	// testReq with no Headers builds an *http.Request whose Header is nil.
+	resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	require.True(t, tr.called, "transport must be invoked")
+	require.NotNil(t, tr.gotHeader, "Do must hand the transport a non-nil request Header")
 }
 
 func TestAddrsToURLs(t *testing.T) {

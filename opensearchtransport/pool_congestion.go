@@ -27,7 +27,7 @@ const (
 // poolCongestion tracks AIMD congestion state for a single thread pool
 // on a single node.
 //
-// Hot-path reads (calcConnScore, Perform) use atomic loads for lock-free
+// Hot-path reads (calcConnScore, Stream) use atomic loads for lock-free
 // access. The stats poller is the sole writer for AIMD state, protected
 // by mu. The 429 handler may also write under TryLock to mark overload.
 type poolCongestion struct {

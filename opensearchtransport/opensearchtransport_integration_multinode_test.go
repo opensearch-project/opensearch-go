@@ -56,7 +56,7 @@ func TestTransportSelector(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 
-		res, err := transport.Perform(req)
+		res, err := transport.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}

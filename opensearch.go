@@ -83,7 +83,6 @@ var (
 	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
-	ErrTransportMissingMethodStream        = errors.New("transport is missing method Stream()")
 )
 
 // Config represents the client configuration.
@@ -453,47 +452,11 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 	return major, minor, patch, nil
 }
 
-// Perform delegates to Transport to execute a request and return a response.
-//
-// Deprecated: Perform follows the legacy buffered-response contract and will
-// be removed before the first stable release, alongside
-// [opensearchtransport.Transport.Perform]. Use [Client.Stream] when you need raw
-// byte forwarding (the caller owns the body) or the typed [Do] helpers when
-// you want a decoded Go value.
-func (c *Client) Perform(req *http.Request) (*http.Response, error) {
-	if req.Header == nil {
-		// Pre-allocate for the headers the transport layer sets on every
-		// outgoing request (User-Agent, Authorization, Content-Type,
-		// Content-Encoding, etc.) so the map does not have to resize on
-		// the hot path.
-		const defaultHeaderCount = 8
-		req.Header = make(http.Header, defaultHeaderCount)
-	}
-	return c.Transport.Perform(req)
-}
-
-// Streamer is implemented by transports that expose an unbuffered Stream
-// path: [opensearchtransport.Transport] satisfies it. Custom [opensearchtransport.Interface]
-// implementations may opt in by adding a Stream method with the same
-// signature; [Client.Stream] reports [ErrTransportMissingMethodStream] when
-// the underlying transport does not.
-type Streamer interface {
-	Stream(*http.Request) (*http.Response, error)
-}
-
-// Stream delegates to Transport.Stream when available, returning the raw
-// [http.Response] from the underlying [http.RoundTripper]. The caller owns
-// the response body and must close it. Use Stream for proxy and streaming
-// use cases where bytes are forwarded incrementally; use [Do] when you want
-// a decoded Go value.
-//
-// Stream returns [ErrTransportMissingMethodStream] when the configured
-// transport does not implement [Streamer].
+// Stream delegates to Transport.Stream, returning the raw [http.Response] from
+// the underlying [http.RoundTripper]. The caller owns the response body and
+// must close it. Use Stream for proxy and streaming use cases where bytes are
+// forwarded incrementally; use [Do] when you want a decoded Go value.
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {
-	st, ok := c.Transport.(Streamer)
-	if !ok {
-		return nil, ErrTransportMissingMethodStream
-	}
 	if req.Header == nil {
 		// Pre-allocate for the headers the transport layer sets on every
 		// outgoing request (User-Agent, Authorization, Content-Type,
@@ -502,7 +465,7 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 		const defaultHeaderCount = 8
 		req.Header = make(http.Header, defaultHeaderCount)
 	}
-	return st.Stream(req)
+	return c.Transport.Stream(req)
 }
 
 // Do gets and performs the request. It also tries to parse the response into the dataPointer.
@@ -529,10 +492,20 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		httpReq = httpReq.WithContext(ctx)
 	}
 
-	//nolint:bodyclose // body got already closed by Perform, this is a nopcloser
-	resp, err := c.Perform(httpReq)
+	resp, err := c.Stream(httpReq)
 	if resp == nil {
 		return nil, err
+	}
+
+	// Buffer and close the raw body so the TCP connection returns to the pool.
+	// Stream returns the body unbuffered; Do owns it from here.
+	if resp.Body != nil {
+		body, rerr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		resp.Body = io.NopCloser(bytes.NewReader(body))
+		if rerr != nil && err == nil {
+			err = fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, rerr)
+		}
 	}
 
 	response := &Response{
@@ -543,13 +516,10 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	if err != nil {
-		// Perform returns (resp != nil, err != nil) in two distinct cases:
-		// a genuine body-read failure during response buffering, and an
-		// unrelated transport error returned alongside a response (e.g. the
-		// context being cancelled during retry backoff after a retryable
-		// status). Only label the former as ErrReadBody; otherwise surface
-		// the underlying error so its identity (such as context.Canceled)
-		// is preserved without a misleading "failed to read body" prefix.
+		// Stream may return (resp != nil, err != nil) in two cases: a body-read
+		// failure (ErrResponseBodyRead) or an unrelated transport error alongside
+		// a response (e.g. context cancellation during retry backoff). Only label
+		// the former as ErrReadBody so callers can distinguish the two.
 		if errors.Is(err, opensearchtransport.ErrResponseBodyRead) {
 			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, err)
 		}
@@ -557,14 +527,9 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	if resp.Body != nil {
-		// Buffer the response payload into rawBody for every Do response --
-		// success, error, and no-decode (nil dataPointer) alike -- so the
-		// value-receiver String renders via the rawBody fast-path and never
-		// drains Body, and a subsequent ParseError still reads an intact Body.
-		// Without this, a String call (e.g. log.Printf("%s", resp)) would
-		// consume the single-use Body. In the default buffered mode Perform
-		// already returned an in-memory NopCloser, so this just copies bytes
-		// already resident in memory.
+		// Buffer the response payload into rawBody so the value-receiver String
+		// renders via the rawBody fast-path and never drains Body, and a
+		// subsequent ParseError still reads an intact Body.
 		data, rerr := io.ReadAll(resp.Body)
 		if rerr != nil {
 			return response, fmt.Errorf("%w, status: %d, err: %w", ErrReadBody, resp.StatusCode, rerr)

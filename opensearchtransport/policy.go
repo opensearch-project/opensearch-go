@@ -111,7 +111,7 @@ type NextHop struct {
 
 	// MaxConcurrentShardRequests is the adaptive shard fan-out limit derived
 	// from the selected connection's search pool congestion window. When > 0,
-	// Perform() injects it as the max_concurrent_shard_requests query parameter
+	// Stream() injects it as the max_concurrent_shard_requests query parameter
 	// on search requests routed through a coordinator node. Zero means "not set"
 	// (shard-exact routing, non-search request, or feature disabled).
 	MaxConcurrentShardRequests int

@@ -118,7 +118,7 @@ func (r *PolicyChain) OnSuccess(conn *Connection) {
 // (e.g., connection refused, EOF, TLS error, timeout).
 //
 // This does not handle HTTP-level errors like 429 or 503 --those are
-// successful transports with error status codes, handled in Perform.
+// successful transports with error status codes, handled in Stream.
 // Thread pool congestion is managed separately by the stats poller.
 //
 // Marks the connection as dead atomically. Each pool lazily evicts the
