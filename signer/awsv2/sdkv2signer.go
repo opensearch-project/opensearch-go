@@ -51,6 +51,19 @@ func NewSignerWithService(cfg aws.Config, service string, opts ...func(options *
 		return nil, errors.New("service cannot be empty")
 	}
 
+	// Cache credentials by default. AWS SDK v2 does not cache a raw
+	// CredentialsProvider, so each signed request would call Credentials.Retrieve;
+	// for STS-backed providers (assume-role, web identity, IRSA) that is a
+	// per-request STS call, which under load can exhaust the account's STS rate
+	// limits and degrade every service that depends on STS. Callers needing other
+	// behavior can supply a pre-wrapped provider or build their own signer. Skip
+	// the wrap when the provider is already a cache (e.g. from
+	// config.LoadDefaultConfig) to avoid double-wrapping.
+	// See: go doc github.com/aws/aws-sdk-go-v2/aws CredentialsCache
+	if _, ok := cfg.Credentials.(*aws.CredentialsCache); !ok {
+		cfg.Credentials = aws.NewCredentialsCache(cfg.Credentials)
+	}
+
 	return &awsSdkV2Signer{
 		service: service,
 		signer:  awsSignerV4.NewSigner(),

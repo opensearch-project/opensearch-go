@@ -44,9 +44,6 @@ import (
 	"strings"
 	"time"
 
-	// NOTE: aws-sdk-go v1 is deprecated. Migration to aws-sdk-go-v2 is tracked
-	// in a separate issue. These imports will be replaced in a future update.
-	// See: https://aws.amazon.com/blogs/developer/announcing-end-of-support-for-aws-sdk-for-go-v1-on-july-31-2025/
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsSignerV4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 )
@@ -90,9 +87,13 @@ func NewSignerWithService(cfg aws.Config, service string) (*Signer, error) {
 		return nil, errors.New("service cannot be empty")
 	}
 
-	// Enable credential caching for better performance, especially with STS credentials.
-	// According to AWS SDK v2 documentation, credential caching is not enabled by default
-	// and must be explicitly configured using aws.NewCredentialsCache().
+	// Wrap credentials in a cache. AWS SDK v2 does not cache credentials by
+	// default, so without this every signed request calls Credentials.Retrieve.
+	// For STS-backed providers (assume-role, web identity, IRSA) that means an
+	// STS call on the request hot path: under load it can exhaust the account's
+	// STS rate limits and cause account-wide outages of any service that depends
+	// on STS, not just this client. The cache reuses credentials until they near
+	// expiry and refreshes once.
 	// See: go doc github.com/aws/aws-sdk-go-v2/aws CredentialsCache
 	cfg.Credentials = aws.NewCredentialsCache(cfg.Credentials)
 
