@@ -30,7 +30,9 @@ The package qualifier (`opensearchapi.X`) does not change. The only edit per fil
 
 ### Typed body vs. raw reader
 
-Operations with a request body now expose a typed `Body` field (e.g. `*SearchBody`) plus a `BodyReader io.Reader` escape hatch. Code passing a raw `io.Reader` moves from `Body` to `BodyReader`; code building a typed body uses `Body`.
+Most body-bearing operations now expose a typed `Body` field (e.g. `*SearchBody`) alongside a `BodyReader io.Reader` escape hatch: build a typed body with `Body`, or pass a raw `io.Reader` via `BodyReader`.
+
+Within `opensearchapi/`, the bulk, NDJSON, and single-document write operations are the exception: `BulkReq`, `BulkStreamReq`, `MSearchReq`, `MSearchTemplateReq`, `CreateReq`, `IndexReq`, and `IndicesCreateDataStreamReq` keep a single raw `Body io.Reader` and have no `BodyReader` field. The generated plugin packages under `plugins/` use the same typed-`Body`/`BodyReader` split, with their own per-package set of raw-body operations.
 
 ### Optional `Params` becomes `*Params`
 
@@ -163,7 +165,7 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 ## Quick checklist
 
 - Update import paths from `/v4` to `/v5`.
-- Move raw `io.Reader` bodies from `Body` to `BodyReader`.
+- For operations with a typed `Body`, move raw `io.Reader` bodies from `Body` to `BodyReader`.
 - Wrap `Params` literals in `&` (or use the `Params: nil` shorthand).
 - Move `Timeout`/`Pretty`/`Human`/`ErrorTrace` into the embedded `TimeoutParams`/`DebugParams`.
 - Wrap optional `bool` query-param values in `opensearch.ToPointer(...)`.
