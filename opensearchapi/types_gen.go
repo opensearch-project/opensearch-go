@@ -3926,6 +3926,16 @@ type CommonMappingBinaryProperty struct {
 	Type string `json:"type"`
 }
 
+type CommonMappingDynamicTemplate struct {
+	Mapping          *CommonMappingProperty `json:"mapping,omitempty"`
+	Match            *string                `json:"match,omitempty"`
+	MatchMappingType *string                `json:"match_mapping_type,omitempty"`
+	MatchPattern     *string                `json:"match_pattern,omitempty"`
+	PathMatch        *string                `json:"path_match,omitempty"`
+	PathUnmatch      *string                `json:"path_unmatch,omitempty"`
+	Unmatch          *string                `json:"unmatch,omitempty"`
+}
+
 type CommonMappingIndexField struct {
 	Enabled bool `json:"enabled"`
 }
@@ -3937,18 +3947,18 @@ type CommonMappingType struct {
 	// The custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	Routing            *CommonMappingRoutingField                  `json:"_routing,omitempty"`
-	Size               *CommonMappingSizeField                     `json:"_size,omitempty"`
-	Source             *CommonMappingSourceField                   `json:"_source,omitempty"`
-	AllField           *CommonMappingAllField                      `json:"all_field,omitempty"`
-	DateDetection      *bool                                       `json:"date_detection,omitempty"`
-	Dynamic            *CommonMappingTypeDynamic                   `json:"dynamic,omitempty"`
-	DynamicDateFormats []string                                    `json:"dynamic_date_formats,omitempty"`
-	DynamicTemplates   []map[string]CommonMappingDynamicTemplate   `json:"dynamic_templates,omitempty"`
-	Enabled            *bool                                       `json:"enabled,omitempty"`
-	IndexField         *CommonMappingIndexField                    `json:"index_field,omitempty"`
-	NumericDetection   *bool                                       `json:"numeric_detection,omitempty"`
-	Properties         map[string]CommonMappingTypePropertiesValue `json:"properties,omitempty"`
+	Routing            *CommonMappingRoutingField                `json:"_routing,omitempty"`
+	Size               *CommonMappingSizeField                   `json:"_size,omitempty"`
+	Source             *CommonMappingSourceField                 `json:"_source,omitempty"`
+	AllField           *CommonMappingAllField                    `json:"all_field,omitempty"`
+	DateDetection      *bool                                     `json:"date_detection,omitempty"`
+	Dynamic            *CommonMappingTypeDynamic                 `json:"dynamic,omitempty"`
+	DynamicDateFormats []string                                  `json:"dynamic_date_formats,omitempty"`
+	DynamicTemplates   []map[string]CommonMappingDynamicTemplate `json:"dynamic_templates,omitempty"`
+	Enabled            *bool                                     `json:"enabled,omitempty"`
+	IndexField         *CommonMappingIndexField                  `json:"index_field,omitempty"`
+	NumericDetection   *bool                                     `json:"numeric_detection,omitempty"`
+	Properties         map[string]CommonMappingProperty          `json:"properties,omitempty"`
 }
 
 type CommonAnalysisCustomAnalyzer struct {
@@ -6701,6 +6711,17 @@ type TaskFailure struct {
 	TaskID int `json:"task_id"`
 }
 
+type TasksTaskListRespBase struct {
+	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
+
+	// Task information grouped by node, if `group_by` was set to `node` (the
+	// default).
+	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
+
+	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`
+	Tasks        *TasksTaskInfos `json:"tasks,omitempty"`
+}
+
 // The result of an inline get operation.
 type InlineGet struct {
 	// The primary term of the document.
@@ -6980,8 +7001,8 @@ type IndicesDataStream struct {
 }
 
 type CommonMappingField struct {
-	FullName string                                    `json:"full_name"`
-	Mapping  map[string]CommonMappingFieldMappingValue `json:"mapping"`
+	FullName string                           `json:"full_name"`
+	Mapping  map[string]CommonMappingProperty `json:"mapping"`
 }
 
 // The data stream configuration for an index template.
