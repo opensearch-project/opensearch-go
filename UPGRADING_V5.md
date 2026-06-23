@@ -140,3 +140,33 @@ For responses decoded by `Client.Do`, the buffered bytes are also available with
 ```go
 raw := resp.RawBody() // nil for streamed or error responses; read resp.Body directly there
 ```
+
+## `signer/aws` removed in favor of `signer/awsv2`
+
+The `signer/aws` package is removed. Use `signer/awsv2`, whose name mirrors AWS's own SDK-version nomenclature.
+
+For callers coming from released v4, this is a full AWS SDK v1 -> v2 signer migration, not just an import swap: v4's `signer/aws` was built on AWS SDK for Go v1, while `signer/awsv2` is SDK v2.
+
+```go
+// Before (v4 signer/aws, AWS SDK v1)
+import requestsigner "github.com/opensearch-project/opensearch-go/v4/signer/aws"
+
+opts := session.Options{ /* ... */ }
+signer, err := requestsigner.NewSignerWithService(opts, requestsigner.OpenSearchServerless)
+
+// After (v5 signer/awsv2, AWS SDK v2)
+import requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/awsv2"
+
+cfg, err := config.LoadDefaultConfig(context.TODO())
+// ...
+signer, err := requestsigner.NewSignerWithService(cfg, "aoss")
+```
+
+What changes:
+
+- **Constructor input**: `session.Options` becomes `aws.Config` (built with `config.LoadDefaultConfig`).
+- **Return type**: `*signer/aws.Signer` becomes the `signer.Signer` interface.
+- **Service constants**: `signer/aws` exported `OpenSearchService` (`"es"`) and `OpenSearchServerless` (`"aoss"`); `signer/awsv2` does not, so pass the `"es"` / `"aoss"` literal directly.
+- **Optional `SignerOptions`**: `signer/awsv2` additionally accepts functional `SignerOptions` to customize the underlying SigV4 signer.
+
+See [USER_GUIDE.md](USER_GUIDE.md#amazon-opensearch-service) for a full example.
