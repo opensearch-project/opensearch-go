@@ -71,8 +71,19 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 }
 
 // resolveParentScopedUnion handles the case where a $ref points to a pure
-// oneOf/anyOf schema (no properties). The union is generated using the
-// CALLER's schemaKey so it attaches to its parent field context.
+// oneOf/anyOf schema (no properties). Such a schema would otherwise be routed
+// to resolveNamedSchema and registered as an empty struct (it has no
+// properties to collect), so it is sent to resolveUnionType instead.
+//
+// By default the union is keyed by the CALLER's schemaKey so it attaches to its
+// parent field context. There is one exception: if that parent-scoped key would
+// derive a Go type name identical to the parent struct's own name, the union
+// registers first and the parent struct is then silently dropped by the
+// registry (its name is already taken), degrading the parent response to raw
+// json.RawMessage. In that case the union is re-keyed by the REFERENCED
+// schema's own canonical key (e.g. tasks._common___TaskInfos -> TasksTaskInfos)
+// so it owns a distinct name and the parent struct survives. Every other
+// parent-scoped union keeps its existing name, keeping this fix narrow.
 func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
 	if ref.Value == nil || len(ref.Value.Properties) != 0 {
 		return "", false
@@ -83,7 +94,22 @@ func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, gr
 	if resolvedGoType := resolveOneOfGoType(ref.Value); resolvedGoType != "" {
 		return resolvedGoType, true
 	}
-	return w.resolveUnionType(ref.Value, schemaKey, group), true
+
+	unionKey := schemaKey
+	// schemaKey is the parent field key "<parentKey>.<field>". If the union's
+	// parent-scoped Go name would equal the parent struct's own name (in either
+	// its resp- or non-resp-bodied form), re-key by the referenced schema to
+	// avoid the collision that would drop the parent struct.
+	if dot := strings.LastIndexByte(schemaKey, '.'); dot >= 0 {
+		parentKey := schemaKey[:dot]
+		unionName := schemaTypeName(schemaKey, false)
+		if unionName == schemaTypeName(parentKey, false) || unionName == schemaTypeName(parentKey, true) {
+			if k := refToSchemaKey(ref.Ref); k != "" {
+				unionKey = k
+			}
+		}
+	}
+	return w.resolveUnionType(ref.Value, unionKey, group), true
 }
 
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {

@@ -247,6 +247,150 @@ func TestWalkerOneOfUnion(t *testing.T) {
 	require.Equal(t, "Int", registered.Branches[1].Name)
 }
 
+// TestWalkerParentScopedUnionNameCollision pins the fix for the tasks.list bug:
+// a struct with a oneOf field whose parent-scoped union name would equal the
+// parent struct's own Go name must NOT drop the parent struct. The union is
+// re-keyed by the referenced schema only in that collision case; otherwise it
+// keeps its parent-scoped name (the default), so the fix stays narrow.
+//
+// The collision check compares the field's parent-scoped union name against the
+// parent name in BOTH its non-resp (schemaTypeName(_, false)) and resp-body
+// (schemaTypeName(_, true)) forms, because for non-_common keys those two forms
+// differ. The cases below exercise each operand of that OR.
+func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
+	t.Parallel()
+
+	const (
+		infosKey = "tasks._common___TaskInfos"
+		group    = "tasks._common"
+	)
+
+	tests := []struct {
+		name string
+		// parentKey is the response schema key.
+		parentKey string
+		// field is the parent property name holding the $ref to the oneOf.
+		field string
+		// matchForm records which parent-name form the union name collides with:
+		// "false" (non-resp), "true" (resp-body), or "none".
+		matchForm string
+		// wantParentName is the parent struct's resolved Go name.
+		wantParentName string
+		// wantUnionKey is the registry key the union must register under.
+		wantUnionKey string
+		// wantFieldType is the parent field's Go type expression.
+		wantFieldType string
+	}{
+		{
+			// _common parent: both name forms are equal, so the FIRST OR operand
+			// (false-form) matches. Union re-keyed to the referenced schema.
+			name:           "collision on non-resp form re-keys union",
+			parentKey:      "tasks._common___TaskListResponseBase",
+			field:          "tasks",
+			matchForm:      "false",
+			wantParentName: "TasksTaskListRespBase",
+			wantUnionKey:   infosKey,
+			wantFieldType:  "*TasksTaskInfos",
+		},
+		{
+			// Non-_common parent: the two name forms differ (TasksResponse vs
+			// TasksResp), and the union name (TasksResp) matches ONLY the resp-body
+			// form, isolating the SECOND OR operand. Without that operand the
+			// parent would be silently dropped.
+			name:           "collision on resp-body form re-keys union",
+			parentKey:      "tasks___Response",
+			field:          "tasks",
+			matchForm:      "true",
+			wantParentName: "TasksResp",
+			wantUnionKey:   infosKey,
+			wantFieldType:  "*TasksTaskInfos",
+		},
+		{
+			// No collision: union keeps its default parent-scoped key and name.
+			name:           "no collision keeps parent-scoped union",
+			parentKey:      "tasks._common___TaskListResponseBase",
+			field:          "result",
+			matchForm:      "none",
+			wantParentName: "TasksTaskListRespBase",
+			wantUnionKey:   "tasks._common___TaskListResponseBase.result",
+			wantFieldType:  "*TasksTaskListRespBaseResult",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Verify the precondition so each case is a real regression test
+			// rather than a tautology: confirm which name form (if any) the
+			// union name actually collides with.
+			unionName := schemaTypeName(tt.parentKey+"."+tt.field, false)
+			matchFalse := unionName == schemaTypeName(tt.parentKey, false)
+			matchTrue := unionName == schemaTypeName(tt.parentKey, true)
+			switch tt.matchForm {
+			case "false":
+				require.True(t, matchFalse, "expected collision on non-resp form")
+			case "true":
+				require.True(t, matchTrue && !matchFalse, "expected collision on resp-body form only")
+			case "none":
+				require.False(t, matchFalse || matchTrue, "expected no collision")
+			}
+
+			// The referenced oneOf schema (array-of-object | map).
+			infos := &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					{Value: &openapi3.Schema{
+						Type:  &openapi3.Types{"array"},
+						Items: &openapi3.SchemaRef{Value: openapi3.NewObjectSchema()},
+					}},
+					{Value: &openapi3.Schema{
+						Type: &openapi3.Types{"object"},
+						AdditionalProperties: openapi3.AdditionalProperties{
+							Schema: &openapi3.SchemaRef{Value: openapi3.NewObjectSchema()},
+						},
+					}},
+				},
+			}
+			infosRef := &openapi3.SchemaRef{
+				Ref:   "#/components/schemas/" + infosKey,
+				Value: infos, // pre-resolved, as the loader would leave it
+			}
+
+			parent := openapi3.NewObjectSchema()
+			parent.Properties = openapi3.Schemas{tt.field: infosRef}
+
+			spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+				tt.parentKey: &openapi3.SchemaRef{Value: parent},
+				infosKey:     infosRef,
+			}}}
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
+
+			parentName := w.walkSchema(spec.Components.Schemas[tt.parentKey], tt.parentKey, group, true)
+
+			// The parent struct survives as a typed struct in every case.
+			require.Equal(t, tt.wantParentName, parentName)
+			parentType, ok := reg.lookup(tt.parentKey)
+			require.True(t, ok, "parent struct must be registered, not silently dropped")
+			require.False(t, parentType.IsUnion)
+			require.Len(t, parentType.Fields, 1)
+
+			// The field is typed and the union registered under the expected key.
+			field := parentType.Fields[0]
+			require.Equal(t, tt.field, field.JSONName)
+			require.Equal(t, tt.wantFieldType, field.GoType)
+			unionType, ok := reg.lookup(tt.wantUnionKey)
+			require.True(t, ok, "union must be registered under %q", tt.wantUnionKey)
+			require.True(t, unionType.IsUnion)
+
+			// No collision is ever recorded: colliding cases are re-keyed and the
+			// non-colliding case never clashed.
+			require.Empty(t, reg.collisions)
+		})
+	}
+}
+
 func TestWalkerCollectionNotPointer(t *testing.T) {
 	t.Parallel()
 

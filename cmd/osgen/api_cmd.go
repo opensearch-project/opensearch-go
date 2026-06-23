@@ -113,6 +113,7 @@ func generateAPI(
 	registry := newTypeRegistry(corePkg)
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
+	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })
 
