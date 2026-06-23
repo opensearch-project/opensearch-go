@@ -16,77 +16,101 @@ import (
 func TestTypeRegistryRegister(t *testing.T) {
 	t.Parallel()
 
-	// Steps are applied in order against one shared registry; each asserts the
-	// register() return and the resulting collision state. The sequence pins:
-	// fresh register, duplicate-ref dedup (no collision), name collision,
-	// distinct dropped ref on the same name (recorded separately -> dedup keys
-	// on the dropped ref, not the name), and a repeated dropped ref (deduped).
-	steps := []struct {
-		name           string
-		input          *goType
-		wantOK         bool
-		wantGotIsInput bool // when !wantOK, whether got is the existing type (true) or nil (false)
+	// Each case registers prior types to establish the registry state, then
+	// asserts the register() call under test. Cases are independent (each builds
+	// its own registry), so they run in parallel. Collectively they pin: fresh
+	// register, duplicate-ref dedup (no collision), name collision, a distinct
+	// dropped ref on the same name (recorded separately -> dedup keys on the
+	// dropped ref, not the name), and a repeated dropped ref (deduped).
+	const sharedRef = "_common___ShardStatistics"
+
+	tests := []struct {
+		name string
+		// prior registrations applied before the call under test.
+		prior []*goType
+		// input is the register() call under test.
+		input *goType
+		// wantOK is register's second return.
+		wantOK bool
+		// wantGotRef, when set and !wantOK, is the ref of the existing type that
+		// register must return; empty means register must return nil.
+		wantGotRef     string
 		wantCollisions []nameCollision
 	}{
 		{
 			name:           "fresh register succeeds",
-			input:          &goType{Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics", IsShared: true},
+			input:          &goType{Name: "ShardStatistics", SchemaRef: sharedRef, IsShared: true},
 			wantOK:         true,
 			wantCollisions: nil,
 		},
 		{
 			name:           "duplicate ref returns existing, no collision",
-			input:          &goType{Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics"},
+			prior:          []*goType{{Name: "ShardStatistics", SchemaRef: sharedRef, IsShared: true}},
+			input:          &goType{Name: "ShardStatistics", SchemaRef: sharedRef},
 			wantOK:         false,
-			wantGotIsInput: true,
+			wantGotRef:     sharedRef,
 			wantCollisions: nil,
 		},
 		{
 			name:   "name collision with different ref is dropped and recorded",
+			prior:  []*goType{{Name: "ShardStatistics", SchemaRef: sharedRef, IsShared: true}},
 			input:  &goType{Name: "ShardStatistics", SchemaRef: "other___ShardStatistics"},
 			wantOK: false,
 			wantCollisions: []nameCollision{
-				{Name: "ShardStatistics", KeptRef: "_common___ShardStatistics", DroppedRef: "other___ShardStatistics"},
+				{Name: "ShardStatistics", KeptRef: sharedRef, DroppedRef: "other___ShardStatistics"},
 			},
 		},
 		{
 			// Guards against regressing the dedup key to t.Name, which would
 			// wrongly collapse distinct lost types that share a name.
-			name:   "different dropped ref, same name, records separately",
+			name: "different dropped ref, same name, records separately",
+			prior: []*goType{
+				{Name: "ShardStatistics", SchemaRef: sharedRef, IsShared: true},
+				{Name: "ShardStatistics", SchemaRef: "other___ShardStatistics"},
+			},
 			input:  &goType{Name: "ShardStatistics", SchemaRef: "third___ShardStatistics"},
 			wantOK: false,
 			wantCollisions: []nameCollision{
-				{Name: "ShardStatistics", KeptRef: "_common___ShardStatistics", DroppedRef: "other___ShardStatistics"},
-				{Name: "ShardStatistics", KeptRef: "_common___ShardStatistics", DroppedRef: "third___ShardStatistics"},
+				{Name: "ShardStatistics", KeptRef: sharedRef, DroppedRef: "other___ShardStatistics"},
+				{Name: "ShardStatistics", KeptRef: sharedRef, DroppedRef: "third___ShardStatistics"},
 			},
 		},
 		{
-			name:   "repeated dropped ref does not add a second entry",
+			name: "repeated dropped ref does not add a second entry",
+			prior: []*goType{
+				{Name: "ShardStatistics", SchemaRef: sharedRef, IsShared: true},
+				{Name: "ShardStatistics", SchemaRef: "other___ShardStatistics"},
+			},
 			input:  &goType{Name: "ShardStatistics", SchemaRef: "other___ShardStatistics"},
 			wantOK: false,
 			wantCollisions: []nameCollision{
-				{Name: "ShardStatistics", KeptRef: "_common___ShardStatistics", DroppedRef: "other___ShardStatistics"},
-				{Name: "ShardStatistics", KeptRef: "_common___ShardStatistics", DroppedRef: "third___ShardStatistics"},
+				{Name: "ShardStatistics", KeptRef: sharedRef, DroppedRef: "other___ShardStatistics"},
 			},
 		},
 	}
 
-	r := newTypeRegistry(opensearchAPIPkgName)
-	var firstKept *goType
-	for _, step := range steps {
-		t.Run(step.name, func(t *testing.T) {
-			got, ok := r.register(step.input)
-			require.Equal(t, step.wantOK, ok)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			r := newTypeRegistry(opensearchAPIPkgName)
+			for _, p := range tt.prior {
+				r.register(p)
+			}
+
+			got, ok := r.register(tt.input)
+			require.Equal(t, tt.wantOK, ok)
 			switch {
-			case step.wantOK:
-				require.Equal(t, step.input, got)
-				firstKept = step.input
-			case step.wantGotIsInput:
-				require.Equal(t, firstKept, got)
+			case tt.wantOK:
+				require.Equal(t, tt.input, got)
+			case tt.wantGotRef != "":
+				existing, found := r.lookup(tt.wantGotRef)
+				require.True(t, found)
+				require.Equal(t, existing, got)
 			default:
 				require.Nil(t, got)
 			}
-			require.Equal(t, step.wantCollisions, r.collisions)
+			require.Equal(t, tt.wantCollisions, r.collisions)
 		})
 	}
 }

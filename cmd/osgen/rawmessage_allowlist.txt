@@ -1,0 +1,895 @@
+# osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.
+# Regenerate with: make gen-api ARGS=-update-raw-message-allowlist
+#
+# Each line is a permitted json.RawMessage use, keyed "GoTypeName/jsonFieldName".
+# Whole-response raw bodies use "<Prefix>Resp/-"; map/array responses whose
+# element type is unresolved use "<Prefix>Resp/[entries]" and "<Prefix>Resp/[records]".
+# The trailing "# form" comment is informational and ignored on load.
+#
+# A new entry here means the generator emitted a raw json.RawMessage where a
+# typed struct was expected. Confirm the degradation is intended before adding.
+
+# --- _common ---
+DerivedField/properties # bare
+InlineGet/_source # bare
+InlineGet/fields # map
+InlineGetDictUserDefined/_source # map
+InlineGetDictUserDefined/fields # map
+PluginStats/custom_foldername # bare
+ScriptBase/params # map
+
+# --- _common.aggregations ---
+CommonAggregationsAggregateBase/meta # map
+CommonAggregationsAggregation/meta # map
+CommonAggregationsScriptedMetricAggregate/value # bare
+
+# --- _common.mapping ---
+CommonMappingConstantKeywordProperty/value # bare
+CommonMappingKNNVectorMethod/parameters # map
+CommonMappingSemanticChunkingStrategy/parameters # map
+CommonMappingType/_meta # map
+
+# --- _common.query_dsl ---
+CommonQueryDSLKNNQuery/method_parameters # map
+CommonQueryDSLLikeDocument/doc # bare
+CommonQueryDSLPercolateQuery/document # bare
+CommonQueryDSLPercolateQuery/documents # slice
+CommonQueryDSLQueryContainer/distance_feature # bare
+CommonQueryDSLQueryContainer/template # map
+
+# --- _core.search ---
+SearchHighlightBase/options # map
+SearchHit/_source # bare
+SearchHit/fields # map
+SearchHitsMetadataHitsItem/_source # bare
+SearchHitsMetadataJSONValueHitsItem/_source # bare
+SearchProcessorExecutionDetail/input_data # bare
+SearchProcessorExecutionDetail/output_data # bare
+SearchResultHitsHitsItem/_source # bare
+SearchResultJSONValueHitsHitsItem/_source # bare
+SearchResultJSONValueSuggestValueItemObject0OptionsItem/_source # bare
+SearchResultJSONValueSuggestValueItemObject0OptionsObject0/_source # bare
+
+# --- asynchronous_search.search ---
+AsynchronousSearchSearch/ext # map
+
+# --- cat.allocation ---
+CatAllocationRecord/disk.avail # bare
+CatAllocationRecord/disk.indices # bare
+CatAllocationRecord/disk.total # bare
+CatAllocationRecord/disk.used # bare
+
+# --- cat.indices ---
+CatIndicesRecord/completion.size # bare
+CatIndicesRecord/docs.count # bare
+CatIndicesRecord/docs.deleted # bare
+CatIndicesRecord/fielddata.evictions # bare
+CatIndicesRecord/fielddata.memory_size # bare
+CatIndicesRecord/flush.total # bare
+CatIndicesRecord/flush.total_time # bare
+CatIndicesRecord/get.current # bare
+CatIndicesRecord/get.exists_time # bare
+CatIndicesRecord/get.exists_total # bare
+CatIndicesRecord/get.missing_time # bare
+CatIndicesRecord/get.missing_total # bare
+CatIndicesRecord/get.time # bare
+CatIndicesRecord/get.total # bare
+CatIndicesRecord/indexing.delete_current # bare
+CatIndicesRecord/indexing.delete_time # bare
+CatIndicesRecord/indexing.delete_total # bare
+CatIndicesRecord/indexing.index_current # bare
+CatIndicesRecord/indexing.index_failed # bare
+CatIndicesRecord/indexing.index_time # bare
+CatIndicesRecord/indexing.index_total # bare
+CatIndicesRecord/merges.current # bare
+CatIndicesRecord/merges.current_docs # bare
+CatIndicesRecord/merges.current_size # bare
+CatIndicesRecord/merges.total # bare
+CatIndicesRecord/merges.total_docs # bare
+CatIndicesRecord/merges.total_size # bare
+CatIndicesRecord/merges.total_time # bare
+CatIndicesRecord/pri.completion.size # bare
+CatIndicesRecord/pri.fielddata.evictions # bare
+CatIndicesRecord/pri.fielddata.memory_size # bare
+CatIndicesRecord/pri.flush.total # bare
+CatIndicesRecord/pri.flush.total_time # bare
+CatIndicesRecord/pri.get.current # bare
+CatIndicesRecord/pri.get.exists_time # bare
+CatIndicesRecord/pri.get.exists_total # bare
+CatIndicesRecord/pri.get.missing_time # bare
+CatIndicesRecord/pri.get.missing_total # bare
+CatIndicesRecord/pri.get.time # bare
+CatIndicesRecord/pri.get.total # bare
+CatIndicesRecord/pri.indexing.delete_current # bare
+CatIndicesRecord/pri.indexing.delete_time # bare
+CatIndicesRecord/pri.indexing.delete_total # bare
+CatIndicesRecord/pri.indexing.index_current # bare
+CatIndicesRecord/pri.indexing.index_failed # bare
+CatIndicesRecord/pri.indexing.index_time # bare
+CatIndicesRecord/pri.indexing.index_total # bare
+CatIndicesRecord/pri.merges.current # bare
+CatIndicesRecord/pri.merges.current_docs # bare
+CatIndicesRecord/pri.merges.current_size # bare
+CatIndicesRecord/pri.merges.total # bare
+CatIndicesRecord/pri.merges.total_docs # bare
+CatIndicesRecord/pri.merges.total_size # bare
+CatIndicesRecord/pri.merges.total_time # bare
+CatIndicesRecord/pri.query_cache.evictions # bare
+CatIndicesRecord/pri.query_cache.memory_size # bare
+CatIndicesRecord/pri.refresh.external_time # bare
+CatIndicesRecord/pri.refresh.external_total # bare
+CatIndicesRecord/pri.refresh.listeners # bare
+CatIndicesRecord/pri.refresh.time # bare
+CatIndicesRecord/pri.refresh.total # bare
+CatIndicesRecord/pri.request_cache.evictions # bare
+CatIndicesRecord/pri.request_cache.hit_count # bare
+CatIndicesRecord/pri.request_cache.memory_size # bare
+CatIndicesRecord/pri.request_cache.miss_count # bare
+CatIndicesRecord/pri.search.concurrent_avg_slice_count # bare
+CatIndicesRecord/pri.search.concurrent_query_current # bare
+CatIndicesRecord/pri.search.concurrent_query_time # bare
+CatIndicesRecord/pri.search.concurrent_query_total # bare
+CatIndicesRecord/pri.search.fetch_current # bare
+CatIndicesRecord/pri.search.fetch_time # bare
+CatIndicesRecord/pri.search.fetch_total # bare
+CatIndicesRecord/pri.search.open_contexts # bare
+CatIndicesRecord/pri.search.point_in_time_current # bare
+CatIndicesRecord/pri.search.point_in_time_time # bare
+CatIndicesRecord/pri.search.point_in_time_total # bare
+CatIndicesRecord/pri.search.query_current # bare
+CatIndicesRecord/pri.search.query_time # bare
+CatIndicesRecord/pri.search.query_total # bare
+CatIndicesRecord/pri.search.scroll_current # bare
+CatIndicesRecord/pri.search.scroll_time # bare
+CatIndicesRecord/pri.search.scroll_total # bare
+CatIndicesRecord/pri.segments.count # bare
+CatIndicesRecord/pri.segments.fixed_bitset_memory # bare
+CatIndicesRecord/pri.segments.index_writer_memory # bare
+CatIndicesRecord/pri.segments.memory # bare
+CatIndicesRecord/pri.segments.version_map_memory # bare
+CatIndicesRecord/pri.store.size # bare
+CatIndicesRecord/pri.suggest.current # bare
+CatIndicesRecord/pri.suggest.time # bare
+CatIndicesRecord/pri.suggest.total # bare
+CatIndicesRecord/pri.warmer.current # bare
+CatIndicesRecord/pri.warmer.total # bare
+CatIndicesRecord/pri.warmer.total_time # bare
+CatIndicesRecord/query_cache.evictions # bare
+CatIndicesRecord/query_cache.memory_size # bare
+CatIndicesRecord/refresh.external_time # bare
+CatIndicesRecord/refresh.external_total # bare
+CatIndicesRecord/refresh.listeners # bare
+CatIndicesRecord/refresh.time # bare
+CatIndicesRecord/refresh.total # bare
+CatIndicesRecord/request_cache.evictions # bare
+CatIndicesRecord/request_cache.hit_count # bare
+CatIndicesRecord/request_cache.memory_size # bare
+CatIndicesRecord/request_cache.miss_count # bare
+CatIndicesRecord/search.concurrent_avg_slice_count # bare
+CatIndicesRecord/search.concurrent_query_current # bare
+CatIndicesRecord/search.concurrent_query_time # bare
+CatIndicesRecord/search.concurrent_query_total # bare
+CatIndicesRecord/search.fetch_current # bare
+CatIndicesRecord/search.fetch_time # bare
+CatIndicesRecord/search.fetch_total # bare
+CatIndicesRecord/search.open_contexts # bare
+CatIndicesRecord/search.point_in_time_current # bare
+CatIndicesRecord/search.point_in_time_time # bare
+CatIndicesRecord/search.point_in_time_total # bare
+CatIndicesRecord/search.query_current # bare
+CatIndicesRecord/search.query_time # bare
+CatIndicesRecord/search.query_total # bare
+CatIndicesRecord/search.scroll_current # bare
+CatIndicesRecord/search.scroll_time # bare
+CatIndicesRecord/search.scroll_total # bare
+CatIndicesRecord/segments.count # bare
+CatIndicesRecord/segments.fixed_bitset_memory # bare
+CatIndicesRecord/segments.index_writer_memory # bare
+CatIndicesRecord/segments.memory # bare
+CatIndicesRecord/segments.version_map_memory # bare
+CatIndicesRecord/store.size # bare
+CatIndicesRecord/suggest.current # bare
+CatIndicesRecord/suggest.time # bare
+CatIndicesRecord/suggest.total # bare
+CatIndicesRecord/warmer.current # bare
+CatIndicesRecord/warmer.total # bare
+CatIndicesRecord/warmer.total_time # bare
+
+# --- cat.shards ---
+CatShardsRecord/bulk.avg_size_in_bytes # bare
+CatShardsRecord/bulk.avg_time # bare
+CatShardsRecord/bulk.total_operations # bare
+CatShardsRecord/bulk.total_size_in_bytes # bare
+CatShardsRecord/bulk.total_time # bare
+CatShardsRecord/completion.size # bare
+CatShardsRecord/docs # bare
+CatShardsRecord/docs.deleted # bare
+CatShardsRecord/fielddata.evictions # bare
+CatShardsRecord/fielddata.memory_size # bare
+CatShardsRecord/flush.total # bare
+CatShardsRecord/flush.total_time # bare
+CatShardsRecord/get.current # bare
+CatShardsRecord/get.exists_time # bare
+CatShardsRecord/get.exists_total # bare
+CatShardsRecord/get.missing_time # bare
+CatShardsRecord/get.missing_total # bare
+CatShardsRecord/get.time # bare
+CatShardsRecord/get.total # bare
+CatShardsRecord/id # bare
+CatShardsRecord/indexing.delete_current # bare
+CatShardsRecord/indexing.delete_time # bare
+CatShardsRecord/indexing.delete_total # bare
+CatShardsRecord/indexing.index_current # bare
+CatShardsRecord/indexing.index_failed # bare
+CatShardsRecord/indexing.index_time # bare
+CatShardsRecord/indexing.index_total # bare
+CatShardsRecord/ip # bare
+CatShardsRecord/merges.current # bare
+CatShardsRecord/merges.current_docs # bare
+CatShardsRecord/merges.current_size # bare
+CatShardsRecord/merges.total # bare
+CatShardsRecord/merges.total_docs # bare
+CatShardsRecord/merges.total_size # bare
+CatShardsRecord/merges.total_time # bare
+CatShardsRecord/node # bare
+CatShardsRecord/path.data # bare
+CatShardsRecord/path.state # bare
+CatShardsRecord/query_cache.evictions # bare
+CatShardsRecord/query_cache.memory_size # bare
+CatShardsRecord/recoverysource.type # bare
+CatShardsRecord/refresh.external_time # bare
+CatShardsRecord/refresh.external_total # bare
+CatShardsRecord/refresh.listeners # bare
+CatShardsRecord/refresh.time # bare
+CatShardsRecord/refresh.total # bare
+CatShardsRecord/search.concurrent_avg_slice_count # bare
+CatShardsRecord/search.concurrent_query_current # bare
+CatShardsRecord/search.concurrent_query_time # bare
+CatShardsRecord/search.concurrent_query_total # bare
+CatShardsRecord/search.fetch_current # bare
+CatShardsRecord/search.fetch_time # bare
+CatShardsRecord/search.fetch_total # bare
+CatShardsRecord/search.open_contexts # bare
+CatShardsRecord/search.point_in_time_current # bare
+CatShardsRecord/search.point_in_time_time # bare
+CatShardsRecord/search.point_in_time_total # bare
+CatShardsRecord/search.query_current # bare
+CatShardsRecord/search.query_time # bare
+CatShardsRecord/search.query_total # bare
+CatShardsRecord/search.scroll_current # bare
+CatShardsRecord/search.scroll_time # bare
+CatShardsRecord/search.scroll_total # bare
+CatShardsRecord/search.search_idle_reactivate_count_total # bare
+CatShardsRecord/segments.count # bare
+CatShardsRecord/segments.fixed_bitset_memory # bare
+CatShardsRecord/segments.index_writer_memory # bare
+CatShardsRecord/segments.memory # bare
+CatShardsRecord/segments.version_map_memory # bare
+CatShardsRecord/seq_no.global_checkpoint # bare
+CatShardsRecord/seq_no.local_checkpoint # bare
+CatShardsRecord/seq_no.max # bare
+CatShardsRecord/store # bare
+CatShardsRecord/sync_id # bare
+CatShardsRecord/unassigned.at # bare
+CatShardsRecord/unassigned.details # bare
+CatShardsRecord/unassigned.for # bare
+CatShardsRecord/unassigned.reason # bare
+CatShardsRecord/warmer.current # bare
+CatShardsRecord/warmer.total # bare
+CatShardsRecord/warmer.total_time # bare
+
+# --- cat.thread_pool ---
+CatThreadPoolRecord/core # bare
+CatThreadPoolRecord/keep_alive # bare
+CatThreadPoolRecord/max # bare
+CatThreadPoolRecord/size # bare
+
+# --- cluster._common ---
+ClusterComponentTemplateNode/_meta # map
+ClusterComponentTemplateSummary/_meta # map
+
+# --- cluster.get_decommission_awareness ---
+ClusterGetDecommissionAwarenessResp/[entries] # map
+
+# --- cluster.get_settings ---
+ClusterGetSettingsResp/defaults # map
+ClusterGetSettingsResp/persistent # map
+ClusterGetSettingsResp/transient # map
+
+# --- cluster.put_component_template ---
+ClusterPutComponentTemplateBody/_meta # map
+
+# --- cluster.put_settings ---
+ClusterPutSettingsBody/persistent # map
+ClusterPutSettingsBody/transient # map
+ClusterPutSettingsResp/persistent # map
+ClusterPutSettingsResp/transient # map
+
+# --- cluster.remote_info ---
+ClusterRemoteInfoResp/[entries] # map
+
+# --- cluster.reroute ---
+ClusterRerouteResp/state # bare
+
+# --- cluster.state ---
+ClusterStateResp/- # bare
+
+# --- delete_by_query ---
+DeleteByQueryResp/- # bare
+
+# --- explain ---
+ExplainRespBodyGet/_source # bare
+
+# --- flow_framework.common ---
+FlowFrameworkCommonFlowFrameworkGetResponse/workflows # bare
+
+# --- flow_framework.create ---
+FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
+
+# --- flow_framework.get ---
+GetResp/workflows # bare
+
+# --- flow_framework.get_status ---
+GetStatusResp/- # bare
+
+# --- flow_framework.search ---
+SearchResp/- # bare
+
+# --- flow_framework.search_state ---
+SearchStateResp/- # bare
+
+# --- flow_framework.update ---
+FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
+
+# --- geospatial._common ---
+GeospatialGeoJSONData/properties # bare
+
+# --- get ---
+GetResp/_source # bare
+GetResultBase/_source # bare
+GetResultBase/fields # map
+
+# --- get_source ---
+GetSourceResp/- # bare
+
+# --- indices._common ---
+IndicesDataStream/_meta # map
+IndicesIngestionSource/param # map
+IndicesTemplateMapping/settings # map
+
+# --- indices.clone ---
+IndicesCloneBody/settings # map
+
+# --- indices.open ---
+IndicesOpenResp/- # bare
+
+# --- indices.put_index_template ---
+IndicesPutIndexTemplateBody/_meta # map
+
+# --- indices.put_mapping ---
+IndicesPutMappingBody/_meta # map
+
+# --- indices.put_template ---
+IndicesPutTemplateBody/settings # map
+
+# --- indices.recovery ---
+IndicesRecoveryOrigin/sourceRemoteStoreRepository # bare
+IndicesRecoveryOrigin/sourceRemoteTranslogRepository # bare
+
+# --- indices.rollover ---
+IndicesRolloverBody/settings # map
+
+# --- indices.shrink ---
+IndicesShrinkBody/settings # map
+
+# --- indices.simulate_index_template ---
+IndicesSimulateIndexTemplateBody/_meta # map
+
+# --- indices.simulate_template ---
+IndicesIndexTemplate/_meta # map
+
+# --- indices.split ---
+IndicesSplitBody/settings # map
+
+# --- indices.stats ---
+IndicesStatsShardRouting/relocating_node # bare
+
+# --- ingest._common ---
+IngestAppendProcessor/value # slice
+IngestCsvProcessor/empty_value # bare
+IngestPipeline/_meta # map
+IngestSetProcessor/value # bare
+
+# --- ingest.put_pipeline ---
+IngestPutPipelineBody/_meta # map
+
+# --- ingest.simulate ---
+IngestSimulateDocument/_source # bare
+IngestSimulateDocumentSimulation/_source # map
+
+# --- insights._common ---
+InsightsSource/aggregations # bare
+InsightsSource/ext # map
+InsightsTopQuery/labels # bare
+InsightsTopQuery/phase_latency_map # bare
+
+# --- ism._common ---
+ISMAction/custom # map
+ISMAction/notification # map
+ISMAction/rollup # map
+ISMAction/shrink # map
+ISMAction/transform # map
+ISMActionAlias/actions # map
+ISMActionAllocation/exclude # map
+ISMActionAllocation/include # map
+ISMActionAllocation/require # map
+ISMActionTimeout/timeout # bare
+ISMErrorNotification/message_template # map
+ISMTransition/conditions # map
+
+# --- ism.add_policy ---
+AddPolicyResp/- # bare
+
+# --- ism.delete_policy ---
+DeletePolicyResp/- # bare
+
+# --- ism.exists_policy ---
+ExistsPolicyResp/- # bare
+
+# --- ism.get_policy ---
+GetPolicyResp/- # bare
+
+# --- ism.remove_policy ---
+RemovePolicyResp/- # bare
+
+# --- ism.retry_index ---
+RetryIndexResp/- # bare
+
+# --- knn._common ---
+KNNMethod/parameters # map
+KNNNodeStats/indices_in_cache # map
+
+# --- knn.get_model ---
+GetModelResp/- # bare
+
+# --- list.indices ---
+IndicesResp/next_token # bare
+ListIndicesResp/next_token # bare
+
+# --- list.shards ---
+ListShardsResp/next_token # bare
+ShardsResp/next_token # bare
+
+# --- ltr._common ---
+LTRCacheStatsResponse/stores # bare
+LTRStoreDetails/counts # bare
+
+# --- ltr.cache_stats ---
+CacheStatsResp/stores # bare
+
+# --- ltr.get_feature ---
+GetFeatureResp/- # bare
+
+# --- ltr.get_featureset ---
+GetFeaturesetResp/- # bare
+
+# --- mget ---
+GetResult/_source # bare
+
+# --- ml._common ---
+MLGetAgenticMemoryResponse/after # map
+MLGetAgenticMemoryResponse/before # map
+MLGetAgenticMemoryResponse/metadata # map
+MLGetAgenticMemoryResponse/namespace # map
+MLGetAgenticMemoryResponse/tags # map
+MLGuardrails/regex # bare
+MLMemory/additional_info # map
+MLMessage/additional_info # map
+MLMessage/input # bare
+MLMessage/origin # bare
+MLMessage/parent_message_id # bare
+MLMessage/prompt_template # bare
+MLMessage/response # bare
+MLOwner/user_requested_tenant # bare
+MLSearchHits/max_score # bare
+MLSearchHitsHit/_score # bare
+MLSource/additional_info # map
+MLSource/application_type # bare
+MLSource/input # bare
+MLSource/metadata # map
+MLSource/namespace # map
+MLSource/origin # bare
+MLSource/parent_message_id # bare
+MLSource/prompt_template # bare
+MLSource/response # bare
+MLSource/trace_number # bare
+MLUndeployModelNode/stats # map
+MLUnloadModelNode/stats # map
+
+# --- ml.add_agentic_memory ---
+MLAddAgenticMemoryBody/metadata # map
+MLAddAgenticMemoryBody/namespace # map
+MLAddAgenticMemoryBody/structured_data # map
+MLAddAgenticMemoryBody/tags # map
+
+# --- ml.create_memory_container_session ---
+MLCreateMemoryContainerSessionBody/metadata # map
+MLCreateMemoryContainerSessionBody/namespace # map
+
+# --- ml.create_message ---
+MLCreateMessageBody/additional_info # map
+
+# --- ml.execute_algorithm ---
+ExecuteAlgorithmResp/- # bare
+
+# --- ml.get_agentic_memory ---
+GetAgenticMemoryResp/after # map
+GetAgenticMemoryResp/before # map
+GetAgenticMemoryResp/metadata # map
+GetAgenticMemoryResp/namespace # map
+GetAgenticMemoryResp/tags # map
+
+# --- ml.get_memory ---
+GetMemoryResp/additional_info # map
+
+# --- ml.get_message ---
+GetMessageResp/additional_info # map
+GetMessageResp/input # bare
+GetMessageResp/origin # bare
+GetMessageResp/parent_message_id # bare
+GetMessageResp/prompt_template # bare
+GetMessageResp/response # bare
+
+# --- ml.search_agents ---
+SearchAgentsResp/- # bare
+
+# --- ml.search_connectors ---
+SearchConnectorsResp/- # bare
+
+# --- ml.search_memory ---
+SearchMemoryResp/- # bare
+
+# --- ml.search_message ---
+SearchMessageResp/- # bare
+
+# --- ml.search_model_group ---
+SearchModelGroupResp/- # bare
+
+# --- ml.search_models ---
+SearchModelsResp/- # bare
+
+# --- ml.search_tasks ---
+SearchTasksResp/- # bare
+
+# --- ml.update_agentic_memory ---
+MLUpdateAgenticMemoryBody/additional_info # map
+MLUpdateAgenticMemoryBody/agents # map
+MLUpdateAgenticMemoryBody/binary_data # map
+MLUpdateAgenticMemoryBody/metadata # map
+MLUpdateAgenticMemoryBody/structured_data # map
+MLUpdateAgenticMemoryBody/tags # map
+
+# --- ml.update_message ---
+MLUpdateMessageBody/additional_info # map
+
+# --- ml.update_model ---
+MLUpdateModelBody/connector # bare
+MLUpdateModelBody/interface # bare
+
+# --- mtermvectors ---
+MTermVectorsOperation/doc # bare
+
+# --- neural.stats ---
+StatsResp/- # bare
+
+# --- nodes.info ---
+NodesInfoNodeJvm/using_bundled_jdk # bare
+NodesInfoNodeSettings/plugins # map
+NodesInfoNodeSettingsNode/attr # map
+
+# --- nodes.usage ---
+NodesUsageNode/aggregations # map
+
+# --- ppl.explain ---
+SQLExplain/filter # bare
+
+# --- ppl.post_stats ---
+SQLStats/cluster_name # bare
+SQLStats/end_time # bare
+SQLStats/execution_time # bare
+SQLStats/index # bare
+SQLStats/query # bare
+SQLStats/user # bare
+
+# --- ppl.query ---
+QueryResp/schema # slice
+SQLQuery/filter # bare
+
+# --- query._common ---
+QueryDataSourceRetrieve/properties # map
+
+# --- query.datasource_delete ---
+DatasourceDeleteResp/- # bare
+
+# --- query.datasource_retrieve ---
+DatasourceRetrieveResp/properties # map
+
+# --- query.datasources_create ---
+DatasourcesCreateResp/- # bare
+QueryDataSource/properties # map
+
+# --- query.datasources_update ---
+DatasourcesUpdateResp/- # bare
+
+# --- rank_eval ---
+RankEvalRequestItem/params # map
+RankEvalResp/failures # map
+
+# --- reindex ---
+ReindexResp/- # bare
+
+# --- render_search_template ---
+RenderSearchTemplateBody/params # map
+RenderSearchTemplateResp/template_output # map
+
+# --- rollups._common ---
+RollupsDateHistogramDimension/format # bare
+RollupsExplain/metadata_id # bare
+RollupsExplain/rollup_metadata # bare
+RollupsMetricsConfigMetrics/avg # bare
+RollupsMetricsConfigMetrics/max # bare
+RollupsMetricsConfigMetrics/min # bare
+RollupsMetricsConfigMetrics/sum # bare
+RollupsMetricsConfigMetrics/value_count # bare
+RollupsRollup/metadata_id # bare
+
+# --- scripts_painless_execute ---
+ScriptsPainlessExecutePainlessContextSetup/document # bare
+ScriptsPainlessExecuteResp/result # bare
+
+# --- search ---
+SearchBody/ext # map
+
+# --- search_relevance._common ---
+SearchRelevancePutImportJudgmentsRequest/judgmentRatings # slice
+
+# --- search_relevance.get_node_stats ---
+GetNodeStatsResp/all_nodes # bare
+GetNodeStatsResp/info # bare
+GetNodeStatsResp/nodes # bare
+SearchRelevanceGetNodeStatsResp/all_nodes # bare
+SearchRelevanceGetNodeStatsResp/info # bare
+SearchRelevanceGetNodeStatsResp/nodes # bare
+
+# --- search_relevance.get_stats ---
+GetStatsResp/all_nodes # bare
+GetStatsResp/info # bare
+GetStatsResp/nodes # bare
+SearchRelevanceGetStatsResp/all_nodes # bare
+SearchRelevanceGetStatsResp/info # bare
+SearchRelevanceGetStatsResp/nodes # bare
+
+# --- search_relevance.put_query_sets ---
+SearchRelevancePutQuerySetsRequest/querySetQueries # slice
+
+# --- search_template ---
+SearchTemplateBody/params # map
+
+# --- security._common ---
+SecurityAccountDetails/user_requested_tenant # bare
+SecurityAuthInfo/peer_certificates # bare
+SecurityAuthInfo/principal # bare
+SecurityAuthInfo/remote_address # bare
+SecurityAuthInfo/sso_logout_url # bare
+SecurityAuthInfo/user_requested_tenant # bare
+SecurityComplianceConfig/read_watched_fields # bare
+SecurityDynamicOptions/auth_failure_listeners # bare
+SecurityDynamicOptions/authc # bare
+SecurityDynamicOptions/authz # bare
+SecurityDynamicOptions/http # bare
+SecurityDynamicOptions/kibana # bare
+SecurityDynamicOptions/on_behalf_of # bare
+SecurityDynamicOptions/opensearch-dashboards # bare
+SecurityHealthInfo/message # bare
+SecurityHealthInfo/settings # map
+SecurityOk/status # bare
+SecurityPatchOperation/value # bare
+SecuritySSLInfo/peer_certificates # bare
+SecuritySSLInfo/peer_certificates_list # bare
+SecuritySSLInfo/principal # bare
+SecuritySSLInfo/ssl_cipher # bare
+SecuritySSLInfo/ssl_openssl_non_available_cause # bare
+SecuritySSLInfo/ssl_openssl_version # bare
+SecuritySSLInfo/ssl_openssl_version_string # bare
+SecuritySSLInfo/ssl_protocol # bare
+SecuritySSLInfo/ssl_provider_http # bare
+SecurityWhoAmI/dn # bare
+
+# --- security.authinfo ---
+AuthinfoResp/peer_certificates # bare
+AuthinfoResp/principal # bare
+AuthinfoResp/remote_address # bare
+AuthinfoResp/sso_logout_url # bare
+AuthinfoResp/user_requested_tenant # bare
+
+# --- security.authtoken ---
+AuthtokenResp/status # bare
+
+# --- security.change_password ---
+ChangePasswordResp/status # bare
+
+# --- security.create_action_group ---
+CreateActionGroupResp/status # bare
+
+# --- security.create_role ---
+CreateRoleResp/status # bare
+
+# --- security.create_role_mapping ---
+CreateRoleMappingResp/status # bare
+
+# --- security.create_tenant ---
+CreateTenantResp/status # bare
+
+# --- security.create_user ---
+CreateUserResp/status # bare
+
+# --- security.create_user_legacy ---
+CreateUserLegacyResp/status # bare
+
+# --- security.delete_action_group ---
+DeleteActionGroupResp/status # bare
+
+# --- security.delete_distinguished_name ---
+DeleteDistinguishedNameResp/status # bare
+
+# --- security.delete_role ---
+DeleteRoleResp/status # bare
+
+# --- security.delete_role_mapping ---
+DeleteRoleMappingResp/status # bare
+
+# --- security.delete_tenant ---
+DeleteTenantResp/status # bare
+
+# --- security.delete_user ---
+DeleteUserResp/status # bare
+
+# --- security.delete_user_legacy ---
+DeleteUserLegacyResp/status # bare
+
+# --- security.flush_cache ---
+FlushCacheResp/status # bare
+
+# --- security.generate_user_token ---
+GenerateUserTokenResp/status # bare
+
+# --- security.get_account_details ---
+GetAccountDetailsResp/user_requested_tenant # bare
+
+# --- security.get_sslinfo ---
+GetSslinfoResp/peer_certificates # bare
+GetSslinfoResp/peer_certificates_list # bare
+GetSslinfoResp/principal # bare
+GetSslinfoResp/ssl_cipher # bare
+GetSslinfoResp/ssl_openssl_non_available_cause # bare
+GetSslinfoResp/ssl_openssl_version # bare
+GetSslinfoResp/ssl_openssl_version_string # bare
+GetSslinfoResp/ssl_protocol # bare
+GetSslinfoResp/ssl_provider_http # bare
+
+# --- security.health ---
+HealthResp/message # bare
+HealthResp/settings # map
+
+# --- security.migrate ---
+MigrateResp/status # bare
+
+# --- security.patch_action_group ---
+PatchActionGroupResp/status # bare
+
+# --- security.patch_action_groups ---
+PatchActionGroupsResp/status # bare
+
+# --- security.patch_audit_configuration ---
+PatchAuditConfigurationResp/status # bare
+
+# --- security.patch_configuration ---
+PatchConfigurationResp/status # bare
+
+# --- security.patch_distinguished_name ---
+PatchDistinguishedNameResp/status # bare
+
+# --- security.patch_distinguished_names ---
+PatchDistinguishedNamesResp/status # bare
+
+# --- security.patch_role ---
+PatchRoleResp/status # bare
+
+# --- security.patch_role_mapping ---
+PatchRoleMappingResp/status # bare
+
+# --- security.patch_role_mappings ---
+PatchRoleMappingsResp/status # bare
+
+# --- security.patch_roles ---
+PatchRolesResp/status # bare
+
+# --- security.patch_tenant ---
+PatchTenantResp/status # bare
+
+# --- security.patch_tenants ---
+PatchTenantsResp/status # bare
+
+# --- security.patch_user ---
+PatchUserResp/status # bare
+
+# --- security.patch_users ---
+PatchUsersResp/status # bare
+
+# --- security.reload_http_certificates ---
+ReloadHTTPCertificatesResp/status # bare
+
+# --- security.reload_transport_certificates ---
+ReloadTransportCertificatesResp/status # bare
+
+# --- security.tenant_info ---
+TenantInfoResp/[entries] # map
+
+# --- security.update_audit_configuration ---
+UpdateAuditConfigurationResp/status # bare
+
+# --- security.update_configuration ---
+UpdateConfigurationResp/status # bare
+
+# --- security.update_distinguished_name ---
+UpdateDistinguishedNameResp/status # bare
+
+# --- security.validate ---
+ValidateResp/status # bare
+
+# --- security.who_am_i ---
+WhoAmIResp/dn # bare
+
+# --- security.who_am_i_protected ---
+WhoAmIProtectedResp/dn # bare
+
+# --- security_analytics.get_alerts ---
+SecurityAnalyticsAlertsAlert/acknowledged_time # bare
+SecurityAnalyticsAlertsAlert/end_time # bare
+SecurityAnalyticsAlertsAlert/error_message # bare
+
+# --- security_analytics.search_finding_correlations ---
+SearchFindingCorrelationsResp/- # bare
+
+# --- snapshot._common ---
+SnapshotInfo/metadata # map
+
+# --- snapshot.create ---
+SnapshotCreateBody/metadata # map
+
+# --- sql._common ---
+SQLExplainBody/description # bare
+SQLQueryResponse/schema # slice
+SQLSettingsResponse/persistent # bare
+
+# --- sql.settings ---
+SettingsResp/persistent # bare
+
+# --- termvectors ---
+TermVectorsBody/doc # bare
+
+# --- transforms._common ---
+TransformsExplain/metadata_id # bare
+TransformsPreview/documents # slice
+TransformsTransform/enabled_at # bare
+TransformsTransform/metadata_id # bare
+
+# --- transforms.preview ---
+PreviewResp/documents # slice
+
+# --- update ---
+UpdateBody/doc # bare
+UpdateBody/upsert # bare
+
+# --- update_by_query ---
+UpdateByQueryResp/- # bare
