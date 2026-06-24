@@ -27,6 +27,25 @@ func TestWalkerPrimitiveTypes(t *testing.T) {
 		{name: "int64", schema: openapi3.NewInt64Schema(), want: "int64"},
 		{name: "float64", schema: openapi3.NewFloat64Schema(), want: "float64"},
 		{name: "float32", schema: &openapi3.Schema{Type: &openapi3.Types{"number"}, Format: "float"}, want: "float32"},
+
+		// OpenAPI 3.1 nullable scalars: type: ["null", <primitive>]. Type.Is
+		// matches only single-element sets, so without nullablePrimitiveGoType
+		// these would fall through to json.RawMessage (the CAT-record bug).
+		// The Go type is the bare primitive; the caller adds the pointer via
+		// isNullableSchema.
+		{name: "nullable string", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "string"}}, want: "string"},
+		{name: "nullable string (null last)", schema: &openapi3.Schema{Type: &openapi3.Types{"string", "null"}}, want: "string"},
+		{name: "nullable integer", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "integer"}}, want: "int"},
+		{name: "nullable int64", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "integer"}, Format: "int64"}, want: "int64"},
+		{name: "nullable number", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "number"}}, want: "float64"},
+		{name: "nullable boolean", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "boolean"}}, want: "bool"},
+		// Not a nullable-primitive: a genuine multi-type union stays raw.
+		{name: "number-or-string union stays raw", schema: &openapi3.Schema{Type: &openapi3.Types{"number", "string"}}, want: "json.RawMessage"},
+		// Nullable non-primitives are NOT resolved by nullablePrimitiveGoType:
+		// [null, object] / [null, array] have no single Go primitive, so they
+		// fall through to json.RawMessage rather than being mis-typed.
+		{name: "nullable object stays raw", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "object"}}, want: "json.RawMessage"},
+		{name: "nullable array stays raw", schema: &openapi3.Schema{Type: &openapi3.Types{"null", "array"}}, want: "json.RawMessage"},
 	}
 
 	for _, tt := range tests {
@@ -547,4 +566,53 @@ func TestRefToSchemaKey(t *testing.T) {
 			require.Equal(t, tt.want, refToSchemaKey(tt.ref))
 		})
 	}
+}
+
+func TestResolveSchemaAlias(t *testing.T) {
+	t.Parallel()
+
+	// Build a spec with: a two-hop alias chain (A -> B -> C, C terminal),
+	// a self-cycle (Loop -> Loop), and a mutual cycle (Ping <-> Pong).
+	alias := func(target string) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Ref: "#/components/schemas/" + target, Value: openapi3.NewObjectSchema()}
+	}
+	spec := &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+		"grp___A":    alias("grp___B"),
+		"grp___B":    alias("grp___C"),
+		"grp___C":    &openapi3.SchemaRef{Value: openapi3.NewObjectSchema()},
+		"grp___Loop": alias("grp___Loop"),
+		"grp___Ping": alias("grp___Pong"),
+		"grp___Pong": alias("grp___Ping"),
+		// A component whose Ref is not a #/components/schemas/ ref (e.g. an
+		// external or otherwise unparseable ref): refToSchemaKey returns "",
+		// so resolution stops and returns the input key unchanged.
+		"grp___External": {Ref: "https://example.com/schema.json#/X", Value: openapi3.NewObjectSchema()},
+	}}}
+
+	tests := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{name: "two-hop alias resolves to terminal", key: "grp___A", want: "grp___C"},
+		{name: "one-hop alias resolves to terminal", key: "grp___B", want: "grp___C"},
+		{name: "terminal schema unchanged", key: "grp___C", want: "grp___C"},
+		{name: "unknown key unchanged", key: "grp___Missing", want: "grp___Missing"},
+		{name: "self cycle returns input", key: "grp___Loop", want: "grp___Loop"},
+		{name: "mutual cycle terminates", key: "grp___Ping", want: "grp___Ping"},
+		{name: "non-schema ref returns input", key: "grp___External", want: "grp___External"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, resolveSchemaAlias(tt.key, spec))
+		})
+	}
+}
+
+func TestResolveSchemaAliasNilSpec(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, "x", resolveSchemaAlias("x", nil))
+	require.Equal(t, "x", resolveSchemaAlias("x", &openapi3.T{}))
 }

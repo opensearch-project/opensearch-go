@@ -15,7 +15,6 @@ InlineGet/_source # bare
 InlineGet/fields # map
 InlineGetDictUserDefined/_source # map
 InlineGetDictUserDefined/fields # map
-PluginStats/custom_foldername # bare
 ScriptBase/params # map
 
 # --- _common.aggregations ---
@@ -52,237 +51,6 @@ SearchResultJSONValueSuggestValueItemObject0OptionsObject0/_source # bare
 
 # --- asynchronous_search.search ---
 AsynchronousSearchSearch/ext # map
-
-# --- cat.allocation ---
-CatAllocationRecord/disk.avail # bare
-CatAllocationRecord/disk.indices # bare
-CatAllocationRecord/disk.total # bare
-CatAllocationRecord/disk.used # bare
-
-# --- cat.indices ---
-CatIndicesRecord/completion.size # bare
-CatIndicesRecord/docs.count # bare
-CatIndicesRecord/docs.deleted # bare
-CatIndicesRecord/fielddata.evictions # bare
-CatIndicesRecord/fielddata.memory_size # bare
-CatIndicesRecord/flush.total # bare
-CatIndicesRecord/flush.total_time # bare
-CatIndicesRecord/get.current # bare
-CatIndicesRecord/get.exists_time # bare
-CatIndicesRecord/get.exists_total # bare
-CatIndicesRecord/get.missing_time # bare
-CatIndicesRecord/get.missing_total # bare
-CatIndicesRecord/get.time # bare
-CatIndicesRecord/get.total # bare
-CatIndicesRecord/indexing.delete_current # bare
-CatIndicesRecord/indexing.delete_time # bare
-CatIndicesRecord/indexing.delete_total # bare
-CatIndicesRecord/indexing.index_current # bare
-CatIndicesRecord/indexing.index_failed # bare
-CatIndicesRecord/indexing.index_time # bare
-CatIndicesRecord/indexing.index_total # bare
-CatIndicesRecord/merges.current # bare
-CatIndicesRecord/merges.current_docs # bare
-CatIndicesRecord/merges.current_size # bare
-CatIndicesRecord/merges.total # bare
-CatIndicesRecord/merges.total_docs # bare
-CatIndicesRecord/merges.total_size # bare
-CatIndicesRecord/merges.total_time # bare
-CatIndicesRecord/pri.completion.size # bare
-CatIndicesRecord/pri.fielddata.evictions # bare
-CatIndicesRecord/pri.fielddata.memory_size # bare
-CatIndicesRecord/pri.flush.total # bare
-CatIndicesRecord/pri.flush.total_time # bare
-CatIndicesRecord/pri.get.current # bare
-CatIndicesRecord/pri.get.exists_time # bare
-CatIndicesRecord/pri.get.exists_total # bare
-CatIndicesRecord/pri.get.missing_time # bare
-CatIndicesRecord/pri.get.missing_total # bare
-CatIndicesRecord/pri.get.time # bare
-CatIndicesRecord/pri.get.total # bare
-CatIndicesRecord/pri.indexing.delete_current # bare
-CatIndicesRecord/pri.indexing.delete_time # bare
-CatIndicesRecord/pri.indexing.delete_total # bare
-CatIndicesRecord/pri.indexing.index_current # bare
-CatIndicesRecord/pri.indexing.index_failed # bare
-CatIndicesRecord/pri.indexing.index_time # bare
-CatIndicesRecord/pri.indexing.index_total # bare
-CatIndicesRecord/pri.merges.current # bare
-CatIndicesRecord/pri.merges.current_docs # bare
-CatIndicesRecord/pri.merges.current_size # bare
-CatIndicesRecord/pri.merges.total # bare
-CatIndicesRecord/pri.merges.total_docs # bare
-CatIndicesRecord/pri.merges.total_size # bare
-CatIndicesRecord/pri.merges.total_time # bare
-CatIndicesRecord/pri.query_cache.evictions # bare
-CatIndicesRecord/pri.query_cache.memory_size # bare
-CatIndicesRecord/pri.refresh.external_time # bare
-CatIndicesRecord/pri.refresh.external_total # bare
-CatIndicesRecord/pri.refresh.listeners # bare
-CatIndicesRecord/pri.refresh.time # bare
-CatIndicesRecord/pri.refresh.total # bare
-CatIndicesRecord/pri.request_cache.evictions # bare
-CatIndicesRecord/pri.request_cache.hit_count # bare
-CatIndicesRecord/pri.request_cache.memory_size # bare
-CatIndicesRecord/pri.request_cache.miss_count # bare
-CatIndicesRecord/pri.search.concurrent_avg_slice_count # bare
-CatIndicesRecord/pri.search.concurrent_query_current # bare
-CatIndicesRecord/pri.search.concurrent_query_time # bare
-CatIndicesRecord/pri.search.concurrent_query_total # bare
-CatIndicesRecord/pri.search.fetch_current # bare
-CatIndicesRecord/pri.search.fetch_time # bare
-CatIndicesRecord/pri.search.fetch_total # bare
-CatIndicesRecord/pri.search.open_contexts # bare
-CatIndicesRecord/pri.search.point_in_time_current # bare
-CatIndicesRecord/pri.search.point_in_time_time # bare
-CatIndicesRecord/pri.search.point_in_time_total # bare
-CatIndicesRecord/pri.search.query_current # bare
-CatIndicesRecord/pri.search.query_time # bare
-CatIndicesRecord/pri.search.query_total # bare
-CatIndicesRecord/pri.search.scroll_current # bare
-CatIndicesRecord/pri.search.scroll_time # bare
-CatIndicesRecord/pri.search.scroll_total # bare
-CatIndicesRecord/pri.segments.count # bare
-CatIndicesRecord/pri.segments.fixed_bitset_memory # bare
-CatIndicesRecord/pri.segments.index_writer_memory # bare
-CatIndicesRecord/pri.segments.memory # bare
-CatIndicesRecord/pri.segments.version_map_memory # bare
-CatIndicesRecord/pri.store.size # bare
-CatIndicesRecord/pri.suggest.current # bare
-CatIndicesRecord/pri.suggest.time # bare
-CatIndicesRecord/pri.suggest.total # bare
-CatIndicesRecord/pri.warmer.current # bare
-CatIndicesRecord/pri.warmer.total # bare
-CatIndicesRecord/pri.warmer.total_time # bare
-CatIndicesRecord/query_cache.evictions # bare
-CatIndicesRecord/query_cache.memory_size # bare
-CatIndicesRecord/refresh.external_time # bare
-CatIndicesRecord/refresh.external_total # bare
-CatIndicesRecord/refresh.listeners # bare
-CatIndicesRecord/refresh.time # bare
-CatIndicesRecord/refresh.total # bare
-CatIndicesRecord/request_cache.evictions # bare
-CatIndicesRecord/request_cache.hit_count # bare
-CatIndicesRecord/request_cache.memory_size # bare
-CatIndicesRecord/request_cache.miss_count # bare
-CatIndicesRecord/search.concurrent_avg_slice_count # bare
-CatIndicesRecord/search.concurrent_query_current # bare
-CatIndicesRecord/search.concurrent_query_time # bare
-CatIndicesRecord/search.concurrent_query_total # bare
-CatIndicesRecord/search.fetch_current # bare
-CatIndicesRecord/search.fetch_time # bare
-CatIndicesRecord/search.fetch_total # bare
-CatIndicesRecord/search.open_contexts # bare
-CatIndicesRecord/search.point_in_time_current # bare
-CatIndicesRecord/search.point_in_time_time # bare
-CatIndicesRecord/search.point_in_time_total # bare
-CatIndicesRecord/search.query_current # bare
-CatIndicesRecord/search.query_time # bare
-CatIndicesRecord/search.query_total # bare
-CatIndicesRecord/search.scroll_current # bare
-CatIndicesRecord/search.scroll_time # bare
-CatIndicesRecord/search.scroll_total # bare
-CatIndicesRecord/segments.count # bare
-CatIndicesRecord/segments.fixed_bitset_memory # bare
-CatIndicesRecord/segments.index_writer_memory # bare
-CatIndicesRecord/segments.memory # bare
-CatIndicesRecord/segments.version_map_memory # bare
-CatIndicesRecord/store.size # bare
-CatIndicesRecord/suggest.current # bare
-CatIndicesRecord/suggest.time # bare
-CatIndicesRecord/suggest.total # bare
-CatIndicesRecord/warmer.current # bare
-CatIndicesRecord/warmer.total # bare
-CatIndicesRecord/warmer.total_time # bare
-
-# --- cat.shards ---
-CatShardsRecord/bulk.avg_size_in_bytes # bare
-CatShardsRecord/bulk.avg_time # bare
-CatShardsRecord/bulk.total_operations # bare
-CatShardsRecord/bulk.total_size_in_bytes # bare
-CatShardsRecord/bulk.total_time # bare
-CatShardsRecord/completion.size # bare
-CatShardsRecord/docs # bare
-CatShardsRecord/docs.deleted # bare
-CatShardsRecord/fielddata.evictions # bare
-CatShardsRecord/fielddata.memory_size # bare
-CatShardsRecord/flush.total # bare
-CatShardsRecord/flush.total_time # bare
-CatShardsRecord/get.current # bare
-CatShardsRecord/get.exists_time # bare
-CatShardsRecord/get.exists_total # bare
-CatShardsRecord/get.missing_time # bare
-CatShardsRecord/get.missing_total # bare
-CatShardsRecord/get.time # bare
-CatShardsRecord/get.total # bare
-CatShardsRecord/id # bare
-CatShardsRecord/indexing.delete_current # bare
-CatShardsRecord/indexing.delete_time # bare
-CatShardsRecord/indexing.delete_total # bare
-CatShardsRecord/indexing.index_current # bare
-CatShardsRecord/indexing.index_failed # bare
-CatShardsRecord/indexing.index_time # bare
-CatShardsRecord/indexing.index_total # bare
-CatShardsRecord/ip # bare
-CatShardsRecord/merges.current # bare
-CatShardsRecord/merges.current_docs # bare
-CatShardsRecord/merges.current_size # bare
-CatShardsRecord/merges.total # bare
-CatShardsRecord/merges.total_docs # bare
-CatShardsRecord/merges.total_size # bare
-CatShardsRecord/merges.total_time # bare
-CatShardsRecord/node # bare
-CatShardsRecord/path.data # bare
-CatShardsRecord/path.state # bare
-CatShardsRecord/query_cache.evictions # bare
-CatShardsRecord/query_cache.memory_size # bare
-CatShardsRecord/recoverysource.type # bare
-CatShardsRecord/refresh.external_time # bare
-CatShardsRecord/refresh.external_total # bare
-CatShardsRecord/refresh.listeners # bare
-CatShardsRecord/refresh.time # bare
-CatShardsRecord/refresh.total # bare
-CatShardsRecord/search.concurrent_avg_slice_count # bare
-CatShardsRecord/search.concurrent_query_current # bare
-CatShardsRecord/search.concurrent_query_time # bare
-CatShardsRecord/search.concurrent_query_total # bare
-CatShardsRecord/search.fetch_current # bare
-CatShardsRecord/search.fetch_time # bare
-CatShardsRecord/search.fetch_total # bare
-CatShardsRecord/search.open_contexts # bare
-CatShardsRecord/search.point_in_time_current # bare
-CatShardsRecord/search.point_in_time_time # bare
-CatShardsRecord/search.point_in_time_total # bare
-CatShardsRecord/search.query_current # bare
-CatShardsRecord/search.query_time # bare
-CatShardsRecord/search.query_total # bare
-CatShardsRecord/search.scroll_current # bare
-CatShardsRecord/search.scroll_time # bare
-CatShardsRecord/search.scroll_total # bare
-CatShardsRecord/search.search_idle_reactivate_count_total # bare
-CatShardsRecord/segments.count # bare
-CatShardsRecord/segments.fixed_bitset_memory # bare
-CatShardsRecord/segments.index_writer_memory # bare
-CatShardsRecord/segments.memory # bare
-CatShardsRecord/segments.version_map_memory # bare
-CatShardsRecord/seq_no.global_checkpoint # bare
-CatShardsRecord/seq_no.local_checkpoint # bare
-CatShardsRecord/seq_no.max # bare
-CatShardsRecord/store # bare
-CatShardsRecord/sync_id # bare
-CatShardsRecord/unassigned.at # bare
-CatShardsRecord/unassigned.details # bare
-CatShardsRecord/unassigned.for # bare
-CatShardsRecord/unassigned.reason # bare
-CatShardsRecord/warmer.current # bare
-CatShardsRecord/warmer.total # bare
-CatShardsRecord/warmer.total_time # bare
-
-# --- cat.thread_pool ---
-CatThreadPoolRecord/core # bare
-CatThreadPoolRecord/keep_alive # bare
-CatThreadPoolRecord/max # bare
-CatThreadPoolRecord/size # bare
 
 # --- cluster._common ---
 ClusterComponentTemplateNode/_meta # map
@@ -372,10 +140,6 @@ IndicesPutMappingBody/_meta # map
 # --- indices.put_template ---
 IndicesPutTemplateBody/settings # map
 
-# --- indices.recovery ---
-IndicesRecoveryOrigin/sourceRemoteStoreRepository # bare
-IndicesRecoveryOrigin/sourceRemoteTranslogRepository # bare
-
 # --- indices.rollover ---
 IndicesRolloverBody/settings # map
 
@@ -390,9 +154,6 @@ IndicesIndexTemplate/_meta # map
 
 # --- indices.split ---
 IndicesSplitBody/settings # map
-
-# --- indices.stats ---
-IndicesStatsShardRouting/relocating_node # bare
 
 # --- ingest._common ---
 IngestAppendProcessor/value # slice
@@ -427,23 +188,8 @@ ISMActionTimeout/timeout # bare
 ISMErrorNotification/message_template # map
 ISMTransition/conditions # map
 
-# --- ism.add_policy ---
-AddPolicyResp/- # bare
-
-# --- ism.delete_policy ---
-DeletePolicyResp/- # bare
-
 # --- ism.exists_policy ---
 ExistsPolicyResp/- # bare
-
-# --- ism.get_policy ---
-GetPolicyResp/- # bare
-
-# --- ism.remove_policy ---
-RemovePolicyResp/- # bare
-
-# --- ism.retry_index ---
-RetryIndexResp/- # bare
 
 # --- knn._common ---
 KNNMethod/parameters # map
@@ -451,14 +197,6 @@ KNNNodeStats/indices_in_cache # map
 
 # --- knn.get_model ---
 GetModelResp/- # bare
-
-# --- list.indices ---
-IndicesResp/next_token # bare
-ListIndicesResp/next_token # bare
-
-# --- list.shards ---
-ListShardsResp/next_token # bare
-ShardsResp/next_token # bare
 
 # --- ltr._common ---
 LTRCacheStatsResponse/stores # bare
@@ -485,24 +223,9 @@ MLGetAgenticMemoryResponse/tags # map
 MLGuardrails/regex # bare
 MLMemory/additional_info # map
 MLMessage/additional_info # map
-MLMessage/input # bare
-MLMessage/origin # bare
-MLMessage/parent_message_id # bare
-MLMessage/prompt_template # bare
-MLMessage/response # bare
-MLOwner/user_requested_tenant # bare
-MLSearchHits/max_score # bare
-MLSearchHitsHit/_score # bare
 MLSource/additional_info # map
-MLSource/application_type # bare
-MLSource/input # bare
 MLSource/metadata # map
 MLSource/namespace # map
-MLSource/origin # bare
-MLSource/parent_message_id # bare
-MLSource/prompt_template # bare
-MLSource/response # bare
-MLSource/trace_number # bare
 MLUndeployModelNode/stats # map
 MLUnloadModelNode/stats # map
 
@@ -534,32 +257,6 @@ GetMemoryResp/additional_info # map
 
 # --- ml.get_message ---
 GetMessageResp/additional_info # map
-GetMessageResp/input # bare
-GetMessageResp/origin # bare
-GetMessageResp/parent_message_id # bare
-GetMessageResp/prompt_template # bare
-GetMessageResp/response # bare
-
-# --- ml.search_agents ---
-SearchAgentsResp/- # bare
-
-# --- ml.search_connectors ---
-SearchConnectorsResp/- # bare
-
-# --- ml.search_memory ---
-SearchMemoryResp/- # bare
-
-# --- ml.search_message ---
-SearchMessageResp/- # bare
-
-# --- ml.search_model_group ---
-SearchModelGroupResp/- # bare
-
-# --- ml.search_models ---
-SearchModelsResp/- # bare
-
-# --- ml.search_tasks ---
-SearchTasksResp/- # bare
 
 # --- ml.update_agentic_memory ---
 MLUpdateAgenticMemoryBody/additional_info # map
@@ -583,7 +280,6 @@ MTermVectorsOperation/doc # bare
 StatsResp/- # bare
 
 # --- nodes.info ---
-NodesInfoNodeJvm/using_bundled_jdk # bare
 NodesInfoNodeSettings/plugins # map
 NodesInfoNodeSettingsNode/attr # map
 
@@ -633,15 +329,12 @@ RenderSearchTemplateBody/params # map
 RenderSearchTemplateResp/template_output # map
 
 # --- rollups._common ---
-RollupsDateHistogramDimension/format # bare
-RollupsExplain/metadata_id # bare
 RollupsExplain/rollup_metadata # bare
 RollupsMetricsConfigMetrics/avg # bare
 RollupsMetricsConfigMetrics/max # bare
 RollupsMetricsConfigMetrics/min # bare
 RollupsMetricsConfigMetrics/sum # bare
 RollupsMetricsConfigMetrics/value_count # bare
-RollupsRollup/metadata_id # bare
 
 # --- scripts_painless_execute ---
 ScriptsPainlessExecutePainlessContextSetup/document # bare
@@ -676,12 +369,7 @@ SearchRelevancePutQuerySetsRequest/querySetQueries # slice
 SearchTemplateBody/params # map
 
 # --- security._common ---
-SecurityAccountDetails/user_requested_tenant # bare
 SecurityAuthInfo/peer_certificates # bare
-SecurityAuthInfo/principal # bare
-SecurityAuthInfo/remote_address # bare
-SecurityAuthInfo/sso_logout_url # bare
-SecurityAuthInfo/user_requested_tenant # bare
 SecurityComplianceConfig/read_watched_fields # bare
 SecurityDynamicOptions/auth_failure_listeners # bare
 SecurityDynamicOptions/authc # bare
@@ -690,27 +378,15 @@ SecurityDynamicOptions/http # bare
 SecurityDynamicOptions/kibana # bare
 SecurityDynamicOptions/on_behalf_of # bare
 SecurityDynamicOptions/opensearch-dashboards # bare
-SecurityHealthInfo/message # bare
 SecurityHealthInfo/settings # map
 SecurityOk/status # bare
 SecurityPatchOperation/value # bare
 SecuritySSLInfo/peer_certificates # bare
 SecuritySSLInfo/peer_certificates_list # bare
-SecuritySSLInfo/principal # bare
-SecuritySSLInfo/ssl_cipher # bare
-SecuritySSLInfo/ssl_openssl_non_available_cause # bare
 SecuritySSLInfo/ssl_openssl_version # bare
-SecuritySSLInfo/ssl_openssl_version_string # bare
-SecuritySSLInfo/ssl_protocol # bare
-SecuritySSLInfo/ssl_provider_http # bare
-SecurityWhoAmI/dn # bare
 
 # --- security.authinfo ---
 AuthinfoResp/peer_certificates # bare
-AuthinfoResp/principal # bare
-AuthinfoResp/remote_address # bare
-AuthinfoResp/sso_logout_url # bare
-AuthinfoResp/user_requested_tenant # bare
 
 # --- security.authtoken ---
 AuthtokenResp/status # bare
@@ -763,22 +439,12 @@ FlushCacheResp/status # bare
 # --- security.generate_user_token ---
 GenerateUserTokenResp/status # bare
 
-# --- security.get_account_details ---
-GetAccountDetailsResp/user_requested_tenant # bare
-
 # --- security.get_sslinfo ---
 GetSslinfoResp/peer_certificates # bare
 GetSslinfoResp/peer_certificates_list # bare
-GetSslinfoResp/principal # bare
-GetSslinfoResp/ssl_cipher # bare
-GetSslinfoResp/ssl_openssl_non_available_cause # bare
 GetSslinfoResp/ssl_openssl_version # bare
-GetSslinfoResp/ssl_openssl_version_string # bare
-GetSslinfoResp/ssl_protocol # bare
-GetSslinfoResp/ssl_provider_http # bare
 
 # --- security.health ---
-HealthResp/message # bare
 HealthResp/settings # map
 
 # --- security.migrate ---
@@ -847,17 +513,6 @@ UpdateDistinguishedNameResp/status # bare
 # --- security.validate ---
 ValidateResp/status # bare
 
-# --- security.who_am_i ---
-WhoAmIResp/dn # bare
-
-# --- security.who_am_i_protected ---
-WhoAmIProtectedResp/dn # bare
-
-# --- security_analytics.get_alerts ---
-SecurityAnalyticsAlertsAlert/acknowledged_time # bare
-SecurityAnalyticsAlertsAlert/end_time # bare
-SecurityAnalyticsAlertsAlert/error_message # bare
-
 # --- security_analytics.search_finding_correlations ---
 SearchFindingCorrelationsResp/- # bare
 
@@ -879,10 +534,7 @@ SettingsResp/persistent # bare
 TermVectorsBody/doc # bare
 
 # --- transforms._common ---
-TransformsExplain/metadata_id # bare
 TransformsPreview/documents # slice
-TransformsTransform/enabled_at # bare
-TransformsTransform/metadata_id # bare
 
 # --- transforms.preview ---
 PreviewResp/documents # slice

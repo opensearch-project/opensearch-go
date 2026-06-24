@@ -10,7 +10,6 @@ package ism
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -82,33 +81,33 @@ func (r DeletePolicyParams) get() map[string]string {
 	return params
 }
 
-// DeletePolicyResp represents the response for the DeletePolicy operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// DeletePolicyResp represents the response for the ism.delete_policy operation.
 //
 // Deletes a policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#delete-policy
 type DeletePolicyResp struct {
-	Body     json.RawMessage `json:"-"`
+	// The unique identifier for a resource.
+	ID string `json:"_id"`
+
+	Index string `json:"_index"`
+
+	// The primary term of the document.
+	PrimaryTerm int64 `json:"_primary_term"`
+
+	// The sequence number of the document.
+	SeqNo int64 `json:"_seq_no"`
+
+	Shards opensearchapi.ShardStatistics `json:"_shards"`
+
+	// The type of document or resource.
+	Type *string `json:"_type,omitempty"`
+
+	Version       int64  `json:"_version"`
+	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
+	Result        string `json:"result"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *DeletePolicyResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r DeletePolicyResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

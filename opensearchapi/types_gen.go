@@ -1146,7 +1146,7 @@ type BulkItem struct {
 
 type CatIndicesRecord struct {
 	// size of completion
-	CompletionSize json.RawMessage `json:"completion.size"`
+	CompletionSize *string `json:"completion.size"`
 
 	// index creation date (millisecond value)
 	CreationDate *string `json:"creation.date,omitempty"`
@@ -1155,43 +1155,43 @@ type CatIndicesRecord struct {
 	CreationDateString *string `json:"creation.date.string,omitempty"`
 
 	// available docs
-	DocsCount json.RawMessage `json:"docs.count"`
+	DocsCount *string `json:"docs.count"`
 
 	// deleted docs
-	DocsDeleted json.RawMessage `json:"docs.deleted"`
+	DocsDeleted *string `json:"docs.deleted"`
 
 	// field data evictions
-	FielddataEvictions json.RawMessage `json:"fielddata.evictions"`
+	FielddataEvictions *string `json:"fielddata.evictions"`
 
 	// used field data cache
-	FielddataMemorySize json.RawMessage `json:"fielddata.memory_size"`
+	FielddataMemorySize *string `json:"fielddata.memory_size"`
 
 	// number of flushes
-	FlushTotal json.RawMessage `json:"flush.total"`
+	FlushTotal *string `json:"flush.total"`
 
 	// time spent in flush
-	FlushTotalTime json.RawMessage `json:"flush.total_time"`
+	FlushTotalTime *string `json:"flush.total_time"`
 
 	// number of current get ops
-	GetCurrent json.RawMessage `json:"get.current"`
+	GetCurrent *string `json:"get.current"`
 
 	// time spent in successful gets
-	GetExistsTime json.RawMessage `json:"get.exists_time"`
+	GetExistsTime *string `json:"get.exists_time"`
 
 	// number of successful gets
-	GetExistsTotal json.RawMessage `json:"get.exists_total"`
+	GetExistsTotal *string `json:"get.exists_total"`
 
 	// time spent in failed gets
-	GetMissingTime json.RawMessage `json:"get.missing_time"`
+	GetMissingTime *string `json:"get.missing_time"`
 
 	// number of failed gets
-	GetMissingTotal json.RawMessage `json:"get.missing_total"`
+	GetMissingTotal *string `json:"get.missing_total"`
 
 	// time spent in get
-	GetTime json.RawMessage `json:"get.time"`
+	GetTime *string `json:"get.time"`
 
 	// number of get ops
-	GetTotal json.RawMessage `json:"get.total"`
+	GetTotal *string `json:"get.total"`
 
 	// current health status
 	Health *string `json:"health,omitempty"`
@@ -1200,574 +1200,574 @@ type CatIndicesRecord struct {
 	Index *string `json:"index,omitempty"`
 
 	// number of current deletions
-	IndexingDeleteCurrent json.RawMessage `json:"indexing.delete_current"`
+	IndexingDeleteCurrent *string `json:"indexing.delete_current"`
 
 	// time spent in deletions
-	IndexingDeleteTime json.RawMessage `json:"indexing.delete_time"`
+	IndexingDeleteTime *string `json:"indexing.delete_time"`
 
 	// number of delete ops
-	IndexingDeleteTotal json.RawMessage `json:"indexing.delete_total"`
+	IndexingDeleteTotal *string `json:"indexing.delete_total"`
 
 	// number of current indexing ops
-	IndexingIndexCurrent json.RawMessage `json:"indexing.index_current"`
+	IndexingIndexCurrent *string `json:"indexing.index_current"`
 
 	// number of failed indexing ops
-	IndexingIndexFailed json.RawMessage `json:"indexing.index_failed"`
+	IndexingIndexFailed *string `json:"indexing.index_failed"`
 
 	// time spent in indexing
-	IndexingIndexTime json.RawMessage `json:"indexing.index_time"`
+	IndexingIndexTime *string `json:"indexing.index_time"`
 
 	// number of indexing ops
-	IndexingIndexTotal json.RawMessage `json:"indexing.index_total"`
+	IndexingIndexTotal *string `json:"indexing.index_total"`
 
 	// total used memory
 	MemoryTotal *string `json:"memory.total,omitempty"`
 
 	// number of current merges
-	MergesCurrent json.RawMessage `json:"merges.current"`
+	MergesCurrent *string `json:"merges.current"`
 
 	// number of current merging docs
-	MergesCurrentDocs json.RawMessage `json:"merges.current_docs"`
+	MergesCurrentDocs *string `json:"merges.current_docs"`
 
 	// size of current merges
-	MergesCurrentSize json.RawMessage `json:"merges.current_size"`
+	MergesCurrentSize *string `json:"merges.current_size"`
 
 	// number of completed merge ops
-	MergesTotal json.RawMessage `json:"merges.total"`
+	MergesTotal *string `json:"merges.total"`
 
 	// docs merged
-	MergesTotalDocs json.RawMessage `json:"merges.total_docs"`
+	MergesTotalDocs *string `json:"merges.total_docs"`
 
 	// size merged
-	MergesTotalSize json.RawMessage `json:"merges.total_size"`
+	MergesTotalSize *string `json:"merges.total_size"`
 
 	// time spent in merges
-	MergesTotalTime json.RawMessage `json:"merges.total_time"`
+	MergesTotalTime *string `json:"merges.total_time"`
 
 	// number of primary shards
 	Pri *string `json:"pri,omitempty"`
 
 	// size of completion
-	PriCompletionSize json.RawMessage `json:"pri.completion.size"`
+	PriCompletionSize *string `json:"pri.completion.size"`
 
 	// field data evictions
-	PriFielddataEvictions json.RawMessage `json:"pri.fielddata.evictions"`
+	PriFielddataEvictions *string `json:"pri.fielddata.evictions"`
 
 	// used field data cache
-	PriFielddataMemorySize json.RawMessage `json:"pri.fielddata.memory_size"`
+	PriFielddataMemorySize *string `json:"pri.fielddata.memory_size"`
 
 	// number of flushes
-	PriFlushTotal json.RawMessage `json:"pri.flush.total"`
+	PriFlushTotal *string `json:"pri.flush.total"`
 
 	// time spent in flush
-	PriFlushTotalTime json.RawMessage `json:"pri.flush.total_time"`
+	PriFlushTotalTime *string `json:"pri.flush.total_time"`
 
 	// number of current get ops
-	PriGetCurrent json.RawMessage `json:"pri.get.current"`
+	PriGetCurrent *string `json:"pri.get.current"`
 
 	// time spent in successful gets
-	PriGetExistsTime json.RawMessage `json:"pri.get.exists_time"`
+	PriGetExistsTime *string `json:"pri.get.exists_time"`
 
 	// number of successful gets
-	PriGetExistsTotal json.RawMessage `json:"pri.get.exists_total"`
+	PriGetExistsTotal *string `json:"pri.get.exists_total"`
 
 	// time spent in failed gets
-	PriGetMissingTime json.RawMessage `json:"pri.get.missing_time"`
+	PriGetMissingTime *string `json:"pri.get.missing_time"`
 
 	// number of failed gets
-	PriGetMissingTotal json.RawMessage `json:"pri.get.missing_total"`
+	PriGetMissingTotal *string `json:"pri.get.missing_total"`
 
 	// time spent in get
-	PriGetTime json.RawMessage `json:"pri.get.time"`
+	PriGetTime *string `json:"pri.get.time"`
 
 	// number of get ops
-	PriGetTotal json.RawMessage `json:"pri.get.total"`
+	PriGetTotal *string `json:"pri.get.total"`
 
 	// number of current deletions
-	PriIndexingDeleteCurrent json.RawMessage `json:"pri.indexing.delete_current"`
+	PriIndexingDeleteCurrent *string `json:"pri.indexing.delete_current"`
 
 	// time spent in deletions
-	PriIndexingDeleteTime json.RawMessage `json:"pri.indexing.delete_time"`
+	PriIndexingDeleteTime *string `json:"pri.indexing.delete_time"`
 
 	// number of delete ops
-	PriIndexingDeleteTotal json.RawMessage `json:"pri.indexing.delete_total"`
+	PriIndexingDeleteTotal *string `json:"pri.indexing.delete_total"`
 
 	// number of current indexing ops
-	PriIndexingIndexCurrent json.RawMessage `json:"pri.indexing.index_current"`
+	PriIndexingIndexCurrent *string `json:"pri.indexing.index_current"`
 
 	// number of failed indexing ops
-	PriIndexingIndexFailed json.RawMessage `json:"pri.indexing.index_failed"`
+	PriIndexingIndexFailed *string `json:"pri.indexing.index_failed"`
 
 	// time spent in indexing
-	PriIndexingIndexTime json.RawMessage `json:"pri.indexing.index_time"`
+	PriIndexingIndexTime *string `json:"pri.indexing.index_time"`
 
 	// number of indexing ops
-	PriIndexingIndexTotal json.RawMessage `json:"pri.indexing.index_total"`
+	PriIndexingIndexTotal *string `json:"pri.indexing.index_total"`
 
 	// total user memory
 	PriMemoryTotal *string `json:"pri.memory.total,omitempty"`
 
 	// number of current merges
-	PriMergesCurrent json.RawMessage `json:"pri.merges.current"`
+	PriMergesCurrent *string `json:"pri.merges.current"`
 
 	// number of current merging docs
-	PriMergesCurrentDocs json.RawMessage `json:"pri.merges.current_docs"`
+	PriMergesCurrentDocs *string `json:"pri.merges.current_docs"`
 
 	// size of current merges
-	PriMergesCurrentSize json.RawMessage `json:"pri.merges.current_size"`
+	PriMergesCurrentSize *string `json:"pri.merges.current_size"`
 
 	// number of completed merge ops
-	PriMergesTotal json.RawMessage `json:"pri.merges.total"`
+	PriMergesTotal *string `json:"pri.merges.total"`
 
 	// docs merged
-	PriMergesTotalDocs json.RawMessage `json:"pri.merges.total_docs"`
+	PriMergesTotalDocs *string `json:"pri.merges.total_docs"`
 
 	// size merged
-	PriMergesTotalSize json.RawMessage `json:"pri.merges.total_size"`
+	PriMergesTotalSize *string `json:"pri.merges.total_size"`
 
 	// time spent in merges
-	PriMergesTotalTime json.RawMessage `json:"pri.merges.total_time"`
+	PriMergesTotalTime *string `json:"pri.merges.total_time"`
 
 	// query cache evictions
-	PriQueryCacheEvictions json.RawMessage `json:"pri.query_cache.evictions"`
+	PriQueryCacheEvictions *string `json:"pri.query_cache.evictions"`
 
 	// used query cache
-	PriQueryCacheMemorySize json.RawMessage `json:"pri.query_cache.memory_size"`
+	PriQueryCacheMemorySize *string `json:"pri.query_cache.memory_size"`
 
 	// time spent in external refreshes
-	PriRefreshExternalTime json.RawMessage `json:"pri.refresh.external_time"`
+	PriRefreshExternalTime *string `json:"pri.refresh.external_time"`
 
 	// total external refreshes
-	PriRefreshExternalTotal json.RawMessage `json:"pri.refresh.external_total"`
+	PriRefreshExternalTotal *string `json:"pri.refresh.external_total"`
 
 	// number of pending refresh listeners
-	PriRefreshListeners json.RawMessage `json:"pri.refresh.listeners"`
+	PriRefreshListeners *string `json:"pri.refresh.listeners"`
 
 	// time spent in refreshes
-	PriRefreshTime json.RawMessage `json:"pri.refresh.time"`
+	PriRefreshTime *string `json:"pri.refresh.time"`
 
 	// total refreshes
-	PriRefreshTotal json.RawMessage `json:"pri.refresh.total"`
+	PriRefreshTotal *string `json:"pri.refresh.total"`
 
 	// request cache evictions
-	PriRequestCacheEvictions json.RawMessage `json:"pri.request_cache.evictions"`
+	PriRequestCacheEvictions *string `json:"pri.request_cache.evictions"`
 
 	// request cache hit count
-	PriRequestCacheHitCount json.RawMessage `json:"pri.request_cache.hit_count"`
+	PriRequestCacheHitCount *string `json:"pri.request_cache.hit_count"`
 
 	// used request cache
-	PriRequestCacheMemorySize json.RawMessage `json:"pri.request_cache.memory_size"`
+	PriRequestCacheMemorySize *string `json:"pri.request_cache.memory_size"`
 
 	// request cache miss count
-	PriRequestCacheMissCount json.RawMessage `json:"pri.request_cache.miss_count"`
+	PriRequestCacheMissCount *string `json:"pri.request_cache.miss_count"`
 
-	PriSearchConcurrentAvgSliceCount json.RawMessage `json:"pri.search.concurrent_avg_slice_count"`
-	PriSearchConcurrentQueryCurrent  json.RawMessage `json:"pri.search.concurrent_query_current"`
-	PriSearchConcurrentQueryTime     json.RawMessage `json:"pri.search.concurrent_query_time"`
-	PriSearchConcurrentQueryTotal    json.RawMessage `json:"pri.search.concurrent_query_total"`
+	PriSearchConcurrentAvgSliceCount *string `json:"pri.search.concurrent_avg_slice_count"`
+	PriSearchConcurrentQueryCurrent  *string `json:"pri.search.concurrent_query_current"`
+	PriSearchConcurrentQueryTime     *string `json:"pri.search.concurrent_query_time"`
+	PriSearchConcurrentQueryTotal    *string `json:"pri.search.concurrent_query_total"`
 
 	// current fetch phase ops
-	PriSearchFetchCurrent json.RawMessage `json:"pri.search.fetch_current"`
+	PriSearchFetchCurrent *string `json:"pri.search.fetch_current"`
 
 	// time spent in fetch phase
-	PriSearchFetchTime json.RawMessage `json:"pri.search.fetch_time"`
+	PriSearchFetchTime *string `json:"pri.search.fetch_time"`
 
 	// total fetch ops
-	PriSearchFetchTotal json.RawMessage `json:"pri.search.fetch_total"`
+	PriSearchFetchTotal *string `json:"pri.search.fetch_total"`
 
 	// open search contexts
-	PriSearchOpenContexts json.RawMessage `json:"pri.search.open_contexts"`
+	PriSearchOpenContexts *string `json:"pri.search.open_contexts"`
 
-	PriSearchPointInTimeCurrent json.RawMessage `json:"pri.search.point_in_time_current"`
-	PriSearchPointInTimeTime    json.RawMessage `json:"pri.search.point_in_time_time"`
-	PriSearchPointInTimeTotal   json.RawMessage `json:"pri.search.point_in_time_total"`
+	PriSearchPointInTimeCurrent *string `json:"pri.search.point_in_time_current"`
+	PriSearchPointInTimeTime    *string `json:"pri.search.point_in_time_time"`
+	PriSearchPointInTimeTotal   *string `json:"pri.search.point_in_time_total"`
 
 	// current query phase ops
-	PriSearchQueryCurrent json.RawMessage `json:"pri.search.query_current"`
+	PriSearchQueryCurrent *string `json:"pri.search.query_current"`
 
 	// time spent in query phase
-	PriSearchQueryTime json.RawMessage `json:"pri.search.query_time"`
+	PriSearchQueryTime *string `json:"pri.search.query_time"`
 
 	// total query phase ops
-	PriSearchQueryTotal json.RawMessage `json:"pri.search.query_total"`
+	PriSearchQueryTotal *string `json:"pri.search.query_total"`
 
 	// open scroll contexts
-	PriSearchScrollCurrent json.RawMessage `json:"pri.search.scroll_current"`
+	PriSearchScrollCurrent *string `json:"pri.search.scroll_current"`
 
 	// time scroll contexts held open
-	PriSearchScrollTime json.RawMessage `json:"pri.search.scroll_time"`
+	PriSearchScrollTime *string `json:"pri.search.scroll_time"`
 
 	// completed scroll contexts
-	PriSearchScrollTotal json.RawMessage `json:"pri.search.scroll_total"`
+	PriSearchScrollTotal *string `json:"pri.search.scroll_total"`
 
 	// number of segments
-	PriSegmentsCount json.RawMessage `json:"pri.segments.count"`
+	PriSegmentsCount *string `json:"pri.segments.count"`
 
 	// memory used by fixed bit sets for nested object field types and export
 	// type filters for types referred in `_parent` fields
-	PriSegmentsFixedBitsetMemory json.RawMessage `json:"pri.segments.fixed_bitset_memory"`
+	PriSegmentsFixedBitsetMemory *string `json:"pri.segments.fixed_bitset_memory"`
 
 	// memory used by index writer
-	PriSegmentsIndexWriterMemory json.RawMessage `json:"pri.segments.index_writer_memory"`
+	PriSegmentsIndexWriterMemory *string `json:"pri.segments.index_writer_memory"`
 
 	// memory used by segments
-	PriSegmentsMemory json.RawMessage `json:"pri.segments.memory"`
+	PriSegmentsMemory *string `json:"pri.segments.memory"`
 
 	// memory used by version map
-	PriSegmentsVersionMapMemory json.RawMessage `json:"pri.segments.version_map_memory"`
+	PriSegmentsVersionMapMemory *string `json:"pri.segments.version_map_memory"`
 
 	// store size of primaries
-	PriStoreSize json.RawMessage `json:"pri.store.size"`
+	PriStoreSize *string `json:"pri.store.size"`
 
 	// number of current suggest ops
-	PriSuggestCurrent json.RawMessage `json:"pri.suggest.current"`
+	PriSuggestCurrent *string `json:"pri.suggest.current"`
 
 	// time spend in suggest
-	PriSuggestTime json.RawMessage `json:"pri.suggest.time"`
+	PriSuggestTime *string `json:"pri.suggest.time"`
 
 	// number of suggest ops
-	PriSuggestTotal json.RawMessage `json:"pri.suggest.total"`
+	PriSuggestTotal *string `json:"pri.suggest.total"`
 
 	// current warmer ops
-	PriWarmerCurrent json.RawMessage `json:"pri.warmer.current"`
+	PriWarmerCurrent *string `json:"pri.warmer.current"`
 
 	// total warmer ops
-	PriWarmerTotal json.RawMessage `json:"pri.warmer.total"`
+	PriWarmerTotal *string `json:"pri.warmer.total"`
 
 	// time spent in warmers
-	PriWarmerTotalTime json.RawMessage `json:"pri.warmer.total_time"`
+	PriWarmerTotalTime *string `json:"pri.warmer.total_time"`
 
 	// query cache evictions
-	QueryCacheEvictions json.RawMessage `json:"query_cache.evictions"`
+	QueryCacheEvictions *string `json:"query_cache.evictions"`
 
 	// used query cache
-	QueryCacheMemorySize json.RawMessage `json:"query_cache.memory_size"`
+	QueryCacheMemorySize *string `json:"query_cache.memory_size"`
 
 	// time spent in external refreshes
-	RefreshExternalTime json.RawMessage `json:"refresh.external_time"`
+	RefreshExternalTime *string `json:"refresh.external_time"`
 
 	// total external refreshes
-	RefreshExternalTotal json.RawMessage `json:"refresh.external_total"`
+	RefreshExternalTotal *string `json:"refresh.external_total"`
 
 	// number of pending refresh listeners
-	RefreshListeners json.RawMessage `json:"refresh.listeners"`
+	RefreshListeners *string `json:"refresh.listeners"`
 
 	// time spent in refreshes
-	RefreshTime json.RawMessage `json:"refresh.time"`
+	RefreshTime *string `json:"refresh.time"`
 
 	// total refreshes
-	RefreshTotal json.RawMessage `json:"refresh.total"`
+	RefreshTotal *string `json:"refresh.total"`
 
 	// number of replica shards
 	Rep *string `json:"rep,omitempty"`
 
 	// request cache evictions
-	RequestCacheEvictions json.RawMessage `json:"request_cache.evictions"`
+	RequestCacheEvictions *string `json:"request_cache.evictions"`
 
 	// request cache hit count
-	RequestCacheHitCount json.RawMessage `json:"request_cache.hit_count"`
+	RequestCacheHitCount *string `json:"request_cache.hit_count"`
 
 	// used request cache
-	RequestCacheMemorySize json.RawMessage `json:"request_cache.memory_size"`
+	RequestCacheMemorySize *string `json:"request_cache.memory_size"`
 
 	// request cache miss count
-	RequestCacheMissCount json.RawMessage `json:"request_cache.miss_count"`
+	RequestCacheMissCount *string `json:"request_cache.miss_count"`
 
-	SearchConcurrentAvgSliceCount json.RawMessage `json:"search.concurrent_avg_slice_count"`
-	SearchConcurrentQueryCurrent  json.RawMessage `json:"search.concurrent_query_current"`
-	SearchConcurrentQueryTime     json.RawMessage `json:"search.concurrent_query_time"`
-	SearchConcurrentQueryTotal    json.RawMessage `json:"search.concurrent_query_total"`
+	SearchConcurrentAvgSliceCount *string `json:"search.concurrent_avg_slice_count"`
+	SearchConcurrentQueryCurrent  *string `json:"search.concurrent_query_current"`
+	SearchConcurrentQueryTime     *string `json:"search.concurrent_query_time"`
+	SearchConcurrentQueryTotal    *string `json:"search.concurrent_query_total"`
 
 	// current fetch phase ops
-	SearchFetchCurrent json.RawMessage `json:"search.fetch_current"`
+	SearchFetchCurrent *string `json:"search.fetch_current"`
 
 	// time spent in fetch phase
-	SearchFetchTime json.RawMessage `json:"search.fetch_time"`
+	SearchFetchTime *string `json:"search.fetch_time"`
 
 	// total fetch ops
-	SearchFetchTotal json.RawMessage `json:"search.fetch_total"`
+	SearchFetchTotal *string `json:"search.fetch_total"`
 
 	// open search contexts
-	SearchOpenContexts json.RawMessage `json:"search.open_contexts"`
+	SearchOpenContexts *string `json:"search.open_contexts"`
 
-	SearchPointInTimeCurrent json.RawMessage `json:"search.point_in_time_current"`
-	SearchPointInTimeTime    json.RawMessage `json:"search.point_in_time_time"`
-	SearchPointInTimeTotal   json.RawMessage `json:"search.point_in_time_total"`
+	SearchPointInTimeCurrent *string `json:"search.point_in_time_current"`
+	SearchPointInTimeTime    *string `json:"search.point_in_time_time"`
+	SearchPointInTimeTotal   *string `json:"search.point_in_time_total"`
 
 	// current query phase ops
-	SearchQueryCurrent json.RawMessage `json:"search.query_current"`
+	SearchQueryCurrent *string `json:"search.query_current"`
 
 	// time spent in query phase
-	SearchQueryTime json.RawMessage `json:"search.query_time"`
+	SearchQueryTime *string `json:"search.query_time"`
 
 	// total query phase ops
-	SearchQueryTotal json.RawMessage `json:"search.query_total"`
+	SearchQueryTotal *string `json:"search.query_total"`
 
 	// open scroll contexts
-	SearchScrollCurrent json.RawMessage `json:"search.scroll_current"`
+	SearchScrollCurrent *string `json:"search.scroll_current"`
 
 	// time scroll contexts held open
-	SearchScrollTime json.RawMessage `json:"search.scroll_time"`
+	SearchScrollTime *string `json:"search.scroll_time"`
 
 	// completed scroll contexts
-	SearchScrollTotal json.RawMessage `json:"search.scroll_total"`
+	SearchScrollTotal *string `json:"search.scroll_total"`
 
 	// indicates if the index is search throttled
 	SearchThrottled *string `json:"search.throttled,omitempty"`
 
 	// number of segments
-	SegmentsCount json.RawMessage `json:"segments.count"`
+	SegmentsCount *string `json:"segments.count"`
 
 	// memory used by fixed bit sets for nested object field types and export
 	// type filters for types referred in `_parent` fields
-	SegmentsFixedBitsetMemory json.RawMessage `json:"segments.fixed_bitset_memory"`
+	SegmentsFixedBitsetMemory *string `json:"segments.fixed_bitset_memory"`
 
 	// memory used by index writer
-	SegmentsIndexWriterMemory json.RawMessage `json:"segments.index_writer_memory"`
+	SegmentsIndexWriterMemory *string `json:"segments.index_writer_memory"`
 
 	// memory used by segments
-	SegmentsMemory json.RawMessage `json:"segments.memory"`
+	SegmentsMemory *string `json:"segments.memory"`
 
 	// memory used by version map
-	SegmentsVersionMapMemory json.RawMessage `json:"segments.version_map_memory"`
+	SegmentsVersionMapMemory *string `json:"segments.version_map_memory"`
 
 	// open/close status
 	Status *string `json:"status,omitempty"`
 
 	// store size of primaries and replicas
-	StoreSize json.RawMessage `json:"store.size"`
+	StoreSize *string `json:"store.size"`
 
 	// number of current suggest ops
-	SuggestCurrent json.RawMessage `json:"suggest.current"`
+	SuggestCurrent *string `json:"suggest.current"`
 
 	// time spend in suggest
-	SuggestTime json.RawMessage `json:"suggest.time"`
+	SuggestTime *string `json:"suggest.time"`
 
 	// number of suggest ops
-	SuggestTotal json.RawMessage `json:"suggest.total"`
+	SuggestTotal *string `json:"suggest.total"`
 
 	// index UUID
 	UUID *string `json:"uuid,omitempty"`
 
 	// current warmer ops
-	WarmerCurrent json.RawMessage `json:"warmer.current"`
+	WarmerCurrent *string `json:"warmer.current"`
 
 	// total warmer ops
-	WarmerTotal json.RawMessage `json:"warmer.total"`
+	WarmerTotal *string `json:"warmer.total"`
 
 	// time spent in warmers
-	WarmerTotalTime json.RawMessage `json:"warmer.total_time"`
+	WarmerTotalTime *string `json:"warmer.total_time"`
 }
 
 type CatShardsRecord struct {
 	// The average size in bytes of shard bulk operations.
-	BulkAvgSizeInBytes json.RawMessage `json:"bulk.avg_size_in_bytes"`
+	BulkAvgSizeInBytes *string `json:"bulk.avg_size_in_bytes"`
 
 	// The average time spent in shard bulk operations.
-	BulkAvgTime json.RawMessage `json:"bulk.avg_time"`
+	BulkAvgTime *string `json:"bulk.avg_time"`
 
 	// The number of bulk shard operations.
-	BulkTotalOperations json.RawMessage `json:"bulk.total_operations"`
+	BulkTotalOperations *string `json:"bulk.total_operations"`
 
 	// The total size in bytes of shard bulk operations.
-	BulkTotalSizeInBytes json.RawMessage `json:"bulk.total_size_in_bytes"`
+	BulkTotalSizeInBytes *string `json:"bulk.total_size_in_bytes"`
 
 	// The time spent in shard bulk operations.
-	BulkTotalTime json.RawMessage `json:"bulk.total_time"`
+	BulkTotalTime *string `json:"bulk.total_time"`
 
 	// The size of completion.
-	CompletionSize json.RawMessage `json:"completion.size"`
+	CompletionSize *string `json:"completion.size"`
 
 	// The number of documents in the shard.
-	Docs json.RawMessage `json:"docs"`
+	Docs *string `json:"docs"`
 
-	DocsDeleted json.RawMessage `json:"docs.deleted"`
+	DocsDeleted *string `json:"docs.deleted"`
 
 	// The field data cache evictions.
-	FielddataEvictions json.RawMessage `json:"fielddata.evictions"`
+	FielddataEvictions *string `json:"fielddata.evictions"`
 
 	// The used field data cache memory.
-	FielddataMemorySize json.RawMessage `json:"fielddata.memory_size"`
+	FielddataMemorySize *string `json:"fielddata.memory_size"`
 
 	// The number of flushes.
-	FlushTotal json.RawMessage `json:"flush.total"`
+	FlushTotal *string `json:"flush.total"`
 
 	// The time spent in flush.
-	FlushTotalTime json.RawMessage `json:"flush.total_time"`
+	FlushTotalTime *string `json:"flush.total_time"`
 
 	// The number of current get operations.
-	GetCurrent json.RawMessage `json:"get.current"`
+	GetCurrent *string `json:"get.current"`
 
 	// The time spent in successful get operations.
-	GetExistsTime json.RawMessage `json:"get.exists_time"`
+	GetExistsTime *string `json:"get.exists_time"`
 
 	// The number of successful get operations.
-	GetExistsTotal json.RawMessage `json:"get.exists_total"`
+	GetExistsTotal *string `json:"get.exists_total"`
 
 	// The time spent in failed get operations.
-	GetMissingTime json.RawMessage `json:"get.missing_time"`
+	GetMissingTime *string `json:"get.missing_time"`
 
 	// The number of failed get operations.
-	GetMissingTotal json.RawMessage `json:"get.missing_total"`
+	GetMissingTotal *string `json:"get.missing_total"`
 
 	// The time spent in get operations.
-	GetTime json.RawMessage `json:"get.time"`
+	GetTime *string `json:"get.time"`
 
 	// The number of get operations.
-	GetTotal json.RawMessage `json:"get.total"`
+	GetTotal *string `json:"get.total"`
 
 	// The unique identifier for the node.
-	ID json.RawMessage `json:"id"`
+	ID *string `json:"id"`
 
 	// The index name.
 	Index *string `json:"index,omitempty"`
 
 	// The number of current deletion operations.
-	IndexingDeleteCurrent json.RawMessage `json:"indexing.delete_current"`
+	IndexingDeleteCurrent *string `json:"indexing.delete_current"`
 
 	// The time spent in deletion operations.
-	IndexingDeleteTime json.RawMessage `json:"indexing.delete_time"`
+	IndexingDeleteTime *string `json:"indexing.delete_time"`
 
 	// The number of delete operations.
-	IndexingDeleteTotal json.RawMessage `json:"indexing.delete_total"`
+	IndexingDeleteTotal *string `json:"indexing.delete_total"`
 
 	// The number of current indexing operations.
-	IndexingIndexCurrent json.RawMessage `json:"indexing.index_current"`
+	IndexingIndexCurrent *string `json:"indexing.index_current"`
 
 	// The number of failed indexing operations.
-	IndexingIndexFailed json.RawMessage `json:"indexing.index_failed"`
+	IndexingIndexFailed *string `json:"indexing.index_failed"`
 
 	// The time spent in indexing operations.
-	IndexingIndexTime json.RawMessage `json:"indexing.index_time"`
+	IndexingIndexTime *string `json:"indexing.index_time"`
 
 	// The number of indexing operations.
-	IndexingIndexTotal json.RawMessage `json:"indexing.index_total"`
+	IndexingIndexTotal *string `json:"indexing.index_total"`
 
 	// The IP address of the node.
-	IP json.RawMessage `json:"ip"`
+	IP *string `json:"ip"`
 
 	// The number of current merge operations.
-	MergesCurrent json.RawMessage `json:"merges.current"`
+	MergesCurrent *string `json:"merges.current"`
 
 	// The number of current merging documents.
-	MergesCurrentDocs json.RawMessage `json:"merges.current_docs"`
+	MergesCurrentDocs *string `json:"merges.current_docs"`
 
 	// The size of current merge operations.
-	MergesCurrentSize json.RawMessage `json:"merges.current_size"`
+	MergesCurrentSize *string `json:"merges.current_size"`
 
 	// The number of completed merge operations.
-	MergesTotal json.RawMessage `json:"merges.total"`
+	MergesTotal *string `json:"merges.total"`
 
 	// The number of merged documents.
-	MergesTotalDocs json.RawMessage `json:"merges.total_docs"`
+	MergesTotalDocs *string `json:"merges.total_docs"`
 
 	// The size of current merges.
-	MergesTotalSize json.RawMessage `json:"merges.total_size"`
+	MergesTotalSize *string `json:"merges.total_size"`
 
 	// The time spent merging documents.
-	MergesTotalTime json.RawMessage `json:"merges.total_time"`
+	MergesTotalTime *string `json:"merges.total_time"`
 
 	// The name of node.
-	Node json.RawMessage `json:"node"`
+	Node *string `json:"node"`
 
 	// The shard data path.
-	PathData json.RawMessage `json:"path.data"`
+	PathData *string `json:"path.data"`
 
 	// The shard state path.
-	PathState json.RawMessage `json:"path.state"`
+	PathState *string `json:"path.state"`
 
 	// The shard type: `primary` or `replica`.
 	Prirep *string `json:"prirep,omitempty"`
 
 	// The query cache evictions.
-	QueryCacheEvictions json.RawMessage `json:"query_cache.evictions"`
+	QueryCacheEvictions *string `json:"query_cache.evictions"`
 
 	// The used query cache memory.
-	QueryCacheMemorySize json.RawMessage `json:"query_cache.memory_size"`
+	QueryCacheMemorySize *string `json:"query_cache.memory_size"`
 
 	// The type of recovery source.
-	RecoverysourceType json.RawMessage `json:"recoverysource.type"`
+	RecoverysourceType *string `json:"recoverysource.type"`
 
 	// The time spent in external refreshes.
-	RefreshExternalTime json.RawMessage `json:"refresh.external_time"`
+	RefreshExternalTime *string `json:"refresh.external_time"`
 
 	// The total number of external refreshes.
-	RefreshExternalTotal json.RawMessage `json:"refresh.external_total"`
+	RefreshExternalTotal *string `json:"refresh.external_total"`
 
 	// The number of pending refresh listeners.
-	RefreshListeners json.RawMessage `json:"refresh.listeners"`
+	RefreshListeners *string `json:"refresh.listeners"`
 
 	// The time spent in refreshes.
-	RefreshTime json.RawMessage `json:"refresh.time"`
+	RefreshTime *string `json:"refresh.time"`
 
 	// The total number of refreshes.
-	RefreshTotal json.RawMessage `json:"refresh.total"`
+	RefreshTotal *string `json:"refresh.total"`
 
-	SearchConcurrentAvgSliceCount json.RawMessage `json:"search.concurrent_avg_slice_count"`
-	SearchConcurrentQueryCurrent  json.RawMessage `json:"search.concurrent_query_current"`
-	SearchConcurrentQueryTime     json.RawMessage `json:"search.concurrent_query_time"`
-	SearchConcurrentQueryTotal    json.RawMessage `json:"search.concurrent_query_total"`
+	SearchConcurrentAvgSliceCount *string `json:"search.concurrent_avg_slice_count"`
+	SearchConcurrentQueryCurrent  *string `json:"search.concurrent_query_current"`
+	SearchConcurrentQueryTime     *string `json:"search.concurrent_query_time"`
+	SearchConcurrentQueryTotal    *string `json:"search.concurrent_query_total"`
 
 	// The current fetch phase operations.
-	SearchFetchCurrent json.RawMessage `json:"search.fetch_current"`
+	SearchFetchCurrent *string `json:"search.fetch_current"`
 
 	// The time spent in fetch phase.
-	SearchFetchTime json.RawMessage `json:"search.fetch_time"`
+	SearchFetchTime *string `json:"search.fetch_time"`
 
 	// The total number of fetch operations.
-	SearchFetchTotal json.RawMessage `json:"search.fetch_total"`
+	SearchFetchTotal *string `json:"search.fetch_total"`
 
 	// The number of open search contexts.
-	SearchOpenContexts json.RawMessage `json:"search.open_contexts"`
+	SearchOpenContexts *string `json:"search.open_contexts"`
 
-	SearchPointInTimeCurrent json.RawMessage `json:"search.point_in_time_current"`
-	SearchPointInTimeTime    json.RawMessage `json:"search.point_in_time_time"`
-	SearchPointInTimeTotal   json.RawMessage `json:"search.point_in_time_total"`
+	SearchPointInTimeCurrent *string `json:"search.point_in_time_current"`
+	SearchPointInTimeTime    *string `json:"search.point_in_time_time"`
+	SearchPointInTimeTotal   *string `json:"search.point_in_time_total"`
 
 	// The current query phase operations.
-	SearchQueryCurrent json.RawMessage `json:"search.query_current"`
+	SearchQueryCurrent *string `json:"search.query_current"`
 
 	// The time spent in query phase.
-	SearchQueryTime json.RawMessage `json:"search.query_time"`
+	SearchQueryTime *string `json:"search.query_time"`
 
 	// The total number of query phase operations.
-	SearchQueryTotal json.RawMessage `json:"search.query_total"`
+	SearchQueryTotal *string `json:"search.query_total"`
 
 	// The open scroll contexts.
-	SearchScrollCurrent json.RawMessage `json:"search.scroll_current"`
+	SearchScrollCurrent *string `json:"search.scroll_current"`
 
 	// The time scroll contexts were held open.
-	SearchScrollTime json.RawMessage `json:"search.scroll_time"`
+	SearchScrollTime *string `json:"search.scroll_time"`
 
 	// The number of completed scroll contexts.
-	SearchScrollTotal json.RawMessage `json:"search.scroll_total"`
+	SearchScrollTotal *string `json:"search.scroll_total"`
 
-	SearchSearchIdleReactivateCountTotal json.RawMessage `json:"search.search_idle_reactivate_count_total"`
+	SearchSearchIdleReactivateCountTotal *string `json:"search.search_idle_reactivate_count_total"`
 
 	// The number of segments.
-	SegmentsCount json.RawMessage `json:"segments.count"`
+	SegmentsCount *string `json:"segments.count"`
 
 	// The memory used by fixed bit sets for nested object field types and
 	// export type filters for types referred in `_parent` fields.
-	SegmentsFixedBitsetMemory json.RawMessage `json:"segments.fixed_bitset_memory"`
+	SegmentsFixedBitsetMemory *string `json:"segments.fixed_bitset_memory"`
 
 	// The memory used by the index writer.
-	SegmentsIndexWriterMemory json.RawMessage `json:"segments.index_writer_memory"`
+	SegmentsIndexWriterMemory *string `json:"segments.index_writer_memory"`
 
 	// The memory used by segments.
-	SegmentsMemory json.RawMessage `json:"segments.memory"`
+	SegmentsMemory *string `json:"segments.memory"`
 
 	// The memory used by the version map.
-	SegmentsVersionMapMemory json.RawMessage `json:"segments.version_map_memory"`
+	SegmentsVersionMapMemory *string `json:"segments.version_map_memory"`
 
 	// The global checkpoint.
-	SeqNoGlobalCheckpoint json.RawMessage `json:"seq_no.global_checkpoint"`
+	SeqNoGlobalCheckpoint *string `json:"seq_no.global_checkpoint"`
 
 	// The local checkpoint.
-	SeqNoLocalCheckpoint json.RawMessage `json:"seq_no.local_checkpoint"`
+	SeqNoLocalCheckpoint *string `json:"seq_no.local_checkpoint"`
 
 	// The maximum sequence number.
-	SeqNoMax json.RawMessage `json:"seq_no.max"`
+	SeqNoMax *string `json:"seq_no.max"`
 
 	// The shard name.
 	Shard *string `json:"shard,omitempty"`
@@ -1779,23 +1779,23 @@ type CatShardsRecord struct {
 	State *string `json:"state,omitempty"`
 
 	// The disk space used by the shard.
-	Store json.RawMessage `json:"store"`
+	Store *string `json:"store"`
 
 	// The sync identifier.
-	SyncID json.RawMessage `json:"sync_id"`
+	SyncID *string `json:"sync_id"`
 
 	// The time at which the shard became unassigned in Coordinated Universal
 	// Time (UTC).
-	UnassignedAt json.RawMessage `json:"unassigned.at"`
+	UnassignedAt *string `json:"unassigned.at"`
 
 	// Additional details as to why the shard became unassigned. It does not
 	// explain why the shard is not assigned; use the cluster allocation
 	// explain API for that information.
-	UnassignedDetails json.RawMessage `json:"unassigned.details"`
+	UnassignedDetails *string `json:"unassigned.details"`
 
 	// The time at which the shard was requested to be unassigned in
 	// Coordinated Universal Time (UTC).
-	UnassignedFor json.RawMessage `json:"unassigned.for"`
+	UnassignedFor *string `json:"unassigned.for"`
 
 	// The reason for the last change to the state of an unassigned shard. It
 	// does not explain why the shard is currently unassigned; use the cluster
@@ -1822,16 +1822,16 @@ type CatShardsRecord struct {
 	// `REPLICA_ADDED`: Unassigned as a result of explicit addition of a
 	// replica. `REROUTE_CANCELLED`: Unassigned as a result of explicit cancel
 	// reroute command.
-	UnassignedReason json.RawMessage `json:"unassigned.reason"`
+	UnassignedReason *string `json:"unassigned.reason"`
 
 	// The number of current warmer operations.
-	WarmerCurrent json.RawMessage `json:"warmer.current"`
+	WarmerCurrent *string `json:"warmer.current"`
 
 	// The total number of warmer operations.
-	WarmerTotal json.RawMessage `json:"warmer.total"`
+	WarmerTotal *string `json:"warmer.total"`
 
 	// The time spent in warmer operations.
-	WarmerTotalTime json.RawMessage `json:"warmer.total_time"`
+	WarmerTotalTime *string `json:"warmer.total_time"`
 }
 
 type ClusterAllocationExplainUnassignedInformation struct {
@@ -6450,13 +6450,13 @@ type StoreStats struct {
 }
 
 type PluginStats struct {
-	Classname           string          `json:"classname"`
-	CustomFoldername    json.RawMessage `json:"custom_foldername"`
-	Description         string          `json:"description"`
-	ExtendedPlugins     []string        `json:"extended_plugins"`
-	HasNativeController bool            `json:"has_native_controller"`
-	JavaVersion         string          `json:"java_version"`
-	Licensed            *bool           `json:"licensed,omitempty"`
+	Classname           string   `json:"classname"`
+	CustomFoldername    *string  `json:"custom_foldername"`
+	Description         string   `json:"description"`
+	ExtendedPlugins     []string `json:"extended_plugins"`
+	HasNativeController bool     `json:"has_native_controller"`
+	JavaVersion         string   `json:"java_version"`
+	Licensed            *bool    `json:"licensed,omitempty"`
 
 	// The name of a resource or configuration element.
 	Name string `json:"name"`
@@ -8622,17 +8622,6 @@ type ISMFailedIndex struct {
 	Reason *string `json:"reason,omitempty"`
 }
 
-type ISMChangePolicyResponse struct {
-	// The list of indices that failed to update.
-	FailedIndices []ISMFailedIndex `json:"failed_indices,omitempty"`
-
-	// Whether there were any failures.
-	Failures *bool `json:"failures,omitempty"`
-
-	// The number of updated indices.
-	UpdatedIndices *float64 `json:"updated_indices,omitempty"`
-}
-
 type ISMChangeResponse struct {
 	// The list of indices that failed to update.
 	FailedIndices []ISMFailedIndex `json:"failed_indices,omitempty"`
@@ -9474,7 +9463,7 @@ type MLMessage struct {
 	CreateTime *string `json:"create_time,omitempty"`
 
 	// The question in the message.
-	Input json.RawMessage `json:"input"`
+	Input *string `json:"input"`
 
 	// The name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
@@ -9483,16 +9472,16 @@ type MLMessage struct {
 	MessageID *string `json:"message_id,omitempty"`
 
 	// The system name that generated the response.
-	Origin json.RawMessage `json:"origin"`
+	Origin *string `json:"origin"`
 
 	// The parent message ID.
-	ParentMessageID json.RawMessage `json:"parent_message_id"`
+	ParentMessageID *string `json:"parent_message_id"`
 
 	// The prompt template.
-	PromptTemplate json.RawMessage `json:"prompt_template"`
+	PromptTemplate *string `json:"prompt_template"`
 
 	// The answer to the question.
-	Response json.RawMessage `json:"response"`
+	Response *string `json:"response"`
 
 	// The role of the message.
 	Role *string `json:"role,omitempty"`
@@ -9726,7 +9715,7 @@ type MLOwner struct {
 	Roles []string `json:"roles,omitempty"`
 
 	// The user requested tenant.
-	UserRequestedTenant json.RawMessage `json:"user_requested_tenant"`
+	UserRequestedTenant *string `json:"user_requested_tenant"`
 
 	// The user requested tenant access.
 	UserRequestedTenantAccess *string `json:"user_requested_tenant_access,omitempty"`
@@ -10026,7 +10015,7 @@ type MLSource struct {
 	AppType *string `json:"app_type,omitempty"`
 
 	// The application type.
-	ApplicationType json.RawMessage `json:"application_type"`
+	ApplicationType *string `json:"application_type"`
 
 	// The auto redeploy retry times.
 	AutoRedeployRetryTimes *int64 `json:"auto_redeploy_retry_times,omitempty"`
@@ -10064,7 +10053,7 @@ type MLSource struct {
 	FunctionName *string `json:"function_name,omitempty"`
 
 	// The question in the message.
-	Input json.RawMessage `json:"input"`
+	Input *string `json:"input"`
 
 	// The input type.
 	InputType *string `json:"input_type,omitempty"`
@@ -10130,7 +10119,7 @@ type MLSource struct {
 	NamespaceSize *int64 `json:"namespace_size,omitempty"`
 
 	// The system name that generated the response.
-	Origin json.RawMessage `json:"origin"`
+	Origin *string `json:"origin"`
 
 	Owner *MLOwner `json:"owner,omitempty"`
 
@@ -10140,7 +10129,7 @@ type MLSource struct {
 	Parameters *MLParameters `json:"parameters,omitempty"`
 
 	// The parent message ID.
-	ParentMessageID json.RawMessage `json:"parent_message_id"`
+	ParentMessageID *string `json:"parent_message_id"`
 
 	// The type of payload.
 	PayloadType *string `json:"payload_type,omitempty"`
@@ -10151,13 +10140,13 @@ type MLSource struct {
 	PlanningWorkerNodes []MLSourcePlanningWorkerNodesItem `json:"planning_worker_nodes,omitempty"`
 
 	// The prompt template.
-	PromptTemplate json.RawMessage `json:"prompt_template"`
+	PromptTemplate *string `json:"prompt_template"`
 
 	// The connector protocol.
 	Protocol *string `json:"protocol,omitempty"`
 
 	// The answer to the question.
-	Response json.RawMessage `json:"response"`
+	Response *string `json:"response"`
 
 	// The status.
 	State *string `json:"state,omitempty"`
@@ -10171,7 +10160,7 @@ type MLSource struct {
 	TotalChunks *int64 `json:"total_chunks,omitempty"`
 
 	// The trace number.
-	TraceNumber json.RawMessage `json:"trace_number"`
+	TraceNumber *string `json:"trace_number"`
 
 	// The agent type.
 	Type *string `json:"type,omitempty"`
@@ -10199,7 +10188,7 @@ type MLSearchHitsHit struct {
 	PrimaryTerm *int `json:"_primary_term,omitempty"`
 
 	// The score.
-	Score json.RawMessage `json:"_score"`
+	Score *float64 `json:"_score"`
 
 	// The sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
@@ -10226,7 +10215,7 @@ type MLSearchHits struct {
 	Hits []MLSearchHitsHit `json:"hits"`
 
 	// The maximum score.
-	MaxScore json.RawMessage `json:"max_score"`
+	MaxScore *float64 `json:"max_score"`
 
 	Total MLHitsTotal `json:"total"`
 }
@@ -11111,7 +11100,7 @@ type ReplicationStatus struct {
 // Provides explanation details for a rollup job.
 type RollupsExplain struct {
 	// The metadata ID for the rollup job.
-	MetadataID json.RawMessage `json:"metadata_id"`
+	MetadataID *string `json:"metadata_id"`
 
 	// The metadata associated with the rollup job execution.
 	RollupMetadata json.RawMessage `json:"rollup_metadata"`
@@ -11126,7 +11115,7 @@ type RollupsDateHistogramDimension struct {
 	FixedInterval *string `json:"fixed_interval,omitempty"`
 
 	// The date format pattern for the histogram values.
-	Format json.RawMessage `json:"format"`
+	Format *string `json:"format"`
 
 	// The field from the source documents to use for the date histogram.
 	SourceField *string `json:"source_field,omitempty"`
@@ -11265,7 +11254,7 @@ type RollupsRollup struct {
 	LastUpdatedTime *float64 `json:"last_updated_time,omitempty"`
 
 	// The metadata ID associated with the rollup job.
-	MetadataID json.RawMessage `json:"metadata_id"`
+	MetadataID *string `json:"metadata_id"`
 
 	// The metrics to calculate in the rollup.
 	Metrics []RollupsMetricsConfigItem `json:"metrics,omitempty"`
@@ -11635,10 +11624,10 @@ type SecurityAuthInfo struct {
 	PeerCertificates json.RawMessage `json:"peer_certificates"`
 
 	// The user's principal.
-	Principal json.RawMessage `json:"principal"`
+	Principal *string `json:"principal"`
 
 	// The IP address of remote user.
-	RemoteAddress json.RawMessage `json:"remote_address"`
+	RemoteAddress *string `json:"remote_address"`
 
 	// The roles associated with the user.
 	Roles []string `json:"roles,omitempty"`
@@ -11653,7 +11642,7 @@ type SecurityAuthInfo struct {
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
 	// The logout URL.
-	SsoLogoutURL json.RawMessage `json:"sso_logout_url"`
+	SsoLogoutURL *string `json:"sso_logout_url"`
 
 	// The tenants the user has access to with `read-write` or `read-only`
 	// access indicators.
@@ -11666,7 +11655,7 @@ type SecurityAuthInfo struct {
 	UserName *string `json:"user_name,omitempty"`
 
 	// The name of the tenant the user would like to switch to.
-	UserRequestedTenant json.RawMessage `json:"user_requested_tenant"`
+	UserRequestedTenant *string `json:"user_requested_tenant"`
 }
 
 type SecurityOk struct {
@@ -11727,7 +11716,7 @@ type SecurityAccountDetails struct {
 	Roles                []string             `json:"roles,omitempty"`
 	Tenants              *SecurityUserTenants `json:"tenants,omitempty"`
 	UserName             *string              `json:"user_name,omitempty"`
-	UserRequestedTenant  json.RawMessage      `json:"user_requested_tenant"`
+	UserRequestedTenant  *string              `json:"user_requested_tenant"`
 }
 
 type SecurityActionGroup struct {
@@ -11931,16 +11920,16 @@ type SecuritySSLInfo struct {
 	PeerCertificatesList json.RawMessage `json:"peer_certificates_list"`
 
 	// The user's principal.
-	Principal json.RawMessage `json:"principal"`
+	Principal *string `json:"principal"`
 
 	// The cipher for this SSL setup.
-	SSLCipher json.RawMessage `json:"ssl_cipher"`
+	SSLCipher *string `json:"ssl_cipher"`
 
 	// Whether OpenSSL is available.
 	SSLOpensslAvailable *bool `json:"ssl_openssl_available,omitempty"`
 
 	// The reason OpenSSL is unavailable.
-	SSLOpensslNonAvailableCause json.RawMessage `json:"ssl_openssl_non_available_cause"`
+	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause"`
 
 	// Whether the hostname validation is supported.
 	SSLOpensslSupportsHostnameValidation *bool `json:"ssl_openssl_supports_hostname_validation,omitempty"`
@@ -11952,13 +11941,13 @@ type SecuritySSLInfo struct {
 	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
 
 	// The full version string for the OpenSSL version.
-	SSLOpensslVersionString json.RawMessage `json:"ssl_openssl_version_string"`
+	SSLOpensslVersionString *string `json:"ssl_openssl_version_string"`
 
 	// The protocol for this SSL setup.
-	SSLProtocol json.RawMessage `json:"ssl_protocol"`
+	SSLProtocol *string `json:"ssl_protocol"`
 
 	// Returns the HTTP provider's name.
-	SSLProviderHTTP json.RawMessage `json:"ssl_provider_http"`
+	SSLProviderHTTP *string `json:"ssl_provider_http"`
 
 	// Returns the transport client's name.
 	SSLProviderTransportClient string `json:"ssl_provider_transport_client"`
@@ -11987,8 +11976,8 @@ type SecurityUser struct {
 }
 
 type SecurityHealthInfo struct {
-	Message json.RawMessage `json:"message"`
-	Mode    *string         `json:"mode,omitempty"`
+	Message *string `json:"message"`
+	Mode    *string `json:"mode,omitempty"`
 
 	// Available: >= 3.1.0.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
@@ -11997,9 +11986,9 @@ type SecurityHealthInfo struct {
 }
 
 type SecurityWhoAmI struct {
-	Dn                       json.RawMessage `json:"dn"`
-	IsAdmin                  *bool           `json:"is_admin,omitempty"`
-	IsNodeCertificateRequest *bool           `json:"is_node_certificate_request,omitempty"`
+	Dn                       *string `json:"dn"`
+	IsAdmin                  *bool   `json:"is_admin,omitempty"`
+	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 }
 
 type SMCronExpression struct {
@@ -12537,7 +12526,7 @@ type TransformsTransformMetadata struct {
 }
 
 type TransformsExplain struct {
-	MetadataID        json.RawMessage              `json:"metadata_id"`
+	MetadataID        *string                      `json:"metadata_id"`
 	TransformMetadata *TransformsTransformMetadata `json:"transform_metadata"`
 }
 
@@ -12582,9 +12571,9 @@ type TransformsTransform struct {
 	DataSelectionQuery *CommonQueryDSLQueryContainer         `json:"data_selection_query,omitempty"`
 	Description        *string                               `json:"description,omitempty"`
 	Enabled            *bool                                 `json:"enabled,omitempty"`
-	EnabledAt          json.RawMessage                       `json:"enabled_at"`
+	EnabledAt          *float64                              `json:"enabled_at"`
 	Groups             []TransformsGroupsConfigItem          `json:"groups,omitempty"`
-	MetadataID         json.RawMessage                       `json:"metadata_id"`
+	MetadataID         *string                               `json:"metadata_id"`
 	PageSize           *float64                              `json:"page_size,omitempty"`
 	Roles              []string                              `json:"roles,omitempty"`
 	Schedule           *TransformsSchedule                   `json:"schedule,omitempty"`

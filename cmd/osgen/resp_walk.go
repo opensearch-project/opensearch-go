@@ -203,6 +203,13 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		return w.resolveObjectSchema(schema, schemaKey, group, isRespBody)
 	}
 
+	// OpenAPI 3.1 nullable scalar, e.g. type: ["null", "string"]. The single-type
+	// checks above miss it (Type.Is needs one element); resolve the lone non-null
+	// primitive so the field is typed (*string etc.) rather than json.RawMessage.
+	if gt := nullablePrimitiveGoType(schema); gt != "" {
+		return gt
+	}
+
 	return "json.RawMessage"
 }
 
@@ -432,6 +439,37 @@ func refToSchemaKey(ref string) string {
 	return ""
 }
 
+// resolveSchemaAlias follows a chain of bare-$ref alias component schemas to the
+// terminal (non-alias) schema key. A bare alias is a component declared as
+// `Foo: {$ref: Bar}`; kin-openapi sets such a component's SchemaRef.Ref to the
+// target while still resolving .Value. The walker registers the terminal type
+// under its own key, so an operation whose ResponseRef is an alias key would
+// miss registry.lookup and degrade the whole response to raw json.RawMessage.
+// Resolving to the terminal key lets the lookup find the registered struct.
+//
+// Returns key unchanged if it is not an alias, is unknown, or the chain cycles.
+func resolveSchemaAlias(key string, spec *openapi3.T) string {
+	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
+		return key
+	}
+	seen := make(map[string]struct{})
+	for {
+		if _, cycling := seen[key]; cycling {
+			return key
+		}
+		seen[key] = struct{}{}
+		sr, ok := spec.Components.Schemas[key]
+		if !ok || sr.Ref == "" {
+			return key
+		}
+		next := refToSchemaKey(sr.Ref)
+		if next == "" {
+			return key
+		}
+		key = next
+	}
+}
+
 // isSharedSchema returns true if the schema key belongs to a shared namespace
 // (_common___, _common.X___, or group._common___) that should be emitted to
 // types_gen.go.
@@ -497,6 +535,39 @@ func primitiveGoType(schema *openapi3.Schema) string {
 	case schema.Type.Is("number"):
 		return goNumberType(schema)
 	case schema.Type.Is("boolean"):
+		return "bool"
+	}
+	// OpenAPI 3.1 nullable form: a type array such as ["null", "string"].
+	// Type.Is requires a single-element type set, so the cases above miss it;
+	// resolve the lone non-null primitive (callers apply pointer/omitempty via
+	// isNullableSchema). Returns "" for non-nullable multi-type unions, which
+	// remain genuine unions / json.RawMessage.
+	return nullablePrimitiveGoType(schema)
+}
+
+// nullablePrimitiveGoType handles the OpenAPI 3.1 nullable spelling where a
+// scalar is declared as a two-element type set {"null", <primitive>} (e.g.
+// `type: ["null", "string"]`). kin-openapi's Type.Is matches only single-element
+// sets, so such fields would otherwise fall through to json.RawMessage. Returns
+// the Go type for the single non-null primitive, or "" if the schema is not
+// exactly null + one supported primitive (arrays/objects/multi-type unions are
+// left to the union/object paths).
+func nullablePrimitiveGoType(schema *openapi3.Schema) string {
+	// Only the exact two-element set {"null", <primitive>} is resolved here.
+	// Type sets with 3+ members (e.g. ["null","string","integer"]) are genuine
+	// multi-type unions with no single Go primitive, so they intentionally
+	// return "" and stay json.RawMessage.
+	if schema.Type == nil || len(*schema.Type) != 2 || !schema.Type.Includes("null") {
+		return ""
+	}
+	switch {
+	case schema.Type.Includes("string"):
+		return goStringType(schema)
+	case schema.Type.Includes("integer"):
+		return goIntType(schema)
+	case schema.Type.Includes("number"):
+		return goNumberType(schema)
+	case schema.Type.Includes("boolean"):
 		return "bool"
 	}
 	return ""

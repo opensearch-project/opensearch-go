@@ -10,7 +10,6 @@ package ism
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -82,33 +81,16 @@ func (r GetPolicyParams) get() map[string]string {
 	return params
 }
 
-// GetPolicyResp represents the response for the GetPolicy operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// GetPolicyResp represents the response for the ism.get_policy operation.
 //
 // Retrieves a specific policy.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#put-policy
 type GetPolicyResp struct {
-	Body     json.RawMessage `json:"-"`
+	opensearchapi.ISMMetadata
+	opensearchapi.ISMPolicyEnvelope
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *GetPolicyResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r GetPolicyResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

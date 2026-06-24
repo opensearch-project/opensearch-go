@@ -150,20 +150,20 @@ type CatAllocationRecord struct {
 	// metric from the node's operating system. Disk-based shard allocation
 	// uses this metric to assign shards to nodes based on available disk
 	// space.
-	DiskAvail json.RawMessage `json:"disk.avail"`
+	DiskAvail *string `json:"disk.avail"`
 
 	// Disk space used by the node's shards. Does not include disk space for
 	// the translog or unassigned shards. IMPORTANT: This metric double-counts
 	// disk space for hard-linked files, such as those created when shrinking,
 	// splitting, or cloning an index.
-	DiskIndices json.RawMessage `json:"disk.indices"`
+	DiskIndices *string `json:"disk.indices"`
 
 	// Total percentage of disk space in use. Calculated as `disk.used /
 	// disk.total`.
 	DiskPercent *string `json:"disk.percent"`
 
 	// Total disk space for the node, including in-use and available space.
-	DiskTotal json.RawMessage `json:"disk.total"`
+	DiskTotal *string `json:"disk.total"`
 
 	// Total disk space in use. OpenSearch retrieves this metric from the
 	// node's operating system (OS). The metric includes disk space for:
@@ -171,7 +171,7 @@ type CatAllocationRecord struct {
 	// operating system; any other applications or files on the node. Unlike
 	// `disk.indices`, this metric does not double-count disk space for
 	// hard-linked files.
-	DiskUsed json.RawMessage `json:"disk.used"`
+	DiskUsed *string `json:"disk.used"`
 
 	// Network host for the node. Set using the `network.host` setting.
 	Host *string `json:"host"`

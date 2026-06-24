@@ -10,7 +10,6 @@ package ism
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -88,33 +87,22 @@ func (r RemovePolicyParams) get() map[string]string {
 	return params
 }
 
-// RemovePolicyResp represents the response for the RemovePolicy operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// RemovePolicyResp represents the response for the ism.remove_policy operation.
 //
 // Removes a policy from an index.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#remove-policy
 type RemovePolicyResp struct {
-	Body     json.RawMessage `json:"-"`
+	// The list of indices that failed to update.
+	FailedIndices []opensearchapi.ISMFailedIndex `json:"failed_indices,omitempty"`
+
+	// Whether there were any failures.
+	Failures *bool `json:"failures,omitempty"`
+
+	// The number of updated indices.
+	UpdatedIndices *float64 `json:"updated_indices,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *RemovePolicyResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r RemovePolicyResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

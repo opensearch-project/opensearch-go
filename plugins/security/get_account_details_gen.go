@@ -10,7 +10,6 @@ package security
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -98,7 +97,7 @@ type GetAccountDetailsResp struct {
 	Roles                []string                           `json:"roles,omitempty"`
 	Tenants              *opensearchapi.SecurityUserTenants `json:"tenants,omitempty"`
 	UserName             *string                            `json:"user_name,omitempty"`
-	UserRequestedTenant  json.RawMessage                    `json:"user_requested_tenant"`
+	UserRequestedTenant  *string                            `json:"user_requested_tenant"`
 
 	response *opensearch.Response
 }

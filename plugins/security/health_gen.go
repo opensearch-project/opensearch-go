@@ -100,8 +100,8 @@ func (r HealthParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#health-check
 type HealthResp struct {
-	Message json.RawMessage `json:"message"`
-	Mode    *string         `json:"mode,omitempty"`
+	Message *string `json:"message"`
+	Mode    *string `json:"mode,omitempty"`
 
 	// Available: >= 3.1.0.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`

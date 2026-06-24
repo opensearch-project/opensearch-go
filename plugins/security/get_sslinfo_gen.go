@@ -100,16 +100,16 @@ type GetSslinfoResp struct {
 	PeerCertificatesList json.RawMessage `json:"peer_certificates_list"`
 
 	// The user's principal.
-	Principal json.RawMessage `json:"principal"`
+	Principal *string `json:"principal"`
 
 	// The cipher for this SSL setup.
-	SSLCipher json.RawMessage `json:"ssl_cipher"`
+	SSLCipher *string `json:"ssl_cipher"`
 
 	// Whether OpenSSL is available.
 	SSLOpensslAvailable *bool `json:"ssl_openssl_available,omitempty"`
 
 	// The reason OpenSSL is unavailable.
-	SSLOpensslNonAvailableCause json.RawMessage `json:"ssl_openssl_non_available_cause"`
+	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause"`
 
 	// Whether the hostname validation is supported.
 	SSLOpensslSupportsHostnameValidation *bool `json:"ssl_openssl_supports_hostname_validation,omitempty"`
@@ -121,13 +121,13 @@ type GetSslinfoResp struct {
 	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
 
 	// The full version string for the OpenSSL version.
-	SSLOpensslVersionString json.RawMessage `json:"ssl_openssl_version_string"`
+	SSLOpensslVersionString *string `json:"ssl_openssl_version_string"`
 
 	// The protocol for this SSL setup.
-	SSLProtocol json.RawMessage `json:"ssl_protocol"`
+	SSLProtocol *string `json:"ssl_protocol"`
 
 	// Returns the HTTP provider's name.
-	SSLProviderHTTP json.RawMessage `json:"ssl_provider_http"`
+	SSLProviderHTTP *string `json:"ssl_provider_http"`
 
 	// Returns the transport client's name.
 	SSLProviderTransportClient string `json:"ssl_provider_transport_client"`
