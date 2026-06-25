@@ -7672,8 +7672,6 @@ paths:
         - $ref: '#/components/parameters/_global___query.error_trace'
         - $ref: '#/components/parameters/_global___query.source'
         - $ref: '#/components/parameters/_global___query.filter_path'
-      requestBody:
-        $ref: '#/components/requestBodies/ppl.post_stats'
       responses:
         '200':
           $ref: '#/components/responses/ppl.post_stats___200'
@@ -10631,8 +10629,6 @@ paths:
         - $ref: '#/components/parameters/_global___query.error_trace'
         - $ref: '#/components/parameters/_global___query.source'
         - $ref: '#/components/parameters/_global___query.filter_path'
-      requestBody:
-        $ref: '#/components/requestBodies/sql.post_stats'
       responses:
         '200':
           $ref: '#/components/responses/sql.post_stats___200'
@@ -16407,8 +16403,6 @@ paths:
         - $ref: '#/components/parameters/_global___query.error_trace'
         - $ref: '#/components/parameters/_global___query.source'
         - $ref: '#/components/parameters/_global___query.filter_path'
-      requestBody:
-        $ref: '#/components/requestBodies/ppl.post_stats'
       responses:
         '200':
           $ref: '#/components/responses/ppl.post_stats___200'
@@ -18154,8 +18148,6 @@ paths:
         - $ref: '#/components/parameters/_global___query.error_trace'
         - $ref: '#/components/parameters/_global___query.source'
         - $ref: '#/components/parameters/_global___query.filter_path'
-      requestBody:
-        $ref: '#/components/requestBodies/sql.post_stats'
       responses:
         '200':
           $ref: '#/components/responses/sql.post_stats___200'
@@ -70196,9 +70188,57 @@ components:
       type: object
       properties:
         status:
-          type:
-            - number
-            - string
+          type: string
+          description: The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").
+          x-enum-name: RestStatus
+          enum:
+            - CONTINUE
+            - SWITCHING_PROTOCOLS
+            - OK
+            - CREATED
+            - ACCEPTED
+            - NON_AUTHORITATIVE_INFORMATION
+            - NO_CONTENT
+            - RESET_CONTENT
+            - PARTIAL_CONTENT
+            - MULTI_STATUS
+            - MULTIPLE_CHOICES
+            - MOVED_PERMANENTLY
+            - FOUND
+            - SEE_OTHER
+            - NOT_MODIFIED
+            - USE_PROXY
+            - TEMPORARY_REDIRECT
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - PAYMENT_REQUIRED
+            - FORBIDDEN
+            - NOT_FOUND
+            - METHOD_NOT_ALLOWED
+            - NOT_ACCEPTABLE
+            - PROXY_AUTHENTICATION
+            - REQUEST_TIMEOUT
+            - CONFLICT
+            - GONE
+            - LENGTH_REQUIRED
+            - PRECONDITION_FAILED
+            - REQUEST_ENTITY_TOO_LARGE
+            - REQUEST_URI_TOO_LONG
+            - UNSUPPORTED_MEDIA_TYPE
+            - REQUESTED_RANGE_NOT_SATISFIED
+            - EXPECTATION_FAILED
+            - MISDIRECTED_REQUEST
+            - UNPROCESSABLE_ENTITY
+            - LOCKED
+            - FAILED_DEPENDENCY
+            - TOO_MANY_REQUESTS
+            - INTERNAL_SERVER_ERROR
+            - NOT_IMPLEMENTED
+            - BAD_GATEWAY
+            - SERVICE_UNAVAILABLE
+            - GATEWAY_TIMEOUT
+            - HTTP_VERSION_NOT_SUPPORTED
+            - INSUFFICIENT_STORAGE
         message:
           type: string
           description: The message returned as part of a `CREATED` response.
@@ -70420,9 +70460,57 @@ components:
       type: object
       properties:
         status:
-          type:
-            - number
-            - string
+          type: string
+          description: The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").
+          x-enum-name: RestStatus
+          enum:
+            - CONTINUE
+            - SWITCHING_PROTOCOLS
+            - OK
+            - CREATED
+            - ACCEPTED
+            - NON_AUTHORITATIVE_INFORMATION
+            - NO_CONTENT
+            - RESET_CONTENT
+            - PARTIAL_CONTENT
+            - MULTI_STATUS
+            - MULTIPLE_CHOICES
+            - MOVED_PERMANENTLY
+            - FOUND
+            - SEE_OTHER
+            - NOT_MODIFIED
+            - USE_PROXY
+            - TEMPORARY_REDIRECT
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - PAYMENT_REQUIRED
+            - FORBIDDEN
+            - NOT_FOUND
+            - METHOD_NOT_ALLOWED
+            - NOT_ACCEPTABLE
+            - PROXY_AUTHENTICATION
+            - REQUEST_TIMEOUT
+            - CONFLICT
+            - GONE
+            - LENGTH_REQUIRED
+            - PRECONDITION_FAILED
+            - REQUEST_ENTITY_TOO_LARGE
+            - REQUEST_URI_TOO_LONG
+            - UNSUPPORTED_MEDIA_TYPE
+            - REQUESTED_RANGE_NOT_SATISFIED
+            - EXPECTATION_FAILED
+            - MISDIRECTED_REQUEST
+            - UNPROCESSABLE_ENTITY
+            - LOCKED
+            - FAILED_DEPENDENCY
+            - TOO_MANY_REQUESTS
+            - INTERNAL_SERVER_ERROR
+            - NOT_IMPLEMENTED
+            - BAD_GATEWAY
+            - SERVICE_UNAVAILABLE
+            - GATEWAY_TIMEOUT
+            - HTTP_VERSION_NOT_SUPPORTED
+            - INSUFFICIENT_STORAGE
         message:
           type: string
           description: The message returned as part of an `OK` response.

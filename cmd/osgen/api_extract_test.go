@@ -734,6 +734,25 @@ func buildTestSpecWithRawMessageFixes(t *testing.T) string {
 					},
 				},
 			},
+			"/_enum/thing": map[string]any{
+				"get": map[string]any{
+					"x-operation-group": "enum.get",
+					"x-version-added":   "1.0",
+					"description":       "x-enum-name string field.",
+					"responses": map[string]any{
+						"200": map[string]any{
+							"description": "OK",
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"$ref": "#/components/schemas/enum.get___EnumResponse",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		"components": map[string]any{
 			"schemas": map[string]any{
@@ -752,6 +771,17 @@ func buildTestSpecWithRawMessageFixes(t *testing.T) string {
 					"type": "object",
 					"properties": map[string]any{
 						"acknowledged": map[string]any{"type": "boolean"},
+					},
+				},
+				// x-enum-name string field: opts into a string-backed enum type.
+				"enum.get___EnumResponse": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"status": map[string]any{
+							"type":        "string",
+							"x-enum-name": "RestStatus",
+							"enum":        []any{"OK", "NOT_FOUND"},
+						},
 					},
 				},
 			},
@@ -781,6 +811,7 @@ func TestRawMessageFixes_EndToEnd(t *testing.T) {
 	}
 
 	t.Run("nullable scalar field is typed, not raw", func(t *testing.T) {
+		t.Parallel()
 		op := byGroup["cat.things"]
 		require.NotNil(t, op)
 		require.NotEqual(t, ir.RespShapeRaw, op.RespShape, "response must not degrade to raw")
@@ -800,6 +831,7 @@ func TestRawMessageFixes_EndToEnd(t *testing.T) {
 	})
 
 	t.Run("bare-$ref alias response resolves to typed struct", func(t *testing.T) {
+		t.Parallel()
 		op := byGroup["alias.get"]
 		require.NotNil(t, op)
 		// ResponseRef must have been resolved through the alias to the terminal.
@@ -815,6 +847,29 @@ func TestRawMessageFixes_EndToEnd(t *testing.T) {
 		}
 		require.NotNil(t, acked, "acknowledged field must come through the alias")
 		require.Equal(t, "*bool", acked.GoType)
+	})
+
+	t.Run("x-enum-name string field becomes a registered enum type", func(t *testing.T) {
+		t.Parallel()
+		op := byGroup["enum.get"]
+		require.NotNil(t, op)
+		require.NotEqual(t, ir.RespShapeRaw, op.RespShape, "response must not degrade to raw")
+
+		var status *goField
+		for i := range op.RespFields {
+			if op.RespFields[i].JSONName == "status" {
+				status = &op.RespFields[i]
+			}
+		}
+		require.NotNil(t, status, "status field must be present")
+		// type:string + x-enum-name -> *RestStatus, not json.RawMessage or *string.
+		require.Equal(t, "*RestStatus", status.GoType)
+		require.NotContains(t, status.GoType, "json.RawMessage")
+
+		enumType, ok := registry.lookup("_common___RestStatus")
+		require.True(t, ok, "RestStatus enum type must be registered")
+		require.True(t, enumType.IsEnum)
+		require.Equal(t, []string{"OK", "NOT_FOUND"}, enumType.EnumValues)
 	})
 }
 

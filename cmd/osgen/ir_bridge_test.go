@@ -133,3 +133,97 @@ func TestClassifyParamKind(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertEnumMembers(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		typeName  string
+		values    []string
+		wantNames []string // parallel to values; nil values -> nil result
+	}{
+		{
+			name:     "simple values",
+			typeName: "RestStatus",
+			values:   []string{"OK", "NOT_FOUND"},
+			// "OK" titlecases to "Ok" (ok is not an acronym; matches SecurityOk).
+			wantNames: []string{"RestStatusOk", "RestStatusNotFound"},
+		},
+		{
+			name:     "acronyms expand via titleSegment",
+			typeName: "RestStatus",
+			values:   []string{"HTTP_VERSION_NOT_SUPPORTED", "REQUEST_URI_TOO_LONG"},
+			wantNames: []string{
+				"RestStatusHTTPVersionNotSupported",
+				"RestStatusRequestURITooLong",
+			},
+		},
+		{
+			name:      "nil values yields nil",
+			typeName:  "RestStatus",
+			values:    nil,
+			wantNames: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := convertEnumMembers(tt.typeName, tt.values)
+			if tt.wantNames == nil {
+				require.Nil(t, got)
+				return
+			}
+			want := make([]ir.EnumMember, len(tt.values))
+			for i, v := range tt.values {
+				want[i] = ir.EnumMember{ConstName: tt.wantNames[i], Value: v}
+			}
+			require.Equal(t, want, got)
+		})
+	}
+}
+
+// TestConvertEnumMembers_Panics covers the guards that fail generation loudly
+// rather than emit uncompilable Go: values that collapse to the same const
+// name, a value that yields an invalid identifier, and a degenerate value that
+// collides with the type name or the <Type>Unknown sentinel.
+func TestConvertEnumMembers_Panics(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		typeName string
+		values   []string
+	}{
+		{
+			name:     "duplicate const names collide",
+			typeName: "RestStatus",
+			values:   []string{"FOO_BAR", "FOO__BAR"}, // both -> RestStatusFooBar
+		},
+		{
+			name:     "value with no identifier characters",
+			typeName: "RestStatus",
+			values:   []string{"%%%"}, // -> bare "RestStatus", collides with type name
+		},
+		{
+			name:     "empty value collides with type name",
+			typeName: "RestStatus",
+			values:   []string{""}, // -> "RestStatus" == type name
+		},
+		{
+			name:     "value mapping to Unknown sentinel",
+			typeName: "RestStatus",
+			values:   []string{"UNKNOWN"}, // -> "RestStatusUnknown" == sentinel
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Panics(t, func() {
+				convertEnumMembers(tt.typeName, tt.values)
+			})
+		})
+	}
+}

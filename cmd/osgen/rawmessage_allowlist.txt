@@ -289,14 +289,6 @@ NodesUsageNode/aggregations # map
 # --- ppl.explain ---
 SQLExplain/filter # bare
 
-# --- ppl.post_stats ---
-SQLStats/cluster_name # bare
-SQLStats/end_time # bare
-SQLStats/execution_time # bare
-SQLStats/index # bare
-SQLStats/query # bare
-SQLStats/user # bare
-
 # --- ppl.query ---
 QueryResp/schema # slice
 SQLQuery/filter # bare
@@ -379,7 +371,6 @@ SecurityDynamicOptions/kibana # bare
 SecurityDynamicOptions/on_behalf_of # bare
 SecurityDynamicOptions/opensearch-dashboards # bare
 SecurityHealthInfo/settings # map
-SecurityOk/status # bare
 SecurityPatchOperation/value # bare
 SecuritySSLInfo/peer_certificates # bare
 SecuritySSLInfo/peer_certificates_list # bare
@@ -387,57 +378,6 @@ SecuritySSLInfo/ssl_openssl_version # bare
 
 # --- security.authinfo ---
 AuthinfoResp/peer_certificates # bare
-
-# --- security.authtoken ---
-AuthtokenResp/status # bare
-
-# --- security.change_password ---
-ChangePasswordResp/status # bare
-
-# --- security.create_action_group ---
-CreateActionGroupResp/status # bare
-
-# --- security.create_role ---
-CreateRoleResp/status # bare
-
-# --- security.create_role_mapping ---
-CreateRoleMappingResp/status # bare
-
-# --- security.create_tenant ---
-CreateTenantResp/status # bare
-
-# --- security.create_user ---
-CreateUserResp/status # bare
-
-# --- security.create_user_legacy ---
-CreateUserLegacyResp/status # bare
-
-# --- security.delete_action_group ---
-DeleteActionGroupResp/status # bare
-
-# --- security.delete_distinguished_name ---
-DeleteDistinguishedNameResp/status # bare
-
-# --- security.delete_role ---
-DeleteRoleResp/status # bare
-
-# --- security.delete_role_mapping ---
-DeleteRoleMappingResp/status # bare
-
-# --- security.delete_tenant ---
-DeleteTenantResp/status # bare
-
-# --- security.delete_user ---
-DeleteUserResp/status # bare
-
-# --- security.delete_user_legacy ---
-DeleteUserLegacyResp/status # bare
-
-# --- security.flush_cache ---
-FlushCacheResp/status # bare
-
-# --- security.generate_user_token ---
-GenerateUserTokenResp/status # bare
 
 # --- security.get_sslinfo ---
 GetSslinfoResp/peer_certificates # bare
@@ -447,71 +387,8 @@ GetSslinfoResp/ssl_openssl_version # bare
 # --- security.health ---
 HealthResp/settings # map
 
-# --- security.migrate ---
-MigrateResp/status # bare
-
-# --- security.patch_action_group ---
-PatchActionGroupResp/status # bare
-
-# --- security.patch_action_groups ---
-PatchActionGroupsResp/status # bare
-
-# --- security.patch_audit_configuration ---
-PatchAuditConfigurationResp/status # bare
-
-# --- security.patch_configuration ---
-PatchConfigurationResp/status # bare
-
-# --- security.patch_distinguished_name ---
-PatchDistinguishedNameResp/status # bare
-
-# --- security.patch_distinguished_names ---
-PatchDistinguishedNamesResp/status # bare
-
-# --- security.patch_role ---
-PatchRoleResp/status # bare
-
-# --- security.patch_role_mapping ---
-PatchRoleMappingResp/status # bare
-
-# --- security.patch_role_mappings ---
-PatchRoleMappingsResp/status # bare
-
-# --- security.patch_roles ---
-PatchRolesResp/status # bare
-
-# --- security.patch_tenant ---
-PatchTenantResp/status # bare
-
-# --- security.patch_tenants ---
-PatchTenantsResp/status # bare
-
-# --- security.patch_user ---
-PatchUserResp/status # bare
-
-# --- security.patch_users ---
-PatchUsersResp/status # bare
-
-# --- security.reload_http_certificates ---
-ReloadHTTPCertificatesResp/status # bare
-
-# --- security.reload_transport_certificates ---
-ReloadTransportCertificatesResp/status # bare
-
 # --- security.tenant_info ---
 TenantInfoResp/[entries] # map
-
-# --- security.update_audit_configuration ---
-UpdateAuditConfigurationResp/status # bare
-
-# --- security.update_configuration ---
-UpdateConfigurationResp/status # bare
-
-# --- security.update_distinguished_name ---
-UpdateDistinguishedNameResp/status # bare
-
-# --- security.validate ---
-ValidateResp/status # bare
 
 # --- security_analytics.search_finding_correlations ---
 SearchFindingCorrelationsResp/- # bare

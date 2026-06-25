@@ -7,6 +7,8 @@
 package main
 
 import (
+	"fmt"
+	"go/token"
 	"sort"
 	"strconv"
 	"strings"
@@ -177,6 +179,9 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 
 	// Primitive types.
 	if schema.Type.Is("string") {
+		if name, ok := w.resolveStringEnum(schema, group); ok {
+			return name
+		}
 		return goStringType(schema)
 	}
 	if schema.Type.Is("integer") {
@@ -493,6 +498,62 @@ func isSharedSchema(key string) bool {
 // not get pointer treatment since nil is their zero value).
 func isCollectionType(goType string) bool {
 	return strings.HasPrefix(goType, "[]") || strings.HasPrefix(goType, "map[")
+}
+
+// resolveStringEnum handles a string schema that opts into typed-enum
+// generation via the x-enum-name extension. When the marker is present and the
+// schema carries a non-empty enum: constraint, it registers a shared
+// string-backed enum type (named by the marker) and returns its Go name. The
+// type is registered once and reused across every field that references it
+// (e.g. security status across all security responses). Returns ("", false)
+// when the schema does not opt in, so the caller falls back to a plain string.
+func (w *walker) resolveStringEnum(schema *openapi3.Schema, group string) (string, bool) {
+	name := extensionString(schema.Extensions, extEnumName)
+	if name == "" {
+		return "", false
+	}
+	if !token.IsIdentifier(name) {
+		panic(fmt.Sprintf("resolveStringEnum: %s value %q is not a valid Go identifier", extEnumName, name))
+	}
+	values := enumStringValues(schema.Enum)
+	if len(values) == 0 {
+		return "", false
+	}
+
+	// Key the enum by its Go name under _common so it is shared (emitted once
+	// in types_gen.go) and deduplicated across all referencing fields.
+	key := "_common___" + name
+	if existing, ok := w.registry.lookup(key); ok {
+		return existing.Name, true
+	}
+
+	t := &goType{
+		Name:       name,
+		Pkg:        typePkg(true, group, w.registry),
+		SchemaRef:  key,
+		IsShared:   true,
+		IsEnum:     true,
+		EnumValues: values,
+		Comment:    schema.Description,
+	}
+	if registered, ok := w.registry.register(t); ok {
+		return registered.Name, true
+	}
+	// Name collided with an existing type; fall back to plain string rather
+	// than dropping to json.RawMessage.
+	return "", false
+}
+
+// enumStringValues converts a schema's enum constraint to a string slice,
+// preserving declaration order and skipping any non-string entries.
+func enumStringValues(enum []any) []string {
+	values := make([]string, 0, len(enum))
+	for _, e := range enum {
+		if s, ok := e.(string); ok {
+			values = append(values, s)
+		}
+	}
+	return values
 }
 
 // goStringType returns the Go type for a string schema, considering format.

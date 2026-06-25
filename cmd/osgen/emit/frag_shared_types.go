@@ -112,3 +112,21 @@ func NewUnionTypesFile(outDir, pkg string, types []*ir.Type) Target {
 		Fragments: []Fragment{&UnionFragment{Types: unionTypes}},
 	}
 }
+
+// NewEnumTypesFile builds a Target for enums_gen.go.
+func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
+	var enumTypes []*ir.Type
+	for _, t := range types {
+		if t.Kind == ir.TypeEnum && t.Scope == ir.ScopeShared {
+			enumTypes = append(enumTypes, t)
+		}
+	}
+	if len(enumTypes) == 0 {
+		return nil
+	}
+	return &File{
+		FilePath:  outDir + "/enums_gen.go",
+		Package:   pkg,
+		Fragments: []Fragment{&EnumFragment{Types: enumTypes}},
+	}
+}

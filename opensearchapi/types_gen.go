@@ -11662,7 +11662,9 @@ type SecurityOk struct {
 	// The message returned as part of an `OK` response.
 	Message *string `json:"message,omitempty"`
 
-	Status json.RawMessage `json:"status"`
+	// The HTTP status of the response, as a RestStatus enum name (e.g. "OK",
+	// "CREATED").
+	Status *RestStatus `json:"status,omitempty"`
 }
 
 type SecurityUpgradeCheck struct {
@@ -13049,29 +13051,6 @@ type SQLExplain struct {
 
 	// The SQL query to explain.
 	Query *string `json:"query,omitempty"`
-}
-
-type SQLStats struct {
-	// The name of the cluster executing the query.
-	ClusterName json.RawMessage `json:"cluster_name"`
-
-	// When the query execution ended.
-	EndTime json.RawMessage `json:"end_time"`
-
-	// The time taken to execute the query.
-	ExecutionTime json.RawMessage `json:"execution_time"`
-
-	// The index information for the query.
-	Index json.RawMessage `json:"index"`
-
-	// The query information.
-	Query json.RawMessage `json:"query"`
-
-	// When the query execution started.
-	StartTime *string `json:"start_time,omitempty"`
-
-	// The user information.
-	User json.RawMessage `json:"user"`
 }
 
 type SQLQuery struct {

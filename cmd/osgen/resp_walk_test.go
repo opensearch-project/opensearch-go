@@ -60,6 +60,103 @@ func TestWalkerPrimitiveTypes(t *testing.T) {
 	}
 }
 
+// TestWalkerStringEnum covers the x-enum-name opt-in: a string schema carrying
+// the marker plus an enum: constraint resolves to a registered string-backed
+// enum type; without the marker (or without values) it stays a plain string.
+func TestWalkerStringEnum(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		enum     []any  // schema enum: values
+		marker   string // x-enum-name extension value ("" = absent)
+		want     string // expected Go type returned by the walker
+		wantEnum bool   // expect an enum type registered under _common___<marker>
+	}{
+		{
+			name:     "marker plus values registers enum type",
+			enum:     []any{"OK", "NOT_FOUND"},
+			marker:   "RestStatus",
+			want:     "RestStatus",
+			wantEnum: true,
+		},
+		{
+			name:   "no marker stays string",
+			enum:   []any{"OK", "NOT_FOUND"}, // values but no x-enum-name marker
+			marker: "",
+			want:   "string",
+		},
+		{
+			name:   "marker but no values stays string",
+			enum:   nil, // marker present but empty enum
+			marker: "RestStatus",
+			want:   "string",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			schema := openapi3.NewStringSchema()
+			schema.Enum = tt.enum
+			if tt.marker != "" {
+				schema.Extensions = map[string]any{extEnumName: tt.marker}
+			}
+
+			got := w.walkSchema(&openapi3.SchemaRef{Value: schema}, "security._common___Ok", "security", true)
+			require.Equal(t, tt.want, got)
+
+			reg2, ok := reg.lookup("_common___" + tt.marker)
+			if !tt.wantEnum {
+				require.False(t, ok, "no enum type should be registered")
+				return
+			}
+			require.True(t, ok, "enum type should be registered under its _common key")
+			require.True(t, reg2.IsEnum)
+			require.True(t, reg2.IsShared)
+			require.Equal(t, []string{"OK", "NOT_FOUND"}, reg2.EnumValues)
+		})
+	}
+
+	// Shared registration spans two walks (distinct schema keys, same marker),
+	// so it stays a focused case rather than a table row.
+	t.Run("same marker shared across fields registers once", func(t *testing.T) {
+		t.Parallel()
+		reg := newTypeRegistry(opensearchAPIPkgName)
+		w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+		newSchema := func() *openapi3.Schema {
+			s := openapi3.NewStringSchema()
+			s.Enum = []any{"OK"}
+			s.Extensions = map[string]any{extEnumName: "RestStatus"}
+			return s
+		}
+		first := w.walkSchema(&openapi3.SchemaRef{Value: newSchema()}, "security._common___Ok", "security", true)
+		second := w.walkSchema(&openapi3.SchemaRef{Value: newSchema()}, "security._common___Created", "security", true)
+		require.Equal(t, "RestStatus", first)
+		require.Equal(t, "RestStatus", second)
+	})
+
+	// An x-enum-name that is not a valid Go identifier is a spec defect that
+	// would emit uncompilable Go; the walker panics rather than proceed.
+	t.Run("invalid marker identifier panics", func(t *testing.T) {
+		t.Parallel()
+		for _, marker := range []string{"rest status", "123Status", "rest-status"} {
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+			schema := openapi3.NewStringSchema()
+			schema.Enum = []any{"OK"}
+			schema.Extensions = map[string]any{extEnumName: marker}
+			require.Panics(t, func() {
+				w.walkSchema(&openapi3.SchemaRef{Value: schema}, "security._common___Ok", "security", true)
+			}, "marker %q", marker)
+		}
+	})
+}
+
 func TestWalkerArrayType(t *testing.T) {
 	t.Parallel()
 
