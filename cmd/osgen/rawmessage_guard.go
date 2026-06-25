@@ -82,19 +82,38 @@ type RawMessageConfig struct {
 }
 
 // classifyRawForm reports the rawForm of a Go type expression, and false if the
-// type is not a json.RawMessage in any of the tracked forms. A bare field is
-// never a pointer in practice (walkProperties forces it), but *json.RawMessage
-// is accepted defensively.
+// type does not have a json.RawMessage leaf. A raw leaf can sit under any depth
+// of wrappers (e.g. [][]json.RawMessage for SQL/PPL Datarows); matching only the
+// top-level spellings would let nested raw escape the guard, so this peels every
+// wrapper to the leaf. The reported form is the OUTERMOST wrapper (slice/map/
+// bare), which is what the allowlist's informational "# form" comment records. A
+// bare field is never a pointer in practice (walkProperties forces it), but a
+// leading *json.RawMessage is accepted defensively.
 func classifyRawForm(goType string) (rawForm, bool) {
-	switch goType {
-	case "json.RawMessage", "*json.RawMessage":
-		return rawBare, true
-	case "[]json.RawMessage":
-		return rawSlice, true
-	case "map[string]json.RawMessage":
-		return rawMap, true
-	default:
-		return 0, false
+	// Outermost wrapper determines the reported form; a leading pointer does not.
+	form := rawBare
+	switch {
+	case strings.HasPrefix(strings.TrimPrefix(goType, "*"), "[]"):
+		form = rawSlice
+	case strings.HasPrefix(strings.TrimPrefix(goType, "*"), "map[string]"):
+		form = rawMap
+	}
+
+	// Peel pointer/slice/map wrappers until the leaf type remains.
+	leaf := goType
+	for {
+		switch {
+		case strings.HasPrefix(leaf, "*"):
+			leaf = leaf[len("*"):]
+		case strings.HasPrefix(leaf, "[]"):
+			leaf = leaf[len("[]"):]
+		case strings.HasPrefix(leaf, "map[string]"):
+			leaf = leaf[len("map[string]"):]
+		case leaf == "json.RawMessage":
+			return form, true
+		default:
+			return 0, false
+		}
 	}
 }
 

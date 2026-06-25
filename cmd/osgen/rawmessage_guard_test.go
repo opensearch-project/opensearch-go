@@ -31,9 +31,16 @@ func TestClassifyRawForm(t *testing.T) {
 		{name: "pointer bare", goType: "*json.RawMessage", wantForm: rawBare, wantOK: true},
 		{name: "slice", goType: "[]json.RawMessage", wantForm: rawSlice, wantOK: true},
 		{name: "map", goType: "map[string]json.RawMessage", wantForm: rawMap, wantOK: true},
+		// Nested forms report the outermost wrapper. SQL/PPL Datarows are
+		// [][]json.RawMessage; these must be detected or they escape the guard.
+		{name: "slice of slice", goType: "[][]json.RawMessage", wantForm: rawSlice, wantOK: true},
+		{name: "map of slice", goType: "map[string][]json.RawMessage", wantForm: rawMap, wantOK: true},
+		{name: "slice of map", goType: "[]map[string]json.RawMessage", wantForm: rawSlice, wantOK: true},
+		{name: "pointer slice", goType: "*[]json.RawMessage", wantForm: rawSlice, wantOK: true},
 		{name: "typed struct", goType: "SearchHit", wantOK: false},
 		{name: "typed slice", goType: "[]SearchHit", wantOK: false},
 		{name: "typed map", goType: "map[string]SearchHit", wantOK: false},
+		{name: "typed nested slice", goType: "[][]SearchHit", wantOK: false},
 		{name: "primitive", goType: "string", wantOK: false},
 		{name: "empty", goType: "", wantOK: false},
 	}

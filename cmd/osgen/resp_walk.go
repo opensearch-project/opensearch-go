@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"go/token"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -524,6 +525,14 @@ func (w *walker) resolveStringEnum(schema *openapi3.Schema, group string) (strin
 	// in types_gen.go) and deduplicated across all referencing fields.
 	key := "_common___" + name
 	if existing, ok := w.registry.lookup(key); ok {
+		// Two schemas sharing an x-enum-name must declare the same value set;
+		// otherwise the second field would silently adopt the first enum's
+		// values, yielding a closed-set type that rejects values it should
+		// accept. Fail loudly rather than merge.
+		if !slices.Equal(existing.EnumValues, values) {
+			panic(fmt.Sprintf("resolveStringEnum: %s %q declared with conflicting value sets %q and %q",
+				extEnumName, name, existing.EnumValues, values))
+		}
 		return existing.Name, true
 	}
 

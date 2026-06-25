@@ -67,11 +67,12 @@ func TestWalkerStringEnum(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		enum     []any  // schema enum: values
-		marker   string // x-enum-name extension value ("" = absent)
-		want     string // expected Go type returned by the walker
-		wantEnum bool   // expect an enum type registered under _common___<marker>
+		name      string
+		enum      []any  // schema enum: values
+		marker    string // x-enum-name extension value ("" = absent)
+		want      string // expected Go type returned by the walker
+		wantEnum  bool   // expect an enum type registered under _common___<marker>
+		wantPanic bool   // expect the walk to panic (invalid marker identifier)
 	}{
 		{
 			name:     "marker plus values registers enum type",
@@ -92,6 +93,11 @@ func TestWalkerStringEnum(t *testing.T) {
 			marker: "RestStatus",
 			want:   "string",
 		},
+		// An x-enum-name that is not a valid Go identifier is a spec defect that
+		// would emit uncompilable Go; the walker panics rather than proceed.
+		{name: "marker with space panics", enum: []any{"OK"}, marker: "rest status", wantPanic: true},
+		{name: "marker leading digit panics", enum: []any{"OK"}, marker: "123Status", wantPanic: true},
+		{name: "marker with hyphen panics", enum: []any{"OK"}, marker: "rest-status", wantPanic: true},
 	}
 
 	for _, tt := range tests {
@@ -106,7 +112,15 @@ func TestWalkerStringEnum(t *testing.T) {
 				schema.Extensions = map[string]any{extEnumName: tt.marker}
 			}
 
-			got := w.walkSchema(&openapi3.SchemaRef{Value: schema}, "security._common___Ok", "security", true)
+			walk := func() string {
+				return w.walkSchema(&openapi3.SchemaRef{Value: schema}, "security._common___Ok", "security", true)
+			}
+			if tt.wantPanic {
+				require.Panics(t, func() { _ = walk() })
+				return
+			}
+
+			got := walk()
 			require.Equal(t, tt.want, got)
 
 			reg2, ok := reg.lookup("_common___" + tt.marker)
@@ -120,41 +134,68 @@ func TestWalkerStringEnum(t *testing.T) {
 			require.Equal(t, []string{"OK", "NOT_FOUND"}, reg2.EnumValues)
 		})
 	}
+}
 
-	// Shared registration spans two walks (distinct schema keys, same marker),
-	// so it stays a focused case rather than a table row.
-	t.Run("same marker shared across fields registers once", func(t *testing.T) {
-		t.Parallel()
-		reg := newTypeRegistry(opensearchAPIPkgName)
-		w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+// TestWalkerStringEnumShared covers a marker referenced by more than one field:
+// identical value sets register once and are reused; conflicting value sets are
+// a spec defect and panic rather than letting the second field silently inherit
+// the first enum's values.
+func TestWalkerStringEnumShared(t *testing.T) {
+	t.Parallel()
 
-		newSchema := func() *openapi3.Schema {
-			s := openapi3.NewStringSchema()
-			s.Enum = []any{"OK"}
-			s.Extensions = map[string]any{extEnumName: "RestStatus"}
-			return s
-		}
-		first := w.walkSchema(&openapi3.SchemaRef{Value: newSchema()}, "security._common___Ok", "security", true)
-		second := w.walkSchema(&openapi3.SchemaRef{Value: newSchema()}, "security._common___Created", "security", true)
-		require.Equal(t, "RestStatus", first)
-		require.Equal(t, "RestStatus", second)
-	})
+	type walk struct {
+		key    string // schema key for this walk
+		values []any  // enum: values for the marker "RestStatus"
+	}
+	tests := []struct {
+		name      string
+		walks     []walk
+		want      string // expected Go type from every non-panicking walk
+		wantPanic bool   // expect the final walk to panic
+	}{
+		{
+			name: "same values shared across fields registers once",
+			walks: []walk{
+				{key: "security._common___Ok", values: []any{"OK"}},
+				{key: "security._common___Created", values: []any{"OK"}},
+			},
+			want: "RestStatus",
+		},
+		{
+			name: "conflicting values panics",
+			walks: []walk{
+				{key: "security._common___Ok", values: []any{"OK", "NOT_FOUND"}},
+				{key: "security._common___Created", values: []any{"OK", "CREATED"}},
+			},
+			want:      "RestStatus",
+			wantPanic: true,
+		},
+	}
 
-	// An x-enum-name that is not a valid Go identifier is a spec defect that
-	// would emit uncompilable Go; the walker panics rather than proceed.
-	t.Run("invalid marker identifier panics", func(t *testing.T) {
-		t.Parallel()
-		for _, marker := range []string{"rest status", "123Status", "rest-status"} {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			reg := newTypeRegistry(opensearchAPIPkgName)
 			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
-			schema := openapi3.NewStringSchema()
-			schema.Enum = []any{"OK"}
-			schema.Extensions = map[string]any{extEnumName: marker}
-			require.Panics(t, func() {
-				w.walkSchema(&openapi3.SchemaRef{Value: schema}, "security._common___Ok", "security", true)
-			}, "marker %q", marker)
-		}
-	})
+
+			schemaFor := func(values []any) *openapi3.SchemaRef {
+				s := openapi3.NewStringSchema()
+				s.Enum = values
+				s.Extensions = map[string]any{extEnumName: "RestStatus"}
+				return &openapi3.SchemaRef{Value: s}
+			}
+
+			for i, wk := range tt.walks {
+				last := i == len(tt.walks)-1
+				do := func() string { return w.walkSchema(schemaFor(wk.values), wk.key, "security", true) }
+				if last && tt.wantPanic {
+					require.Panics(t, func() { _ = do() })
+					return
+				}
+				require.Equal(t, tt.want, do())
+			}
+		})
+	}
 }
 
 func TestWalkerArrayType(t *testing.T) {

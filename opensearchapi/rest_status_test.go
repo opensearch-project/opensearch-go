@@ -42,19 +42,29 @@ func TestRestStatusJSON(t *testing.T) {
 		}
 	})
 
-	t.Run("marshal known values use wire name", func(t *testing.T) {
+	t.Run("marshal", func(t *testing.T) {
 		tests := []struct {
-			name string
-			in   opensearchapi.RestStatus
-			want string
+			name    string
+			in      opensearchapi.RestStatus
+			want    string // expected JSON wire form (when wantErr is false)
+			wantErr bool   // Unknown/out-of-range values are not encodable
 		}{
 			{name: "ok", in: opensearchapi.RestStatusOk, want: `"OK"`},
 			{name: "created", in: opensearchapi.RestStatusCreated, want: `"CREATED"`},
 			{name: "acronym", in: opensearchapi.RestStatusHTTPVersionNotSupported, want: `"HTTP_VERSION_NOT_SUPPORTED"`},
+			// The zero value is the Unknown sentinel; it has no wire name and
+			// MarshalJSON errors rather than emit a bogus status. Reachable only
+			// by marshaling a hand-constructed value (response fields are
+			// pointers with omitempty, so a nil Unknown is omitted).
+			{name: "unknown sentinel errors", in: opensearchapi.RestStatusUnknown, wantErr: true},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				b, err := json.Marshal(tt.in)
+				if tt.wantErr {
+					require.Error(t, err)
+					return
+				}
 				require.NoError(t, err)
 				require.JSONEq(t, tt.want, string(b))
 				// String() reports the same wire name.
