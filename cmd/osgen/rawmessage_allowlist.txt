@@ -290,6 +290,7 @@ NodesUsageNode/aggregations # map
 SQLExplain/filter # bare
 
 # --- ppl.query ---
+QueryResp/datarows # slice
 QueryResp/schema # slice
 SQLQuery/filter # bare
 
@@ -310,6 +311,7 @@ QueryDataSource/properties # map
 DatasourcesUpdateResp/- # bare
 
 # --- rank_eval ---
+RankEvalMetricDetail/metric_details # map
 RankEvalRequestItem/params # map
 RankEvalResp/failures # map
 
@@ -401,6 +403,7 @@ SnapshotCreateBody/metadata # map
 
 # --- sql._common ---
 SQLExplainBody/description # bare
+SQLQueryResponse/datarows # slice
 SQLQueryResponse/schema # slice
 SQLSettingsResponse/persistent # bare
 
