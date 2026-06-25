@@ -84,22 +84,22 @@ Generates API consumer files into `opensearchapi/` and plugin directories.
 
 #### Flags
 
-| Flag                             | Default  | Description                                                                 |
-| -------------------------------- | -------- | --------------------------------------------------------------------------- |
-| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                      |
-| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)       |
-| `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)                  |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`) |
-| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                                  |
-| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                         |
-| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                         |
-| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed            |
-| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them     |
-| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`              |
-| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`                   |
-| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`           |
-| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`           |
-| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`        |
+| Flag                             | Default  | Description                                                             |
+| -------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
+| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)             |
+| `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)              |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`)                     |
+| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
+| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
+| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |
+| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed        |
+| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them |
+| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`          |
+| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`               |
+| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`       |
+| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`       |
+| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`    |
 
 #### Examples
 

@@ -155,6 +155,8 @@ transport.Perform(req)
 | **RTT Ring Buffer**  | Per-connection rolling median of health-check RTTs, quantized to power-of-2 buckets.       |
 | **AIMD Controller**  | Per-connection, per-thread-pool congestion window driven by server stats.                  |
 
+For how node roles are discovered and how role-based selection works, see [transport-node_discovery_and_roles.md](transport-node_discovery_and_roles.md).
+
 ### Three Pre-Built Routers
 
 | Router          | Constructor             | Use Case                                                |
@@ -1820,7 +1822,7 @@ If search-1 is removed, search operations automatically fall back to data nodes.
 
 ### Health Check Configuration
 
-For details on the health check endpoint -- response fields, HTTP status codes, required permissions, and security configuration -- see [cluster_health_checking.md](cluster_health_checking.md).
+For details on the health check endpoint -- response fields, HTTP status codes, required permissions, and security configuration -- see [transport-cluster_health_checking.md](transport-cluster_health_checking.md).
 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
@@ -1835,19 +1837,7 @@ client, err := opensearch.NewClient(opensearch.Config{
 
 ### Resurrection Timeout Tuning
 
-When a node fails, the client uses exponential backoff with cluster-health-aware rate limiting to schedule resurrection attempts. See [retry_backoff.md](retry_backoff.md) for the full algorithm and recovery timeline.
-
-```go
-client, err := opensearch.NewClient(opensearch.Config{
-    Addresses: []string{"https://localhost:9200"},
-
-    // Exponential backoff: initial * 2^(failures-1), capped at max
-    ResurrectTimeoutInitial: 5 * time.Second,         // Default: 5s
-    ResurrectTimeoutMax:     30 * time.Second,        // Default: 30s
-    MinimumResurrectTimeout: 500 * time.Millisecond,  // Default: 500ms
-    JitterScale:             0.5,                     // Default: 0.5
-})
-```
+When a node fails, the client uses exponential backoff with cluster-health-aware rate limiting to schedule resurrection attempts. See [transport-retry_backoff.md](transport-retry_backoff.md#configuration) for the full algorithm, the recovery timeline, and the canonical configuration block (`ResurrectTimeoutInitial`, `ResurrectTimeoutMax`, `ResurrectTimeoutFactorCutoff`, `MinimumResurrectTimeout`, `JitterScale`).
 
 ### Node Stats Polling and Load Shedding
 
@@ -1958,24 +1948,25 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 
 ## 14. Configuration Reference
 
-> The canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, meanings, and tokens — is [envvars.md](envvars.md). The tables below document the routing-specific variables in the context of the router. See `envvars.md` for the connection, discovery, error-mask, and debugging variables as well.
+> The canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, meanings, and tokens — is [config-envvars.md](config-envvars.md). The tables below document the routing-specific variables in the context of the router. See `config-envvars.md` for the connection, discovery, error-mask, and debugging variables as well.
 
 ### Client Configuration
 
-| Setting                   | Default      | Env Override                              | Description                                            |
-| ------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------ |
-| `RequestTimeout`          | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip           |
-| `DiscoverNodesInterval`   | 5m           | --                                        | Full topology + shard refresh interval                 |
-| `HealthCheckTimeout`      | 5s           | --                                        | Per-request health check timeout                       |
-| `ResurrectTimeoutInitial` | 5s           | --                                        | Starting backoff for dead connections                  |
-| `ResurrectTimeoutMax`     | 30s          | --                                        | Cap before jitter                                      |
-| `MinimumResurrectTimeout` | 500ms        | --                                        | Absolute floor                                         |
-| `JitterScale`             | 0.5          | --                                        | Jitter multiplier for resurrection                     |
-| `MaxRetryClusterHealth`   | 4h           | --                                        | Retry interval for unavailable cluster health endpoint |
-| `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
-| `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
-| `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
-| `ShardCostConfig`         | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)            |
+| Setting                        | Default      | Env Override                              | Description                                            |
+| ------------------------------ | ------------ | ----------------------------------------- | ------------------------------------------------------ |
+| `RequestTimeout`               | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip           |
+| `DiscoverNodesInterval`        | 5m           | --                                        | Full topology + shard refresh interval                 |
+| `HealthCheckTimeout`           | 5s           | --                                        | Per-request health check timeout                       |
+| `ResurrectTimeoutInitial`      | 5s           | --                                        | Starting backoff for dead connections                  |
+| `ResurrectTimeoutMax`          | 30s          | --                                        | Cap before jitter                                      |
+| `ResurrectTimeoutFactorCutoff` | 5            | --                                        | Max exponent for backoff (2^cutoff)                    |
+| `MinimumResurrectTimeout`      | 500ms        | --                                        | Absolute floor                                         |
+| `JitterScale`                  | 0.5          | --                                        | Jitter multiplier for resurrection                     |
+| `MaxRetryClusterHealth`        | 4h           | --                                        | Retry interval for unavailable cluster health endpoint |
+| `NodeStatsInterval`            | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
+| `OverloadedHeapThreshold`      | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
+| `OverloadedBreakerRatio`       | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
+| `ShardCostConfig`              | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)            |
 
 ### Router Options
 
@@ -2013,7 +2004,7 @@ if err != nil {
 
 ### Feature Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. Environment variable settings override programmatic configuration values. For the full canonical reference of every variable across all categories (connection, discovery, error masking, debugging, pool tuning), see [envvars.md](envvars.md). The tables below cover the routing-specific subset.
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. Environment variable settings override programmatic configuration values. For the full canonical reference of every variable across all categories (connection, discovery, error masking, debugging, pool tuning), see [config-envvars.md](config-envvars.md). The tables below cover the routing-specific subset.
 
 #### Debug and Diagnostics
 
@@ -2160,7 +2151,7 @@ client, _ := opensearch.NewClient(opensearch.Config{
 
 ### Policy Override Variables
 
-Each policy type has a corresponding environment variable. The full reference for all `OPENSEARCH_GO_POLICY_*` variables (accepted values, defaults, parsing rules) is in [envvars.md](envvars.md#policy-overrides).
+Each policy type has a corresponding environment variable. The full reference for all `OPENSEARCH_GO_POLICY_*` variables (accepted values, defaults, parsing rules) is in [config-envvars.md](config-envvars.md#policy-overrides).
 
 | Variable                               | Policy Type       |
 | -------------------------------------- | ----------------- |

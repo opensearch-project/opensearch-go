@@ -27,7 +27,7 @@ Do not creating branches in the upstream repo, use your fork, for the exception 
 
 ## Release Labels
 
-Repositories create consistent release labels, such as `v1.0.0`, `v1.1.0` and `v2.0.0`, as well as `patch` and `backport`. Use release labels to target an issue or a PR for a given release. See [MAINTAINERS](MAINTAINERS.md#triage-open-issues) for more information on triaging issues.
+Repositories create consistent release labels, such as `v1.0.0`, `v1.1.0` and `v2.0.0`, as well as `patch` and `backport`. Use release labels to target an issue or a PR for a given release. See [Triage Open Issues](https://github.com/opensearch-project/.github/blob/main/RESPONSIBILITIES.md#triage-open-issues) for more information on triaging issues.
 
 ## Releasing
 

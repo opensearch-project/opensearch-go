@@ -48,41 +48,41 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_URL` | Comma-separated URL list (e.g. `https://a:9200,https://b:9200`) | unset | Seed addresses used by `NewClient` when no `Addresses` are set programmatically. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation); [Security: Credential Management](security.md#credential-management) |
+| `OPENSEARCH_URL` | Comma-separated URL list (e.g. `https://a:9200,https://b:9200`) | unset | Seed addresses used by `NewClient` when no `Addresses` are set programmatically. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation); [Security: Credential Management](config-security.md#credential-management) |
 
 ## Routing
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_ROUTER` | Bool | `true` (router auto-constructed) | Auto-construct `NewDefaultRouter()` when no programmatic `Config.Router` is set. Set `false` or `0` to suppress. A programmatic `Config.Router` always takes precedence. | [Routing: Quick Start](routing.md#quick-start); [opensearchapi/README.md Default Router Injection](../opensearchapi/README.md#default-router-injection) |
-| `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | all enabled | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`). | [Routing: Configuration Reference](routing.md#routing-and-discovery) |
-| `OPENSEARCH_GO_SHARD_COST` | Key=value, comma-separated (or bare numeric for `r:base`) | compile-time defaults | Override shard cost multipliers used in connection scoring. Format: key=value pairs (`r:base=0.95`, `unknown=32.0`) or a bare number (sets `r:base`). | [Routing: Shard Cost Configuration](routing.md#shard-cost-configuration) |
-| `OPENSEARCH_GO_SHARD_REQUESTS` | Bool or `min:max` | `true` (5:256) | Adaptive `max_concurrent_shard_requests` bounds. `true`/`false` enable/disable with defaults; `10:512`, `10:`, `:512`, or bare `10` set custom bounds. | [Routing: Configuration Reference](routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_ROUTER` | Bool | `true` (router auto-constructed) | Auto-construct `NewDefaultRouter()` when no programmatic `Config.Router` is set. Set `false` or `0` to suppress. A programmatic `Config.Router` always takes precedence. | [Routing: Quick Start](transport-routing.md#quick-start); [opensearchapi/README.md Default Router Injection](../opensearchapi/README.md#default-router-injection) |
+| `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | all enabled | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`). | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_SHARD_COST` | Key=value, comma-separated (or bare numeric for `r:base`) | compile-time defaults | Override shard cost multipliers used in connection scoring. Format: key=value pairs (`r:base=0.95`, `unknown=32.0`) or a bare number (sets `r:base`). | [Routing: Shard Cost Configuration](transport-routing.md#shard-cost-configuration) |
+| `OPENSEARCH_GO_SHARD_REQUESTS` | Bool or `min:max` | `true` (5:256) | Adaptive `max_concurrent_shard_requests` bounds. `true`/`false` enable/disable with defaults; `10:512`, `10:`, `:512`, or bare `10` set custom bounds. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
 
 ## Discovery
 
-| Variable                         | Accepted values       | Default     | Meaning                                                                                                       | See also                                                             |
-| -------------------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags | all enabled | Skip specific discovery calls. Flags: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats`. | [Routing: Configuration Reference](routing.md#routing-and-discovery) |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                  | `true`      | Seed URL fallback when all router pools are exhausted. Set `false` to disable.                                | [Routing: Configuration Reference](routing.md#routing-and-discovery) |
+| Variable                         | Accepted values       | Default     | Meaning                                                                                                       | See also                                                                       |
+| -------------------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags | all enabled | Skip specific discovery calls. Flags: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats`. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_FALLBACK`         | Bool                  | `true`      | Seed URL fallback when all router pools are exhausted. Set `false` to disable.                                | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
 
 ## Load shedding and stats polling
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_REQUEST_TIMEOUT` | Duration or seconds | `0` (none) | Per-attempt HTTP round-trip timeout. | [Security: Connection Timeouts](security.md#connection-timeouts) |
-| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto; negative = disabled. | [Routing: Load Shedding and Stats Polling](routing.md#load-shedding-and-stats-polling) |
-| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100) | `85` | JVM heap percentage at or above which a node is marked overloaded (comparison is `>=`). | [Routing: Load Shedding and Stats Polling](routing.md#load-shedding-and-stats-polling) |
-| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO` | Float (0.0-1.0] | `0.90` | Circuit-breaker `estimated_size / limit_size` ratio at or above which a node is marked overloaded (comparison is `>=`). Values outside `(0.0, 1.0]` are ignored. | [Routing: Load Shedding and Stats Polling](routing.md#load-shedding-and-stats-polling) |
+| `OPENSEARCH_GO_REQUEST_TIMEOUT` | Duration or seconds | `0` (none) | Per-attempt HTTP round-trip timeout. | [Security: Connection Timeouts](config-security.md#connection-timeouts) |
+| `OPENSEARCH_GO_NODE_STATS_INTERVAL` | Duration or seconds | auto (5s-30s) | Stats polling interval. `0` or unset = auto; negative = disabled. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
+| `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | Integer (0-100) | `85` | JVM heap percentage at or above which a node is marked overloaded (comparison is `>=`). | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
+| `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO` | Float (0.0-1.0] | `0.90` | Circuit-breaker `estimated_size / limit_size` ratio at or above which a node is marked overloaded (comparison is `>=`). Values outside `(0.0, 1.0]` are ignored. | [Routing: Load Shedding and Stats Polling](transport-routing.md#load-shedding-and-stats-polling) |
 
 ## Connection pool tuning
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_ACTIVE_LIST_CAP` | Integer | auto | Max active connections per pool. `0` or unset = auto-scale with cluster size. | [Routing: Connection Pool Lifecycle](routing.md#8-connection-pool-lifecycle) |
-| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `0` (use `DiscoverNodesInterval`) | Interval between standby rotation cycles. `0` or unset inherits the node-discovery interval; negative disables rotation. | [Routing: Connection Pool Lifecycle](routing.md#8-connection-pool-lifecycle) |
-| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT` | Integer | `1` | Standby connections rotated per cycle. | [Routing: Connection Pool Lifecycle](routing.md#8-connection-pool-lifecycle) |
-| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS` | Integer | `3` | Consecutive successful health checks required to promote a standby connection to active. | [Routing: Connection Pool Lifecycle](routing.md#8-connection-pool-lifecycle) |
+| `OPENSEARCH_GO_ACTIVE_LIST_CAP` | Integer | auto | Max active connections per pool. `0` or unset = auto-scale with cluster size. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
+| `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `0` (use `DiscoverNodesInterval`) | Interval between standby rotation cycles. `0` or unset inherits the node-discovery interval; negative disables rotation. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
+| `OPENSEARCH_GO_STANDBY_ROTATION_COUNT` | Integer | `1` | Standby connections rotated per cycle. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
+| `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS` | Integer | `3` | Consecutive successful health checks required to promote a standby connection to active. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
 
 ## Debug and diagnostics
 
@@ -94,7 +94,7 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_ERROR_MASK` | Comma-separated `+`/`-` tokens | version-dependent (v5+: report all) | Mask (ignore) specific categories of partial-failure errors. Tokens applied left-to-right starting from `Config.Errors`. Unrecognized tokens are silently dropped and logged when `OPENSEARCH_GO_DEBUG=true`. | [opensearchapi/README.md Partial Failure Errors](../opensearchapi/README.md#partial-failure-errors); [Error Handling](error_handling.md) |
+| `OPENSEARCH_GO_ERROR_MASK` | Comma-separated `+`/`-` tokens | version-dependent (v5+: report all) | Mask (ignore) specific categories of partial-failure errors. Tokens applied left-to-right starting from `Config.Errors`. Unrecognized tokens are silently dropped and logged when `OPENSEARCH_GO_DEBUG=true`. | [opensearchapi/README.md Partial Failure Errors](../opensearchapi/README.md#partial-failure-errors); [Error Handling](usage-error_handling.md) |
 
 ### `OPENSEARCH_GO_ERROR_MASK` tokens
 
@@ -171,7 +171,7 @@ OPENSEARCH_GO_POLICY_ROUTER=false    # plain role-based routing, no scoring
 
 Setting `true` is a no-op (same as unset — all policies are enabled by default).
 
-Overrides are applied once at startup and cannot be changed at runtime. See [Routing: Policy Override Variables](routing.md#policy-override-variables) for the full reference.
+Overrides are applied once at startup and cannot be changed at runtime. See [Routing: Policy Override Variables](transport-routing.md#policy-override-variables) for the full reference.
 
 ## Targeting specific policy instances (path matchers)
 

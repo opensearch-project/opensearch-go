@@ -16,7 +16,7 @@ This demo demonstrates the complete node discovery flow with request routing.
 ## Running
 
 ```bash
-go run discovery_demo.go
+go run transport-discovery_demo.go
 ```
 
 ## Key Features Demonstrated

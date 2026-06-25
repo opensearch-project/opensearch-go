@@ -1,8 +1,7 @@
 - [User Guide](#user-guide)
   - [Example](#example)
   - [Amazon OpenSearch Service](#amazon-opensearch-service)
-    - [AWS SDK v1](#aws-sdk-v1)
-    - [AWS SDK v2](#aws-sdk-v2)
+    - [AWS SDK (v2)](#aws-sdk-v2)
   - [Custom Transport](#custom-transport)
   - [Guides by Topic](#guides-by-topic)
 
@@ -47,7 +46,7 @@ func example() error {
 	}
 
 	// Surface partial failures (bulk item errors, shard failures) as Go
-	// errors. See guides/error_handling.md for the per-category bitmask.
+	// errors. See guides/usage-error_handling.md for the per-category bitmask.
 	errMask := errmask.Empty
 	discoverOnStart := true
 	client, err := opensearchapi.NewClient(
@@ -67,7 +66,7 @@ func example() error {
 			},
 
 			// Optional: Surface partial failures (bulk item errors, shard failures)
-			// as Go errors. See guides/error_handling.md for details.
+			// as Go errors. See guides/usage-error_handling.md for details.
 			Errors: &errMask,
 		},
 	)
@@ -230,88 +229,13 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 >
 > See [Managed Domains signing-service requests.](https://docs.aws.amazon.com/opensearch-service/latest/developerguide/ac.html#managedomains-signing-service-requests)
 
-Depending on the version of AWS SDK used, import the request signer from `signer/aws` (recommended) or `signer/awsv2`. Both signers use AWS SDK v2 and provide AWS Signature Version 4 (SigV4).
-
-**BREAKING CHANGE**: As of this version, the main `signer/aws` package has been migrated from AWS SDK v1 to AWS SDK v2 due to AWS SDK v1 reaching end-of-support on July 31, 2025.
+Import the request signer from `signer/awsv2`. It signs each request with AWS Signature Version 4 (SigV4) using AWS SDK for Go v2 and automatically discovers AWS credentials from the `~/.aws` folder or environment variables.
 
 To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
 
-Here are some Go samples that show how to sign each OpenSearch request and automatically search for AWS credentials from the ~/.aws folder or environment variables:
+The signer caches credentials so SigV4 signing does not call `Credentials.Retrieve` on every request, which matters most for STS-backed providers (assume-role, web identity, IRSA).
 
-### AWS SDK v2 (Recommended)
-
-**Migration Note**: If you were previously using `signer/aws` with AWS SDK v1, you need to update your imports and configuration as shown below.
-
-**Credential Caching**: The signer automatically enables credential caching for improved performance, especially when using STS credentials (assume role, web identity, etc.). This reduces API calls to AWS STS and improves signing performance.
-
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"os"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	requestsigner "github.com/opensearch-project/opensearch-go/v5/signer/aws"
-
-	"github.com/opensearch-project/opensearch-go/v5"
-	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
-)
-
-const IndexName = "go-test-index1"
-
-func main() {
-	if err := example(); err != nil {
-		fmt.Printf("Error: %s\n", err)
-		os.Exit(1)
-	}
-}
-
-const endpoint = "" // e.g. https://opensearch-domain.region.com
-
-func example() error {
-	ctx := context.Background()
-
-	// Load AWS configuration
-	awsCfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Create an AWS request Signer
-	signer, err := requestsigner.NewSignerWithService(awsCfg, requestsigner.OpenSearchService)
-	// Use requestsigner.OpenSearchServerless for Amazon OpenSearch Serverless
-	if err != nil {
-		return err
-	}
-
-	// Create an opensearch client and use the request-signer
-	client, err := opensearchapi.NewClient(
-		opensearchapi.Config{
-			Client: opensearch.Config{
-				Addresses: []string{endpoint},
-				Signer:    signer,
-			},
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-    ping, err := client.Ping(ctx, nil)
-    if err != nil {
-        return err
-    }
-
-	fmt.Println(ping)
-
-	return nil
-}
-```
-
-### Alternative: Using signer/awsv2
+### AWS SDK (v2)
 
 Use the AWS SDK v2 for Go to authenticate with Amazon OpenSearch service.
 
@@ -544,26 +468,26 @@ OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
 OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
-Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/routing.md#policy-override-variables) for full documentation.
+Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
 
 ## Environment Variables
 
-All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. The canonical reference for every variable — accepted values, defaults, meanings, and the tokens accepted by `OPENSEARCH_GO_ERROR_MASK` — is [guides/envvars.md](guides/envvars.md). The sections below link to the relevant categories in that guide.
+All `OPENSEARCH_GO_*` environment variables are evaluated once at client initialization and are immutable after. The canonical reference for every variable — accepted values, defaults, meanings, and the tokens accepted by `OPENSEARCH_GO_ERROR_MASK` — is [guides/config-envvars.md](guides/config-envvars.md). The sections below link to the relevant categories in that guide.
 
 ## Guides by Topic
 
-- [**Security**](guides/security.md) - TLS, credentials, input validation, index patterns, error disclosure
-- [Index Lifecycle](guides/index_lifecycle.md)
-- [Document Lifecycle](guides/document_lifecycle.md)
-- [Search](guides/search.md)
-- [Bulk](guides/bulk.md)
-- [Advanced Index Actions](guides/advanced_index_actions.md)
-- [Index Templates](guides/index_template.md)
-- [Data Streams](guides/data_streams.md)
-- [Making Raw JSON REST Requests](guides/json.md)
-- [Request Routing](guides/routing.md)
-- [Cluster Health Checking](guides/cluster_health_checking.md)
-- [Node Discovery and Role Management](guides/node_discovery_and_roles.md)
-- [Response Body Buffering](guides/response_buffering.md)
-- [Retry and Backoff](guides/retry_backoff.md)
-- [Error Handling](guides/error_handling.md)
+- [**Security**](guides/config-security.md) - TLS, credentials, input validation, index patterns, error disclosure
+- [Index Lifecycle](guides/indexing-index_lifecycle.md)
+- [Document Lifecycle](guides/indexing-document_lifecycle.md)
+- [Search](guides/usage-search.md)
+- [Bulk](guides/indexing-bulk.md)
+- [Advanced Index Actions](guides/indexing-advanced_index_actions.md)
+- [Index Templates](guides/indexing-index_template.md)
+- [Data Streams](guides/indexing-data_streams.md)
+- [Making Raw JSON REST Requests](guides/usage-json.md)
+- [Request Routing](guides/transport-routing.md)
+- [Cluster Health Checking](guides/transport-cluster_health_checking.md)
+- [Node Discovery and Role Management](guides/transport-node_discovery_and_roles.md)
+- [Response Body Buffering](guides/transport-response_buffering.md)
+- [Retry and Backoff](guides/transport-retry_backoff.md)
+- [Error Handling](guides/usage-error_handling.md)

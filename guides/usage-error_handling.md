@@ -1,6 +1,6 @@
 # Error Handling and Partial Failures
 
-> **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](security.md#request-body-construction) for details.
+> **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](config-security.md#request-body-construction) for details.
 
 ## Overview
 
@@ -8,7 +8,7 @@ OpenSearch is a distributed system in which operations may partially succeed. Un
 
 **Important**: HTTP 2xx status codes do not always indicate complete success. Many operations return HTTP 200 or 201 even when portions of the operation failed.
 
-This guide covers **application-level** partial failure detection: inspecting response bodies for errors that HTTP status codes do not reveal. For **transport-level** retry and connection resurrection (behavior when a node is unreachable), see [retry_backoff.md](retry_backoff.md).
+This guide covers **application-level** partial failure detection: inspecting response bodies for errors that HTTP status codes do not reveal. For **transport-level** retry and connection resurrection (behavior when a node is unreachable), see [transport-retry_backoff.md](transport-retry_backoff.md).
 
 ## Understanding OpenSearch's Partial Success Model
 
@@ -36,7 +36,7 @@ This design maximizes availability but requires careful error checking in client
 
 Configure the client's error mask to control which categories of partial failure surface as typed Go errors. By default, partial failures surface as typed errors automatically (`Config.Errors == nil` resolves to `errmask.Empty`). To suppress them and restore the older mask-everything behavior, set `Config.Errors: errmask.New(errmask.All)` or use the `OPENSEARCH_GO_ERROR_MASK` environment variable.
 
-> **Where category names come from.** Partial-failure categories (`BulkItems`, `SearchShards`, `WriteShards`, `MultiSearchItems`, ...) are stable identifiers in the client surface. The bit constant on `errmask` uses the PascalCase form (`errmask.BulkItems`); the env-var token is the lowercase snake_case form (`bulk_items`, `search_shards`, `write_shards`). The categories are derived from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), but you do not need to read the spec to use them -- the [Error Type Reference](#error-type-reference) below lists every Go type, and the exhaustive token list for `OPENSEARCH_GO_ERROR_MASK` (with accepted values, defaults, and examples) is in [envvars.md](envvars.md#opensearch_go_error_mask-tokens).
+> **Where category names come from.** Partial-failure categories (`BulkItems`, `SearchShards`, `WriteShards`, `MultiSearchItems`, ...) are stable identifiers in the client surface. The bit constant on `errmask` uses the PascalCase form (`errmask.BulkItems`); the env-var token is the lowercase snake_case form (`bulk_items`, `search_shards`, `write_shards`). The categories are derived from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), but you do not need to read the spec to use them -- the [Error Type Reference](#error-type-reference) below lists every Go type, and the exhaustive token list for `OPENSEARCH_GO_ERROR_MASK` (with accepted values, defaults, and examples) is in [config-envvars.md](config-envvars.md#opensearch_go_error_mask-tokens).
 
 ```go
 mask := errmask.Empty // report every category
@@ -265,7 +265,7 @@ The error types expose top-level fields directly. The internal field types are g
 | Per-sub-response error envelope | embedded `ErrorRespBase` |
 | Shard envelope on responses     | `ShardStatistics`        |
 
-Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) needs nothing further. Code that walks the per-shard failure slice uses the `ShardSearchFailure` element type. Multi-index `Req` types use the `Index` field (e.g. `SearchReq.Index []string`); see [`opensearchapi/MIGRATING.md`](../opensearchapi/MIGRATING.md) for the full surface delta.
+Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) needs nothing further. Code that walks the per-shard failure slice uses the `ShardSearchFailure` element type. Multi-index `Req` types use the `Index` field (e.g. `SearchReq.Index []string`); see [`opensearchapi/UPGRADING_V4_TO_V5.md`](../opensearchapi/UPGRADING_V4_TO_V5.md) for the full surface delta.
 
 ---
 
@@ -275,7 +275,7 @@ When the relevant wrapper bits are masked, callers must inspect response fields 
 
 ### 1. Bulk Operations
 
-Bulk operations always return HTTP 200, even if every individual item failed. When a server-side timeout fires mid-bulk (see [Bulk: Timeout Configuration](bulk.md#timeout-configuration)), the response contains a mix of successful items and items with `timeout_exception` errors -- a partial failure that is invisible to HTTP status code checks alone.
+Bulk operations always return HTTP 200, even if every individual item failed. When a server-side timeout fires mid-bulk (see [Bulk: Timeout Configuration](indexing-bulk.md#timeout-configuration)), the response contains a mix of successful items and items with `timeout_exception` errors -- a partial failure that is invisible to HTTP status code checks alone.
 
 ```go
 package main
@@ -599,14 +599,14 @@ func bulkItemResult(item opensearchapi.BulkItem) *opensearchapi.BulkRespItem {
 
 ### Retrying after context deadline errors requires a server-side timeout
 
-Retrying a bulk request after `context.DeadlineExceeded` is safe only when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server likely continues processing the original request after the client gives up. Each retry can add another concurrent bulk operation targeting the same primary shards, potentially exhausting thread pools and triggering `es_rejected_execution_exception` across the cluster. See [Bulk: Why missing server-side timeouts can cause cascading overload](bulk.md#why-missing-server-side-timeouts-can-cause-cascading-overload) for the full failure sequence.
+Retrying a bulk request after `context.DeadlineExceeded` is safe only when the original request included a server-side timeout (`BulkParams.Timeout`). Without one, the server likely continues processing the original request after the client gives up. Each retry can add another concurrent bulk operation targeting the same primary shards, potentially exhausting thread pools and triggering `es_rejected_execution_exception` across the cluster. See [Bulk: Why missing server-side timeouts can cause cascading overload](indexing-bulk.md#why-missing-server-side-timeouts-can-cause-cascading-overload) for the full failure sequence.
 
 When implementing retry logic for bulk operations:
 
 - **Always set `BulkParams.Timeout`** shorter than the client-side context deadline. This ensures the server aborts incomplete shard operations before the client retries.
 - **Do not retry on `context.DeadlineExceeded` if no server-side timeout was set.** The original request is likely still running. Retrying compounds the problem.
 - **Retry only the failed items**, not the entire batch. Items that succeeded in the original request do not need to be resubmitted (resubmitting may cause version conflicts or duplicate documents depending on whether document IDs are set).
-- **Set client-assigned `_id` values on bulk items.** After a timeout or ambiguous failure, the client can query for expected document IDs to determine which items were persisted, turning a blind retry into a targeted one. See [Bulk: Use client-assigned document IDs for recoverability](bulk.md#use-client-assigned-document-ids-for-recoverability).
+- **Set client-assigned `_id` values on bulk items.** After a timeout or ambiguous failure, the client can query for expected document IDs to determine which items were persisted, turning a blind retry into a targeted one. See [Bulk: Use client-assigned document IDs for recoverability](indexing-bulk.md#use-client-assigned-document-ids-for-recoverability).
 
 ### 5. Monitor Partial Failure Rates
 
@@ -655,14 +655,14 @@ func (m *OperationMetrics) Report() {
 
 ### Bulk Operation Errors
 
-| Error Type                          | Description                        | Retryable? | Action                                                                  |
-| ----------------------------------- | ---------------------------------- | ---------- | ----------------------------------------------------------------------- |
-| `mapper_parsing_exception`          | Invalid document format            | No         | Fix document                                                            |
-| `version_conflict_engine_exception` | Version conflict                   | Maybe      | Retry with updated version                                              |
-| `document_missing_exception`        | Document not found (update/delete) | No         | Skip or create                                                          |
-| `es_rejected_execution_exception`   | Queue full                         | Yes        | Retry with backoff                                                      |
-| `circuit_breaking_exception`        | Circuit breaker tripped            | Yes        | Retry with backoff                                                      |
-| `timeout_exception`                 | Operation timeout                  | Yes        | Retry; see [Bulk: Timeout Configuration](bulk.md#timeout-configuration) |
+| Error Type                          | Description                        | Retryable? | Action                                                                           |
+| ----------------------------------- | ---------------------------------- | ---------- | -------------------------------------------------------------------------------- |
+| `mapper_parsing_exception`          | Invalid document format            | No         | Fix document                                                                     |
+| `version_conflict_engine_exception` | Version conflict                   | Maybe      | Retry with updated version                                                       |
+| `document_missing_exception`        | Document not found (update/delete) | No         | Skip or create                                                                   |
+| `es_rejected_execution_exception`   | Queue full                         | Yes        | Retry with backoff                                                               |
+| `circuit_breaking_exception`        | Circuit breaker tripped            | Yes        | Retry with backoff                                                               |
+| `timeout_exception`                 | Operation timeout                  | Yes        | Retry; see [Bulk: Timeout Configuration](indexing-bulk.md#timeout-configuration) |
 
 ### Shard Failure Reasons
 

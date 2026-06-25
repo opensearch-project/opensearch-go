@@ -2,7 +2,7 @@
 
 The Go client performs active health checks using a two-phase approach: it begins with `GET /` (which requires no special permissions) and asynchronously probes `GET /_cluster/health?local=true` to determine whether richer health data is available. This guide covers how capability detection works, the permissions required when the OpenSearch Security plugin is enabled, and how to interpret the response.
 
-For health check **timing and backoff**, see [retry_backoff.md](retry_backoff.md). For health check **routing** (which node receives the probe), see [routing.md](routing.md).
+For health check **timing and backoff**, see [transport-retry_backoff.md](transport-retry_backoff.md). For health check **routing** (which node receives the probe), see [transport-routing.md](transport-routing.md).
 
 ## Capability Detection Lifecycle
 
@@ -165,7 +165,7 @@ The client uses poll-and-parse instead: issue the request, read the `status` fie
 
 When interpreting health check results, it is important to distinguish between:
 
-- **Connectivity errors** (connection refused, TCP timeout): The node may be down. The client should mark the connection as dead and schedule resurrection per the backoff policy described in [retry_backoff.md](retry_backoff.md).
+- **Connectivity errors** (connection refused, TCP timeout): The node may be down. The client should mark the connection as dead and schedule resurrection per the backoff policy described in [transport-retry_backoff.md](transport-retry_backoff.md).
 - **401/403 responses**: The node is reachable and responsive, but the client's credentials are incorrect or insufficient. The client should **not** mark the connection as dead; the cluster is healthy, and the problem is client configuration. These errors should be surfaced clearly so the operator can correct credentials or role mappings.
 
 ## Required Permissions
@@ -174,7 +174,7 @@ Without the OpenSearch Security plugin, all requests are permitted and no authen
 
 When the Security plugin is enabled, the health check endpoint requires the `cluster:monitor/health` transport action privilege. This is a read-only monitoring action. The `local=true` parameter does not alter the permission check; the same privilege is required regardless.
 
-Health checking is one of several background monitoring features. For the complete set of `cluster:monitor/*` privileges the default router, node discovery, and stats-based congestion control require -- and a copy-paste least-privilege role covering all of them -- see [Cluster Permissions for Routing and Discovery](security.md#cluster-permissions-for-routing-and-discovery).
+Health checking is one of several background monitoring features. For the complete set of `cluster:monitor/*` privileges the default router, node discovery, and stats-based congestion control require -- and a copy-paste least-privilege role covering all of them -- see [Cluster Permissions for Routing and Discovery](config-security.md#cluster-permissions-for-routing-and-discovery).
 
 ### Client Authentication
 
@@ -207,7 +207,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 **TLS Client Certificates (mutual TLS):**
 
-> **Important:** When constructing a custom `http.Transport`, you lose `http.DefaultTransport` defaults (connection pooling, HTTP/2, timeouts). Use `http.DefaultTransport.(*http.Transport).Clone()` as your starting point and modify the clone. See [Custom Transport](#custom-transport) in the User Guide.
+> **Important:** When constructing a custom `http.Transport`, you lose `http.DefaultTransport` defaults (connection pooling, HTTP/2, timeouts). Use `http.DefaultTransport.(*http.Transport).Clone()` as your starting point and modify the clone. See [Custom Transport](../USER_GUIDE.md#custom-transport) in the User Guide.
 
 ```go
 cert, _ := tls.LoadX509KeyPair("client.crt", "client.key")

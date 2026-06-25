@@ -249,6 +249,6 @@ The metrics API is pull-based: call `client.Metrics()` inside your collector's `
 
 ## Observer API
 
-For event-driven observability (as opposed to polling), implement the `opensearchtransport.ConnectionObserver` interface and set it on the `Observer` field of `opensearch.Config`. The observer receives callbacks for connection lifecycle events (promote, demote, overload), routing decisions, health checks, and shard map invalidations. See the [routing guide](routing.md) for details on observer events.
+For event-driven observability (as opposed to polling), implement the `opensearchtransport.ConnectionObserver` interface and set it on the `Observer` field of `opensearch.Config`. The observer receives callbacks for connection lifecycle events (promote, demote, overload), routing decisions, health checks, and shard map invalidations. See the [routing guide](transport-routing.md) for details on observer events.
 
 The metrics API and observer API are complementary: metrics give you aggregate snapshots for dashboards, while the observer gives you per-event detail for tracing and debugging.

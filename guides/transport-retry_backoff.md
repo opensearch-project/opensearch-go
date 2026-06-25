@@ -94,7 +94,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 
 ## Dead Connection Resurrection
 
-For details on the health check endpoint -- response fields, HTTP status codes, required permissions, and security configuration -- see [cluster_health_checking.md](cluster_health_checking.md).
+For details on the health check endpoint -- response fields, HTTP status codes, required permissions, and security configuration -- see [transport-cluster_health_checking.md](transport-cluster_health_checking.md).
 
 When a node becomes unreachable, the client marks it as dead and schedules periodic resurrection attempts using exponential backoff. The retry interval adapts to cluster health: the client is aggressive when all nodes are down (to recover capacity quickly) and conservative when the cluster is mostly healthy (to avoid TLS handshake storms on recovering servers).
 

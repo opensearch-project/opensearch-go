@@ -377,7 +377,7 @@ if err != nil {
 }
 ```
 
-For structured error inspection without string parsing, see the [Error Handling](error_handling.md) guide.
+For structured error inspection without string parsing, see the [Error Handling](usage-error_handling.md) guide.
 
 ## Network and Transport Configuration
 
@@ -454,7 +454,7 @@ The built-in `cluster_monitor` role (which grants `cluster:monitor/*`) is a supe
 Each feature fails closed and independently, so a partial privilege set is safe:
 
 - **No privileges at all**: the client still works. It uses `GET /` for baseline health and routes without topology, stats, or shard awareness (round-robin with coordinating-node preference).
-- **Only `cluster:monitor/health`**: adds health-based node avoidance. See [Cluster Health Checking](cluster_health_checking.md#required-permissions) for the full capability-detection lifecycle and the minimal health-only role.
+- **Only `cluster:monitor/health`**: adds health-based node avoidance. See [Cluster Health Checking](transport-cluster_health_checking.md#required-permissions) for the full capability-detection lifecycle and the minimal health-only role.
 - **Missing `cluster:monitor/nodes/stats`**: discovery and shard routing still work; the congestion window stays at its default instead of adapting to node load.
 - **A privilege revoked at runtime**: a `401`/`403` on a monitoring call disables only that feature, retried later; in-flight requests are unaffected.
 
