@@ -1,0 +1,12 @@
+---
+name: Backport
+on:
+  pull_request_target:
+    types: [closed, labeled]
+
+jobs:
+  backport:
+    if: github.repository == 'opensearch-project/opensearch-go'
+    uses: opensearch-project/opensearch-build/.github/workflows/backport-pr.yml@main
+    secrets:
+      OPENSEARCH_CI_BOT_TOKEN: ${{ secrets.OPENSEARCH_CI_BOT_TOKEN }}
