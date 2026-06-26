@@ -212,14 +212,14 @@ type Type struct {
 	// the concrete type the caller requested, on demand.
 	LazyAccessors bool
 
-	// EnumMembers holds the members of a TypeEnum (string-backed enum): each
+	// EnumMembers holds the members of a TypeEnum (int-backed iota enum): each
 	// pairs the Go const identifier with its wire value. Empty for all other
 	// kinds.
 	EnumMembers []EnumMember
 }
 
-// EnumMember is one member of a string-backed enum: a generated const of the
-// enum's named string type bound to its wire value.
+// EnumMember is one member of an int-backed iota enum: a generated const of the
+// enum's named int type bound to its wire value.
 type EnumMember struct {
 	ConstName string // Go const identifier, e.g. "RestStatusNotFound"
 	Value     string // wire value, e.g. "NOT_FOUND"
@@ -273,7 +273,7 @@ const (
 	TypeStruct    TypeKind = iota // plain struct with fields
 	TypeUnion                     // byte-prefix discriminated union (token class dispatch)
 	TypeLazyUnion                 // lazy-decode union (stores raw JSON, decodes on accessor)
-	TypeEnum                      // string-backed enum (named string type + const block)
+	TypeEnum                      // int-backed iota enum (named int type + const block)
 )
 
 // TypeScope determines where a type is emitted.

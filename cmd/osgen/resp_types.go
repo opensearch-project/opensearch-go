@@ -46,7 +46,7 @@ type goType struct {
 	IsShared   bool          // true for types emitted to types_gen.go (shared across operations)
 	IsUnion    bool          // true for discriminated union types (oneOf/anyOf)
 	IsLazy     bool          // lazy-decode union (stores raw, decodes on accessor call)
-	IsEnum     bool          // true for string-backed enum types (x-enum-name marker)
+	IsEnum     bool          // true for int-backed iota enum types (x-enum-name marker)
 	Branches   []unionBranch // union branches (only populated when IsUnion)
 	EnumValues []string      // allowed wire values (only populated when IsEnum)
 	Comment    string        // type doc comment

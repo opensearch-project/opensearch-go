@@ -1,5 +1,5 @@
 # osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.
-# Regenerate with: make gen-api ARGS=-update-raw-message-allowlist
+# Regenerate by re-running `cmd/osgen` with `-update-raw-message-allowlist`.
 #
 # Each line is a permitted json.RawMessage use, keyed "GoTypeName/jsonFieldName".
 # Whole-response raw bodies use "<Prefix>Resp/-"; map/array responses whose

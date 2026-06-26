@@ -48,7 +48,7 @@ const (
 
 	// extEnumName opts a string schema into typed-enum generation and names the
 	// generated Go type. When present alongside a non-empty enum: constraint, the
-	// walker emits a string-backed enum type (type <name> string + a const block
+	// walker emits an int-backed iota enum type (type <name> int + a const block
 	// of the allowed values) instead of a plain string. Used to type fields whose
 	// wire value is a closed set of names (e.g. security status -> RestStatus).
 	extEnumName = "x-enum-name"

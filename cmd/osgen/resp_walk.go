@@ -504,7 +504,7 @@ func isCollectionType(goType string) bool {
 // resolveStringEnum handles a string schema that opts into typed-enum
 // generation via the x-enum-name extension. When the marker is present and the
 // schema carries a non-empty enum: constraint, it registers a shared
-// string-backed enum type (named by the marker) and returns its Go name. The
+// int-backed iota enum type (named by the marker) and returns its Go name. The
 // type is registered once and reused across every field that references it
 // (e.g. security status across all security responses). Returns ("", false)
 // when the schema does not opt in, so the caller falls back to a plain string.
@@ -760,6 +760,15 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 	}
 	if len(schema.AllOf) != 0 || isRespBody {
 		return "", false
+	}
+	// A string schema carrying x-enum-name opts into a typed enum even when it
+	// arrives here via a component $ref (resolveInlineSchema's inline-string
+	// branch is bypassed for $ref'd schemas). Check before the plain-primitive
+	// fallback so the marker is honored on either path.
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeString) {
+		if name, ok := w.resolveStringEnum(schema, group); ok {
+			return name, true
+		}
 	}
 	if goType := primitiveGoType(schema); goType != "" {
 		return goType, true

@@ -259,7 +259,7 @@ func loadRawMessageAllowlist(path string) (map[string]struct{}, error) {
 func writeRawMessageAllowlist(path string, uses []rawUse) (bool, error) {
 	var b strings.Builder
 	b.WriteString("# osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.\n")
-	b.WriteString("# Regenerate with: make gen-api ARGS=-update-raw-message-allowlist\n")
+	b.WriteString("# Regenerate by re-running `cmd/osgen` with `-update-raw-message-allowlist`.\n")
 	b.WriteString("#\n")
 	b.WriteString("# Each line is a permitted json.RawMessage use, keyed \"GoTypeName/jsonFieldName\".\n")
 	b.WriteString("# Whole-response raw bodies use \"<Prefix>Resp/-\"; map/array responses whose\n")

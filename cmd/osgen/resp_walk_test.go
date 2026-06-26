@@ -61,7 +61,7 @@ func TestWalkerPrimitiveTypes(t *testing.T) {
 }
 
 // TestWalkerStringEnum covers the x-enum-name opt-in: a string schema carrying
-// the marker plus an enum: constraint resolves to a registered string-backed
+// the marker plus an enum: constraint resolves to a registered int-backed iota
 // enum type; without the marker (or without values) it stays a plain string.
 func TestWalkerStringEnum(t *testing.T) {
 	t.Parallel()
@@ -196,6 +196,34 @@ func TestWalkerStringEnumShared(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestWalkerStringEnumViaRef covers the x-enum-name opt-in arriving through a
+// component $ref rather than an inline string. A $ref'd string schema bypasses
+// resolveInlineSchema's inline-string branch and reaches resolvePropertylessSchema,
+// which must consult the marker before the plain-primitive fallback; otherwise
+// the enum marker is silently lost and the field emits a plain string.
+func TestWalkerStringEnumViaRef(t *testing.T) {
+	t.Parallel()
+
+	reg := newTypeRegistry(opensearchAPIPkgName)
+	w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+	enumSchema := openapi3.NewStringSchema()
+	enumSchema.Enum = []any{"OK", "NOT_FOUND"}
+	enumSchema.Extensions = map[string]any{extEnumName: "RestStatus"}
+
+	ref := &openapi3.SchemaRef{
+		Ref:   "#/components/schemas/_common___RestStatus",
+		Value: enumSchema,
+	}
+	got := w.walkSchema(ref, "security___Status", "security", false)
+	require.Equal(t, "RestStatus", got)
+
+	registered, ok := reg.lookup("_common___RestStatus")
+	require.True(t, ok, "enum type should be registered even when reached via $ref")
+	require.True(t, registered.IsEnum)
+	require.Equal(t, []string{"OK", "NOT_FOUND"}, registered.EnumValues)
 }
 
 func TestWalkerArrayType(t *testing.T) {
