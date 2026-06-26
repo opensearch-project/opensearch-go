@@ -18,155 +18,155 @@ type RestStatus int
 
 const (
 	RestStatusUnknown RestStatus = iota
-	RestStatusContinue
-	RestStatusSwitchingProtocols
-	RestStatusOk
-	RestStatusCreated
 	RestStatusAccepted
-	RestStatusNonAuthoritativeInformation
-	RestStatusNoContent
-	RestStatusResetContent
-	RestStatusPartialContent
-	RestStatusMultiStatus
-	RestStatusMultipleChoices
-	RestStatusMovedPermanently
-	RestStatusFound
-	RestStatusSeeOther
-	RestStatusNotModified
-	RestStatusUseProxy
-	RestStatusTemporaryRedirect
-	RestStatusBadRequest
-	RestStatusUnauthorized
-	RestStatusPaymentRequired
-	RestStatusForbidden
-	RestStatusNotFound
-	RestStatusMethodNotAllowed
-	RestStatusNotAcceptable
-	RestStatusProxyAuthentication
-	RestStatusRequestTimeout
-	RestStatusConflict
-	RestStatusGone
-	RestStatusLengthRequired
-	RestStatusPreconditionFailed
-	RestStatusRequestEntityTooLarge
-	RestStatusRequestURITooLong
-	RestStatusUnsupportedMediaType
-	RestStatusRequestedRangeNotSatisfied
-	RestStatusExpectationFailed
-	RestStatusMisdirectedRequest
-	RestStatusUnprocessableEntity
-	RestStatusLocked
-	RestStatusFailedDependency
-	RestStatusTooManyRequests
-	RestStatusInternalServerError
-	RestStatusNotImplemented
 	RestStatusBadGateway
-	RestStatusServiceUnavailable
+	RestStatusBadRequest
+	RestStatusConflict
+	RestStatusContinue
+	RestStatusCreated
+	RestStatusExpectationFailed
+	RestStatusFailedDependency
+	RestStatusForbidden
+	RestStatusFound
 	RestStatusGatewayTimeout
+	RestStatusGone
 	RestStatusHTTPVersionNotSupported
 	RestStatusInsufficientStorage
+	RestStatusInternalServerError
+	RestStatusLengthRequired
+	RestStatusLocked
+	RestStatusMethodNotAllowed
+	RestStatusMisdirectedRequest
+	RestStatusMovedPermanently
+	RestStatusMultipleChoices
+	RestStatusMultiStatus
+	RestStatusNonAuthoritativeInformation
+	RestStatusNotAcceptable
+	RestStatusNotFound
+	RestStatusNotImplemented
+	RestStatusNotModified
+	RestStatusNoContent
+	RestStatusOk
+	RestStatusPartialContent
+	RestStatusPaymentRequired
+	RestStatusPreconditionFailed
+	RestStatusProxyAuthentication
+	RestStatusRequestedRangeNotSatisfied
+	RestStatusRequestEntityTooLarge
+	RestStatusRequestTimeout
+	RestStatusRequestURITooLong
+	RestStatusResetContent
+	RestStatusSeeOther
+	RestStatusServiceUnavailable
+	RestStatusSwitchingProtocols
+	RestStatusTemporaryRedirect
+	RestStatusTooManyRequests
+	RestStatusUnauthorized
+	RestStatusUnprocessableEntity
+	RestStatusUnsupportedMediaType
+	RestStatusUseProxy
 )
 
 //nolint:gochecknoglobals // generated read-only enum lookup table
 var restStatusNames = map[RestStatus]string{
-	RestStatusContinue:                    "CONTINUE",
-	RestStatusSwitchingProtocols:          "SWITCHING_PROTOCOLS",
-	RestStatusOk:                          "OK",
-	RestStatusCreated:                     "CREATED",
 	RestStatusAccepted:                    "ACCEPTED",
-	RestStatusNonAuthoritativeInformation: "NON_AUTHORITATIVE_INFORMATION",
-	RestStatusNoContent:                   "NO_CONTENT",
-	RestStatusResetContent:                "RESET_CONTENT",
-	RestStatusPartialContent:              "PARTIAL_CONTENT",
-	RestStatusMultiStatus:                 "MULTI_STATUS",
-	RestStatusMultipleChoices:             "MULTIPLE_CHOICES",
-	RestStatusMovedPermanently:            "MOVED_PERMANENTLY",
-	RestStatusFound:                       "FOUND",
-	RestStatusSeeOther:                    "SEE_OTHER",
-	RestStatusNotModified:                 "NOT_MODIFIED",
-	RestStatusUseProxy:                    "USE_PROXY",
-	RestStatusTemporaryRedirect:           "TEMPORARY_REDIRECT",
-	RestStatusBadRequest:                  "BAD_REQUEST",
-	RestStatusUnauthorized:                "UNAUTHORIZED",
-	RestStatusPaymentRequired:             "PAYMENT_REQUIRED",
-	RestStatusForbidden:                   "FORBIDDEN",
-	RestStatusNotFound:                    "NOT_FOUND",
-	RestStatusMethodNotAllowed:            "METHOD_NOT_ALLOWED",
-	RestStatusNotAcceptable:               "NOT_ACCEPTABLE",
-	RestStatusProxyAuthentication:         "PROXY_AUTHENTICATION",
-	RestStatusRequestTimeout:              "REQUEST_TIMEOUT",
-	RestStatusConflict:                    "CONFLICT",
-	RestStatusGone:                        "GONE",
-	RestStatusLengthRequired:              "LENGTH_REQUIRED",
-	RestStatusPreconditionFailed:          "PRECONDITION_FAILED",
-	RestStatusRequestEntityTooLarge:       "REQUEST_ENTITY_TOO_LARGE",
-	RestStatusRequestURITooLong:           "REQUEST_URI_TOO_LONG",
-	RestStatusUnsupportedMediaType:        "UNSUPPORTED_MEDIA_TYPE",
-	RestStatusRequestedRangeNotSatisfied:  "REQUESTED_RANGE_NOT_SATISFIED",
-	RestStatusExpectationFailed:           "EXPECTATION_FAILED",
-	RestStatusMisdirectedRequest:          "MISDIRECTED_REQUEST",
-	RestStatusUnprocessableEntity:         "UNPROCESSABLE_ENTITY",
-	RestStatusLocked:                      "LOCKED",
-	RestStatusFailedDependency:            "FAILED_DEPENDENCY",
-	RestStatusTooManyRequests:             "TOO_MANY_REQUESTS",
-	RestStatusInternalServerError:         "INTERNAL_SERVER_ERROR",
-	RestStatusNotImplemented:              "NOT_IMPLEMENTED",
 	RestStatusBadGateway:                  "BAD_GATEWAY",
-	RestStatusServiceUnavailable:          "SERVICE_UNAVAILABLE",
+	RestStatusBadRequest:                  "BAD_REQUEST",
+	RestStatusConflict:                    "CONFLICT",
+	RestStatusContinue:                    "CONTINUE",
+	RestStatusCreated:                     "CREATED",
+	RestStatusExpectationFailed:           "EXPECTATION_FAILED",
+	RestStatusFailedDependency:            "FAILED_DEPENDENCY",
+	RestStatusForbidden:                   "FORBIDDEN",
+	RestStatusFound:                       "FOUND",
 	RestStatusGatewayTimeout:              "GATEWAY_TIMEOUT",
+	RestStatusGone:                        "GONE",
 	RestStatusHTTPVersionNotSupported:     "HTTP_VERSION_NOT_SUPPORTED",
 	RestStatusInsufficientStorage:         "INSUFFICIENT_STORAGE",
+	RestStatusInternalServerError:         "INTERNAL_SERVER_ERROR",
+	RestStatusLengthRequired:              "LENGTH_REQUIRED",
+	RestStatusLocked:                      "LOCKED",
+	RestStatusMethodNotAllowed:            "METHOD_NOT_ALLOWED",
+	RestStatusMisdirectedRequest:          "MISDIRECTED_REQUEST",
+	RestStatusMovedPermanently:            "MOVED_PERMANENTLY",
+	RestStatusMultipleChoices:             "MULTIPLE_CHOICES",
+	RestStatusMultiStatus:                 "MULTI_STATUS",
+	RestStatusNonAuthoritativeInformation: "NON_AUTHORITATIVE_INFORMATION",
+	RestStatusNotAcceptable:               "NOT_ACCEPTABLE",
+	RestStatusNotFound:                    "NOT_FOUND",
+	RestStatusNotImplemented:              "NOT_IMPLEMENTED",
+	RestStatusNotModified:                 "NOT_MODIFIED",
+	RestStatusNoContent:                   "NO_CONTENT",
+	RestStatusOk:                          "OK",
+	RestStatusPartialContent:              "PARTIAL_CONTENT",
+	RestStatusPaymentRequired:             "PAYMENT_REQUIRED",
+	RestStatusPreconditionFailed:          "PRECONDITION_FAILED",
+	RestStatusProxyAuthentication:         "PROXY_AUTHENTICATION",
+	RestStatusRequestedRangeNotSatisfied:  "REQUESTED_RANGE_NOT_SATISFIED",
+	RestStatusRequestEntityTooLarge:       "REQUEST_ENTITY_TOO_LARGE",
+	RestStatusRequestTimeout:              "REQUEST_TIMEOUT",
+	RestStatusRequestURITooLong:           "REQUEST_URI_TOO_LONG",
+	RestStatusResetContent:                "RESET_CONTENT",
+	RestStatusSeeOther:                    "SEE_OTHER",
+	RestStatusServiceUnavailable:          "SERVICE_UNAVAILABLE",
+	RestStatusSwitchingProtocols:          "SWITCHING_PROTOCOLS",
+	RestStatusTemporaryRedirect:           "TEMPORARY_REDIRECT",
+	RestStatusTooManyRequests:             "TOO_MANY_REQUESTS",
+	RestStatusUnauthorized:                "UNAUTHORIZED",
+	RestStatusUnprocessableEntity:         "UNPROCESSABLE_ENTITY",
+	RestStatusUnsupportedMediaType:        "UNSUPPORTED_MEDIA_TYPE",
+	RestStatusUseProxy:                    "USE_PROXY",
 }
 
 //nolint:gochecknoglobals // generated read-only enum lookup table
 var restStatusValues = map[string]RestStatus{
-	"CONTINUE":                      RestStatusContinue,
-	"SWITCHING_PROTOCOLS":           RestStatusSwitchingProtocols,
-	"OK":                            RestStatusOk,
-	"CREATED":                       RestStatusCreated,
 	"ACCEPTED":                      RestStatusAccepted,
-	"NON_AUTHORITATIVE_INFORMATION": RestStatusNonAuthoritativeInformation,
-	"NO_CONTENT":                    RestStatusNoContent,
-	"RESET_CONTENT":                 RestStatusResetContent,
-	"PARTIAL_CONTENT":               RestStatusPartialContent,
-	"MULTI_STATUS":                  RestStatusMultiStatus,
-	"MULTIPLE_CHOICES":              RestStatusMultipleChoices,
-	"MOVED_PERMANENTLY":             RestStatusMovedPermanently,
-	"FOUND":                         RestStatusFound,
-	"SEE_OTHER":                     RestStatusSeeOther,
-	"NOT_MODIFIED":                  RestStatusNotModified,
-	"USE_PROXY":                     RestStatusUseProxy,
-	"TEMPORARY_REDIRECT":            RestStatusTemporaryRedirect,
-	"BAD_REQUEST":                   RestStatusBadRequest,
-	"UNAUTHORIZED":                  RestStatusUnauthorized,
-	"PAYMENT_REQUIRED":              RestStatusPaymentRequired,
-	"FORBIDDEN":                     RestStatusForbidden,
-	"NOT_FOUND":                     RestStatusNotFound,
-	"METHOD_NOT_ALLOWED":            RestStatusMethodNotAllowed,
-	"NOT_ACCEPTABLE":                RestStatusNotAcceptable,
-	"PROXY_AUTHENTICATION":          RestStatusProxyAuthentication,
-	"REQUEST_TIMEOUT":               RestStatusRequestTimeout,
-	"CONFLICT":                      RestStatusConflict,
-	"GONE":                          RestStatusGone,
-	"LENGTH_REQUIRED":               RestStatusLengthRequired,
-	"PRECONDITION_FAILED":           RestStatusPreconditionFailed,
-	"REQUEST_ENTITY_TOO_LARGE":      RestStatusRequestEntityTooLarge,
-	"REQUEST_URI_TOO_LONG":          RestStatusRequestURITooLong,
-	"UNSUPPORTED_MEDIA_TYPE":        RestStatusUnsupportedMediaType,
-	"REQUESTED_RANGE_NOT_SATISFIED": RestStatusRequestedRangeNotSatisfied,
-	"EXPECTATION_FAILED":            RestStatusExpectationFailed,
-	"MISDIRECTED_REQUEST":           RestStatusMisdirectedRequest,
-	"UNPROCESSABLE_ENTITY":          RestStatusUnprocessableEntity,
-	"LOCKED":                        RestStatusLocked,
-	"FAILED_DEPENDENCY":             RestStatusFailedDependency,
-	"TOO_MANY_REQUESTS":             RestStatusTooManyRequests,
-	"INTERNAL_SERVER_ERROR":         RestStatusInternalServerError,
-	"NOT_IMPLEMENTED":               RestStatusNotImplemented,
 	"BAD_GATEWAY":                   RestStatusBadGateway,
-	"SERVICE_UNAVAILABLE":           RestStatusServiceUnavailable,
+	"BAD_REQUEST":                   RestStatusBadRequest,
+	"CONFLICT":                      RestStatusConflict,
+	"CONTINUE":                      RestStatusContinue,
+	"CREATED":                       RestStatusCreated,
+	"EXPECTATION_FAILED":            RestStatusExpectationFailed,
+	"FAILED_DEPENDENCY":             RestStatusFailedDependency,
+	"FORBIDDEN":                     RestStatusForbidden,
+	"FOUND":                         RestStatusFound,
 	"GATEWAY_TIMEOUT":               RestStatusGatewayTimeout,
+	"GONE":                          RestStatusGone,
 	"HTTP_VERSION_NOT_SUPPORTED":    RestStatusHTTPVersionNotSupported,
 	"INSUFFICIENT_STORAGE":          RestStatusInsufficientStorage,
+	"INTERNAL_SERVER_ERROR":         RestStatusInternalServerError,
+	"LENGTH_REQUIRED":               RestStatusLengthRequired,
+	"LOCKED":                        RestStatusLocked,
+	"METHOD_NOT_ALLOWED":            RestStatusMethodNotAllowed,
+	"MISDIRECTED_REQUEST":           RestStatusMisdirectedRequest,
+	"MOVED_PERMANENTLY":             RestStatusMovedPermanently,
+	"MULTIPLE_CHOICES":              RestStatusMultipleChoices,
+	"MULTI_STATUS":                  RestStatusMultiStatus,
+	"NON_AUTHORITATIVE_INFORMATION": RestStatusNonAuthoritativeInformation,
+	"NOT_ACCEPTABLE":                RestStatusNotAcceptable,
+	"NOT_FOUND":                     RestStatusNotFound,
+	"NOT_IMPLEMENTED":               RestStatusNotImplemented,
+	"NOT_MODIFIED":                  RestStatusNotModified,
+	"NO_CONTENT":                    RestStatusNoContent,
+	"OK":                            RestStatusOk,
+	"PARTIAL_CONTENT":               RestStatusPartialContent,
+	"PAYMENT_REQUIRED":              RestStatusPaymentRequired,
+	"PRECONDITION_FAILED":           RestStatusPreconditionFailed,
+	"PROXY_AUTHENTICATION":          RestStatusProxyAuthentication,
+	"REQUESTED_RANGE_NOT_SATISFIED": RestStatusRequestedRangeNotSatisfied,
+	"REQUEST_ENTITY_TOO_LARGE":      RestStatusRequestEntityTooLarge,
+	"REQUEST_TIMEOUT":               RestStatusRequestTimeout,
+	"REQUEST_URI_TOO_LONG":          RestStatusRequestURITooLong,
+	"RESET_CONTENT":                 RestStatusResetContent,
+	"SEE_OTHER":                     RestStatusSeeOther,
+	"SERVICE_UNAVAILABLE":           RestStatusServiceUnavailable,
+	"SWITCHING_PROTOCOLS":           RestStatusSwitchingProtocols,
+	"TEMPORARY_REDIRECT":            RestStatusTemporaryRedirect,
+	"TOO_MANY_REQUESTS":             RestStatusTooManyRequests,
+	"UNAUTHORIZED":                  RestStatusUnauthorized,
+	"UNPROCESSABLE_ENTITY":          RestStatusUnprocessableEntity,
+	"UNSUPPORTED_MEDIA_TYPE":        RestStatusUnsupportedMediaType,
+	"USE_PROXY":                     RestStatusUseProxy,
 }
 
 // String returns the wire name of s, or "" for RestStatusUnknown.

@@ -179,24 +179,24 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 	}
 
 	// Primitive types.
-	if schema.Type.Is("string") {
+	if schema.Type.Is(openapi3.TypeString) {
 		if name, ok := w.resolveStringEnum(schema, group); ok {
 			return name
 		}
 		return goStringType(schema)
 	}
-	if schema.Type.Is("integer") {
+	if schema.Type.Is(openapi3.TypeInteger) {
 		return goIntType(schema)
 	}
-	if schema.Type.Is("number") {
+	if schema.Type.Is(openapi3.TypeNumber) {
 		return goNumberType(schema)
 	}
-	if schema.Type.Is("boolean") {
+	if schema.Type.Is(openapi3.TypeBoolean) {
 		return "bool"
 	}
 
 	// Array.
-	if schema.Type.Is("array") {
+	if schema.Type.Is(openapi3.TypeArray) {
 		elemType := "json.RawMessage"
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, schemaKey+"Item", group, false)
@@ -205,7 +205,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 	}
 
 	// Object.
-	if schema.Type.Is("object") {
+	if schema.Type.Is(openapi3.TypeObject) {
 		return w.resolveObjectSchema(schema, schemaKey, group, isRespBody)
 	}
 
@@ -598,13 +598,13 @@ func primitiveGoType(schema *openapi3.Schema) string {
 		return ""
 	}
 	switch {
-	case schema.Type.Is("string"):
+	case schema.Type.Is(openapi3.TypeString):
 		return goStringType(schema)
-	case schema.Type.Is("integer"):
+	case schema.Type.Is(openapi3.TypeInteger):
 		return goIntType(schema)
-	case schema.Type.Is("number"):
+	case schema.Type.Is(openapi3.TypeNumber):
 		return goNumberType(schema)
-	case schema.Type.Is("boolean"):
+	case schema.Type.Is(openapi3.TypeBoolean):
 		return "bool"
 	}
 	// OpenAPI 3.1 nullable form: a type array such as ["null", "string"].
@@ -627,17 +627,17 @@ func nullablePrimitiveGoType(schema *openapi3.Schema) string {
 	// Type sets with 3+ members (e.g. ["null","string","integer"]) are genuine
 	// multi-type unions with no single Go primitive, so they intentionally
 	// return "" and stay json.RawMessage.
-	if schema.Type == nil || len(*schema.Type) != 2 || !schema.Type.Includes("null") {
+	if schema.Type == nil || len(*schema.Type) != 2 || !schema.Type.Includes(openapi3.TypeNull) {
 		return ""
 	}
 	switch {
-	case schema.Type.Includes("string"):
+	case schema.Type.Includes(openapi3.TypeString):
 		return goStringType(schema)
-	case schema.Type.Includes("integer"):
+	case schema.Type.Includes(openapi3.TypeInteger):
 		return goIntType(schema)
-	case schema.Type.Includes("number"):
+	case schema.Type.Includes(openapi3.TypeNumber):
 		return goNumberType(schema)
-	case schema.Type.Includes("boolean"):
+	case schema.Type.Includes(openapi3.TypeBoolean):
 		return "bool"
 	}
 	return ""
@@ -679,7 +679,7 @@ func resolveOneOfGoType(schema *openapi3.Schema) string {
 		}
 
 		// Skip null branches (nullable unions).
-		if s.Type != nil && s.Type.Is("null") {
+		if s.Type != nil && s.Type.Is(openapi3.TypeNull) {
 			continue
 		}
 
@@ -704,7 +704,7 @@ func isNullableSchema(ref *openapi3.SchemaRef) bool {
 		return false
 	}
 	s := ref.Value
-	if s.Type != nil && s.Type.Includes("null") {
+	if s.Type != nil && s.Type.Includes(openapi3.TypeNull) {
 		return true
 	}
 	branches := s.OneOf
@@ -712,7 +712,7 @@ func isNullableSchema(ref *openapi3.SchemaRef) bool {
 		branches = s.AnyOf
 	}
 	for _, b := range branches {
-		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Includes("null") {
+		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Includes(openapi3.TypeNull) {
 			return true
 		}
 	}
@@ -764,7 +764,7 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 	if goType := primitiveGoType(schema); goType != "" {
 		return goType, true
 	}
-	if schema.Type != nil && schema.Type.Is("array") {
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
 		elemType := "json.RawMessage"
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, key+"Item", group, false)

@@ -36,16 +36,25 @@ const (
 	rawMap                  // map[string]json.RawMessage
 )
 
+// Allowlist form labels written as the trailing "# <label>" comment on each
+// entry. Informational only (ignored on load), but kept as consts so the
+// rawForm.String mapping has a single source of truth.
+const (
+	rawFormLabelBare  = "bare"
+	rawFormLabelSlice = "slice"
+	rawFormLabelMap   = "map"
+)
+
 func (f rawForm) String() string {
 	switch f {
 	case rawBare:
-		return "bare"
+		return rawFormLabelBare
 	case rawSlice:
-		return "slice"
+		return rawFormLabelSlice
 	case rawMap:
-		return "map"
+		return rawFormLabelMap
 	default:
-		return "bare"
+		return rawFormLabelBare
 	}
 }
 

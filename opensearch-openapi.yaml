@@ -70192,53 +70192,53 @@ components:
           description: The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").
           x-enum-name: RestStatus
           enum:
-            - CONTINUE
-            - SWITCHING_PROTOCOLS
-            - OK
-            - CREATED
-            - ACCEPTED
-            - NON_AUTHORITATIVE_INFORMATION
-            - NO_CONTENT
-            - RESET_CONTENT
-            - PARTIAL_CONTENT
-            - MULTI_STATUS
-            - MULTIPLE_CHOICES
-            - MOVED_PERMANENTLY
-            - FOUND
-            - SEE_OTHER
-            - NOT_MODIFIED
-            - USE_PROXY
-            - TEMPORARY_REDIRECT
-            - BAD_REQUEST
-            - UNAUTHORIZED
-            - PAYMENT_REQUIRED
-            - FORBIDDEN
-            - NOT_FOUND
-            - METHOD_NOT_ALLOWED
-            - NOT_ACCEPTABLE
-            - PROXY_AUTHENTICATION
-            - REQUEST_TIMEOUT
-            - CONFLICT
-            - GONE
-            - LENGTH_REQUIRED
-            - PRECONDITION_FAILED
-            - REQUEST_ENTITY_TOO_LARGE
-            - REQUEST_URI_TOO_LONG
-            - UNSUPPORTED_MEDIA_TYPE
-            - REQUESTED_RANGE_NOT_SATISFIED
-            - EXPECTATION_FAILED
-            - MISDIRECTED_REQUEST
-            - UNPROCESSABLE_ENTITY
-            - LOCKED
-            - FAILED_DEPENDENCY
-            - TOO_MANY_REQUESTS
-            - INTERNAL_SERVER_ERROR
-            - NOT_IMPLEMENTED
-            - BAD_GATEWAY
-            - SERVICE_UNAVAILABLE
-            - GATEWAY_TIMEOUT
-            - HTTP_VERSION_NOT_SUPPORTED
-            - INSUFFICIENT_STORAGE
+            - ACCEPTED # 202
+            - BAD_GATEWAY # 502
+            - BAD_REQUEST # 400
+            - CONFLICT # 409
+            - CONTINUE # 100
+            - CREATED # 201
+            - EXPECTATION_FAILED # 417
+            - FAILED_DEPENDENCY # 424
+            - FORBIDDEN # 403
+            - FOUND # 302
+            - GATEWAY_TIMEOUT # 504
+            - GONE # 410
+            - HTTP_VERSION_NOT_SUPPORTED # 505
+            - INSUFFICIENT_STORAGE # 507
+            - INTERNAL_SERVER_ERROR # 500
+            - LENGTH_REQUIRED # 411
+            - LOCKED # 423
+            - METHOD_NOT_ALLOWED # 405
+            - MISDIRECTED_REQUEST # 421
+            - MOVED_PERMANENTLY # 301
+            - MULTIPLE_CHOICES # 300
+            - MULTI_STATUS # 207
+            - NON_AUTHORITATIVE_INFORMATION # 203
+            - NOT_ACCEPTABLE # 406
+            - NOT_FOUND # 404
+            - NOT_IMPLEMENTED # 501
+            - NOT_MODIFIED # 304
+            - NO_CONTENT # 204
+            - OK # 200
+            - PARTIAL_CONTENT # 206
+            - PAYMENT_REQUIRED # 402
+            - PRECONDITION_FAILED # 412
+            - PROXY_AUTHENTICATION # 407
+            - REQUESTED_RANGE_NOT_SATISFIED # 416
+            - REQUEST_ENTITY_TOO_LARGE # 413
+            - REQUEST_TIMEOUT # 408
+            - REQUEST_URI_TOO_LONG # 414
+            - RESET_CONTENT # 205
+            - SEE_OTHER # 303
+            - SERVICE_UNAVAILABLE # 503
+            - SWITCHING_PROTOCOLS # 101
+            - TEMPORARY_REDIRECT # 307
+            - TOO_MANY_REQUESTS # 429
+            - UNAUTHORIZED # 401
+            - UNPROCESSABLE_ENTITY # 422
+            - UNSUPPORTED_MEDIA_TYPE # 415
+            - USE_PROXY # 305
         message:
           type: string
           description: The message returned as part of a `CREATED` response.
@@ -70464,53 +70464,53 @@ components:
           description: The HTTP status of the response, as a RestStatus enum name (e.g. "OK", "CREATED").
           x-enum-name: RestStatus
           enum:
-            - CONTINUE
-            - SWITCHING_PROTOCOLS
-            - OK
-            - CREATED
-            - ACCEPTED
-            - NON_AUTHORITATIVE_INFORMATION
-            - NO_CONTENT
-            - RESET_CONTENT
-            - PARTIAL_CONTENT
-            - MULTI_STATUS
-            - MULTIPLE_CHOICES
-            - MOVED_PERMANENTLY
-            - FOUND
-            - SEE_OTHER
-            - NOT_MODIFIED
-            - USE_PROXY
-            - TEMPORARY_REDIRECT
-            - BAD_REQUEST
-            - UNAUTHORIZED
-            - PAYMENT_REQUIRED
-            - FORBIDDEN
-            - NOT_FOUND
-            - METHOD_NOT_ALLOWED
-            - NOT_ACCEPTABLE
-            - PROXY_AUTHENTICATION
-            - REQUEST_TIMEOUT
-            - CONFLICT
-            - GONE
-            - LENGTH_REQUIRED
-            - PRECONDITION_FAILED
-            - REQUEST_ENTITY_TOO_LARGE
-            - REQUEST_URI_TOO_LONG
-            - UNSUPPORTED_MEDIA_TYPE
-            - REQUESTED_RANGE_NOT_SATISFIED
-            - EXPECTATION_FAILED
-            - MISDIRECTED_REQUEST
-            - UNPROCESSABLE_ENTITY
-            - LOCKED
-            - FAILED_DEPENDENCY
-            - TOO_MANY_REQUESTS
-            - INTERNAL_SERVER_ERROR
-            - NOT_IMPLEMENTED
-            - BAD_GATEWAY
-            - SERVICE_UNAVAILABLE
-            - GATEWAY_TIMEOUT
-            - HTTP_VERSION_NOT_SUPPORTED
-            - INSUFFICIENT_STORAGE
+            - ACCEPTED # 202
+            - BAD_GATEWAY # 502
+            - BAD_REQUEST # 400
+            - CONFLICT # 409
+            - CONTINUE # 100
+            - CREATED # 201
+            - EXPECTATION_FAILED # 417
+            - FAILED_DEPENDENCY # 424
+            - FORBIDDEN # 403
+            - FOUND # 302
+            - GATEWAY_TIMEOUT # 504
+            - GONE # 410
+            - HTTP_VERSION_NOT_SUPPORTED # 505
+            - INSUFFICIENT_STORAGE # 507
+            - INTERNAL_SERVER_ERROR # 500
+            - LENGTH_REQUIRED # 411
+            - LOCKED # 423
+            - METHOD_NOT_ALLOWED # 405
+            - MISDIRECTED_REQUEST # 421
+            - MOVED_PERMANENTLY # 301
+            - MULTIPLE_CHOICES # 300
+            - MULTI_STATUS # 207
+            - NON_AUTHORITATIVE_INFORMATION # 203
+            - NOT_ACCEPTABLE # 406
+            - NOT_FOUND # 404
+            - NOT_IMPLEMENTED # 501
+            - NOT_MODIFIED # 304
+            - NO_CONTENT # 204
+            - OK # 200
+            - PARTIAL_CONTENT # 206
+            - PAYMENT_REQUIRED # 402
+            - PRECONDITION_FAILED # 412
+            - PROXY_AUTHENTICATION # 407
+            - REQUESTED_RANGE_NOT_SATISFIED # 416
+            - REQUEST_ENTITY_TOO_LARGE # 413
+            - REQUEST_TIMEOUT # 408
+            - REQUEST_URI_TOO_LONG # 414
+            - RESET_CONTENT # 205
+            - SEE_OTHER # 303
+            - SERVICE_UNAVAILABLE # 503
+            - SWITCHING_PROTOCOLS # 101
+            - TEMPORARY_REDIRECT # 307
+            - TOO_MANY_REQUESTS # 429
+            - UNAUTHORIZED # 401
+            - UNPROCESSABLE_ENTITY # 422
+            - UNSUPPORTED_MEDIA_TYPE # 415
+            - USE_PROXY # 305
         message:
           type: string
           description: The message returned as part of an `OK` response.
