@@ -403,7 +403,7 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 
 	// Register the MCSR metric callback for the search pool so that
 	// ConnectionMetric snapshots include the current per-node value.
-	if p.poolName == poolSearch && config.metrics != nil && p.cache.features.adaptiveConcurrencyEnabled() {
+	if p.poolName == poolSearch && config.metrics.detailedEnabled() && p.cache.features.adaptiveConcurrencyEnabled() {
 		cache := p.cache
 		poolInfoReady := p.poolInfoReady
 		config.metrics.connMetricCallbacks = append(config.metrics.connMetricCallbacks,
@@ -418,7 +418,7 @@ func (p *poolRouter) configurePolicySettings(config policyConfig) error {
 	}
 
 	// Register the router cache snapshot callback.
-	if config.metrics != nil {
+	if config.metrics.detailedEnabled() {
 		cache := p.cache
 		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
 			func(m *Metrics) error {
