@@ -29,11 +29,9 @@ package opensearchtransport
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -42,6 +40,16 @@ import (
 type Measurable interface {
 	Metrics() (Metrics, error)
 }
+
+// Response status codes are bounded to [statusMin, statusMax). Anything
+// outside that range is folded into a single overflow bucket so a malformed
+// upstream status is still counted rather than panicking on a bad index.
+const (
+	statusMin      = 100
+	statusMax      = 600
+	statusBuckets  = statusMax - statusMin // 500 in-range buckets
+	statusOverflow = -1                    // map key for the overflow bucket
+)
 
 // Metrics represents the transport metrics.
 type Metrics struct {
@@ -225,17 +233,38 @@ type metrics struct {
 	addressResolverRewrites atomic.Int64 // Resolver returned a different URL
 	addressResolverErrors   atomic.Int64 // Resolver returned an error
 
-	mu struct {
-		sync.RWMutex
-		responses map[int]int
-	}
+	// responses counts HTTP responses by status code, lock-free. Index i holds
+	// the count for status code statusMin+i; responsesOverflow holds any code
+	// outside [statusMin, statusMax). Snapshotted in responsesSnapshot.
+	responses         [statusBuckets]atomic.Int64
+	responsesOverflow atomic.Int64
 }
 
-// incrementResponse increments the counter for the given status code.
+// incrementResponse records one response with the given status code. It is
+// lock-free: a single atomic add to the bucket for statusCode, or to the
+// overflow bucket when statusCode is outside [statusMin, statusMax).
 func (m *metrics) incrementResponse(statusCode int) {
-	m.mu.Lock()
-	m.mu.responses[statusCode]++
-	m.mu.Unlock()
+	if statusCode < statusMin || statusCode >= statusMax {
+		m.responsesOverflow.Add(1)
+		return
+	}
+	m.responses[statusCode-statusMin].Add(1)
+}
+
+// responsesSnapshot returns a map of status code to count. Codes with a zero
+// count are omitted; the overflow bucket, when non-zero, is keyed by
+// statusOverflow.
+func (m *metrics) responsesSnapshot() map[int]int {
+	out := make(map[int]int)
+	for i := range m.responses {
+		if n := m.responses[i].Load(); n > 0 {
+			out[statusMin+i] = int(n)
+		}
+	}
+	if n := m.responsesOverflow.Load(); n > 0 {
+		out[statusOverflow] = int(n)
+	}
+	return out
 }
 
 // Metrics returns the transport metrics.
@@ -244,11 +273,7 @@ func (c *Transport) Metrics() (Metrics, error) {
 		return Metrics{}, errors.New("transport metrics not enabled")
 	}
 
-	// Build responses map with pre-allocated capacity (READ operation)
-	c.metrics.mu.RLock()
-	responses := make(map[int]int, len(c.metrics.mu.responses))
-	maps.Copy(responses, c.metrics.mu.responses)
-	c.metrics.mu.RUnlock()
+	responses := c.metrics.responsesSnapshot()
 
 	// Get connections from current connection pool
 	var ready, dead []*Connection
