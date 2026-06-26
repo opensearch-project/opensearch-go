@@ -139,6 +139,9 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 	if t := NewUnionTypesFile(cfg.OutDir, cfg.CorePkg, spec.Types); t != nil {
 		targets = append(targets, t)
 	}
+	if t := NewEnumTypesFile(cfg.OutDir, cfg.CorePkg, spec.Types); t != nil {
+		targets = append(targets, t)
+	}
 
 	// Core compat file is NOT generated - the core package has hand-written
 	// Inspect alias, noBody sentinel, and formatDuration in api.go/clients_gen.go.

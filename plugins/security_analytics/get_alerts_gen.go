@@ -10,7 +10,6 @@ package security_analytics
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -208,12 +207,12 @@ func (r GetAlertsResp) RawBody() io.Reader {
 
 // SecurityAnalyticsAlertsAlert is a typed component of the security_analytics.get_alerts operation.
 type SecurityAnalyticsAlertsAlert struct {
-	AcknowledgedTime       json.RawMessage                                `json:"acknowledged_time"`
+	AcknowledgedTime       *string                                        `json:"acknowledged_time"`
 	ActionExecutionResults []SecurityAnalyticsAlertsActionExecutionResult `json:"action_execution_results,omitempty"`
 	AlertHistory           []SecurityAnalyticsAlertsAlertError            `json:"alert_history,omitempty"`
 	DetectorID             *string                                        `json:"detector_id,omitempty"`
-	EndTime                json.RawMessage                                `json:"end_time"`
-	ErrorMessage           json.RawMessage                                `json:"error_message"`
+	EndTime                *string                                        `json:"end_time"`
+	ErrorMessage           *string                                        `json:"error_message"`
 	FindingIds             []string                                       `json:"finding_ids,omitempty"`
 	ID                     *string                                        `json:"id,omitempty"`
 	LastNotificationTime   *string                                        `json:"last_notification_time,omitempty"`

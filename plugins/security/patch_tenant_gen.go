@@ -10,7 +10,6 @@ package security
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -100,7 +99,9 @@ type PatchTenantResp struct {
 	// The message returned as part of an `OK` response.
 	Message *string `json:"message,omitempty"`
 
-	Status json.RawMessage `json:"status"`
+	// The HTTP status of the response, as a RestStatus enum name (e.g. "OK",
+	// "CREATED").
+	Status *opensearchapi.RestStatus `json:"status,omitempty"`
 
 	response *opensearch.Response
 }

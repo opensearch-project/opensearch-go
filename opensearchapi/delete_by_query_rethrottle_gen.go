@@ -11,7 +11,6 @@ package opensearchapi
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -91,33 +90,24 @@ func (r DeleteByQueryRethrottleParams) get() map[string]string {
 	return params
 }
 
-// DeleteByQueryRethrottleResp represents the response for the DeleteByQueryRethrottle operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// DeleteByQueryRethrottleResp represents the response for the delete_by_query_rethrottle operation.
 //
 // Changes the number of requests per second for a particular Delete By Query operation.
 //
+// Available: >= 1.0.0.
+//
 // See: https://opensearch.org/docs/latest
 type DeleteByQueryRethrottleResp struct {
-	Body     json.RawMessage `json:"-"`
+	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
+
+	// Task information grouped by node, if `group_by` was set to `node` (the
+	// default).
+	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
+
+	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`
+	Tasks        *TasksTaskInfos `json:"tasks,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *DeleteByQueryRethrottleResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r DeleteByQueryRethrottleResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

@@ -10,7 +10,6 @@ package security
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 
@@ -88,9 +87,9 @@ func (r WhoAmIParams) get() map[string]string {
 //
 // Available: >= 2.0.0.
 type WhoAmIResp struct {
-	Dn                       json.RawMessage `json:"dn"`
-	IsAdmin                  *bool           `json:"is_admin,omitempty"`
-	IsNodeCertificateRequest *bool           `json:"is_node_certificate_request,omitempty"`
+	Dn                       *string `json:"dn"`
+	IsAdmin                  *bool   `json:"is_admin,omitempty"`
+	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 
 	response *opensearch.Response
 }

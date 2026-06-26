@@ -100,31 +100,22 @@ func (r SearchConnectorsParams) get() map[string]string {
 	return params
 }
 
-// SearchConnectorsResp represents the response for the SearchConnectors operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// SearchConnectorsResp represents the response for the ml.search_connectors operation.
 //
 // Searches for standalone connectors.
+//
+// Available: >= 2.11.0.
 type SearchConnectorsResp struct {
-	Body     json.RawMessage `json:"-"`
+	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
+	Hits   opensearchapi.MLSearchHits     `json:"hits"`
+
+	// Whether the search timed out.
+	TimedOut *bool `json:"timed_out,omitempty"`
+
+	// The time taken to execute the search.
+	Took *int `json:"took,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *SearchConnectorsResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r SearchConnectorsResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.

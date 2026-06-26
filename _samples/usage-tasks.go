@@ -144,16 +144,7 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	var taskList struct {
-		Nodes map[string]struct {
-			Name  string         `json:"name"`
-			Tasks map[string]any `json:"tasks"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(listResp.Body, &taskList); err != nil {
-		return err
-	}
-	for nodeID, node := range taskList.Nodes {
+	for nodeID, node := range listResp.Nodes {
 		fmt.Printf("Node %s (%s): %d tasks\n", node.Name, nodeID, len(node.Tasks))
 	}
 

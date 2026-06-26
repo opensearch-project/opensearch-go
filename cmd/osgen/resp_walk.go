@@ -7,6 +7,9 @@
 package main
 
 import (
+	"fmt"
+	"go/token"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,8 +74,19 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 }
 
 // resolveParentScopedUnion handles the case where a $ref points to a pure
-// oneOf/anyOf schema (no properties). The union is generated using the
-// CALLER's schemaKey so it attaches to its parent field context.
+// oneOf/anyOf schema (no properties). Such a schema would otherwise be routed
+// to resolveNamedSchema and registered as an empty struct (it has no
+// properties to collect), so it is sent to resolveUnionType instead.
+//
+// By default the union is keyed by the CALLER's schemaKey so it attaches to its
+// parent field context. There is one exception: if that parent-scoped key would
+// derive a Go type name identical to the parent struct's own name, the union
+// registers first and the parent struct is then silently dropped by the
+// registry (its name is already taken), degrading the parent response to raw
+// json.RawMessage. In that case the union is re-keyed by the REFERENCED
+// schema's own canonical key (e.g. tasks._common___TaskInfos -> TasksTaskInfos)
+// so it owns a distinct name and the parent struct survives. Every other
+// parent-scoped union keeps its existing name, keeping this fix narrow.
 func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
 	if ref.Value == nil || len(ref.Value.Properties) != 0 {
 		return "", false
@@ -83,7 +97,22 @@ func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, gr
 	if resolvedGoType := resolveOneOfGoType(ref.Value); resolvedGoType != "" {
 		return resolvedGoType, true
 	}
-	return w.resolveUnionType(ref.Value, schemaKey, group), true
+
+	unionKey := schemaKey
+	// schemaKey is the parent field key "<parentKey>.<field>". If the union's
+	// parent-scoped Go name would equal the parent struct's own name (in either
+	// its resp- or non-resp-bodied form), re-key by the referenced schema to
+	// avoid the collision that would drop the parent struct.
+	if dot := strings.LastIndexByte(schemaKey, '.'); dot >= 0 {
+		parentKey := schemaKey[:dot]
+		unionName := schemaTypeName(schemaKey, false)
+		if unionName == schemaTypeName(parentKey, false) || unionName == schemaTypeName(parentKey, true) {
+			if k := refToSchemaKey(ref.Ref); k != "" {
+				unionKey = k
+			}
+		}
+	}
+	return w.resolveUnionType(ref.Value, unionKey, group), true
 }
 
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {
@@ -150,21 +179,24 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 	}
 
 	// Primitive types.
-	if schema.Type.Is("string") {
+	if schema.Type.Is(openapi3.TypeString) {
+		if name, ok := w.resolveStringEnum(schema, group); ok {
+			return name
+		}
 		return goStringType(schema)
 	}
-	if schema.Type.Is("integer") {
+	if schema.Type.Is(openapi3.TypeInteger) {
 		return goIntType(schema)
 	}
-	if schema.Type.Is("number") {
+	if schema.Type.Is(openapi3.TypeNumber) {
 		return goNumberType(schema)
 	}
-	if schema.Type.Is("boolean") {
+	if schema.Type.Is(openapi3.TypeBoolean) {
 		return "bool"
 	}
 
 	// Array.
-	if schema.Type.Is("array") {
+	if schema.Type.Is(openapi3.TypeArray) {
 		elemType := "json.RawMessage"
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, schemaKey+"Item", group, false)
@@ -173,8 +205,15 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 	}
 
 	// Object.
-	if schema.Type.Is("object") {
+	if schema.Type.Is(openapi3.TypeObject) {
 		return w.resolveObjectSchema(schema, schemaKey, group, isRespBody)
+	}
+
+	// OpenAPI 3.1 nullable scalar, e.g. type: ["null", "string"]. The single-type
+	// checks above miss it (Type.Is needs one element); resolve the lone non-null
+	// primitive so the field is typed (*string etc.) rather than json.RawMessage.
+	if gt := nullablePrimitiveGoType(schema); gt != "" {
+		return gt
 	}
 
 	return "json.RawMessage"
@@ -406,6 +445,37 @@ func refToSchemaKey(ref string) string {
 	return ""
 }
 
+// resolveSchemaAlias follows a chain of bare-$ref alias component schemas to the
+// terminal (non-alias) schema key. A bare alias is a component declared as
+// `Foo: {$ref: Bar}`; kin-openapi sets such a component's SchemaRef.Ref to the
+// target while still resolving .Value. The walker registers the terminal type
+// under its own key, so an operation whose ResponseRef is an alias key would
+// miss registry.lookup and degrade the whole response to raw json.RawMessage.
+// Resolving to the terminal key lets the lookup find the registered struct.
+//
+// Returns key unchanged if it is not an alias, is unknown, or the chain cycles.
+func resolveSchemaAlias(key string, spec *openapi3.T) string {
+	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
+		return key
+	}
+	seen := make(map[string]struct{})
+	for {
+		if _, cycling := seen[key]; cycling {
+			return key
+		}
+		seen[key] = struct{}{}
+		sr, ok := spec.Components.Schemas[key]
+		if !ok || sr.Ref == "" {
+			return key
+		}
+		next := refToSchemaKey(sr.Ref)
+		if next == "" {
+			return key
+		}
+		key = next
+	}
+}
+
 // isSharedSchema returns true if the schema key belongs to a shared namespace
 // (_common___, _common.X___, or group._common___) that should be emitted to
 // types_gen.go.
@@ -429,6 +499,70 @@ func isSharedSchema(key string) bool {
 // not get pointer treatment since nil is their zero value).
 func isCollectionType(goType string) bool {
 	return strings.HasPrefix(goType, "[]") || strings.HasPrefix(goType, "map[")
+}
+
+// resolveStringEnum handles a string schema that opts into typed-enum
+// generation via the x-enum-name extension. When the marker is present and the
+// schema carries a non-empty enum: constraint, it registers a shared
+// int-backed iota enum type (named by the marker) and returns its Go name. The
+// type is registered once and reused across every field that references it
+// (e.g. security status across all security responses). Returns ("", false)
+// when the schema does not opt in, so the caller falls back to a plain string.
+func (w *walker) resolveStringEnum(schema *openapi3.Schema, group string) (string, bool) {
+	name := extensionString(schema.Extensions, extEnumName)
+	if name == "" {
+		return "", false
+	}
+	if !token.IsIdentifier(name) {
+		panic(fmt.Sprintf("resolveStringEnum: %s value %q is not a valid Go identifier", extEnumName, name))
+	}
+	values := enumStringValues(schema.Enum)
+	if len(values) == 0 {
+		return "", false
+	}
+
+	// Key the enum by its Go name under _common so it is shared (emitted once
+	// in types_gen.go) and deduplicated across all referencing fields.
+	key := "_common___" + name
+	if existing, ok := w.registry.lookup(key); ok {
+		// Two schemas sharing an x-enum-name must declare the same value set;
+		// otherwise the second field would silently adopt the first enum's
+		// values, yielding a closed-set type that rejects values it should
+		// accept. Fail loudly rather than merge.
+		if !slices.Equal(existing.EnumValues, values) {
+			panic(fmt.Sprintf("resolveStringEnum: %s %q declared with conflicting value sets %q and %q",
+				extEnumName, name, existing.EnumValues, values))
+		}
+		return existing.Name, true
+	}
+
+	t := &goType{
+		Name:       name,
+		Pkg:        typePkg(true, group, w.registry),
+		SchemaRef:  key,
+		IsShared:   true,
+		IsEnum:     true,
+		EnumValues: values,
+		Comment:    schema.Description,
+	}
+	if registered, ok := w.registry.register(t); ok {
+		return registered.Name, true
+	}
+	// Name collided with an existing type; fall back to plain string rather
+	// than dropping to json.RawMessage.
+	return "", false
+}
+
+// enumStringValues converts a schema's enum constraint to a string slice,
+// preserving declaration order and skipping any non-string entries.
+func enumStringValues(enum []any) []string {
+	values := make([]string, 0, len(enum))
+	for _, e := range enum {
+		if s, ok := e.(string); ok {
+			values = append(values, s)
+		}
+	}
+	return values
 }
 
 // goStringType returns the Go type for a string schema, considering format.
@@ -464,13 +598,46 @@ func primitiveGoType(schema *openapi3.Schema) string {
 		return ""
 	}
 	switch {
-	case schema.Type.Is("string"):
+	case schema.Type.Is(openapi3.TypeString):
 		return goStringType(schema)
-	case schema.Type.Is("integer"):
+	case schema.Type.Is(openapi3.TypeInteger):
 		return goIntType(schema)
-	case schema.Type.Is("number"):
+	case schema.Type.Is(openapi3.TypeNumber):
 		return goNumberType(schema)
-	case schema.Type.Is("boolean"):
+	case schema.Type.Is(openapi3.TypeBoolean):
+		return "bool"
+	}
+	// OpenAPI 3.1 nullable form: a type array such as ["null", "string"].
+	// Type.Is requires a single-element type set, so the cases above miss it;
+	// resolve the lone non-null primitive (callers apply pointer/omitempty via
+	// isNullableSchema). Returns "" for non-nullable multi-type unions, which
+	// remain genuine unions / json.RawMessage.
+	return nullablePrimitiveGoType(schema)
+}
+
+// nullablePrimitiveGoType handles the OpenAPI 3.1 nullable spelling where a
+// scalar is declared as a two-element type set {"null", <primitive>} (e.g.
+// `type: ["null", "string"]`). kin-openapi's Type.Is matches only single-element
+// sets, so such fields would otherwise fall through to json.RawMessage. Returns
+// the Go type for the single non-null primitive, or "" if the schema is not
+// exactly null + one supported primitive (arrays/objects/multi-type unions are
+// left to the union/object paths).
+func nullablePrimitiveGoType(schema *openapi3.Schema) string {
+	// Only the exact two-element set {"null", <primitive>} is resolved here.
+	// Type sets with 3+ members (e.g. ["null","string","integer"]) are genuine
+	// multi-type unions with no single Go primitive, so they intentionally
+	// return "" and stay json.RawMessage.
+	if schema.Type == nil || len(*schema.Type) != 2 || !schema.Type.Includes(openapi3.TypeNull) {
+		return ""
+	}
+	switch {
+	case schema.Type.Includes(openapi3.TypeString):
+		return goStringType(schema)
+	case schema.Type.Includes(openapi3.TypeInteger):
+		return goIntType(schema)
+	case schema.Type.Includes(openapi3.TypeNumber):
+		return goNumberType(schema)
+	case schema.Type.Includes(openapi3.TypeBoolean):
 		return "bool"
 	}
 	return ""
@@ -512,7 +679,7 @@ func resolveOneOfGoType(schema *openapi3.Schema) string {
 		}
 
 		// Skip null branches (nullable unions).
-		if s.Type != nil && s.Type.Is("null") {
+		if s.Type != nil && s.Type.Is(openapi3.TypeNull) {
 			continue
 		}
 
@@ -537,7 +704,7 @@ func isNullableSchema(ref *openapi3.SchemaRef) bool {
 		return false
 	}
 	s := ref.Value
-	if s.Type != nil && s.Type.Includes("null") {
+	if s.Type != nil && s.Type.Includes(openapi3.TypeNull) {
 		return true
 	}
 	branches := s.OneOf
@@ -545,7 +712,7 @@ func isNullableSchema(ref *openapi3.SchemaRef) bool {
 		branches = s.AnyOf
 	}
 	for _, b := range branches {
-		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Includes("null") {
+		if b != nil && b.Value != nil && b.Value.Type != nil && b.Value.Type.Includes(openapi3.TypeNull) {
 			return true
 		}
 	}
@@ -594,10 +761,19 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 	if len(schema.AllOf) != 0 || isRespBody {
 		return "", false
 	}
+	// A string schema carrying x-enum-name opts into a typed enum even when it
+	// arrives here via a component $ref (resolveInlineSchema's inline-string
+	// branch is bypassed for $ref'd schemas). Check before the plain-primitive
+	// fallback so the marker is honored on either path.
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeString) {
+		if name, ok := w.resolveStringEnum(schema, group); ok {
+			return name, true
+		}
+	}
 	if goType := primitiveGoType(schema); goType != "" {
 		return goType, true
 	}
-	if schema.Type != nil && schema.Type.Is("array") {
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
 		elemType := "json.RawMessage"
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, key+"Item", group, false)

@@ -53,6 +53,12 @@ func runAPI() error {
 		"emit backward-compatibility forwarder methods (e.g. top-level Client.Bulk forwarding to Doc.Bulk)")
 	emitV4Deprecation := fs.Bool("emit-v4-deprecation", false,
 		"mark the v4 compatibility forwarders with a Deprecated doc comment (requires -emit-v4-compat)")
+	rawAllowlist := fs.String("raw-message-allowlist", "rawmessage_allowlist.txt",
+		"path to the checked-in json.RawMessage allowlist (relative to cwd)")
+	updateRawAllowlist := fs.Bool("update-raw-message-allowlist", false,
+		"rewrite the json.RawMessage allowlist from current output instead of checking it")
+	allowUnlistedRaw := fs.Bool("allow-unlisted-raw-message", false,
+		"downgrade the json.RawMessage allowlist check from fatal to a warning")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -80,7 +86,8 @@ func runAPI() error {
 	}
 
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
-		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation})
+		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation},
+		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw})
 }
 
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
@@ -98,6 +105,7 @@ func generateAPI(
 	vrange VersionRange,
 	bc BreadcrumbConfig,
 	compat CompatConfig,
+	rawCfg RawMessageConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
 		return fmt.Errorf("--version-breadcrumb-types is not implemented for `osgen api`: " +
@@ -113,6 +121,7 @@ func generateAPI(
 	registry := newTypeRegistry(corePkg)
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
+	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })
 
@@ -121,6 +130,12 @@ func generateAPI(
 		Operations: filterExclusions(opExclusions, bc.Operations),
 		Fields:     filterExclusions(fieldExclusions, bc.Fields),
 		Params:     filterExclusions(paramExclusions, bc.Params),
+	}
+
+	// Guard against the generator silently widening the raw-JSON surface. Run
+	// before any file is written so an unlisted use aborts cleanly.
+	if err := guardRawMessages(os.Stderr, irSpec, rawCfg); err != nil {
+		return err
 	}
 
 	// Apply the v4 compatibility-forwarder policy before sub-client filtering so

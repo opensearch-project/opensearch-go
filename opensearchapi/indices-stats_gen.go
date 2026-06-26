@@ -11,7 +11,6 @@ package opensearchapi
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -359,7 +358,7 @@ type IndicesStatsShardRouting struct {
 	Primary bool `json:"primary"`
 
 	// The node where the shard is relocating to.
-	RelocatingNode json.RawMessage `json:"relocating_node"`
+	RelocatingNode *string `json:"relocating_node"`
 
 	// The state of shard routing.
 	State string `json:"state"`

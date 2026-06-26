@@ -255,7 +255,7 @@ func buildAPIOperation(group string, ops []struct {
 	op     *openapi3.Operation
 	path   *openapi3.PathItem
 	url    string
-}, _ *openapi3.T, vrange VersionRange,
+}, spec *openapi3.T, vrange VersionRange,
 ) (apiOperation, []ir.Exclusion) {
 	// Sort ops by URL for determinism, then by operationId within the same URL
 	// to preserve the spec's declared primary ordering (e.g. search.0 is POST,
@@ -456,6 +456,12 @@ func buildAPIOperation(group string, ops []struct {
 		if apiOp.ResponseRef == "" {
 			apiOp.ResponseRef = group + respBodySuffix
 		}
+		// Follow bare-$ref alias chains (a component schema that is just
+		// `$ref: <other>` with no own properties) to the terminal schema key.
+		// The walker registers the terminal type under its own key, so an
+		// unresolved alias key would miss registry.lookup and degrade the whole
+		// response to raw json.RawMessage.
+		apiOp.ResponseRef = resolveSchemaAlias(apiOp.ResponseRef, spec)
 		apiOp.ResponseSchemaRef = mt.Schema
 		break
 	}

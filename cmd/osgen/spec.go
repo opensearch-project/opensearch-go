@@ -46,6 +46,13 @@ const (
 	// as json.RawMessage in generated code.
 	extGenericTypeParam = "x-is-generic-type-parameter"
 
+	// extEnumName opts a string schema into typed-enum generation and names the
+	// generated Go type. When present alongside a non-empty enum: constraint, the
+	// walker emits an int-backed iota enum type (type <name> int + a const block
+	// of the allowed values) instead of a plain string. Used to type fields whose
+	// wire value is a closed set of names (e.g. security status -> RestStatus).
+	extEnumName = "x-enum-name"
+
 	// extErrorResponses lists wrapper-schema $refs for partial-failure
 	// shapes an operation may surface alongside its primary 2xx response
 	// (per the proposed x-error-responses OpenAPI extension). Each entry

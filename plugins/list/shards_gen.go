@@ -10,7 +10,6 @@ package list
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -147,7 +146,7 @@ func (r ShardsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/list/list-shards/
 type ShardsResp struct {
-	NextToken json.RawMessage                 `json:"next_token"`
+	NextToken *string                         `json:"next_token"`
 	Shards    []opensearchapi.CatShardsRecord `json:"shards,omitempty"`
 
 	response *opensearch.Response

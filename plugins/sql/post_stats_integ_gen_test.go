@@ -15,9 +15,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
-	"github.com/opensearch-project/opensearch-go/v5/plugins/sql"
 	plugintest "github.com/opensearch-project/opensearch-go/v5/plugins/sql/internal/sqltest"
 )
 
@@ -27,7 +25,7 @@ func TestPostStats(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Stat.PostStats(t.Context(), &sql.PostStatsReq{Body: &opensearchapi.SQLStats{}})
+		resp, err := client.Stat.PostStats(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -37,7 +35,7 @@ func TestPostStats(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Stat.PostStats(t.Context(), &sql.PostStatsReq{Body: &opensearchapi.SQLStats{}})
+		res, err := failingClient.Stat.PostStats(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

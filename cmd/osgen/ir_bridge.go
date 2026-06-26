@@ -7,6 +7,10 @@
 package main
 
 import (
+	"fmt"
+	"go/token"
+	"strings"
+
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
@@ -271,6 +275,8 @@ func convertType(gt *goType) *ir.Type {
 	}
 
 	switch {
+	case gt.IsEnum:
+		t.Kind = ir.TypeEnum
 	case gt.IsUnion && gt.IsLazy:
 		t.Kind = ir.TypeLazyUnion
 	case gt.IsUnion:
@@ -296,7 +302,60 @@ func convertType(gt *goType) *ir.Type {
 		t.Branches = append(t.Branches, convertUnionBranch(b))
 	}
 
+	t.EnumMembers = convertEnumMembers(gt.Name, gt.EnumValues)
+
 	return t
+}
+
+// convertEnumMembers pairs each enum wire value with its generated Go const
+// identifier (<TypeName><PascalValue>), reusing the shared acronym-aware
+// segment titling so values like HTTP_VERSION_NOT_SUPPORTED render correctly.
+//
+// It panics if a value yields an invalid Go identifier (e.g. an empty value, or
+// one whose segments produce nothing) or if two distinct values collapse to the
+// same const name (e.g. "FOO_BAR" and "FOO__BAR"). Both would otherwise emit
+// uncompilable Go — failing loudly at generation time matches osgen's handling
+// of other invalid-identifier cases (see naming.go).
+func convertEnumMembers(typeName string, values []string) []ir.EnumMember {
+	if len(values) == 0 {
+		return nil
+	}
+	members := make([]ir.EnumMember, 0, len(values))
+	// Seed with the reserved names a member must not collide with: the type
+	// name itself and the generated <Type>Unknown sentinel. An empty or
+	// otherwise-degenerate value could produce either and yield uncompilable Go.
+	seen := map[string]string{
+		typeName:             "<type name>",
+		typeName + "Unknown": "<unknown sentinel>",
+	}
+	for _, v := range values {
+		constName := typeName + enumValueIdent(v)
+		if !token.IsIdentifier(constName) {
+			panic(fmt.Sprintf("convertEnumMembers: enum value %q on type %q produced invalid Go const identifier %q",
+				v, typeName, constName))
+		}
+		if prev, dup := seen[constName]; dup {
+			panic(fmt.Sprintf("convertEnumMembers: enum values %q and %q on type %q both map to const %q",
+				prev, v, typeName, constName))
+		}
+		seen[constName] = v
+		members = append(members, ir.EnumMember{ConstName: constName, Value: v})
+	}
+	return members
+}
+
+// enumValueIdent converts an enum wire value (typically SCREAMING_SNAKE_CASE)
+// to a PascalCase identifier segment, expanding known acronyms (HTTP, URI, ...)
+// via titleSegment. e.g. "NOT_FOUND" -> "NotFound", "HTTP_VERSION_NOT_SUPPORTED"
+// -> "HTTPVersionNotSupported".
+func enumValueIdent(value string) string {
+	var sb strings.Builder
+	for _, part := range strings.FieldsFunc(value, func(r rune) bool {
+		return r == '_' || r == '.' || r == '-'
+	}) {
+		sb.WriteString(titleSegment(strings.ToLower(part)))
+	}
+	return sb.String()
 }
 
 func convertField(f goField) ir.Field {

@@ -223,6 +223,18 @@ gen-api: fetch-opensearch-spec  ## Regenerate API consumer files only
 		-max-version=$(GEN_MAX_VERSION) \
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
 
+gen-api-update-rawlist: fetch-opensearch-spec  ## Regenerate API files and refresh the json.RawMessage allowlist
+	@printf "\033[2m-> Regenerating API consumer files and json.RawMessage allowlist...\033[0m\n"
+	cd $(REPO_ROOT)/cmd/osgen && go run . api \
+		-spec $(OPENAPI_SPEC) \
+		-out $(GEN_OSAPI_DIR) \
+		-pkg opensearchapi \
+		-plugins-out $(GEN_PLUGINS_DIR) \
+		-min-version=$(GEN_MIN_VERSION) \
+		-max-version=$(GEN_MAX_VERSION) \
+		-remove-deprecated=$(GEN_REMOVE_DEPRECATED) \
+		-update-raw-message-allowlist
+
 gen: gen-paths gen-api  ## Regenerate all code from OpenAPI spec (run gen-paths and gen-api in parallel with `make -j gen`)
 
 regen: clean-gen gen  ## Clean generated files then regenerate from spec

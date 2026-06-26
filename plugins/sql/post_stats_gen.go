@@ -10,7 +10,6 @@ package sql
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -32,14 +31,6 @@ import (
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/monitoring/
 type PostStatsReq struct {
-
-	// Body specifies the typed request body. When non-nil, it is
-	// marshaled to JSON for the request payload.
-	Body *opensearchapi.SQLStats
-
-	// BodyReader provides an escape hatch for sending a raw request
-	// body. It is used only when Body is nil.
-	BodyReader io.Reader
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
@@ -65,21 +56,10 @@ func (r PostStatsReq) GetRequest(method string) (*http.Request, error) {
 		params = PostStatsParams{}.get()
 	}
 
-	var bodyReader io.Reader
-	if r.Body != nil {
-		bodyData, err := json.Marshal(r.Body)
-		if err != nil {
-			return nil, err
-		}
-		bodyReader = bytes.NewReader(bodyData)
-	} else if r.BodyReader != nil {
-		bodyReader = r.BodyReader
-	}
-
 	return build.Request(
 		method,
 		path,
-		bodyReader,
+		nil,
 		params,
 		r.Header,
 	)

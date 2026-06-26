@@ -14174,1342 +14174,12 @@ func (u CommonMappingPropertyBasePropertiesValue) MarshalJSON() ([]byte, error) 
 	return build.NullJSON, nil
 }
 
-// CommonMappingDynamicTemplate is a discriminated union type (try-each, newest version first).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CommonMappingDynamicTemplate struct {
-	typ   CommonMappingDynamicTemplateType
-	raw   json.RawMessage
-	value any
-}
-
-// CommonMappingDynamicTemplateType discriminates the branches of CommonMappingDynamicTemplate.
-type CommonMappingDynamicTemplateType int
-
-const (
-	CommonMappingDynamicTemplateUnknownType CommonMappingDynamicTemplateType = iota
-	CommonMappingDynamicTemplateCommonMappingSemanticPropertyType
-	CommonMappingDynamicTemplateCommonMappingXyPointPropertyType
-	CommonMappingDynamicTemplateCommonMappingXyShapePropertyType
-	CommonMappingDynamicTemplateCommonMappingBinaryPropertyType
-	CommonMappingDynamicTemplateCommonMappingBooleanPropertyType
-	CommonMappingDynamicTemplateCommonMappingJoinPropertyType
-	CommonMappingDynamicTemplateCommonMappingKeywordPropertyType
-	CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType
-	CommonMappingDynamicTemplateCommonMappingPercolatorPropertyType
-	CommonMappingDynamicTemplateCommonMappingRankFeaturePropertyType
-	CommonMappingDynamicTemplateCommonMappingRankFeaturesPropertyType
-	CommonMappingDynamicTemplateCommonMappingSearchAsYouTypePropertyType
-	CommonMappingDynamicTemplateCommonMappingTextPropertyType
-	CommonMappingDynamicTemplateCommonMappingVersionPropertyType
-	CommonMappingDynamicTemplateCommonMappingWildcardPropertyType
-	CommonMappingDynamicTemplateCommonMappingDateNanosPropertyType
-	CommonMappingDynamicTemplateCommonMappingDatePropertyType
-	CommonMappingDynamicTemplateCommonMappingAggregateMetricDoublePropertyType
-	CommonMappingDynamicTemplateCommonMappingFlatObjectPropertyType
-	CommonMappingDynamicTemplateCommonMappingNestedPropertyType
-	CommonMappingDynamicTemplateCommonMappingObjectPropertyType
-	CommonMappingDynamicTemplateCommonMappingCompletionPropertyType
-	CommonMappingDynamicTemplateCommonMappingConstantKeywordPropertyType
-	CommonMappingDynamicTemplateCommonMappingFieldAliasPropertyType
-	CommonMappingDynamicTemplateCommonMappingHistogramPropertyType
-	CommonMappingDynamicTemplateCommonMappingIPPropertyType
-	CommonMappingDynamicTemplateCommonMappingMurmur3HashPropertyType
-	CommonMappingDynamicTemplateCommonMappingTokenCountPropertyType
-	CommonMappingDynamicTemplateCommonMappingGeoPointPropertyType
-	CommonMappingDynamicTemplateCommonMappingGeoShapePropertyType
-	CommonMappingDynamicTemplateCommonMappingByteNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingDoubleNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingFloatNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingHalfFloatNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingIntegerNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingLongNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingScaledFloatNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingShortNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingUnsignedLongNumberPropertyType
-	CommonMappingDynamicTemplateCommonMappingDateRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingDoubleRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingFloatRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingIntegerRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingIPRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingLongRangePropertyType
-	CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType
-	CommonMappingDynamicTemplateCommonMappingIcuCollationKeywordPropertyType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CommonMappingDynamicTemplateUnknownType if the value has not been decoded.
-func (u *CommonMappingDynamicTemplate) Type() CommonMappingDynamicTemplateType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonMappingDynamicTemplate) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonMappingDynamicTemplateFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CommonMappingDynamicTemplate) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CommonMappingDynamicTemplateUnknownType
-}
-
-// CommonMappingSemanticProperty returns the CommonMappingSemanticProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingSemanticProperty() CommonMappingSemanticProperty {
-	if v, ok := u.value.(*CommonMappingSemanticProperty); ok {
-		return *v
-	}
-	var zero CommonMappingSemanticProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingSemanticProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingSemanticProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingSemanticPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingXyPointProperty returns the CommonMappingXyPointProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingXyPointProperty() CommonMappingXyPointProperty {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
-		return *v
-	}
-	var zero CommonMappingXyPointProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingXyPointProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingXyPointPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingXyShapeProperty returns the CommonMappingXyShapeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingXyShapeProperty() CommonMappingXyShapeProperty {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingXyShapeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingXyShapeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingXyShapePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingBinaryProperty returns the CommonMappingBinaryProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingBinaryProperty() CommonMappingBinaryProperty {
-	if v, ok := u.value.(*CommonMappingBinaryProperty); ok {
-		return *v
-	}
-	var zero CommonMappingBinaryProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingBinaryProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingBinaryProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingBinaryPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingBooleanProperty returns the CommonMappingBooleanProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingBooleanProperty() CommonMappingBooleanProperty {
-	if v, ok := u.value.(*CommonMappingBooleanProperty); ok {
-		return *v
-	}
-	var zero CommonMappingBooleanProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingBooleanProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingBooleanProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingBooleanPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingJoinProperty returns the CommonMappingJoinProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingJoinProperty() CommonMappingJoinProperty {
-	if v, ok := u.value.(*CommonMappingJoinProperty); ok {
-		return *v
-	}
-	var zero CommonMappingJoinProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingJoinProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingJoinProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingJoinPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingKeywordProperty returns the CommonMappingKeywordProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingKeywordProperty() CommonMappingKeywordProperty {
-	if v, ok := u.value.(*CommonMappingKeywordProperty); ok {
-		return *v
-	}
-	var zero CommonMappingKeywordProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingKeywordProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingKeywordProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingKeywordPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingMatchOnlyTextProperty returns the CommonMappingMatchOnlyTextProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingMatchOnlyTextProperty() CommonMappingMatchOnlyTextProperty {
-	if v, ok := u.value.(*CommonMappingMatchOnlyTextProperty); ok {
-		return *v
-	}
-	var zero CommonMappingMatchOnlyTextProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingMatchOnlyTextProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingMatchOnlyTextProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingPercolatorProperty returns the CommonMappingPercolatorProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingPercolatorProperty() CommonMappingPercolatorProperty {
-	if v, ok := u.value.(*CommonMappingPercolatorProperty); ok {
-		return *v
-	}
-	var zero CommonMappingPercolatorProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingPercolatorProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingPercolatorProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingPercolatorPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingRankFeatureProperty returns the CommonMappingRankFeatureProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingRankFeatureProperty() CommonMappingRankFeatureProperty {
-	if v, ok := u.value.(*CommonMappingRankFeatureProperty); ok {
-		return *v
-	}
-	var zero CommonMappingRankFeatureProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingRankFeatureProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingRankFeatureProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingRankFeaturePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingRankFeaturesProperty returns the CommonMappingRankFeaturesProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingRankFeaturesProperty() CommonMappingRankFeaturesProperty {
-	if v, ok := u.value.(*CommonMappingRankFeaturesProperty); ok {
-		return *v
-	}
-	var zero CommonMappingRankFeaturesProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingRankFeaturesProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingRankFeaturesProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingRankFeaturesPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingSearchAsYouTypeProperty returns the CommonMappingSearchAsYouTypeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingSearchAsYouTypeProperty() CommonMappingSearchAsYouTypeProperty {
-	if v, ok := u.value.(*CommonMappingSearchAsYouTypeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingSearchAsYouTypeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingSearchAsYouTypeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingSearchAsYouTypePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingTextProperty returns the CommonMappingTextProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingTextProperty() CommonMappingTextProperty {
-	if v, ok := u.value.(*CommonMappingTextProperty); ok {
-		return *v
-	}
-	var zero CommonMappingTextProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingTextProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingTextProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingTextPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingVersionProperty returns the CommonMappingVersionProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingVersionProperty() CommonMappingVersionProperty {
-	if v, ok := u.value.(*CommonMappingVersionProperty); ok {
-		return *v
-	}
-	var zero CommonMappingVersionProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingVersionProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingVersionProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingVersionPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingWildcardProperty returns the CommonMappingWildcardProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingWildcardProperty() CommonMappingWildcardProperty {
-	if v, ok := u.value.(*CommonMappingWildcardProperty); ok {
-		return *v
-	}
-	var zero CommonMappingWildcardProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingWildcardProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingWildcardProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingWildcardPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingDateNanosProperty returns the CommonMappingDateNanosProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingDateNanosProperty() CommonMappingDateNanosProperty {
-	if v, ok := u.value.(*CommonMappingDateNanosProperty); ok {
-		return *v
-	}
-	var zero CommonMappingDateNanosProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingDateNanosProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingDateNanosProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingDateNanosPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingDateProperty returns the CommonMappingDateProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingDateProperty() CommonMappingDateProperty {
-	if v, ok := u.value.(*CommonMappingDateProperty); ok {
-		return *v
-	}
-	var zero CommonMappingDateProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingDateProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingDateProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingDatePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingAggregateMetricDoubleProperty returns the CommonMappingAggregateMetricDoubleProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingAggregateMetricDoubleProperty() CommonMappingAggregateMetricDoubleProperty {
-	if v, ok := u.value.(*CommonMappingAggregateMetricDoubleProperty); ok {
-		return *v
-	}
-	var zero CommonMappingAggregateMetricDoubleProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingAggregateMetricDoubleProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingAggregateMetricDoublePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingFlatObjectProperty returns the CommonMappingFlatObjectProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingFlatObjectProperty() CommonMappingFlatObjectProperty {
-	if v, ok := u.value.(*CommonMappingFlatObjectProperty); ok {
-		return *v
-	}
-	var zero CommonMappingFlatObjectProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingFlatObjectProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingFlatObjectProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingFlatObjectPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingNestedProperty returns the CommonMappingNestedProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingNestedProperty() CommonMappingNestedProperty {
-	if v, ok := u.value.(*CommonMappingNestedProperty); ok {
-		return *v
-	}
-	var zero CommonMappingNestedProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingNestedProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingNestedProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingNestedPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingObjectProperty returns the CommonMappingObjectProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingObjectProperty() CommonMappingObjectProperty {
-	if v, ok := u.value.(*CommonMappingObjectProperty); ok {
-		return *v
-	}
-	var zero CommonMappingObjectProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingObjectProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingObjectProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingObjectPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingCompletionProperty returns the CommonMappingCompletionProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingCompletionProperty() CommonMappingCompletionProperty {
-	if v, ok := u.value.(*CommonMappingCompletionProperty); ok {
-		return *v
-	}
-	var zero CommonMappingCompletionProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingCompletionProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingCompletionProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingCompletionPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingConstantKeywordProperty returns the CommonMappingConstantKeywordProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingConstantKeywordProperty() CommonMappingConstantKeywordProperty {
-	if v, ok := u.value.(*CommonMappingConstantKeywordProperty); ok {
-		return *v
-	}
-	var zero CommonMappingConstantKeywordProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingConstantKeywordProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingConstantKeywordProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingConstantKeywordPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingFieldAliasProperty returns the CommonMappingFieldAliasProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingFieldAliasProperty() CommonMappingFieldAliasProperty {
-	if v, ok := u.value.(*CommonMappingFieldAliasProperty); ok {
-		return *v
-	}
-	var zero CommonMappingFieldAliasProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingFieldAliasProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingFieldAliasProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingFieldAliasPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingHistogramProperty returns the CommonMappingHistogramProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingHistogramProperty() CommonMappingHistogramProperty {
-	if v, ok := u.value.(*CommonMappingHistogramProperty); ok {
-		return *v
-	}
-	var zero CommonMappingHistogramProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingHistogramProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingHistogramProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingHistogramPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingIPProperty returns the CommonMappingIPProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIPProperty() CommonMappingIPProperty {
-	if v, ok := u.value.(*CommonMappingIPProperty); ok {
-		return *v
-	}
-	var zero CommonMappingIPProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingIPProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIPProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIPPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingMurmur3HashProperty returns the CommonMappingMurmur3HashProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingMurmur3HashProperty() CommonMappingMurmur3HashProperty {
-	if v, ok := u.value.(*CommonMappingMurmur3HashProperty); ok {
-		return *v
-	}
-	var zero CommonMappingMurmur3HashProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingMurmur3HashProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingMurmur3HashProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingMurmur3HashPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingTokenCountProperty returns the CommonMappingTokenCountProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingTokenCountProperty() CommonMappingTokenCountProperty {
-	if v, ok := u.value.(*CommonMappingTokenCountProperty); ok {
-		return *v
-	}
-	var zero CommonMappingTokenCountProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingTokenCountProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingTokenCountProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingTokenCountPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingGeoPointProperty returns the CommonMappingGeoPointProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingGeoPointProperty() CommonMappingGeoPointProperty {
-	if v, ok := u.value.(*CommonMappingGeoPointProperty); ok {
-		return *v
-	}
-	var zero CommonMappingGeoPointProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingGeoPointProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingGeoPointProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingGeoPointPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingGeoShapeProperty returns the CommonMappingGeoShapeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingGeoShapeProperty() CommonMappingGeoShapeProperty {
-	if v, ok := u.value.(*CommonMappingGeoShapeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingGeoShapeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingGeoShapeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingGeoShapeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingGeoShapePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingByteNumberProperty returns the CommonMappingByteNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingByteNumberProperty() CommonMappingByteNumberProperty {
-	if v, ok := u.value.(*CommonMappingByteNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingByteNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingByteNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingByteNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingByteNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingDoubleNumberProperty returns the CommonMappingDoubleNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingDoubleNumberProperty() CommonMappingDoubleNumberProperty {
-	if v, ok := u.value.(*CommonMappingDoubleNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingDoubleNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingDoubleNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingDoubleNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingDoubleNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingFloatNumberProperty returns the CommonMappingFloatNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingFloatNumberProperty() CommonMappingFloatNumberProperty {
-	if v, ok := u.value.(*CommonMappingFloatNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingFloatNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingFloatNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingFloatNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingHalfFloatNumberProperty returns the CommonMappingHalfFloatNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingHalfFloatNumberProperty() CommonMappingHalfFloatNumberProperty {
-	if v, ok := u.value.(*CommonMappingHalfFloatNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingHalfFloatNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingHalfFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingHalfFloatNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingHalfFloatNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingIntegerNumberProperty returns the CommonMappingIntegerNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIntegerNumberProperty() CommonMappingIntegerNumberProperty {
-	if v, ok := u.value.(*CommonMappingIntegerNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingIntegerNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingIntegerNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIntegerNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIntegerNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingLongNumberProperty returns the CommonMappingLongNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingLongNumberProperty() CommonMappingLongNumberProperty {
-	if v, ok := u.value.(*CommonMappingLongNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingLongNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingLongNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingLongNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingLongNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingScaledFloatNumberProperty returns the CommonMappingScaledFloatNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingScaledFloatNumberProperty() CommonMappingScaledFloatNumberProperty {
-	if v, ok := u.value.(*CommonMappingScaledFloatNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingScaledFloatNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingScaledFloatNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingScaledFloatNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingScaledFloatNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingShortNumberProperty returns the CommonMappingShortNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingShortNumberProperty() CommonMappingShortNumberProperty {
-	if v, ok := u.value.(*CommonMappingShortNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingShortNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingShortNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingShortNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingShortNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingUnsignedLongNumberProperty returns the CommonMappingUnsignedLongNumberProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingUnsignedLongNumberProperty() CommonMappingUnsignedLongNumberProperty {
-	if v, ok := u.value.(*CommonMappingUnsignedLongNumberProperty); ok {
-		return *v
-	}
-	var zero CommonMappingUnsignedLongNumberProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingUnsignedLongNumberProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingUnsignedLongNumberPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingDateRangeProperty returns the CommonMappingDateRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingDateRangeProperty() CommonMappingDateRangeProperty {
-	if v, ok := u.value.(*CommonMappingDateRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingDateRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingDateRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingDateRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingDateRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingDoubleRangeProperty returns the CommonMappingDoubleRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingDoubleRangeProperty() CommonMappingDoubleRangeProperty {
-	if v, ok := u.value.(*CommonMappingDoubleRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingDoubleRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingDoubleRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingDoubleRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingDoubleRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingFloatRangeProperty returns the CommonMappingFloatRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingFloatRangeProperty() CommonMappingFloatRangeProperty {
-	if v, ok := u.value.(*CommonMappingFloatRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingFloatRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingFloatRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingFloatRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingFloatRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingIntegerRangeProperty returns the CommonMappingIntegerRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIntegerRangeProperty() CommonMappingIntegerRangeProperty {
-	if v, ok := u.value.(*CommonMappingIntegerRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingIntegerRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingIntegerRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIntegerRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIntegerRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingIPRangeProperty returns the CommonMappingIPRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIPRangeProperty() CommonMappingIPRangeProperty {
-	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingIPRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingIPRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIPRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIPRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingLongRangeProperty returns the CommonMappingLongRangeProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingLongRangeProperty() CommonMappingLongRangeProperty {
-	if v, ok := u.value.(*CommonMappingLongRangeProperty); ok {
-		return *v
-	}
-	var zero CommonMappingLongRangeProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingLongRangeProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingLongRangeProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingLongRangePropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingKNNVectorProperty returns the CommonMappingKNNVectorProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingKNNVectorProperty() CommonMappingKNNVectorProperty {
-	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
-		return *v
-	}
-	var zero CommonMappingKNNVectorProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingKNNVectorProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingKNNVectorProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType,
-		value: &v,
-	}
-}
-
-// CommonMappingIcuCollationKeywordProperty returns the CommonMappingIcuCollationKeywordProperty branch value.
-func (u *CommonMappingDynamicTemplate) CommonMappingIcuCollationKeywordProperty() CommonMappingIcuCollationKeywordProperty {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
-		return *v
-	}
-	var zero CommonMappingIcuCollationKeywordProperty
-	return zero
-}
-
-// NewCommonMappingDynamicTemplateFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingDynamicTemplate populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingDynamicTemplateFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingDynamicTemplate {
-	return CommonMappingDynamicTemplate{
-		typ:   CommonMappingDynamicTemplateCommonMappingIcuCollationKeywordPropertyType,
-		value: &v,
-	}
-}
-
-func (u *CommonMappingDynamicTemplate) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CommonMappingDynamicTemplateUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	if build.HasJSONKeys(data, "model_id", "type") {
-		var v CommonMappingSemanticProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingSemanticPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingXyPointProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingXyPointPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingXyShapeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingXyShapePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingBinaryProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingBinaryPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingBooleanProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingBooleanPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingJoinProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingJoinPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingKeywordPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingMatchOnlyTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingMatchOnlyTextPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingPercolatorProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingPercolatorPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingRankFeatureProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingRankFeaturePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingRankFeaturesProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingRankFeaturesPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingSearchAsYouTypeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingSearchAsYouTypePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingTextProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingTextPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingVersionProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingVersionPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingWildcardProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingWildcardPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingDateNanosProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingDateNanosPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingDateProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingDatePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "default_metric", "metrics", "type") {
-		var v CommonMappingAggregateMetricDoubleProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingAggregateMetricDoublePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingFlatObjectProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingFlatObjectPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingNestedProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingNestedPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingCompletionProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingCompletionPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingConstantKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingConstantKeywordPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingFieldAliasProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingFieldAliasPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingHistogramProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingHistogramPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIPProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIPPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingMurmur3HashProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingMurmur3HashPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingTokenCountProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingTokenCountPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingGeoPointProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingGeoPointPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingGeoShapeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingGeoShapePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingByteNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingByteNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingDoubleNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingDoubleNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingFloatNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingHalfFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingHalfFloatNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIntegerNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIntegerNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingLongNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingLongNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingScaledFloatNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingScaledFloatNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingShortNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingShortNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingUnsignedLongNumberProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingUnsignedLongNumberPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingDateRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingDateRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingDoubleRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingDoubleRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingFloatRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingFloatRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIntegerRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIntegerRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIPRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIPRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingLongRangeProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingLongRangePropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "dimension", "type") {
-		var v CommonMappingKNNVectorProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingKNNVectorPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	if build.HasJSONKeys(data, "type") {
-		var v CommonMappingIcuCollationKeywordProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingIcuCollationKeywordPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v CommonMappingObjectProperty
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = CommonMappingDynamicTemplateCommonMappingObjectPropertyType
-			u.value = &v
-			return nil
-		}
-	}
-	return fmt.Errorf("CommonMappingDynamicTemplate: no branch matched JSON: %s", data[:min(len(data), 64)])
-}
-
-func (u CommonMappingDynamicTemplate) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// CommonMappingTypePropertiesValue is a discriminated union with no wire discriminator.
+// CommonMappingProperty is a discriminated union with no wire discriminator.
 // Its branches are indistinguishable from the response bytes alone (the type
 // is determined by the request), so the raw JSON is retained and decoded on
 // demand by the As<Branch>() accessors. There is deliberately no Type() method
 // or discriminant constants: the wire never identifies the branch.
-type CommonMappingTypePropertiesValue struct {
+type CommonMappingProperty struct {
 	raw   json.RawMessage
 	value any
 }
@@ -15517,17 +14187,17 @@ type CommonMappingTypePropertiesValue struct {
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonMappingTypePropertiesValue) RawJSON() json.RawMessage { return u.raw }
+func (u *CommonMappingProperty) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling.
-func (u *CommonMappingTypePropertiesValue) SetRaw(raw json.RawMessage) {
+func (u *CommonMappingProperty) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
 }
 
 // AsCommonMappingSemanticProperty decodes the union as CommonMappingSemanticProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingSemanticProperty() (CommonMappingSemanticProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingSemanticProperty() (CommonMappingSemanticProperty, error) {
 	if v, ok := u.value.(*CommonMappingSemanticProperty); ok {
 		return *v, nil
 	}
@@ -15539,17 +14209,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingSemanticProperty() (Co
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingSemanticProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingSemanticProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingSemanticProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
 	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
 		return *v, nil
 	}
@@ -15561,17 +14231,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingXyPointProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingXyPointProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingXyPointProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingXyPointProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
 	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
 		return *v, nil
 	}
@@ -15583,17 +14253,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingXyShapeProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingXyShapeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingXyShapeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingBinaryProperty decodes the union as CommonMappingBinaryProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingBinaryProperty() (CommonMappingBinaryProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingBinaryProperty() (CommonMappingBinaryProperty, error) {
 	if v, ok := u.value.(*CommonMappingBinaryProperty); ok {
 		return *v, nil
 	}
@@ -15605,17 +14275,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingBinaryProperty() (Comm
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingBinaryProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingBinaryProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingBinaryProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingBooleanProperty decodes the union as CommonMappingBooleanProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingBooleanProperty() (CommonMappingBooleanProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingBooleanProperty() (CommonMappingBooleanProperty, error) {
 	if v, ok := u.value.(*CommonMappingBooleanProperty); ok {
 		return *v, nil
 	}
@@ -15627,17 +14297,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingBooleanProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingBooleanProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingBooleanProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingBooleanProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingJoinProperty decodes the union as CommonMappingJoinProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingJoinProperty() (CommonMappingJoinProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingJoinProperty() (CommonMappingJoinProperty, error) {
 	if v, ok := u.value.(*CommonMappingJoinProperty); ok {
 		return *v, nil
 	}
@@ -15649,17 +14319,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingJoinProperty() (Common
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingJoinProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingJoinProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingJoinProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingKeywordProperty decodes the union as CommonMappingKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingKeywordProperty() (CommonMappingKeywordProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingKeywordProperty() (CommonMappingKeywordProperty, error) {
 	if v, ok := u.value.(*CommonMappingKeywordProperty); ok {
 		return *v, nil
 	}
@@ -15671,17 +14341,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingKeywordProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingKeywordProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingKeywordProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingMatchOnlyTextProperty decodes the union as CommonMappingMatchOnlyTextProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingMatchOnlyTextProperty() (CommonMappingMatchOnlyTextProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingMatchOnlyTextProperty() (CommonMappingMatchOnlyTextProperty, error) {
 	if v, ok := u.value.(*CommonMappingMatchOnlyTextProperty); ok {
 		return *v, nil
 	}
@@ -15693,17 +14363,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingMatchOnlyTextProperty(
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingMatchOnlyTextProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingMatchOnlyTextProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingPercolatorProperty decodes the union as CommonMappingPercolatorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingPercolatorProperty() (CommonMappingPercolatorProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingPercolatorProperty() (CommonMappingPercolatorProperty, error) {
 	if v, ok := u.value.(*CommonMappingPercolatorProperty); ok {
 		return *v, nil
 	}
@@ -15715,17 +14385,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingPercolatorProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingPercolatorProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingPercolatorProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingPercolatorProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingRankFeatureProperty decodes the union as CommonMappingRankFeatureProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingRankFeatureProperty() (CommonMappingRankFeatureProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingRankFeatureProperty() (CommonMappingRankFeatureProperty, error) {
 	if v, ok := u.value.(*CommonMappingRankFeatureProperty); ok {
 		return *v, nil
 	}
@@ -15737,17 +14407,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingRankFeatureProperty() 
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingRankFeatureProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingRankFeatureProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingRankFeatureProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingRankFeaturesProperty decodes the union as CommonMappingRankFeaturesProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingRankFeaturesProperty() (CommonMappingRankFeaturesProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingRankFeaturesProperty() (CommonMappingRankFeaturesProperty, error) {
 	if v, ok := u.value.(*CommonMappingRankFeaturesProperty); ok {
 		return *v, nil
 	}
@@ -15759,17 +14429,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingRankFeaturesProperty()
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingRankFeaturesProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingRankFeaturesProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingRankFeaturesProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingSearchAsYouTypeProperty decodes the union as CommonMappingSearchAsYouTypeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingSearchAsYouTypeProperty() (CommonMappingSearchAsYouTypeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingSearchAsYouTypeProperty() (CommonMappingSearchAsYouTypeProperty, error) {
 	if v, ok := u.value.(*CommonMappingSearchAsYouTypeProperty); ok {
 		return *v, nil
 	}
@@ -15781,17 +14451,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingSearchAsYouTypePropert
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingSearchAsYouTypeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingTextProperty decodes the union as CommonMappingTextProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingTextProperty() (CommonMappingTextProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingTextProperty() (CommonMappingTextProperty, error) {
 	if v, ok := u.value.(*CommonMappingTextProperty); ok {
 		return *v, nil
 	}
@@ -15803,17 +14473,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingTextProperty() (Common
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingTextProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingTextProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingTextProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingVersionProperty decodes the union as CommonMappingVersionProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingVersionProperty() (CommonMappingVersionProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingVersionProperty() (CommonMappingVersionProperty, error) {
 	if v, ok := u.value.(*CommonMappingVersionProperty); ok {
 		return *v, nil
 	}
@@ -15825,17 +14495,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingVersionProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingVersionProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingVersionProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingVersionProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingWildcardProperty decodes the union as CommonMappingWildcardProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingWildcardProperty() (CommonMappingWildcardProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingWildcardProperty() (CommonMappingWildcardProperty, error) {
 	if v, ok := u.value.(*CommonMappingWildcardProperty); ok {
 		return *v, nil
 	}
@@ -15847,17 +14517,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingWildcardProperty() (Co
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingWildcardProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingWildcardProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingWildcardProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingDateNanosProperty decodes the union as CommonMappingDateNanosProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateNanosProperty() (CommonMappingDateNanosProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingDateNanosProperty() (CommonMappingDateNanosProperty, error) {
 	if v, ok := u.value.(*CommonMappingDateNanosProperty); ok {
 		return *v, nil
 	}
@@ -15869,17 +14539,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateNanosProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingDateNanosProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingDateNanosProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingDateNanosProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingDateProperty decodes the union as CommonMappingDateProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateProperty() (CommonMappingDateProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingDateProperty() (CommonMappingDateProperty, error) {
 	if v, ok := u.value.(*CommonMappingDateProperty); ok {
 		return *v, nil
 	}
@@ -15891,17 +14561,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateProperty() (Common
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingDateProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingDateProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingDateProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingAggregateMetricDoubleProperty decodes the union as CommonMappingAggregateMetricDoubleProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingAggregateMetricDoubleProperty() (CommonMappingAggregateMetricDoubleProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingAggregateMetricDoubleProperty() (CommonMappingAggregateMetricDoubleProperty, error) {
 	if v, ok := u.value.(*CommonMappingAggregateMetricDoubleProperty); ok {
 		return *v, nil
 	}
@@ -15913,17 +14583,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingAggregateMetricDoubleP
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingAggregateMetricDoubleProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingFlatObjectProperty decodes the union as CommonMappingFlatObjectProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingFlatObjectProperty() (CommonMappingFlatObjectProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingFlatObjectProperty() (CommonMappingFlatObjectProperty, error) {
 	if v, ok := u.value.(*CommonMappingFlatObjectProperty); ok {
 		return *v, nil
 	}
@@ -15935,17 +14605,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingFlatObjectProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingFlatObjectProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingFlatObjectProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingFlatObjectProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingNestedProperty decodes the union as CommonMappingNestedProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingNestedProperty() (CommonMappingNestedProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingNestedProperty() (CommonMappingNestedProperty, error) {
 	if v, ok := u.value.(*CommonMappingNestedProperty); ok {
 		return *v, nil
 	}
@@ -15957,17 +14627,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingNestedProperty() (Comm
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingNestedProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingNestedProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingNestedProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingObjectProperty decodes the union as CommonMappingObjectProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingObjectProperty() (CommonMappingObjectProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingObjectProperty() (CommonMappingObjectProperty, error) {
 	if v, ok := u.value.(*CommonMappingObjectProperty); ok {
 		return *v, nil
 	}
@@ -15979,17 +14649,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingObjectProperty() (Comm
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingObjectProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingObjectProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingObjectProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingCompletionProperty decodes the union as CommonMappingCompletionProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingCompletionProperty() (CommonMappingCompletionProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingCompletionProperty() (CommonMappingCompletionProperty, error) {
 	if v, ok := u.value.(*CommonMappingCompletionProperty); ok {
 		return *v, nil
 	}
@@ -16001,17 +14671,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingCompletionProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingCompletionProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingCompletionProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingCompletionProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingConstantKeywordProperty decodes the union as CommonMappingConstantKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingConstantKeywordProperty() (CommonMappingConstantKeywordProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingConstantKeywordProperty() (CommonMappingConstantKeywordProperty, error) {
 	if v, ok := u.value.(*CommonMappingConstantKeywordProperty); ok {
 		return *v, nil
 	}
@@ -16023,17 +14693,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingConstantKeywordPropert
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingConstantKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingConstantKeywordProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingConstantKeywordProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingFieldAliasProperty decodes the union as CommonMappingFieldAliasProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingFieldAliasProperty() (CommonMappingFieldAliasProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingFieldAliasProperty() (CommonMappingFieldAliasProperty, error) {
 	if v, ok := u.value.(*CommonMappingFieldAliasProperty); ok {
 		return *v, nil
 	}
@@ -16045,17 +14715,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingFieldAliasProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingFieldAliasProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingFieldAliasProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingFieldAliasProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingHistogramProperty decodes the union as CommonMappingHistogramProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingHistogramProperty() (CommonMappingHistogramProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingHistogramProperty() (CommonMappingHistogramProperty, error) {
 	if v, ok := u.value.(*CommonMappingHistogramProperty); ok {
 		return *v, nil
 	}
@@ -16067,17 +14737,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingHistogramProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingHistogramProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingHistogramProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingHistogramProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
 	if v, ok := u.value.(*CommonMappingIPProperty); ok {
 		return *v, nil
 	}
@@ -16089,17 +14759,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPProperty() (CommonMa
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIPProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingIPProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingIPProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingMurmur3HashProperty decodes the union as CommonMappingMurmur3HashProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingMurmur3HashProperty() (CommonMappingMurmur3HashProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingMurmur3HashProperty() (CommonMappingMurmur3HashProperty, error) {
 	if v, ok := u.value.(*CommonMappingMurmur3HashProperty); ok {
 		return *v, nil
 	}
@@ -16111,17 +14781,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingMurmur3HashProperty() 
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingMurmur3HashProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingMurmur3HashProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingMurmur3HashProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingTokenCountProperty decodes the union as CommonMappingTokenCountProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingTokenCountProperty() (CommonMappingTokenCountProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingTokenCountProperty() (CommonMappingTokenCountProperty, error) {
 	if v, ok := u.value.(*CommonMappingTokenCountProperty); ok {
 		return *v, nil
 	}
@@ -16133,17 +14803,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingTokenCountProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingTokenCountProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingTokenCountProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingTokenCountProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingGeoPointProperty decodes the union as CommonMappingGeoPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingGeoPointProperty() (CommonMappingGeoPointProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingGeoPointProperty() (CommonMappingGeoPointProperty, error) {
 	if v, ok := u.value.(*CommonMappingGeoPointProperty); ok {
 		return *v, nil
 	}
@@ -16155,17 +14825,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingGeoPointProperty() (Co
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingGeoPointProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingGeoPointProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingGeoPointProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingGeoShapeProperty decodes the union as CommonMappingGeoShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingGeoShapeProperty() (CommonMappingGeoShapeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingGeoShapeProperty() (CommonMappingGeoShapeProperty, error) {
 	if v, ok := u.value.(*CommonMappingGeoShapeProperty); ok {
 		return *v, nil
 	}
@@ -16177,17 +14847,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingGeoShapeProperty() (Co
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingGeoShapeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingGeoShapeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingGeoShapeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingByteNumberProperty decodes the union as CommonMappingByteNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingByteNumberProperty() (CommonMappingByteNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingByteNumberProperty() (CommonMappingByteNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingByteNumberProperty); ok {
 		return *v, nil
 	}
@@ -16199,17 +14869,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingByteNumberProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingByteNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingByteNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingByteNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingDoubleNumberProperty decodes the union as CommonMappingDoubleNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingDoubleNumberProperty() (CommonMappingDoubleNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingDoubleNumberProperty() (CommonMappingDoubleNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingDoubleNumberProperty); ok {
 		return *v, nil
 	}
@@ -16221,17 +14891,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingDoubleNumberProperty()
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingDoubleNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingDoubleNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingDoubleNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingFloatNumberProperty decodes the union as CommonMappingFloatNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingFloatNumberProperty() (CommonMappingFloatNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingFloatNumberProperty() (CommonMappingFloatNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingFloatNumberProperty); ok {
 		return *v, nil
 	}
@@ -16243,17 +14913,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingFloatNumberProperty() 
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingFloatNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingFloatNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingHalfFloatNumberProperty decodes the union as CommonMappingHalfFloatNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingHalfFloatNumberProperty() (CommonMappingHalfFloatNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingHalfFloatNumberProperty() (CommonMappingHalfFloatNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingHalfFloatNumberProperty); ok {
 		return *v, nil
 	}
@@ -16265,17 +14935,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingHalfFloatNumberPropert
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingHalfFloatNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingHalfFloatNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingIntegerNumberProperty decodes the union as CommonMappingIntegerNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIntegerNumberProperty() (CommonMappingIntegerNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingIntegerNumberProperty() (CommonMappingIntegerNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingIntegerNumberProperty); ok {
 		return *v, nil
 	}
@@ -16287,17 +14957,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIntegerNumberProperty(
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIntegerNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingIntegerNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingIntegerNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingLongNumberProperty decodes the union as CommonMappingLongNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingLongNumberProperty() (CommonMappingLongNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingLongNumberProperty() (CommonMappingLongNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingLongNumberProperty); ok {
 		return *v, nil
 	}
@@ -16309,17 +14979,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingLongNumberProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingLongNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingLongNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingLongNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingScaledFloatNumberProperty decodes the union as CommonMappingScaledFloatNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingScaledFloatNumberProperty() (CommonMappingScaledFloatNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingScaledFloatNumberProperty() (CommonMappingScaledFloatNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingScaledFloatNumberProperty); ok {
 		return *v, nil
 	}
@@ -16331,17 +15001,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingScaledFloatNumberPrope
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingScaledFloatNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingScaledFloatNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingShortNumberProperty decodes the union as CommonMappingShortNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingShortNumberProperty() (CommonMappingShortNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingShortNumberProperty() (CommonMappingShortNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingShortNumberProperty); ok {
 		return *v, nil
 	}
@@ -16353,17 +15023,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingShortNumberProperty() 
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingShortNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingShortNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingShortNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingUnsignedLongNumberProperty decodes the union as CommonMappingUnsignedLongNumberProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingUnsignedLongNumberProperty() (CommonMappingUnsignedLongNumberProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingUnsignedLongNumberProperty() (CommonMappingUnsignedLongNumberProperty, error) {
 	if v, ok := u.value.(*CommonMappingUnsignedLongNumberProperty); ok {
 		return *v, nil
 	}
@@ -16375,17 +15045,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingUnsignedLongNumberProp
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingUnsignedLongNumberProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingDateRangeProperty decodes the union as CommonMappingDateRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateRangeProperty() (CommonMappingDateRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingDateRangeProperty() (CommonMappingDateRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingDateRangeProperty); ok {
 		return *v, nil
 	}
@@ -16397,17 +15067,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingDateRangeProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingDateRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingDateRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingDateRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingDoubleRangeProperty decodes the union as CommonMappingDoubleRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingDoubleRangeProperty() (CommonMappingDoubleRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingDoubleRangeProperty() (CommonMappingDoubleRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingDoubleRangeProperty); ok {
 		return *v, nil
 	}
@@ -16419,17 +15089,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingDoubleRangeProperty() 
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingDoubleRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingDoubleRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingDoubleRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingFloatRangeProperty decodes the union as CommonMappingFloatRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingFloatRangeProperty() (CommonMappingFloatRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingFloatRangeProperty() (CommonMappingFloatRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingFloatRangeProperty); ok {
 		return *v, nil
 	}
@@ -16441,17 +15111,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingFloatRangeProperty() (
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingFloatRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingFloatRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingFloatRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingIntegerRangeProperty decodes the union as CommonMappingIntegerRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIntegerRangeProperty() (CommonMappingIntegerRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingIntegerRangeProperty() (CommonMappingIntegerRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingIntegerRangeProperty); ok {
 		return *v, nil
 	}
@@ -16463,17 +15133,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIntegerRangeProperty()
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIntegerRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingIntegerRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingIntegerRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
 		return *v, nil
 	}
@@ -16485,17 +15155,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIPRangeProperty() (Com
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIPRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingIPRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingIPRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingLongRangeProperty decodes the union as CommonMappingLongRangeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingLongRangeProperty() (CommonMappingLongRangeProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingLongRangeProperty() (CommonMappingLongRangeProperty, error) {
 	if v, ok := u.value.(*CommonMappingLongRangeProperty); ok {
 		return *v, nil
 	}
@@ -16507,17 +15177,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingLongRangeProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingLongRangeProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingLongRangeProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingLongRangeProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
 	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
 		return *v, nil
 	}
@@ -16529,17 +15199,17 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingKNNVectorProperty() (C
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingKNNVectorProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingKNNVectorProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingKNNVectorProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
 // AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingTypePropertiesValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
+func (u *CommonMappingProperty) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
 	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
 		return *v, nil
 	}
@@ -16551,21 +15221,21 @@ func (u *CommonMappingTypePropertiesValue) AsCommonMappingIcuCollationKeywordPro
 	return v, err
 }
 
-// NewCommonMappingTypePropertiesValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingTypePropertiesValue populated with v
+// NewCommonMappingPropertyFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingProperty populated with v
 // on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingTypePropertiesValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingTypePropertiesValue {
-	return CommonMappingTypePropertiesValue{
+func NewCommonMappingPropertyFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingProperty {
+	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
-func (u *CommonMappingTypePropertiesValue) UnmarshalJSON(data []byte) error {
+func (u *CommonMappingProperty) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
 	return nil
 }
 
-func (u CommonMappingTypePropertiesValue) MarshalJSON() ([]byte, error) {
+func (u CommonMappingProperty) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -21572,45 +20242,45 @@ func (u TasksTaskInfoBaseStatus) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// TasksTaskListRespBase is a discriminated union type.
+// TasksTaskInfos is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type TasksTaskListRespBase struct {
-	typ   TasksTaskListRespBaseType
+type TasksTaskInfos struct {
+	typ   TasksTaskInfosType
 	raw   json.RawMessage
 	value any
 }
 
-// TasksTaskListRespBaseType discriminates the branches of TasksTaskListRespBase.
-type TasksTaskListRespBaseType int
+// TasksTaskInfosType discriminates the branches of TasksTaskInfos.
+type TasksTaskInfosType int
 
 const (
-	TasksTaskListRespBaseUnknownType TasksTaskListRespBaseType = iota
-	TasksTaskListRespBaseArrayType
-	TasksTaskListRespBaseMapType
+	TasksTaskInfosUnknownType TasksTaskInfosType = iota
+	TasksTaskInfosArrayType
+	TasksTaskInfosMapType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns TasksTaskListRespBaseUnknownType if the value has not been decoded.
-func (u *TasksTaskListRespBase) Type() TasksTaskListRespBaseType { return u.typ }
+// Returns TasksTaskInfosUnknownType if the value has not been decoded.
+func (u *TasksTaskInfos) Type() TasksTaskInfosType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *TasksTaskListRespBase) RawJSON() json.RawMessage { return u.raw }
+func (u *TasksTaskInfos) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewTasksTaskListRespBaseFrom*
+// verbatim when no typed branch is set. Use the NewTasksTaskInfosFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *TasksTaskListRespBase) SetRaw(raw json.RawMessage) {
+func (u *TasksTaskInfos) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = TasksTaskListRespBaseUnknownType
+	u.typ = TasksTaskInfosUnknownType
 }
 
 // Array returns the []TasksTaskInfo branch value.
-func (u *TasksTaskListRespBase) Array() []TasksTaskInfo {
+func (u *TasksTaskInfos) Array() []TasksTaskInfo {
 	if v, ok := u.value.(*[]TasksTaskInfo); ok {
 		return *v
 	}
@@ -21618,17 +20288,17 @@ func (u *TasksTaskListRespBase) Array() []TasksTaskInfo {
 	return zero
 }
 
-// NewTasksTaskListRespBaseFromArray returns a TasksTaskListRespBase populated with v
+// NewTasksTaskInfosFromArray returns a TasksTaskInfos populated with v
 // on the Array branch.
-func NewTasksTaskListRespBaseFromArray(v []TasksTaskInfo) TasksTaskListRespBase {
-	return TasksTaskListRespBase{
-		typ:   TasksTaskListRespBaseArrayType,
+func NewTasksTaskInfosFromArray(v []TasksTaskInfo) TasksTaskInfos {
+	return TasksTaskInfos{
+		typ:   TasksTaskInfosArrayType,
 		value: &v,
 	}
 }
 
 // Map returns the map[string]json.RawMessage branch value.
-func (u *TasksTaskListRespBase) Map() map[string]json.RawMessage {
+func (u *TasksTaskInfos) Map() map[string]json.RawMessage {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v
 	}
@@ -21636,19 +20306,19 @@ func (u *TasksTaskListRespBase) Map() map[string]json.RawMessage {
 	return zero
 }
 
-// NewTasksTaskListRespBaseFromMap returns a TasksTaskListRespBase populated with v
+// NewTasksTaskInfosFromMap returns a TasksTaskInfos populated with v
 // on the Map branch.
-func NewTasksTaskListRespBaseFromMap(v map[string]json.RawMessage) TasksTaskListRespBase {
-	return TasksTaskListRespBase{
-		typ:   TasksTaskListRespBaseMapType,
+func NewTasksTaskInfosFromMap(v map[string]json.RawMessage) TasksTaskInfos {
+	return TasksTaskInfos{
+		typ:   TasksTaskInfosMapType,
 		value: &v,
 	}
 }
 
-func (u *TasksTaskListRespBase) UnmarshalJSON(data []byte) error {
+func (u *TasksTaskInfos) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = TasksTaskListRespBaseUnknownType
+	u.typ = TasksTaskInfosUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -21658,1093 +20328,22 @@ func (u *TasksTaskListRespBase) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = TasksTaskListRespBaseArrayType
+		u.typ = TasksTaskInfosArrayType
 		u.value = &v
 	case data[0] == '{':
 		var v map[string]json.RawMessage
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = TasksTaskListRespBaseMapType
+		u.typ = TasksTaskInfosMapType
 		u.value = &v
 	default:
-		return fmt.Errorf("TasksTaskListRespBase: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("TasksTaskInfos: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u TasksTaskListRespBase) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// CommonMappingFieldMappingValue is a discriminated union with no wire discriminator.
-// Its branches are indistinguishable from the response bytes alone (the type
-// is determined by the request), so the raw JSON is retained and decoded on
-// demand by the As<Branch>() accessors. There is deliberately no Type() method
-// or discriminant constants: the wire never identifies the branch.
-type CommonMappingFieldMappingValue struct {
-	raw   json.RawMessage
-	value any
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonMappingFieldMappingValue) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling.
-func (u *CommonMappingFieldMappingValue) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-}
-
-// AsCommonMappingSemanticProperty decodes the union as CommonMappingSemanticProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingSemanticProperty() (CommonMappingSemanticProperty, error) {
-	if v, ok := u.value.(*CommonMappingSemanticProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingSemanticProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingSemanticProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingSemanticProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingSemanticProperty(v CommonMappingSemanticProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingXyPointProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingXyPointProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingXyShapeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingXyShapeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingBinaryProperty decodes the union as CommonMappingBinaryProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingBinaryProperty() (CommonMappingBinaryProperty, error) {
-	if v, ok := u.value.(*CommonMappingBinaryProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingBinaryProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingBinaryProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingBinaryProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingBinaryProperty(v CommonMappingBinaryProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingBooleanProperty decodes the union as CommonMappingBooleanProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingBooleanProperty() (CommonMappingBooleanProperty, error) {
-	if v, ok := u.value.(*CommonMappingBooleanProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingBooleanProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingBooleanProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingBooleanProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingBooleanProperty(v CommonMappingBooleanProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingJoinProperty decodes the union as CommonMappingJoinProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingJoinProperty() (CommonMappingJoinProperty, error) {
-	if v, ok := u.value.(*CommonMappingJoinProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingJoinProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingJoinProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingJoinProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingJoinProperty(v CommonMappingJoinProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingKeywordProperty decodes the union as CommonMappingKeywordProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingKeywordProperty() (CommonMappingKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingKeywordProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingKeywordProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingKeywordProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingKeywordProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingKeywordProperty(v CommonMappingKeywordProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingMatchOnlyTextProperty decodes the union as CommonMappingMatchOnlyTextProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingMatchOnlyTextProperty() (CommonMappingMatchOnlyTextProperty, error) {
-	if v, ok := u.value.(*CommonMappingMatchOnlyTextProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingMatchOnlyTextProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingMatchOnlyTextProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingMatchOnlyTextProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingMatchOnlyTextProperty(v CommonMappingMatchOnlyTextProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingPercolatorProperty decodes the union as CommonMappingPercolatorProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingPercolatorProperty() (CommonMappingPercolatorProperty, error) {
-	if v, ok := u.value.(*CommonMappingPercolatorProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingPercolatorProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingPercolatorProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingPercolatorProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingPercolatorProperty(v CommonMappingPercolatorProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingRankFeatureProperty decodes the union as CommonMappingRankFeatureProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingRankFeatureProperty() (CommonMappingRankFeatureProperty, error) {
-	if v, ok := u.value.(*CommonMappingRankFeatureProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingRankFeatureProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingRankFeatureProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingRankFeatureProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingRankFeatureProperty(v CommonMappingRankFeatureProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingRankFeaturesProperty decodes the union as CommonMappingRankFeaturesProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingRankFeaturesProperty() (CommonMappingRankFeaturesProperty, error) {
-	if v, ok := u.value.(*CommonMappingRankFeaturesProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingRankFeaturesProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingRankFeaturesProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingRankFeaturesProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingRankFeaturesProperty(v CommonMappingRankFeaturesProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingSearchAsYouTypeProperty decodes the union as CommonMappingSearchAsYouTypeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingSearchAsYouTypeProperty() (CommonMappingSearchAsYouTypeProperty, error) {
-	if v, ok := u.value.(*CommonMappingSearchAsYouTypeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingSearchAsYouTypeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingSearchAsYouTypeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingSearchAsYouTypeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingSearchAsYouTypeProperty(v CommonMappingSearchAsYouTypeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingTextProperty decodes the union as CommonMappingTextProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingTextProperty() (CommonMappingTextProperty, error) {
-	if v, ok := u.value.(*CommonMappingTextProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingTextProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingTextProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingTextProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingTextProperty(v CommonMappingTextProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingVersionProperty decodes the union as CommonMappingVersionProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingVersionProperty() (CommonMappingVersionProperty, error) {
-	if v, ok := u.value.(*CommonMappingVersionProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingVersionProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingVersionProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingVersionProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingVersionProperty(v CommonMappingVersionProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingWildcardProperty decodes the union as CommonMappingWildcardProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingWildcardProperty() (CommonMappingWildcardProperty, error) {
-	if v, ok := u.value.(*CommonMappingWildcardProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingWildcardProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingWildcardProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingWildcardProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingWildcardProperty(v CommonMappingWildcardProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingDateNanosProperty decodes the union as CommonMappingDateNanosProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingDateNanosProperty() (CommonMappingDateNanosProperty, error) {
-	if v, ok := u.value.(*CommonMappingDateNanosProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingDateNanosProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingDateNanosProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingDateNanosProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingDateNanosProperty(v CommonMappingDateNanosProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingDateProperty decodes the union as CommonMappingDateProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingDateProperty() (CommonMappingDateProperty, error) {
-	if v, ok := u.value.(*CommonMappingDateProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingDateProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingDateProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingDateProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingDateProperty(v CommonMappingDateProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingAggregateMetricDoubleProperty decodes the union as CommonMappingAggregateMetricDoubleProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingAggregateMetricDoubleProperty() (CommonMappingAggregateMetricDoubleProperty, error) {
-	if v, ok := u.value.(*CommonMappingAggregateMetricDoubleProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingAggregateMetricDoubleProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingAggregateMetricDoubleProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingAggregateMetricDoubleProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingAggregateMetricDoubleProperty(v CommonMappingAggregateMetricDoubleProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingFlatObjectProperty decodes the union as CommonMappingFlatObjectProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingFlatObjectProperty() (CommonMappingFlatObjectProperty, error) {
-	if v, ok := u.value.(*CommonMappingFlatObjectProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingFlatObjectProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingFlatObjectProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingFlatObjectProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingFlatObjectProperty(v CommonMappingFlatObjectProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingNestedProperty decodes the union as CommonMappingNestedProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingNestedProperty() (CommonMappingNestedProperty, error) {
-	if v, ok := u.value.(*CommonMappingNestedProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingNestedProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingNestedProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingNestedProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingNestedProperty(v CommonMappingNestedProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingObjectProperty decodes the union as CommonMappingObjectProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingObjectProperty() (CommonMappingObjectProperty, error) {
-	if v, ok := u.value.(*CommonMappingObjectProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingObjectProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingObjectProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingObjectProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingObjectProperty(v CommonMappingObjectProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingCompletionProperty decodes the union as CommonMappingCompletionProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingCompletionProperty() (CommonMappingCompletionProperty, error) {
-	if v, ok := u.value.(*CommonMappingCompletionProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingCompletionProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingCompletionProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingCompletionProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingCompletionProperty(v CommonMappingCompletionProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingConstantKeywordProperty decodes the union as CommonMappingConstantKeywordProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingConstantKeywordProperty() (CommonMappingConstantKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingConstantKeywordProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingConstantKeywordProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingConstantKeywordProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingConstantKeywordProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingConstantKeywordProperty(v CommonMappingConstantKeywordProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingFieldAliasProperty decodes the union as CommonMappingFieldAliasProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingFieldAliasProperty() (CommonMappingFieldAliasProperty, error) {
-	if v, ok := u.value.(*CommonMappingFieldAliasProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingFieldAliasProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingFieldAliasProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingFieldAliasProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingFieldAliasProperty(v CommonMappingFieldAliasProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingHistogramProperty decodes the union as CommonMappingHistogramProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingHistogramProperty() (CommonMappingHistogramProperty, error) {
-	if v, ok := u.value.(*CommonMappingHistogramProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingHistogramProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingHistogramProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingHistogramProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingHistogramProperty(v CommonMappingHistogramProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingIPProperty decodes the union as CommonMappingIPProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIPProperty() (CommonMappingIPProperty, error) {
-	if v, ok := u.value.(*CommonMappingIPProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingIPProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingIPProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIPProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIPProperty(v CommonMappingIPProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingMurmur3HashProperty decodes the union as CommonMappingMurmur3HashProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingMurmur3HashProperty() (CommonMappingMurmur3HashProperty, error) {
-	if v, ok := u.value.(*CommonMappingMurmur3HashProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingMurmur3HashProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingMurmur3HashProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingMurmur3HashProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingMurmur3HashProperty(v CommonMappingMurmur3HashProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingTokenCountProperty decodes the union as CommonMappingTokenCountProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingTokenCountProperty() (CommonMappingTokenCountProperty, error) {
-	if v, ok := u.value.(*CommonMappingTokenCountProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingTokenCountProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingTokenCountProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingTokenCountProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingTokenCountProperty(v CommonMappingTokenCountProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingGeoPointProperty decodes the union as CommonMappingGeoPointProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingGeoPointProperty() (CommonMappingGeoPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingGeoPointProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingGeoPointProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingGeoPointProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingGeoPointProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingGeoPointProperty(v CommonMappingGeoPointProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingGeoShapeProperty decodes the union as CommonMappingGeoShapeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingGeoShapeProperty() (CommonMappingGeoShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingGeoShapeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingGeoShapeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingGeoShapeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingGeoShapeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingGeoShapeProperty(v CommonMappingGeoShapeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingByteNumberProperty decodes the union as CommonMappingByteNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingByteNumberProperty() (CommonMappingByteNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingByteNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingByteNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingByteNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingByteNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingByteNumberProperty(v CommonMappingByteNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingDoubleNumberProperty decodes the union as CommonMappingDoubleNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingDoubleNumberProperty() (CommonMappingDoubleNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingDoubleNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingDoubleNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingDoubleNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingDoubleNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingDoubleNumberProperty(v CommonMappingDoubleNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingFloatNumberProperty decodes the union as CommonMappingFloatNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingFloatNumberProperty() (CommonMappingFloatNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingFloatNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingFloatNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingFloatNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingFloatNumberProperty(v CommonMappingFloatNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingHalfFloatNumberProperty decodes the union as CommonMappingHalfFloatNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingHalfFloatNumberProperty() (CommonMappingHalfFloatNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingHalfFloatNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingHalfFloatNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingHalfFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingHalfFloatNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingHalfFloatNumberProperty(v CommonMappingHalfFloatNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingIntegerNumberProperty decodes the union as CommonMappingIntegerNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIntegerNumberProperty() (CommonMappingIntegerNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingIntegerNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingIntegerNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingIntegerNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIntegerNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIntegerNumberProperty(v CommonMappingIntegerNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingLongNumberProperty decodes the union as CommonMappingLongNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingLongNumberProperty() (CommonMappingLongNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingLongNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingLongNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingLongNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingLongNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingLongNumberProperty(v CommonMappingLongNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingScaledFloatNumberProperty decodes the union as CommonMappingScaledFloatNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingScaledFloatNumberProperty() (CommonMappingScaledFloatNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingScaledFloatNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingScaledFloatNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingScaledFloatNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingScaledFloatNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingScaledFloatNumberProperty(v CommonMappingScaledFloatNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingShortNumberProperty decodes the union as CommonMappingShortNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingShortNumberProperty() (CommonMappingShortNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingShortNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingShortNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingShortNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingShortNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingShortNumberProperty(v CommonMappingShortNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingUnsignedLongNumberProperty decodes the union as CommonMappingUnsignedLongNumberProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingUnsignedLongNumberProperty() (CommonMappingUnsignedLongNumberProperty, error) {
-	if v, ok := u.value.(*CommonMappingUnsignedLongNumberProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingUnsignedLongNumberProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingUnsignedLongNumberProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingUnsignedLongNumberProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingUnsignedLongNumberProperty(v CommonMappingUnsignedLongNumberProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingDateRangeProperty decodes the union as CommonMappingDateRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingDateRangeProperty() (CommonMappingDateRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingDateRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingDateRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingDateRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingDateRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingDateRangeProperty(v CommonMappingDateRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingDoubleRangeProperty decodes the union as CommonMappingDoubleRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingDoubleRangeProperty() (CommonMappingDoubleRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingDoubleRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingDoubleRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingDoubleRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingDoubleRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingDoubleRangeProperty(v CommonMappingDoubleRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingFloatRangeProperty decodes the union as CommonMappingFloatRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingFloatRangeProperty() (CommonMappingFloatRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingFloatRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingFloatRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingFloatRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingFloatRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingFloatRangeProperty(v CommonMappingFloatRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingIntegerRangeProperty decodes the union as CommonMappingIntegerRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIntegerRangeProperty() (CommonMappingIntegerRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIntegerRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingIntegerRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingIntegerRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIntegerRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIntegerRangeProperty(v CommonMappingIntegerRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingIPRangeProperty decodes the union as CommonMappingIPRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIPRangeProperty() (CommonMappingIPRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingIPRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingIPRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingIPRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIPRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIPRangeProperty(v CommonMappingIPRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingLongRangeProperty decodes the union as CommonMappingLongRangeProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingLongRangeProperty() (CommonMappingLongRangeProperty, error) {
-	if v, ok := u.value.(*CommonMappingLongRangeProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingLongRangeProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingLongRangeProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingLongRangeProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingLongRangeProperty(v CommonMappingLongRangeProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingKNNVectorProperty decodes the union as CommonMappingKNNVectorProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingKNNVectorProperty() (CommonMappingKNNVectorProperty, error) {
-	if v, ok := u.value.(*CommonMappingKNNVectorProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingKNNVectorProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingKNNVectorProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingKNNVectorProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingKNNVectorProperty(v CommonMappingKNNVectorProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
-// type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingFieldMappingValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
-		return *v, nil
-	}
-	var v CommonMappingIcuCollationKeywordProperty
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	err := json.Unmarshal(u.raw, &v)
-	return v, err
-}
-
-// NewCommonMappingFieldMappingValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingFieldMappingValue populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingFieldMappingValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingFieldMappingValue {
-	return CommonMappingFieldMappingValue{
-		value: &v,
-	}
-}
-
-func (u *CommonMappingFieldMappingValue) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	return nil
-}
-
-func (u CommonMappingFieldMappingValue) MarshalJSON() ([]byte, error) {
+func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

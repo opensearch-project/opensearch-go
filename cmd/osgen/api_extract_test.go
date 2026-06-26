@@ -14,6 +14,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/renameio/v2/maybe"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 func TestExtractOperations(t *testing.T) {
@@ -677,4 +679,288 @@ func writeTestSpec(t *testing.T, spec map[string]any) string {
 	path := t.TempDir() + "/spec.json"
 	require.NoError(t, maybe.WriteFile(path, data, 0o600))
 	return path
+}
+
+// buildTestSpecWithRawMessageFixes builds a spec exercising the two
+// json.RawMessage generator fixes end to end:
+//
+//   - cat.things: a response field typed as the OpenAPI 3.1 nullable form
+//     ["null","string"], which must resolve to a typed (pointer) field rather
+//     than json.RawMessage.
+//   - alias.get: a response whose component schema is a bare $ref alias to a
+//     real object schema, which must resolve through the alias to a typed
+//     struct rather than degrading the whole response to raw.
+func buildTestSpecWithRawMessageFixes(t *testing.T) string {
+	t.Helper()
+	spec := map[string]any{
+		"openapi": "3.1.0",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/_cat/things": map[string]any{
+				"get": map[string]any{
+					"x-operation-group": "cat.things",
+					"x-version-added":   "1.0",
+					"description":       "Nullable-scalar response field.",
+					"responses": map[string]any{
+						"200": map[string]any{
+							"description": "OK",
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"$ref": "#/components/schemas/cat.things___ThingsResponse",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"/_alias/thing": map[string]any{
+				"get": map[string]any{
+					"x-operation-group": "alias.get",
+					"x-version-added":   "1.0",
+					"description":       "Bare-$ref alias response.",
+					"responses": map[string]any{
+						"200": map[string]any{
+							"description": "OK",
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"$ref": "#/components/schemas/alias._common___AliasResponse",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"/_enum/thing": map[string]any{
+				"get": map[string]any{
+					"x-operation-group": "enum.get",
+					"x-version-added":   "1.0",
+					"description":       "x-enum-name string field.",
+					"responses": map[string]any{
+						"200": map[string]any{
+							"description": "OK",
+							"content": map[string]any{
+								"application/json": map[string]any{
+									"schema": map[string]any{
+										"$ref": "#/components/schemas/enum.get___EnumResponse",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"components": map[string]any{
+			"schemas": map[string]any{
+				// Nullable-scalar field: ["null","string"].
+				"cat.things___ThingsResponse": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"docs_count": map[string]any{"type": []any{"null", "string"}},
+					},
+				},
+				// Bare-$ref alias chain: AliasResponse -> AliasResponseBase (object).
+				"alias._common___AliasResponse": map[string]any{
+					"$ref": "#/components/schemas/alias._common___AliasResponseBase",
+				},
+				"alias._common___AliasResponseBase": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"acknowledged": map[string]any{"type": "boolean"},
+					},
+				},
+				// x-enum-name string field: opts into a string-backed enum type.
+				"enum.get___EnumResponse": map[string]any{
+					"type": "object",
+					"properties": map[string]any{
+						"status": map[string]any{
+							"type":        "string",
+							"x-enum-name": "RestStatus",
+							"enum":        []any{"OK", "NOT_FOUND"},
+						},
+					},
+				},
+			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+// TestRawMessageFixes_EndToEnd drives the full extract -> populate pipeline and
+// asserts the two json.RawMessage fixes produce typed Resp structs end to end:
+// the nullable-scalar field becomes a typed (pointer) field, and the bare-$ref
+// alias response resolves to its target struct. Both previously degraded to
+// json.RawMessage / RespShapeRaw.
+func TestRawMessageFixes_EndToEnd(t *testing.T) {
+	t.Parallel()
+
+	specPath := buildTestSpecWithRawMessageFixes(t)
+	ops, spec, _, _, err := extractOperations(specPath, nil, VersionRange{})
+	require.NoError(t, err)
+
+	registry := newTypeRegistry(opensearchAPIPkgName)
+	populateResponseTypes(ops, spec, registry, VersionRange{})
+
+	byGroup := make(map[string]*apiOperation, len(ops))
+	for i := range ops {
+		byGroup[ops[i].Group] = &ops[i]
+	}
+
+	t.Run("nullable scalar field is typed, not raw", func(t *testing.T) {
+		t.Parallel()
+		op := byGroup["cat.things"]
+		require.NotNil(t, op)
+		require.NotEqual(t, ir.RespShapeRaw, op.RespShape, "response must not degrade to raw")
+		require.NotEmpty(t, op.RespFields, "response struct must have fields")
+
+		var docs *goField
+		for i := range op.RespFields {
+			if op.RespFields[i].JSONName == "docs_count" {
+				docs = &op.RespFields[i]
+			}
+		}
+		require.NotNil(t, docs, "docs_count field must be present")
+		// ["null","string"] -> nullable string -> *string, not json.RawMessage.
+		require.Equal(t, "*string", docs.GoType)
+		require.True(t, docs.IsPointer)
+		require.NotContains(t, docs.GoType, "json.RawMessage")
+	})
+
+	t.Run("bare-$ref alias response resolves to typed struct", func(t *testing.T) {
+		t.Parallel()
+		op := byGroup["alias.get"]
+		require.NotNil(t, op)
+		// ResponseRef must have been resolved through the alias to the terminal.
+		require.Equal(t, "alias._common___AliasResponseBase", op.ResponseRef)
+		require.NotEqual(t, ir.RespShapeRaw, op.RespShape, "response must not degrade to raw")
+		require.NotEmpty(t, op.RespFields, "aliased response struct must have fields")
+
+		var acked *goField
+		for i := range op.RespFields {
+			if op.RespFields[i].JSONName == "acknowledged" {
+				acked = &op.RespFields[i]
+			}
+		}
+		require.NotNil(t, acked, "acknowledged field must come through the alias")
+		require.Equal(t, "*bool", acked.GoType)
+	})
+
+	t.Run("x-enum-name string field becomes a registered enum type", func(t *testing.T) {
+		t.Parallel()
+		op := byGroup["enum.get"]
+		require.NotNil(t, op)
+		require.NotEqual(t, ir.RespShapeRaw, op.RespShape, "response must not degrade to raw")
+
+		var status *goField
+		for i := range op.RespFields {
+			if op.RespFields[i].JSONName == "status" {
+				status = &op.RespFields[i]
+			}
+		}
+		require.NotNil(t, status, "status field must be present")
+		// type:string + x-enum-name -> *RestStatus, not json.RawMessage or *string.
+		require.Equal(t, "*RestStatus", status.GoType)
+		require.NotContains(t, status.GoType, "json.RawMessage")
+
+		enumType, ok := registry.lookup("_common___RestStatus")
+		require.True(t, ok, "RestStatus enum type must be registered")
+		require.True(t, enumType.IsEnum)
+		require.Equal(t, []string{"OK", "NOT_FOUND"}, enumType.EnumValues)
+	})
+}
+
+// buildTestSpecWithUnregisteredResponses builds a spec whose responses do not
+// register as named structs, exercising the classifyRespShape fallback paths:
+//
+//   - shapeless.get: response is a bare `type: object` with no properties and no
+//     additionalProperties -> legitimately RespShapeRaw (e.g. SQLStats-style).
+//   - mapresp.get: response is `type: object` with additionalProperties and no
+//     named properties -> RespShapeMap.
+//   - arrayresp.get: response is `type: array` -> RespShapeArray.
+func buildTestSpecWithUnregisteredResponses(t *testing.T) string {
+	t.Helper()
+	resp := func(schema map[string]any) map[string]any {
+		return map[string]any{
+			"200": map[string]any{
+				"description": "OK",
+				"content":     map[string]any{"application/json": map[string]any{"schema": schema}},
+			},
+		}
+	}
+	op := func(group string, responses map[string]any) map[string]any {
+		return map[string]any{
+			"get": map[string]any{
+				"x-operation-group": group,
+				"x-version-added":   "1.0",
+				"description":       group,
+				"responses":         responses,
+			},
+		}
+	}
+	spec := map[string]any{
+		"openapi": "3.1.0",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			// Inline shapeless object: no properties, no additionalProperties.
+			"/_shapeless": op("shapeless.get", resp(map[string]any{"type": "object"})),
+			// Inline map: additionalProperties, no named properties.
+			"/_mapresp": op("mapresp.get", resp(map[string]any{
+				"type":                 "object",
+				"additionalProperties": map[string]any{"type": "string"},
+			})),
+			// Inline array.
+			"/_arrayresp": op("arrayresp.get", resp(map[string]any{
+				"type":  "array",
+				"items": map[string]any{"type": "string"},
+			})),
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+// TestClassifyRespShape pins the response-shape fallback for operations whose
+// response is not a registered struct. It guards the json.RawMessage work: a
+// genuinely shapeless response must classify as RespShapeRaw (not be
+// accidentally over-typed), while map and array responses classify as their
+// respective shapes. The cases are resolved from a real spec so the schema the
+// classifier sees matches what the pipeline produces.
+func TestClassifyRespShape(t *testing.T) {
+	t.Parallel()
+
+	specPath := buildTestSpecWithUnregisteredResponses(t)
+	ops, spec, _, _, err := extractOperations(specPath, nil, VersionRange{})
+	require.NoError(t, err)
+
+	byGroup := make(map[string]*apiOperation, len(ops))
+	for i := range ops {
+		byGroup[ops[i].Group] = &ops[i]
+	}
+
+	registry := newTypeRegistry(opensearchAPIPkgName)
+
+	tests := []struct {
+		name  string
+		group string
+		want  ir.RespShape
+	}{
+		{name: "shapeless object stays raw", group: "shapeless.get", want: ir.RespShapeRaw},
+		{name: "additionalProperties is map", group: "mapresp.get", want: ir.RespShapeMap},
+		{name: "array response is array", group: "arrayresp.get", want: ir.RespShapeArray},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			op := byGroup[tt.group]
+			require.NotNil(t, op, "operation %q must exist", tt.group)
+			// Call the classifier directly: it is reached for any response that
+			// does not resolve to a registered struct.
+			classifyRespShape(op, spec, registry)
+			require.Equal(t, tt.want, op.RespShape)
+		})
+	}
 }

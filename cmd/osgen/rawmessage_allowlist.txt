@@ -1,0 +1,427 @@
+# osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.
+# Regenerate by re-running `cmd/osgen` with `-update-raw-message-allowlist`.
+#
+# Each line is a permitted json.RawMessage use, keyed "GoTypeName/jsonFieldName".
+# Whole-response raw bodies use "<Prefix>Resp/-"; map/array responses whose
+# element type is unresolved use "<Prefix>Resp/[entries]" and "<Prefix>Resp/[records]".
+# The trailing "# form" comment is informational and ignored on load.
+#
+# A new entry here means the generator emitted a raw json.RawMessage where a
+# typed struct was expected. Confirm the degradation is intended before adding.
+
+# --- _common ---
+DerivedField/properties # bare
+InlineGet/_source # bare
+InlineGet/fields # map
+InlineGetDictUserDefined/_source # map
+InlineGetDictUserDefined/fields # map
+ScriptBase/params # map
+
+# --- _common.aggregations ---
+CommonAggregationsAggregateBase/meta # map
+CommonAggregationsAggregation/meta # map
+CommonAggregationsScriptedMetricAggregate/value # bare
+
+# --- _common.mapping ---
+CommonMappingConstantKeywordProperty/value # bare
+CommonMappingKNNVectorMethod/parameters # map
+CommonMappingSemanticChunkingStrategy/parameters # map
+CommonMappingType/_meta # map
+
+# --- _common.query_dsl ---
+CommonQueryDSLKNNQuery/method_parameters # map
+CommonQueryDSLLikeDocument/doc # bare
+CommonQueryDSLPercolateQuery/document # bare
+CommonQueryDSLPercolateQuery/documents # slice
+CommonQueryDSLQueryContainer/distance_feature # bare
+CommonQueryDSLQueryContainer/template # map
+
+# --- _core.search ---
+SearchHighlightBase/options # map
+SearchHit/_source # bare
+SearchHit/fields # map
+SearchHitsMetadataHitsItem/_source # bare
+SearchHitsMetadataJSONValueHitsItem/_source # bare
+SearchProcessorExecutionDetail/input_data # bare
+SearchProcessorExecutionDetail/output_data # bare
+SearchResultHitsHitsItem/_source # bare
+SearchResultJSONValueHitsHitsItem/_source # bare
+SearchResultJSONValueSuggestValueItemObject0OptionsItem/_source # bare
+SearchResultJSONValueSuggestValueItemObject0OptionsObject0/_source # bare
+
+# --- asynchronous_search.search ---
+AsynchronousSearchSearch/ext # map
+
+# --- cluster._common ---
+ClusterComponentTemplateNode/_meta # map
+ClusterComponentTemplateSummary/_meta # map
+
+# --- cluster.get_decommission_awareness ---
+ClusterGetDecommissionAwarenessResp/[entries] # map
+
+# --- cluster.get_settings ---
+ClusterGetSettingsResp/defaults # map
+ClusterGetSettingsResp/persistent # map
+ClusterGetSettingsResp/transient # map
+
+# --- cluster.put_component_template ---
+ClusterPutComponentTemplateBody/_meta # map
+
+# --- cluster.put_settings ---
+ClusterPutSettingsBody/persistent # map
+ClusterPutSettingsBody/transient # map
+ClusterPutSettingsResp/persistent # map
+ClusterPutSettingsResp/transient # map
+
+# --- cluster.remote_info ---
+ClusterRemoteInfoResp/[entries] # map
+
+# --- cluster.reroute ---
+ClusterRerouteResp/state # bare
+
+# --- cluster.state ---
+ClusterStateResp/- # bare
+
+# --- delete_by_query ---
+DeleteByQueryResp/- # bare
+
+# --- explain ---
+ExplainRespBodyGet/_source # bare
+
+# --- flow_framework.common ---
+FlowFrameworkCommonFlowFrameworkGetResponse/workflows # bare
+
+# --- flow_framework.create ---
+FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
+
+# --- flow_framework.get ---
+GetResp/workflows # bare
+
+# --- flow_framework.get_status ---
+GetStatusResp/- # bare
+
+# --- flow_framework.search ---
+SearchResp/- # bare
+
+# --- flow_framework.search_state ---
+SearchStateResp/- # bare
+
+# --- flow_framework.update ---
+FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
+
+# --- geospatial._common ---
+GeospatialGeoJSONData/properties # bare
+
+# --- get ---
+GetResp/_source # bare
+GetResultBase/_source # bare
+GetResultBase/fields # map
+
+# --- get_source ---
+GetSourceResp/- # bare
+
+# --- indices._common ---
+IndicesDataStream/_meta # map
+IndicesIngestionSource/param # map
+IndicesTemplateMapping/settings # map
+
+# --- indices.clone ---
+IndicesCloneBody/settings # map
+
+# --- indices.open ---
+IndicesOpenResp/- # bare
+
+# --- indices.put_index_template ---
+IndicesPutIndexTemplateBody/_meta # map
+
+# --- indices.put_mapping ---
+IndicesPutMappingBody/_meta # map
+
+# --- indices.put_template ---
+IndicesPutTemplateBody/settings # map
+
+# --- indices.rollover ---
+IndicesRolloverBody/settings # map
+
+# --- indices.shrink ---
+IndicesShrinkBody/settings # map
+
+# --- indices.simulate_index_template ---
+IndicesSimulateIndexTemplateBody/_meta # map
+
+# --- indices.simulate_template ---
+IndicesIndexTemplate/_meta # map
+
+# --- indices.split ---
+IndicesSplitBody/settings # map
+
+# --- ingest._common ---
+IngestAppendProcessor/value # slice
+IngestCsvProcessor/empty_value # bare
+IngestPipeline/_meta # map
+IngestSetProcessor/value # bare
+
+# --- ingest.put_pipeline ---
+IngestPutPipelineBody/_meta # map
+
+# --- ingest.simulate ---
+IngestSimulateDocument/_source # bare
+IngestSimulateDocumentSimulation/_source # map
+
+# --- insights._common ---
+InsightsSource/aggregations # bare
+InsightsSource/ext # map
+InsightsTopQuery/labels # bare
+InsightsTopQuery/phase_latency_map # bare
+
+# --- ism._common ---
+ISMAction/custom # map
+ISMAction/notification # map
+ISMAction/rollup # map
+ISMAction/shrink # map
+ISMAction/transform # map
+ISMActionAlias/actions # map
+ISMActionAllocation/exclude # map
+ISMActionAllocation/include # map
+ISMActionAllocation/require # map
+ISMActionTimeout/timeout # bare
+ISMErrorNotification/message_template # map
+ISMTransition/conditions # map
+
+# --- ism.exists_policy ---
+ExistsPolicyResp/- # bare
+
+# --- knn._common ---
+KNNMethod/parameters # map
+KNNNodeStats/indices_in_cache # map
+
+# --- knn.get_model ---
+GetModelResp/- # bare
+
+# --- ltr._common ---
+LTRCacheStatsResponse/stores # bare
+LTRStoreDetails/counts # bare
+
+# --- ltr.cache_stats ---
+CacheStatsResp/stores # bare
+
+# --- ltr.get_feature ---
+GetFeatureResp/- # bare
+
+# --- ltr.get_featureset ---
+GetFeaturesetResp/- # bare
+
+# --- mget ---
+GetResult/_source # bare
+
+# --- ml._common ---
+MLGetAgenticMemoryResponse/after # map
+MLGetAgenticMemoryResponse/before # map
+MLGetAgenticMemoryResponse/metadata # map
+MLGetAgenticMemoryResponse/namespace # map
+MLGetAgenticMemoryResponse/tags # map
+MLGuardrails/regex # bare
+MLMemory/additional_info # map
+MLMessage/additional_info # map
+MLSource/additional_info # map
+MLSource/metadata # map
+MLSource/namespace # map
+MLUndeployModelNode/stats # map
+MLUnloadModelNode/stats # map
+
+# --- ml.add_agentic_memory ---
+MLAddAgenticMemoryBody/metadata # map
+MLAddAgenticMemoryBody/namespace # map
+MLAddAgenticMemoryBody/structured_data # map
+MLAddAgenticMemoryBody/tags # map
+
+# --- ml.create_memory_container_session ---
+MLCreateMemoryContainerSessionBody/metadata # map
+MLCreateMemoryContainerSessionBody/namespace # map
+
+# --- ml.create_message ---
+MLCreateMessageBody/additional_info # map
+
+# --- ml.execute_algorithm ---
+ExecuteAlgorithmResp/- # bare
+
+# --- ml.get_agentic_memory ---
+GetAgenticMemoryResp/after # map
+GetAgenticMemoryResp/before # map
+GetAgenticMemoryResp/metadata # map
+GetAgenticMemoryResp/namespace # map
+GetAgenticMemoryResp/tags # map
+
+# --- ml.get_memory ---
+GetMemoryResp/additional_info # map
+
+# --- ml.get_message ---
+GetMessageResp/additional_info # map
+
+# --- ml.update_agentic_memory ---
+MLUpdateAgenticMemoryBody/additional_info # map
+MLUpdateAgenticMemoryBody/agents # map
+MLUpdateAgenticMemoryBody/binary_data # map
+MLUpdateAgenticMemoryBody/metadata # map
+MLUpdateAgenticMemoryBody/structured_data # map
+MLUpdateAgenticMemoryBody/tags # map
+
+# --- ml.update_message ---
+MLUpdateMessageBody/additional_info # map
+
+# --- ml.update_model ---
+MLUpdateModelBody/connector # bare
+MLUpdateModelBody/interface # bare
+
+# --- mtermvectors ---
+MTermVectorsOperation/doc # bare
+
+# --- neural.stats ---
+StatsResp/- # bare
+
+# --- nodes.info ---
+NodesInfoNodeSettings/plugins # map
+NodesInfoNodeSettingsNode/attr # map
+
+# --- nodes.usage ---
+NodesUsageNode/aggregations # map
+
+# --- ppl.explain ---
+SQLExplain/filter # bare
+
+# --- ppl.query ---
+QueryResp/datarows # slice
+QueryResp/schema # slice
+SQLQuery/filter # bare
+
+# --- query._common ---
+QueryDataSourceRetrieve/properties # map
+
+# --- query.datasource_delete ---
+DatasourceDeleteResp/- # bare
+
+# --- query.datasource_retrieve ---
+DatasourceRetrieveResp/properties # map
+
+# --- query.datasources_create ---
+DatasourcesCreateResp/- # bare
+QueryDataSource/properties # map
+
+# --- query.datasources_update ---
+DatasourcesUpdateResp/- # bare
+
+# --- rank_eval ---
+RankEvalMetricDetail/metric_details # map
+RankEvalRequestItem/params # map
+RankEvalResp/failures # map
+
+# --- reindex ---
+ReindexResp/- # bare
+
+# --- render_search_template ---
+RenderSearchTemplateBody/params # map
+RenderSearchTemplateResp/template_output # map
+
+# --- rollups._common ---
+RollupsExplain/rollup_metadata # bare
+RollupsMetricsConfigMetrics/avg # bare
+RollupsMetricsConfigMetrics/max # bare
+RollupsMetricsConfigMetrics/min # bare
+RollupsMetricsConfigMetrics/sum # bare
+RollupsMetricsConfigMetrics/value_count # bare
+
+# --- scripts_painless_execute ---
+ScriptsPainlessExecutePainlessContextSetup/document # bare
+ScriptsPainlessExecuteResp/result # bare
+
+# --- search ---
+SearchBody/ext # map
+
+# --- search_relevance._common ---
+SearchRelevancePutImportJudgmentsRequest/judgmentRatings # slice
+
+# --- search_relevance.get_node_stats ---
+GetNodeStatsResp/all_nodes # bare
+GetNodeStatsResp/info # bare
+GetNodeStatsResp/nodes # bare
+SearchRelevanceGetNodeStatsResp/all_nodes # bare
+SearchRelevanceGetNodeStatsResp/info # bare
+SearchRelevanceGetNodeStatsResp/nodes # bare
+
+# --- search_relevance.get_stats ---
+GetStatsResp/all_nodes # bare
+GetStatsResp/info # bare
+GetStatsResp/nodes # bare
+SearchRelevanceGetStatsResp/all_nodes # bare
+SearchRelevanceGetStatsResp/info # bare
+SearchRelevanceGetStatsResp/nodes # bare
+
+# --- search_relevance.put_query_sets ---
+SearchRelevancePutQuerySetsRequest/querySetQueries # slice
+
+# --- search_template ---
+SearchTemplateBody/params # map
+
+# --- security._common ---
+SecurityAuthInfo/peer_certificates # bare
+SecurityComplianceConfig/read_watched_fields # bare
+SecurityDynamicOptions/auth_failure_listeners # bare
+SecurityDynamicOptions/authc # bare
+SecurityDynamicOptions/authz # bare
+SecurityDynamicOptions/http # bare
+SecurityDynamicOptions/kibana # bare
+SecurityDynamicOptions/on_behalf_of # bare
+SecurityDynamicOptions/opensearch-dashboards # bare
+SecurityHealthInfo/settings # map
+SecurityPatchOperation/value # bare
+SecuritySSLInfo/peer_certificates # bare
+SecuritySSLInfo/peer_certificates_list # bare
+SecuritySSLInfo/ssl_openssl_version # bare
+
+# --- security.authinfo ---
+AuthinfoResp/peer_certificates # bare
+
+# --- security.get_sslinfo ---
+GetSslinfoResp/peer_certificates # bare
+GetSslinfoResp/peer_certificates_list # bare
+GetSslinfoResp/ssl_openssl_version # bare
+
+# --- security.health ---
+HealthResp/settings # map
+
+# --- security.tenant_info ---
+TenantInfoResp/[entries] # map
+
+# --- security_analytics.search_finding_correlations ---
+SearchFindingCorrelationsResp/- # bare
+
+# --- snapshot._common ---
+SnapshotInfo/metadata # map
+
+# --- snapshot.create ---
+SnapshotCreateBody/metadata # map
+
+# --- sql._common ---
+SQLExplainBody/description # bare
+SQLQueryResponse/datarows # slice
+SQLQueryResponse/schema # slice
+SQLSettingsResponse/persistent # bare
+
+# --- sql.settings ---
+SettingsResp/persistent # bare
+
+# --- termvectors ---
+TermVectorsBody/doc # bare
+
+# --- transforms._common ---
+TransformsPreview/documents # slice
+
+# --- transforms.preview ---
+PreviewResp/documents # slice
+
+# --- update ---
+UpdateBody/doc # bare
+UpdateBody/upsert # bare
+
+# --- update_by_query ---
+UpdateByQueryResp/- # bare
