@@ -90,10 +90,12 @@ type Metrics struct {
 
 	Connections []fmt.Stringer `json:"connections"`
 
-	// Per-policy breakdown (only populated when router with policies is active)
+	// Per-policy breakdown. Part of the detailed-metrics path: populated only
+	// when EnableMetrics is set and a router with policies is active; nil otherwise.
 	Policies []PolicySnapshot `json:"policies,omitempty"`
 
-	// Router cache state (only populated when scored routing is active)
+	// Router cache state. Part of the detailed-metrics path: populated only
+	// when EnableMetrics is set and scored routing is active; nil otherwise.
 	Router *RouterSnapshot `json:"router,omitempty"`
 }
 

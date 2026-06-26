@@ -96,6 +96,34 @@ if err := client.DiscoverNodes(ctx); err != nil {
 
 The signature already changed earlier in this version to take `context.Context` (see CHANGELOG); this is a behavioral change on top of the signature change.
 
+## Metrics error on disabled removed
+
+The per-request transport counters (`Requests`, `Failures`, and responses-by-status) are now always collected via lock-free atomics, independent of `EnableMetrics`. As a result, `opensearch.Client.Metrics()` (and `opensearchtransport.Transport.Metrics()`) no longer returns the `"transport metrics not enabled"` error when `EnableMetrics` is false -- it always returns the per-request counters. `EnableMetrics` now gates only the detailed-metrics snapshot (per-connection enumeration, per-policy breakdowns, and router cache state); those fields stay zero/nil when it is unset.
+
+Callers that branched on the error to detect the disabled state should drop that check. The returned error is now non-nil only when a detailed-metrics snapshot callback fails.
+
+```go
+// v4: Metrics() errored when EnableMetrics was false, so callers used the
+// error to detect the disabled state.
+m, err := client.Metrics()
+if err != nil {
+    // treated as "metrics disabled" -- no counters available
+    return
+}
+use(m.Requests, m.Failures)
+
+// v5: per-request counters are always populated. A non-nil error now means a
+// detailed-snapshot callback failed, not that metrics are disabled.
+m, err := client.Metrics()
+if err != nil {
+    log.Printf("detailed metrics snapshot failed: %s", err)
+    // m.Requests / m.Failures / m.Responses are still valid here
+}
+use(m.Requests, m.Failures)
+```
+
+Detailed fields such as `Policies` and `Router` remain populated only when `EnableMetrics` is set; reading them without it yields nil, unchanged from v4.
+
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 
 The concrete `opensearchtransport.Client` type was renamed to `opensearchtransport.Transport`. The type owns HTTP round-trip concerns -- connection pooling, retries, node selection, and discovery -- so `Transport` reflects its role and avoids colliding conceptually with the API clients above it (`opensearch.Client` and `opensearchapi.Client`).
