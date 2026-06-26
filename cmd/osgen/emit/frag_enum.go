@@ -53,19 +53,10 @@ func (f *EnumFragment) Body() (string, error) {
 	return sb.String(), nil
 }
 
-// unexportFirst lowercases the first rune of s for use as an unexported
-// identifier (e.g. "RestStatus" -> "restStatus").
-func unexportFirst(s string) string {
-	if s == "" {
-		return s
-	}
-	return strings.ToLower(s[:1]) + s[1:]
-}
-
 //nolint:gochecknoglobals // const-ish read-only template
 var enumFragTmpl = template.Must(template.New("enum").Funcs(template.FuncMap{
 	"comment":  CommentWrap,
-	"unexport": unexportFirst,
+	"unexport": lowerFirst,
 }).Parse(`{{range $t := .}}
 {{- $names := printf "%sNames" (unexport $t.Name)}}
 {{- $values := printf "%sValues" (unexport $t.Name)}}
