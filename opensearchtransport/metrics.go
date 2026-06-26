@@ -53,8 +53,11 @@ const (
 
 // Metrics represents the transport metrics.
 type Metrics struct {
-	Requests  int         `json:"requests"`
-	Failures  int         `json:"failures"`
+	Requests int `json:"requests"`
+	Failures int `json:"failures"`
+	// Responses counts responses by HTTP status code. Any status outside the
+	// valid [100, 600) range is folded into a single overflow bucket keyed by
+	// -1 (statusOverflow) rather than its literal code.
 	Responses map[int]int `json:"responses"`
 
 	// Connection pool state.
@@ -217,6 +220,12 @@ type metrics struct {
 	standbyPromotions atomic.Int64 // Standby -> Active
 	standbyDemotions  atomic.Int64 // Active -> Standby
 
+	// detailed gates the expensive detailed-metrics path: registration and
+	// invocation of the per-connection / per-policy / per-snapshot callbacks and
+	// the connection-state enumeration in Metrics. The cheap per-request counters
+	// above are populated regardless of detailed. Set from Config.EnableMetrics.
+	detailed bool
+
 	// Metric callbacks registered by policies at init time.
 	// Immutable after client construction; no synchronization needed.
 	connMetricCallbacks []ConnectionMetricCallback // batch per-connection
@@ -228,6 +237,13 @@ type metrics struct {
 	// outside [statusMin, statusMax). Snapshotted in responsesSnapshot.
 	responses         [statusBuckets]atomic.Int64
 	responsesOverflow atomic.Int64
+}
+
+// detailedEnabled reports whether the detailed-metrics path is active. It is nil-safe:
+// a nil *metrics (no metrics struct wired) reports false, so callers can guard
+// detailed-only work with config.metrics.detailedEnabled() without a separate nil check.
+func (m *metrics) detailedEnabled() bool {
+	return m != nil && m.detailed
 }
 
 // incrementResponse records one response with the given status code. It is
@@ -257,13 +273,41 @@ func (m *metrics) responsesSnapshot() map[int]int {
 	return out
 }
 
-// Metrics returns the transport metrics.
+// Metrics returns the transport metrics. The detailed fields -- per-connection
+// enumeration, per-policy snapshots, and the router snapshot -- are populated
+// only when Config.EnableMetrics is set.
 func (c *Client) Metrics() (Metrics, error) {
 	if c.metrics == nil {
+		// Defensive: a custom transport could embed *Client without the
+		// standard constructor. Treat as no metrics available.
 		return Metrics{}, errors.New("transport metrics not enabled")
 	}
 
-	responses := c.metrics.responsesSnapshot()
+	m := Metrics{
+		Requests:  int(c.metrics.requests.Load()),
+		Failures:  int(c.metrics.failures.Load()),
+		Responses: c.metrics.responsesSnapshot(),
+
+		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
+		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
+		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
+
+		HealthChecks:        int(c.metrics.healthChecks.Load()),
+		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
+		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
+		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
+
+		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
+		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
+	}
+
+	// Detailed-metrics path: connection enumeration + callbacks. The detailed-only
+	// fields (LiveConnections, DeadConnections, OverloadedServers,
+	// StandbyConnections, Connections, Policies, Router) stay zero/nil when
+	// the detailed path is off.
+	if !c.metrics.detailed {
+		return m, nil
+	}
 
 	// Get connections from current connection pool
 	var ready, dead []*Connection
@@ -279,27 +323,8 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 	c.mu.RUnlock()
 
-	m := Metrics{
-		Requests:  int(c.metrics.requests.Load()),
-		Failures:  int(c.metrics.failures.Load()),
-		Responses: responses,
-
-		LiveConnections: len(ready) + len(singleConns),
-		DeadConnections: len(dead),
-
-		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
-		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
-		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
-
-		HealthChecks:        int(c.metrics.healthChecks.Load()),
-		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
-		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
-		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
-		OverloadedServers:   0, // Set below when iterating connections
-
-		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
-		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
-	}
+	m.LiveConnections = len(ready) + len(singleConns)
+	m.DeadConnections = len(dead)
 
 	// Build per-connection metrics. Each connection's connState atomic
 	// determines isDead/isStandby/isOverloaded -- no positional tricks needed.

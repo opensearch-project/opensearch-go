@@ -298,6 +298,37 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 			t.Errorf("Unexpected number of connections in pool: %q", tp.mu.connectionPool)
 		}
 	})
+
+	t.Run("CustomPoolConstruction", func(t *testing.T) {
+		tests := []struct {
+			name          string
+			urls          []*url.URL
+			enableMetrics bool
+		}{
+			{name: "single URL", urls: []*url.URL{{Scheme: "http", Host: "custom1"}}},
+			{name: "multiple URLs", urls: []*url.URL{
+				{Scheme: "http", Host: "custom1"},
+				{Scheme: "http", Host: "custom2"},
+			}},
+			{name: "single URL with detailed metrics", urls: []*url.URL{{Scheme: "http", Host: "custom1"}}, enableMetrics: true},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				tp, err := New(Config{
+					URLs:          tc.urls,
+					EnableMetrics: tc.enableMetrics,
+					ConnectionPoolFunc: func(conns []*Connection, selector Selector) ConnectionPool {
+						return &CustomConnectionPool{urls: []*url.URL{{Scheme: "http", Host: "custom1"}}}
+					},
+				})
+				require.NoError(t, err)
+				_, ok := tp.mu.connectionPool.(*CustomConnectionPool)
+				require.True(t, ok, "want *CustomConnectionPool, got %T", tp.mu.connectionPool)
+				require.NotNil(t, tp.metrics, "metrics struct always allocated")
+				require.Equal(t, tc.enableMetrics, tp.metrics.detailed, "detailed flag matches EnableMetrics")
+			})
+		}
+	})
 }
 
 func TestTransportPerform(t *testing.T) {
@@ -2106,6 +2137,8 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		// Should return the same singleServerPool with the original connection
 		require.NotNil(t, singlePool.connection, "Should preserve the original connection from the single URL")
 		require.Equal(t, "localhost:9200", singlePool.connection.URL.Host, "Should preserve the correct connection")
-		require.Nil(t, singlePool.metrics, "Should have nil metrics for new client without metrics enabled")
+		require.NotNil(t, singlePool.metrics, "Metrics are always allocated and wired into the pool")
+		require.Equal(t, client.metrics, singlePool.metrics, "Pool shares the client's metrics struct")
+		require.False(t, singlePool.metrics.detailed, "detailed is off for a client without EnableMetrics")
 	})
 }
