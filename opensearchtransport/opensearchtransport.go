@@ -994,7 +994,7 @@ func New(cfg Config) (*Client, error) {
 
 	if cfg.EnableMetrics {
 		client.metrics = &metrics{}
-		client.metrics.mu.responses = make(map[int]int)
+		// (array-backed responses need no initialization)
 
 		if len(conns) == 1 {
 			// Single node - assign metrics to connection pool

@@ -55,10 +55,9 @@ func TestMetrics(t *testing.T) {
 
 		tp.metrics.requests.Store(3)
 		tp.metrics.failures.Store(4)
-		tp.metrics.mu.Lock()
-		tp.metrics.mu.responses[200] = 1
-		tp.metrics.mu.responses[404] = 2
-		tp.metrics.mu.Unlock()
+		tp.metrics.incrementResponse(200)
+		tp.metrics.incrementResponse(404)
+		tp.metrics.incrementResponse(404)
 
 		// Set some lifecycle counters
 		tp.metrics.connectionsPromoted.Store(2)
@@ -161,27 +160,39 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("incrementResponse method", func(t *testing.T) {
-		m := &metrics{
-			mu: struct {
-				sync.RWMutex
-				responses map[int]int
-			}{
-				responses: make(map[int]int),
-			},
-		}
+		m := &metrics{}
 
-		// Test incrementResponse method directly
 		m.incrementResponse(200)
 		m.incrementResponse(404)
 		m.incrementResponse(200) // increment same code again
 
-		m.mu.RLock()
-		if m.mu.responses[200] != 2 {
-			t.Errorf("Expected 2 responses for status 200, got %d", m.mu.responses[200])
+		got := m.responsesSnapshot()
+		require.Equal(t, 2, got[200], "status 200 count")
+		require.Equal(t, 1, got[404], "status 404 count")
+	})
+
+	t.Run("incrementResponse out of range", func(t *testing.T) {
+		m := &metrics{}
+		m.incrementResponse(99)  // below valid range
+		m.incrementResponse(600) // at/above valid range
+
+		// Out-of-range codes are counted in the overflow bucket, never panic.
+		got := m.responsesSnapshot()
+		require.Equal(t, 2, got[statusOverflow], "overflow bucket count")
+	})
+
+	t.Run("incrementResponse concurrent", func(t *testing.T) {
+		m := &metrics{}
+		const n = 500
+		var wg sync.WaitGroup
+		wg.Add(n)
+		for i := 0; i < n; i++ {
+			go func() {
+				defer wg.Done()
+				m.incrementResponse(200)
+			}()
 		}
-		if m.mu.responses[404] != 1 {
-			t.Errorf("Expected 1 response for status 404, got %d", m.mu.responses[404])
-		}
-		m.mu.RUnlock()
+		wg.Wait()
+		require.Equal(t, n, m.responsesSnapshot()[200], "concurrent 200 count") // (MEASURED — count of concurrent increments)
 	})
 }
