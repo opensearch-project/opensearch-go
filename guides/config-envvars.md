@@ -14,6 +14,7 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | ----------------------------------------------------------------------------- | ---------------------------- | ------------------------------------- |
 | [`OPENSEARCH_URL`](#connection)                                               | unset                        | Seed addresses                        |
 | [`OPENSEARCH_GO_REQUEST_TIMEOUT`](#connection)                                | `0` (none)                   | Per-attempt timeout                   |
+| [`OPENSEARCH_GO_DNS_CACHE_REFRESH`](#connection)                              | `60s`                        | Client-side DNS cache refresh         |
 | [`OPENSEARCH_GO_ROUTER`](#routing)                                            | `true`                       | Auto-construct DefaultRouter          |
 | [`OPENSEARCH_GO_ROUTING_CONFIG`](#routing)                                    | all enabled                  | Shard-exact and adaptive MCSR toggles |
 | [`OPENSEARCH_GO_SHARD_COST`](#routing)                                        | defaults                     | Shard cost multipliers                |
@@ -49,6 +50,7 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
 | `OPENSEARCH_URL` | Comma-separated URL list (e.g. `https://a:9200,https://b:9200`) | unset | Seed addresses used by `NewClient` when no `Addresses` are set programmatically. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation); [Security: Credential Management](config-security.md#credential-management) |
+| `OPENSEARCH_GO_DNS_CACHE_REFRESH` | Duration or seconds | `60s` | Client-side DNS cache refresh interval. Resolved addresses are re-resolved on this cadence; if the resolver becomes briefly unreachable, the last-known-good address is served until it recovers, so a transient DNS outage does not fail requests to already-resolved hosts. `0` or unset = default (`60s`); negative = disable caching; positive = explicit interval. Installed only on the built-in transport; a caller-supplied `Transport` is never modified. Because Go's resolver does not expose record TTLs, this is a re-resolution cadence, not a per-record TTL. Overrides `Config.DNSCacheRefresh`. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
 
 ## Routing
 

@@ -48,6 +48,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/dnscache"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
@@ -165,6 +166,16 @@ type Config struct {
 	// can block, preventing indefinite hangs on stalled connections.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
+
+	// DNSCacheRefresh controls how often the client-side DNS cache re-resolves
+	// cached hostnames. When the resolver is briefly unreachable, the
+	// last-known-good address continues to be served until the resolver recovers.
+	// The cache is only installed when no custom Transport is provided; a
+	// caller-supplied Transport is never modified. Because Go's resolver does not
+	// expose record TTLs, the interval is a re-resolution cadence rather than a
+	// per-record TTL.
+	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
+	DNSCacheRefresh time.Duration
 
 	CompressRequestBody bool
 
@@ -333,6 +344,9 @@ type Config struct {
 	// Callers can extract version info, status codes, or other data from the response.
 	HealthCheck HealthCheckFunc
 
+	// Transport is the underlying HTTP transport. If nil, a clone of
+	// http.DefaultTransport is used, with a process-local DNS cache installed on
+	// it (see DNSCacheRefresh). A non-nil Transport is used as-is.
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -526,9 +540,12 @@ type Transport struct {
 }
 
 // New creates new transport client.
-//
-// http.DefaultTransport will be used if no transport is passed in the configuration.
 func New(cfg Config) (*Transport, error) {
+	// customTransport records that the caller supplied their own Transport. When
+	// false, we built one from http.DefaultTransport and may safely install the
+	// DNS-cache dialer on it later (after the root context exists). A
+	// caller-supplied Transport is never modified.
+	customTransport := cfg.Transport != nil
 	if cfg.Transport == nil {
 		cfg.Transport = http.DefaultTransport
 	}
@@ -815,6 +832,37 @@ func New(cfg Config) (*Transport, error) {
 	}
 	ctx, cancel := context.WithCancel(parent)
 
+	// cancel() must run on every early-return error path after this point,
+	// otherwise the DNS-refresh goroutine + ticker bound to ctx leak for the
+	// process lifetime. A success flag makes the cleanup transactional: the
+	// defer cancels unless we reach the final successful return.
+	var success bool
+	defer func() {
+		if !success {
+			cancel()
+		}
+	}()
+
+	// EnableMetrics gates the detailed-metrics path (callback-augmented Metrics
+	// snapshot); the per-request counters populate regardless. Created here (ahead
+	// of the Transport struct) so the DNS-cache dialer below can record into it.
+	clientMetrics := &metrics{detailed: cfg.EnableMetrics}
+
+	// Install the client-side DNS cache on the default transport. This is skipped
+	// when the caller supplied their own Transport (we never modify it) and when
+	// caching is disabled (DNSCacheRefresh < 0). The refresh goroutine is bound to
+	// ctx, so Close cancels it. See newDialContextDNSCache for the serve-stale and
+	// cache-sweep semantics.
+	if !customTransport {
+		if refresh := resolveDNSCacheRefresh(cfg.DNSCacheRefresh); refresh > 0 {
+			if httpTransport, ok := cfg.Transport.(*http.Transport); ok {
+				httpTransport = httpTransport.Clone()
+				httpTransport.DialContext = newDialContextDNSCache(ctx, refresh, &dnscache.Resolver{}, clientMetrics)
+				cfg.Transport = httpTransport
+			}
+		}
+	}
+
 	router := cfg.Router
 	if router == nil && !envvars.Falsy(envRouter) {
 		var opts []RouterOption
@@ -824,7 +872,6 @@ func New(cfg Config) (*Transport, error) {
 		var newErr error
 		router, newErr = NewDefaultRouter(opts...)
 		if newErr != nil {
-			cancel()
 			return nil, newErr
 		}
 	}
@@ -1035,7 +1082,7 @@ func New(cfg Config) (*Transport, error) {
 
 	// EnableMetrics gates the detailed-metrics path (callback-augmented
 	// Metrics snapshot); the per-request counters populate regardless.
-	client.metrics = &metrics{detailed: cfg.EnableMetrics}
+	client.metrics = clientMetrics
 
 	// Wire metrics into the built-in pools. A custom ConnectionPoolFunc may
 	// return neither type; that is legitimate, so the assertion is a no-op on
@@ -1150,6 +1197,7 @@ func New(cfg Config) (*Transport, error) {
 		client.scheduleClusterHealthRefresh()
 	}
 
+	success = true
 	return &client, nil
 }
 

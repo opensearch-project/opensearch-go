@@ -120,6 +120,12 @@ type Config struct {
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
+	// DNSCacheRefresh controls how often the client-side DNS cache re-resolves
+	// cached hostnames. The cache is installed only when no custom Transport is
+	// provided; a caller-supplied Transport is never modified.
+	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
+	DNSCacheRefresh time.Duration
+
 	CompressRequestBody bool // Default: false.
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
@@ -317,6 +323,8 @@ func NewClient(cfg Config) (*Client, error) {
 		MaxRetries:           cfg.MaxRetries,
 		RetryBackoff:         cfg.RetryBackoff,
 		RequestTimeout:       cfg.RequestTimeout,
+
+		DNSCacheRefresh: cfg.DNSCacheRefresh,
 
 		CompressRequestBody: cfg.CompressRequestBody,
 

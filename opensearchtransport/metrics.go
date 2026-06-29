@@ -88,6 +88,12 @@ type Metrics struct {
 	AddressResolverRewrites int `json:"address_resolver_rewrites"` // URL actually changed
 	AddressResolverErrors   int `json:"address_resolver_errors"`   // Resolver returned an error
 
+	// DNS cache counters. Populated by the caching DialContext on the built-in
+	// transport; zero when a custom Transport is supplied or caching is disabled.
+	DNSLookups      int `json:"dns_lookups"`       // Dials that consulted the DNS cache
+	DNSCacheMisses  int `json:"dns_cache_misses"`  // Lookups not served from cache (cold, or re-resolved after a ClearUnused eviction)
+	DNSLookupErrors int `json:"dns_lookup_errors"` // Lookups that returned a resolution error
+
 	Connections []fmt.Stringer `json:"connections"`
 
 	// Per-policy breakdown. Part of the detailed-metrics path: populated only
@@ -244,6 +250,13 @@ type metrics struct {
 	addressResolverRewrites atomic.Int64 // Resolver returned a different URL
 	addressResolverErrors   atomic.Int64 // Resolver returned an error
 
+	// DNS cache counters. Populated by the caching DialContext installed on the
+	// built-in transport; stay zero when a custom Transport is supplied or
+	// caching is disabled.
+	dnsLookups      atomic.Int64 // Dials that consulted the DNS cache
+	dnsCacheMisses  atomic.Int64 // Lookups not served from cache (cold, or re-resolved after a ClearUnused eviction)
+	dnsLookupErrors atomic.Int64 // Lookups that returned a resolution error
+
 	// responses counts HTTP responses by status code, lock-free. Index i holds
 	// the count for status code statusMin+i; responsesOverflow holds any code
 	// outside [statusMin, statusMax). Snapshotted in responsesSnapshot.
@@ -315,6 +328,10 @@ func (c *Transport) Metrics() (Metrics, error) {
 		AddressResolverCalls:    int(c.metrics.addressResolverCalls.Load()),
 		AddressResolverRewrites: int(c.metrics.addressResolverRewrites.Load()),
 		AddressResolverErrors:   int(c.metrics.addressResolverErrors.Load()),
+
+		DNSLookups:      int(c.metrics.dnsLookups.Load()),
+		DNSCacheMisses:  int(c.metrics.dnsCacheMisses.Load()),
+		DNSLookupErrors: int(c.metrics.dnsLookupErrors.Load()),
 	}
 
 	// Detailed-metrics path: connection enumeration + callbacks. The detailed-only

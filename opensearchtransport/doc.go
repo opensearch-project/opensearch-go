@@ -32,6 +32,15 @@ and is not intended for direct use: to configure the client, use the opensearch.
 
 The default HTTP transport of the client is http.Transport; use the Transport option to customize it;
 
+When no custom Transport is supplied, the client installs a process-local DNS cache on the default
+transport. Resolved addresses are cached and re-resolved on an interval (default 60s); if the resolver
+becomes briefly unreachable, the last-known-good address continues to be served until the resolver
+recovers, so a transient DNS outage does not fail requests to already-resolved hosts. Configure the
+interval with DNSCacheRefresh (or OPENSEARCH_GO_DNS_CACHE_REFRESH): 0 uses the default, a negative value
+disables caching, and a positive value sets an explicit interval. A caller-supplied Transport is never
+modified. Because Go's resolver does not expose record TTLs, the interval is a re-resolution cadence
+rather than a per-record TTL.
+
 The package will automatically retry requests on network-related errors, and on specific
 response status codes (by default 502, 503, 504). Use the RetryOnStatus option to customize the list.
 The transport will not retry a timeout network error, unless enabled by setting EnableRetryOnTimeout to true.
