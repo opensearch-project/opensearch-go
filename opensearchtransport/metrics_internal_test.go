@@ -97,6 +97,33 @@ func TestDetailedCallbacksGated(t *testing.T) {
 	}
 }
 
+func TestDetailedCallbacksPerPolicy(t *testing.T) {
+	newDocRouter := func() policyConfigurable { p, err := NewDocRouter(); require.NoError(t, err); return p }
+	newIndexRouter := func() policyConfigurable { p, err := NewIndexRouter(); require.NoError(t, err); return p }
+
+	tests := []struct {
+		name      string
+		newPolicy func() policyConfigurable
+	}{
+		{name: "coordinator", newPolicy: func() policyConfigurable { return NewCoordinatorPolicy().(policyConfigurable) }},
+		{name: "doc router", newPolicy: newDocRouter},
+		{name: "index router", newPolicy: newIndexRouter},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := newTestPolicyConfig(t)
+			cfg.metrics = &metrics{detailed: true}
+
+			require.NoError(t, tc.newPolicy().configurePolicySettings(cfg))
+
+			total := len(cfg.metrics.policyCallbacks) +
+				len(cfg.metrics.connMetricCallbacks) +
+				len(cfg.metrics.snapshotCallbacks)
+			require.Positive(t, total, "each policy registers a metric callback when detailed is on")
+		})
+	}
+}
+
 func TestMetrics(t *testing.T) {
 	t.Run("Metrics()", func(t *testing.T) {
 		tp, _ := New(
@@ -198,6 +225,28 @@ func TestMetrics(t *testing.T) {
 		require.GreaterOrEqual(t, m.Requests, 1, "request counter populated with detailed off")
 		require.Empty(t, m.Connections, "detailed-only connection enumeration absent when detailed off")
 		require.Nil(t, m.Policies, "detailed-only policy snapshots absent when detailed off")
+	})
+
+	t.Run("Metrics() detailed on enumerates single-server connection", func(t *testing.T) {
+		tp, err := New(Config{
+			URLs:          []*url.URL{{Scheme: "http", Host: "foo1"}},
+			DisableRetry:  true,
+			EnableMetrics: true,
+		})
+		require.NoError(t, err)
+
+		m, err := tp.Metrics()
+		require.NoError(t, err)
+		require.Len(t, m.Connections, 1, "single-server connection enumerated on the detailed path")
+		require.Equal(t, 1, m.LiveConnections, "single-server connection counted live")
+	})
+
+	t.Run("Metrics() errors when metrics struct is absent", func(t *testing.T) {
+		// Defensive path: a custom transport could embed *Client without the
+		// standard constructor, leaving metrics nil.
+		c := &Client{}
+		_, err := c.Metrics()
+		require.Error(t, err, "nil metrics struct yields an error")
 	})
 
 	t.Run("String()", func(t *testing.T) {
