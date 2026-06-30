@@ -353,8 +353,8 @@ func acceptAndClose(ln net.Listener) {
 type captureRouter struct {
 	configErr    error
 	discoveryErr error
-	configCtx    context.Context
-	discoveryCtx context.Context
+	configCtx    context.Context //nolint:containedctx // Test captures the root context to assert it was canceled.
+	discoveryCtx context.Context //nolint:containedctx // Test captures the root context to assert it was canceled.
 }
 
 // configurePolicySettings captures the root context and optionally fails,
@@ -380,6 +380,7 @@ func (r *captureRouter) OnFailure(*Connection) error { return nil }
 func (r *captureRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error {
 	return nil
 }
+
 func (r *captureRouter) RotateStandby(_ context.Context, _ int) (int, error) {
 	return 0, nil
 }
@@ -430,7 +431,7 @@ func TestNewCancelsDNSResolverOnError(t *testing.T) {
 			select {
 			case <-rootCtx.Done():
 			default:
-				t.Fatal("New returned an error without cancelling the root context; " +
+				t.Fatal("New returned an error without canceling the root context; " +
 					"the DNS refresh goroutine leaks")
 			}
 		})
