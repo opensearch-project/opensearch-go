@@ -92,7 +92,11 @@ func TestTransport(t *testing.T) {
 	})
 
 	t.Run("Default", func(t *testing.T) {
-		tp, _ := New(Config{})
+		// With caching disabled, the default transport is used as-is. The
+		// default-on caching path (which clones http.DefaultTransport to install
+		// the DNS-cache dialer) is covered by TestNewDisabledLeavesDefaultTransport
+		// and TestNewEnabledClonesDefaultTransport in dnscache_internal_test.go.
+		tp, _ := New(Config{DNSCacheRefresh: -1})
 		if tp.transport == nil {
 			t.Error("Expected the transport to not be nil")
 		}

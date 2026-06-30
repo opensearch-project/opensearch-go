@@ -47,6 +47,27 @@ const ShardRequests = "OPENSEARCH_GO_SHARD_REQUESTS"
 // RequestTimeout overrides the per-attempt HTTP round-trip timeout.
 const RequestTimeout = "OPENSEARCH_GO_REQUEST_TIMEOUT"
 
+// DNSCacheRefresh overrides the client-side DNS cache refresh interval, which
+// also bounds how long a stale (last-known-good) address is served when the
+// resolver is briefly unreachable. time.ParseDuration format, integer seconds,
+// or float seconds. 0 = default, <0 = disable caching, >0 = explicit interval.
+const DNSCacheRefresh = "OPENSEARCH_GO_DNS_CACHE_REFRESH"
+
+// DNSDialTimeout overrides the dial timeout of the net.Dialer behind the
+// client-side DNS cache. Same value format as DNSCacheRefresh.
+// 0 = default (30s), <0 = no dial timeout, >0 = explicit timeout.
+const DNSDialTimeout = "OPENSEARCH_GO_DNS_DIAL_TIMEOUT"
+
+// DNSKeepAlive overrides the keep-alive interval of the net.Dialer behind the
+// client-side DNS cache. Same value format as DNSCacheRefresh.
+// 0 = default (30s), <0 = disable keep-alive probes, >0 = explicit interval.
+const DNSKeepAlive = "OPENSEARCH_GO_DNS_KEEP_ALIVE"
+
+// DNSTimeout overrides the per-lookup timeout applied to each cache refresh
+// resolution. Same value format as DNSCacheRefresh.
+// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
+const DNSTimeout = "OPENSEARCH_GO_DNS_TIMEOUT"
+
 // NodeStatsInterval overrides the node stats polling interval.
 const NodeStatsInterval = "OPENSEARCH_GO_NODE_STATS_INTERVAL"
 

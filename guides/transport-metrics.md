@@ -70,6 +70,16 @@ The top-level `Metrics` struct contains aggregate counters, per-connection detai
 | `HealthChecksSuccess` | `health_checks_success` | `int` | Successful health check outcomes                   |
 | `HealthChecksFailed`  | `health_checks_failed`  | `int` | Failed health check outcomes                       |
 
+### DNS Cache Counters
+
+Recorded by the client-side DNS cache installed on the built-in transport (see [`DNSCacheRefresh`](config-envvars.md#connection)). All zero when a custom `Transport` is supplied or caching is disabled.
+
+| Field             | JSON                | Type  | Description                                                         |
+| ----------------- | ------------------- | ----- | ------------------------------------------------------------------- |
+| `DNSLookups`      | `dns_lookups`       | `int` | Dials that consulted the DNS cache                                  |
+| `DNSCacheMisses`  | `dns_cache_misses`  | `int` | Lookups not served from cache (cold, or re-resolved after eviction) |
+| `DNSLookupErrors` | `dns_lookup_errors` | `int` | Lookups that returned a resolution error                            |
+
 ---
 
 ## ConnectionMetric

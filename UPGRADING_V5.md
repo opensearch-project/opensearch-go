@@ -198,3 +198,23 @@ What changes:
 - **Optional `SignerOptions`**: `signer/awsv2` additionally accepts functional `SignerOptions` to customize the underlying SigV4 signer.
 
 See [USER_GUIDE.md](USER_GUIDE.md#amazon-opensearch-service) for a full example.
+
+## Client-side DNS caching on by default
+
+When no custom `Transport` is supplied, v5 installs a process-local DNS cache on the client's HTTP transport. Resolved addresses are cached and re-resolved on an interval (default 60s), and when the resolver is briefly unreachable the last-known-good address keeps being served until it recovers. v4 performed a fresh lookup per dial via the stock `http.Transport`.
+
+This changes runtime networking for every existing user. The serve-stale behavior means a host whose IP changes -- failover, blue-green, or a scale event -- can keep receiving the previous address for up to the refresh interval before the cache re-resolves. For most deployments this is a resilience win (a transient DNS blip no longer fails requests to already-resolved hosts), but if your topology relies on immediate DNS cutover you can tune or disable it:
+
+```go
+// Tune the re-resolution interval (programmatic).
+cfg := opensearch.Config{
+    DNSCacheRefresh: 10 * time.Second,
+}
+
+// Disable caching entirely, restoring v4 per-dial resolution.
+cfg := opensearch.Config{
+    DNSCacheRefresh: -1, // <0 disables; 0 uses the 60s default
+}
+```
+
+The same knobs are available via environment variables (`OPENSEARCH_GO_DNS_CACHE_REFRESH=-1` to disable), and `DNSDialTimeout` / `DNSKeepAlive` tune the underlying dialer. A caller-supplied `Transport` is never modified, so any client that sets its own `Transport` is unaffected and opts out implicitly. Because Go's resolver does not expose record TTLs, the interval is a re-resolution cadence rather than a per-record TTL.
