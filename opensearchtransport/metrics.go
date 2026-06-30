@@ -288,12 +288,13 @@ func (m *metrics) responsesSnapshot() map[int]int {
 // the per-request counters (lock-free atomics on the hot path) plus the detailed
 // fields -- per-connection enumeration, per-policy snapshots, and the router
 // snapshot. The detailed fields are assembled lazily and lock-free at call time.
-// The returned error is non-nil only when a snapshot callback fails.
+// The returned error is non-nil when a snapshot callback fails, or when the
+// transport was constructed without metrics.
 func (c *Transport) Metrics() (Metrics, error) {
 	if c.metrics == nil {
 		// Defensive: a custom transport could embed *Transport without the
-		// standard constructor. Treat as no metrics available.
-		return Metrics{}, errors.New("transport metrics not enabled")
+		// standard constructor, leaving metrics uninitialized.
+		return Metrics{}, errors.New("transport metrics not initialized")
 	}
 
 	m := Metrics{

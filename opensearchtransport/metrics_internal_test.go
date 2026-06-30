@@ -297,10 +297,10 @@ func TestMetrics(t *testing.T) {
 	})
 
 	t.Run("Metrics() surfaces callback errors via errors.Join", func(t *testing.T) {
-		// A failing callback is now the ONLY way Metrics() returns a non-nil
-		// error (the "not enabled" error was removed in #891). Each callback
-		// kind appends to callbackErrs, joined via errors.Join. Verify every
-		// kind surfaces, and that multiple errors join together.
+		// A failing callback is the only way Metrics() returns a non-nil error
+		// for an initialized transport. Each callback kind appends to
+		// callbackErrs, joined via errors.Join. Verify every kind surfaces, and
+		// that multiple errors join together.
 		errConn := errors.New("conn callback boom")
 		errPolicy := errors.New("policy callback boom")
 		errSnapshot := errors.New("snapshot callback boom")
