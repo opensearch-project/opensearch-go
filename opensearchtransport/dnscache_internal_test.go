@@ -23,21 +23,31 @@ import (
 
 // fakeResolver is a controllable dnscache.DNSResolver. It counts LookupHost
 // calls and can be flipped to return an error to simulate a resolver outage.
+// An optional latency models a slow or degraded resolver; it is slept outside
+// the lock so concurrent lookups overlap the way a real resolver's would.
 type fakeResolver struct {
-	mu    sync.Mutex
-	calls int
-	addrs []string
-	err   error
+	mu      sync.Mutex
+	calls   int
+	addrs   []string
+	err     error
+	latency time.Duration
 }
 
 func (f *fakeResolver) LookupHost(_ context.Context, _ string) ([]string, error) {
 	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.calls++
-	if f.err != nil {
-		return nil, f.err
+	err := f.err
+	addrs := f.addrs
+	latency := f.latency
+	f.mu.Unlock()
+
+	if latency > 0 {
+		time.Sleep(latency)
 	}
-	return f.addrs, nil
+	if err != nil {
+		return nil, err
+	}
+	return addrs, nil
 }
 
 func (f *fakeResolver) LookupAddr(_ context.Context, _ string) ([]string, error) {
