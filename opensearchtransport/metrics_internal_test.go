@@ -94,9 +94,9 @@ func TestDetailedCallbacksAlwaysRegistered(t *testing.T) {
 				len(tp.metrics.connMetricCallbacks) +
 				len(tp.metrics.snapshotCallbacks)
 			if tc.wantCBs {
-				require.Positive(t, total, "metrics callbacks always register now that EnableMetrics is gone")
+				require.Positive(t, total, "a router with policies registers metric callbacks")
 			} else {
-				require.Zero(t, total, "no policies means no callbacks, regardless of metrics being always-on")
+				require.Zero(t, total, "no policies means no callbacks")
 			}
 		})
 	}
@@ -254,9 +254,9 @@ func TestMetrics(t *testing.T) {
 		require.True(t, overAt.Equal(*cm.OverloadedSince), "OverloadedSince want %v, got %v", overAt, *cm.OverloadedSince)
 	})
 
-	t.Run("Metrics() races cleanly with Perform", func(t *testing.T) {
+	t.Run("Metrics() races cleanly with Stream", func(t *testing.T) {
 		// Snapshotting no longer takes each connection's mutex (#892), so
-		// Metrics() must not race with Perform's OnSuccess/OnFailure writers.
+		// Metrics() must not race with Stream's OnSuccess/OnFailure writers.
 		// Run under `go test -race`.
 		tp, err := New(Config{
 			URLs: []*url.URL{
@@ -276,7 +276,7 @@ func TestMetrics(t *testing.T) {
 				defer wg.Done()
 				for range 200 {
 					req, _ := http.NewRequest(http.MethodHead, "/", nil)
-					if resp, perr := tp.Perform(req); perr == nil {
+					if resp, perr := tp.Stream(req); perr == nil {
 						resp.Body.Close()
 					}
 				}
@@ -458,7 +458,7 @@ func TestMetrics(t *testing.T) {
 }
 
 // TestMetricsDetailedSnapshot verifies the detailed path (connection
-// enumeration + policy snapshots) runs unconditionally; EnableMetrics is gone.
+// enumeration + policy snapshots) runs unconditionally.
 func TestMetricsDetailedSnapshot(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -495,9 +495,9 @@ func TestMetricsDetailedSnapshot(t *testing.T) {
 
 			m, err := tp.Metrics()
 			require.NoError(t, err)
-			require.Len(t, m.Connections, tc.wantConns, "connections enumerated without EnableMetrics")
+			require.Len(t, m.Connections, tc.wantConns, "connections enumerated in the snapshot")
 			if tc.wantPolicies {
-				require.NotEmpty(t, m.Policies, "policy snapshots populated without EnableMetrics")
+				require.NotEmpty(t, m.Policies, "policy snapshots populated when a router is active")
 			} else {
 				require.Empty(t, m.Policies, "no router means no policy snapshots")
 			}
