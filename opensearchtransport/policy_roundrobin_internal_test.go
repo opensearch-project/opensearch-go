@@ -160,7 +160,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		if len(policy.pool.mu.dead) > 0 {
 			conn := policy.pool.mu.dead[0]
 			conn.mu.Lock()
-			conn.mu.deadSince = time.Now().Add(-2 * time.Minute) // Make it eligible for checking
+			conn.storeDeadSince(time.Now().Add(-2 * time.Minute)) // Make it eligible for checking
 			conn.mu.Unlock()
 		}
 		policy.pool.mu.Unlock()

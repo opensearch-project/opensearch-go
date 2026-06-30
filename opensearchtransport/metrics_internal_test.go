@@ -29,6 +29,7 @@
 package opensearchtransport
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -41,57 +42,61 @@ import (
 
 func TestMetricsAlwaysAllocated(t *testing.T) {
 	tests := []struct {
-		name         string
-		enable       bool
-		wantDetailed bool
+		name string
+		urls []*url.URL
 	}{
-		{name: "disabled still allocates", enable: false, wantDetailed: false},
-		{name: "enabled sets detailed", enable: true, wantDetailed: true},
+		{name: "single server", urls: []*url.URL{{Scheme: "http", Host: "foo1"}}},
+		{name: "multi server", urls: []*url.URL{
+			{Scheme: "http", Host: "foo1"},
+			{Scheme: "http", Host: "foo2"},
+		}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tp, err := New(Config{
-				URLs:          []*url.URL{{Scheme: "http", Host: "foo1"}},
-				EnableMetrics: tc.enable,
-			})
+			tp, err := New(Config{URLs: tc.urls})
 			require.NoError(t, err)
 			require.NotNil(t, tp.metrics, "metrics struct always allocated")
-			require.Equal(t, tc.wantDetailed, tp.metrics.detailed, "detailed matches EnableMetrics")
 		})
 	}
 }
 
-func TestDetailedCallbacksGated(t *testing.T) {
+func TestDetailedCallbacksAlwaysRegistered(t *testing.T) {
 	tests := []struct {
-		name    string
-		enable  bool
-		wantCBs bool
+		name       string
+		urls       []*url.URL
+		withRouter bool
+		wantCBs    bool
 	}{
-		{name: "detailed off registers no callbacks", enable: false, wantCBs: false},
-		{name: "detailed on registers callbacks", enable: true, wantCBs: true},
+		{
+			name:       "multi server with router registers callbacks",
+			urls:       []*url.URL{{Scheme: "http", Host: "foo1"}, {Scheme: "http", Host: "foo2"}},
+			withRouter: true,
+			wantCBs:    true,
+		},
+		{
+			name:       "no router registers no callbacks",
+			urls:       []*url.URL{{Scheme: "http", Host: "foo1"}},
+			withRouter: false,
+			wantCBs:    false,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// TestMain forces OPENSEARCH_GO_ROUTER=false, so build the router
-			// explicitly or no policies (and no callbacks) would be registered.
-			router, err := NewDefaultRouter()
-			require.NoError(t, err)
-			tp, err := New(Config{
-				URLs: []*url.URL{
-					{Scheme: "http", Host: "foo1"},
-					{Scheme: "http", Host: "foo2"},
-				},
-				EnableMetrics: tc.enable,
-				Router:        router,
-			})
+			cfg := Config{URLs: tc.urls}
+			if tc.withRouter {
+				router, err := NewDefaultRouter()
+				require.NoError(t, err)
+				cfg.Router = router
+			}
+			tp, err := New(cfg)
 			require.NoError(t, err)
 			total := len(tp.metrics.policyCallbacks) +
 				len(tp.metrics.connMetricCallbacks) +
 				len(tp.metrics.snapshotCallbacks)
 			if tc.wantCBs {
-				require.Positive(t, total, "detailed on should register callbacks")
+				require.Positive(t, total, "metrics callbacks always register now that EnableMetrics is gone")
 			} else {
-				require.Zero(t, total, "detailed off should register no callbacks")
+				require.Zero(t, total, "no policies means no callbacks, regardless of metrics being always-on")
 			}
 		})
 	}
@@ -115,14 +120,14 @@ func TestDetailedCallbacksPerPolicy(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := createTestConfig()
-			cfg.metrics = &metrics{detailed: true}
+			cfg.metrics = &metrics{}
 
 			require.NoError(t, tc.newPolicy().configurePolicySettings(cfg))
 
 			total := len(cfg.metrics.policyCallbacks) +
 				len(cfg.metrics.connMetricCallbacks) +
 				len(cfg.metrics.snapshotCallbacks)
-			require.Positive(t, total, "detailed on should register a callback")
+			require.Positive(t, total, "each policy registers a metric callback")
 		})
 	}
 }
@@ -136,8 +141,7 @@ func TestMetrics(t *testing.T) {
 					{Scheme: "http", Host: "foo2"},
 					{Scheme: "http", Host: "foo3"},
 				},
-				DisableRetry:  true,
-				EnableMetrics: true,
+				DisableRetry: true,
 			},
 		)
 
@@ -211,23 +215,167 @@ func TestMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("Metrics() counters on, detailed off", func(t *testing.T) {
-		tp, _ := New(Config{
+	t.Run("Metrics() surfaces lock-free timestamps end-to-end", func(t *testing.T) {
+		// Proves the lock-free deadSince/overloadedAt atomics thread through
+		// buildConnectionMetric into the public snapshot. DeadSince needs the
+		// connection to read as dead and OverloadedSince needs the lcOverloaded
+		// bit, so set both the timestamps and the matching lifecycle bits.
+		tp, err := New(Config{
 			URLs:         []*url.URL{{Scheme: "http", Host: "foo1"}},
 			DisableRetry: true,
-			// EnableMetrics unset -> detailed off
 		})
+		require.NoError(t, err)
 
-		req, _ := http.NewRequest(http.MethodHead, "/", nil)
-		if resp, err := tp.Stream(req); err == nil {
-			resp.Body.Close()
-		}
+		pool, ok := tp.mu.connectionPool.(*singleServerPool)
+		require.True(t, ok, "single URL should yield a singleServerPool, got %T", tp.mu.connectionPool)
+		conn := pool.connection
+
+		deadAt := time.Date(2022, time.January, 2, 3, 4, 5, 600700800, time.UTC)
+		overAt := time.Date(2022, time.January, 2, 3, 4, 6, 0, time.UTC)
+		conn.mu.Lock()
+		conn.storeDeadSince(deadAt)
+		conn.storeOverloadedAt(overAt)
+		// lcUnknown without lcActive/lcStandby => IsDead; lcOverloaded => IsOverloaded.
+		conn.state.Store(int64(newConnState(lcDead | lcUnknown | lcOverloaded)))
+		conn.mu.Unlock()
 
 		m, err := tp.Metrics()
-		require.NoError(t, err, "Metrics never errors once metrics struct is always allocated")
-		require.GreaterOrEqual(t, m.Requests, 1, "request counter populated with detailed off")
-		require.Empty(t, m.Connections, "detailed-only connection enumeration absent when detailed off")
-		require.Nil(t, m.Policies, "detailed-only policy snapshots absent when detailed off")
+		require.NoError(t, err)
+		require.Len(t, m.Connections, 1)
+
+		cm, ok := m.Connections[0].(ConnectionMetric)
+		require.True(t, ok, "connection metric should be a ConnectionMetric, got %T", m.Connections[0])
+		require.True(t, cm.IsDead, "connection with lcUnknown and no active/standby bit reads as dead")
+		require.True(t, cm.IsOverloaded, "lcOverloaded bit should surface as IsOverloaded")
+
+		require.NotNil(t, cm.DeadSince, "DeadSince should be populated from the lock-free read")
+		require.True(t, deadAt.Equal(*cm.DeadSince), "DeadSince want %v, got %v", deadAt, *cm.DeadSince)
+		require.NotNil(t, cm.OverloadedSince, "OverloadedSince should be populated from the lock-free read")
+		require.True(t, overAt.Equal(*cm.OverloadedSince), "OverloadedSince want %v, got %v", overAt, *cm.OverloadedSince)
+	})
+
+	t.Run("Metrics() races cleanly with Perform", func(t *testing.T) {
+		// Snapshotting no longer takes each connection's mutex (#892), so
+		// Metrics() must not race with Perform's OnSuccess/OnFailure writers.
+		// Run under `go test -race`.
+		tp, err := New(Config{
+			URLs: []*url.URL{
+				{Scheme: "http", Host: "foo1"},
+				{Scheme: "http", Host: "foo2"},
+				{Scheme: "http", Host: "foo3"},
+			},
+			DisableRetry: true,
+		})
+		require.NoError(t, err)
+
+		var wg sync.WaitGroup
+		const performers, snapshotters = 4, 2
+		wg.Add(performers + snapshotters)
+		for range performers {
+			go func() {
+				defer wg.Done()
+				for range 200 {
+					req, _ := http.NewRequest(http.MethodHead, "/", nil)
+					if resp, perr := tp.Perform(req); perr == nil {
+						resp.Body.Close()
+					}
+				}
+			}()
+		}
+		for range snapshotters {
+			go func() {
+				defer wg.Done()
+				for range 200 {
+					if _, merr := tp.Metrics(); merr != nil {
+						t.Errorf("Metrics() returned error during concurrent load: %v", merr)
+						return
+					}
+				}
+			}()
+		}
+		wg.Wait()
+	})
+
+	t.Run("Metrics() surfaces callback errors via errors.Join", func(t *testing.T) {
+		// A failing callback is now the ONLY way Metrics() returns a non-nil
+		// error (the "not enabled" error was removed in #891). Each callback
+		// kind appends to callbackErrs, joined via errors.Join. Verify every
+		// kind surfaces, and that multiple errors join together.
+		errConn := errors.New("conn callback boom")
+		errPolicy := errors.New("policy callback boom")
+		errSnapshot := errors.New("snapshot callback boom")
+
+		tests := []struct {
+			name    string
+			inject  func(m *metrics)
+			wantErr []error
+		}{
+			{
+				name: "connMetric callback error",
+				inject: func(m *metrics) {
+					m.connMetricCallbacks = append(m.connMetricCallbacks,
+						func([]*Connection, []ConnectionMetric) error { return errConn })
+				},
+				wantErr: []error{errConn},
+			},
+			{
+				name: "policy callback error",
+				inject: func(m *metrics) {
+					m.policyCallbacks = append(m.policyCallbacks,
+						func() (PolicySnapshot, error) { return PolicySnapshot{}, errPolicy })
+				},
+				wantErr: []error{errPolicy},
+			},
+			{
+				name: "snapshot callback error",
+				inject: func(m *metrics) {
+					m.snapshotCallbacks = append(m.snapshotCallbacks,
+						func(*Metrics) error { return errSnapshot })
+				},
+				wantErr: []error{errSnapshot},
+			},
+			{
+				name: "all callback kinds error and join",
+				inject: func(m *metrics) {
+					m.connMetricCallbacks = append(m.connMetricCallbacks,
+						func([]*Connection, []ConnectionMetric) error { return errConn })
+					m.policyCallbacks = append(m.policyCallbacks,
+						func() (PolicySnapshot, error) { return PolicySnapshot{}, errPolicy })
+					m.snapshotCallbacks = append(m.snapshotCallbacks,
+						func(*Metrics) error { return errSnapshot })
+				},
+				wantErr: []error{errConn, errPolicy, errSnapshot},
+			},
+		}
+		for _, tc := range tests {
+			t.Run(tc.name, func(t *testing.T) {
+				tp, err := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
+				require.NoError(t, err)
+				tc.inject(tp.metrics)
+
+				_, err = tp.Metrics()
+				require.Error(t, err)
+				for _, want := range tc.wantErr {
+					require.ErrorIs(t, err, want)
+				}
+			})
+		}
+	})
+
+	t.Run("Metrics() returns nil error when callbacks succeed", func(t *testing.T) {
+		// Guards the happy path of the error contract: registered callbacks that
+		// all succeed must leave callbackErrs empty so errors.Join returns nil.
+		tp, err := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
+		require.NoError(t, err)
+		tp.metrics.connMetricCallbacks = append(tp.metrics.connMetricCallbacks,
+			func([]*Connection, []ConnectionMetric) error { return nil })
+		tp.metrics.policyCallbacks = append(tp.metrics.policyCallbacks,
+			func() (PolicySnapshot, error) { return PolicySnapshot{}, nil })
+		tp.metrics.snapshotCallbacks = append(tp.metrics.snapshotCallbacks,
+			func(*Metrics) error { return nil })
+
+		_, err = tp.Metrics()
+		require.NoError(t, err)
 	})
 
 	t.Run("String()", func(t *testing.T) {
@@ -307,4 +455,52 @@ func TestMetrics(t *testing.T) {
 			})
 		}
 	})
+}
+
+// TestMetricsDetailedSnapshot verifies the detailed path (connection
+// enumeration + policy snapshots) runs unconditionally; EnableMetrics is gone.
+func TestMetricsDetailedSnapshot(t *testing.T) {
+	tests := []struct {
+		name         string
+		urls         []*url.URL
+		withRouter   bool
+		wantConns    int
+		wantPolicies bool
+	}{
+		{
+			name:      "single server enumerates its connection",
+			urls:      []*url.URL{{Scheme: "http", Host: "foo1"}},
+			wantConns: 1,
+		},
+		{
+			// TestMain forces OPENSEARCH_GO_ROUTER=false, so the router
+			// must be built explicitly for policy callbacks to register.
+			name:         "multi server with router populates policies",
+			urls:         []*url.URL{{Scheme: "http", Host: "foo1"}, {Scheme: "http", Host: "foo2"}},
+			withRouter:   true,
+			wantConns:    2,
+			wantPolicies: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := Config{URLs: tc.urls, DisableRetry: true}
+			if tc.withRouter {
+				router, err := NewDefaultRouter()
+				require.NoError(t, err)
+				cfg.Router = router
+			}
+			tp, err := New(cfg)
+			require.NoError(t, err)
+
+			m, err := tp.Metrics()
+			require.NoError(t, err)
+			require.Len(t, m.Connections, tc.wantConns, "connections enumerated without EnableMetrics")
+			if tc.wantPolicies {
+				require.NotEmpty(t, m.Policies, "policy snapshots populated without EnableMetrics")
+			} else {
+				require.Empty(t, m.Policies, "no router means no policy snapshots")
+			}
+		})
+	}
 }

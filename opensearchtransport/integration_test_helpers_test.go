@@ -29,13 +29,13 @@ import (
 // getTestConfig returns a Config configured for the test environment (secure or insecure).
 // This must live here (not in testutil) because it returns the internal Config type.
 //
-// EnableMetrics is set true so the readiness FSM helpers
+// Metrics are always collected, so the readiness FSM helpers
 // (transportLensFSMCheck) can observe connection-pool state via
 // transport.Metrics() during integration polling.
 func getTestConfig(t *testing.T, urls []*url.URL) Config {
 	t.Helper()
 
-	cfg := Config{URLs: urls, EnableMetrics: true}
+	cfg := Config{URLs: urls}
 
 	if testutil.IsSecure(t) {
 		cfg.Transport = testutil.GetTestTransport(t)

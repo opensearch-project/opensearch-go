@@ -33,6 +33,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 
@@ -142,14 +143,14 @@ func TestMultiServerPoolOnSuccess(t *testing.T) {
 		pool.OnSuccess(conn)
 
 		conn.mu.Lock()
-		isDead := !conn.mu.deadSince.IsZero()
+		isDead := !conn.loadDeadSince().IsZero()
 		conn.mu.Unlock()
 		if isDead {
 			t.Errorf("Expected the connection to be ready; %s", conn)
 		}
 
 		conn.mu.Lock()
-		deadSince := conn.mu.deadSince
+		deadSince := conn.loadDeadSince()
 		conn.mu.Unlock()
 		if !deadSince.IsZero() {
 			t.Errorf("Unexpected value for DeadSince: %s", deadSince)
@@ -203,8 +204,8 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		conn.mu.Lock()
-		isDead := !conn.mu.deadSince.IsZero()
-		deadSince := conn.mu.deadSince
+		isDead := !conn.loadDeadSince().IsZero()
+		deadSince := conn.loadDeadSince()
 		conn.mu.Unlock()
 
 		if !isDead {
@@ -268,7 +269,7 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 		conn := pool.mu.ready[0]
 		conn.state.Store(int64(newConnState(lcDead)))
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().UTC()
+		conn.storeDeadSince(time.Now().UTC())
 		conn.mu.Unlock()
 
 		if err := pool.OnFailure(conn); err != nil {
@@ -281,6 +282,69 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 	})
 }
 
+func TestConnectionTimestampAtomics(t *testing.T) {
+	instant := time.Date(2021, time.March, 4, 5, 6, 7, 891011, time.UTC)
+	preEpoch := time.Date(1969, time.July, 20, 20, 17, 40, 0, time.UTC)
+
+	tests := []struct {
+		name        string
+		store       time.Time
+		wantZero    bool
+		wantRecover time.Time
+	}{
+		{name: "zero is unset", store: time.Time{}, wantZero: true, wantRecover: time.Time{}},
+		{name: "non-zero round-trips", store: instant, wantZero: false, wantRecover: instant},
+		{name: "pre-epoch round-trips and is not unset", store: preEpoch, wantZero: false, wantRecover: preEpoch},
+	}
+
+	for _, tc := range tests {
+		t.Run("deadSince/"+tc.name, func(t *testing.T) {
+			c := &Connection{URL: &url.URL{Scheme: "http", Host: "foo"}}
+			c.storeDeadSince(tc.store)
+			require.Equal(t, tc.wantZero, c.deadSinceIsZero())
+			require.True(t, tc.wantRecover.Equal(c.loadDeadSince()),
+				"want %v, got %v", tc.wantRecover, c.loadDeadSince())
+		})
+		t.Run("overloadedAt/"+tc.name, func(t *testing.T) {
+			c := &Connection{URL: &url.URL{Scheme: "http", Host: "foo"}}
+			c.storeOverloadedAt(tc.store)
+			require.True(t, tc.wantRecover.Equal(c.loadOverloadedAt()),
+				"want %v, got %v", tc.wantRecover, c.loadOverloadedAt())
+		})
+	}
+
+	// Concurrent store/load must be data-race free (run under `go test -race`):
+	// a Metrics reader never contends with OnSuccess/OnFailure writers.
+	t.Run("concurrent store and load are race-free", func(t *testing.T) {
+		c := &Connection{URL: &url.URL{Scheme: "http", Host: "foo"}}
+		var wg sync.WaitGroup
+		const writers, readers = 4, 4
+		wg.Add(writers + readers)
+		for range writers {
+			go func() {
+				defer wg.Done()
+				for range 1000 {
+					c.storeDeadSince(instant)
+					c.storeDeadSince(time.Time{})
+					c.storeOverloadedAt(instant)
+					c.storeOverloadedAt(time.Time{})
+				}
+			}()
+		}
+		for range readers {
+			go func() {
+				defer wg.Done()
+				for range 1000 {
+					_ = c.deadSinceIsZero()
+					_ = c.loadDeadSince()
+					_ = c.loadOverloadedAt()
+				}
+			}()
+		}
+		wg.Wait()
+	})
+}
+
 func TestConnection(t *testing.T) {
 	t.Run("String", func(t *testing.T) {
 		conn := &Connection{
@@ -288,8 +352,8 @@ func TestConnection(t *testing.T) {
 		}
 		conn.failures.Store(10)
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().UTC()
-		conn.mu.deadSince = time.Now().UTC()
+		conn.storeDeadSince(time.Now().UTC())
+		conn.storeDeadSince(time.Now().UTC())
 		conn.mu.Unlock()
 
 		match, err := regexp.MatchString(

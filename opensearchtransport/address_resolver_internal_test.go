@@ -208,7 +208,6 @@ func TestAddressResolver(t *testing.T) {
 			tp, err := New(Config{
 				URLs:                []*url.URL{testSeedURL(t)},
 				Transport:           newResolverTestTransport(t, nodesJSON),
-				EnableMetrics:       true,
 				HealthCheck:         NoOpHealthCheck,
 				AddressResolver:     tt.resolver,
 				MaxAddressResolvers: 1, // serial for deterministic behavior
@@ -719,10 +718,9 @@ func TestAddressResolverRunner(t *testing.T) {
 
 		var resolverCalled atomic.Int32
 		tp, err := New(Config{
-			URLs:          []*url.URL{testSeedURL(t)},
-			Transport:     newResolverTestTransport(t, nodesJSON),
-			EnableMetrics: true,
-			HealthCheck:   NoOpHealthCheck,
+			URLs:        []*url.URL{testSeedURL(t)},
+			Transport:   newResolverTestTransport(t, nodesJSON),
+			HealthCheck: NoOpHealthCheck,
 			AddressResolver: func(_ context.Context, _ NodeInfo) (*url.URL, error) {
 				resolverCalled.Add(1)
 				return nil, nil //nolint:nilnil // testing (nil, nil) protocol case
@@ -1143,7 +1141,6 @@ func TestAddressResolverRunnerProtocol(t *testing.T) {
 					tp, err := New(Config{
 						URLs:                  []*url.URL{testSeedURL(t)},
 						Transport:             newResolverTestTransport(t, nodesJSON),
-						EnableMetrics:         true,
 						HealthCheck:           NoOpHealthCheck,
 						AddressResolver:       tt.resolver,
 						MaxAddressResolvers:   1,

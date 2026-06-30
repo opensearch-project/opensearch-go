@@ -569,7 +569,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestClientMetrics(t *testing.T) {
-	c, _ := NewClient(Config{EnableMetrics: true, Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
+	c, _ := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 
 	m, err := c.Metrics()
 	require.NoError(t, err)

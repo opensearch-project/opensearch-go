@@ -2,16 +2,15 @@
 
 The opensearch-go transport exposes a pull-based metrics API that returns a point-in-time snapshot of request counters, connection pool state, per-connection health, policy-level breakdowns, and router cache state. All fields are JSON-tagged for easy serialization.
 
-Metrics come in two tiers. The **per-request counters** (`requests`, `failures`, and responses-by-status) are always collected via lock-free atomics and returned by `Metrics()` regardless of configuration. The **detailed-metrics snapshot** (connection-pool state, per-connection health, per-policy breakdowns, and router cache state) is opt-in behind `EnableMetrics`.
+Metrics are collected using atomic, per-request counters (e.g. `requests`, `failures`, and responses-by-status) recorded on the request hot path. Additional detailed metrics (connection-pool state, per-connection health, per-policy breakdowns, and router cache state) are lazily accumulated and read lock-free when you call `Metrics()`, so they cost nothing until you ask for them.
 
 ## Quick Start
 
-The per-request counters require no configuration. To also populate the detailed-metrics snapshot, set `EnableMetrics: true` on `opensearch.Config`. When constructing through `opensearchapi.NewClient`, set the flag on the embedded `opensearch.Config` and reach the method via `apiClient.Client.Metrics()`.
+Metrics require no configuration. Construct a client and call `Metrics()`. When constructing through `opensearchapi.NewClient`, reach the method via `apiClient.Client.Metrics()`.
 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
-    Addresses:     []string{"https://localhost:9200"},
-    EnableMetrics: true,
+    Addresses: []string{"https://localhost:9200"},
 })
 if err != nil {
     log.Fatal(err)
@@ -26,7 +25,7 @@ data, _ := json.MarshalIndent(m, "", "  ")
 fmt.Println(string(data))
 ```
 
-The `Metrics()` method lives on `opensearch.Client`. It returns an `opensearchtransport.Metrics` struct and an error -- non-nil when a detailed-metrics snapshot callback fails. A `New()`-constructed transport always returns the per-request counters, so `Metrics()` does not error merely because `EnableMetrics` is unset.
+The `Metrics()` method lives on `opensearch.Client`. It returns an `opensearchtransport.Metrics` struct and an error -- non-nil only when a detailed-snapshot callback fails. It never errors merely because metrics are "disabled"; they are always available.
 
 ---
 

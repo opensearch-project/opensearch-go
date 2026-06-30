@@ -700,7 +700,7 @@ func TestDemoteOverloaded(t *testing.T) {
 			t.Errorf("Expected lcOverloaded set, got=%s", lc)
 		}
 		a1.mu.RLock()
-		if a1.mu.overloadedAt.IsZero() {
+		if a1.loadOverloadedAt().IsZero() {
 			t.Error("Expected overloadedAt to be set")
 		}
 		a1.mu.RUnlock()
@@ -768,7 +768,7 @@ func TestPromoteFromOverloaded(t *testing.T) {
 		// Set overloaded
 		s1.setLifecycleBit(lcOverloaded)
 		s1.mu.Lock()
-		s1.mu.overloadedAt = time.Now()
+		s1.storeOverloadedAt(time.Now())
 		s1.mu.Unlock()
 
 		pool.promoteFromOverloaded(s1)
@@ -778,7 +778,7 @@ func TestPromoteFromOverloaded(t *testing.T) {
 			t.Errorf("Expected lcOverloaded cleared, got=%s", lc)
 		}
 		s1.mu.RLock()
-		if !s1.mu.overloadedAt.IsZero() {
+		if !s1.loadOverloadedAt().IsZero() {
 			t.Error("Expected overloadedAt to be zeroed")
 		}
 		s1.mu.RUnlock()

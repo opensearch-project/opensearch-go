@@ -124,6 +124,16 @@ use(m.Requests, m.Failures)
 
 Detailed fields such as `Policies` and `Router` remain populated only when `EnableMetrics` is set; reading them without it yields nil, unchanged from v4.
 
+> Note: a later v5 change removed `EnableMetrics` entirely -- see [`EnableMetrics` removed](#enablemetrics-removed) below. The behavior described above was the intermediate state; in the shipped v5 the detailed fields are always populated.
+
+## `EnableMetrics` removed
+
+`EnableMetrics` has been removed from both `opensearch.Config` and `opensearchtransport.Config`. The detailed-metrics snapshot (per-connection enumeration, per-policy breakdowns, and router cache state) is now always available -- it is assembled lazily and lock-free at the moment you call `Metrics()`, so it adds no per-request cost. The per-request counters were already always-on.
+
+Delete any `EnableMetrics` field from your config; leaving it in place is a compile error.
+
+`Metrics()` now returns the full snapshot unconditionally, including `Connections`, `Policies`, and `Router` (the latter two populate when a router with policies is active). The returned error is still non-nil only when a snapshot callback fails.
+
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 
 The concrete `opensearchtransport.Client` type was renamed to `opensearchtransport.Transport`. The type owns HTTP round-trip concerns -- connection pooling, retries, node selection, and discovery -- so `Transport` reflects its role and avoids colliding conceptually with the API clients above it (`opensearch.Client` and `opensearchapi.Client`).

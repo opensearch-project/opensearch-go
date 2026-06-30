@@ -305,22 +305,19 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 
 	t.Run("CustomPoolConstruction", func(t *testing.T) {
 		tests := []struct {
-			name          string
-			urls          []*url.URL
-			enableMetrics bool
+			name string
+			urls []*url.URL
 		}{
 			{name: "single URL", urls: []*url.URL{{Scheme: "http", Host: "custom1"}}},
 			{name: "multiple URLs", urls: []*url.URL{
 				{Scheme: "http", Host: "custom1"},
 				{Scheme: "http", Host: "custom2"},
 			}},
-			{name: "single URL with detailed metrics", urls: []*url.URL{{Scheme: "http", Host: "custom1"}}, enableMetrics: true},
 		}
 		for _, tc := range tests {
 			t.Run(tc.name, func(t *testing.T) {
 				tp, err := New(Config{
-					URLs:          tc.urls,
-					EnableMetrics: tc.enableMetrics,
+					URLs: tc.urls,
 					ConnectionPoolFunc: func(conns []*Connection, selector Selector) ConnectionPool {
 						return &CustomConnectionPool{urls: []*url.URL{{Scheme: "http", Host: "custom1"}}}
 					},
@@ -329,7 +326,6 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 				_, ok := tp.mu.connectionPool.(*CustomConnectionPool)
 				require.True(t, ok, "want *CustomConnectionPool, got %T", tp.mu.connectionPool)
 				require.NotNil(t, tp.metrics, "metrics struct always allocated")
-				require.Equal(t, tc.enableMetrics, tp.metrics.detailed, "detailed flag matches EnableMetrics")
 			})
 		}
 	})
@@ -1328,8 +1324,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		// Create a client with metrics enabled and single connection
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u},
-			EnableMetrics: true,
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
 
@@ -1645,7 +1640,6 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
 			URLs:                         []*url.URL{u},
-			EnableMetrics:                true,
 			ResurrectTimeoutInitial:      42 * time.Second,
 			ResurrectTimeoutMax:          300 * time.Second,
 			ResurrectTimeoutFactorCutoff: 7,
@@ -1704,8 +1698,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 	t.Run("promote from singleServerPool preserves metrics via helper", func(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u},
-			EnableMetrics: true,
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
 
@@ -1779,8 +1772,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		// Create client starting with single node (should create singleServerPool)
 		client, err := New(Config{
-			URLs:          []*url.URL{serverURL},
-			EnableMetrics: true,
+			URLs: []*url.URL{serverURL},
 		})
 		require.NoError(t, err)
 
@@ -1826,9 +1818,8 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		// Test with single node + router
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u},
-			EnableMetrics: true,
-			Router:        NewMuxRouter(),
+			URLs:   []*url.URL{u},
+			Router: NewMuxRouter(),
 		})
 		require.NoError(t, err)
 
@@ -1867,8 +1858,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		// Create client with metrics
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u},
-			EnableMetrics: true,
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
 
@@ -1924,8 +1914,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		u1, _ := url.Parse("http://node1:9200")
 		u2, _ := url.Parse("http://node2:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u1, u2},
-			EnableMetrics: true,
+			URLs: []*url.URL{u1, u2},
 		})
 		require.NoError(t, err)
 
@@ -1972,8 +1961,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		// Test the case where we stay with a single connection pool
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:          []*url.URL{u},
-			EnableMetrics: true,
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
 
@@ -2095,6 +2083,5 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		require.Equal(t, "localhost:9200", singlePool.connection.URL.Host, "Should preserve the correct connection")
 		require.NotNil(t, singlePool.metrics, "Metrics are always allocated and wired into the pool")
 		require.Equal(t, client.metrics, singlePool.metrics, "Pool shares the client's metrics struct")
-		require.False(t, singlePool.metrics.detailed, "detailed is off for a client without EnableMetrics")
 	})
 }

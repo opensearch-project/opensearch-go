@@ -46,8 +46,7 @@ func main() {
 			{Scheme: "http", Host: "localhost:9201"},
 		},
 		DiscoverNodesInterval: 5 * time.Second, // Fast for demo
-		EnableMetrics:         true,
-		EnableDebugLogger:     !isCI(), // Enable locally, disable in CI
+		EnableDebugLogger:     !isCI(),         // Enable locally, disable in CI
 		Logger:                &opensearchtransport.ColorLogger{Output: os.Stdout, EnableRequestBody: false, EnableResponseBody: false},
 		Router:                router,
 
