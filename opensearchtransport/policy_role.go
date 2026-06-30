@@ -145,7 +145,7 @@ func (p *RolePolicy) configurePolicySettings(config policyConfig) error {
 		config.name = "role:" + p.requiredRoleKey
 		p.pool = createPoolFromConfig(config)
 	}
-	if config.metrics != nil {
+	if config.metrics.detailedEnabled() {
 		config.metrics.policyCallbacks = append(config.metrics.policyCallbacks,
 			func() (PolicySnapshot, error) {
 				return p.PolicySnapshot(), nil

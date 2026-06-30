@@ -992,22 +992,22 @@ func New(cfg Config) (*Client, error) {
 		storeDebugLogger(&debuggingLogger{Output: os.Stdout})
 	}
 
-	if cfg.EnableMetrics {
-		client.metrics = &metrics{}
-		client.metrics.mu.responses = make(map[int]int)
+	// EnableMetrics gates the detailed-metrics path (callback-augmented
+	// Metrics snapshot); the per-request counters populate regardless.
+	client.metrics = &metrics{detailed: cfg.EnableMetrics}
 
-		if len(conns) == 1 {
-			// Single node - assign metrics to connection pool
-			if pool, ok := client.mu.connectionPool.(*singleServerPool); ok {
-				pool.metrics = client.metrics
-			} else {
-				return nil, fmt.Errorf("unexpected connection pool type for single node: %T", client.mu.connectionPool)
-			}
-		} else {
-			// Multi-node - assign metrics to status connection pool
-			if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
-				pool.metrics = client.metrics
-			}
+	// Wire metrics into the built-in pools. A custom ConnectionPoolFunc may
+	// return neither type; that is legitimate, so the assertion is a no-op on
+	// mismatch rather than an error.
+	if len(conns) == 1 {
+		// Single node - assign metrics to connection pool
+		if pool, ok := client.mu.connectionPool.(*singleServerPool); ok {
+			pool.metrics = client.metrics
+		}
+	} else {
+		// Multi-node - assign metrics to status connection pool
+		if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
+			pool.metrics = client.metrics
 		}
 	}
 
@@ -1192,7 +1192,6 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 		err error
 	)
 
-	// Record metrics, when enabled
 	if c.metrics != nil {
 		c.metrics.requests.Add(1)
 	}
@@ -1346,7 +1345,6 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 		}
 
 		if err != nil {
-			// Record metrics, when enabled
 			if c.metrics != nil {
 				c.metrics.failures.Add(1)
 			}

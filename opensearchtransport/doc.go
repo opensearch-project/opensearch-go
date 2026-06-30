@@ -198,7 +198,10 @@ Use the EnableDebugLogger option to enable the debugging logger for connection m
 Alternatively, set the OPENSEARCH_GO_DEBUG environment variable to "true" to enable debug
 logging globally without code changes. When enabled, debug output is written to stderr.
 
-Use the EnableMetrics option to enable metric collection and export.
+Use the EnableMetrics option to enable the detailed-metrics snapshot
+(per-connection, per-policy, and router state). The per-request counters
+(requests, failures, responses by status) are always collected and are
+returned by Metrics regardless of this option.
 
 # Enabling the Router via Environment Variable
 

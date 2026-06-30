@@ -98,7 +98,7 @@ func (p *DocRouter) configurePolicySettings(config policyConfig) error {
 	if config.observer != nil {
 		p.observer.Store(config.observer)
 	}
-	if config.metrics != nil {
+	if config.metrics.detailedEnabled() {
 		cache := p.cache
 		config.metrics.snapshotCallbacks = append(config.metrics.snapshotCallbacks,
 			func(m *Metrics) error {

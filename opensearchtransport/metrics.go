@@ -29,11 +29,9 @@ package opensearchtransport
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -43,10 +41,23 @@ type Measurable interface {
 	Metrics() (Metrics, error)
 }
 
+// Response status codes are bounded to [statusMin, statusMax). Anything
+// outside that range is folded into a single overflow bucket so a malformed
+// upstream status is still counted rather than panicking on a bad index.
+const (
+	statusMin      = 100
+	statusMax      = 600
+	statusBuckets  = statusMax - statusMin // 500 in-range buckets
+	statusOverflow = -1                    // map key for the overflow bucket
+)
+
 // Metrics represents the transport metrics.
 type Metrics struct {
-	Requests  int         `json:"requests"`
-	Failures  int         `json:"failures"`
+	Requests int `json:"requests"`
+	Failures int `json:"failures"`
+	// Responses counts responses by HTTP status code. Any status outside the
+	// valid [100, 600) range is folded into a single overflow bucket keyed by
+	// -1 (statusOverflow) rather than its literal code.
 	Responses map[int]int `json:"responses"`
 
 	// Connection pool state.
@@ -74,10 +85,12 @@ type Metrics struct {
 
 	Connections []fmt.Stringer `json:"connections"`
 
-	// Per-policy breakdown (only populated when router with policies is active)
+	// Per-policy breakdown. Part of the detailed-metrics path: populated only
+	// when EnableMetrics is set and a router with policies is active; nil otherwise.
 	Policies []PolicySnapshot `json:"policies,omitempty"`
 
-	// Router cache state (only populated when scored routing is active)
+	// Router cache state. Part of the detailed-metrics path: populated only
+	// when EnableMetrics is set and scored routing is active; nil otherwise.
 	Router *RouterSnapshot `json:"router,omitempty"`
 }
 
@@ -209,36 +222,94 @@ type metrics struct {
 	standbyPromotions atomic.Int64 // Standby -> Active
 	standbyDemotions  atomic.Int64 // Active -> Standby
 
+	// detailed gates the expensive detailed-metrics path: registration and
+	// invocation of the per-connection / per-policy / per-snapshot callbacks and
+	// the connection-state enumeration in Metrics. The cheap per-request counters
+	// above are populated regardless of detailed. Set from Config.EnableMetrics.
+	detailed bool
+
 	// Metric callbacks registered by policies at init time.
 	// Immutable after client construction; no synchronization needed.
 	connMetricCallbacks []ConnectionMetricCallback // batch per-connection
 	policyCallbacks     []PolicyMetricCallback     // per-policy snapshot
 	snapshotCallbacks   []MetricsCallback          // per-snapshot augmentation
 
-	mu struct {
-		sync.RWMutex
-		responses map[int]int
-	}
+	// responses counts HTTP responses by status code, lock-free. Index i holds
+	// the count for status code statusMin+i; responsesOverflow holds any code
+	// outside [statusMin, statusMax). Snapshotted in responsesSnapshot.
+	responses         [statusBuckets]atomic.Int64
+	responsesOverflow atomic.Int64
 }
 
-// incrementResponse increments the counter for the given status code.
+// detailedEnabled reports whether the detailed-metrics path is active. It is nil-safe:
+// a nil *metrics (no metrics struct wired) reports false, so callers can guard
+// detailed-only work with config.metrics.detailedEnabled() without a separate nil check.
+func (m *metrics) detailedEnabled() bool {
+	return m != nil && m.detailed
+}
+
+// incrementResponse records one response with the given status code. It is
+// lock-free: a single atomic add to the bucket for statusCode, or to the
+// overflow bucket when statusCode is outside [statusMin, statusMax).
 func (m *metrics) incrementResponse(statusCode int) {
-	m.mu.Lock()
-	m.mu.responses[statusCode]++
-	m.mu.Unlock()
+	if statusCode < statusMin || statusCode >= statusMax {
+		m.responsesOverflow.Add(1)
+		return
+	}
+	m.responses[statusCode-statusMin].Add(1)
 }
 
-// Metrics returns the transport metrics.
+// responsesSnapshot returns a map of status code to count. Codes with a zero
+// count are omitted; the overflow bucket, when non-zero, is keyed by
+// statusOverflow.
+func (m *metrics) responsesSnapshot() map[int]int {
+	out := make(map[int]int)
+	for i := range m.responses {
+		if n := m.responses[i].Load(); n > 0 {
+			out[statusMin+i] = int(n)
+		}
+	}
+	if n := m.responsesOverflow.Load(); n > 0 {
+		out[statusOverflow] = int(n)
+	}
+	return out
+}
+
+// Metrics returns the transport metrics. The detailed fields -- per-connection
+// enumeration, per-policy snapshots, and the router snapshot -- are populated
+// only when Config.EnableMetrics is set.
 func (c *Client) Metrics() (Metrics, error) {
 	if c.metrics == nil {
+		// Defensive: a custom transport could embed *Client without the
+		// standard constructor. Treat as no metrics available.
 		return Metrics{}, errors.New("transport metrics not enabled")
 	}
 
-	// Build responses map with pre-allocated capacity (READ operation)
-	c.metrics.mu.RLock()
-	responses := make(map[int]int, len(c.metrics.mu.responses))
-	maps.Copy(responses, c.metrics.mu.responses)
-	c.metrics.mu.RUnlock()
+	m := Metrics{
+		Requests:  int(c.metrics.requests.Load()),
+		Failures:  int(c.metrics.failures.Load()),
+		Responses: c.metrics.responsesSnapshot(),
+
+		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
+		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
+		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
+
+		HealthChecks:        int(c.metrics.healthChecks.Load()),
+		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
+		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
+		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
+
+		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
+		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
+	}
+
+	// Detailed-metrics path: connection enumeration + callbacks. The detailed-only
+	// fields (LiveConnections, DeadConnections, OverloadedServers,
+	// StandbyConnections, Connections, Policies, Router) stay zero/nil when
+	// the detailed path is off.
+	if !c.metrics.detailed {
+		return m, nil
+	}
 
 	// Get connections from current connection pool
 	var ready, dead []*Connection
@@ -254,27 +325,8 @@ func (c *Client) Metrics() (Metrics, error) {
 	}
 	c.mu.RUnlock()
 
-	m := Metrics{
-		Requests:  int(c.metrics.requests.Load()),
-		Failures:  int(c.metrics.failures.Load()),
-		Responses: responses,
-
-		LiveConnections: len(ready) + len(singleConns),
-		DeadConnections: len(dead),
-
-		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
-		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
-		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
-
-		HealthChecks:        int(c.metrics.healthChecks.Load()),
-		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
-		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
-		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
-		OverloadedServers:   0, // Set below when iterating connections
-
-		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
-		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
-	}
+	m.LiveConnections = len(ready) + len(singleConns)
+	m.DeadConnections = len(dead)
 
 	// Build per-connection metrics. Each connection's connState atomic
 	// determines isDead/isStandby/isOverloaded -- no positional tricks needed.
