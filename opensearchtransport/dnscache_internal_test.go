@@ -56,6 +56,19 @@ func (f *fakeResolver) setErr(err error) {
 	f.err = err
 }
 
+// testDNSSettings returns dnsCacheSettings with a long (effectively inert)
+// refresh and the default dialer timeouts, keeping the dial call sites within
+// line length. Tests that need to drive refreshes do so explicitly via
+// RefreshWithOptions rather than the ticker.
+func testDNSSettings() dnsCacheSettings {
+	return dnsCacheSettings{
+		refresh:     time.Hour,
+		dialTimeout: defaultDNSDialTimeout,
+		keepAlive:   defaultDNSKeepAlive,
+		dnsTimeout:  defaultDNSTimeout,
+	}
+}
+
 func TestResolveDNSCacheRefresh(t *testing.T) {
 	t.Parallel()
 
@@ -99,6 +112,171 @@ func TestResolveDNSCacheRefreshEnvOverride(t *testing.T) {
 	}
 }
 
+func TestResolveDNSDialTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "zero_uses_default", cfg: 0, want: defaultDNSDialTimeout},
+		{name: "negative_disables_timeout", cfg: -1, want: 0},
+		{name: "explicit_positive", cfg: 5 * time.Second, want: 5 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, resolveDNSDialTimeout(tt.cfg))
+		})
+	}
+}
+
+func TestResolveDNSDialTimeoutEnvOverride(t *testing.T) {
+	// Cannot be parallel: t.Setenv forbids it.
+	tests := []struct {
+		name string
+		env  string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "env_overrides_config", env: "5s", cfg: time.Minute, want: 5 * time.Second},
+		{name: "env_disables", env: "-1", cfg: 30 * time.Second, want: 0},
+		{name: "env_integer_seconds", env: "10", cfg: 0, want: 10 * time.Second},
+		{name: "unparseable_env_falls_back_to_config", env: "garbage", cfg: 15 * time.Second, want: 15 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("OPENSEARCH_GO_DNS_DIAL_TIMEOUT", tt.env)
+			require.Equal(t, tt.want, resolveDNSDialTimeout(tt.cfg))
+		})
+	}
+}
+
+func TestResolveDNSKeepAlive(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "zero_uses_default", cfg: 0, want: defaultDNSKeepAlive},
+		{name: "negative_disables_keepalive", cfg: -1, want: -1},
+		{name: "explicit_positive", cfg: 15 * time.Second, want: 15 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, resolveDNSKeepAlive(tt.cfg))
+		})
+	}
+}
+
+func TestResolveDNSKeepAliveEnvOverride(t *testing.T) {
+	// Cannot be parallel: t.Setenv forbids it.
+	tests := []struct {
+		name string
+		env  string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "env_overrides_config", env: "15s", cfg: time.Minute, want: 15 * time.Second},
+		{name: "env_disables", env: "-1", cfg: 30 * time.Second, want: -1},
+		{name: "env_integer_seconds", env: "20", cfg: 0, want: 20 * time.Second},
+		{name: "unparseable_env_falls_back_to_config", env: "garbage", cfg: 25 * time.Second, want: 25 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("OPENSEARCH_GO_DNS_KEEP_ALIVE", tt.env)
+			require.Equal(t, tt.want, resolveDNSKeepAlive(tt.cfg))
+		})
+	}
+}
+
+func TestResolveDNSTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "zero_uses_default", cfg: 0, want: defaultDNSTimeout},
+		{name: "negative_disables_timeout", cfg: -1, want: 0},
+		{name: "explicit_positive", cfg: 3 * time.Second, want: 3 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, resolveDNSTimeout(tt.cfg))
+		})
+	}
+}
+
+func TestResolveDNSTimeoutEnvOverride(t *testing.T) {
+	// Cannot be parallel: t.Setenv forbids it.
+	tests := []struct {
+		name string
+		env  string
+		cfg  time.Duration
+		want time.Duration
+	}{
+		{name: "env_overrides_config", env: "3s", cfg: time.Minute, want: 3 * time.Second},
+		{name: "env_disables", env: "-1", cfg: 10 * time.Second, want: 0},
+		{name: "env_integer_seconds", env: "5", cfg: 0, want: 5 * time.Second},
+		{name: "unparseable_env_falls_back_to_config", env: "garbage", cfg: 8 * time.Second, want: 8 * time.Second},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("OPENSEARCH_GO_DNS_TIMEOUT", tt.env)
+			require.Equal(t, tt.want, resolveDNSTimeout(tt.cfg))
+		})
+	}
+}
+
+// TestNewDialContextSetsResolverTimeout verifies the resolved dnsTimeout is
+// applied to the resolver's per-lookup Timeout, and that a non-positive value
+// leaves it unset (unbounded) so refresh lookups can be explicitly disabled.
+func TestNewDialContextSetsResolverTimeout(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		dnsTimeout time.Duration
+		want       time.Duration
+	}{
+		{name: "positive_sets_timeout", dnsTimeout: 4 * time.Second, want: 4 * time.Second},
+		{name: "zero_leaves_unbounded", dnsTimeout: 0, want: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctx, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+
+			r := &dnscache.Resolver{Resolver: &fakeResolver{addrs: []string{"127.0.0.1"}}}
+			s := dnsCacheSettings{
+				refresh:     time.Hour,
+				dialTimeout: defaultDNSDialTimeout,
+				keepAlive:   defaultDNSKeepAlive,
+				dnsTimeout:  tt.dnsTimeout,
+			}
+			_ = newDialContextDNSCache(ctx, s, r, nil)
+
+			require.Equal(t, tt.want, r.Timeout)
+		})
+	}
+}
+
 // TestCachingDialContextCacheHit verifies that repeated dials to the same host
 // resolve through the cache: only the first triggers a LookupHost call.
 func TestCachingDialContextCacheHit(t *testing.T) {
@@ -118,7 +296,7 @@ func TestCachingDialContextCacheHit(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	dial := newDialContextDNSCache(ctx, time.Hour, r, nil)
+	dial := newDialContextDNSCache(ctx, testDNSSettings(), r, nil)
 
 	for range 3 {
 		conn, derr := dial(ctx, "tcp", net.JoinHostPort("cached.example", port))
@@ -149,7 +327,7 @@ func TestCachingDialContextServeStale(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
-	dial := newDialContextDNSCache(ctx, time.Hour, r, nil)
+	dial := newDialContextDNSCache(ctx, testDNSSettings(), r, nil)
 
 	// Prime the cache.
 	conn, err := dial(ctx, "tcp", net.JoinHostPort("stale.example", port))
@@ -189,7 +367,7 @@ func TestCachingDialContextMetrics(t *testing.T) {
 	t.Cleanup(cancel)
 
 	m := &metrics{}
-	dial := newDialContextDNSCache(ctx, time.Hour, r, m)
+	dial := newDialContextDNSCache(ctx, testDNSSettings(), r, m)
 
 	// Two dials to the same host: one cold miss, one cache hit.
 	for range 2 {
@@ -207,6 +385,136 @@ func TestCachingDialContextMetrics(t *testing.T) {
 	_, derr := dial(ctx, "tcp", net.JoinHostPort("broken.example", port))
 	require.Error(t, derr)
 	require.Equal(t, int64(1), m.dnsLookupErrors.Load())
+}
+
+// TestCachingDialContextNoAddresses verifies that a lookup which succeeds but
+// yields zero addresses returns the ErrDNSNoAddresses sentinel (wrapping the
+// host) rather than a bare net error, and still records a lookup error.
+func TestCachingDialContextNoAddresses(t *testing.T) {
+	t.Parallel()
+
+	fr := &fakeResolver{addrs: []string{}}
+	r := &dnscache.Resolver{Resolver: fr}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+
+	m := &metrics{}
+	dial := newDialContextDNSCache(ctx, testDNSSettings(), r, m)
+
+	conn, err := dial(ctx, "tcp", "empty.example:9200")
+	require.Nil(t, conn)
+	require.ErrorIs(t, err, ErrDNSNoAddresses)
+	require.ErrorContains(t, err, "empty.example", "sentinel should name the host")
+	require.Equal(t, int64(1), m.dnsLookupErrors.Load())
+}
+
+// TestDialParallel exercises the multi-address dial path through an injected
+// dial function, so the address-selection, first-success-wins, fan-out cap, and
+// error-joining behavior can be asserted deterministically without real sockets.
+func TestDialParallel(t *testing.T) {
+	t.Parallel()
+
+	// newLiveConn returns a non-nil net.Conn for a "successful" dial. Both pipe
+	// ends are registered for cleanup so losing-race connections that get closed
+	// by dialParallel, and winners closed by the test, never leak a peer.
+	newLiveConn := func(t *testing.T) net.Conn {
+		t.Helper()
+		a, b := net.Pipe()
+		t.Cleanup(func() { _ = a.Close(); _ = b.Close() })
+		return a
+	}
+
+	tests := []struct {
+		name    string
+		ips     []string
+		maxDial int
+		// dialable lists the ip:port targets that succeed; any other target fails.
+		dialable     []string
+		wantErr      bool
+		wantErrHas   []string // substrings the joined error must contain
+		wantMaxDials int      // upper bound on distinct targets dialed
+	}{
+		{
+			name:         "all addresses live",
+			ips:          []string{"10.0.0.1", "10.0.0.2"},
+			maxDial:      maxParallelDials,
+			dialable:     []string{"10.0.0.1:9200", "10.0.0.2:9200"},
+			wantMaxDials: 2,
+		},
+		{
+			name:         "first dead one live still connects",
+			ips:          []string{"10.0.0.1", "10.0.0.2"},
+			maxDial:      maxParallelDials,
+			dialable:     []string{"10.0.0.2:9200"}, // .1 refuses
+			wantMaxDials: 2,
+		},
+		{
+			name:       "all dead joins per address errors",
+			ips:        []string{"10.0.0.1", "10.0.0.2"},
+			maxDial:    maxParallelDials,
+			dialable:   nil,
+			wantErr:    true,
+			wantErrHas: []string{"10.0.0.1:9200", "10.0.0.2:9200"},
+		},
+		{
+			name:         "fan out capped below address count",
+			ips:          []string{"10.0.0.1", "10.0.0.2", "10.0.0.3", "10.0.0.4", "10.0.0.5"},
+			maxDial:      2,
+			dialable:     []string{"10.0.0.1:9200", "10.0.0.2:9200", "10.0.0.3:9200", "10.0.0.4:9200", "10.0.0.5:9200"},
+			wantMaxDials: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			dialable := make(map[string]struct{}, len(tt.dialable))
+			for _, a := range tt.dialable {
+				dialable[a] = struct{}{}
+			}
+
+			var mu sync.Mutex
+			dialed := make(map[string]struct{})
+
+			dial := func(_ context.Context, _, addr string) (net.Conn, error) {
+				mu.Lock()
+				dialed[addr] = struct{}{}
+				mu.Unlock()
+				if _, ok := dialable[addr]; ok {
+					return newLiveConn(t), nil
+				}
+				return nil, errors.New("connection refused")
+			}
+
+			c, cancel := context.WithCancel(context.Background())
+			t.Cleanup(cancel)
+
+			conn, err := dialParallel(c, dial, "tcp", "9200", tt.ips, tt.maxDial)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				require.Nil(t, conn)
+				for _, sub := range tt.wantErrHas {
+					require.ErrorContains(t, err, sub)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, conn)
+			_ = conn.Close()
+
+			if tt.wantMaxDials > 0 {
+				mu.Lock()
+				n := len(dialed)
+				mu.Unlock()
+				require.LessOrEqual(t, n, tt.wantMaxDials,
+					"dialParallel should not dial more than maxDials addresses")
+			}
+		})
+	}
 }
 
 // TestDNSRefreshLoopStopsOnCancel verifies the refresh goroutine exits when its

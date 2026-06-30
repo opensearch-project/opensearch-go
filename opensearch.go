@@ -126,6 +126,22 @@ type Config struct {
 	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
 	DNSCacheRefresh time.Duration
 
+	// DNSDialTimeout sets the dial timeout of the net.Dialer behind the
+	// client-side DNS cache; only applies when the cache is installed.
+	// 0 = default (30s), <0 = no dial timeout, >0 = explicit timeout.
+	DNSDialTimeout time.Duration
+
+	// DNSKeepAlive sets the keep-alive interval of the net.Dialer behind the
+	// client-side DNS cache; only applies when the cache is installed.
+	// 0 = default (30s), <0 = disable keep-alive probes, >0 = explicit interval.
+	DNSKeepAlive time.Duration
+
+	// DNSTimeout bounds each cache refresh lookup behind the client-side DNS
+	// cache; only applies when the cache is installed. Prevents one hung
+	// resolution from stalling a (sequential) refresh tick.
+	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
+	DNSTimeout time.Duration
+
 	CompressRequestBody bool // Default: false.
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
@@ -325,6 +341,9 @@ func NewClient(cfg Config) (*Client, error) {
 		RequestTimeout:       cfg.RequestTimeout,
 
 		DNSCacheRefresh: cfg.DNSCacheRefresh,
+		DNSDialTimeout:  cfg.DNSDialTimeout,
+		DNSKeepAlive:    cfg.DNSKeepAlive,
+		DNSTimeout:      cfg.DNSTimeout,
 
 		CompressRequestBody: cfg.CompressRequestBody,
 

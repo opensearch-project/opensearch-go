@@ -177,6 +177,25 @@ type Config struct {
 	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
 	DNSCacheRefresh time.Duration
 
+	// DNSDialTimeout sets the dial timeout of the net.Dialer behind the
+	// client-side DNS cache (see DNSCacheRefresh); only applies when the cache is
+	// installed (no custom Transport).
+	// 0 = default (30s), <0 = no dial timeout, >0 = explicit timeout.
+	DNSDialTimeout time.Duration
+
+	// DNSKeepAlive sets the keep-alive interval of the net.Dialer behind the
+	// client-side DNS cache (see DNSCacheRefresh); only applies when the cache is
+	// installed (no custom Transport).
+	// 0 = default (30s), <0 = disable keep-alive probes, >0 = explicit interval.
+	DNSKeepAlive time.Duration
+
+	// DNSTimeout bounds each cache refresh lookup behind the client-side DNS
+	// cache (see DNSCacheRefresh); only applies when the cache is installed (no
+	// custom Transport). Refresh lookups run sequentially, so this prevents one
+	// hung resolution from stalling a refresh tick.
+	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
+	DNSTimeout time.Duration
+
 	CompressRequestBody bool
 
 	EnableMetrics     bool
@@ -854,10 +873,11 @@ func New(cfg Config) (*Transport, error) {
 	// ctx, so Close cancels it. See newDialContextDNSCache for the serve-stale and
 	// cache-sweep semantics.
 	if !customTransport {
-		if refresh := resolveDNSCacheRefresh(cfg.DNSCacheRefresh); refresh > 0 {
+		settings := resolveDNSCacheSettings(cfg.DNSCacheRefresh, cfg.DNSDialTimeout, cfg.DNSKeepAlive, cfg.DNSTimeout)
+		if settings.refresh > 0 {
 			if httpTransport, ok := cfg.Transport.(*http.Transport); ok {
 				httpTransport = httpTransport.Clone()
-				httpTransport.DialContext = newDialContextDNSCache(ctx, refresh, &dnscache.Resolver{}, clientMetrics)
+				httpTransport.DialContext = newDialContextDNSCache(ctx, settings, &dnscache.Resolver{}, clientMetrics)
 				cfg.Transport = httpTransport
 			}
 		}
