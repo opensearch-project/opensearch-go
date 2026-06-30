@@ -221,7 +221,7 @@ func TestMetrics(t *testing.T) {
 		}
 
 		m, err := tp.Metrics()
-		require.NoError(t, err, "Metrics never errors once metrics struct is always allocated")
+		require.NoError(t, err, "Metrics returns the always-on counters without error")
 		require.GreaterOrEqual(t, m.Requests, 1, "request counter populated with detailed off")
 		require.Empty(t, m.Connections, "detailed-only connection enumeration absent when detailed off")
 		require.Nil(t, m.Policies, "detailed-only policy snapshots absent when detailed off")
@@ -275,55 +275,55 @@ func TestMetrics(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, match, "Unexpected output: %s", m)
 	})
+}
 
-	t.Run("incrementResponse", func(t *testing.T) {
-		tests := []struct {
-			name  string
-			codes []int       // sequence of incrementResponse calls
-			want  map[int]int // expected responsesSnapshot
-		}{
-			{name: "single code", codes: []int{200}, want: map[int]int{200: 1}},
-			{name: "repeated and mixed codes", codes: []int{200, 404, 200}, want: map[int]int{200: 2, 404: 1}},
-			{name: "below range to overflow", codes: []int{99}, want: map[int]int{statusOverflow: 1}},
-			{name: "low boundary in-range", codes: []int{statusMin}, want: map[int]int{statusMin: 1}},          // 100
-			{name: "high boundary in-range", codes: []int{statusMax - 1}, want: map[int]int{statusMax - 1: 1}}, // 599
-			{name: "at range max to overflow", codes: []int{statusMax}, want: map[int]int{statusOverflow: 1}},  // 600
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				m := &metrics{}
-				for _, code := range tc.codes {
-					m.incrementResponse(code)
-				}
-				require.Equal(t, tc.want, m.responsesSnapshot())
-			})
-		}
-	})
+func TestIncrementResponse(t *testing.T) {
+	tests := []struct {
+		name  string
+		codes []int       // sequence of incrementResponse calls
+		want  map[int]int // expected responsesSnapshot
+	}{
+		{name: "single code", codes: []int{200}, want: map[int]int{200: 1}},
+		{name: "repeated and mixed codes", codes: []int{200, 404, 200}, want: map[int]int{200: 2, 404: 1}},
+		{name: "below range to overflow", codes: []int{99}, want: map[int]int{statusOverflow: 1}},
+		{name: "low boundary in-range", codes: []int{statusMin}, want: map[int]int{statusMin: 1}},          // 100
+		{name: "high boundary in-range", codes: []int{statusMax - 1}, want: map[int]int{statusMax - 1: 1}}, // 599
+		{name: "at range max to overflow", codes: []int{statusMax}, want: map[int]int{statusOverflow: 1}},  // 600
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &metrics{}
+			for _, code := range tc.codes {
+				m.incrementResponse(code)
+			}
+			require.Equal(t, tc.want, m.responsesSnapshot())
+		})
+	}
+}
 
-	t.Run("incrementResponse concurrent", func(t *testing.T) {
-		tests := []struct {
-			name    string
-			code    int // status incremented from every goroutine
-			wantKey int // snapshot key the count lands under
-		}{
-			{name: "in-range bucket", code: 200, wantKey: 200},
-			{name: "overflow bucket", code: 600, wantKey: statusOverflow},
-		}
-		for _, tc := range tests {
-			t.Run(tc.name, func(t *testing.T) {
-				m := &metrics{}
-				const n = 500
-				var wg sync.WaitGroup
-				wg.Add(n)
-				for range n {
-					go func() {
-						defer wg.Done()
-						m.incrementResponse(tc.code)
-					}()
-				}
-				wg.Wait()
-				require.Equal(t, n, m.responsesSnapshot()[tc.wantKey], "concurrent increment count") // (MEASURED — count of concurrent increments)
-			})
-		}
-	})
+func TestIncrementResponseConcurrent(t *testing.T) {
+	tests := []struct {
+		name    string
+		code    int // status incremented from every goroutine
+		wantKey int // snapshot key the count lands under
+	}{
+		{name: "in-range bucket", code: 200, wantKey: 200},
+		{name: "overflow bucket", code: 600, wantKey: statusOverflow},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := &metrics{}
+			const n = 500
+			var wg sync.WaitGroup
+			wg.Add(n)
+			for range n {
+				go func() {
+					defer wg.Done()
+					m.incrementResponse(tc.code)
+				}()
+			}
+			wg.Wait()
+			require.Equal(t, n, m.responsesSnapshot()[tc.wantKey], "concurrent increment count") // (MEASURED — count of concurrent increments)
+		})
+	}
 }
