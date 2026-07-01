@@ -162,12 +162,17 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 		return nil
 	}
 
-	// Compute projected pool size for warmup/activeListCap scaling.
+	// Compute projected pool size for warmup/activeListCap scaling and
+	// recalculate the warmup parameters under the pool write lock. The lock is
+	// required because recalculateWarmupParams writes the pool's warmupRounds,
+	// warmupSkipCount, and activeListCap fields, which getWarmupParams and the
+	// other DiscoveryUpdate callers (roundrobin, cluster_coordinator) read and
+	// write under the same lock. Done before the mutations below so startWarmup
+	// calls during discoveryUpdateAdd use the new values. The lock is released
+	// before discoveryUpdateAdd/Remove, which acquire it per-connection.
+	p.pool.Lock()
 	// Only count connections that match this policy's required roles.
-	p.pool.RLock()
 	targetPoolSize := len(p.pool.mu.ready) + len(p.pool.mu.dead)
-	p.pool.RUnlock()
-
 	for _, conn := range added {
 		if p.connectionMatchesRoles(conn) {
 			targetPoolSize++
@@ -178,10 +183,8 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 			targetPoolSize--
 		}
 	}
-
-	// Recalculate activeListCap and warmup parameters before mutations so
-	// startWarmup calls during discoveryUpdateAdd use the new values.
 	p.pool.recalculateWarmupParams(targetPoolSize)
+	p.pool.Unlock()
 
 	if added != nil {
 		p.discoveryUpdateAdd(added)
