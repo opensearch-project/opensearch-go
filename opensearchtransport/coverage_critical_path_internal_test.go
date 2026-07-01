@@ -43,7 +43,7 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		chain.OnSuccess(conn)
 		// Verify still alive
 		conn.mu.RLock()
-		require.True(t, conn.mu.deadSince.IsZero())
+		require.True(t, conn.loadDeadSince().IsZero())
 		conn.mu.RUnlock()
 	})
 
@@ -53,13 +53,13 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		conn := createDeadTestConnection("http://node:9200")
 
 		conn.mu.RLock()
-		require.False(t, conn.mu.deadSince.IsZero(), "precondition: must be dead")
+		require.False(t, conn.loadDeadSince().IsZero(), "precondition: must be dead")
 		conn.mu.RUnlock()
 
 		chain.OnSuccess(conn)
 
 		conn.mu.RLock()
-		require.True(t, conn.mu.deadSince.IsZero(), "OnSuccess should mark dead connection healthy")
+		require.True(t, conn.loadDeadSince().IsZero(), "OnSuccess should mark dead connection healthy")
 		conn.mu.RUnlock()
 	})
 
@@ -70,13 +70,13 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		conn.drainingQuiescingRemaining.Store(3)
 
 		conn.mu.RLock()
-		deadBefore := conn.mu.deadSince
+		deadBefore := conn.loadDeadSince()
 		conn.mu.RUnlock()
 
 		chain.OnSuccess(conn)
 
 		conn.mu.RLock()
-		require.Equal(t, deadBefore, conn.mu.deadSince, "draining connection must stay dead")
+		require.Equal(t, deadBefore, conn.loadDeadSince(), "draining connection must stay dead")
 		conn.mu.RUnlock()
 	})
 
@@ -88,13 +88,13 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		conn.state.Store(int64(newConnState(lcDead | lcOverloaded | lcNeedsWarmup)))
 
 		conn.mu.RLock()
-		deadBefore := conn.mu.deadSince
+		deadBefore := conn.loadDeadSince()
 		conn.mu.RUnlock()
 
 		chain.OnSuccess(conn)
 
 		conn.mu.RLock()
-		require.Equal(t, deadBefore, conn.mu.deadSince, "overloaded connection must stay dead")
+		require.Equal(t, deadBefore, conn.loadDeadSince(), "overloaded connection must stay dead")
 		conn.mu.RUnlock()
 	})
 
@@ -115,7 +115,7 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		wg.Wait()
 
 		conn.mu.RLock()
-		require.True(t, conn.mu.deadSince.IsZero(), "after concurrent OnSuccess, connection must be healthy")
+		require.True(t, conn.loadDeadSince().IsZero(), "after concurrent OnSuccess, connection must be healthy")
 		conn.mu.RUnlock()
 	})
 }

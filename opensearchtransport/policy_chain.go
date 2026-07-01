@@ -79,21 +79,16 @@ func (r *PolicyChain) Route(ctx context.Context, req *http.Request) (NextHop, er
 // Marks the connection as healthy atomically. Each pool lazily resurrects
 // the connection from its dead list during the next checkDead() cycle.
 func (r *PolicyChain) OnSuccess(conn *Connection) {
-	// Fast path (RLock): most requests hit an already-alive connection.
-	// Only upgrade to write lock when the connection was dead and needs
-	// resurrection --concurrent successful requests are the common case.
-	conn.mu.RLock()
-	if conn.mu.deadSince.IsZero() {
-		conn.mu.RUnlock()
+	// Fast path is lock-free. See c.mu for details.
+	if conn.deadSinceIsZero() {
 		return
 	}
-	conn.mu.RUnlock()
 
 	// Slow path: connection was dead and succeeded --try to mark healthy.
 	conn.mu.Lock()
 
 	// Double-check under write lock (another goroutine may have resurrected).
-	if conn.mu.deadSince.IsZero() {
+	if conn.deadSinceIsZero() {
 		conn.mu.Unlock()
 		return
 	}
@@ -150,7 +145,7 @@ func (r *PolicyChain) OnFailure(conn *Connection) error {
 		conn.mu.Unlock()
 		return nil //nolint:nilerr // intentional: casLifecycle noop is not a caller-visible error
 	}
-	conn.mu.overloadedAt = time.Time{}
+	conn.storeOverloadedAt(time.Time{})
 	conn.markAsDeadWithLock()
 	conn.mu.Unlock()
 

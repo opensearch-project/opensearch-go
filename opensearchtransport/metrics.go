@@ -96,12 +96,11 @@ type Metrics struct {
 
 	Connections []fmt.Stringer `json:"connections"`
 
-	// Per-policy breakdown. Part of the detailed-metrics path: populated only
-	// when EnableMetrics is set and a router with policies is active; nil otherwise.
+	// Per-policy breakdown. Populated when a router with policies is active;
+	// nil otherwise.
 	Policies []PolicySnapshot `json:"policies,omitempty"`
 
-	// Router cache state. Part of the detailed-metrics path: populated only
-	// when EnableMetrics is set and scored routing is active; nil otherwise.
+	// Router cache state. Populated when scored routing is active; nil otherwise.
 	Router *RouterSnapshot `json:"router,omitempty"`
 }
 
@@ -233,12 +232,6 @@ type metrics struct {
 	standbyPromotions atomic.Int64 // Standby -> Active
 	standbyDemotions  atomic.Int64 // Active -> Standby
 
-	// detailed gates the expensive detailed-metrics path: registration and
-	// invocation of the per-connection / per-policy / per-snapshot callbacks and
-	// the connection-state enumeration in Metrics. The cheap per-request counters
-	// above are populated regardless of detailed. Set from Config.EnableMetrics.
-	detailed bool
-
 	// Metric callbacks registered by policies at init time.
 	// Immutable after client construction; no synchronization needed.
 	connMetricCallbacks []ConnectionMetricCallback // batch per-connection
@@ -262,13 +255,6 @@ type metrics struct {
 	// outside [statusMin, statusMax). Snapshotted in responsesSnapshot.
 	responses         [statusBuckets]atomic.Int64
 	responsesOverflow atomic.Int64
-}
-
-// detailedEnabled reports whether the detailed-metrics path is active. It is nil-safe:
-// a nil *metrics (no metrics struct wired) reports false, so callers can guard
-// detailed-only work with config.metrics.detailedEnabled() without a separate nil check.
-func (m *metrics) detailedEnabled() bool {
-	return m != nil && m.detailed
 }
 
 // incrementResponse records one response with the given status code. It is
@@ -298,14 +284,17 @@ func (m *metrics) responsesSnapshot() map[int]int {
 	return out
 }
 
-// Metrics returns the transport metrics. The detailed fields -- per-connection
-// enumeration, per-policy snapshots, and the router snapshot -- are populated
-// only when Config.EnableMetrics is set.
+// Metrics returns the transport metrics. It always returns the full snapshot:
+// the per-request counters (lock-free atomics on the hot path) plus the detailed
+// fields -- per-connection enumeration, per-policy snapshots, and the router
+// snapshot. The detailed fields are assembled lazily and lock-free at call time.
+// The returned error is non-nil when a snapshot callback fails, or when the
+// transport was constructed without metrics.
 func (c *Transport) Metrics() (Metrics, error) {
 	if c.metrics == nil {
 		// Defensive: a custom transport could embed *Transport without the
-		// standard constructor. Treat as no metrics available.
-		return Metrics{}, errors.New("transport metrics not enabled")
+		// standard constructor, leaving metrics uninitialized.
+		return Metrics{}, errors.New("transport metrics not initialized")
 	}
 
 	m := Metrics{
@@ -334,13 +323,10 @@ func (c *Transport) Metrics() (Metrics, error) {
 		DNSLookupErrors: int(c.metrics.dnsLookupErrors.Load()),
 	}
 
-	// Detailed-metrics path: connection enumeration + callbacks. The detailed-only
-	// fields (LiveConnections, DeadConnections, OverloadedServers,
-	// StandbyConnections, Connections, Policies, Router) stay zero/nil when
-	// the detailed path is off.
-	if !c.metrics.detailed {
-		return m, nil
-	}
+	// Detailed-metrics path: connection enumeration + callbacks. Always run --
+	// the detailed fields (LiveConnections, DeadConnections, OverloadedServers,
+	// StandbyConnections, Connections, Policies, Router) are populated
+	// unconditionally now.
 
 	// Get connections from current connection pool
 	var ready, dead []*Connection
@@ -447,10 +433,11 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 	state := c.loadConnState()
 	lc := state.lifecycle()
 
-	c.mu.Lock()
-	deadSince := c.mu.deadSince
-	overloadedAt := c.mu.overloadedAt
-	c.mu.Unlock()
+	// Read the dead/overloaded timestamps lock-free. These were formerly guarded
+	// by c.mu; reading them here without the lock removes the dominant snapshot
+	// contention against the per-request OnSuccess/OnFailure writers.
+	deadSince := c.loadDeadSince()
+	overloadedAt := c.loadOverloadedAt()
 
 	cm := ConnectionMetric{
 		URL:              c.URL.String(),

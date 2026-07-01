@@ -188,7 +188,6 @@ type Config struct {
 	// Default: nil (no modification)
 	HealthCheckRequestModifier func(*http.Request)
 
-	EnableMetrics     bool // Enable the metrics collection.
 	EnableDebugLogger bool // Enable the debug logging.
 
 	// ActiveListCap sets the maximum number of connections in the ready list's active partition per pool.
@@ -346,7 +345,6 @@ func NewClient(cfg Config) (*Client, error) {
 
 		CompressRequestBody: cfg.CompressRequestBody,
 
-		EnableMetrics:     cfg.EnableMetrics,
 		EnableDebugLogger: cfg.EnableDebugLogger,
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,

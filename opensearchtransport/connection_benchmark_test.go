@@ -160,7 +160,7 @@ func createMultiServerPool(conns []*Connection) *multiServerPool {
 	for _, conn := range ready {
 		conn.state.Store(int64(newConnState(lcActive)))
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Time{} // Reset from prior benchmark sub-runs
+		conn.storeDeadSince(time.Time{}) // Reset from prior benchmark sub-runs
 		conn.mu.Unlock()
 	}
 	pool.mu.ready = ready

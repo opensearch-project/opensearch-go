@@ -111,7 +111,6 @@ func standbyTestConfig(t *testing.T) opensearchtransport.Config {
 	cfg.StandbyPromotionChecks = 1
 	cfg.StandbyRotationCount = 1
 	cfg.StandbyRotationInterval = 0
-	cfg.EnableMetrics = true
 	cfg.DiscoveryHealthCheckRetries = 3
 	cfg.HealthCheckTimeout = 3 * time.Second // Longer than default test timeout
 	cfg.HealthCheckMaxRetries = 3            // More retries for concurrent load

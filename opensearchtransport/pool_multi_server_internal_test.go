@@ -28,13 +28,13 @@ func TestAppendToDeadWithLock_Invariants(t *testing.T) {
 		}
 
 		c.mu.RLock()
-		require.True(t, c.mu.deadSince.IsZero())
+		require.True(t, c.loadDeadSince().IsZero())
 		c.mu.RUnlock()
 
 		pool.appendToDeadWithLock(c)
 
 		c.mu.RLock()
-		require.False(t, c.mu.deadSince.IsZero(), "appendToDeadWithLock must set deadSince")
+		require.False(t, c.loadDeadSince().IsZero(), "appendToDeadWithLock must set deadSince")
 		c.mu.RUnlock()
 	})
 
@@ -44,12 +44,12 @@ func TestAppendToDeadWithLock_Invariants(t *testing.T) {
 			URL: &url.URL{Scheme: "http", Host: "node1:9200"},
 		}
 		original := time.Now().Add(-5 * time.Minute).UTC()
-		c.mu.deadSince = original
+		c.storeDeadSince(original)
 
 		pool.appendToDeadWithLock(c)
 
 		c.mu.RLock()
-		require.Equal(t, original, c.mu.deadSince, "appendToDeadWithLock must not overwrite existing deadSince")
+		require.Equal(t, original, c.loadDeadSince(), "appendToDeadWithLock must not overwrite existing deadSince")
 		c.mu.RUnlock()
 	})
 

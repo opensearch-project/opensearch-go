@@ -710,12 +710,12 @@ func (c *Transport) updateConnectionPool(
 	for url, conn := range finalConnectionsByURL {
 		if _, isReady := readyURLs[url]; isReady {
 			conn.mu.Lock()
-			deadSince := conn.mu.deadSince
+			deadSince := conn.loadDeadSince()
 			stale := !deadSince.IsZero() && !healthCheckedAt.IsZero() && deadSince.Before(healthCheckedAt)
 			switch {
 			case stale:
 				// Dead state predates the health check -- resurrect.
-				conn.mu.deadSince = time.Time{}
+				conn.storeDeadSince(time.Time{})
 				conn.mu.Unlock()
 				conn.failures.Store(0)
 			case !deadSince.IsZero():

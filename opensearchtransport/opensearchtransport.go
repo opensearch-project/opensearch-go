@@ -194,7 +194,6 @@ type Config struct {
 
 	CompressRequestBody bool
 
-	EnableMetrics     bool
 	EnableDebugLogger bool
 
 	DiscoverNodesInterval time.Duration
@@ -858,10 +857,11 @@ func New(cfg Config) (*Transport, error) {
 		}
 	}()
 
-	// EnableMetrics gates the detailed-metrics path (callback-augmented Metrics
-	// snapshot); the per-request counters populate regardless. Created here (ahead
-	// of the Transport struct) so the DNS-cache dialer below can record into it.
-	clientMetrics := &metrics{detailed: cfg.EnableMetrics}
+	// Per-request counters are recorded on the hot path; the detailed snapshot
+	// (per-connection, per-policy, and router state) is assembled lazily when
+	// Metrics is called. Created here (ahead of the Transport struct) so the
+	// DNS-cache dialer below can record into it.
+	clientMetrics := &metrics{}
 
 	// Install the client-side DNS cache on the default transport. This is skipped
 	// when the caller supplied their own Transport (we never modify it) and when
@@ -1096,8 +1096,9 @@ func New(cfg Config) (*Transport, error) {
 		storeDebugLogger(&debuggingLogger{Output: os.Stdout})
 	}
 
-	// EnableMetrics gates the detailed-metrics path (callback-augmented
-	// Metrics snapshot); the per-request counters populate regardless.
+	// Per-request counters are recorded on the hot path; the detailed snapshot
+	// (per-connection, per-policy, and router state) is assembled lazily when
+	// Metrics is called.
 	client.metrics = clientMetrics
 
 	// Wire metrics into the built-in pools. A custom ConnectionPoolFunc may

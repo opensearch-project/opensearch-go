@@ -59,10 +59,10 @@ type policyConfig struct {
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
 
-	// Metrics is always non-nil for a New()-constructed transport. Detailed
-	// callback registration below is gated by metrics.detailedEnabled()
-	// (EnableMetrics), not by nil-ness. Policies may register metric callbacks
-	// during configurePolicySettings.
+	// Metrics is always non-nil for a New()-constructed transport. Policies
+	// register their metric callbacks during configurePolicySettings, guarding
+	// only on nil-ness so that test/bench helpers which build a policyConfig
+	// without metrics do not panic.
 	metrics *metrics
 }
 

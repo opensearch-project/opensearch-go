@@ -444,7 +444,6 @@ func TestPerform_MetricsEnabled(t *testing.T) {
 		URLs:              []*url.URL{seedURL},
 		HealthCheck:       NoOpHealthCheck,
 		DisableRetry:      true,
-		EnableMetrics:     true,
 		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
 			return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
