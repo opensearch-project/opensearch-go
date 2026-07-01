@@ -595,7 +595,7 @@ func extractIndexFromPath(path string) string {
 //   - cfg: adaptive concurrency config (min/max overrides)
 //   - features: routing feature flags (checked for adaptiveConcurrencyEnabled)
 //
-// Returns 0 when the feature is disabled, meaning Perform() should not inject
+// Returns 0 when the feature is disabled, meaning Stream() should not inject
 // the query parameter.
 func computeAdaptiveConcurrency(cwnd int32, cfg adaptiveConcurrencyConfig, features routingFeatures) int {
 	if !features.adaptiveConcurrencyEnabled() {

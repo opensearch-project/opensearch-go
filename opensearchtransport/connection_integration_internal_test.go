@@ -72,7 +72,7 @@ func TestMultiServerPool(t *testing.T) {
 		// Test basic request functionality
 		for i := 1; i <= 5; i++ {
 			req, _ := http.NewRequest(http.MethodGet, "/", nil)
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				continue
@@ -150,7 +150,7 @@ func TestMultiServerPool(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err, "Failed to create request %d", i)
 
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			require.NoError(t, err, "Request %d failed", i)
 			require.NotNil(t, res, "Request %d returned nil response", i)
 

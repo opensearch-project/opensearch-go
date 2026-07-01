@@ -230,7 +230,7 @@ func (c *Client) Clone() *Client {
 
 // do calls [opensearch.Do] and checks the response for OpenSearch API errors.
 //
-// [opensearch.Do] routes through the buffered [opensearchtransport.Transport.Perform],
+// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
 // so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
 // connection has been drained and returned to the pool. The helper only needs
 // to translate IsError into a typed error.

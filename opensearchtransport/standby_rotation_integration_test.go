@@ -159,7 +159,7 @@ func drainWarmup(transport *opensearchtransport.Transport) {
 		if err != nil {
 			break
 		}
-		resp, err := transport.Perform(req)
+		resp, err := transport.Stream(req)
 		if err != nil {
 			continue
 		}
@@ -298,7 +298,7 @@ func TestStandbyRotation(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err)
 
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			require.NoError(t, err)
 
 			var info struct {
@@ -333,7 +333,7 @@ func TestStandbyRotation(t *testing.T) {
 		// Record which node is currently active
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
 		require.NoError(t, err)
-		res, err := transport.Perform(req)
+		res, err := transport.Stream(req)
 		require.NoError(t, err)
 		var info0 struct {
 			Name string `json:"name"`
@@ -439,7 +439,7 @@ func TestStandbyRotation(t *testing.T) {
 				if reqErr != nil {
 					return false
 				}
-				res, perfErr := transport.Perform(req)
+				res, perfErr := transport.Stream(req)
 				if perfErr != nil {
 					return false
 				}
@@ -452,7 +452,7 @@ func TestStandbyRotation(t *testing.T) {
 		for range 5 {
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err)
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, res.StatusCode, "active node should serve healthy responses")
 			res.Body.Close()

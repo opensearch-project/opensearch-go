@@ -70,7 +70,7 @@ type requestBuf struct {
 // supply Content-Type in headers and the caller's value wins.
 //
 // Header is intentionally left nil when body is nil and no custom headers are
-// passed. The transport layer ([opensearch.Client.Perform]) lazily allocates
+// passed. The transport layer ([opensearch.Client.Stream]) lazily allocates
 // the Header map before setting User-Agent and other transport headers. This
 // keeps the fast path (GET with no body) down to 2 heap allocations: the
 // coalesced requestBuf and the path string from the path builder.

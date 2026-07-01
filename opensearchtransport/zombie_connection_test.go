@@ -65,7 +65,7 @@ func TestSeedURLsWithDiscovery(t *testing.T) {
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
 		require.NoError(t, err)
 
-		res, err := transport.Perform(req)
+		res, err := transport.Stream(req)
 		require.NoError(t, err)
 		res.Body.Close()
 
@@ -80,7 +80,7 @@ func TestSeedURLsWithDiscovery(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
 			require.NoError(t, err, "request %d", i+1)
 
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			require.NoError(t, err, "request %d", i+1)
 			res.Body.Close()
 		}

@@ -78,7 +78,7 @@ func TestTransportRetries(t *testing.T) {
 				t.Fatalf("Unexpected error: %s", err)
 			}
 
-			res, err := transport.Perform(req)
+			res, err := transport.Stream(req)
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
@@ -129,7 +129,7 @@ func TestTransportHeaders(t *testing.T) {
 	})
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
-	res, err := tp.Perform(req)
+	res, err := tp.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
@@ -171,22 +171,26 @@ func TestTransportBodyClose(t *testing.T) {
 	})
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
-	res, err := tp.Perform(req)
+	res, err := tp.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error: %s", err)
 	}
-	if closeResp := res.Body.Close(); closeResp != nil {
-		t.Fatalf("Unexpected return on res.Body.Close(): %s", closeResp)
-	}
-	if closeResp := res.Body.Close(); closeResp != nil {
-		t.Fatalf("Unexpected return on res.Body.Close(): %s", closeResp)
-	}
+
+	// Stream returns the raw, unbuffered body: the caller owns it and must
+	// read before closing. Read first, then verify Close is idempotent.
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatalf("Failed to read the response body: %s", err)
 	}
 	if len(body) == 0 {
 		t.Fatalf("Unexpected response body:\n%s", body)
+	}
+
+	if closeResp := res.Body.Close(); closeResp != nil {
+		t.Fatalf("Unexpected return on res.Body.Close(): %s", closeResp)
+	}
+	if closeResp := res.Body.Close(); closeResp != nil {
+		t.Fatalf("Unexpected return on second res.Body.Close(): %s", closeResp)
 	}
 }
 
@@ -223,7 +227,7 @@ func TestTransportCompression(t *testing.T) {
 	indexName := testutil.MustUniqueString(t, "/transport-compression-test")
 
 	req, _ = http.NewRequest(http.MethodPut, indexName, nil)
-	res, err = transport.Perform(req)
+	res, err = transport.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot create index: %v", err)
 	}
@@ -232,7 +236,7 @@ func TestTransportCompression(t *testing.T) {
 	}
 
 	req, _ = http.NewRequest(http.MethodGet, indexName, nil)
-	res, err = transport.Perform(req)
+	res, err = transport.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot find index: %v", err)
 	}
@@ -246,7 +250,7 @@ func TestTransportCompression(t *testing.T) {
 		strings.NewReader(`{"solidPayload": 1}`),
 	)
 	req.Header.Set("Content-Type", "application/json")
-	res, err = transport.Perform(req)
+	res, err = transport.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot POST payload: %v", err)
 	}
@@ -259,7 +263,7 @@ func TestTransportCompression(t *testing.T) {
 	}
 
 	req, _ = http.NewRequest(http.MethodDelete, indexName, nil)
-	res, err = transport.Perform(req)
+	res, err = transport.Stream(req)
 	if err != nil {
 		t.Fatalf("Unexpected error, cannot DELETE %s: %v", indexName, err)
 	}

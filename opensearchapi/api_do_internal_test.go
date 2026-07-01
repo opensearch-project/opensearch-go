@@ -28,14 +28,13 @@ func (doTestReq) GetRequest(method string) (*http.Request, error) {
 }
 
 // doTestTransport is an opensearchtransport.Interface that returns a fixed
-// response, mimicking what Perform yields in the default buffered mode: the
-// body is an in-memory NopCloser that has already been read once from the wire.
+// response with an in-memory NopCloser body.
 type doTestTransport struct {
 	statusCode int
 	body       string
 }
 
-func (tr doTestTransport) Perform(*http.Request) (*http.Response, error) {
+func (tr doTestTransport) Stream(*http.Request) (*http.Response, error) {
 	return &http.Response{
 		StatusCode: tr.statusCode,
 		Status:     http.StatusText(tr.statusCode),

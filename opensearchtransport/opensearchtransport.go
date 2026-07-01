@@ -69,12 +69,12 @@ var (
 	reGoVersion          = regexp.MustCompile(`go(\d+\.\d+\..+)`)
 	errHealthCheckFailed = errors.New("connection health check error")
 
-	// ErrResponseBodyRead identifies an error that occurred while buffering the
-	// response body inside [Transport.Perform]. Callers that receive a non-nil
-	// response together with a non-nil error can use [errors.Is] against this
-	// sentinel to distinguish a genuine body-read failure from an unrelated
-	// transport error returned alongside a response (for example, context
-	// cancellation during retry backoff after a retryable status was received).
+	// ErrResponseBodyRead identifies an error that occurred while reading the
+	// response body. Callers that receive a non-nil response together with a
+	// non-nil error can use [errors.Is] against this sentinel to distinguish a
+	// genuine body-read failure from an unrelated transport error returned
+	// alongside a response (for example, context cancellation during retry
+	// backoff after a retryable status was received).
 	ErrResponseBodyRead = errors.New("error reading response body")
 )
 
@@ -97,16 +97,12 @@ func getConnectionFromPool(c *Transport, req *http.Request) (*Connection, error)
 // Interface is the HTTP client contract used by the OpenSearch API layer.
 //
 // Implementations may return a non-nil *http.Response together with a non-nil
-// error (for example, when the response was received but buffering its body
-// failed). Callers must treat a nil response, not a non-nil error, as the
-// signal for a hard transport failure. See [Transport.Perform] for details.
-//
-// TODO(v5): add Stream(*http.Request) (*http.Response, error) to this
-// interface and remove the deprecated Perform. Stream is currently exposed
-// only as a concrete [*Transport] method to avoid a v4 interface change; v5
-// will swap the surfaces.
+// error (for example, when the response was received but body reading failed,
+// or when context cancellation races a retry). Callers must treat a nil
+// response, not a non-nil error, as the signal for a hard transport failure.
+// The caller owns the response body and must close it.
 type Interface interface {
-	Perform(*http.Request) (*http.Response, error)
+	Stream(*http.Request) (*http.Response, error)
 }
 
 // OpenSearchInfo represents the root endpoint response structure for health checks.
@@ -1238,51 +1234,6 @@ func (c *Transport) Close() error {
 	return nil
 }
 
-// Perform executes the request and returns a buffered response.
-//
-// The response body is fully read into memory and replaced with an
-// [io.NopCloser] over a [bytes.Reader] before returning, so the underlying
-// TCP connection is drained and returned to the connection pool even if the
-// caller never reads the body. This is the right behavior for the typed
-// [github.com/opensearch-project/opensearch-go/v5.Do] helpers, which decode
-// the buffered body into a Go value.
-//
-// Perform may return a non-nil *http.Response together with a non-nil error.
-// This happens when the request reached a server and a response was received,
-// but a subsequent step failed -- most notably when buffering the response
-// body fails (see [ErrResponseBodyRead]), or when the request context is
-// cancelled during retry backoff after a retryable status was received. In
-// those cases the returned response is still usable (its body, if any, holds
-// whatever bytes were read before the failure).
-//
-// Callers must therefore treat resp == nil, not err != nil, as the signal for
-// a hard transport failure where no response is available. The same contract
-// applies to any custom [Interface] implementation.
-//
-// Deprecated: Perform follows the legacy buffered-response contract and will
-// be removed before the first stable release. Use [Transport.Stream] when you
-// need raw byte forwarding (the caller owns the body), or the typed
-// [github.com/opensearch-project/opensearch-go/v5.Do] helpers when you want
-// a decoded Go value (the SDK owns the body).
-func (c *Transport) Perform(req *http.Request) (*http.Response, error) {
-	res, err := c.Stream(req)
-
-	// Read, close and replace the http response body to close the connection.
-	// Callers that want to stream raw bytes should call [Transport.Stream]
-	// directly; Perform exists for the typed Do helpers and for backward
-	// compatibility with v4 callers that relied on a buffered body.
-	if res != nil && res.Body != nil {
-		body, rerr := io.ReadAll(res.Body)
-		res.Body.Close()
-		res.Body = io.NopCloser(bytes.NewReader(body))
-		if rerr != nil && err == nil {
-			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
-		}
-	}
-
-	return res, err
-}
-
 // Stream executes the request and returns the raw [http.Response] from the
 // underlying [http.RoundTripper]. The caller owns the response body: Stream
 // does not read or close res.Body. Use Stream when you want to forward or
@@ -1297,8 +1248,7 @@ func (c *Transport) Perform(req *http.Request) (*http.Response, error) {
 // Stream mutates req.URL to point at the selected backend (Scheme/Host) so
 // that signing, retry, and routing all see the resolved address. It performs
 // retry, signing, header injection, request-body compression, metrics, and
-// the seed URL fallback identically to [Transport.Perform]; the only difference
-// is that Stream returns the raw RoundTrip body instead of buffering it.
+// the seed URL fallback before returning the raw RoundTrip body.
 //
 // Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
 // for typed, decoded results (the SDK owns the body), use Stream for raw
@@ -2242,7 +2192,7 @@ func (c *Transport) fetchClusterHealth(
 	}
 	defer func() {
 		if res.Body != nil {
-			// Drain on close: raw RoundTrip path with no Perform buffering
+			// Drain on close: Stream returns the raw RoundTrip body unbuffered
 			// safety net. Closing a partially-read body (the non-200 early
 			// return below, or the io.ReadAll error path) would otherwise
 			// defeat keep-alive. On the success path io.ReadAll has already

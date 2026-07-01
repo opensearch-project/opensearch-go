@@ -428,7 +428,7 @@ func TestPerform_GzipCompression(t *testing.T) {
 
 	body := bytes.NewReader([]byte(`{"query":{"match_all":{}}}`))
 	req, _ := http.NewRequest(http.MethodPost, "/_search", io.NopCloser(body))
-	res, err := tp.Perform(req)
+	res, err := tp.Stream(req)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	if res.Body != nil {
@@ -453,7 +453,7 @@ func TestPerform_MetricsEnabled(t *testing.T) {
 	require.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	res, err := tp.Perform(req)
+	res, err := tp.Stream(req)
 	require.NoError(t, err)
 	if res != nil && res.Body != nil {
 		res.Body.Close()
@@ -479,7 +479,7 @@ func TestPerform_SignError(t *testing.T) {
 	require.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	res, err := tp.Perform(req) //nolint:bodyclose // error path
+	res, err := tp.Stream(req) //nolint:bodyclose // error path
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.Contains(t, err.Error(), "failed to sign request")
@@ -503,7 +503,7 @@ func TestPerform_TransportError(t *testing.T) {
 	tp.seedFallbackPool = nil
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	res, err := tp.Perform(req) //nolint:bodyclose // error path
+	res, err := tp.Stream(req) //nolint:bodyclose // error path
 	require.Error(t, err)
 	require.Nil(t, res)
 }
@@ -529,7 +529,7 @@ func TestPerform_NetworkErrorRetry(t *testing.T) {
 	require.NoError(t, err)
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
-	res, err := tp.Perform(req)
+	res, err := tp.Stream(req)
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	if res.Body != nil {

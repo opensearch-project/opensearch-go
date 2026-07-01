@@ -62,7 +62,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	req1, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 
-	res1, err := transport.Perform(req1)
+	res1, err := transport.Stream(req1)
 	require.NoError(t, err)
 	res1.Body.Close()
 
@@ -84,13 +84,13 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	bulkReq, err := http.NewRequest(http.MethodPost, "/_bulk", strings.NewReader(bulkBody))
 	require.NoError(t, err)
 	bulkReq.Header.Set("Content-Type", "application/x-ndjson")
-	bulkRes, err := transport.Perform(bulkReq)
+	bulkRes, err := transport.Stream(bulkReq)
 	require.NoError(t, err)
 	bulkRes.Body.Close()
 
 	t.Cleanup(func() {
 		delReq, _ := http.NewRequest(http.MethodDelete, "/test-discovery-flow", nil)
-		if res, err := transport.Perform(delReq); err == nil {
+		if res, err := transport.Stream(delReq); err == nil {
 			res.Body.Close()
 		}
 	})
@@ -98,14 +98,14 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 	// Test search operation - should route to data/search nodes
 	searchReq, err := http.NewRequest(http.MethodGet, "/_search", nil)
 	require.NoError(t, err)
-	searchRes, err := transport.Perform(searchReq)
+	searchRes, err := transport.Stream(searchReq)
 	require.NoError(t, err)
 	searchRes.Body.Close()
 
 	// Test general operation - should use round-robin fallback
 	infoReq, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
-	infoRes, err := transport.Perform(infoReq)
+	infoRes, err := transport.Stream(infoReq)
 	require.NoError(t, err)
 	infoRes.Body.Close()
 }

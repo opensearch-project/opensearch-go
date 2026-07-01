@@ -218,6 +218,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Removed
 
+- Remove deprecated `(*opensearch.Client).Perform` and `(*opensearchtransport.Transport).Perform`; `Stream(*http.Request) (*http.Response, error)` is now the sole method on `opensearchtransport.Interface`. Custom transport implementations must implement `Stream` instead of `Perform`. The `opensearch.Streamer` opt-in interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed. ([#872](https://github.com/opensearch-project/opensearch-go/issues/872))
 - Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
 - Stop emitting `opensearchapi.Client` sub-client fields that have no operations routed to them. `cmd/osgen` now emits a sub-client only when at least one operation targets it, dropping the previously-empty `Script`, `ComponentTemplate`, `IndexTemplate`, `Template`, and `DataStream` fields. Index-template and data-stream operations are reached through `client.Indices.*` (e.g. `client.Indices.PutIndexTemplate`, `client.Indices.CreateDataStream`); stored-script operations remain top-level on `Client`
 

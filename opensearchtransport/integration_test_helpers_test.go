@@ -75,7 +75,7 @@ func selectorRouteObserved(transport *Transport, ctx context.Context, obs routeO
 		}
 		obs.reset()
 		probeReq, _ := http.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
-		resp, err := transport.Perform(probeReq)
+		resp, err := transport.Stream(probeReq)
 		if err != nil {
 			return false
 		}
@@ -350,7 +350,7 @@ func selectorIndexGreen(transport *Transport, ctx context.Context, indexName str
 		if err != nil {
 			return false
 		}
-		resp, err := transport.Perform(req)
+		resp, err := transport.Stream(req)
 		if err != nil {
 			return false
 		}
@@ -373,7 +373,7 @@ func clusterNodeCount(t *testing.T, transport *Transport, ctx context.Context) i
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes", nil)
 	require.NoError(t, err)
 
-	resp, err := transport.Perform(req)
+	resp, err := transport.Stream(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 

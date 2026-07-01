@@ -1866,7 +1866,7 @@ func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexSha
 	if res == nil {
 		return nil, fmt.Errorf("nil response from /_cat/shards")
 	}
-	// Drain on close: this raw RoundTrip path has no Perform buffering, and
+	// Drain on close: this raw RoundTrip path (Stream); body is caller-owned, and
 	// json.Decode below stops at the end of the JSON value without consuming any
 	// trailing bytes, so a plain Close would defeat keep-alive on both the
 	// non-200 return and the healthy path.

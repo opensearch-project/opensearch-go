@@ -76,7 +76,7 @@ func TestTransportLogger(t *testing.T) {
 		for range 100 {
 			wg.Go(func() {
 				req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
-				resp, err := tp.Perform(req)
+				resp, err := tp.Stream(req)
 				if err != nil {
 					t.Errorf("Unexpected error: %s", err)
 					return
@@ -96,7 +96,7 @@ func TestTransportLogger(t *testing.T) {
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
-		resp, err := tp.Perform(req)
+		resp, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -114,7 +114,7 @@ func TestTransportLogger(t *testing.T) {
 		})
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
-		resp, err := tp.Perform(req)
+		resp, err := tp.Stream(req)
 		if err == nil {
 			defer resp.Body.Close()
 			t.Errorf("Expected error: %v", err)
@@ -137,7 +137,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -170,7 +170,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -217,7 +217,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -273,7 +273,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -310,7 +310,7 @@ func TestTransportLogger(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
-		resp, err := tp.Perform(req)
+		resp, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -350,7 +350,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
@@ -395,7 +395,7 @@ func TestTransportLogger(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
 
-		res, err := tp.Perform(req)
+		res, err := tp.Stream(req)
 		if err != nil {
 			t.Fatalf("Unexpected error: %s", err)
 		}
