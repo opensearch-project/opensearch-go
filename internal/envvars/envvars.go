@@ -14,6 +14,8 @@ package envvars
 import (
 	"os"
 	"strconv"
+	"sync"
+	"time"
 )
 
 // OpenSearchURL is the comma-separated seed-URL list used by [opensearch.NewClient]
@@ -119,6 +121,47 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // dropped (forward-compatible) and reported via the debug logger when
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
+
+// DefaultClientTTL sets the idle eviction window for the process-wide cache of
+// implicit default clients. time.ParseDuration format. Unset/invalid = 6m.
+// Any negative value disables the cache (every call builds a fresh client).
+// 0 means never evict (entries live until process exit). Read once per process.
+const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
+
+const defaultClientTTLDefault = 6 * time.Minute
+
+var (
+	defaultClientTTLOnce     sync.Once
+	defaultClientTTL         time.Duration
+	defaultClientTTLDisabled bool
+)
+
+// ParseDefaultClientTTL is the pure parser behind DefaultClientTTLValue,
+// exposed for testing. ok reports whether val was set. It returns the idle TTL
+// and whether the cache is disabled.
+func ParseDefaultClientTTL(val string, ok bool) (time.Duration, bool) {
+	if !ok || val == "" {
+		return defaultClientTTLDefault, false
+	}
+	d, err := time.ParseDuration(val)
+	if err != nil {
+		return defaultClientTTLDefault, false
+	}
+	if d < 0 {
+		return 0, true
+	}
+	return d, false
+}
+
+// DefaultClientTTLValue returns the parsed idle TTL and whether the cache is
+// disabled. Cached via sync.Once: the env var is read exactly once per process.
+func DefaultClientTTLValue() (time.Duration, bool) {
+	defaultClientTTLOnce.Do(func() {
+		val, ok := os.LookupEnv(DefaultClientTTL)
+		defaultClientTTL, defaultClientTTLDisabled = ParseDefaultClientTTL(val, ok)
+	})
+	return defaultClientTTL, defaultClientTTLDisabled
+}
 
 // Truthy reports whether the named environment variable is set to a
 // strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy

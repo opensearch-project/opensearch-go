@@ -176,6 +176,11 @@ type bulkIndexer struct {
 	metaPool         sync.Pool
 	metaPoolMaxBytes int
 
+	// ownClient is true when NewBulkIndexer implicitly created the client
+	// (cfg.Client was nil). Close then closes it to release the shared cache
+	// refcount; a caller-supplied client is left for its owner to close.
+	ownClient bool
+
 	config BulkIndexerConfig
 }
 
@@ -193,12 +198,14 @@ type bulkIndexerStats struct {
 
 // NewBulkIndexer creates a new bulk indexer.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
+	ownClient := false
 	if cfg.Client == nil {
 		var err error
 		cfg.Client, err = opensearchapi.NewDefaultClient()
 		if err != nil {
 			return nil, err
 		}
+		ownClient = true
 	}
 
 	// Initialize context if not provided
@@ -227,6 +234,7 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 		done:             make(chan bool),
 		stats:            &bulkIndexerStats{},
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
+		ownClient:        ownClient,
 		metaPool: sync.Pool{
 			New: func() any {
 				//nolint:mnd // 512B matches the original per-worker aux preallocation.
@@ -264,6 +272,17 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 	close(bi.queue)
 	bi.done <- true
+
+	// Close the implicitly-created client on every exit path (including the
+	// ctx-cancelled early return below), or the shared cache refcount -- and
+	// thus the transport's goroutines and pool -- would leak.
+	if bi.ownClient {
+		defer func() {
+			if err := bi.config.Client.Close(); err != nil && bi.config.OnError != nil {
+				bi.config.OnError(ctx, err)
+			}
+		}()
+	}
 
 	select {
 	case <-ctx.Done():

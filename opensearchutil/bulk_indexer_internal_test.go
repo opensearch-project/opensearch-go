@@ -1016,3 +1016,55 @@ func int64Pointer(i int64) *int64 {
 func intPointer(i int) *int {
 	return &i
 }
+
+func TestBulkIndexerOwnClientFlag(t *testing.T) {
+	t.Run("implicit client is owned", func(t *testing.T) {
+		bi, err := NewBulkIndexer(BulkIndexerConfig{})
+		require.NoError(t, err)
+		require.True(t, bi.(*bulkIndexer).ownClient)
+		require.NoError(t, bi.Close(context.Background()))
+	})
+
+	t.Run("supplied client is not owned", func(t *testing.T) {
+		client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
+
+		bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client})
+		require.NoError(t, err)
+		require.False(t, bi.(*bulkIndexer).ownClient)
+		require.NoError(t, bi.Close(context.Background()))
+	})
+
+	t.Run("owned client is closed even when Close context is cancelled", func(t *testing.T) {
+		// bulkIndexer.Close early-returns on a cancelled context; the owned
+		// client must still be closed (via defer), or the leak this indexer
+		// avoids would resurface on the cancel path. Observe the close through
+		// the transport's CloseIdleConnections passthrough.
+		tr := &closeRecordingTransport{}
+		client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: tr}})
+		require.NoError(t, err)
+
+		bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client})
+		require.NoError(t, err)
+		// Force ownership so Close treats this supplied client as implicitly
+		// created (the real nil-client path also sets this).
+		bi.(*bulkIndexer).ownClient = true
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+		require.ErrorIs(t, bi.Close(ctx), context.Canceled)
+		require.Positive(t, tr.idleClosed.Load(), "owned client must be closed on the cancelled-context path")
+	})
+}
+
+// closeRecordingTransport is an http.RoundTripper whose CloseIdleConnections is
+// invoked by opensearchtransport.Transport.Close, letting a test observe that
+// the client was closed.
+type closeRecordingTransport struct{ idleClosed atomic.Int32 }
+
+func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return defaultRoundTripFunc(req)
+}
+
+func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }

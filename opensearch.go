@@ -29,18 +29,23 @@ package opensearch
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v5/internal/clientcache"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
@@ -273,6 +278,11 @@ type Config struct {
 type Client struct {
 	Transport opensearchtransport.Interface
 	config    *Config
+
+	// closeFn, when non-nil, is invoked by Close instead of closing the
+	// transport. Cached default clients set it to a cache-release hook so Close
+	// decrements the shared entry's refcount in O(1).
+	closeFn func() error
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -284,7 +294,63 @@ type Client struct {
 //
 // It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 func NewDefaultClient() (*Client, error) {
-	return NewClient(Config{})
+	return newCachedDefault(Config{})
+}
+
+// defaultClientCache holds implicitly-constructed default clients keyed by
+// config hash so identical NewDefaultClient calls share one transport (and its
+// background goroutines) instead of leaking one set per call.
+//
+//nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
+var defaultClientCache = func() *clientcache.Cache {
+	ttl, disabled := envvars.DefaultClientTTLValue()
+	return clientcache.New(ttl, disabled)
+}()
+
+// newCachedDefault builds (or reuses) a cached client for cfg. Used only by
+// NewDefaultClient; explicit NewClient calls are never cached. Un-hashable cfg
+// falls back to a direct, uncached NewClient. Env-derived seed addresses
+// (OPENSEARCH_URL, applied when cfg.Addresses is empty) are folded into the key
+// so default clients pointed at different env URLs never collide on the empty
+// Config{} hash.
+func newCachedDefault(cfg Config) (*Client, error) {
+	keyCfg := cfg
+	if len(keyCfg.Addresses) == 0 {
+		keyCfg.Addresses = getAddressFromEnvironment()
+	}
+	key, ok := HashConfig(keyCfg)
+	if !ok {
+		return NewClient(cfg)
+	}
+	value, release, err := defaultClientCache.GetOrCreate(key, func() (clientcache.Constructed, error) {
+		c, cerr := NewClient(cfg)
+		if cerr != nil {
+			return clientcache.Constructed{}, cerr
+		}
+		closer, _ := c.Transport.(io.Closer)
+		liveness := func() int64 {
+			m, ok := c.Transport.(interface {
+				Metrics() (opensearchtransport.Metrics, error)
+			})
+			if !ok {
+				return -1
+			}
+			metrics, merr := m.Metrics()
+			if merr != nil {
+				return -1
+			}
+			return int64(metrics.Requests)
+		}
+		return clientcache.Constructed{Value: c, Closer: closer, Liveness: liveness}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	shared := value.(*Client)
+	// Return a fresh wrapper per holder sharing the transport and config, each
+	// with its own release hook, so one Close maps to exactly one refcount
+	// decrement.
+	return shared.SharedCopy(release), nil
 }
 
 // NewClient creates a new client with configuration from cfg.
@@ -421,6 +487,131 @@ func NewClient(cfg Config) (*Client, error) {
 
 func getAddressFromEnvironment() []string {
 	return addrsFromEnvironment(envOpenSearchURL)
+}
+
+// Close releases the client's background resources. For a cached default client
+// it decrements the shared entry's refcount (the worker closes the transport
+// once no holder remains and it goes idle). Otherwise it closes the transport
+// if it implements io.Closer -- the built-in *opensearchtransport.Transport
+// does, canceling pollers and closing idle connections -- and is a no-op for a
+// custom Transport that does not.
+func (c *Client) Close() error {
+	if c.closeFn != nil {
+		return c.closeFn()
+	}
+	if closer, ok := c.Transport.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
+// SharedCopy returns a new Client sharing this client's transport and config
+// but carrying its own Close hook. It is internal wiring for the opensearchapi
+// cache -- each holder gets a distinct wrapper whose Close decrements the shared
+// refcount exactly once -- and is not part of the stable API.
+func (c *Client) SharedCopy(closeFn func() error) *Client {
+	return &Client{Transport: c.Transport, config: c.config, closeFn: closeFn}
+}
+
+// HashConfig returns a stable hash of cfg's hashable fields and true, or
+// (0, false) when cfg carries a field that cannot be compared by value (funcs,
+// interfaces, a context, or a custom transport). A false return means "do not
+// cache". The hash must stay in sync with Config; TestHashConfig_FieldGuard
+// fails loudly when Config grows a field.
+func HashConfig(cfg Config) (uint64, bool) {
+	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
+		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
+		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
+		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
+		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
+		return 0, false
+	}
+
+	h := fnv.New64a()
+	writeString := func(s string) {
+		var n [8]byte
+		binary.BigEndian.PutUint64(n[:], uint64(len(s)))
+		_, _ = h.Write(n[:])
+		_, _ = h.Write([]byte(s))
+	}
+	writeInt := func(i int64) {
+		var n [8]byte
+		binary.BigEndian.PutUint64(n[:], uint64(i)) //nolint:gosec // G115: bit reinterpretation for hashing; value semantics irrelevant
+		_, _ = h.Write(n[:])
+	}
+	writeBool := func(b bool) {
+		if b {
+			writeInt(1)
+		} else {
+			writeInt(0)
+		}
+	}
+
+	for _, a := range cfg.Addresses {
+		writeString(a)
+	}
+	writeString("\x00sep-user")
+	writeString(cfg.Username)
+	writeString(cfg.Password)
+
+	// Header: sort keys and values for determinism.
+	keys := make([]string, 0, len(cfg.Header))
+	for k := range cfg.Header {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		writeString(k)
+		vals := append([]string(nil), cfg.Header[k]...)
+		sort.Strings(vals)
+		for _, v := range vals {
+			writeString(v)
+		}
+	}
+
+	writeString("\x00sep-cacert")
+	writeInt(int64(len(cfg.CACert)))
+	_, _ = h.Write(cfg.CACert)
+	writeBool(cfg.InsecureSkipVerify)
+
+	writeInt(int64(len(cfg.RetryOnStatus)))
+	for _, s := range cfg.RetryOnStatus {
+		writeInt(int64(s))
+	}
+	writeBool(cfg.DisableRetry)
+	writeBool(cfg.EnableRetryOnTimeout)
+	writeInt(int64(cfg.MaxRetries))
+	writeInt(int64(cfg.RequestTimeout))
+	writeInt(int64(cfg.DNSCacheRefresh))
+	writeInt(int64(cfg.DNSDialTimeout))
+	writeInt(int64(cfg.DNSKeepAlive))
+	writeInt(int64(cfg.DNSTimeout))
+	writeBool(cfg.CompressRequestBody)
+	if cfg.DiscoverNodesOnStart != nil {
+		writeBool(*cfg.DiscoverNodesOnStart)
+	} else {
+		writeInt(-1)
+	}
+	writeInt(int64(cfg.DiscoverNodesInterval))
+	writeInt(int64(cfg.HealthCheckTimeout))
+	writeInt(int64(cfg.HealthCheckMaxRetries))
+	writeInt(int64(cfg.ResurrectTimeoutInitial))
+	writeInt(int64(cfg.ResurrectTimeoutMax))
+	writeInt(int64(cfg.ResurrectTimeoutFactorCutoff))
+	writeInt(int64(cfg.MinimumResurrectTimeout))
+	writeInt(int64(cfg.MaxRetryClusterHealth))
+	writeInt(int64(cfg.ActiveListCap))
+	writeInt(int64(cfg.StandbyRotationInterval))
+	writeInt(int64(cfg.StandbyRotationCount))
+	writeInt(int64(cfg.StandbyPromotionChecks))
+	writeInt(int64(cfg.MaxAddressResolvers))
+	writeBool(cfg.EnableDebugLogger)
+	writeString(cfg.ShardCostConfig)
+	// float64 fields via math.Float64bits.
+	writeInt(int64(math.Float64bits(cfg.HealthCheckJitter))) //nolint:gosec // G115: bit reinterpretation for hashing
+	writeInt(int64(math.Float64bits(cfg.JitterScale)))       //nolint:gosec // G115: bit reinterpretation for hashing
+
+	return h.Sum64(), true
 }
 
 // ParseVersion returns an int64 representation of version.

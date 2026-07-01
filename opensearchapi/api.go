@@ -94,26 +94,22 @@ func defaultRouter() (opensearchtransport.Router, error) {
 	return opensearchtransport.NewDefaultRouter()
 }
 
-// NewClient returns an api client. Routing rule:
+// NewClient returns an api client. Router rule (applied in buildClient):
 //
-//   - config.Client.Router != nil: use the caller's Router unchanged.
-//   - config.Client.Router == nil and OPENSEARCH_GO_ROUTER=false: leave
-//     Router nil (env-driven opt-out).
-//   - config.Client.Router == nil otherwise (env unset or truthy):
-//     inject [opensearchtransport.NewDefaultRouter] -- v5 opts
-//     every caller into intelligent request routing by default.
+//   - Router != nil: use the caller's Router unchanged.
+//   - Router == nil and OPENSEARCH_GO_ROUTER=false: leave nil (env opt-out).
+//   - Router == nil otherwise: inject [opensearchtransport.NewDefaultRouter]
+//     and set DiscoverNodesOnStart=true unless the caller picked a value.
 //
-// When the default-router injection runs, NewClient also sets
-// DiscoverNodesOnStart=true (unless the caller already picked a value or
-// OPENSEARCH_GO_ROUTER=false). The underlying opensearch.NewClient skips
-// its own env-driven discovery path when Router != nil, so this replicates
-// the on-start discovery side-effect for the injected router.
-//
-// The OPENSEARCH_GO_ROUTER variable is the same one used to control
-// on-start discovery; it doubles as the env-var opt-out for the
-// default-router injection. Setting it to "false" disables both the
-// default router and on-start discovery.
+// User-built clients never enter the cache -- only the implicit default path
+// (NewDefaultClient, and NewBulkIndexer with no client) is cached.
 func NewClient(config Config) (*Client, error) {
+	return buildClient(config)
+}
+
+// buildClient performs default-router injection (when applicable) and
+// constructs the underlying opensearch client. It never consults the cache.
+func buildClient(config Config) (*Client, error) {
 	if config.Client.Router == nil && !envvars.Falsy(envvars.Router) {
 		router, err := defaultRouter()
 		if err != nil {
@@ -121,11 +117,9 @@ func NewClient(config Config) (*Client, error) {
 		}
 		config.Client.Router = router
 
-		// Enable on-start discovery for the injected router unless the
-		// caller already picked a value. The opensearch.NewClient
-		// env-discovery path at the same env-var key only fires when
-		// Router == nil; that condition is now false because we just
-		// injected one, so replicate the side-effect here.
+		// Enable on-start discovery for the injected router. opensearch.NewClient's
+		// own env-discovery path only fires when Router == nil, which is no longer
+		// true, so replicate the side-effect here unless the caller chose a value.
 		if config.Client.DiscoverNodesOnStart == nil && !envvars.Falsy(envvars.Router) {
 			t := true
 			config.Client.DiscoverNodesOnStart = &t
@@ -140,16 +134,35 @@ func NewClient(config Config) (*Client, error) {
 	return clientInit(rootClient, resolveErrorMask(config)), nil
 }
 
+// Close releases the client's background resources by closing the underlying
+// opensearch client (see [opensearch.Client.Close]); for a cached default
+// client this decrements the shared entry's refcount. Safe on a zero-value.
+func (c *Client) Close() error {
+	if c.Client != nil {
+		return c.Client.Close()
+	}
+	return nil
+}
+
 // NewDefaultClient returns an api client using defaults: localhost on
 // the default scheme/port plus the default router (see [NewClient] for
 // the router-injection rule).
 func NewDefaultClient() (*Client, error) {
 	defaultAddress := opensearch.DefaultScheme + "://" + net.JoinHostPort(opensearch.DefaultHost, strconv.Itoa(opensearch.DefaultPort))
-	return NewClient(Config{
+	config := Config{
 		Client: opensearch.Config{
 			Addresses: []string{defaultAddress},
 		},
-	})
+	}
+	// Route the implicit default through the shared cache so identical-config
+	// default clients share one transport. Cacheable only when we would inject
+	// the default router; otherwise build directly.
+	if config.Client.Router == nil && !envvars.Falsy(envvars.Router) {
+		if key, ok := keyForConfig(config); ok {
+			return newCachedAPIDefault(config, key)
+		}
+	}
+	return buildClient(config)
 }
 
 // errMaskWidth is the storage type backing a Client's live error mask.
