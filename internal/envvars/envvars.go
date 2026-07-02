@@ -131,36 +131,33 @@ const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
 const defaultClientTTLDefault = 6 * time.Minute
 
 var (
-	defaultClientTTLOnce     sync.Once
-	defaultClientTTL         time.Duration
-	defaultClientTTLDisabled bool
+	defaultClientTTLOnce sync.Once
+	defaultClientTTL     time.Duration
 )
 
 // ParseDefaultClientTTL is the pure parser behind DefaultClientTTLValue,
-// exposed for testing. ok reports whether val was set. It returns the idle TTL
-// and whether the cache is disabled.
-func ParseDefaultClientTTL(val string, ok bool) (time.Duration, bool) {
+// exposed for testing. ok reports whether val was set. Unset/empty/invalid
+// returns the 6m default; a negative duration is preserved verbatim (it signals
+// "disable caching"); 0 means never evict.
+func ParseDefaultClientTTL(val string, ok bool) time.Duration {
 	if !ok || val == "" {
-		return defaultClientTTLDefault, false
+		return defaultClientTTLDefault
 	}
 	d, err := time.ParseDuration(val)
 	if err != nil {
-		return defaultClientTTLDefault, false
+		return defaultClientTTLDefault
 	}
-	if d < 0 {
-		return 0, true
-	}
-	return d, false
+	return d
 }
 
-// DefaultClientTTLValue returns the parsed idle TTL and whether the cache is
-// disabled. Cached via sync.Once: the env var is read exactly once per process.
-func DefaultClientTTLValue() (time.Duration, bool) {
+// DefaultClientTTLValue returns the parsed idle TTL. Cached via sync.Once: the
+// env var is read exactly once per process.
+func DefaultClientTTLValue() time.Duration {
 	defaultClientTTLOnce.Do(func() {
 		val, ok := os.LookupEnv(DefaultClientTTL)
-		defaultClientTTL, defaultClientTTLDisabled = ParseDefaultClientTTL(val, ok)
+		defaultClientTTL = ParseDefaultClientTTL(val, ok)
 	})
-	return defaultClientTTL, defaultClientTTLDisabled
+	return defaultClientTTL
 }
 
 // Truthy reports whether the named environment variable is set to a

@@ -66,28 +66,26 @@ func TestTruthyAndFalsy(t *testing.T) {
 
 // TestParseDefaultClientTTL covers the pure parser behind DefaultClientTTLValue.
 // The public accessor is sync.Once-cached and cannot be re-driven per case, so
-// the parse logic is tested directly.
+// the parse logic is tested directly. A negative duration is preserved verbatim
+// (it signals "disable caching" to the cache); 0 means never evict.
 func TestParseDefaultClientTTL(t *testing.T) {
 	tests := []struct {
-		name         string
-		val          string
-		ok           bool
-		wantTTL      time.Duration
-		wantDisabled bool
+		name    string
+		val     string
+		ok      bool
+		wantTTL time.Duration
 	}{
-		{"unset", "", false, 6 * time.Minute, false},
-		{"empty", "", true, 6 * time.Minute, false},
-		{"invalid", "notaduration", true, 6 * time.Minute, false},
-		{"negative disables", "-1s", true, 0, true},
-		{"zero indefinite", "0", true, 0, false},
-		{"positive", "90s", true, 90 * time.Second, false},
-		{"positive minutes", "10m", true, 10 * time.Minute, false},
+		{"unset", "", false, 6 * time.Minute},
+		{"empty", "", true, 6 * time.Minute},
+		{"invalid", "notaduration", true, 6 * time.Minute},
+		{"negative disables", "-1s", true, -time.Second},
+		{"zero indefinite", "0", true, 0},
+		{"positive", "90s", true, 90 * time.Second},
+		{"positive minutes", "10m", true, 10 * time.Minute},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ttl, disabled := envvars.ParseDefaultClientTTL(tt.val, tt.ok)
-			require.Equal(t, tt.wantTTL, ttl)
-			require.Equal(t, tt.wantDisabled, disabled)
+			require.Equal(t, tt.wantTTL, envvars.ParseDefaultClientTTL(tt.val, tt.ok))
 		})
 	}
 }
