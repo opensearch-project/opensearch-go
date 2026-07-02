@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
 package a
 
 import (
@@ -10,7 +16,7 @@ func (T) Errorf(string, ...interface{}) {}
 
 // resp models a v5 generated struct: precise, mostly-pointer numeric fields.
 type resp struct {
-	Version *int64 // was int in v4 — the canonical hazard
+	Version *int64 // was int in v4 - the canonical hazard
 	Count   int64
 	Batches int
 }
