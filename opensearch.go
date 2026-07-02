@@ -319,10 +319,10 @@ func newCachedDefault(cfg Config) (*Client, error) {
 	if !ok {
 		return NewClient(cfg)
 	}
-	value, release, err := defaultClientCache.GetOrCreate(clientcache.HashKey(key), func() (clientcache.CacheValue[*Client], error) {
+	value, release, err := defaultClientCache.GetOrCreate(clientcache.HashKey(key), func() (clientcache.Constructed[*Client], error) {
 		c, cerr := NewClient(cfg)
 		if cerr != nil {
-			return clientcache.CacheValue[*Client]{}, cerr
+			return clientcache.Constructed[*Client]{}, cerr
 		}
 		closer, _ := c.Transport.(io.Closer)
 		liveness := func() int64 {
@@ -338,7 +338,7 @@ func newCachedDefault(cfg Config) (*Client, error) {
 			}
 			return int64(metrics.Requests)
 		}
-		return clientcache.CacheValue[*Client]{Value: c, Closer: clientcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
+		return clientcache.Constructed[*Client]{Value: c, Closer: clientcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
 	})
 	if err != nil {
 		return nil, err

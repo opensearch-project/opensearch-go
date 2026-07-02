@@ -21,37 +21,33 @@ import (
 // HashKey identifies a cached entry by a hash of its resolved config.
 type HashKey int64
 
-// ClusterFunc wraps the cached client's transport io.Closer as a named member
-// type. The struct value is never nil; the embedded Closer may be (a custom
-// transport without Close), so every close site nil-checks the embedded value.
+// ClusterFunc wraps the transport io.Closer. The embedded Closer may be nil (a
+// custom transport without Close), so every close site nil-checks it.
 type ClusterFunc struct{ io.Closer }
 
-// CacheValue is the value a cache entry carries: the opaque client value handed
-// to callers, its transport wrapped as a ClusterFunc, and a liveness probe
-// returning a monotonic request count used to detect idleness. A nil Liveness
-// makes an entry idle as soon as its refcount reaches zero.
-type CacheValue[T any] struct {
+// Constructed is what a cache entry carries: the client value handed to
+// callers, its transport, and a liveness probe returning a monotonic request
+// count. A nil Liveness makes an entry idle as soon as its refcount hits zero.
+type Constructed[T any] struct {
 	Value    T
 	Closer   ClusterFunc
 	Liveness func() int64
 }
 
-// NewFunc constructs a CacheValue on a cache miss.
-type NewFunc[T any] func() (CacheValue[T], error)
+// ConstructFunc constructs a Constructed on a cache miss.
+type ConstructFunc[T any] func() (Constructed[T], error)
 
 type entry[T any] struct {
-	CacheValue[T]           // Value / Closer / Liveness
-	refCount  atomic.Int32  // >=0: live reference count; <0: claimed for eviction
+	val       Constructed[T]
+	refCount  atomic.Int32 // >=0: live reference count; <0: claimed for eviction
 	lastCount int64
 	closed    atomic.Bool
 }
 
-// incIfLive increments the refcount unless the entry has been claimed for
-// eviction (refCount < 0). Returns false when claimed, so the caller falls back
-// to the locked slow path and reconstructs. This is the acquire half of the
-// CAS-claim protocol that lets the hit path stay lock-free: the sweep's
-// CompareAndSwap(0, -1) claim and this increment arbitrate on one atomic word,
-// so exactly one of evict/reacquire wins.
+// incIfLive increments the refcount unless the entry is claimed for eviction
+// (refCount < 0), returning false so the caller reconstructs. Acquire half of
+// the CAS-claim protocol: this and the sweep's CompareAndSwap(0, -1) arbitrate
+// on one atomic word, so exactly one of evict/reacquire wins.
 func (e *entry[T]) incIfLive() bool {
 	for {
 		n := e.refCount.Load()
@@ -100,7 +96,7 @@ func (c *Cache[T]) Len() int {
 // release decrements the entry's refcount exactly once; further calls are
 // no-ops. When the cache is disabled (ttl < 0) nothing is stored and release
 // closes the built transport.
-func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() error, error) {
+func (c *Cache[T]) GetOrCreate(key HashKey, construct ConstructFunc[T]) (T, func() error, error) {
 	var zero T
 	if c.ttl < 0 {
 		built, err := construct()
@@ -114,10 +110,10 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 	if v, ok := c.cache.Load(key); ok {
 		e := v.(*entry[T])
 		if e.incIfLive() {
-			return e.Value, releaseFn(e), nil
+			return e.val.Value, releaseFn(e), nil
 		}
-		// Entry is claimed for eviction; fall through to the locked slow path,
-		// which blocks until the sweep releases mu and has removed the entry.
+		// Claimed for eviction; fall through to the locked slow path, which
+		// blocks until the sweep releases mu and removes the entry.
 	}
 
 	// Construct outside the lock (may do network setup).
@@ -128,8 +124,8 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 
 	c.mu.Lock()
 	// A concurrent goroutine may have inserted the same key while we
-	// constructed. Under mu the sweep cannot hold a half-evicted (refCount < 0)
-	// entry, so a present entry is always reacquirable.
+	// constructed. Under mu a present entry is always reacquirable (the sweep
+	// cannot hold a half-evicted one).
 	if v, ok := c.cache.Load(key); ok {
 		e := v.(*entry[T])
 		if e.incIfLive() {
@@ -137,10 +133,10 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 			if built.Closer.Closer != nil {
 				_ = built.Closer.Close() // discard the redundant build
 			}
-			return e.Value, releaseFn(e), nil
+			return e.val.Value, releaseFn(e), nil
 		}
 	}
-	e := &entry[T]{CacheValue: built}
+	e := &entry[T]{val: built}
 	e.refCount.Store(1)
 	if built.Liveness != nil {
 		e.lastCount = built.Liveness()
@@ -149,7 +145,7 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 	c.mu.keys[key] = struct{}{}
 	c.ensureWorkerLocked()
 	c.mu.Unlock()
-	return e.Value, releaseFn(e), nil
+	return e.val.Value, releaseFn(e), nil
 }
 
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
@@ -217,22 +213,22 @@ func (c *Cache[T]) sweep() {
 		}
 		e := v.(*entry[T])
 		if e.refCount.Load() != 0 {
-			if e.Liveness != nil {
-				e.lastCount = e.Liveness()
+			if e.val.Liveness != nil {
+				e.lastCount = e.val.Liveness()
 			}
 			continue
 		}
 		var cur int64
-		if e.Liveness != nil {
-			cur = e.Liveness()
+		if e.val.Liveness != nil {
+			cur = e.val.Liveness()
 		}
-		if e.Liveness == nil || cur == e.lastCount {
+		if e.val.Liveness == nil || cur == e.lastCount {
 			// Idle for a full window: claim, close, evict. The claim CAS fails
 			// if a concurrent hit reacquired the entry (0 -> 1), in which case
 			// it is kept.
 			if e.refCount.CompareAndSwap(0, -1) {
-				if e.closed.CompareAndSwap(false, true) && e.Closer.Closer != nil {
-					_ = e.Closer.Close()
+				if e.closed.CompareAndSwap(false, true) && e.val.Closer.Closer != nil {
+					_ = e.val.Closer.Close()
 				}
 				c.cache.Delete(key)
 				delete(c.mu.keys, key)
@@ -241,12 +237,10 @@ func (c *Cache[T]) sweep() {
 		}
 		e.lastCount = cur
 	}
-	// Stop the worker once the cache is empty. A stopping worker (past this
-	// cancel but not yet returned from its select) can briefly overlap a
-	// replacement spawned by a concurrent insert, and may call cancel() a
-	// second time; both are safe because context.CancelFunc is idempotent and
-	// this branch is reached only with an empty keyset, so no live entry goes
-	// unserviced.
+	// Stop the worker once empty. A stopping worker may briefly overlap a
+	// replacement spawned by a concurrent insert and call cancel() twice; both
+	// are safe (CancelFunc is idempotent, and this fires only on an empty
+	// keyset, so no live entry goes unserviced).
 	if len(c.mu.keys) == 0 {
 		c.mu.running = false
 		c.cancel()

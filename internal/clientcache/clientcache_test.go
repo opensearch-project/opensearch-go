@@ -23,9 +23,9 @@ type stubCloser struct{ closed atomic.Int32 }
 
 func (s *stubCloser) Close() error { s.closed.Add(1); return nil }
 
-func newConstruct(closer io.Closer, live func() int64) clientcache.NewFunc[io.Closer] {
-	return func() (clientcache.CacheValue[io.Closer], error) {
-		return clientcache.CacheValue[io.Closer]{
+func newConstruct(closer io.Closer, live func() int64) clientcache.ConstructFunc[io.Closer] {
+	return func() (clientcache.Constructed[io.Closer], error) {
+		return clientcache.Constructed[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -39,9 +39,9 @@ func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
 	live := func() int64 { return 0 }
 
 	calls := 0
-	construct := func() (clientcache.CacheValue[io.Closer], error) {
+	construct := func() (clientcache.Constructed[io.Closer], error) {
 		calls++
-		return clientcache.CacheValue[io.Closer]{
+		return clientcache.Constructed[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -94,34 +94,41 @@ func TestDisabledCache_NeverStores_ReleaseCloses(t *testing.T) {
 }
 
 func TestWorker_EvictsIdleRefZeroEntry(t *testing.T) {
-	c := clientcache.New[io.Closer](20 * time.Millisecond)
-	closer := &stubCloser{}
-	live := func() int64 { return 7 } // never advances => idle
+	tests := []struct {
+		name string
+		live func() int64
+	}{
+		{"constant liveness", func() int64 { return 7 }}, // never advances => idle
+		{"nil liveness", nil},                            // idle the moment refcount hits 0
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := clientcache.New[io.Closer](20 * time.Millisecond)
+			closer := &stubCloser{}
 
-	_, rel, err := c.GetOrCreate(1, newConstruct(closer, live))
-	require.NoError(t, err)
-	require.NoError(t, rel()) // refcount now 0
+			_, rel, err := c.GetOrCreate(1, newConstruct(closer, tt.live))
+			require.NoError(t, err)
+			require.NoError(t, rel()) // refcount now 0
 
-	require.Eventually(t, func() bool {
-		return c.Len() == 0 && closer.closed.Load() == 1
-	}, 2*time.Second, 10*time.Millisecond, "idle refcount-0 entry must be evicted+closed")
+			require.Eventually(t, func() bool {
+				return c.Len() == 0 && closer.closed.Load() == 1
+			}, 2*time.Second, 10*time.Millisecond, "idle refcount-0 entry must be evicted+closed")
+		})
+	}
 }
 
-// TestConcurrentReacquireVsEviction stresses concurrent construct/hit/release
-// against an idle worker on a tiny TTL. A slow constructor forces many
-// goroutines through the post-construct hit path while the entry churns between
-// refcount 0 and non-zero; a handed-out value must never be already closed.
-// Guards the CAS-claim invariant: the sweep claims an idle entry with
-// CompareAndSwap(0,-1) while the hit path increments via incIfLive, so a
-// handed-out entry (refcount >= 1) can never be concurrently evicted.
+// TestConcurrentReacquireVsEviction guards the CAS-claim invariant: a slow
+// constructor forces many goroutines through the post-construct hit path while
+// the entry churns between refcount 0 and non-zero, and a handed-out value must
+// never already be closed.
 func TestConcurrentReacquireVsEviction(t *testing.T) {
 	c := clientcache.New[io.Closer](time.Millisecond)
 	live := func() int64 { return 1 } // constant => always idle-eligible at ref 0
 
-	construct := func() (clientcache.CacheValue[io.Closer], error) {
+	construct := func() (clientcache.Constructed[io.Closer], error) {
 		closer := &stubCloser{}
 		time.Sleep(3 * time.Millisecond) // widen the post-construct hit window
-		return clientcache.CacheValue[io.Closer]{
+		return clientcache.Constructed[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -222,9 +229,9 @@ func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
 func TestConcurrentGetRelease(t *testing.T) {
 	c := clientcache.New[io.Closer](time.Hour)
 	live := func() int64 { return 0 }
-	construct := func() (clientcache.CacheValue[io.Closer], error) {
+	construct := func() (clientcache.Constructed[io.Closer], error) {
 		closer := &stubCloser{}
-		return clientcache.CacheValue[io.Closer]{
+		return clientcache.Constructed[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -247,10 +254,9 @@ func TestConcurrentGetRelease(t *testing.T) {
 		require.NoError(t, err)
 	}
 	require.LessOrEqual(t, c.Len(), 1)
-	// The surviving cached transport must never be closed while refcounts
-	// churn above zero (ttl=1h => no eviction fires). Redundant builds lost to
-	// the opening construct race are closed by GetOrCreate per spec; that is
-	// correct and deliberately not asserted here.
+	// The surviving cached transport must never be closed while refcounts churn
+	// above zero. Redundant builds lost to the construct race are closed by
+	// GetOrCreate per spec, and deliberately not asserted here.
 	v, rel, err := c.GetOrCreate(99, construct)
 	require.NoError(t, err)
 	require.Equal(t, int32(0), v.(*stubCloser).closed.Load(), "live cached transport must not be closed mid-flight")
@@ -259,8 +265,8 @@ func TestConcurrentGetRelease(t *testing.T) {
 
 func TestGetOrCreate_ConstructError(t *testing.T) {
 	wantErr := errors.New("construct failed")
-	failing := func() (clientcache.CacheValue[io.Closer], error) {
-		return clientcache.CacheValue[io.Closer]{}, wantErr
+	failing := func() (clientcache.Constructed[io.Closer], error) {
+		return clientcache.Constructed[io.Closer]{}, wantErr
 	}
 	tests := []struct {
 		name string
@@ -281,14 +287,12 @@ func TestGetOrCreate_ConstructError(t *testing.T) {
 	}
 }
 
-// TestNilCloser_SafeNoop covers a transport without Close: the caller extracts
-// it with closer, _ := transport.(io.Closer), yielding a nil io.Closer that is
-// wrapped as ClusterFunc{Closer: nil}. Both the disabled release and the
-// sweep's evict must skip Close without panicking. Mirrors the PR contract: a
-// custom Interface without Close is a safe no-op.
+// TestNilCloser_SafeNoop covers a transport without Close: a nil io.Closer
+// wrapped as ClusterFunc{Closer: nil}. Both the disabled release and the sweep's
+// evict must skip Close without panicking.
 func TestNilCloser_SafeNoop(t *testing.T) {
-	nilConstruct := func() (clientcache.CacheValue[io.Closer], error) {
-		return clientcache.CacheValue[io.Closer]{
+	nilConstruct := func() (clientcache.Constructed[io.Closer], error) {
+		return clientcache.Constructed[io.Closer]{
 			Value:    nil,
 			Closer:   clientcache.ClusterFunc{Closer: nil},
 			Liveness: func() int64 { return 0 },
@@ -311,25 +315,4 @@ func TestNilCloser_SafeNoop(t *testing.T) {
 		require.Eventually(t, func() bool { return c.Len() == 0 }, 2*time.Second, 10*time.Millisecond,
 			"idle entry with nil closer must evict without panic")
 	})
-}
-
-// TestNilLiveness_EvictsWhenIdle covers the documented "nil Liveness makes an
-// entry idle as soon as its refcount reaches zero" affordance: the sweep's
-// e.liveness == nil branch evicts on the first tick after release.
-func TestNilLiveness_EvictsWhenIdle(t *testing.T) {
-	c := clientcache.New[io.Closer](20 * time.Millisecond)
-	closer := &stubCloser{}
-	construct := func() (clientcache.CacheValue[io.Closer], error) {
-		return clientcache.CacheValue[io.Closer]{
-			Value:    closer,
-			Closer:   clientcache.ClusterFunc{Closer: closer},
-			Liveness: nil, // idle the moment refcount hits 0
-		}, nil
-	}
-	_, rel, err := c.GetOrCreate(1, construct)
-	require.NoError(t, err)
-	require.NoError(t, rel())
-	require.Eventually(t, func() bool {
-		return c.Len() == 0 && closer.closed.Load() == 1
-	}, 2*time.Second, 10*time.Millisecond, "nil-liveness idle entry must be evicted+closed")
 }
