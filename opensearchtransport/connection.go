@@ -183,6 +183,14 @@ type Connection struct {
 	failures atomic.Int64
 	state    atomic.Int64 // Packed connState: connLifecycle (12b) + 2*warmupManager (26b each)
 
+	// deadSinceNano and overloadedAtNano hold Unix-nanosecond timestamps, with 0
+	// meaning "unset" (the zero time). They are read lock-free by Metrics() and
+	// written under c.mu; see c.mu for the locking protocol. Use the
+	// loadDeadSince/storeDeadSince/deadSinceIsZero accessors (and the overloadedAt
+	// equivalents) rather than touching these directly.
+	deadSinceNano    atomic.Int64
+	overloadedAtNano atomic.Int64
+
 	// drainingQuiescingRemaining counts the number of successful health checks remaining
 	// before this connection can be resurrected. Set to defaultDrainingQuiescingChecks when
 	// an HTTP/2 stream reset is observed (RST_STREAM, e.g., REFUSED_STREAM). Each successful
@@ -194,13 +202,14 @@ type Connection struct {
 	// defaultDrainingQuiescingChecks * resurrectTimeout.
 	drainingQuiescingRemaining atomic.Int64
 
+	// mu guards the fields below and serializes the resurrection/standby
+	// read-modify-write decisions. The deadSinceNano/overloadedAtNano atomics are
+	// written under mu but read lock-free.
 	mu struct {
 		sync.RWMutex
-		deadSince              time.Time
 		checkStartedAt         time.Time
 		clusterHealth          *ClusterHealthLocal // Populated when lcClusterHealthAvailable is set
 		clusterHealthCheckedAt time.Time           // When cluster health was last probed (for retry timing)
-		overloadedAt           time.Time           // When overloaded state was last set (lcOverloaded metadata bit)
 		lastBreakerTripped     map[string]int64    // Previous tripped counts for delta detection
 	}
 
@@ -221,6 +230,44 @@ type Connection struct {
 		}
 	}
 }
+
+// timeToNano converts a time.Time to its Unix-nanosecond representation. The
+// zero value is preserved to imply "unset."
+func timeToNano(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.UnixNano()
+}
+
+// nanoToTime converts a stored Unix-nanosecond value back to time.Time in UTC,
+// mapping the 0 sentinel to the zero time.
+func nanoToTime(n int64) time.Time {
+	if n == 0 {
+		return time.Time{}
+	}
+	return time.Unix(0, n).UTC()
+}
+
+// loadDeadSince returns the time the connection was marked dead, or the zero
+// time if it is alive. Lock-free.
+func (c *Connection) loadDeadSince() time.Time { return nanoToTime(c.deadSinceNano.Load()) }
+
+// storeDeadSince records (or clears, with the zero time) the dead timestamp.
+// Callers hold c.mu; see c.mu for the locking protocol.
+func (c *Connection) storeDeadSince(t time.Time) { c.deadSinceNano.Store(timeToNano(t)) }
+
+// deadSinceIsZero reports whether the connection is alive (no dead timestamp).
+// Lock-free.
+func (c *Connection) deadSinceIsZero() bool { return c.deadSinceNano.Load() == 0 }
+
+// loadOverloadedAt returns the time the connection was last marked overloaded,
+// or the zero time. Lock-free.
+func (c *Connection) loadOverloadedAt() time.Time { return nanoToTime(c.overloadedAtNano.Load()) }
+
+// storeOverloadedAt records (or clears, with the zero time) the overloaded
+// timestamp. Callers hold c.mu; see c.mu for the locking protocol.
+func (c *Connection) storeOverloadedAt(t time.Time) { c.overloadedAtNano.Store(timeToNano(t)) }
 
 // effectiveWeight returns the connection's weight for round-robin selection.
 // Returns 1 if weight is zero (default for connections created without explicit weight).
@@ -270,20 +317,20 @@ func (c *Connection) decrementDrainingQuiescing() int64 {
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
 func (c *Connection) markAsDeadWithLock() {
-	if c.mu.deadSince.IsZero() {
-		c.mu.deadSince = time.Now().UTC()
+	if c.deadSinceIsZero() {
+		c.storeDeadSince(time.Now().UTC())
 	}
 	c.failures.Add(1)
 }
 
 // markAsReadyWithLock marks the connection as alive (caller must hold lock).
 func (c *Connection) markAsReadyWithLock() {
-	c.mu.deadSince = time.Time{}
+	c.storeDeadSince(time.Time{})
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
 func (c *Connection) markAsHealthyWithLock() {
-	c.mu.deadSince = time.Time{}
+	c.storeDeadSince(time.Time{})
 	c.failures.Store(0)
 }
 
@@ -452,9 +499,7 @@ func (c *Connection) storeMaxCwnd(poolName string, size int) {
 
 // String returns a readable connection representation.
 func (c *Connection) String() string {
-	c.mu.RLock()
-	deadAt := c.mu.deadSince
-	c.mu.RUnlock()
+	deadAt := c.loadDeadSince()
 
 	if deadAt.IsZero() {
 		return fmt.Sprintf("<%s> dead=false failures=%d", c.URL, c.failures.Load())

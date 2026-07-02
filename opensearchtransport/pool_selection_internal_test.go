@@ -128,10 +128,10 @@ func TestMultiServerPoolNext(t *testing.T) {
 		pool.mu.dead = func() []*Connection {
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn1.failures.Store(3)
-			conn1.mu.deadSince = time.Now().UTC() // Mark as dead
+			conn1.storeDeadSince(time.Now().UTC()) // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
 			conn2.failures.Store(1)
-			conn2.mu.deadSince = time.Now().UTC() // Mark as dead
+			conn2.storeDeadSince(time.Now().UTC()) // Mark as dead
 			return []*Connection{conn1, conn2}
 		}()
 
@@ -149,7 +149,7 @@ func TestMultiServerPoolNext(t *testing.T) {
 		}
 
 		c.mu.Lock()
-		isDead := !c.mu.deadSince.IsZero()
+		isDead := !c.loadDeadSince().IsZero()
 		c.mu.Unlock()
 		if !isDead {
 			t.Errorf("Expected connection to be dead (zombie), got: %v", c)
@@ -176,10 +176,10 @@ func TestMultiServerPoolNextResurrectDead(t *testing.T) {
 		pool.mu.dead = func() []*Connection {
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
 			conn1.failures.Store(3)
-			conn1.mu.deadSince = time.Now().UTC() // Mark as dead
+			conn1.storeDeadSince(time.Now().UTC()) // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
 			conn2.failures.Store(1)
-			conn2.mu.deadSince = time.Now().UTC() // Mark as dead
+			conn2.storeDeadSince(time.Now().UTC()) // Mark as dead
 			return []*Connection{conn1, conn2}
 		}()
 
@@ -197,7 +197,7 @@ func TestMultiServerPoolNextResurrectDead(t *testing.T) {
 		}
 
 		c.mu.Lock()
-		isDead := !c.mu.deadSince.IsZero()
+		isDead := !c.loadDeadSince().IsZero()
 		c.mu.Unlock()
 		if !isDead {
 			t.Errorf("Expected connection to be dead (zombie), got: %v", c)
@@ -235,7 +235,7 @@ func TestNextWithEviction(t *testing.T) {
 		// Externally kill demoted (no position bits)
 		demoted.state.Store(int64(newConnState(lcDead)))
 		demoted.mu.Lock()
-		demoted.mu.deadSince = time.Now()
+		demoted.storeDeadSince(time.Now())
 		demoted.mu.Unlock()
 
 		standby := newStandbyConn("s1")
@@ -301,7 +301,7 @@ func TestEvictExternallyDemotedWithLock(t *testing.T) {
 
 		// deadSince should be set
 		a1.mu.RLock()
-		require.False(t, a1.mu.deadSince.IsZero())
+		require.False(t, a1.loadDeadSince().IsZero())
 		a1.mu.RUnlock()
 
 		// Observer should have received a demote event
@@ -354,7 +354,7 @@ func TestNextFallback(t *testing.T) {
 
 	t.Run("zombie from dead when no active or standby", func(t *testing.T) {
 		d1 := &Connection{URL: &url.URL{Scheme: "http", Host: "dead1"}}
-		d1.mu.deadSince = time.Now()
+		d1.storeDeadSince(time.Now())
 
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{}
@@ -403,7 +403,7 @@ func TestNextFallback(t *testing.T) {
 		d2 := newActiveConn("d2")
 		d2.state.Store(int64(newConnState(lcDead)))
 		zombie := &Connection{URL: &url.URL{Scheme: "http", Host: "zombie"}}
-		zombie.mu.deadSince = time.Now()
+		zombie.storeDeadSince(time.Now())
 
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{d1, d2}

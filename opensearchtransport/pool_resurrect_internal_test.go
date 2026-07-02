@@ -52,7 +52,7 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 		conn := pool.mu.dead[0]
 		conn.mu.Lock()
 		pool.resurrectWithLock(conn)
-		isDead := !conn.mu.deadSince.IsZero()
+		isDead := !conn.loadDeadSince().IsZero()
 		conn.mu.Unlock()
 
 		if isDead {
@@ -124,7 +124,7 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 			}
 			conn.failures.Store(100)
 			conn.mu.Lock()
-			conn.mu.deadSince = time.Now().UTC()
+			conn.storeDeadSince(time.Now().UTC())
 			conn.mu.Unlock()
 			return []*Connection{conn}
 		}()

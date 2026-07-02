@@ -63,7 +63,7 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	}
 
 	// Store original deadSince to detect race conditions
-	originalDeadSince := c.mu.deadSince
+	originalDeadSince := c.loadDeadSince()
 
 	// Set checking timestamp
 	c.mu.checkStartedAt = time.Now()
@@ -82,7 +82,7 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	c.mu.Lock() // Reacquire for state update
 
 	// Check if connection was marked dead more recently than when the check started
-	if c.mu.deadSince.After(originalDeadSince) {
+	if c.loadDeadSince().After(originalDeadSince) {
 		// Connection was marked dead during the check; discard result
 		return nil
 	}
@@ -90,15 +90,15 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	// Update connection state based on health check result
 	if err != nil {
 		// Health check failed
-		if c.mu.deadSince.IsZero() {
-			c.mu.deadSince = time.Now()
+		if c.deadSinceIsZero() {
+			c.storeDeadSince(time.Now())
 		}
 		return err
 	}
 
 	// Health check passed
-	if !c.mu.deadSince.IsZero() {
-		c.mu.deadSince = time.Time{} // Reset deadSince
+	if !c.deadSinceIsZero() {
+		c.storeDeadSince(time.Time{}) // Reset deadSince
 	}
 
 	return nil
@@ -209,13 +209,13 @@ func (cp *multiServerPool) checkDeadOne(ctx context.Context, conn *Connection, h
 	}
 
 	conn.mu.RLock()
-	isDead := !conn.mu.deadSince.IsZero()
+	isDead := !conn.deadSinceIsZero()
 	conn.mu.RUnlock()
 
 	if !isDead {
 		cp.mu.Lock()
 		conn.mu.Lock()
-		if conn.mu.deadSince.IsZero() {
+		if conn.deadSinceIsZero() {
 			cp.resurrectWithLock(conn) //nolint:contextcheck // RTT probe uses pool's long-lived context.
 		}
 		conn.mu.Unlock()
@@ -433,7 +433,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 
 				// Check if connection was removed by DiscoveryUpdate
 				// Connection should be in either ready or dead list; if in neither, it was removed
-				if c.mu.deadSince.IsZero() {
+				if c.deadSinceIsZero() {
 					return true
 				}
 
@@ -503,7 +503,7 @@ func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *
 	}
 
 	// Re-check if connection was resurrected during the health check
-	if c.mu.deadSince.IsZero() {
+	if c.deadSinceIsZero() {
 		shouldReturn := true
 		return &shouldReturn
 	}

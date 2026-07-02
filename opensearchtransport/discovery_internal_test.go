@@ -1869,7 +1869,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Mark the connection as dead in the past
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().Add(-5 * time.Second)
+		conn.storeDeadSince(time.Now().Add(-5 * time.Second))
 		conn.mu.Unlock()
 		conn.failures.Store(3)
 
@@ -1881,7 +1881,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// The old connection's dead state should have been cleared (resurrected)
 		conn.mu.RLock()
-		deadSince := conn.mu.deadSince
+		deadSince := conn.loadDeadSince()
 		conn.mu.RUnlock()
 		require.True(t, deadSince.IsZero(), "stale dead state should be cleared")
 		require.Equal(t, int64(0), conn.failures.Load(), "failures should be reset")
@@ -1901,7 +1901,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Mark dead AFTER the health check time
 		conn.mu.Lock()
-		conn.mu.deadSince = healthCheckedAt.Add(1 * time.Second)
+		conn.storeDeadSince(healthCheckedAt.Add(1 * time.Second))
 		conn.mu.Unlock()
 
 		// Re-discover with SAME pointer: dead state is newer than healthCheckedAt -> should stay dead
@@ -1909,7 +1909,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 		require.NoError(t, err)
 
 		conn.mu.RLock()
-		deadSince := conn.mu.deadSince
+		deadSince := conn.loadDeadSince()
 		conn.mu.RUnlock()
 		require.False(t, deadSince.IsZero(), "concurrent dead state should be preserved")
 	})
@@ -1983,7 +1983,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Verify deadSince is initially zero
 		dead.mu.RLock()
-		require.True(t, dead.mu.deadSince.IsZero(), "deadSince should be zero before pool placement")
+		require.True(t, dead.loadDeadSince().IsZero(), "deadSince should be zero before pool placement")
 		dead.mu.RUnlock()
 
 		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{ready}, []*Connection{dead})
@@ -2001,7 +2001,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		// Verify deadSince was set by appendToDeadWithLock
 		deadConn.mu.RLock()
-		require.False(t, deadConn.mu.deadSince.IsZero(), "deadSince must be set for dead-list connections")
+		require.False(t, deadConn.loadDeadSince().IsZero(), "deadSince must be set for dead-list connections")
 		deadConn.mu.RUnlock()
 
 		// Verify lcUnknown is set
