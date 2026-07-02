@@ -37,9 +37,14 @@ type Constructed[T any] struct {
 // ConstructFunc constructs a Constructed on a cache miss.
 type ConstructFunc[T any] func() (Constructed[T], error)
 
-type entry[T any] struct {
-	val       Constructed[T]
-	refCount  atomic.Int32 // >=0: live reference count; <0: claimed for eviction
+// CacheValue is a cache node: the constructed value and its transport, plus the
+// refcount bookkeeping the sweep uses to evict idle entries. refCount is >=0 for
+// a live reference count and <0 once claimed for eviction.
+type CacheValue[T any] struct {
+	value     T
+	closer    ClusterFunc
+	liveness  func() int64
+	refCount  atomic.Int32
 	lastCount int64
 	closed    atomic.Bool
 }
@@ -48,7 +53,7 @@ type entry[T any] struct {
 // (refCount < 0), returning false so the caller reconstructs. Acquire half of
 // the CAS-claim protocol: this and the sweep's CompareAndSwap(0, -1) arbitrate
 // on one atomic word, so exactly one of evict/reacquire wins.
-func (e *entry[T]) incIfLive() bool {
+func (e *CacheValue[T]) incIfLive() bool {
 	for {
 		n := e.refCount.Load()
 		if n < 0 {
@@ -64,7 +69,7 @@ func (e *entry[T]) incIfLive() bool {
 // lock-free sync.Map; stores/deletes and the eviction sweep hold mu, which also
 // guards the keys mirror the sweep iterates.
 type Cache[T any] struct {
-	cache  sync.Map // HashKey -> *entry[T]
+	cache  sync.Map // HashKey -> *CacheValue[T]
 	ttl    time.Duration
 	cancel context.CancelFunc // set under mu when the worker is running
 
@@ -108,9 +113,9 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct ConstructFunc[T]) (T, func
 
 	// Lock-free hit path.
 	if v, ok := c.cache.Load(key); ok {
-		e := v.(*entry[T])
+		e := v.(*CacheValue[T])
 		if e.incIfLive() {
-			return e.val.Value, releaseFn(e), nil
+			return e.value, releaseFn(e), nil
 		}
 		// Claimed for eviction; fall through to the locked slow path, which
 		// blocks until the sweep releases mu and removes the entry.
@@ -127,16 +132,16 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct ConstructFunc[T]) (T, func
 	// constructed. Under mu a present entry is always reacquirable (the sweep
 	// cannot hold a half-evicted one).
 	if v, ok := c.cache.Load(key); ok {
-		e := v.(*entry[T])
+		e := v.(*CacheValue[T])
 		if e.incIfLive() {
 			c.mu.Unlock()
 			if built.Closer.Closer != nil {
 				_ = built.Closer.Close() // discard the redundant build
 			}
-			return e.val.Value, releaseFn(e), nil
+			return e.value, releaseFn(e), nil
 		}
 	}
-	e := &entry[T]{val: built}
+	e := &CacheValue[T]{value: built.Value, closer: built.Closer, liveness: built.Liveness}
 	e.refCount.Store(1)
 	if built.Liveness != nil {
 		e.lastCount = built.Liveness()
@@ -145,12 +150,12 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct ConstructFunc[T]) (T, func
 	c.mu.keys[key] = struct{}{}
 	c.ensureWorkerLocked()
 	c.mu.Unlock()
-	return e.val.Value, releaseFn(e), nil
+	return e.value, releaseFn(e), nil
 }
 
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
 // release, is the sole closer of a cached transport.
-func releaseFn[T any](e *entry[T]) func() error {
+func releaseFn[T any](e *CacheValue[T]) func() error {
 	var once sync.Once
 	return func() error {
 		once.Do(func() { e.refCount.Add(-1) })
@@ -211,24 +216,24 @@ func (c *Cache[T]) sweep() {
 			delete(c.mu.keys, key) // reconcile a stray key
 			continue
 		}
-		e := v.(*entry[T])
+		e := v.(*CacheValue[T])
 		if e.refCount.Load() != 0 {
-			if e.val.Liveness != nil {
-				e.lastCount = e.val.Liveness()
+			if e.liveness != nil {
+				e.lastCount = e.liveness()
 			}
 			continue
 		}
 		var cur int64
-		if e.val.Liveness != nil {
-			cur = e.val.Liveness()
+		if e.liveness != nil {
+			cur = e.liveness()
 		}
-		if e.val.Liveness == nil || cur == e.lastCount {
+		if e.liveness == nil || cur == e.lastCount {
 			// Idle for a full window: claim, close, evict. The claim CAS fails
 			// if a concurrent hit reacquired the entry (0 -> 1), in which case
 			// it is kept.
 			if e.refCount.CompareAndSwap(0, -1) {
-				if e.closed.CompareAndSwap(false, true) && e.val.Closer.Closer != nil {
-					_ = e.val.Closer.Close()
+				if e.closed.CompareAndSwap(false, true) && e.closer.Closer != nil {
+					_ = e.closer.Close()
 				}
 				c.cache.Delete(key)
 				delete(c.mu.keys, key)
