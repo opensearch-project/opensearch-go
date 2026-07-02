@@ -21,10 +21,7 @@ import (
 // bypass on the un-hashable Router every time.
 //
 //nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
-var defaultClientCache = func() *clientcache.Cache {
-	ttl, disabled := envvars.DefaultClientTTLValue()
-	return clientcache.New(ttl, disabled)
-}()
+var defaultClientCache = clientcache.New[*Client](envvars.DefaultClientTTLValue())
 
 // keyForConfig returns the cache key for config and whether it is cacheable. It
 // folds the resolved error mask into the hash so configs differing only by
@@ -43,10 +40,10 @@ func keyForConfig(config Config) (uint64, bool) {
 // cached transport (via SharedCopy) and carries its own release hook, so one
 // Close maps to exactly one refcount decrement.
 func newCachedAPIDefault(config Config, key uint64) (*Client, error) {
-	value, release, err := defaultClientCache.GetOrCreate(key, func() (clientcache.Constructed, error) {
+	value, release, err := defaultClientCache.GetOrCreate(clientcache.HashKey(key), func() (clientcache.Constructed[*Client], error) {
 		c, cerr := buildClient(config)
 		if cerr != nil {
-			return clientcache.Constructed{}, cerr
+			return clientcache.Constructed[*Client]{}, cerr
 		}
 		closer, _ := c.Client.Transport.(io.Closer)
 		liveness := func() int64 {
@@ -62,11 +59,10 @@ func newCachedAPIDefault(config Config, key uint64) (*Client, error) {
 			}
 			return int64(metrics.Requests)
 		}
-		return clientcache.Constructed{Value: c, Closer: closer, Liveness: liveness}, nil
+		return clientcache.Constructed[*Client]{Value: c, Closer: clientcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	built := value.(*Client)
-	return clientInit(built.Client.SharedCopy(release), built.errorMask()), nil
+	return clientInit(value.Client.SharedCopy(release), value.errorMask()), nil
 }
