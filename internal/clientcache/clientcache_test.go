@@ -199,6 +199,24 @@ func TestWorker_StopsWhenEmpty(t *testing.T) {
 	}, 2*time.Second, 10*time.Millisecond, "worker must respawn after emptying")
 }
 
+func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
+	c := clientcache.New[io.Closer](0) // 0 => never evict, no worker spawns
+	closer := &stubCloser{}
+	live := func() int64 { return 0 } // idle-eligible, but nothing should ever evict it
+
+	_, rel, err := c.GetOrCreate(1, newConstruct(closer, live))
+	require.NoError(t, err)
+	require.Equal(t, 1, c.Len())
+	require.NoError(t, rel()) // refcount 0: with a worker this would eventually evict
+
+	// No worker exists to evict; the entry must persist and never be closed.
+	require.Never(t, func() bool {
+		return c.Len() == 0 || closer.closed.Load() != 0
+	}, 200*time.Millisecond, 20*time.Millisecond, "ttl=0 must never evict or close")
+	require.Equal(t, 1, c.Len())
+	require.Equal(t, int32(0), closer.closed.Load())
+}
+
 func TestConcurrentGetRelease(t *testing.T) {
 	c := clientcache.New[io.Closer](time.Hour)
 	live := func() int64 { return 0 }

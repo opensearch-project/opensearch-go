@@ -243,6 +243,12 @@ func (c *Cache[T]) sweep() {
 		}
 		e.lastCount = cur
 	}
+	// Stop the worker once the cache is empty. A stopping worker (past this
+	// cancel but not yet returned from its select) can briefly overlap a
+	// replacement spawned by a concurrent insert, and may call cancel() a
+	// second time; both are safe because context.CancelFunc is idempotent and
+	// this branch is reached only with an empty keyset, so no live entry goes
+	// unserviced.
 	if len(c.mu.keys) == 0 {
 		c.mu.running = false
 		c.cancel()
