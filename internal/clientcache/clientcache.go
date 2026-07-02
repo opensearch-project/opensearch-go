@@ -26,24 +26,22 @@ type HashKey int64
 // transport without Close), so every close site nil-checks the embedded value.
 type ClusterFunc struct{ io.Closer }
 
-// Constructed is the result of a cache-miss construction: the opaque client
-// value handed to callers, its transport wrapped as a ClusterFunc, and a
-// liveness probe returning a monotonic request count used to detect idleness. A
-// nil Liveness makes an entry idle as soon as its refcount reaches zero.
-type Constructed[T any] struct {
+// CacheValue is the value a cache entry carries: the opaque client value handed
+// to callers, its transport wrapped as a ClusterFunc, and a liveness probe
+// returning a monotonic request count used to detect idleness. A nil Liveness
+// makes an entry idle as soon as its refcount reaches zero.
+type CacheValue[T any] struct {
 	Value    T
 	Closer   ClusterFunc
 	Liveness func() int64
 }
 
-// NewFunc constructs a Constructed on a cache miss.
-type NewFunc[T any] func() (Constructed[T], error)
+// NewFunc constructs a CacheValue on a cache miss.
+type NewFunc[T any] func() (CacheValue[T], error)
 
 type entry[T any] struct {
-	value     T
-	closer    ClusterFunc
-	liveness  func() int64
-	refCount  atomic.Int32 // >=0: live reference count; <0: claimed for eviction
+	CacheValue[T]           // Value / Closer / Liveness
+	refCount  atomic.Int32  // >=0: live reference count; <0: claimed for eviction
 	lastCount int64
 	closed    atomic.Bool
 }
@@ -116,7 +114,7 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 	if v, ok := c.cache.Load(key); ok {
 		e := v.(*entry[T])
 		if e.incIfLive() {
-			return e.value, releaseFn(e), nil
+			return e.Value, releaseFn(e), nil
 		}
 		// Entry is claimed for eviction; fall through to the locked slow path,
 		// which blocks until the sweep releases mu and has removed the entry.
@@ -139,10 +137,10 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 			if built.Closer.Closer != nil {
 				_ = built.Closer.Close() // discard the redundant build
 			}
-			return e.value, releaseFn(e), nil
+			return e.Value, releaseFn(e), nil
 		}
 	}
-	e := &entry[T]{value: built.Value, closer: built.Closer, liveness: built.Liveness}
+	e := &entry[T]{CacheValue: built}
 	e.refCount.Store(1)
 	if built.Liveness != nil {
 		e.lastCount = built.Liveness()
@@ -151,7 +149,7 @@ func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() err
 	c.mu.keys[key] = struct{}{}
 	c.ensureWorkerLocked()
 	c.mu.Unlock()
-	return e.value, releaseFn(e), nil
+	return e.Value, releaseFn(e), nil
 }
 
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
@@ -219,22 +217,22 @@ func (c *Cache[T]) sweep() {
 		}
 		e := v.(*entry[T])
 		if e.refCount.Load() != 0 {
-			if e.liveness != nil {
-				e.lastCount = e.liveness()
+			if e.Liveness != nil {
+				e.lastCount = e.Liveness()
 			}
 			continue
 		}
 		var cur int64
-		if e.liveness != nil {
-			cur = e.liveness()
+		if e.Liveness != nil {
+			cur = e.Liveness()
 		}
-		if e.liveness == nil || cur == e.lastCount {
+		if e.Liveness == nil || cur == e.lastCount {
 			// Idle for a full window: claim, close, evict. The claim CAS fails
 			// if a concurrent hit reacquired the entry (0 -> 1), in which case
 			// it is kept.
 			if e.refCount.CompareAndSwap(0, -1) {
-				if e.closed.CompareAndSwap(false, true) && e.closer.Closer != nil {
-					_ = e.closer.Close()
+				if e.closed.CompareAndSwap(false, true) && e.Closer.Closer != nil {
+					_ = e.Closer.Close()
 				}
 				c.cache.Delete(key)
 				delete(c.mu.keys, key)

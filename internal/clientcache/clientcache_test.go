@@ -24,8 +24,8 @@ type stubCloser struct{ closed atomic.Int32 }
 func (s *stubCloser) Close() error { s.closed.Add(1); return nil }
 
 func newConstruct(closer io.Closer, live func() int64) clientcache.NewFunc[io.Closer] {
-	return func() (clientcache.Constructed[io.Closer], error) {
-		return clientcache.Constructed[io.Closer]{
+	return func() (clientcache.CacheValue[io.Closer], error) {
+		return clientcache.CacheValue[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -39,9 +39,9 @@ func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
 	live := func() int64 { return 0 }
 
 	calls := 0
-	construct := func() (clientcache.Constructed[io.Closer], error) {
+	construct := func() (clientcache.CacheValue[io.Closer], error) {
 		calls++
-		return clientcache.Constructed[io.Closer]{
+		return clientcache.CacheValue[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -118,10 +118,10 @@ func TestConcurrentReacquireVsEviction(t *testing.T) {
 	c := clientcache.New[io.Closer](time.Millisecond)
 	live := func() int64 { return 1 } // constant => always idle-eligible at ref 0
 
-	construct := func() (clientcache.Constructed[io.Closer], error) {
+	construct := func() (clientcache.CacheValue[io.Closer], error) {
 		closer := &stubCloser{}
 		time.Sleep(3 * time.Millisecond) // widen the post-construct hit window
-		return clientcache.Constructed[io.Closer]{
+		return clientcache.CacheValue[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -222,9 +222,9 @@ func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
 func TestConcurrentGetRelease(t *testing.T) {
 	c := clientcache.New[io.Closer](time.Hour)
 	live := func() int64 { return 0 }
-	construct := func() (clientcache.Constructed[io.Closer], error) {
+	construct := func() (clientcache.CacheValue[io.Closer], error) {
 		closer := &stubCloser{}
-		return clientcache.Constructed[io.Closer]{
+		return clientcache.CacheValue[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
@@ -259,8 +259,8 @@ func TestConcurrentGetRelease(t *testing.T) {
 
 func TestGetOrCreate_ConstructError(t *testing.T) {
 	wantErr := errors.New("construct failed")
-	failing := func() (clientcache.Constructed[io.Closer], error) {
-		return clientcache.Constructed[io.Closer]{}, wantErr
+	failing := func() (clientcache.CacheValue[io.Closer], error) {
+		return clientcache.CacheValue[io.Closer]{}, wantErr
 	}
 	tests := []struct {
 		name string
@@ -287,8 +287,8 @@ func TestGetOrCreate_ConstructError(t *testing.T) {
 // sweep's evict must skip Close without panicking. Mirrors the PR contract: a
 // custom Interface without Close is a safe no-op.
 func TestNilCloser_SafeNoop(t *testing.T) {
-	nilConstruct := func() (clientcache.Constructed[io.Closer], error) {
-		return clientcache.Constructed[io.Closer]{
+	nilConstruct := func() (clientcache.CacheValue[io.Closer], error) {
+		return clientcache.CacheValue[io.Closer]{
 			Value:    nil,
 			Closer:   clientcache.ClusterFunc{Closer: nil},
 			Liveness: func() int64 { return 0 },
@@ -319,8 +319,8 @@ func TestNilCloser_SafeNoop(t *testing.T) {
 func TestNilLiveness_EvictsWhenIdle(t *testing.T) {
 	c := clientcache.New[io.Closer](20 * time.Millisecond)
 	closer := &stubCloser{}
-	construct := func() (clientcache.Constructed[io.Closer], error) {
-		return clientcache.Constructed[io.Closer]{
+	construct := func() (clientcache.CacheValue[io.Closer], error) {
+		return clientcache.CacheValue[io.Closer]{
 			Value:    closer,
 			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: nil, // idle the moment refcount hits 0
