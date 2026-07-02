@@ -281,10 +281,11 @@ func TestGetOrCreate_ConstructError(t *testing.T) {
 	}
 }
 
-// TestNilCloser_SafeNoop covers a transport without Close (closer, _ :=
-// x.(io.Closer) yields nil). Both the disabled release and the sweep's evict
-// must skip Close without panicking. Mirrors the PR contract: a custom
-// Interface without Close is a safe no-op.
+// TestNilCloser_SafeNoop covers a transport without Close: the caller extracts
+// it with closer, _ := transport.(io.Closer), yielding a nil io.Closer that is
+// wrapped as ClusterFunc{Closer: nil}. Both the disabled release and the
+// sweep's evict must skip Close without panicking. Mirrors the PR contract: a
+// custom Interface without Close is a safe no-op.
 func TestNilCloser_SafeNoop(t *testing.T) {
 	nilConstruct := func() (clientcache.Constructed[io.Closer], error) {
 		return clientcache.Constructed[io.Closer]{
@@ -298,6 +299,7 @@ func TestNilCloser_SafeNoop(t *testing.T) {
 		c := clientcache.New[io.Closer](-1)
 		_, rel, err := c.GetOrCreate(1, nilConstruct)
 		require.NoError(t, err)
+		require.NotNil(t, rel)
 		require.NotPanics(t, func() { _ = rel() }, "nil closer release must not panic")
 	})
 
