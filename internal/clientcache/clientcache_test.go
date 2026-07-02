@@ -22,21 +22,29 @@ type stubCloser struct{ closed atomic.Int32 }
 
 func (s *stubCloser) Close() error { s.closed.Add(1); return nil }
 
-func newConstruct(closer io.Closer, live func() int64) func() (clientcache.Constructed, error) {
-	return func() (clientcache.Constructed, error) {
-		return clientcache.Constructed{Value: closer, Closer: closer, Liveness: live}, nil
+func newConstruct(closer io.Closer, live func() int64) clientcache.NewFunc[io.Closer] {
+	return func() (clientcache.Constructed[io.Closer], error) {
+		return clientcache.Constructed[io.Closer]{
+			Value:    closer,
+			Closer:   clientcache.ClusterFunc{Closer: closer},
+			Liveness: live,
+		}, nil
 	}
 }
 
 func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
-	c := clientcache.New(time.Hour, false)
+	c := clientcache.New[io.Closer](time.Hour)
 	closer := &stubCloser{}
 	live := func() int64 { return 0 }
 
 	calls := 0
-	construct := func() (clientcache.Constructed, error) {
+	construct := func() (clientcache.Constructed[io.Closer], error) {
 		calls++
-		return clientcache.Constructed{Value: closer, Closer: closer, Liveness: live}, nil
+		return clientcache.Constructed[io.Closer]{
+			Value:    closer,
+			Closer:   clientcache.ClusterFunc{Closer: closer},
+			Liveness: live,
+		}, nil
 	}
 
 	v1, rel1, err := c.GetOrCreate(42, construct)
@@ -56,7 +64,7 @@ func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
 }
 
 func TestGetOrCreate_DistinctKeys(t *testing.T) {
-	c := clientcache.New(time.Hour, false)
+	c := clientcache.New[io.Closer](time.Hour)
 	a := &stubCloser{}
 	b := &stubCloser{}
 	live := func() int64 { return 0 }
@@ -70,7 +78,7 @@ func TestGetOrCreate_DistinctKeys(t *testing.T) {
 }
 
 func TestDisabledCache_NeverStores_ReleaseCloses(t *testing.T) {
-	c := clientcache.New(0, true)
+	c := clientcache.New[io.Closer](-1) // negative ttl disables caching
 	closer := &stubCloser{}
 	live := func() int64 { return 0 }
 
@@ -80,10 +88,12 @@ func TestDisabledCache_NeverStores_ReleaseCloses(t *testing.T) {
 	require.Equal(t, 0, c.Len(), "disabled cache stores nothing")
 	require.NoError(t, rel())
 	require.Equal(t, int32(1), closer.closed.Load(), "disabled release closes immediately")
+	require.NoError(t, rel(), "disabled double release is a no-op")
+	require.Equal(t, int32(1), closer.closed.Load(), "disabled release closes exactly once")
 }
 
 func TestWorker_EvictsIdleRefZeroEntry(t *testing.T) {
-	c := clientcache.New(20*time.Millisecond, false)
+	c := clientcache.New[io.Closer](20 * time.Millisecond)
 	closer := &stubCloser{}
 	live := func() int64 { return 7 } // never advances => idle
 
@@ -100,19 +110,19 @@ func TestWorker_EvictsIdleRefZeroEntry(t *testing.T) {
 // against an idle worker on a tiny TTL. A slow constructor forces many
 // goroutines through the post-construct hit path while the entry churns between
 // refcount 0 and non-zero; a handed-out value must never be already closed.
-// Guards the invariant that both hit paths increment the refcount under the
-// mutex before unlocking, so a sweep cannot evict a to-be-reacquired entry.
+// Guards the CAS-claim invariant: the sweep claims an idle entry with
+// CompareAndSwap(0,-1) while the hit path increments via incIfLive, so a
+// handed-out entry (refcount >= 1) can never be concurrently evicted.
 func TestConcurrentReacquireVsEviction(t *testing.T) {
-	c := clientcache.New(time.Millisecond, false)
+	c := clientcache.New[io.Closer](time.Millisecond)
 	live := func() int64 { return 1 } // constant => always idle-eligible at ref 0
 
-	//nolint:unparam // signature is fixed by GetOrCreate's construct parameter
-	construct := func() (clientcache.Constructed, error) {
+	construct := func() (clientcache.Constructed[io.Closer], error) {
 		closer := &stubCloser{}
 		time.Sleep(3 * time.Millisecond) // widen the post-construct hit window
-		return clientcache.Constructed{
+		return clientcache.Constructed[io.Closer]{
 			Value:    closer,
-			Closer:   closer,
+			Closer:   clientcache.ClusterFunc{Closer: closer},
 			Liveness: live,
 		}, nil
 	}
@@ -145,7 +155,7 @@ type closedHandoutError struct{}
 func (closedHandoutError) Error() string { return "GetOrCreate returned a closed transport" }
 
 func TestWorker_KeepsBusyEntry(t *testing.T) {
-	c := clientcache.New(20*time.Millisecond, false)
+	c := clientcache.New[io.Closer](20 * time.Millisecond)
 	closer := &stubCloser{}
 	var counter atomic.Int64
 	live := counter.Load
@@ -174,7 +184,7 @@ func TestWorker_KeepsBusyEntry(t *testing.T) {
 }
 
 func TestWorker_StopsWhenEmpty(t *testing.T) {
-	c := clientcache.New(20*time.Millisecond, false)
+	c := clientcache.New[io.Closer](20 * time.Millisecond)
 	closer := &stubCloser{}
 	live := func() int64 { return 0 }
 	_, rel, _ := c.GetOrCreate(1, newConstruct(closer, live))
@@ -190,14 +200,21 @@ func TestWorker_StopsWhenEmpty(t *testing.T) {
 }
 
 func TestConcurrentGetRelease(t *testing.T) {
-	c := clientcache.New(time.Hour, false)
-	closer := &stubCloser{}
+	c := clientcache.New[io.Closer](time.Hour)
 	live := func() int64 { return 0 }
+	construct := func() (clientcache.Constructed[io.Closer], error) {
+		closer := &stubCloser{}
+		return clientcache.Constructed[io.Closer]{
+			Value:    closer,
+			Closer:   clientcache.ClusterFunc{Closer: closer},
+			Liveness: live,
+		}, nil
+	}
 	errs := make([]error, 50)
 	var wg sync.WaitGroup
 	for i := range 50 {
 		wg.Go(func() {
-			_, rel, err := c.GetOrCreate(99, newConstruct(closer, live))
+			_, rel, err := c.GetOrCreate(99, construct)
 			if err != nil {
 				errs[i] = err
 				return
@@ -210,5 +227,12 @@ func TestConcurrentGetRelease(t *testing.T) {
 		require.NoError(t, err)
 	}
 	require.LessOrEqual(t, c.Len(), 1)
-	require.Equal(t, int32(0), closer.closed.Load(), "refcount>0 transitions must never close mid-flight")
+	// The surviving cached transport must never be closed while refcounts
+	// churn above zero (ttl=1h => no eviction fires). Redundant builds lost to
+	// the opening construct race are closed by GetOrCreate per spec; that is
+	// correct and deliberately not asserted here.
+	v, rel, err := c.GetOrCreate(99, construct)
+	require.NoError(t, err)
+	require.Equal(t, int32(0), v.(*stubCloser).closed.Load(), "live cached transport must not be closed mid-flight")
+	require.NoError(t, rel())
 }

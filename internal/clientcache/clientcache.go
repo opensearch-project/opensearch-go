@@ -11,119 +11,152 @@
 package clientcache
 
 import (
+	"context"
 	"io"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-// Constructed is the result of a cache-miss constructor: the opaque client
-// value handed to callers, its transport as an io.Closer, and a liveness probe
-// returning a monotonic request count used to detect idleness. A nil Liveness
-// makes an entry idle as soon as its refcount reaches zero.
-type Constructed struct {
-	Value    any
-	Closer   io.Closer
+// HashKey identifies a cached entry by a hash of its resolved config.
+type HashKey int64
+
+// ClusterFunc wraps the cached client's transport io.Closer as a named member
+// type. The struct value is never nil; the embedded Closer may be (a custom
+// transport without Close), so every close site nil-checks the embedded value.
+type ClusterFunc struct{ io.Closer }
+
+// Constructed is the result of a cache-miss construction: the opaque client
+// value handed to callers, its transport wrapped as a ClusterFunc, and a
+// liveness probe returning a monotonic request count used to detect idleness. A
+// nil Liveness makes an entry idle as soon as its refcount reaches zero.
+type Constructed[T any] struct {
+	Value    T
+	Closer   ClusterFunc
 	Liveness func() int64
 }
 
-type entry struct {
-	value     any
-	closer    io.Closer
+// NewFunc constructs a Constructed on a cache miss.
+type NewFunc[T any] func() (Constructed[T], error)
+
+type entry[T any] struct {
+	value     T
+	closer    ClusterFunc
 	liveness  func() int64
-	refCount  atomic.Int32
+	refCount  atomic.Int32 // >=0: live reference count; <0: claimed for eviction
 	lastCount int64
 	closed    atomic.Bool
 }
 
-// Cache maps a config hash to a shared client entry.
-type Cache struct {
-	mu       sync.Mutex
-	entries  map[uint64]*entry
-	ttl      time.Duration
-	disabled bool
-	running  bool
-	stop     chan struct{}
+// incIfLive increments the refcount unless the entry has been claimed for
+// eviction (refCount < 0). Returns false when claimed, so the caller falls back
+// to the locked slow path and reconstructs. This is the acquire half of the
+// CAS-claim protocol that lets the hit path stay lock-free: the sweep's
+// CompareAndSwap(0, -1) claim and this increment arbitrate on one atomic word,
+// so exactly one of evict/reacquire wins.
+func (e *entry[T]) incIfLive() bool {
+	for {
+		n := e.refCount.Load()
+		if n < 0 {
+			return false
+		}
+		if e.refCount.CompareAndSwap(n, n+1) {
+			return true
+		}
+	}
 }
 
-// New returns a cache with the given idle TTL. When disabled, GetOrCreate never
-// stores and its release closes immediately.
-func New(ttl time.Duration, disabled bool) *Cache {
-	return &Cache{
-		entries:  make(map[uint64]*entry),
-		ttl:      ttl,
-		disabled: disabled,
+// Cache maps a config hash to a shared client entry. Reads go through the
+// lock-free sync.Map; stores/deletes and the eviction sweep hold mu, which also
+// guards the keys mirror the sweep iterates.
+type Cache[T any] struct {
+	cache  sync.Map // HashKey -> *entry[T]
+	ttl    time.Duration
+	cancel context.CancelFunc // set under mu when the worker is running
+
+	mu struct {
+		sync.Mutex
+		keys    map[HashKey]struct{}
+		running bool
 	}
+}
+
+// New returns a cache with the given idle TTL: <0 disables caching (every
+// GetOrCreate builds a fresh client and its release closes immediately), 0
+// never evicts (entries live until process exit), >0 evicts entries idle for a
+// full TTL window.
+func New[T any](ttl time.Duration) *Cache[T] {
+	c := &Cache[T]{ttl: ttl}
+	c.mu.keys = make(map[HashKey]struct{})
+	return c
 }
 
 // Len reports the number of cached entries.
-func (c *Cache) Len() int {
+func (c *Cache[T]) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return len(c.entries)
+	return len(c.mu.keys)
 }
 
 // GetOrCreate returns the entry for key, constructing it on a miss. The returned
-// release decrements the entry's refcount exactly once; further calls are no-ops.
-func (c *Cache) GetOrCreate(key uint64, construct func() (Constructed, error)) (any, func() error, error) {
-	if c.disabled {
+// release decrements the entry's refcount exactly once; further calls are
+// no-ops. When the cache is disabled (ttl < 0) nothing is stored and release
+// closes the built transport.
+func (c *Cache[T]) GetOrCreate(key HashKey, construct NewFunc[T]) (T, func() error, error) {
+	var zero T
+	if c.ttl < 0 {
 		built, err := construct()
 		if err != nil {
-			return nil, nil, err
+			return zero, nil, err
 		}
-		var once sync.Once
-		release := func() error {
-			var rerr error
-			once.Do(func() {
-				if built.Closer != nil {
-					rerr = built.Closer.Close()
-				}
-			})
-			return rerr
-		}
-		return built.Value, release, nil
+		return built.Value, disabledRelease(built.Closer), nil
 	}
 
-	c.mu.Lock()
-	if e, ok := c.entries[key]; ok {
-		e.refCount.Add(1)
-		c.mu.Unlock()
-		return e.value, releaseFn(e), nil
+	// Lock-free hit path.
+	if v, ok := c.cache.Load(key); ok {
+		e := v.(*entry[T])
+		if e.incIfLive() {
+			return e.value, releaseFn(e), nil
+		}
+		// Entry is claimed for eviction; fall through to the locked slow path,
+		// which blocks until the sweep releases mu and has removed the entry.
 	}
-	c.mu.Unlock()
 
 	// Construct outside the lock (may do network setup).
 	built, err := construct()
 	if err != nil {
-		return nil, nil, err
+		return zero, nil, err
 	}
 
 	c.mu.Lock()
-	// Another goroutine may have inserted the same key while we constructed.
-	// Increment the refcount before releasing the lock, so a decrement-to-zero
-	// plus worker eviction cannot close a transport we are about to hand out.
-	if e, ok := c.entries[key]; ok {
-		e.refCount.Add(1)
-		c.mu.Unlock()
-		if built.Closer != nil {
-			_ = built.Closer.Close() // discard the redundant build
+	// A concurrent goroutine may have inserted the same key while we
+	// constructed. Under mu the sweep cannot hold a half-evicted (refCount < 0)
+	// entry, so a present entry is always reacquirable.
+	if v, ok := c.cache.Load(key); ok {
+		e := v.(*entry[T])
+		if e.incIfLive() {
+			c.mu.Unlock()
+			if built.Closer.Closer != nil {
+				_ = built.Closer.Close() // discard the redundant build
+			}
+			return e.value, releaseFn(e), nil
 		}
-		return e.value, releaseFn(e), nil
 	}
-	e := &entry{value: built.Value, closer: built.Closer, liveness: built.Liveness}
+	e := &entry[T]{value: built.Value, closer: built.Closer, liveness: built.Liveness}
 	e.refCount.Store(1)
 	if built.Liveness != nil {
 		e.lastCount = built.Liveness()
 	}
-	c.entries[key] = e
+	c.cache.Store(key, e)
+	c.mu.keys[key] = struct{}{}
 	c.ensureWorkerLocked()
 	c.mu.Unlock()
 	return e.value, releaseFn(e), nil
 }
 
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
-// release, is the sole closer of the transport.
-func releaseFn(e *entry) func() error {
+// release, is the sole closer of a cached transport.
+func releaseFn[T any](e *entry[T]) func() error {
 	var once sync.Once
 	return func() error {
 		once.Do(func() { e.refCount.Add(-1) })
@@ -131,38 +164,60 @@ func releaseFn(e *entry) func() error {
 	}
 }
 
-// ensureWorkerLocked starts the eviction worker if it is not already running.
-// Caller must hold c.mu. A non-positive ttl means "never evict": no worker.
-func (c *Cache) ensureWorkerLocked() {
-	if c.running || c.ttl <= 0 {
-		return
+// disabledRelease returns an idempotent release that closes the built transport.
+// A disabled cache stores nothing, so release owns teardown.
+func disabledRelease(closer ClusterFunc) func() error {
+	var once sync.Once
+	return func() error {
+		var err error
+		once.Do(func() {
+			if closer.Closer != nil {
+				err = closer.Close()
+			}
+		})
+		return err
 	}
-	c.running = true
-	c.stop = make(chan struct{})
-	ticker := time.NewTicker(c.ttl)
-	go c.worker(ticker)
 }
 
-func (c *Cache) worker(ticker *time.Ticker) {
+// ensureWorkerLocked starts the eviction worker if it is not already running.
+// Caller must hold mu. A non-positive ttl means "never evict": no worker.
+func (c *Cache[T]) ensureWorkerLocked() {
+	if c.mu.running || c.ttl <= 0 {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	c.cancel = cancel
+	c.mu.running = true
+	go c.worker(ctx)
+}
+
+func (c *Cache[T]) worker(ctx context.Context) {
+	ticker := time.NewTicker(c.ttl)
 	defer ticker.Stop()
 	for {
 		select {
-		case <-c.stop:
+		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			if c.sweep() {
-				return // map emptied: stop the worker
-			}
+			c.sweep()
 		}
 	}
 }
 
-// sweep evicts idle refcount-0 entries. It returns true when the map is empty
-// afterward, signaling the worker to stop.
-func (c *Cache) sweep() bool {
-	c.mu.Lock()
+// sweep evicts idle refcount-0 entries. It skips the tick when GetOrCreate holds
+// mu (eviction is best-effort). It stops the worker when the keyset empties.
+func (c *Cache[T]) sweep() {
+	if !c.mu.TryLock() {
+		return
+	}
 	defer c.mu.Unlock()
-	for key, e := range c.entries {
+	for key := range c.mu.keys {
+		v, ok := c.cache.Load(key)
+		if !ok {
+			delete(c.mu.keys, key) // reconcile a stray key
+			continue
+		}
+		e := v.(*entry[T])
 		if e.refCount.Load() != 0 {
 			if e.liveness != nil {
 				e.lastCount = e.liveness()
@@ -174,19 +229,22 @@ func (c *Cache) sweep() bool {
 			cur = e.liveness()
 		}
 		if e.liveness == nil || cur == e.lastCount {
-			// Idle for a full window: close and evict.
-			if e.closed.CompareAndSwap(false, true) && e.closer != nil {
-				_ = e.closer.Close()
+			// Idle for a full window: claim, close, evict. The claim CAS fails
+			// if a concurrent hit reacquired the entry (0 -> 1), in which case
+			// it is kept.
+			if e.refCount.CompareAndSwap(0, -1) {
+				if e.closed.CompareAndSwap(false, true) && e.closer.Closer != nil {
+					_ = e.closer.Close()
+				}
+				c.cache.Delete(key)
+				delete(c.mu.keys, key)
 			}
-			delete(c.entries, key)
 			continue
 		}
 		e.lastCount = cur
 	}
-	if len(c.entries) == 0 {
-		c.running = false
-		close(c.stop)
-		return true
+	if len(c.mu.keys) == 0 {
+		c.mu.running = false
+		c.cancel()
 	}
-	return false
 }
