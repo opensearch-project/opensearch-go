@@ -32,6 +32,8 @@ func TestTitleSegment(t *testing.T) {
 		{name: "tls acronym", input: "tls", want: "TLS"},
 		{name: "ssl acronym", input: "ssl", want: "SSL"},
 		{name: "api acronym", input: "api", want: "API"},
+		{name: "cpu acronym", input: "cpu", want: "CPU"},
+		{name: "dfs acronym", input: "dfs", want: "DFS"},
 		{name: "json acronym", input: "json", want: "JSON"},
 		{name: "ism acronym", input: "ism", want: "ISM"},
 		{name: "knn acronym", input: "knn", want: "KNN"},
