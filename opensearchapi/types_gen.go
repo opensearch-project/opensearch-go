@@ -889,10 +889,10 @@ type PhaseTook struct {
 	CanMatch int64 `json:"can_match"`
 
 	// The time taken for the distributed frequency search `pre-query` phase.
-	DfsPreQuery int64 `json:"dfs_pre_query"`
+	DFSPreQuery int64 `json:"dfs_pre_query"`
 
 	// The time taken for the distributed frequency search query phase.
-	DfsQuery int64 `json:"dfs_query"`
+	DFSQuery int64 `json:"dfs_query"`
 
 	// The time taken for the `expand` phase.
 	Expand int64 `json:"expand"`
@@ -6609,7 +6609,7 @@ type BaseNode struct {
 // Any statistics about CPU and memory usage.
 type ResourceStat struct {
 	// Time unit for nanoseconds.
-	CpuTimeInNanos int64 `json:"cpu_time_in_nanos"`
+	CPUTimeInNanos int64 `json:"cpu_time_in_nanos"`
 
 	// The size in bytes.
 	MemoryInBytes int64 `json:"memory_in_bytes"`
@@ -8373,7 +8373,7 @@ type InsightsMeasurement struct {
 }
 
 type InsightsMeasurements struct {
-	Cpu     *InsightsMeasurement `json:"cpu,omitempty"`
+	CPU     *InsightsMeasurement `json:"cpu,omitempty"`
 	Latency *InsightsMeasurement `json:"latency,omitempty"`
 	Memory  *InsightsMeasurement `json:"memory,omitempty"`
 }
@@ -8552,7 +8552,7 @@ type InsightsSource struct {
 
 type InsightsTaskResourceUsage struct {
 	// The CPU time used in nanoseconds.
-	CpuTimeInNanos *int `json:"cpu_time_in_nanos,omitempty"`
+	CPUTimeInNanos *int `json:"cpu_time_in_nanos,omitempty"`
 
 	// The memory usage in bytes.
 	MemoryInBytes *int `json:"memory_in_bytes,omitempty"`
@@ -9861,7 +9861,7 @@ type MLModelProfile struct {
 	Execute *MLModelStats `json:"execute,omitempty"`
 
 	// The estimated memory size in CPU.
-	MemorySizeEstimationCpu *int64 `json:"memory_size_estimation_cpu,omitempty"`
+	MemorySizeEstimationCPU *int64 `json:"memory_size_estimation_cpu,omitempty"`
 
 	// The estimated memory size in GPU.
 	MemorySizeEstimationGpu *int64 `json:"memory_size_estimation_gpu,omitempty"`
@@ -12609,12 +12609,12 @@ type TransformsResponse struct {
 }
 
 type WLMQueryGroupRespResourceLimitsObject0 struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
 type WLMQueryGroupRespResourceLimitsObject1 struct {
-	Cpu    float64  `json:"cpu"`
+	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 
@@ -13320,12 +13320,12 @@ type TransformsTransformRequest struct {
 }
 
 type WLMQueryGroupCreateResourceLimitsObject0 struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
 type WLMQueryGroupCreateResourceLimitsObject1 struct {
-	Cpu    float64  `json:"cpu"`
+	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 
@@ -13336,7 +13336,7 @@ type WLMQueryGroupCreate struct {
 }
 
 type WLMResourceLimitsSchema struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 

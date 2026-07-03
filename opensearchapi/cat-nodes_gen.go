@@ -191,7 +191,7 @@ type CatNodesRecord struct {
 	CompletionSize *string `json:"completion.size,omitempty"`
 
 	// The recent system CPU usage as a percentage.
-	Cpu *string `json:"cpu,omitempty"`
+	CPU *string `json:"cpu,omitempty"`
 
 	DiskAvail *string `json:"disk.avail,omitempty"`
 	DiskTotal *string `json:"disk.total,omitempty"`

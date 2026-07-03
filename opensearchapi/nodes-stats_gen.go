@@ -285,7 +285,7 @@ type NodesStatsAdaptiveSelection struct {
 
 // NodesStatsShardAdmissionControl is a typed component of the nodes.stats operation.
 type NodesStatsShardAdmissionControl struct {
-	GlobalCpuUsage          *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
+	GlobalCPUUsage          *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
 	GlobalIoUsage           *NodesStatsUsage `json:"global_io_usage,omitempty"`
 	GlobalNativeMemoryUsage *NodesStatsUsage `json:"global_native_memory_usage,omitempty"`
 }
@@ -895,7 +895,7 @@ type NodesStatsNativeMemoryAllocatorPool struct {
 // NodesStatsOperatingSystem is a typed component of the nodes.stats operation.
 type NodesStatsOperatingSystem struct {
 	Cgroup *NodesStatsCgroup             `json:"cgroup,omitempty"`
-	Cpu    *NodesStatsOperatingSystemCpu `json:"cpu,omitempty"`
+	CPU    *NodesStatsOperatingSystemCPU `json:"cpu,omitempty"`
 	Mem    *NodesStatsExtendedMemory     `json:"mem,omitempty"`
 	Swap   *NodesStatsMemory             `json:"swap,omitempty"`
 
@@ -905,13 +905,13 @@ type NodesStatsOperatingSystem struct {
 
 // NodesStatsCgroup is a typed component of the nodes.stats operation.
 type NodesStatsCgroup struct {
-	Cpu     *NodesStatsCgroupCpu     `json:"cpu,omitempty"`
-	Cpuacct *NodesStatsCgroupCpuAcct `json:"cpuacct,omitempty"`
+	CPU     *NodesStatsCgroupCPU     `json:"cpu,omitempty"`
+	Cpuacct *NodesStatsCgroupCPUAcct `json:"cpuacct,omitempty"`
 	Memory  *NodesStatsCgroupMemory  `json:"memory,omitempty"`
 }
 
-// NodesStatsCgroupCpu is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpu struct {
+// NodesStatsCgroupCPU is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPU struct {
 	// The period of time, in microseconds, for how regularly all tasks in the
 	// same cgroup as the OpenSearch process should have their access to CPU
 	// resources reallocated.
@@ -925,11 +925,11 @@ type NodesStatsCgroupCpu struct {
 	// The `cpu` control group to which the OpenSearch process belongs.
 	ControlGroup *string `json:"control_group,omitempty"`
 
-	Stat *NodesStatsCgroupCpuStat `json:"stat,omitempty"`
+	Stat *NodesStatsCgroupCPUStat `json:"stat,omitempty"`
 }
 
-// NodesStatsCgroupCpuStat is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpuStat struct {
+// NodesStatsCgroupCPUStat is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPUStat struct {
 	// The number of reporting periods (as specified by `cfs_period_micros`)
 	// that have elapsed.
 	NumberOfElapsedPeriods *int64 `json:"number_of_elapsed_periods,omitempty"`
@@ -942,8 +942,8 @@ type NodesStatsCgroupCpuStat struct {
 	TimeThrottledNanos *int64 `json:"time_throttled_nanos,omitempty"`
 }
 
-// NodesStatsCgroupCpuAcct is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpuAcct struct {
+// NodesStatsCgroupCPUAcct is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPUAcct struct {
 	// The `cpuacct` control group to which the OpenSearch process belongs.
 	ControlGroup *string `json:"control_group,omitempty"`
 
@@ -970,8 +970,8 @@ type NodesStatsCgroupMemory struct {
 	UsageInBytes *string `json:"usage_in_bytes,omitempty"`
 }
 
-// NodesStatsOperatingSystemCpu is a typed component of the nodes.stats operation.
-type NodesStatsOperatingSystemCpu struct {
+// NodesStatsOperatingSystemCPU is a typed component of the nodes.stats operation.
+type NodesStatsOperatingSystemCPU struct {
 	LoadAverage map[string]float64 `json:"load_average,omitempty"`
 
 	// The percentage value as a number.
@@ -1017,7 +1017,7 @@ type NodesStatsMemory struct {
 
 // NodesStatsProcess is a typed component of the nodes.stats operation.
 type NodesStatsProcess struct {
-	Cpu *NodesStatsProcessCpu `json:"cpu,omitempty"`
+	CPU *NodesStatsProcessCPU `json:"cpu,omitempty"`
 
 	// Maximum number of file descriptors allowed on the system, or `-1` if not
 	// supported.
@@ -1034,8 +1034,8 @@ type NodesStatsProcess struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
-// NodesStatsProcessCpu is a typed component of the nodes.stats operation.
-type NodesStatsProcessCpu struct {
+// NodesStatsProcessCPU is a typed component of the nodes.stats operation.
+type NodesStatsProcessCPU struct {
 	// The percentage value as a number.
 	Percent float64 `json:"percent"`
 
@@ -1099,7 +1099,7 @@ type NodesStatsRepositorySnapshot struct {
 // NodesStatsShardResourceUsageDetail is a typed component of the nodes.stats operation.
 type NodesStatsShardResourceUsageDetail struct {
 	// The percentage value as a string.
-	CpuUtilizationPercent *string `json:"cpu_utilization_percent,omitempty"`
+	CPUUtilizationPercent *string `json:"cpu_utilization_percent,omitempty"`
 
 	IoUsageStats *NodesStatsShardResourceUsageIoUsageStats `json:"io_usage_stats,omitempty"`
 
@@ -1179,14 +1179,14 @@ type NodesStatsShardSearchBackpressureTaskCancellation struct {
 
 // NodesStatsShardSearchBackpressureTaskResourceTracker is a typed component of the nodes.stats operation.
 type NodesStatsShardSearchBackpressureTaskResourceTracker struct {
-	CpuUsageTracker          *NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker          `json:"cpu_usage_tracker,omitempty"`
+	CPUUsageTracker          *NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker          `json:"cpu_usage_tracker,omitempty"`
 	ElapsedTimeTracker       *NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker       `json:"elapsed_time_tracker,omitempty"`
 	HeapUsageTracker         *NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker         `json:"heap_usage_tracker,omitempty"`
 	NativeMemoryUsageTracker *NodesStatsShardSearchBackpressureTaskResourceTrackerNativeMemoryUsageTracker `json:"native_memory_usage_tracker,omitempty"`
 }
 
-// NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker is a typed component of the nodes.stats operation.
-type NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker struct {
+// NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker is a typed component of the nodes.stats operation.
+type NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker struct {
 	CancellationCount *int64 `json:"cancellation_count,omitempty"`
 
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
