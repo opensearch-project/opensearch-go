@@ -4,6 +4,27 @@ This guide enumerates every code change a v4 caller needs to make to move to the
 
 For runtime semantics (partial-failure errors, default Router) see [`README.md`](README.md). For the version-history rationale see [`../UPGRADING.md`](../UPGRADING.md). For best-practices guidance see [`../guides/usage-error_handling.md`](../guides/usage-error_handling.md).
 
+## Automated migration
+
+Most of the changes below are applied for you by [`osapifix`](../cmd/osapifix/README.md), the API-shape migration tool in this repository. It is a separate Go module. Build the binary from an `opensearch-go` checkout, then run it against your module:
+
+```sh
+# Build the tool from an opensearch-go checkout.
+git clone https://github.com/opensearch-project/opensearch-go
+(cd opensearch-go/cmd/osapifix && go build -o "$(go env GOPATH)/bin/osapifix" .)
+
+# From your module root. Source (v4) is auto-detected from imports; target defaults to v5.
+osapifix rewrite -w ./...
+
+# Bump the dependency and build.
+go get github.com/opensearch-project/opensearch-go/v5 && go build ./...
+
+# Catch runtime-only hazards the compiler misses (e.g. testify Equal on now-typed fields).
+osapifix vet -fix ./...
+```
+
+`rewrite` performs the import-path bump, type renames (e.g. `DocumentGetReq` -> `GetReq`), field renames (e.g. `DocumentID` -> `ID`, `Timeout` -> `TimedOut`), and value-to-pointer adjustments. Run without `-w` first for a dry-run preview. It prints the behavioral follow-ups it cannot make mechanically (see "Manual follow-ups" below), and fails loudly rather than guess if it encounters an unclassified field change. The sections below document the full set of changes so you can review the tool's output or migrate by hand.
+
 ## Status
 
 In v5 the `opensearchapi` package is code-generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), replacing the hand-written v4 package. The same surface shipped inside the v4 module at `v5preview/opensearchapi/` for early adopters; v5 promotes it to the module root.
