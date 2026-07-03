@@ -416,10 +416,12 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 	state := c.loadConnState()
 	lc := state.lifecycle()
 
-	c.mu.Lock()
-	deadSince := c.mu.deadSince
-	overloadedAt := c.mu.overloadedAt
-	c.mu.Unlock()
+	// Read the dead/overloaded timestamps lock-free: they are written under c.mu
+	// but safe to read without it, so the metrics snapshot avoids the dominant
+	// per-connection lock contention against the per-request OnSuccess/OnFailure
+	// writers.
+	deadSince := c.loadDeadSince()
+	overloadedAt := c.loadOverloadedAt()
 
 	cm := ConnectionMetric{
 		URL:              c.URL.String(),

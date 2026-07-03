@@ -1382,7 +1382,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		conn := &Connection{URL: serverURL}
 		conn.state.Store(int64(newConnState(lcStandby | lcOverloaded)))
 		conn.mu.Lock()
-		conn.mu.overloadedAt = time.Now()
+		conn.storeOverloadedAt(time.Now())
 		conn.mu.Unlock()
 
 		a1 := newActiveConn("a1")

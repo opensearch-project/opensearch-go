@@ -188,7 +188,7 @@ func TestConnectionString(t *testing.T) {
 		u, _ := url.Parse("http://node1:9200")
 		conn := &Connection{URL: u}
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().Add(-5 * time.Second)
+		conn.storeDeadSince(time.Now().Add(-5 * time.Second))
 		conn.failures.Store(3)
 		conn.mu.Unlock()
 

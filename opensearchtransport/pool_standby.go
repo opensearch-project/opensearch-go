@@ -74,7 +74,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 	// Already dead -- just add overloaded flag
 	if lc.has(lcUnknown) {
 		c.setLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
-		c.mu.overloadedAt = time.Now()
+		c.storeOverloadedAt(time.Now())
 		c.mu.Unlock()
 		return
 	}
@@ -82,7 +82,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 	// Already in standby -- just add overloaded flag
 	if lc.has(lcStandby) {
 		c.setLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
-		c.mu.overloadedAt = time.Now()
+		c.storeOverloadedAt(time.Now())
 		c.mu.Unlock()
 		return
 	}
@@ -92,7 +92,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 		c.mu.Unlock()
 		return // state changed concurrently
 	}
-	c.mu.overloadedAt = time.Now()
+	c.storeOverloadedAt(time.Now())
 	c.mu.Unlock()
 	// Note: do NOT increment c.failures -- this is not a failure
 
@@ -130,7 +130,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 	}
 
 	c.clearLifecycleBit(lcOverloaded) //nolint:errcheck // lock held; only errLifecycleNoop possible
-	c.mu.overloadedAt = time.Time{}
+	c.storeOverloadedAt(time.Time{})
 	c.mu.Unlock()
 
 	if dl := loadDebugLogger(); dl != nil {

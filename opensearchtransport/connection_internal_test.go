@@ -142,14 +142,14 @@ func TestMultiServerPoolOnSuccess(t *testing.T) {
 		pool.OnSuccess(conn)
 
 		conn.mu.Lock()
-		isDead := !conn.mu.deadSince.IsZero()
+		isDead := !conn.loadDeadSince().IsZero()
 		conn.mu.Unlock()
 		if isDead {
 			t.Errorf("Expected the connection to be ready; %s", conn)
 		}
 
 		conn.mu.Lock()
-		deadSince := conn.mu.deadSince
+		deadSince := conn.loadDeadSince()
 		conn.mu.Unlock()
 		if !deadSince.IsZero() {
 			t.Errorf("Unexpected value for DeadSince: %s", deadSince)
@@ -203,8 +203,8 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			t.Fatalf("Unexpected error: %s", err)
 		}
 		conn.mu.Lock()
-		isDead := !conn.mu.deadSince.IsZero()
-		deadSince := conn.mu.deadSince
+		isDead := !conn.loadDeadSince().IsZero()
+		deadSince := conn.loadDeadSince()
 		conn.mu.Unlock()
 
 		if !isDead {
@@ -268,7 +268,7 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 		conn := pool.mu.ready[0]
 		conn.state.Store(int64(newConnState(lcDead)))
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().UTC()
+		conn.storeDeadSince(time.Now().UTC())
 		conn.mu.Unlock()
 
 		if err := pool.OnFailure(conn); err != nil {
@@ -288,8 +288,8 @@ func TestConnection(t *testing.T) {
 		}
 		conn.failures.Store(10)
 		conn.mu.Lock()
-		conn.mu.deadSince = time.Now().UTC()
-		conn.mu.deadSince = time.Now().UTC()
+		conn.storeDeadSince(time.Now().UTC())
+		conn.storeDeadSince(time.Now().UTC())
 		conn.mu.Unlock()
 
 		match, err := regexp.MatchString(

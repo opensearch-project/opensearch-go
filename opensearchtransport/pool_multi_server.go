@@ -369,7 +369,7 @@ func (cp *multiServerPool) OnSuccess(c *Connection) {
 	defer c.mu.Unlock()
 
 	// Only resurrect if the connection is currently dead
-	if c.mu.deadSince.IsZero() {
+	if c.deadSinceIsZero() {
 		return
 	}
 
@@ -440,7 +440,7 @@ func (cp *multiServerPool) OnFailure(c *Connection) error {
 		c.mu.Unlock()
 		return nil
 	}
-	c.mu.overloadedAt = time.Time{}
+	c.storeOverloadedAt(time.Time{})
 	c.markAsDeadWithLock()
 	c.mu.Unlock()
 
@@ -556,7 +556,7 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 	}
 
 	// Clear overloaded state -- node just came back from dead, stats poller will re-evaluate.
-	c.mu.overloadedAt = time.Time{}
+	c.storeOverloadedAt(time.Time{})
 
 	c.markAsReadyWithLock()
 
@@ -650,7 +650,7 @@ func (cp *multiServerPool) removeFromDeadWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-//   - Caller must ensure c.mu.deadSince is zero (connection is alive)
+//   - Caller must ensure deadSince is zero (connection is alive)
 func (cp *multiServerPool) appendToReadyActiveWithLock(c *Connection) {
 	// If RTT is unknown and a health check function is configured, schedule
 	// an async one-shot health check to populate the rttRing. This handles
@@ -676,7 +676,7 @@ func (cp *multiServerPool) appendToReadyActiveWithLock(c *Connection) {
 //
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
-//   - Caller must ensure c.mu.deadSince is zero (connection is alive)
+//   - Caller must ensure deadSince is zero (connection is alive)
 func (cp *multiServerPool) appendToReadyStandbyWithLock(c *Connection) {
 	// If RTT is unknown and a health check function is configured, schedule
 	// an async one-shot health check to populate the rttRing.
@@ -699,8 +699,8 @@ func (cp *multiServerPool) appendToDeadWithLock(c *Connection) {
 	// Enforce invariants: dead connections must have a timestamp and lcUnknown.
 	// Both operations under c.mu to satisfy the casLifecycle contract.
 	c.mu.Lock()
-	if c.mu.deadSince.IsZero() {
-		c.mu.deadSince = time.Now().UTC()
+	if c.deadSinceIsZero() {
+		c.storeDeadSince(time.Now().UTC())
 	}
 	if !c.loadConnState().lifecycle().has(lcUnknown) {
 		c.setLifecycleBit(lcUnknown) //nolint:errcheck // lock held; only errLifecycleNoop possible
