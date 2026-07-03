@@ -6,7 +6,7 @@
 osapifix rewrite -w ./...
 ```
 
-Today it supports the v4 -> v5 hop. Additional hops (v3 -> v4, v2 -> v3) are added as data, without engine changes.
+Today it supports the v3 -> v4 and v4 -> v5 hops, chainable to migrate v3 -> v5 directly. Additional hops (v2 -> v3) are added as data, without engine changes.
 
 ## Install
 
@@ -107,6 +107,7 @@ go test ./...
 | ----------------------------------------- | --------------------------------------------------------------------------------- |
 | `plan_test.go`                            | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces |
 | `delta_test.go`                           | Drift guards over every hop's type renames and field dispositions                 |
+| `hop_v3_to_v4_test.go`                    | v3 -> v4 version-specific facts                                                   |
 | `hop_v4_to_v5_test.go`                    | v4 -> v5 version-specific facts                                                   |
 | `detect_test.go`                          | Source detection, version parsing, directory resolution                           |
 | `internal/surface/delta_internal_test.go` | Surface diffing internals                                                         |
@@ -115,3 +116,4 @@ go test ./...
 
 - `vet` analyzers are v5-specific (`TypedAssertAnalyzer`) and target a single version; they do not chain across hops.
 - A module importing multiple majors migrates from the lowest; per-import-site source selection is not implemented.
+- Files behind custom build tags (`//go:build <tag>`) are loaded under the default build constraints, so they are not rewritten and are skipped without warning. Migrate those files by hand.
