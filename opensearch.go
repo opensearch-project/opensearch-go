@@ -45,9 +45,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go/v5/internal/clientcache"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/signer"
@@ -302,44 +302,61 @@ func NewDefaultClient() (*Client, error) {
 // background goroutines) instead of leaking one set per call.
 //
 //nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
-var defaultClientCache = clientcache.New[*Client](envvars.DefaultClientTTLValue())
+var defaultClientCache = ttlcache.New[*Client](envvars.DefaultClientTTLValue())
 
-// newCachedDefault builds (or reuses) a cached client for cfg. Used only by
-// NewDefaultClient; explicit NewClient calls are never cached. Un-hashable cfg
-// falls back to a direct, uncached NewClient. Env-derived seed addresses
-// (OPENSEARCH_URL, applied when cfg.Addresses is empty) are folded into the key
-// so default clients pointed at different env URLs never collide on the empty
-// Config{} hash.
-func newCachedDefault(cfg Config) (*Client, error) {
-	keyCfg := cfg
+// cachedDefault is the ttlcache.Cacheable for an implicit default client. Key
+// hashes the config with env-derived seed addresses folded in (so default
+// clients pointed at different env URLs never collide on the empty Config{}
+// hash), reporting ttlcache.ErrNotCacheable for an un-hashable config. New
+// builds the client and its liveness probe on a miss.
+type cachedDefault struct{ cfg Config }
+
+// Key hashes the config with env-derived seed addresses folded in, or reports
+// ttlcache.ErrNotCacheable for an un-hashable config.
+//
+//nolint:gosec // G115: key is an fnv hash; the bit pattern is the identity, not a magnitude
+func (d cachedDefault) Key() (ttlcache.Key, error) {
+	keyCfg := d.cfg
 	if len(keyCfg.Addresses) == 0 {
 		keyCfg.Addresses = getAddressFromEnvironment()
 	}
 	key, ok := HashConfig(keyCfg)
 	if !ok {
-		return NewClient(cfg)
+		return 0, ttlcache.ErrNotCacheable
 	}
-	value, release, err := defaultClientCache.GetOrCreate(clientcache.HashKey(key), func() (clientcache.Constructed[*Client], error) {
-		c, cerr := NewClient(cfg)
-		if cerr != nil {
-			return clientcache.Constructed[*Client]{}, cerr
+	return ttlcache.Key(key), nil
+}
+
+// New builds the client and its liveness probe on a cache miss.
+//
+//nolint:contextcheck // NewClient takes no context yet; the ctx param is plumbed for when it does
+func (d cachedDefault) New(context.Context) (ttlcache.Value[*Client], error) {
+	c, err := NewClient(d.cfg)
+	if err != nil {
+		return ttlcache.Value[*Client]{}, err
+	}
+	closer, _ := c.Transport.(io.Closer)
+	liveness := func() int64 {
+		m, ok := c.Transport.(interface {
+			Metrics() (opensearchtransport.Metrics, error)
+		})
+		if !ok {
+			return -1
 		}
-		closer, _ := c.Transport.(io.Closer)
-		liveness := func() int64 {
-			m, ok := c.Transport.(interface {
-				Metrics() (opensearchtransport.Metrics, error)
-			})
-			if !ok {
-				return -1
-			}
-			metrics, merr := m.Metrics()
-			if merr != nil {
-				return -1
-			}
-			return int64(metrics.Requests)
+		metrics, merr := m.Metrics()
+		if merr != nil {
+			return -1
 		}
-		return clientcache.Constructed[*Client]{Value: c, Closer: clientcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
-	})
+		return int64(metrics.Requests)
+	}
+	return ttlcache.Value[*Client]{Obj: c, Closer: ttlcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
+}
+
+// newCachedDefault builds (or reuses) a cached client for cfg. Used only by
+// NewDefaultClient; explicit NewClient calls are never cached. Un-hashable cfg
+// (reported via cachedDefault.Key) falls back to a direct, uncached build.
+func newCachedDefault(cfg Config) (*Client, error) {
+	value, release, err := defaultClientCache.GetOrCreate(context.Background(), cachedDefault{cfg: cfg})
 	if err != nil {
 		return nil, err
 	}

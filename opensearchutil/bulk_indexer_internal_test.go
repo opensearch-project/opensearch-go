@@ -1021,7 +1021,7 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 	t.Run("implicit client is owned", func(t *testing.T) {
 		bi, err := NewBulkIndexer(BulkIndexerConfig{})
 		require.NoError(t, err)
-		require.True(t, bi.(*bulkIndexer).ownClient)
+		require.True(t, bi.(*bulkIndexer).implicitClient)
 		require.NoError(t, bi.Close(context.Background()))
 	})
 
@@ -1032,7 +1032,7 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 
 		bi, err := NewBulkIndexer(BulkIndexerConfig{Client: client})
 		require.NoError(t, err)
-		require.False(t, bi.(*bulkIndexer).ownClient)
+		require.False(t, bi.(*bulkIndexer).implicitClient)
 		require.NoError(t, bi.Close(context.Background()))
 	})
 
@@ -1049,7 +1049,7 @@ func TestBulkIndexerOwnClientFlag(t *testing.T) {
 		require.NoError(t, err)
 		// Force ownership so Close treats this supplied client as implicitly
 		// created (the real nil-client path also sets this).
-		bi.(*bulkIndexer).ownClient = true
+		bi.(*bulkIndexer).implicitClient = true
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
