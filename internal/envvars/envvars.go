@@ -128,6 +128,10 @@ const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 // 0 means never evict (entries live until process exit). Read once per process.
 const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
 
+// 16m is ~3x the 5m default node-discovery/cluster-health poll cadence: a
+// client that goes untouched for three full poll cycles is treated as
+// abandoned and evicted, while bursty intermittent use keeps sharing one
+// transport instead of churning teardown/rebuild.
 const defaultClientTTLDefault = 16 * time.Minute
 
 var (
