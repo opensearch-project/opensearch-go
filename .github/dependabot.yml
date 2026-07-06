@@ -1,16 +1,41 @@
 version: 2
 updates:
+  # --- v5 (default branch: main) ---
   - package-ecosystem: "gomod"
     directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
     labels:
       - "dependabot"
       - "dependencies"
+      - "v5"
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
     labels:
       - "dependabot"
       - "dependencies"
+      - "v5"
+
+  # --- v4 maintenance branch ---
+  - package-ecosystem: "gomod"
+    directory: "/"
+    target-branch: "v4"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v4"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "v4"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependabot"
+      - "dependencies"
+      - "v4"
