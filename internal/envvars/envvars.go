@@ -123,12 +123,12 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 
 // DefaultClientTTL sets the idle eviction window for the process-wide cache of
-// implicit default clients. time.ParseDuration format. Unset/invalid = 6m.
+// implicit default clients. time.ParseDuration format. Unset/invalid = 16m.
 // Any negative value disables the cache (every call builds a fresh client).
 // 0 means never evict (entries live until process exit). Read once per process.
 const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
 
-const defaultClientTTLDefault = 6 * time.Minute
+const defaultClientTTLDefault = 16 * time.Minute
 
 var (
 	defaultClientTTLOnce sync.Once
@@ -137,7 +137,7 @@ var (
 
 // ParseDefaultClientTTL is the pure parser behind DefaultClientTTLValue,
 // exposed for testing. ok reports whether val was set. Unset/empty/invalid
-// returns the 6m default; a negative duration is preserved verbatim (it signals
+// returns the 16m default; a negative duration is preserved verbatim (it signals
 // "disable caching"); 0 means never evict.
 func ParseDefaultClientTTL(val string, ok bool) time.Duration {
 	if !ok || val == "" {

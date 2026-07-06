@@ -75,9 +75,9 @@ func TestParseDefaultClientTTL(t *testing.T) {
 		ok      bool
 		wantTTL time.Duration
 	}{
-		{"unset", "", false, 6 * time.Minute},
-		{"empty", "", true, 6 * time.Minute},
-		{"invalid", "notaduration", true, 6 * time.Minute},
+		{"unset", "", false, 16 * time.Minute},
+		{"empty", "", true, 16 * time.Minute},
+		{"invalid", "notaduration", true, 16 * time.Minute},
 		{"negative disables", "-1s", true, -time.Second},
 		{"zero indefinite", "0", true, 0},
 		{"positive", "90s", true, 90 * time.Second},
