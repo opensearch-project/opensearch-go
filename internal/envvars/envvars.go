@@ -128,6 +128,8 @@ const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
 // 0 means never evict (entries live until process exit). Read once per process.
 const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
 
+// 16m = the 15m AWS Lambda max timeout plus a 1m buffer, so a default client
+// is not evicted mid-invocation across the longest possible Lambda run.
 const defaultClientTTLDefault = 16 * time.Minute
 
 var (
