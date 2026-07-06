@@ -20,19 +20,19 @@ import (
 )
 
 // ErrNotCacheable is what a Cacheable's Key returns when the item cannot be
-// cached (an un-hashable config). GetOrCreate then builds it fresh via New and
-// never stores it, so its release closes the built transport.
+// cached (e.g. an un-hashable config). GetOrCreate then builds it fresh via New
+// and never stores it, so its release closes the built value.
 var ErrNotCacheable = errors.New("ttlcache: item is not cacheable")
 
-// Key identifies a cached entry by a hash of its resolved config.
+// Key identifies a cached entry by a hash of the item's identity.
 type Key int64
 
-// ClusterFunc wraps the transport io.Closer. The embedded Closer may be nil (a
-// custom transport without Close), so every close site nil-checks it.
+// ClusterFunc wraps a value's io.Closer. The embedded Closer may be nil (a
+// value with nothing to close), so every close site nil-checks it.
 type ClusterFunc struct{ io.Closer }
 
 // Value is both what a Cacheable's New returns and the cache node itself: the
-// object handed to callers, its transport, a liveness probe, plus the refcount
+// object handed to callers, its closer, a liveness probe, plus the refcount
 // bookkeeping the sweep uses to evict idle entries. refCount is >=0 for a live
 // reference count and <0 once claimed for eviction.
 type Value[T any] struct {
@@ -70,7 +70,7 @@ func (e *Value[T]) incIfLive() bool {
 	}
 }
 
-// Cache maps a config hash to a shared client entry. Reads go through the
+// Cache maps a key to a shared cached entry. Reads go through the
 // lock-free sync.Map; stores/deletes and the eviction sweep hold mu, which also
 // guards the keys mirror the sweep iterates.
 type Cache[T any] struct {
@@ -85,7 +85,7 @@ type Cache[T any] struct {
 }
 
 // New returns a cache with the given idle TTL: <0 disables caching (every
-// GetOrCreate builds a fresh client and its release closes immediately), 0
+// GetOrCreate builds a fresh value and its release closes immediately), 0
 // never evicts (entries live until process exit), >0 evicts entries idle for a
 // full TTL window.
 func New[T any](ttl time.Duration) *Cache[T] {
@@ -105,7 +105,7 @@ func (c *Cache[T]) Len() int {
 // item.New(ctx). The returned release decrements the entry's refcount exactly
 // once; further calls are no-ops. When the cache is disabled (ttl < 0) or item
 // reports ErrNotCacheable, nothing is stored and release closes the built
-// transport.
+// value.
 func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func() error, error) {
 	var zero T
 	key, err := item.Key()
@@ -163,7 +163,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 }
 
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
-// release, is the sole closer of a cached transport.
+// release, is the sole closer of a cached value.
 func releaseFn[T any](e *Value[T]) func() error {
 	var once sync.Once
 	return func() error {
@@ -172,7 +172,7 @@ func releaseFn[T any](e *Value[T]) func() error {
 	}
 }
 
-// disabledRelease returns an idempotent release that closes the built transport.
+// disabledRelease returns an idempotent release that closes the built value.
 // A disabled cache stores nothing, so release owns teardown.
 func disabledRelease(closer ClusterFunc) func() error {
 	var once sync.Once
