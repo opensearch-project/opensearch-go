@@ -7,9 +7,10 @@
 package ttlcache
 
 import (
-	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestOnStrayKey_PanicsUnderTest verifies the should-never-happen lockstep
@@ -20,15 +21,5 @@ func TestOnStrayKey_PanicsUnderTest(t *testing.T) {
 	c := New[int](time.Minute)
 	c.mu.mapKeys[Key(42)] = struct{}{} // inject a stray key with no cache entry
 
-	defer func() {
-		r := recover()
-		if r == nil {
-			t.Fatal("sweep did not panic on a stray key")
-		}
-		if msg, _ := r.(string); !strings.Contains(msg, "stray key 42") {
-			t.Fatalf("panic message %q missing stray-key detail", r)
-		}
-	}()
-
-	c.sweep()
+	require.PanicsWithValue(t, "ttlcache: stray key 42 in mapKeys with no cache entry", c.sweep)
 }
