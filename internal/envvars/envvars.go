@@ -138,25 +138,27 @@ const DefaultClientTTLDefault = 16 * time.Minute
 
 // defaultClientTTLValue reads and parses the env var exactly once per process.
 // A parse error falls back to the default; the error is discarded here (nothing
-// consumes it at init), but ParseDefaultClientTTL still returns it for tests.
+// consumes it at init), but parseDefaultClientTTL still returns it for tests.
 var defaultClientTTLValue = sync.OnceValue(func() time.Duration {
 	val, ok := os.LookupEnv(DefaultClientTTL)
-	d, _ := ParseDefaultClientTTL(val, ok)
+	if !ok {
+		return DefaultClientTTLDefault
+	}
+	d, _ := parseDefaultClientTTL(val)
 	return d
 })
 
-// ErrInvalidTTL is wrapped by ParseDefaultClientTTL when DefaultClientTTL holds
+// ErrInvalidTTL is wrapped by parseDefaultClientTTL when DefaultClientTTL holds
 // an unparseable value. Match it with errors.Is; the parser still returns the
 // 16m default alongside it.
 var ErrInvalidTTL = errors.New("envvars: invalid default client TTL")
 
-// ParseDefaultClientTTL is the pure parser behind DefaultClientTTLValue,
-// exposed for testing. ok reports whether val was set. Unset or empty returns
-// the 16m default with a nil error; an unparseable value returns the default
-// wrapped with ErrInvalidTTL. A negative duration is preserved verbatim (it
-// signals "disable caching"); 0 means never evict.
-func ParseDefaultClientTTL(val string, ok bool) (time.Duration, error) {
-	if !ok || val == "" {
+// parseDefaultClientTTL is the pure parser behind DefaultClientTTLValue. An
+// empty value returns the 16m default with a nil error; an unparseable value
+// returns the default wrapped with ErrInvalidTTL. A negative duration is
+// preserved verbatim (it signals "disable caching"); 0 means never evict.
+func parseDefaultClientTTL(val string) (time.Duration, error) {
+	if val == "" {
 		return DefaultClientTTLDefault, nil
 	}
 	d, err := time.ParseDuration(val)

@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package envvars_test
+package envvars //nolint:testpackage // white-box: exercises the unexported parseDefaultClientTTL directly
 
 import (
 	"os"
@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // TestTruthyAndFalsy covers the two boolean env-var helpers. Note the
@@ -55,10 +53,10 @@ func TestTruthyAndFalsy(t *testing.T) {
 				t.Setenv(key, "")
 				os.Unsetenv(key) //nolint:usetesting // t.Setenv cannot unset; this test mutates process env and must not run in parallel
 			}
-			require.Equal(t, tt.wantTruthy, envvars.Truthy(key))
-			require.Equal(t, tt.wantFalsy, envvars.Falsy(key))
+			require.Equal(t, tt.wantTruthy, Truthy(key))
+			require.Equal(t, tt.wantFalsy, Falsy(key))
 			// Truthy and Falsy must never both return true for the same value.
-			require.False(t, envvars.Truthy(key) && envvars.Falsy(key),
+			require.False(t, Truthy(key) && Falsy(key),
 				"Truthy and Falsy must be mutually exclusive")
 		})
 	}
@@ -72,24 +70,22 @@ func TestParseDefaultClientTTL(t *testing.T) {
 	tests := []struct {
 		name    string
 		val     string
-		ok      bool
 		wantTTL time.Duration
-		wantErr bool
+		wantErr error
 	}{
-		{"unset", "", false, envvars.DefaultClientTTLDefault, false},
-		{"empty", "", true, envvars.DefaultClientTTLDefault, false},
-		{"invalid", "notaduration", true, envvars.DefaultClientTTLDefault, true},
-		{"negative disables", "-1s", true, -time.Second, false},
-		{"zero indefinite", "0", true, 0, false},
-		{"positive", "90s", true, 90 * time.Second, false},
-		{"positive minutes", "10m", true, 10 * time.Minute, false},
+		{"empty", "", DefaultClientTTLDefault, nil},
+		{"invalid", "notaduration", DefaultClientTTLDefault, ErrInvalidTTL},
+		{"negative disables", "-1s", -time.Second, nil},
+		{"zero indefinite", "0", 0, nil},
+		{"positive", "90s", 90 * time.Second, nil},
+		{"positive minutes", "10m", 10 * time.Minute, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := envvars.ParseDefaultClientTTL(tt.val, tt.ok)
+			got, err := parseDefaultClientTTL(tt.val)
 			require.Equal(t, tt.wantTTL, got)
-			if tt.wantErr {
-				require.ErrorIs(t, err, envvars.ErrInvalidTTL)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
 			} else {
 				require.NoError(t, err)
 			}
