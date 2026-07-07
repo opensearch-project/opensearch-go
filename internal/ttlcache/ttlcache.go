@@ -177,7 +177,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 	}
 	c.cache.Store(key, e)
 	c.mu.mapKeys[key] = struct{}{}
-	c.ensureWorkerLocked()
+	c.ensureWorkerWithLock()
 	c.mu.Unlock()
 	return e.Obj, releaseFn(e), nil
 }
@@ -202,9 +202,9 @@ func disabledRelease(closer ClusterFunc) func() error {
 	})
 }
 
-// ensureWorkerLocked starts the eviction worker if it is not already running.
+// ensureWorkerWithLock starts the eviction worker if it is not already running.
 // Caller must hold mu. A non-positive ttl means "never evict": no worker.
-func (c *Cache[T]) ensureWorkerLocked() {
+func (c *Cache[T]) ensureWorkerWithLock() {
 	if c.mu.cancel != nil || c.ttl <= 0 {
 		return
 	}
