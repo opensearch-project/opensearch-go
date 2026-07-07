@@ -10,21 +10,43 @@ import (
 	"context"
 	"errors"
 	"io"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
+)
+
+// Timing budget for eviction tests. A CI runner under CPU-share starvation can
+// have its scheduler bumped to ~1s granularity, so sub-second SLAs flake. We
+// pick a sweep TTL comfortably above that floor and poll for whole multiples of
+// it, trading a few seconds of wall time for determinism.
+const (
+	sweepTTL     = 500 * time.Millisecond // eviction window; one worker tick
+	pollInterval = sweepTTL / 5           // Eventually/Never sampling cadence
+	// evictWait spans many sweep windows so a starved runner still gets several
+	// real ticks before we give up on an expected eviction.
+	evictWait = 20 * sweepTTL // 10s
+	// holdWindow spans several sweep windows to prove a kept entry survives
+	// repeated ticks, not just one.
+	holdWindow = 4 * sweepTTL // 2s
+	// concurrentGoroutines drives the reacquire-vs-evict race; large enough to
+	// interleave many hits across the post-construct window.
+	concurrentGoroutines = 300
+	// hitIterations accesses re-issued one accessInterval apart; each must be a
+	// cache hit, so construct runs exactly once across the whole run.
+	hitIterations  = 20
+	accessInterval = sweepTTL // one access per sweep window keeps liveness advancing
 )
 
 type stubCloser struct{ closed atomic.Int32 }
 
 func (s *stubCloser) Close() error { s.closed.Add(1); return nil }
 
-// cacheable is a test ttlcache.Cacheable[io.Closer]. new builds the Value; if
+// cacheable is a test ttlcache.Cacheable[io.Closer]. build makes the Value; if
 // nil, it returns closer/live. notCacheable makes Key report ErrNotCacheable;
 // keyErr makes Key report an arbitrary error.
 type cacheable struct {
@@ -33,7 +55,7 @@ type cacheable struct {
 	keyErr       error
 	closer       io.Closer
 	live         func() int64
-	new          func(context.Context) (ttlcache.Value[io.Closer], error)
+	build        func(context.Context) (ttlcache.Value[io.Closer], error)
 }
 
 func (c cacheable) Key() (ttlcache.Key, error) {
@@ -47,8 +69,8 @@ func (c cacheable) Key() (ttlcache.Key, error) {
 }
 
 func (c cacheable) New(ctx context.Context) (ttlcache.Value[io.Closer], error) {
-	if c.new != nil {
-		return c.new(ctx)
+	if c.build != nil {
+		return c.build(ctx)
 	}
 	return ttlcache.Value[io.Closer]{
 		Obj:      c.closer,
@@ -76,9 +98,9 @@ func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
 		}, nil
 	}
 
-	v1, rel1, err := c.GetOrCreate(context.Background(), cacheable{key: 42, new: construct})
+	v1, rel1, err := c.GetOrCreate(t.Context(), cacheable{key: 42, build: construct})
 	require.NoError(t, err)
-	v2, rel2, err := c.GetOrCreate(context.Background(), cacheable{key: 42, new: construct})
+	v2, rel2, err := c.GetOrCreate(t.Context(), cacheable{key: 42, build: construct})
 	require.NoError(t, err)
 
 	require.Same(t, closer, v1)
@@ -98,8 +120,8 @@ func TestGetOrCreate_DistinctKeys(t *testing.T) {
 	b := &stubCloser{}
 	live := func() int64 { return 0 }
 
-	va, _, _ := c.GetOrCreate(context.Background(), newCacheable(1, a, live))
-	vb, _, _ := c.GetOrCreate(context.Background(), newCacheable(2, b, live))
+	va, _, _ := c.GetOrCreate(t.Context(), newCacheable(1, a, live))
+	vb, _, _ := c.GetOrCreate(t.Context(), newCacheable(2, b, live))
 
 	require.Same(t, a, va)
 	require.Same(t, b, vb)
@@ -111,7 +133,7 @@ func TestDisabledCache_NeverStores_ReleaseCloses(t *testing.T) {
 	closer := &stubCloser{}
 	live := func() int64 { return 0 }
 
-	v, rel, err := c.GetOrCreate(context.Background(), newCacheable(1, closer, live))
+	v, rel, err := c.GetOrCreate(t.Context(), newCacheable(1, closer, live))
 	require.NoError(t, err)
 	require.Same(t, closer, v)
 	require.Equal(t, 0, c.Len(), "disabled cache stores nothing")
@@ -130,7 +152,7 @@ func TestNotCacheable_NeverStores_ReleaseCloses(t *testing.T) {
 	closer := &stubCloser{}
 	item := cacheable{notCacheable: true, closer: closer, live: func() int64 { return 0 }}
 
-	v, rel, err := c.GetOrCreate(context.Background(), item)
+	v, rel, err := c.GetOrCreate(t.Context(), item)
 	require.NoError(t, err)
 	require.Same(t, closer, v)
 	require.Equal(t, 0, c.Len(), "un-cacheable item stores nothing")
@@ -148,16 +170,16 @@ func TestWorker_EvictsIdleRefZeroEntry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := ttlcache.New[io.Closer](20 * time.Millisecond)
+			c := ttlcache.New[io.Closer](sweepTTL)
 			closer := &stubCloser{}
 
-			_, rel, err := c.GetOrCreate(context.Background(), newCacheable(1, closer, tt.live))
+			_, rel, err := c.GetOrCreate(t.Context(), newCacheable(1, closer, tt.live))
 			require.NoError(t, err)
 			require.NoError(t, rel()) // refcount now 0
 
 			require.Eventually(t, func() bool {
 				return c.Len() == 0 && closer.closed.Load() == 1
-			}, 2*time.Second, 10*time.Millisecond, "idle refcount-0 entry must be evicted+closed")
+			}, evictWait, pollInterval, "idle refcount-0 entry must be evicted+closed")
 		})
 	}
 }
@@ -181,25 +203,21 @@ func TestConcurrentReacquireVsEviction(t *testing.T) {
 		}, nil
 	}
 
-	errs := make([]error, 300)
-	var wg sync.WaitGroup
-	for i := range 300 {
-		wg.Go(func() {
-			v, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 7, new: construct})
+	var g errgroup.Group
+	for range concurrentGoroutines {
+		g.Go(func() error {
+			v, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 7, build: construct})
 			if err != nil {
-				errs[i] = err
-				return
+				return err
 			}
+			defer func() { _ = rel() }()
 			if sc, ok := v.(*stubCloser); ok && sc.closed.Load() != 0 {
-				errs[i] = errClosedHandout
+				return errClosedHandout
 			}
-			_ = rel()
+			return nil
 		})
 	}
-	wg.Wait()
-	for _, err := range errs {
-		require.NoError(t, err)
-	}
+	require.NoError(t, g.Wait())
 }
 
 var errClosedHandout = closedHandoutError{}
@@ -208,19 +226,58 @@ type closedHandoutError struct{}
 
 func (closedHandoutError) Error() string { return "GetOrCreate returned a closed transport" }
 
+// TestWorker_SustainedHitsAcrossWindows re-accesses one key hitIterations times,
+// one sweep window apart, and asserts every access is a cache hit (construct
+// runs exactly once). This is the CPU-starvation-robust replacement for a
+// short-SLA eviction race: it spans many real worker ticks, so a runner whose
+// scheduler is bumped to coarse granularity still exercises multiple sweeps
+// without flaking. A reference is held throughout, so the entry is never
+// eviction-eligible and the hit count is deterministic.
+func TestWorker_SustainedHitsAcrossWindows(t *testing.T) {
+	c := ttlcache.New[io.Closer](sweepTTL)
+	closer := &stubCloser{}
+	live := func() int64 { return 0 }
+
+	var builds atomic.Int32
+	construct := func(context.Context) (ttlcache.Value[io.Closer], error) {
+		builds.Add(1)
+		return ttlcache.Value[io.Closer]{
+			Obj:      closer,
+			Closer:   ttlcache.ClusterFunc{Closer: closer},
+			Liveness: live,
+		}, nil
+	}
+
+	releases := make([]func() error, 0, hitIterations)
+	for range hitIterations {
+		v, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 1, build: construct})
+		require.NoError(t, err)
+		require.Same(t, closer, v)
+		releases = append(releases, rel)
+		require.Equal(t, 1, c.Len(), "entry must stay cached across every window")
+		time.Sleep(accessInterval)
+	}
+	require.Equal(t, int32(1), builds.Load(), "all %d accesses must be cache hits (one build)", hitIterations)
+	require.Equal(t, int32(0), closer.closed.Load(), "sustained-hit entry must never be closed")
+
+	for _, rel := range releases {
+		require.NoError(t, rel())
+	}
+}
+
 func TestWorker_KeepsBusyEntry(t *testing.T) {
-	c := ttlcache.New[io.Closer](20 * time.Millisecond)
+	c := ttlcache.New[io.Closer](sweepTTL)
 	closer := &stubCloser{}
 	var counter atomic.Int64
 	live := counter.Load
 
-	_, rel, err := c.GetOrCreate(context.Background(), newCacheable(1, closer, live))
+	_, rel, err := c.GetOrCreate(t.Context(), newCacheable(1, closer, live))
 	require.NoError(t, err)
 	require.NoError(t, rel()) // refcount 0 but counter keeps advancing
 
 	stop := make(chan struct{})
 	go func() {
-		tk := time.NewTicker(5 * time.Millisecond)
+		tk := time.NewTicker(pollInterval) // advance liveness well within each sweep window
 		defer tk.Stop()
 		for {
 			select {
@@ -231,7 +288,7 @@ func TestWorker_KeepsBusyEntry(t *testing.T) {
 			}
 		}
 	}()
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(holdWindow)
 	busy := c.Len() == 1
 	close(stop)
 	require.True(t, busy, "entry with advancing liveness must not be evicted")
@@ -245,15 +302,15 @@ func TestWorker_KeepsBusyEntry(t *testing.T) {
 // liveness; here liveness is idle-eligible, so survival comes purely from the
 // outstanding reference.
 func TestWorker_KeepsReferencedEntry(t *testing.T) {
-	c := ttlcache.New[io.Closer](20 * time.Millisecond)
+	c := ttlcache.New[io.Closer](sweepTTL)
 	closer := &stubCloser{}
 	live := func() int64 { return 0 } // idle-eligible: only the held ref keeps it
 
-	_, rel, err := c.GetOrCreate(context.Background(), newCacheable(1, closer, live))
+	_, rel, err := c.GetOrCreate(t.Context(), newCacheable(1, closer, live))
 	require.NoError(t, err) // refcount 1, deliberately not released
 
 	// Several sweep windows pass with the ref outstanding.
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(holdWindow)
 	require.Equal(t, 1, c.Len(), "referenced entry must not be evicted")
 	require.Equal(t, int32(0), closer.closed.Load(), "referenced entry must never be closed")
 
@@ -261,23 +318,23 @@ func TestWorker_KeepsReferencedEntry(t *testing.T) {
 	require.NoError(t, rel())
 	require.Eventually(t, func() bool {
 		return c.Len() == 0 && closer.closed.Load() == 1
-	}, 2*time.Second, 10*time.Millisecond, "entry must evict+close once its last ref is released")
+	}, evictWait, pollInterval, "entry must evict+close once its last ref is released")
 }
 
 func TestWorker_StopsWhenEmpty(t *testing.T) {
-	c := ttlcache.New[io.Closer](20 * time.Millisecond)
+	c := ttlcache.New[io.Closer](sweepTTL)
 	closer := &stubCloser{}
 	live := func() int64 { return 0 }
-	_, rel, _ := c.GetOrCreate(context.Background(), newCacheable(1, closer, live))
+	_, rel, _ := c.GetOrCreate(t.Context(), newCacheable(1, closer, live))
 	require.NoError(t, rel())
-	require.Eventually(t, func() bool { return c.Len() == 0 }, 2*time.Second, 10*time.Millisecond)
+	require.Eventually(t, func() bool { return c.Len() == 0 }, evictWait, pollInterval)
 	// Re-insert must respawn the worker and evict again.
 	closer2 := &stubCloser{}
-	_, rel2, _ := c.GetOrCreate(context.Background(), newCacheable(2, closer2, live))
+	_, rel2, _ := c.GetOrCreate(t.Context(), newCacheable(2, closer2, live))
 	require.NoError(t, rel2())
 	require.Eventually(t, func() bool {
 		return c.Len() == 0 && closer2.closed.Load() == 1
-	}, 2*time.Second, 10*time.Millisecond, "worker must respawn after emptying")
+	}, evictWait, pollInterval, "worker must respawn after emptying")
 }
 
 func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
@@ -285,7 +342,7 @@ func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
 	closer := &stubCloser{}
 	live := func() int64 { return 0 } // idle-eligible, but nothing should ever evict it
 
-	_, rel, err := c.GetOrCreate(context.Background(), newCacheable(1, closer, live))
+	_, rel, err := c.GetOrCreate(t.Context(), newCacheable(1, closer, live))
 	require.NoError(t, err)
 	require.Equal(t, 1, c.Len())
 	require.NoError(t, rel()) // refcount 0: with a worker this would eventually evict
@@ -293,7 +350,7 @@ func TestNeverEvict_TTLZero_NoWorker(t *testing.T) {
 	// No worker exists to evict; the entry must persist and never be closed.
 	require.Never(t, func() bool {
 		return c.Len() == 0 || closer.closed.Load() != 0
-	}, 200*time.Millisecond, 20*time.Millisecond, "ttl=0 must never evict or close")
+	}, holdWindow, pollInterval, "ttl=0 must never evict or close")
 	require.Equal(t, 1, c.Len())
 	require.Equal(t, int32(0), closer.closed.Load())
 }
@@ -310,27 +367,22 @@ func TestConcurrentGetRelease(t *testing.T) {
 			Liveness: live,
 		}, nil
 	}
-	errs := make([]error, 50)
-	var wg sync.WaitGroup
-	for i := range 50 {
-		wg.Go(func() {
-			_, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 99, new: construct})
+	var g errgroup.Group
+	for range concurrentGoroutines {
+		g.Go(func() error {
+			_, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 99, build: construct})
 			if err != nil {
-				errs[i] = err
-				return
+				return err
 			}
-			errs[i] = rel()
+			return rel()
 		})
 	}
-	wg.Wait()
-	for _, err := range errs {
-		require.NoError(t, err)
-	}
+	require.NoError(t, g.Wait())
 	require.LessOrEqual(t, c.Len(), 1)
 	// The surviving cached transport must never be closed while refcounts churn
 	// above zero. Redundant builds lost to the construct race are closed by
 	// GetOrCreate per spec, and deliberately not asserted here.
-	v, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 99, new: construct})
+	v, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 99, build: construct})
 	require.NoError(t, err)
 	require.Equal(t, int32(0), v.(*stubCloser).closed.Load(), "live cached transport must not be closed mid-flight")
 	require.NoError(t, rel())
@@ -344,13 +396,13 @@ func TestKeyError_Propagates(t *testing.T) {
 	newCalled := false
 	item := cacheable{
 		keyErr: wantErr,
-		new: func(context.Context) (ttlcache.Value[io.Closer], error) {
+		build: func(context.Context) (ttlcache.Value[io.Closer], error) {
 			newCalled = true
 			return ttlcache.Value[io.Closer]{}, nil
 		},
 	}
 
-	v, rel, err := c.GetOrCreate(context.Background(), item)
+	v, rel, err := c.GetOrCreate(t.Context(), item)
 	require.ErrorIs(t, err, wantErr)
 	require.Nil(t, v)
 	require.Nil(t, rel)
@@ -374,7 +426,7 @@ func TestGetOrCreate_ConstructError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := ttlcache.New[io.Closer](tt.ttl)
-			v, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 1, new: failing})
+			v, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 1, build: failing})
 			require.ErrorIs(t, err, wantErr)
 			require.Nil(t, v, "no value on construct error")
 			require.Nil(t, rel, "no release func on construct error")
@@ -397,18 +449,18 @@ func TestNilCloser_SafeNoop(t *testing.T) {
 
 	t.Run("disabled release", func(t *testing.T) {
 		c := ttlcache.New[io.Closer](-1)
-		_, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 1, new: nilConstruct})
+		_, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 1, build: nilConstruct})
 		require.NoError(t, err)
 		require.NotNil(t, rel)
 		require.NotPanics(t, func() { _ = rel() }, "nil closer release must not panic")
 	})
 
 	t.Run("idle eviction", func(t *testing.T) {
-		c := ttlcache.New[io.Closer](20 * time.Millisecond)
-		_, rel, err := c.GetOrCreate(context.Background(), cacheable{key: 1, new: nilConstruct})
+		c := ttlcache.New[io.Closer](sweepTTL)
+		_, rel, err := c.GetOrCreate(t.Context(), cacheable{key: 1, build: nilConstruct})
 		require.NoError(t, err)
 		require.NoError(t, rel())
-		require.Eventually(t, func() bool { return c.Len() == 0 }, 2*time.Second, 10*time.Millisecond,
+		require.Eventually(t, func() bool { return c.Len() == 0 }, evictWait, pollInterval,
 			"idle entry with nil closer must evict without panic")
 	})
 }
