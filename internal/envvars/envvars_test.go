@@ -74,18 +74,25 @@ func TestParseDefaultClientTTL(t *testing.T) {
 		val     string
 		ok      bool
 		wantTTL time.Duration
+		wantErr bool
 	}{
-		{"unset", "", false, 16 * time.Minute},
-		{"empty", "", true, 16 * time.Minute},
-		{"invalid", "notaduration", true, 16 * time.Minute},
-		{"negative disables", "-1s", true, -time.Second},
-		{"zero indefinite", "0", true, 0},
-		{"positive", "90s", true, 90 * time.Second},
-		{"positive minutes", "10m", true, 10 * time.Minute},
+		{"unset", "", false, envvars.DefaultClientTTLDefault, false},
+		{"empty", "", true, envvars.DefaultClientTTLDefault, false},
+		{"invalid", "notaduration", true, envvars.DefaultClientTTLDefault, true},
+		{"negative disables", "-1s", true, -time.Second, false},
+		{"zero indefinite", "0", true, 0, false},
+		{"positive", "90s", true, 90 * time.Second, false},
+		{"positive minutes", "10m", true, 10 * time.Minute, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.wantTTL, envvars.ParseDefaultClientTTL(tt.val, tt.ok))
+			got, err := envvars.ParseDefaultClientTTL(tt.val, tt.ok)
+			require.Equal(t, tt.wantTTL, got)
+			if tt.wantErr {
+				require.ErrorIs(t, err, envvars.ErrInvalidTTL)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
