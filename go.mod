@@ -4,7 +4,7 @@ go 1.25.9
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.23
+	github.com/aws/aws-sdk-go-v2/config v1.32.28
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.27
 	github.com/stretchr/testify v1.11.1
 	github.com/wI2L/jsondiff v0.7.1
