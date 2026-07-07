@@ -209,6 +209,8 @@ func (c *Cache[T]) ensureWorkerLocked() {
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	// Safe to assign unlocked: the caller holds mu (see doc above), and mu is
+	// the sole guard for cancel. Re-locking here would deadlock the caller.
 	c.mu.cancel = cancel
 	go c.worker(ctx)
 }
