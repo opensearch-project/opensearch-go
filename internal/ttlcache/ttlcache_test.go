@@ -36,6 +36,14 @@ const (
 	// concurrentGoroutines drives the reacquire-vs-evict race; large enough to
 	// interleave many hits across the post-construct window.
 	concurrentGoroutines = 300
+	// raceTTL and raceConstruct drive the reacquire-vs-evict race: a sweep window
+	// far below the construct time means the entry becomes idle-eligible while it
+	// is still being built, so goroutines hit the post-construct path as the
+	// refcount churns 0<->non-zero. raceConstruct > raceTTL is what widens that
+	// window; the exact values only need that ordering, not the CI-jitter floor
+	// the eviction tests need (those goroutines are already blocked in construct).
+	raceTTL       = time.Millisecond
+	raceConstruct = 3 * raceTTL
 	// hitIterations accesses re-issued one accessInterval apart; each must be a
 	// cache hit, so construct runs exactly once across the whole run.
 	hitIterations  = 20
@@ -189,13 +197,13 @@ func TestWorker_EvictsIdleRefZeroEntry(t *testing.T) {
 // the entry churns between refcount 0 and non-zero, and a handed-out value must
 // never already be closed.
 func TestConcurrentReacquireVsEviction(t *testing.T) {
-	c := ttlcache.New[io.Closer](time.Millisecond)
+	c := ttlcache.New[io.Closer](raceTTL)
 	live := func() int64 { return 1 } // constant => always idle-eligible at ref 0
 
 	//nolint:unparam // signature matches Cacheable.New; this test's build always succeeds
 	construct := func(context.Context) (ttlcache.Value[io.Closer], error) {
 		closer := &stubCloser{}
-		time.Sleep(3 * time.Millisecond) // widen the post-construct hit window
+		time.Sleep(raceConstruct) // widen the post-construct hit window
 		return ttlcache.Value[io.Closer]{
 			Obj:      closer,
 			Closer:   ttlcache.ClusterFunc{Closer: closer},

@@ -625,6 +625,9 @@ func HashConfig(cfg Config) (uint64, bool) {
 	if cfg.DiscoverNodesOnStart != nil {
 		writeBool(*cfg.DiscoverNodesOnStart)
 	} else {
+		// Nil (the "auto" default) hashes as -1 so it never collides with an
+		// explicit false (0) or true (1); the three states resolve to different
+		// clients (see the DiscoverNodesOnStart field doc).
 		writeInt(-1)
 	}
 	writeInt(int64(cfg.DiscoverNodesInterval))
