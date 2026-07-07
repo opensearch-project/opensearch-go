@@ -279,9 +279,11 @@ type Client struct {
 	Transport opensearchtransport.Interface
 	config    *Config
 
-	// closeFn, when non-nil, is invoked by Close instead of closing the
-	// transport. Cached default clients set it to a cache-release hook so Close
-	// decrements the shared entry's refcount in O(1).
+	// closeFn overrides Close's teardown. It is nil for an ordinary client
+	// (Close tears down the transport directly) and non-nil only for a
+	// per-holder handle minted by SharedCopy, where it is a cache-release hook
+	// so Close decrements the shared entry's refcount in O(1) instead of
+	// closing the transport the holder shares with others.
 	closeFn func() error
 }
 
@@ -530,10 +532,18 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// SharedCopy returns a new Client sharing this client's transport and config
-// but carrying its own Close hook. It is internal wiring for the opensearchapi
-// cache -- each holder gets a distinct wrapper whose Close decrements the shared
-// refcount exactly once -- and is not part of the stable API.
+// SharedCopy mints a per-holder handle onto this client's transport: a new
+// Client that shares the same Transport and config but closes via closeFn
+// instead of tearing the transport down. The default-client cache stores one
+// Client per config and hands every caller a SharedCopy whose closeFn
+// decrements the shared entry's refcount, so each caller's Close runs exactly
+// once and the transport is torn down only after the last holder releases.
+//
+// A distinct Client per holder is required because Close dispatches on the
+// receiver: callers must not share one Client, or one caller's Close would run
+// another's release. This is cache-internal wiring (the two call sites are
+// newCachedDefault and opensearchapi's newCachedAPIDefault), exported only so
+// the opensearchapi package can reach it, and not part of the stable API.
 func (c *Client) SharedCopy(closeFn func() error) *Client {
 	return &Client{Transport: c.Transport, config: c.config, closeFn: closeFn}
 }
