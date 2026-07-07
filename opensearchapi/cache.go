@@ -22,7 +22,19 @@ import (
 // bypass on the un-hashable Router every time.
 //
 //nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
-var defaultClientCache = ttlcache.New[*Client](envvars.DefaultClientTTLValue())
+var defaultClientCache = ttlcache.New(
+	envvars.DefaultClientTTLValue(),
+	ttlcache.WithLogger[*Client](ttlcacheDebugf),
+)
+
+// ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
+// shared debug logger, resolved per call so a logger installed after init is
+// still honored. It is a no-op when none is installed (OPENSEARCH_GO_DEBUG unset).
+func ttlcacheDebugf(format string, a ...any) {
+	if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
+		_ = dl.Logf(format+"\n", a...)
+	}
+}
 
 // keyForConfig returns the cache key for config and whether it is cacheable. It
 // folds the resolved error mask into the hash so configs differing only by

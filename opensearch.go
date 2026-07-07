@@ -302,7 +302,19 @@ func NewDefaultClient() (*Client, error) {
 // background goroutines) instead of leaking one set per call.
 //
 //nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
-var defaultClientCache = ttlcache.New[*Client](envvars.DefaultClientTTLValue())
+var defaultClientCache = ttlcache.New(
+	envvars.DefaultClientTTLValue(),
+	ttlcache.WithLogger[*Client](ttlcacheDebugf),
+)
+
+// ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
+// shared debug logger, resolved per call so a logger installed after init is
+// still honored. It is a no-op when none is installed (OPENSEARCH_GO_DEBUG unset).
+func ttlcacheDebugf(format string, a ...any) {
+	if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
+		_ = dl.Logf(format+"\n", a...)
+	}
+}
 
 // cachedDefault is the ttlcache.Cacheable for an implicit default client. Key
 // hashes the config with env-derived seed addresses folded in (so default
