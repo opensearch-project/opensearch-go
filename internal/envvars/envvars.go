@@ -132,10 +132,11 @@ const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
 // is not evicted mid-invocation across the longest possible Lambda run.
 const defaultClientTTLDefault = 16 * time.Minute
 
-var (
-	defaultClientTTLOnce sync.Once
-	defaultClientTTL     time.Duration
-)
+// defaultClientTTLValue reads and parses the env var exactly once per process.
+var defaultClientTTLValue = sync.OnceValue(func() time.Duration {
+	val, ok := os.LookupEnv(DefaultClientTTL)
+	return ParseDefaultClientTTL(val, ok)
+})
 
 // ParseDefaultClientTTL is the pure parser behind DefaultClientTTLValue,
 // exposed for testing. ok reports whether val was set. Unset/empty/invalid
@@ -152,14 +153,10 @@ func ParseDefaultClientTTL(val string, ok bool) time.Duration {
 	return d
 }
 
-// DefaultClientTTLValue returns the parsed idle TTL. Cached via sync.Once: the
-// env var is read exactly once per process.
+// DefaultClientTTLValue returns the parsed idle TTL. Cached via sync.OnceValue:
+// the env var is read exactly once per process.
 func DefaultClientTTLValue() time.Duration {
-	defaultClientTTLOnce.Do(func() {
-		val, ok := os.LookupEnv(DefaultClientTTL)
-		defaultClientTTL = ParseDefaultClientTTL(val, ok)
-	})
-	return defaultClientTTL
+	return defaultClientTTLValue()
 }
 
 // Truthy reports whether the named environment variable is set to a
