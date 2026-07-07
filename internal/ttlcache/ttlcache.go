@@ -40,8 +40,10 @@ type Value[T any] struct {
 	Closer   ClusterFunc
 	Liveness func() int64
 
-	refCount     atomic.Int32 // live refs; >=0 in use, <0 once claimed for eviction (the closed marker)
-	lastLiveness int64        // Liveness() at the previous sweep; unchanged == idle
+	refCount atomic.Int32 // live refs; >=0 in use, <0 once claimed for eviction (the closed marker)
+	// lastLiveness is Liveness() at the previous sweep; unchanged == idle.
+	// Guarded by Cache.mu: written under mu in GetOrCreate (before publish) and in sweep.
+	lastLiveness int64
 }
 
 // Cacheable is an item the cache can key and build on demand. Key reports the
@@ -72,33 +74,51 @@ func (e *Value[T]) incIfLive() bool {
 
 // Cache maps a key to a shared cached entry. Reads go through the
 // lock-free sync.Map; stores/deletes and the eviction sweep hold mu, which also
-// guards the keys mirror the sweep iterates.
+// guards the mapKeys mirror the sweep iterates.
 type Cache[T any] struct {
 	cache sync.Map // Key -> *Value[T]
 	ttl   time.Duration
+	logf  func(string, ...any) // diagnostic sink for should-never-happen conditions; nil = silent
 
 	mu struct {
 		sync.Mutex
-		keys   map[Key]struct{}
-		cancel context.CancelFunc // non-nil while the eviction worker runs; cleared when it stops
+		// mapKeys and cancel are guarded by the embedded Mutex. mapKeys mirrors
+		// the sync.Map keyset (kept in lockstep with every Store/Delete under mu)
+		// so the sweep can iterate without racing writers; cancel stops the
+		// eviction worker and is assigned only with mu held.
+		mapKeys map[Key]struct{}
+		cancel  context.CancelFunc // non-nil while the eviction worker runs; cleared when it stops
 	}
 }
 
 // New returns a cache with the given idle TTL: <0 disables caching (every
 // GetOrCreate builds a fresh value and its release closes immediately), 0
 // never evicts (entries live until process exit), >0 evicts entries idle for a
-// full TTL window.
-func New[T any](ttl time.Duration) *Cache[T] {
+// full TTL window. Options tune diagnostics; see WithLogger.
+func New[T any](ttl time.Duration, opts ...Option[T]) *Cache[T] {
 	c := &Cache[T]{ttl: ttl}
-	c.mu.keys = make(map[Key]struct{})
+	c.mu.mapKeys = make(map[Key]struct{})
+	for _, opt := range opts {
+		opt(c)
+	}
 	return c
+}
+
+// Option configures a Cache at construction.
+type Option[T any] func(*Cache[T])
+
+// WithLogger installs a diagnostic sink for should-never-happen conditions
+// (currently the stray-key reconcile in sweep). It is only consulted off the
+// hot path, so a nil or absent logger leaves the cache silent.
+func WithLogger[T any](logf func(string, ...any)) Option[T] {
+	return func(c *Cache[T]) { c.logf = logf }
 }
 
 // Len reports the number of cached entries.
 func (c *Cache[T]) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return len(c.mu.keys)
+	return len(c.mu.mapKeys)
 }
 
 // GetOrCreate returns the cached value for item, constructing it on a miss via
@@ -156,7 +176,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 		e.lastLiveness = built.Liveness()
 	}
 	c.cache.Store(key, e)
-	c.mu.keys[key] = struct{}{}
+	c.mu.mapKeys[key] = struct{}{}
 	c.ensureWorkerLocked()
 	c.mu.Unlock()
 	return e.Obj, releaseFn(e), nil
@@ -165,26 +185,21 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 // releaseFn returns an idempotent refcount decrementer for e. The worker, not
 // release, is the sole closer of a cached value.
 func releaseFn[T any](e *Value[T]) func() error {
-	var once sync.Once
-	return func() error {
-		once.Do(func() { e.refCount.Add(-1) })
+	return sync.OnceValue(func() error {
+		e.refCount.Add(-1)
 		return nil
-	}
+	})
 }
 
 // disabledRelease returns an idempotent release that closes the built value.
 // A disabled cache stores nothing, so release owns teardown.
 func disabledRelease(closer ClusterFunc) func() error {
-	var once sync.Once
-	return func() error {
-		var err error
-		once.Do(func() {
-			if closer.Closer != nil {
-				err = closer.Close()
-			}
-		})
-		return err
-	}
+	return sync.OnceValue(func() error {
+		if closer.Closer != nil {
+			return closer.Close()
+		}
+		return nil
+	})
 }
 
 // ensureWorkerLocked starts the eviction worker if it is not already running.
@@ -218,10 +233,15 @@ func (c *Cache[T]) sweep() {
 		return
 	}
 	defer c.mu.Unlock()
-	for key := range c.mu.keys {
+	for key := range c.mu.mapKeys {
 		v, ok := c.cache.Load(key)
 		if !ok {
-			delete(c.mu.keys, key) // reconcile a stray key
+			// A key in mapKeys with no sync.Map entry is a lockstep-invariant
+			// violation that cannot occur by construction (both are mutated
+			// only together under mu). Treat it as a bug: reconcile so prod
+			// stays healthy, but surface it loudly in development.
+			c.onStrayKey(key)
+			delete(c.mu.mapKeys, key)
 			continue
 		}
 		e := v.(*Value[T])
@@ -245,7 +265,7 @@ func (c *Cache[T]) sweep() {
 					_ = e.Closer.Close()
 				}
 				c.cache.Delete(key)
-				delete(c.mu.keys, key)
+				delete(c.mu.mapKeys, key)
 			}
 			continue
 		}
@@ -255,7 +275,7 @@ func (c *Cache[T]) sweep() {
 	// still sweep once more (a tick buffered in ticker.C races ctx.Done), so
 	// the cancel may already be cleared; skip when nil. This fires only on an
 	// empty keyset, so no live entry goes unserviced.
-	if len(c.mu.keys) == 0 {
+	if len(c.mu.mapKeys) == 0 {
 		if cancel := c.mu.cancel; cancel != nil {
 			c.mu.cancel = nil
 			cancel()
