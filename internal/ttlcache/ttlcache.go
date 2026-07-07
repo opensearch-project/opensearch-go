@@ -171,7 +171,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 		}
 	}
 	e := &built
-	e.refCount.Store(1)
+	e.refCount.Add(1)
 	if built.Liveness != nil {
 		e.lastLiveness = built.Liveness()
 	}
