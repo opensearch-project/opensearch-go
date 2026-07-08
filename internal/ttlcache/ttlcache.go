@@ -27,17 +27,14 @@ var ErrNotCacheable = errors.New("ttlcache: item is not cacheable")
 // Key identifies a cached entry by a hash of the item's identity.
 type Key int64
 
-// ClusterFunc wraps a value's io.Closer. The embedded Closer may be nil (a
-// value with nothing to close), so every close site nil-checks it.
-type ClusterFunc struct{ io.Closer }
-
 // Value is both what a Cacheable's New returns and the cache node itself: the
 // object handed to callers, its closer, a liveness probe, plus the refcount
-// bookkeeping the sweep uses to evict idle entries. refCount is >=0 for a live
-// reference count and <0 once claimed for eviction.
+// bookkeeping the sweep uses to evict idle entries. Closer may be nil (a value
+// with nothing to close), so every close site nil-checks it. refCount is >=0
+// for a live reference count and <0 once claimed for eviction.
 type Value[T any] struct {
 	Obj      T
-	Closer   ClusterFunc
+	Closer   io.Closer
 	Liveness func() int64
 
 	refCount atomic.Int32 // live refs; >=0 in use, <0 once claimed for eviction (the closed marker)
@@ -164,7 +161,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 		e := v.(*Value[T])
 		if e.incIfLive() {
 			c.mu.Unlock()
-			if built.Closer.Closer != nil {
+			if built.Closer != nil {
 				_ = built.Closer.Close() // discard the redundant build
 			}
 			return e.Obj, releaseFn(e), nil
@@ -193,9 +190,9 @@ func releaseFn[T any](e *Value[T]) func() error {
 
 // disabledRelease returns an idempotent release that closes the built value.
 // A disabled cache stores nothing, so release owns teardown.
-func disabledRelease(closer ClusterFunc) func() error {
+func disabledRelease(closer io.Closer) func() error {
 	return sync.OnceValue(func() error {
-		if closer.Closer != nil {
+		if closer != nil {
 			return closer.Close()
 		}
 		return nil
@@ -263,7 +260,7 @@ func (c *Cache[T]) sweep() {
 			// it is kept. Winning the claim (refCount -1) is a once-per-entry
 			// gate, so it is also the sole close.
 			if e.refCount.CompareAndSwap(0, -1) {
-				if e.Closer.Closer != nil {
+				if e.Closer != nil {
 					_ = e.Closer.Close()
 				}
 				c.cache.Delete(key)

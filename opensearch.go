@@ -29,11 +29,9 @@ package opensearch
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"io"
 	"math"
 	"net/http"
@@ -88,6 +86,10 @@ var (
 	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
+	// ErrCachedTransportType is a should-never-happen guard: the default-client
+	// cache only runs for a hashable config (Transport == nil), so NewClient
+	// always builds the concrete *opensearchtransport.Transport.
+	ErrCachedTransportType = errors.New("cached default client has a non-standard transport")
 )
 
 // Config represents the client configuration.
@@ -299,7 +301,7 @@ func NewDefaultClient() (*Client, error) {
 	return newCachedDefault(Config{})
 }
 
-// defaultClientCache holds the refcounted transport handles for
+// defaultClientCache holds the refcounted transports for
 // implicitly-constructed default clients, keyed by config hash so identical
 // NewDefaultClient calls share one transport (and its background goroutines)
 // instead of leaking one set per call.
@@ -311,13 +313,15 @@ var defaultClientCache = ttlcache.New(
 )
 
 // sharedTransport is the cache's unit for one shared built-in transport: the
-// transport plus the config a cached Client exposes via GetConfig. Caching the
-// transport (rather than a Client) is what keeps Client out of the cache -- a
-// cache hit mints a fresh per-holder Client around this handle. The refcount
-// and idle-TTL teardown live on the enclosing ttlcache.Value, not here.
+// transport plus the config a cached Client exposes via GetConfig. It embeds
+// the concrete *opensearchtransport.Transport, so Close, Metrics, and Stream
+// are promoted directly (no per-call type assertion). Caching the transport
+// (rather than a Client) is what keeps Client out of the cache -- a cache hit
+// mints a fresh per-holder Client around this handle. The refcount and idle-TTL
+// teardown live on the enclosing ttlcache.Value, not here.
 type sharedTransport struct {
-	transport opensearchtransport.Interface
-	config    *Config
+	*opensearchtransport.Transport
+	config *Config
 }
 
 // ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
@@ -338,23 +342,21 @@ type cachedDefault struct{ cfg Config }
 
 // Key hashes the config with env-derived seed addresses folded in, or reports
 // ttlcache.ErrNotCacheable for an un-hashable config.
-//
-//nolint:gosec // G115: key is an fnv hash; the bit pattern is the identity, not a magnitude
 func (d cachedDefault) Key() (ttlcache.Key, error) {
 	keyCfg := d.cfg
 	if len(keyCfg.Addresses) == 0 {
 		keyCfg.Addresses = getAddressFromEnvironment()
 	}
-	key, ok := HashConfig(keyCfg)
+	key, ok := configKey(keyCfg)
 	if !ok {
 		return 0, ttlcache.ErrNotCacheable
 	}
-	return ttlcache.Key(key), nil
+	return key, nil
 }
 
 // New builds the client on a cache miss and wraps its transport+config into the
-// refcounted handle the cache stores, with the transport's io.Closer and a
-// Metrics-backed liveness probe.
+// refcounted handle the cache stores. The handle embeds the concrete transport,
+// whose Close teardown and Metrics-backed liveness probe drive eviction.
 //
 //nolint:contextcheck // NewClient takes no context yet; the ctx param is plumbed for when it does
 func (d cachedDefault) New(context.Context) (ttlcache.Value[*sharedTransport], error) {
@@ -362,21 +364,21 @@ func (d cachedDefault) New(context.Context) (ttlcache.Value[*sharedTransport], e
 	if err != nil {
 		return ttlcache.Value[*sharedTransport]{}, err
 	}
-	tp := c.Transport
-	handle := &sharedTransport{transport: tp, config: c.config}
-	closer, _ := tp.(io.Closer)
+	// The cache path only runs for a hashable config, which requires
+	// cfg.Transport == nil, so NewClient always built the concrete transport.
+	tp, ok := c.Transport.(*opensearchtransport.Transport)
+	if !ok {
+		return ttlcache.Value[*sharedTransport]{}, ErrCachedTransportType
+	}
+	handle := &sharedTransport{Transport: tp, config: c.config}
 	liveness := func() int64 {
-		m, ok := tp.(opensearchtransport.Measurable)
-		if !ok {
-			return -1
-		}
-		metrics, merr := m.Metrics()
+		metrics, merr := tp.Metrics()
 		if merr != nil {
 			return -1
 		}
 		return int64(metrics.Requests)
 	}
-	return ttlcache.Value[*sharedTransport]{Obj: handle, Closer: ttlcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
+	return ttlcache.Value[*sharedTransport]{Obj: handle, Closer: tp, Liveness: liveness}, nil
 }
 
 // newCachedDefault builds (or reuses) a cached transport handle for cfg and
@@ -390,7 +392,7 @@ func newCachedDefault(cfg Config) (*Client, error) {
 	}
 	// One fresh wrapper per holder, sharing the transport and config, each with
 	// its own release hook, so one Close maps to exactly one refcount decrement.
-	return &Client{Transport: handle.transport, config: handle.config, release: release}, nil
+	return &Client{Transport: handle.Transport, config: handle.config, release: release}, nil
 }
 
 // NewClient creates a new client with configuration from cfg.
@@ -545,46 +547,38 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// HashConfig returns a stable hash of cfg's hashable fields and true, or
-// (0, false) when cfg carries a field that cannot be compared by value (funcs,
-// interfaces, a context, or a custom transport). A false return means "do not
-// cache". The hash must stay in sync with Config; TestHashConfig_FieldGuard
+// configHashable reports whether cfg can be keyed for caching. It returns false
+// when cfg carries a field that cannot be compared by value (funcs, interfaces,
+// a context, or a custom transport); such a client is never cached.
+func configHashable(cfg Config) bool {
+	return cfg.Transport == nil && cfg.Logger == nil && cfg.Selector == nil &&
+		cfg.Router == nil && cfg.Observer == nil && cfg.Signer == nil &&
+		cfg.ConnectionPoolFunc == nil && cfg.AddressResolver == nil &&
+		cfg.AddressResolverRunner == nil && cfg.RetryBackoff == nil &&
+		cfg.HealthCheckRequestModifier == nil && cfg.Context == nil
+}
+
+// configKeyFieldSep namespaces field groups in the configKey hash stream. It is
+// not load-bearing: KeyBuilder length-prefixes every field, so the stream is
+// already prefix-free and unambiguous. The marker only aids debugging when the
+// stream is dumped.
+const configKeyFieldSep = "\x00"
+
+// configKey returns a stable cache key for cfg's hashable fields and true, or
+// (0, false) when cfg is not hashable (see configHashable). The field selection
+// lives here because it reads Config; the hashing primitive is
+// [ttlcache.KeyBuilder]. It must stay in sync with Config; TestConfigKey_FieldGuard
 // fails loudly when Config grows a field.
-func HashConfig(cfg Config) (uint64, bool) {
-	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
-		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
-		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
-		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
-		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
+func configKey(cfg Config) (ttlcache.Key, bool) {
+	if !configHashable(cfg) {
 		return 0, false
 	}
 
-	h := fnv.New64a()
-	writeString := func(s string) {
-		var n [8]byte
-		binary.BigEndian.PutUint64(n[:], uint64(len(s)))
-		_, _ = h.Write(n[:])
-		_, _ = h.Write([]byte(s))
-	}
-	writeInt := func(i int64) {
-		var n [8]byte
-		binary.BigEndian.PutUint64(n[:], uint64(i)) //nolint:gosec // G115: bit reinterpretation for hashing; value semantics irrelevant
-		_, _ = h.Write(n[:])
-	}
-	writeBool := func(b bool) {
-		if b {
-			writeInt(1)
-		} else {
-			writeInt(0)
-		}
-	}
-
+	b := ttlcache.NewKeyBuilder()
 	for _, a := range cfg.Addresses {
-		writeString(a)
+		b.String(a)
 	}
-	writeString("\x00sep-user")
-	writeString(cfg.Username)
-	writeString(cfg.Password)
+	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password)
 
 	// Header: sort keys and values for determinism.
 	keys := make([]string, 0, len(cfg.Header))
@@ -593,60 +587,57 @@ func HashConfig(cfg Config) (uint64, bool) {
 	}
 	sort.Strings(keys)
 	for _, k := range keys {
-		writeString(k)
+		b.String(k)
 		vals := append([]string(nil), cfg.Header[k]...)
 		sort.Strings(vals)
 		for _, v := range vals {
-			writeString(v)
+			b.String(v)
 		}
 	}
 
-	writeString("\x00sep-cacert")
-	writeInt(int64(len(cfg.CACert)))
-	_, _ = h.Write(cfg.CACert)
-	writeBool(cfg.InsecureSkipVerify)
+	b.String(configKeyFieldSep).Bytes(cfg.CACert).Bool(cfg.InsecureSkipVerify)
 
-	writeInt(int64(len(cfg.RetryOnStatus)))
+	b.Int(int64(len(cfg.RetryOnStatus)))
 	for _, s := range cfg.RetryOnStatus {
-		writeInt(int64(s))
+		b.Int(int64(s))
 	}
-	writeBool(cfg.DisableRetry)
-	writeBool(cfg.EnableRetryOnTimeout)
-	writeInt(int64(cfg.MaxRetries))
-	writeInt(int64(cfg.RequestTimeout))
-	writeInt(int64(cfg.DNSCacheRefresh))
-	writeInt(int64(cfg.DNSDialTimeout))
-	writeInt(int64(cfg.DNSKeepAlive))
-	writeInt(int64(cfg.DNSTimeout))
-	writeBool(cfg.CompressRequestBody)
+	b.Bool(cfg.DisableRetry).
+		Bool(cfg.EnableRetryOnTimeout).
+		Int(int64(cfg.MaxRetries)).
+		Int(int64(cfg.RequestTimeout)).
+		Int(int64(cfg.DNSCacheRefresh)).
+		Int(int64(cfg.DNSDialTimeout)).
+		Int(int64(cfg.DNSKeepAlive)).
+		Int(int64(cfg.DNSTimeout)).
+		Bool(cfg.CompressRequestBody)
 	if cfg.DiscoverNodesOnStart != nil {
-		writeBool(*cfg.DiscoverNodesOnStart)
+		b.Bool(*cfg.DiscoverNodesOnStart)
 	} else {
 		// Nil (the "auto" default) hashes as -1 so it never collides with an
 		// explicit false (0) or true (1); the three states resolve to different
 		// clients (see the DiscoverNodesOnStart field doc).
-		writeInt(-1)
+		b.Int(-1)
 	}
-	writeInt(int64(cfg.DiscoverNodesInterval))
-	writeInt(int64(cfg.HealthCheckTimeout))
-	writeInt(int64(cfg.HealthCheckMaxRetries))
-	writeInt(int64(cfg.ResurrectTimeoutInitial))
-	writeInt(int64(cfg.ResurrectTimeoutMax))
-	writeInt(int64(cfg.ResurrectTimeoutFactorCutoff))
-	writeInt(int64(cfg.MinimumResurrectTimeout))
-	writeInt(int64(cfg.MaxRetryClusterHealth))
-	writeInt(int64(cfg.ActiveListCap))
-	writeInt(int64(cfg.StandbyRotationInterval))
-	writeInt(int64(cfg.StandbyRotationCount))
-	writeInt(int64(cfg.StandbyPromotionChecks))
-	writeInt(int64(cfg.MaxAddressResolvers))
-	writeBool(cfg.EnableDebugLogger)
-	writeString(cfg.ShardCostConfig)
-	// float64 fields via math.Float64bits.
-	writeInt(int64(math.Float64bits(cfg.HealthCheckJitter))) //nolint:gosec // G115: bit reinterpretation for hashing
-	writeInt(int64(math.Float64bits(cfg.JitterScale)))       //nolint:gosec // G115: bit reinterpretation for hashing
+	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.HealthCheckTimeout)).
+		Int(int64(cfg.HealthCheckMaxRetries)).
+		Int(int64(cfg.ResurrectTimeoutInitial)).
+		Int(int64(cfg.ResurrectTimeoutMax)).
+		Int(int64(cfg.ResurrectTimeoutFactorCutoff)).
+		Int(int64(cfg.MinimumResurrectTimeout)).
+		Int(int64(cfg.MaxRetryClusterHealth)).
+		Int(int64(cfg.ActiveListCap)).
+		Int(int64(cfg.StandbyRotationInterval)).
+		Int(int64(cfg.StandbyRotationCount)).
+		Int(int64(cfg.StandbyPromotionChecks)).
+		Int(int64(cfg.MaxAddressResolvers)).
+		Bool(cfg.EnableDebugLogger).
+		String(cfg.ShardCostConfig).
+		// float64 fields via math.Float64bits.
+		Int(int64(math.Float64bits(cfg.HealthCheckJitter))). //nolint:gosec // G115: bit reinterpretation for hashing
+		Int(int64(math.Float64bits(cfg.JitterScale)))        //nolint:gosec // G115: bit reinterpretation for hashing
 
-	return h.Sum64(), true
+	return b.Key(), true
 }
 
 // ParseVersion returns an int64 representation of version.

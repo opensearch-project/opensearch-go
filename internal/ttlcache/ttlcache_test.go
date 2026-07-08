@@ -82,7 +82,7 @@ func (c cacheable) New(ctx context.Context) (ttlcache.Value[io.Closer], error) {
 	}
 	return ttlcache.Value[io.Closer]{
 		Obj:      c.closer,
-		Closer:   ttlcache.ClusterFunc{Closer: c.closer},
+		Closer:   c.closer,
 		Liveness: c.live,
 	}, nil
 }
@@ -101,7 +101,7 @@ func TestGetOrCreate_SharesValueAndRefcounts(t *testing.T) {
 		calls++
 		return ttlcache.Value[io.Closer]{
 			Obj:      closer,
-			Closer:   ttlcache.ClusterFunc{Closer: closer},
+			Closer:   closer,
 			Liveness: live,
 		}, nil
 	}
@@ -206,7 +206,7 @@ func TestConcurrentReacquireVsEviction(t *testing.T) {
 		time.Sleep(raceConstruct) // widen the post-construct hit window
 		return ttlcache.Value[io.Closer]{
 			Obj:      closer,
-			Closer:   ttlcache.ClusterFunc{Closer: closer},
+			Closer:   closer,
 			Liveness: live,
 		}, nil
 	}
@@ -251,7 +251,7 @@ func TestWorker_SustainedHitsAcrossWindows(t *testing.T) {
 		builds.Add(1)
 		return ttlcache.Value[io.Closer]{
 			Obj:      closer,
-			Closer:   ttlcache.ClusterFunc{Closer: closer},
+			Closer:   closer,
 			Liveness: live,
 		}, nil
 	}
@@ -371,7 +371,7 @@ func TestConcurrentGetRelease(t *testing.T) {
 		closer := &stubCloser{}
 		return ttlcache.Value[io.Closer]{
 			Obj:      closer,
-			Closer:   ttlcache.ClusterFunc{Closer: closer},
+			Closer:   closer,
 			Liveness: live,
 		}, nil
 	}
@@ -443,14 +443,14 @@ func TestGetOrCreate_ConstructError(t *testing.T) {
 	}
 }
 
-// TestNilCloser_SafeNoop covers a transport without Close: a nil io.Closer
-// wrapped as ClusterFunc{Closer: nil}. Both the disabled release and the sweep's
-// evict must skip Close without panicking.
+// TestNilCloser_SafeNoop covers a transport without Close: a nil io.Closer.
+// Both the disabled release and the sweep's evict must skip Close without
+// panicking.
 func TestNilCloser_SafeNoop(t *testing.T) {
 	nilConstruct := func(context.Context) (ttlcache.Value[io.Closer], error) {
 		return ttlcache.Value[io.Closer]{
 			Obj:      nil,
-			Closer:   ttlcache.ClusterFunc{Closer: nil},
+			Closer:   nil,
 			Liveness: func() int64 { return 0 },
 		}, nil
 	}

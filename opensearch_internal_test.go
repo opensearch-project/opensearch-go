@@ -726,7 +726,7 @@ type stubStreamOnly struct{}
 //nolint:nilnil // stub: Stream is never called, exists only to satisfy Interface
 func (stubStreamOnly) Stream(*http.Request) (*http.Response, error) { return nil, nil }
 
-func TestHashConfig(t *testing.T) {
+func TestConfigKey(t *testing.T) {
 	t.Run("hashable configs", func(t *testing.T) {
 		tests := []struct {
 			name   string
@@ -747,8 +747,8 @@ func TestHashConfig(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				ha, oka := HashConfig(tt.a)
-				hb, okb := HashConfig(tt.b)
+				ha, oka := configKey(tt.a)
+				hb, okb := configKey(tt.b)
 				require.True(t, oka)
 				require.True(t, okb)
 				if tt.wantEq {
@@ -772,20 +772,20 @@ func TestHashConfig(t *testing.T) {
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				_, ok := HashConfig(tt.cfg)
+				_, ok := configKey(tt.cfg)
 				require.False(t, ok, "un-hashable field must force bypass")
 			})
 		}
 	})
 }
 
-// TestHashConfig_FieldGuard fails loudly when Config grows a field without a
-// corresponding update to HashConfig, preventing a silent cache-key collision.
-func TestHashConfig_FieldGuard(t *testing.T) {
+// TestConfigKey_FieldGuard fails loudly when Config grows a field without a
+// corresponding update to configKey, preventing a silent cache-key collision.
+func TestConfigKey_FieldGuard(t *testing.T) {
 	const knownFieldCount = 46
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
-		"Config field count changed: audit HashConfig for the new field, then update knownFieldCount")
+		"Config field count changed: audit configKey for the new field, then update knownFieldCount")
 }
 
 func TestNewDefaultClientCaches(t *testing.T) {
