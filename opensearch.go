@@ -551,18 +551,12 @@ const configKeyFieldSep = "\x00"
 // configKey returns a stable cache key for cfg's hashable fields and true, or
 // (0, false) when cfg carries a field that cannot be compared by value (funcs,
 // interfaces, a context, or a custom transport); such a client is never cached.
-// The field selection lives here because it reads Config; the hashing primitive
-// is [ttlcache.KeyBuilder]. It must stay in sync with Config;
-// TestConfigKey_FieldGuard fails loudly when Config grows a field.
-//
-// The key is derived from raw, pre-normalization values, whereas NewClient
-// normalizes before building the transport (trailing "/" trimmed from
-// addresses, in-URL user:pass@ folded into Username/Password, scheme
-// lowercased) and header values are sorted here, hiding multi-value order. This
-// is sound because only the empty Config{} from NewDefaultClient reaches the
-// cache today, so no two distinct inputs collide. Extending the cache to
-// caller-supplied configs would first require mirroring NewClient's
-// normalization here, or these quirks would duplicate or over-merge transports.
+// Must stay in sync with Config; TestConfigKey_FieldGuard fails when it grows a
+// field. Hashes raw, pre-normalization values (NewClient later trims addresses,
+// folds in-URL credentials, and lowercases the scheme; header values are sorted
+// here, hiding multi-value order), which is safe only because just the empty
+// Config{} reaches the cache today. Caching caller configs would first require
+// mirroring NewClient's normalization here.
 func configKey(cfg Config) (ttlcache.Key, bool) {
 	// Any un-hashable field means this client is never cached; bail before
 	// building a key. Kept as one predicate next to the field reads below so the
