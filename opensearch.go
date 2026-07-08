@@ -279,12 +279,12 @@ type Client struct {
 	Transport opensearchtransport.Interface
 	config    *Config
 
-	// closeFn overrides Close's teardown. It is nil for an ordinary client
-	// (Close tears down the transport directly) and non-nil only for a
-	// per-holder handle minted by SharedCopy, where it is a cache-release hook
-	// so Close decrements the shared entry's refcount in O(1) instead of
-	// closing the transport the holder shares with others.
-	closeFn func() error
+	// release is the cache-release hook for a client whose transport is shared
+	// via the default-client cache: Close calls it to decrement the shared
+	// entry's refcount in O(1) instead of tearing the transport down. It is nil
+	// for an ordinary (uncached) client, where Close closes the transport
+	// directly.
+	release func() error
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -299,15 +299,26 @@ func NewDefaultClient() (*Client, error) {
 	return newCachedDefault(Config{})
 }
 
-// defaultClientCache holds implicitly-constructed default clients keyed by
-// config hash so identical NewDefaultClient calls share one transport (and its
-// background goroutines) instead of leaking one set per call.
+// defaultClientCache holds the refcounted transport handles for
+// implicitly-constructed default clients, keyed by config hash so identical
+// NewDefaultClient calls share one transport (and its background goroutines)
+// instead of leaking one set per call.
 //
 //nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
 var defaultClientCache = ttlcache.New(
 	envvars.DefaultClientTTLValue(),
-	ttlcache.WithLogger[*Client](ttlcacheDebugf),
+	ttlcache.WithLogger[*sharedTransport](ttlcacheDebugf),
 )
+
+// sharedTransport is the cache's unit for one shared built-in transport: the
+// transport plus the config a cached Client exposes via GetConfig. Caching the
+// transport (rather than a Client) is what keeps Client out of the cache -- a
+// cache hit mints a fresh per-holder Client around this handle. The refcount
+// and idle-TTL teardown live on the enclosing ttlcache.Value, not here.
+type sharedTransport struct {
+	transport opensearchtransport.Interface
+	config    *Config
+}
 
 // ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
 // shared debug logger, resolved per call so a logger installed after init is
@@ -341,19 +352,21 @@ func (d cachedDefault) Key() (ttlcache.Key, error) {
 	return ttlcache.Key(key), nil
 }
 
-// New builds the client and its liveness probe on a cache miss.
+// New builds the client on a cache miss and wraps its transport+config into the
+// refcounted handle the cache stores, with the transport's io.Closer and a
+// Metrics-backed liveness probe.
 //
 //nolint:contextcheck // NewClient takes no context yet; the ctx param is plumbed for when it does
-func (d cachedDefault) New(context.Context) (ttlcache.Value[*Client], error) {
+func (d cachedDefault) New(context.Context) (ttlcache.Value[*sharedTransport], error) {
 	c, err := NewClient(d.cfg)
 	if err != nil {
-		return ttlcache.Value[*Client]{}, err
+		return ttlcache.Value[*sharedTransport]{}, err
 	}
-	closer, _ := c.Transport.(io.Closer)
+	tp := c.Transport
+	handle := &sharedTransport{transport: tp, config: c.config}
+	closer, _ := tp.(io.Closer)
 	liveness := func() int64 {
-		m, ok := c.Transport.(interface {
-			Metrics() (opensearchtransport.Metrics, error)
-		})
+		m, ok := tp.(opensearchtransport.Measurable)
 		if !ok {
 			return -1
 		}
@@ -363,21 +376,21 @@ func (d cachedDefault) New(context.Context) (ttlcache.Value[*Client], error) {
 		}
 		return int64(metrics.Requests)
 	}
-	return ttlcache.Value[*Client]{Obj: c, Closer: ttlcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
+	return ttlcache.Value[*sharedTransport]{Obj: handle, Closer: ttlcache.ClusterFunc{Closer: closer}, Liveness: liveness}, nil
 }
 
-// newCachedDefault builds (or reuses) a cached client for cfg. Used only by
-// NewDefaultClient; explicit NewClient calls are never cached. Un-hashable cfg
-// (reported via cachedDefault.Key) falls back to a direct, uncached build.
+// newCachedDefault builds (or reuses) a cached transport handle for cfg and
+// wraps it in a thin per-holder Client. Used only by NewDefaultClient; explicit
+// NewClient calls are never cached. Un-hashable cfg (reported via
+// cachedDefault.Key) falls back to a direct, uncached build.
 func newCachedDefault(cfg Config) (*Client, error) {
-	value, release, err := defaultClientCache.GetOrCreate(context.Background(), cachedDefault{cfg: cfg})
+	handle, release, err := defaultClientCache.GetOrCreate(context.Background(), cachedDefault{cfg: cfg})
 	if err != nil {
 		return nil, err
 	}
-	// Return a fresh wrapper per holder sharing the transport and config, each
-	// with its own release hook, so one Close maps to exactly one refcount
-	// decrement.
-	return value.SharedCopy(release), nil
+	// One fresh wrapper per holder, sharing the transport and config, each with
+	// its own release hook, so one Close maps to exactly one refcount decrement.
+	return &Client{Transport: handle.transport, config: handle.config, release: release}, nil
 }
 
 // NewClient creates a new client with configuration from cfg.
@@ -523,29 +536,13 @@ func getAddressFromEnvironment() []string {
 // does, canceling pollers and closing idle connections -- and is a no-op for a
 // custom Transport that does not.
 func (c *Client) Close() error {
-	if c.closeFn != nil {
-		return c.closeFn()
+	if c.release != nil {
+		return c.release()
 	}
 	if closer, ok := c.Transport.(io.Closer); ok {
 		return closer.Close()
 	}
 	return nil
-}
-
-// SharedCopy mints a per-holder handle onto this client's transport: a new
-// Client that shares the same Transport and config but closes via closeFn
-// instead of tearing the transport down. The default-client cache stores one
-// Client per config and hands every caller a SharedCopy whose closeFn
-// decrements the shared entry's refcount, so each caller's Close runs exactly
-// once and the transport is torn down only after the last holder releases.
-//
-// A distinct Client per holder is required because Close dispatches on the
-// receiver: callers must not share one Client, or one caller's Close would run
-// another's release. This is cache-internal wiring (the two call sites are
-// newCachedDefault and opensearchapi's newCachedAPIDefault), exported only so
-// the opensearchapi package can reach it, and not part of the stable API.
-func (c *Client) SharedCopy(closeFn func() error) *Client {
-	return &Client{Transport: c.Transport, config: c.config, closeFn: closeFn}
 }
 
 // HashConfig returns a stable hash of cfg's hashable fields and true, or

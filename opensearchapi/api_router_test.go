@@ -17,11 +17,11 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
-// TestNewClient_RouterInjection covers the v5-specific contract
-// that NewClient injects [opensearchtransport.NewDefaultRouter] when
-// the caller leaves config.Client.Router nil and OPENSEARCH_GO_ROUTER
-// is not set falsy. v5 opts every caller into intelligent
-// request routing by default.
+// TestNewClient_RouterInjection covers the v5-specific contract that a nil
+// config.Client.Router yields the built-in default router. opensearchapi no
+// longer injects it; the underlying opensearch.NewClient and the transport
+// build the default router when Router is nil and OPENSEARCH_GO_ROUTER is not
+// falsy. v5 opts every caller into intelligent request routing by default.
 //
 // Because Config is passed by value and the resulting Client doesn't
 // expose its Router publicly, this test verifies the contract through
@@ -40,7 +40,7 @@ func TestNewClient_RouterInjection(t *testing.T) {
 		cfg  opensearchapi.Config
 	}{
 		{
-			name: "nil Router triggers default-router injection",
+			name: "nil Router yields the built-in default router",
 			cfg: opensearchapi.Config{
 				Client: opensearch.Config{Addresses: []string{"http://localhost:9200"}},
 			},
@@ -68,10 +68,10 @@ func TestNewClient_RouterInjection(t *testing.T) {
 }
 
 // TestNewClient_RouterEnvOptOut covers the OPENSEARCH_GO_ROUTER env-var
-// opt-out: when explicitly set to a falsy value (false/0), the
-// default-router injection is suppressed even though Router == nil.
-// The unset / truthy / unparseable cases all proceed with injection
-// (the v5 default).
+// opt-out: when explicitly set to a falsy value (false/0), the default
+// router is suppressed even though Router == nil. The unset / truthy /
+// unparseable cases all proceed with the default router (the v5 default).
+// The behavior lives in opensearch.NewClient; opensearchapi rides it.
 //
 // Cannot run in parallel because t.Setenv mutates process state.
 func TestNewClient_RouterEnvOptOut(t *testing.T) {
@@ -87,12 +87,12 @@ func TestNewClient_RouterEnvOptOut(t *testing.T) {
 		// truthy-env semantics).
 		wantDiscoverOnStartTrue bool
 	}{
-		{name: "unset: default-router injected, no auto-discovery", envSet: false, wantErrNil: true},
-		{name: "true: default-router injected + auto-discovery", envSet: true, envValue: "true", wantErrNil: true, wantDiscoverOnStartTrue: true},
-		{name: "1: default-router injected + auto-discovery", envSet: true, envValue: "1", wantErrNil: true, wantDiscoverOnStartTrue: true},
-		{name: "false: injection skipped, no auto-discovery", envSet: true, envValue: "false", wantErrNil: true},
-		{name: "0: injection skipped, no auto-discovery", envSet: true, envValue: "0", wantErrNil: true},
-		{name: "unparseable: treated as unset, injects without auto-discovery", envSet: true, envValue: "garbage", wantErrNil: true},
+		{name: "unset: default router, no auto-discovery", envSet: false, wantErrNil: true},
+		{name: "true: default router + auto-discovery", envSet: true, envValue: "true", wantErrNil: true, wantDiscoverOnStartTrue: true},
+		{name: "1: default router + auto-discovery", envSet: true, envValue: "1", wantErrNil: true, wantDiscoverOnStartTrue: true},
+		{name: "false: default router skipped, no auto-discovery", envSet: true, envValue: "false", wantErrNil: true},
+		{name: "0: default router skipped, no auto-discovery", envSet: true, envValue: "0", wantErrNil: true},
+		{name: "unparseable: treated as unset, default router without auto-discovery", envSet: true, envValue: "garbage", wantErrNil: true},
 	}
 
 	for _, tt := range tests {
@@ -122,16 +122,16 @@ func TestNewClient_RouterEnvOptOut(t *testing.T) {
 			// was nil + caller didn't pick a value. We can read cfg
 			// after the call to confirm.
 			//
-			// Note: cfg.Client.Router is also set by injection but
-			// that's also a value-level write into the local Config;
-			// the caller's cfg won't see it. The discovery field is
+			// Note: cfg.Client.Router is also defaulted downstream but
+			// that's a value-level write into the local Config; the
+			// caller's cfg won't see it. The discovery field is
 			// inside opensearch.Config which IS embedded by value
 			// inside opensearchapi.Config, so the same constraint
 			// applies and we can't observe it here either.
 			//
 			// Workaround: replicate the cfg setup, then call NewClient
 			// against a deliberately distinct cfg to confirm via the
-			// non-error path that injection happened.
+			// non-error path that the default router was built.
 			_ = tt.wantDiscoverOnStartTrue // documented; can't observe directly without exposing internal state
 		})
 	}
@@ -139,13 +139,13 @@ func TestNewClient_RouterEnvOptOut(t *testing.T) {
 
 // TestNewClient_RouterTruthyEnablesDiscovery confirms the v5
 // preserves v4's OPENSEARCH_GO_ROUTER=true side-effect: when the env
-// var is truthy and the default-router injection runs AND the caller
-// did not set DiscoverNodesOnStart, NewClient sets it to true.
+// var is truthy and the default router is built AND the caller did not
+// set DiscoverNodesOnStart, NewClient sets it to true.
 //
 // Because Config is passed by value, we exercise the contract by
 // constructing a Config that the test can mutate-then-observe. The
-// injection writes both Router and (when env-truthy) DiscoverNodesOnStart
-// into the local Config copy passed into opensearch.NewClient; we
+// downstream opensearch.NewClient writes both Router and (when
+// env-truthy) DiscoverNodesOnStart into the local Config copy; we
 // verify the discovery side-effect by checking the value the v5
 // NewClient passed forward (using a transport factory hook is overkill
 // here -- the visible outcome is "no error; client built").

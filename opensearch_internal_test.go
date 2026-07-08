@@ -691,9 +691,9 @@ func TestClientGetConfig(t *testing.T) {
 }
 
 func TestClientClose(t *testing.T) {
-	t.Run("closeFn hook takes precedence", func(t *testing.T) {
+	t.Run("release hook takes precedence", func(t *testing.T) {
 		count := 0
-		c := &Client{closeFn: func() error { count++; return nil }}
+		c := &Client{release: func() error { count++; return nil }}
 		require.NoError(t, c.Close())
 		require.Equal(t, 1, count)
 	})
@@ -799,7 +799,8 @@ func TestNewDefaultClientCaches(t *testing.T) {
 
 	require.NotSame(t, c1, c2, "each call returns a distinct *Client wrapper")
 	require.Same(t, c1.Transport, c2.Transport, "identical default config must share one transport")
-	require.NotNil(t, c1.closeFn, "cached client must carry a release hook")
+	require.NotNil(t, c1.release, "cached client must carry a release hook")
+	require.NotNil(t, c1.GetConfig(), "cached client must preserve config threaded through the shared handle")
 }
 
 // TestNewClientNeverCaches locks in the acceptance criterion that user-built
@@ -817,5 +818,5 @@ func TestNewClientNeverCaches(t *testing.T) {
 
 	require.NotSame(t, c1.Transport, c2.Transport,
 		"explicit NewClient must not share a cached transport")
-	require.Nil(t, c1.closeFn, "explicit NewClient must not carry a cache release hook")
+	require.Nil(t, c1.release, "explicit NewClient must not carry a cache release hook")
 }

@@ -37,11 +37,32 @@ func TestAPINewDefaultClientCaches(t *testing.T) {
 
 	require.NotSame(t, c1, c2)
 	require.Same(t, c1.Client.Transport, c2.Client.Transport,
-		"default api clients must share one transport across the injected router")
+		"default api clients must share one transport")
 	// The shared root must preserve config so GetConfig()-based patterns
 	// (e.g. opensearchapi.NewClient(Config{Client: *c.Client.GetConfig()}))
 	// do not nil-deref.
 	require.NotNil(t, c1.Client.GetConfig(), "cached api client must preserve root config")
+}
+
+// TestAPIDefaultClientRidesOpensearchCache locks in that the api default
+// client shares the one transport minted by the opensearch default cache
+// instead of running a second cache of its own. Closing each client
+// decrements the shared refcount exactly once (idempotent double-close).
+func TestAPIDefaultClientRidesOpensearchCache(t *testing.T) {
+	root, err := opensearch.NewDefaultClient()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = root.Close() })
+
+	api, err := NewDefaultClient()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = api.Close() })
+
+	require.Same(t, root.Transport, api.Client.Transport,
+		"api default client must share the opensearch default cache's transport")
+
+	// Close is idempotent: a second Close on the same wrapper is a no-op.
+	require.NoError(t, api.Close())
+	require.NoError(t, api.Close())
 }
 
 // TestAPINewClientNeverCaches locks in the acceptance criterion that
