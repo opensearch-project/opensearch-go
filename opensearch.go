@@ -547,17 +547,6 @@ func (c *Client) Close() error {
 	return nil
 }
 
-// configHashable reports whether cfg can be keyed for caching. It returns false
-// when cfg carries a field that cannot be compared by value (funcs, interfaces,
-// a context, or a custom transport); such a client is never cached.
-func configHashable(cfg Config) bool {
-	return cfg.Transport == nil && cfg.Logger == nil && cfg.Selector == nil &&
-		cfg.Router == nil && cfg.Observer == nil && cfg.Signer == nil &&
-		cfg.ConnectionPoolFunc == nil && cfg.AddressResolver == nil &&
-		cfg.AddressResolverRunner == nil && cfg.RetryBackoff == nil &&
-		cfg.HealthCheckRequestModifier == nil && cfg.Context == nil
-}
-
 // configKeyFieldSep namespaces field groups in the configKey hash stream. It is
 // not load-bearing: KeyBuilder length-prefixes every field, so the stream is
 // already prefix-free and unambiguous. The marker only aids debugging when the
@@ -565,12 +554,20 @@ func configHashable(cfg Config) bool {
 const configKeyFieldSep = "\x00"
 
 // configKey returns a stable cache key for cfg's hashable fields and true, or
-// (0, false) when cfg is not hashable (see configHashable). The field selection
-// lives here because it reads Config; the hashing primitive is
-// [ttlcache.KeyBuilder]. It must stay in sync with Config; TestConfigKey_FieldGuard
-// fails loudly when Config grows a field.
+// (0, false) when cfg carries a field that cannot be compared by value (funcs,
+// interfaces, a context, or a custom transport); such a client is never cached.
+// The field selection lives here because it reads Config; the hashing primitive
+// is [ttlcache.KeyBuilder]. It must stay in sync with Config;
+// TestConfigKey_FieldGuard fails loudly when Config grows a field.
 func configKey(cfg Config) (ttlcache.Key, bool) {
-	if !configHashable(cfg) {
+	// Any un-hashable field means this client is never cached; bail before
+	// building a key. Kept as one predicate next to the field reads below so the
+	// two lists stay together.
+	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
+		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
+		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
+		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
+		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
 		return 0, false
 	}
 
