@@ -45,6 +45,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
@@ -750,6 +751,20 @@ func TestConfigKey(t *testing.T) {
 				Config{Header: http.Header{"a": {"b", "c", "d"}}},
 				false,
 			},
+			{"diff retry-on-status", Config{RetryOnStatus: []int{502}}, Config{RetryOnStatus: []int{503}}, false},
+			{"same retry-on-status", Config{RetryOnStatus: []int{502, 503}}, Config{RetryOnStatus: []int{502, 503}}, true},
+			{
+				"discover-on-start true vs false",
+				Config{DiscoverNodesOnStart: boolPtr(true)},
+				Config{DiscoverNodesOnStart: boolPtr(false)},
+				false,
+			},
+			{
+				"discover-on-start explicit false vs nil auto",
+				Config{DiscoverNodesOnStart: boolPtr(false)},
+				Config{},
+				false,
+			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -783,6 +798,15 @@ func TestConfigKey(t *testing.T) {
 			})
 		}
 	})
+}
+
+// TestCachedDefaultKeyNotCacheable verifies cachedDefault.Key surfaces
+// ttlcache.ErrNotCacheable for an un-hashable config, so GetOrCreate falls
+// back to a direct build instead of caching a client that cannot be keyed.
+func TestCachedDefaultKeyNotCacheable(t *testing.T) {
+	d := cachedDefault{cfg: Config{Transport: http.DefaultTransport}}
+	_, err := d.Key()
+	require.ErrorIs(t, err, ttlcache.ErrNotCacheable)
 }
 
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
