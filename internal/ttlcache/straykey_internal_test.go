@@ -13,6 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Enable fatal invariant checks for the ttlcache test binary; see
+// panicOnInvariantViolation. Only ttlcache's own internals can reach the
+// stray-key path, so gating it here (rather than in every downstream test
+// binary) covers everything that can trigger it.
+func init() { panicOnInvariantViolation = true }
+
 // TestOnStrayKey_PanicsUnderTest verifies the should-never-happen lockstep
 // violation (a mapKeys entry with no backing sync.Map value) surfaces as a
 // panic under `go test`. In a production binary the same path logs and

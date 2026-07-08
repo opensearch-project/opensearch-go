@@ -554,6 +554,15 @@ const configKeyFieldSep = "\x00"
 // The field selection lives here because it reads Config; the hashing primitive
 // is [ttlcache.KeyBuilder]. It must stay in sync with Config;
 // TestConfigKey_FieldGuard fails loudly when Config grows a field.
+//
+// The key is derived from raw, pre-normalization values, whereas NewClient
+// normalizes before building the transport (trailing "/" trimmed from
+// addresses, in-URL user:pass@ folded into Username/Password, scheme
+// lowercased) and header values are sorted here, hiding multi-value order. This
+// is sound because only the empty Config{} from NewDefaultClient reaches the
+// cache today, so no two distinct inputs collide. Extending the cache to
+// caller-supplied configs would first require mirroring NewClient's
+// normalization here, or these quirks would duplicate or over-merge transports.
 func configKey(cfg Config) (ttlcache.Key, bool) {
 	// Any un-hashable field means this client is never cached; bail before
 	// building a key. Kept as one predicate next to the field reads below so the

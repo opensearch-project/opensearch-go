@@ -143,8 +143,10 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 		if e.incIfLive() {
 			return e.Obj, releaseFn(e), nil
 		}
-		// Claimed for eviction; fall through to the locked slow path, which
-		// blocks until the sweep releases mu and removes the entry.
+		// Claimed for eviction; fall through to the slow path. That path
+		// constructs a fresh value before taking mu, then under mu either
+		// reacquires an entry a concurrent goroutine re-inserted under this key
+		// (discarding the value it just built) or publishes its own.
 	}
 
 	// Construct outside the lock (may do network setup).

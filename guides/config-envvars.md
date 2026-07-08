@@ -31,6 +31,7 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL`](#connection-pool-tuning)          | `0` (use discovery interval) | Standby rotation interval             |
 | [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle           |
 | [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion        |
+| [`OPENSEARCH_GO_DEFAULT_CLIENT_TTL`](#default-client-cache)                   | `16m`                        | Default-client cache idle eviction    |
 | [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging                         |
 | [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask         |
 | [`OPENSEARCH_GO_POLICY_*`](#policy-overrides)                                 | all enabled                  | Per-policy disable (10 variables)     |
@@ -91,6 +92,12 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 | `OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL` | Duration or seconds | `0` (use `DiscoverNodesInterval`) | Interval between standby rotation cycles. `0` or unset inherits the node-discovery interval; negative disables rotation. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
 | `OPENSEARCH_GO_STANDBY_ROTATION_COUNT` | Integer | `1` | Standby connections rotated per cycle. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
 | `OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS` | Integer | `3` | Consecutive successful health checks required to promote a standby connection to active. | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
+
+## Default client cache
+
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
+| `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` | Duration or seconds | `16m` | Idle eviction window for the process-wide cache of implicitly-created default clients (`opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied). Accepts a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`). Identical default clients share one cached transport, keyed by config hash, until every holder is closed and the entry sits idle for a full window. `0` = never evict (entries live until process exit); a negative value (`-1`, `-1s`) disables caching, so every call builds a fresh client; positive = explicit window. The `16m` default is the 15m AWS Lambda max timeout plus a 1m buffer, so a default client is not evicted mid-invocation across the longest possible Lambda run. Has no `opensearch.Config` equivalent — user-built `opensearch.NewClient`/`opensearchapi.NewClient` clients never enter the cache. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
 
 ## Debug and diagnostics
 

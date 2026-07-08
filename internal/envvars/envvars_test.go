@@ -79,6 +79,10 @@ func TestParseDefaultClientTTL(t *testing.T) {
 		{"zero indefinite", "0", 0, nil},
 		{"positive", "90s", 90 * time.Second, nil},
 		{"positive minutes", "10m", 10 * time.Minute, nil},
+		{"bare seconds", "30", 30 * time.Second, nil},
+		{"bare fractional seconds", "1.5", 1500 * time.Millisecond, nil},
+		{"bare negative seconds disables", "-1", -time.Second, nil},
+		{"bare zero indefinite", "0.0", 0, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
