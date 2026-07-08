@@ -570,6 +570,42 @@ func TestBulkIndexerContext(t *testing.T) {
 				require.Error(t, bi.Close(ctx))
 			},
 		},
+		{
+			name: "Close does not hang when construction context was cancelled",
+			run: func(t *testing.T) {
+				t.Helper()
+				// The flusher goroutine exits when the construction context is
+				// cancelled. A later Close must still return rather than block
+				// forever signaling a flusher that already left. Regression for
+				// the unbuffered done-channel deadlock.
+				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				ctx, cancel := context.WithCancel(t.Context())
+				bi, err := NewBulkIndexer(BulkIndexerConfig{
+					NumWorkers: 1,
+					Client:     client,
+					Context:    ctx,
+				})
+				require.NoError(t, err)
+
+				// Cancel the construction context and let the flusher observe it
+				// and return (closing flusherDone).
+				cancel()
+				select {
+				case <-bi.(*bulkIndexer).flusherDone:
+				case <-time.After(time.Second):
+					t.Fatal("flusher did not stop after construction context was cancelled")
+				}
+
+				done := make(chan error, 1)
+				go func() { done <- bi.Close(t.Context()) }()
+				select {
+				case <-done:
+					// Close returned; no deadlock.
+				case <-time.After(5 * time.Second):
+					t.Fatal("Close hung after construction context was cancelled")
+				}
+			},
+		},
 	}
 
 	for _, tt := range tests {
