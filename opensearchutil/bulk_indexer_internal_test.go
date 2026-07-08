@@ -346,7 +346,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-						if request.URL.Path == "/" {
+						if request.URL.Path != "/_bulk" {
 							return infoResponse()
 						}
 						return &http.Response{
@@ -403,7 +403,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					Client: opensearch.Config{
 						Transport: &mockTransport{
 							RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-								if request.URL.Path == "/" {
+								if request.URL.Path != "/_bulk" {
 									return infoResponse()
 								}
 
@@ -527,16 +527,10 @@ func TestBulkIndexerContext(t *testing.T) {
 				ctx, cancel := context.WithCancel(context.Background())
 				cancel()
 
-				// select{} chooses randomly between the two ready cases when the
-				// queue still has room, so we cannot assert every Add fails. We can
-				// assert the bookkeeping invariant: each Add ends up in exactly one
-				// of NumAdded or BulkAddFailCount, never both, never neither.
 				const numAttempts = 50
-				var nilReturns, errReturns uint64
+				var errReturns uint64
 				for range numAttempts {
-					if err := bi.Add(ctx, BulkIndexerItem{Action: "index", DocumentID: "cancelled"}); err == nil {
-						nilReturns++
-					} else {
+					if err := bi.Add(ctx, BulkIndexerItem{Action: "index", DocumentID: "cancelled"}); err != nil {
 						require.ErrorIs(t, err, context.Canceled)
 						errReturns++
 					}
@@ -544,7 +538,7 @@ func TestBulkIndexerContext(t *testing.T) {
 				require.NoError(t, bi.Close(context.Background()))
 
 				stats := bi.Stats()
-				require.Equal(t, nilReturns, stats.NumAdded, "NumAdded must equal the number of Add() calls that returned nil")
+				require.Equal(t, uint64(numAttempts)-errReturns, stats.NumAdded, "NumAdded must equal the number of Add() calls that returned nil")
 				require.Equal(t, errReturns, stats.BulkAddFailCount, "BulkAddFailCount must equal the number of Add() calls that returned ctx.Err()")
 				require.Equal(t, uint64(numAttempts), stats.NumAdded+stats.BulkAddFailCount, "every Add() must be accounted for exactly once")
 				require.Positive(t, errReturns, "at least one Add() should fail when context is already cancelled")
@@ -628,7 +622,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					Client: opensearch.Config{
 						Transport: &mockTransport{
 							RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-								if request.URL.Path == "/" {
+								if request.URL.Path != "/_bulk" {
 									return &http.Response{Body: io.NopCloser(strings.NewReader(infoBody))}, nil
 								}
 								return nil, fmt.Errorf("Mock transport error")
@@ -694,7 +688,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						Client: opensearch.Config{
 							Transport: &mockTransport{
 								RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-									if request.URL.Path == "/" {
+									if request.URL.Path != "/_bulk" {
 										return infoResponse()
 									}
 									return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
@@ -783,7 +777,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				type contextKey string
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
 					RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-						if request.URL.Path == "/" {
+						if request.URL.Path != "/_bulk" {
 							return infoResponse()
 						}
 						return &http.Response{
@@ -839,7 +833,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					Client: opensearch.Config{
 						Transport: &mockTransport{
 							RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-								if request.URL.Path == "/" {
+								if request.URL.Path != "/_bulk" {
 									return infoResponse()
 								}
 								return nil, errors.New("simulated bulk request error")
@@ -924,7 +918,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						Client: opensearch.Config{
 							Transport: &mockTransport{
 								RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-									if request.URL.Path == "/" {
+									if request.URL.Path != "/_bulk" {
 										return infoResponse()
 									}
 									return &http.Response{Body: io.NopCloser(strings.NewReader(bulkBody))}, nil
@@ -976,7 +970,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					Client: opensearch.Config{
 						Transport: &mockTransport{
 							RoundTripFunc: func(request *http.Request) (*http.Response, error) {
-								if request.URL.Path == "/" {
+								if request.URL.Path != "/_bulk" {
 									return infoResponse()
 								}
 								return &http.Response{Body: io.NopCloser(strings.NewReader(`{"items":[]}`))}, nil
@@ -1029,6 +1023,253 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 			tt.run(t)
 		})
 	}
+}
+
+func TestBulkIndexerFlush_basic(t *testing.T) {
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(`{"items":[{"index":{}}]}`)),
+			}, nil
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushBytes:    1,
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	for i := range 5 {
+		require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+			Action: "index",
+			Body:   strings.NewReader(fmt.Sprintf(`{"title":"doc-%d"}`, i)),
+		}))
+	}
+
+	require.NoError(t, bi.Flush(context.Background()))
+
+	stats := bi.Stats()
+	require.Equal(t, uint64(5), stats.NumFlushed, "NumFlushed")
+}
+
+func TestBulkIndexerFlush_concurrent(t *testing.T) {
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(`{"items":[{"index":{}}]}`)),
+			}, nil
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushBytes:    1,
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	for range 2 {
+		go func() {
+			defer wg.Done()
+			for range 10 {
+				if err := bi.Add(context.Background(), BulkIndexerItem{
+					Action: "index",
+					Body:   strings.NewReader(`{"title":"doc"}`),
+				}); err != nil {
+					t.Errorf("Unexpected Add error: %s", err)
+				}
+			}
+			if err := bi.Flush(context.Background()); err != nil {
+				t.Errorf("Unexpected Flush error: %s", err)
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	stats := bi.Stats()
+	require.Equal(t, uint64(20), stats.NumFlushed, "NumFlushed")
+}
+
+func TestBulkIndexerFlush_thenAdd(t *testing.T) {
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(`{"items":[{"index":{}}]}`)),
+			}, nil
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushBytes:    1,
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	// Flush on empty should be a no-op.
+	require.NoError(t, bi.Flush(context.Background()))
+
+	for range 3 {
+		require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+			Action: "index",
+			Body:   strings.NewReader(`{"title":"doc"}`),
+		}))
+	}
+
+	require.NoError(t, bi.Flush(context.Background()))
+	require.Equal(t, uint64(3), bi.Stats().NumFlushed, "NumFlushed after first batch")
+
+	for range 3 {
+		require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+			Action: "index",
+			Body:   strings.NewReader(`{"title":"doc"}`),
+		}))
+	}
+
+	require.NoError(t, bi.Flush(context.Background()))
+	require.Equal(t, uint64(6), bi.Stats().NumFlushed, "NumFlushed after second batch")
+}
+
+func TestBulkIndexerFlush_contextCancelled(t *testing.T) {
+	// Use a transport that blocks until the request context is cancelled.
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if err := request.Context().Err(); err != nil {
+				return nil, err
+			}
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			// Block until the request context is cancelled.
+			<-request.Context().Done()
+			return nil, request.Context().Err()
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushBytes:    1e+6, // large so auto-flush doesn't trigger
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+		Action: "index",
+		Body:   strings.NewReader(`{"title":"doc"}`),
+	}))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	done := make(chan error, 1)
+	go func() { done <- bi.Flush(ctx) }()
+
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush with cancelled context did not return within 5s (deadlock)")
+	}
+}
+
+func TestBulkIndexerAddAfterClose(t *testing.T) {
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(`{"items":[]}`)),
+			}, nil
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Close(context.Background()))
+
+	addErr := bi.Add(context.Background(), BulkIndexerItem{Action: "index", Body: strings.NewReader(`{}`)})
+	require.Error(t, addErr, "Add after Close should return an error, not panic")
+
+	stats := bi.Stats()
+	require.Equal(t, uint64(1), stats.BulkAddFailCount, "BulkAddFailCount")
+}
+
+func TestBulkIndexerReuse(t *testing.T) {
+	client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{
+		RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+			if request.URL.Path != "/_bulk" {
+				return infoResponse()
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Body:       io.NopCloser(strings.NewReader(`{"items":[{"index":{}}]}`)),
+			}, nil
+		},
+	}}})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers:    1,
+		FlushBytes:    1,
+		FlushInterval: time.Hour,
+		Client:        client,
+	})
+	require.NoError(t, err)
+
+	for range 3 {
+		require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+			Action: "index",
+			Body:   strings.NewReader(`{"title":"doc"}`),
+		}))
+	}
+
+	require.NoError(t, bi.Flush(context.Background()))
+	require.Equal(t, uint64(3), bi.Stats().NumFlushed, "NumFlushed after first Flush")
+
+	for range 3 {
+		require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+			Action: "index",
+			Body:   strings.NewReader(`{"title":"doc"}`),
+		}))
+	}
+
+	require.NoError(t, bi.Flush(context.Background()))
+	require.Equal(t, uint64(6), bi.Stats().NumFlushed, "NumFlushed after second Flush")
+
+	require.NoError(t, bi.Close(context.Background()), "Close should succeed")
 }
 
 func strPointer(s string) *string {
