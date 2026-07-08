@@ -12,8 +12,12 @@
 package envvars
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"sync"
+	"time"
 )
 
 // OpenSearchURL is the comma-separated seed-URL list used by [opensearch.NewClient]
@@ -119,6 +123,63 @@ const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 // dropped (forward-compatible) and reported via the debug logger when
 // OPENSEARCH_GO_DEBUG=true.
 const ErrorMask = "OPENSEARCH_GO_ERROR_MASK"
+
+// DefaultClientTTL sets the idle eviction window for the process-wide cache of
+// implicit default clients. Accepts a time.ParseDuration string (e.g. "16m") or
+// a bare number interpreted as seconds ("30", "1.5"). Unset/invalid = 16m.
+// Any negative value disables the cache (every call builds a fresh client).
+// 0 means never evict (entries live until process exit). Read once per process.
+const DefaultClientTTL = "OPENSEARCH_GO_DEFAULT_CLIENT_TTL"
+
+// DefaultClientTTLDefault is the idle eviction window used when DefaultClientTTL
+// is unset, empty, or unparseable. 16m = the 15m AWS Lambda max timeout plus a
+// 1m buffer, so a default client is not evicted mid-invocation across the
+// longest possible Lambda run.
+const DefaultClientTTLDefault = 16 * time.Minute
+
+// defaultClientTTLValue reads and parses the env var exactly once per process.
+// A parse error falls back to the default; the error is discarded here (nothing
+// consumes it at init), but parseDefaultClientTTL still returns it for tests.
+var defaultClientTTLValue = sync.OnceValue(func() time.Duration {
+	val, ok := os.LookupEnv(DefaultClientTTL)
+	if !ok {
+		return DefaultClientTTLDefault
+	}
+	d, _ := parseDefaultClientTTL(val)
+	return d
+})
+
+// ErrInvalidTTL is wrapped by parseDefaultClientTTL when DefaultClientTTL holds
+// an unparseable value. Match it with errors.Is; the parser still returns the
+// 16m default alongside it.
+var ErrInvalidTTL = errors.New("envvars: invalid default client TTL")
+
+// parseDefaultClientTTL is the pure parser behind DefaultClientTTLValue. An
+// empty value returns the 16m default with a nil error; an unparseable value
+// returns the default wrapped with ErrInvalidTTL. A value with a unit is parsed
+// by time.ParseDuration ("16m"); a bare number is interpreted as seconds ("30",
+// "1.5"). A negative duration is preserved verbatim (it signals "disable
+// caching"); 0 means never evict.
+func parseDefaultClientTTL(val string) (time.Duration, error) {
+	if val == "" {
+		return DefaultClientTTLDefault, nil
+	}
+	if d, err := time.ParseDuration(val); err == nil {
+		return d, nil
+	}
+	// No unit: accept a bare number as seconds so "30" and "1.5" work like a
+	// plain timeout, not just "30s"/"1500ms".
+	if secs, err := strconv.ParseFloat(val, 64); err == nil {
+		return time.Duration(secs * float64(time.Second)), nil
+	}
+	return DefaultClientTTLDefault, fmt.Errorf("%w: %q", ErrInvalidTTL, val)
+}
+
+// DefaultClientTTLValue returns the parsed idle TTL. Cached via sync.OnceValue:
+// the env var is read exactly once per process.
+func DefaultClientTTLValue() time.Duration {
+	return defaultClientTTLValue()
+}
 
 // Truthy reports whether the named environment variable is set to a
 // strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy

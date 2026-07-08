@@ -36,13 +36,16 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"testing/iotest"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
+	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
@@ -686,4 +689,164 @@ func TestClientGetConfig(t *testing.T) {
 		require.Equal(t, expectedConfig.CompressRequestBody, config.CompressRequestBody)
 		require.Equal(t, expectedConfig.EnableRetryOnTimeout, config.EnableRetryOnTimeout)
 	})
+}
+
+func TestClientClose(t *testing.T) {
+	t.Run("release hook takes precedence", func(t *testing.T) {
+		count := 0
+		c := &Client{release: func() error { count++; return nil }}
+		require.NoError(t, c.Close())
+		require.Equal(t, 1, count)
+	})
+
+	t.Run("falls back to transport io.Closer", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		c := &Client{Transport: tc}
+		require.NoError(t, c.Close())
+		require.Equal(t, 1, tc.closed)
+	})
+
+	t.Run("no-op when transport lacks Close", func(t *testing.T) {
+		c := &Client{Transport: stubStreamOnly{}}
+		require.NoError(t, c.Close())
+	})
+}
+
+// stubTransportCloser implements opensearchtransport.Interface + io.Closer.
+type stubTransportCloser struct{ closed int }
+
+//nolint:nilnil // stub: Stream is never called, only Close is exercised
+func (s *stubTransportCloser) Stream(*http.Request) (*http.Response, error) { return nil, nil }
+
+//nolint:unparam // Close must return error to satisfy io.Closer; stub never fails
+func (s *stubTransportCloser) Close() error { s.closed++; return nil }
+
+// stubStreamOnly implements only opensearchtransport.Interface.
+type stubStreamOnly struct{}
+
+//nolint:nilnil // stub: Stream is never called, exists only to satisfy Interface
+func (stubStreamOnly) Stream(*http.Request) (*http.Response, error) { return nil, nil }
+
+func TestConfigKey(t *testing.T) {
+	t.Run("hashable configs", func(t *testing.T) {
+		tests := []struct {
+			name   string
+			a, b   Config
+			wantEq bool
+		}{
+			{"identical empty", Config{}, Config{}, true},
+			{"same addresses", Config{Addresses: []string{"http://x:9200"}}, Config{Addresses: []string{"http://x:9200"}}, true},
+			{"diff addresses", Config{Addresses: []string{"http://x:9200"}}, Config{Addresses: []string{"http://y:9200"}}, false},
+			{"diff username", Config{Username: "a"}, Config{Username: "b"}, false},
+			{"diff password", Config{Password: "a"}, Config{Password: "b"}, false},
+			{"diff insecure", Config{InsecureSkipVerify: true}, Config{}, false},
+			{"diff cacert", Config{CACert: []byte("a")}, Config{CACert: []byte("b")}, false},
+			{"diff maxretries", Config{MaxRetries: 3}, Config{MaxRetries: 5}, false},
+			{"diff request timeout", Config{RequestTimeout: time.Second}, Config{}, false},
+			{"same header", Config{Header: http.Header{"X": {"1"}}}, Config{Header: http.Header{"X": {"1"}}}, true},
+			{"diff header", Config{Header: http.Header{"X": {"1"}}}, Config{Header: http.Header{"X": {"2"}}}, false},
+			{
+				"header value-count boundary",
+				Config{Header: http.Header{"a": {"b"}, "c": {"d"}}},
+				Config{Header: http.Header{"a": {"b", "c", "d"}}},
+				false,
+			},
+			{"diff retry-on-status", Config{RetryOnStatus: []int{502}}, Config{RetryOnStatus: []int{503}}, false},
+			{"same retry-on-status", Config{RetryOnStatus: []int{502, 503}}, Config{RetryOnStatus: []int{502, 503}}, true},
+			{
+				"discover-on-start true vs false",
+				Config{DiscoverNodesOnStart: boolPtr(true)},
+				Config{DiscoverNodesOnStart: boolPtr(false)},
+				false,
+			},
+			{
+				"discover-on-start explicit false vs nil auto",
+				Config{DiscoverNodesOnStart: boolPtr(false)},
+				Config{},
+				false,
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				ha, oka := configKey(tt.a)
+				hb, okb := configKey(tt.b)
+				require.True(t, oka)
+				require.True(t, okb)
+				if tt.wantEq {
+					require.Equal(t, ha, hb)
+				} else {
+					require.NotEqual(t, ha, hb)
+				}
+			})
+		}
+	})
+
+	t.Run("un-hashable configs bypass", func(t *testing.T) {
+		tests := []struct {
+			name string
+			cfg  Config
+		}{
+			{"transport", Config{Transport: http.DefaultTransport}},
+			{"context", Config{Context: context.Background()}},
+			{"retry backoff", Config{RetryBackoff: func(int) time.Duration { return 0 }}},
+			{"health modifier", Config{HealthCheckRequestModifier: func(*http.Request) {}}},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				_, ok := configKey(tt.cfg)
+				require.False(t, ok, "un-hashable field must force bypass")
+			})
+		}
+	})
+}
+
+// TestCachedDefaultKeyNotCacheable verifies cachedDefault.Key surfaces
+// ttlcache.ErrNotCacheable for an un-hashable config, so GetOrCreate falls
+// back to a direct build instead of caching a client that cannot be keyed.
+func TestCachedDefaultKeyNotCacheable(t *testing.T) {
+	d := cachedDefault{cfg: Config{Transport: http.DefaultTransport}}
+	_, err := d.Key()
+	require.ErrorIs(t, err, ttlcache.ErrNotCacheable)
+}
+
+// TestConfigKey_FieldGuard fails loudly when Config grows a field without a
+// corresponding update to configKey, preventing a silent cache-key collision.
+func TestConfigKey_FieldGuard(t *testing.T) {
+	const knownFieldCount = 46
+	got := reflect.TypeFor[Config]().NumField()
+	require.Equal(t, knownFieldCount, got,
+		"Config field count changed: audit configKey for the new field, then update knownFieldCount")
+}
+
+func TestNewDefaultClientCaches(t *testing.T) {
+	c1, err := NewDefaultClient()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c1.Close() })
+
+	c2, err := NewDefaultClient()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c2.Close() })
+
+	require.NotSame(t, c1, c2, "each call returns a distinct *Client wrapper")
+	require.Same(t, c1.Transport, c2.Transport, "identical default config must share one transport")
+	require.NotNil(t, c1.release, "cached client must carry a release hook")
+	require.NotNil(t, c1.GetConfig(), "cached client must preserve config threaded through the shared handle")
+}
+
+// TestNewClientNeverCaches locks in the acceptance criterion that user-built
+// NewClient(cfg) clients never enter the shared cache -- only the implicit
+// default path (NewDefaultClient) is cached. Two explicit calls with identical
+// config must build independent transports and carry no cache release hook.
+func TestNewClientNeverCaches(t *testing.T) {
+	cfg := Config{Addresses: []string{"http://never-cache-core:9200"}}
+	c1, err := NewClient(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c1.Close() })
+	c2, err := NewClient(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c2.Close() })
+
+	require.NotSame(t, c1.Transport, c2.Transport,
+		"explicit NewClient must not share a cached transport")
+	require.Nil(t, c1.release, "explicit NewClient must not carry a cache release hook")
 }

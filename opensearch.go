@@ -33,16 +33,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
+	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/signer"
@@ -61,14 +64,12 @@ const (
 	DefaultPort = 9200
 
 	// Internal constants
-	defaultScheme      = DefaultScheme
-	defaultHost        = DefaultHost
-	defaultPort        = "9200"
-	defaultURL         = defaultScheme + "://" + defaultHost + ":" + defaultPort
-	openSearch         = "opensearch"
-	unsupportedProduct = "the client noticed that the server is not a supported distribution"
-	envOpenSearchURL   = envvars.OpenSearchURL
-	envRouter          = envvars.Router
+	defaultScheme    = DefaultScheme
+	defaultHost      = DefaultHost
+	defaultPort      = "9200"
+	defaultURL       = defaultScheme + "://" + defaultHost + ":" + defaultPort
+	envOpenSearchURL = envvars.OpenSearchURL
+	envRouter        = envvars.Router
 )
 
 // Version returns the package version as a string.
@@ -84,6 +85,11 @@ var (
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
 )
+
+// errCachedTransportType is a should-never-happen guard: the default-client
+// cache only runs for a hashable config (Transport == nil), so NewClient
+// always builds the concrete *opensearchtransport.Transport.
+var errCachedTransportType = errors.New("cached default client has a non-standard transport")
 
 // Config represents the client configuration.
 type Config struct {
@@ -273,6 +279,13 @@ type Config struct {
 type Client struct {
 	Transport opensearchtransport.Interface
 	config    *Config
+
+	// release is the cache-release hook for a client whose transport is shared
+	// via the default-client cache: Close calls it to decrement the shared
+	// entry's refcount in O(1) instead of tearing the transport down. It is nil
+	// for an ordinary (uncached) client, where Close closes the transport
+	// directly.
+	release func() error
 }
 
 // NewDefaultClient creates a new client with default options.
@@ -284,7 +297,97 @@ type Client struct {
 //
 // It's an error to set both OPENSEARCH_URL and ELASTICSEARCH_URL.
 func NewDefaultClient() (*Client, error) {
-	return NewClient(Config{})
+	return newCachedDefault(Config{})
+}
+
+// defaultClientCache holds the refcounted transports for
+// implicitly-constructed default clients, keyed by config hash so identical
+// NewDefaultClient calls share one transport (and its background goroutines)
+// instead of leaking one set per call.
+//
+//nolint:gochecknoglobals // process-wide singleton cache is the feature's purpose
+var defaultClientCache = ttlcache.New(
+	envvars.DefaultClientTTLValue(),
+	ttlcache.WithLogger[*sharedTransport](ttlcacheDebugf),
+)
+
+// sharedTransport is the cache's unit for one shared built-in transport: the
+// transport plus the config a cached Client exposes via GetConfig. It embeds
+// the concrete *opensearchtransport.Transport, so Close, Metrics, and Stream
+// are promoted directly (no per-call type assertion). Caching the transport
+// (rather than a Client) is what keeps Client out of the cache -- a cache hit
+// mints a fresh per-holder Client around this handle. The refcount and idle-TTL
+// teardown live on the enclosing ttlcache.Value, not here.
+type sharedTransport struct {
+	*opensearchtransport.Transport
+	config *Config
+}
+
+// ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
+// shared debug logger, resolved per call so a logger installed after init is
+// still honored. It is a no-op when none is installed (OPENSEARCH_GO_DEBUG unset).
+func ttlcacheDebugf(format string, a ...any) {
+	if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
+		_ = dl.Logf(format+"\n", a...)
+	}
+}
+
+// cachedDefault is the ttlcache.Cacheable for an implicit default client.
+type cachedDefault struct{ cfg Config }
+
+// Key hashes the config into the cache key, folding in env-derived seed
+// addresses, and reports ttlcache.ErrNotCacheable for an un-hashable config.
+func (d cachedDefault) Key() (ttlcache.Key, error) {
+	keyCfg := d.cfg
+	if len(keyCfg.Addresses) == 0 {
+		keyCfg.Addresses = getAddressFromEnvironment()
+	}
+	key, ok := configKey(keyCfg)
+	if !ok {
+		return 0, ttlcache.ErrNotCacheable
+	}
+	return key, nil
+}
+
+// New builds the client on a cache miss and wraps its transport+config into the
+// refcounted handle the cache stores. The handle embeds the concrete transport,
+// whose Close teardown and Metrics-backed liveness probe drive eviction.
+//
+//nolint:contextcheck // NewClient takes no context yet; the ctx param is plumbed for when it does
+func (d cachedDefault) New(context.Context) (ttlcache.Value[*sharedTransport], error) {
+	c, err := NewClient(d.cfg)
+	if err != nil {
+		return ttlcache.Value[*sharedTransport]{}, err
+	}
+	// The cache path only runs for a hashable config, which requires
+	// cfg.Transport == nil, so NewClient always built the concrete transport.
+	tp, ok := c.Transport.(*opensearchtransport.Transport)
+	if !ok {
+		return ttlcache.Value[*sharedTransport]{}, errCachedTransportType
+	}
+	handle := &sharedTransport{Transport: tp, config: c.config}
+	liveness := func() int64 {
+		metrics, merr := tp.Metrics()
+		if merr != nil {
+			return -1
+		}
+		return int64(metrics.Requests)
+	}
+	return ttlcache.Value[*sharedTransport]{Obj: handle, Closer: tp, Liveness: liveness}, nil
+}
+
+// newCachedDefault builds (or reuses) a cached transport handle for cfg and
+// wraps it in a thin per-holder Client. Used only by NewDefaultClient; explicit
+// NewClient calls are never cached. Un-hashable cfg (reported via
+// cachedDefault.Key) falls back to a direct, uncached build.
+func newCachedDefault(cfg Config) (*Client, error) {
+	handle, release, err := defaultClientCache.GetOrCreate(context.Background(), cachedDefault{cfg: cfg})
+	if err != nil {
+		return nil, err
+	}
+	// One fresh wrapper per holder, sharing the transport and config, each with
+	// its own release hook, so one Close maps to exactly one refcount decrement.
+	return &Client{Transport: handle.Transport, config: handle.config, release: release}, nil
 }
 
 // NewClient creates a new client with configuration from cfg.
@@ -421,6 +524,116 @@ func NewClient(cfg Config) (*Client, error) {
 
 func getAddressFromEnvironment() []string {
 	return addrsFromEnvironment(envOpenSearchURL)
+}
+
+// Close releases the client's background resources. For a cached default client
+// it decrements the shared entry's refcount (the worker closes the transport
+// once no holder remains and it goes idle). Otherwise it closes the transport
+// if it implements io.Closer -- the built-in *opensearchtransport.Transport
+// does, canceling pollers and closing idle connections -- and is a no-op for a
+// custom Transport that does not.
+func (c *Client) Close() error {
+	if c.release != nil {
+		return c.release()
+	}
+	if closer, ok := c.Transport.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
+// configKeyFieldSep namespaces field groups in the configKey hash stream. It is
+// not load-bearing: KeyBuilder length-prefixes every field, so the stream is
+// already prefix-free and unambiguous. The marker only aids debugging when the
+// stream is dumped.
+const configKeyFieldSep = "\x00"
+
+// configKey returns a stable cache key for cfg's hashable fields and true, or
+// (0, false) when cfg carries a field that cannot be compared by value (funcs,
+// interfaces, a context, or a custom transport); such a client is never cached.
+// Must stay in sync with Config; TestConfigKey_FieldGuard fails when it grows a
+// field. Hashes raw, pre-normalization values (NewClient later trims addresses,
+// folds in-URL credentials, and lowercases the scheme; header values are sorted
+// here, hiding multi-value order), which is safe only because just the empty
+// Config{} reaches the cache today. Caching caller configs would first require
+// mirroring NewClient's normalization here.
+func configKey(cfg Config) (ttlcache.Key, bool) {
+	// Any un-hashable field means this client is never cached; bail before
+	// building a key. Kept as one predicate next to the field reads below so the
+	// two lists stay together.
+	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
+		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
+		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
+		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
+		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
+		return 0, false
+	}
+
+	b := ttlcache.NewKeyBuilder()
+	for _, a := range cfg.Addresses {
+		b.String(a)
+	}
+	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password)
+
+	// Header: sort keys and values for determinism.
+	keys := make([]string, 0, len(cfg.Header))
+	for k := range cfg.Header {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		b.String(k)
+		vals := append([]string(nil), cfg.Header[k]...)
+		sort.Strings(vals)
+		b.Int(int64(len(vals)))
+		for _, v := range vals {
+			b.String(v)
+		}
+	}
+
+	b.String(configKeyFieldSep).Bytes(cfg.CACert).Bool(cfg.InsecureSkipVerify)
+
+	b.Int(int64(len(cfg.RetryOnStatus)))
+	for _, s := range cfg.RetryOnStatus {
+		b.Int(int64(s))
+	}
+	b.Bool(cfg.DisableRetry).
+		Bool(cfg.EnableRetryOnTimeout).
+		Int(int64(cfg.MaxRetries)).
+		Int(int64(cfg.RequestTimeout)).
+		Int(int64(cfg.DNSCacheRefresh)).
+		Int(int64(cfg.DNSDialTimeout)).
+		Int(int64(cfg.DNSKeepAlive)).
+		Int(int64(cfg.DNSTimeout)).
+		Bool(cfg.CompressRequestBody)
+	if cfg.DiscoverNodesOnStart != nil {
+		b.Bool(*cfg.DiscoverNodesOnStart)
+	} else {
+		// Nil (the "auto" default) hashes as -1 so it never collides with an
+		// explicit false (0) or true (1); the three states resolve to different
+		// clients (see the DiscoverNodesOnStart field doc).
+		b.Int(-1)
+	}
+	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.HealthCheckTimeout)).
+		Int(int64(cfg.HealthCheckMaxRetries)).
+		Int(int64(cfg.ResurrectTimeoutInitial)).
+		Int(int64(cfg.ResurrectTimeoutMax)).
+		Int(int64(cfg.ResurrectTimeoutFactorCutoff)).
+		Int(int64(cfg.MinimumResurrectTimeout)).
+		Int(int64(cfg.MaxRetryClusterHealth)).
+		Int(int64(cfg.ActiveListCap)).
+		Int(int64(cfg.StandbyRotationInterval)).
+		Int(int64(cfg.StandbyRotationCount)).
+		Int(int64(cfg.StandbyPromotionChecks)).
+		Int(int64(cfg.MaxAddressResolvers)).
+		Bool(cfg.EnableDebugLogger).
+		String(cfg.ShardCostConfig).
+		// float64 fields via math.Float64bits.
+		Int(int64(math.Float64bits(cfg.HealthCheckJitter))). //nolint:gosec // G115: bit reinterpretation for hashing
+		Int(int64(math.Float64bits(cfg.JitterScale)))        //nolint:gosec // G115: bit reinterpretation for hashing
+
+	return b.Key(), true
 }
 
 // ParseVersion returns an int64 representation of version.

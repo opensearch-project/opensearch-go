@@ -255,3 +255,25 @@ cfg := opensearch.Config{
 ```
 
 The same knobs are available via environment variables (`OPENSEARCH_GO_DNS_CACHE_REFRESH=-1` to disable), and `DNSDialTimeout` / `DNSKeepAlive` tune the underlying dialer. A caller-supplied `Transport` is never modified, so any client that sets its own `Transport` is unaffected and opts out implicitly. Because Go's resolver does not expose record TTLs, the interval is a re-resolution cadence rather than a per-record TTL.
+
+## Default client caching
+
+v5 caches implicitly-created default clients. `opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied now resolve identical configs to one shared, refcounted transport keyed by config hash, instead of constructing an independent transport (and its goroutines and connection pool) per call. v4 built a fresh transport every time.
+
+The observable change is `Metrics()`. Because two default clients with identical config share one transport, their per-request counters are aggregated across every holder rather than isolated per client:
+
+```go
+a, _ := opensearch.NewDefaultClient()
+b, _ := opensearch.NewDefaultClient() // same config -> same shared transport as a
+
+// a and b now report the combined request/failure counts for both, not each client's own.
+```
+
+If you built multiple default clients specifically to read separate metrics, switch to `opensearch.NewClient`/`opensearchapi.NewClient`, which are never cached and always get their own transport:
+
+```go
+a, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isolated metrics
+b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isolated metrics
+```
+
+To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.

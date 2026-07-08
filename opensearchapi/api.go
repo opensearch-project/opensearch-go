@@ -9,9 +9,7 @@ package opensearchapi
 import (
 	"context"
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -82,56 +80,24 @@ type Config struct {
 	Errors *errmask.ErrorMask
 }
 
-// defaultRouter returns the v5 default Router. v5 opts
-// every caller into intelligent request routing: role-aware
-// dispatch with RTT-based scoring, congestion-window AIMD, and shard-
-// cost weighting. Callers who want different routing semantics set
-// `config.Client.Router` to their own [opensearchtransport.Router]
-// before calling [NewClient]; setting OPENSEARCH_GO_ROUTER=false
-// suppresses the default-router injection entirely (the caller's nil
-// Router stays nil, matching v4 behavior).
-func defaultRouter() (opensearchtransport.Router, error) {
-	return opensearchtransport.NewDefaultRouter()
+// NewClient returns an api client wrapping an [opensearch.Client]. When the
+// caller leaves config.Client.Router nil, the underlying transport builds the
+// v5 default router itself and opensearch.NewClient enables on-start discovery
+// (unless OPENSEARCH_GO_ROUTER is falsy); a caller-provided Router is used
+// unchanged.
+//
+// User-built clients never enter the cache -- only the implicit default path
+// (NewDefaultClient, and NewBulkIndexer with no client) is cached, and it rides
+// the opensearch default-client cache.
+func NewClient(config Config) (*Client, error) {
+	return buildClient(config)
 }
 
-// NewClient returns an api client. Routing rule:
-//
-//   - config.Client.Router != nil: use the caller's Router unchanged.
-//   - config.Client.Router == nil and OPENSEARCH_GO_ROUTER=false: leave
-//     Router nil (env-driven opt-out).
-//   - config.Client.Router == nil otherwise (env unset or truthy):
-//     inject [opensearchtransport.NewDefaultRouter] -- v5 opts
-//     every caller into intelligent request routing by default.
-//
-// When the default-router injection runs, NewClient also sets
-// DiscoverNodesOnStart=true (unless the caller already picked a value or
-// OPENSEARCH_GO_ROUTER=false). The underlying opensearch.NewClient skips
-// its own env-driven discovery path when Router != nil, so this replicates
-// the on-start discovery side-effect for the injected router.
-//
-// The OPENSEARCH_GO_ROUTER variable is the same one used to control
-// on-start discovery; it doubles as the env-var opt-out for the
-// default-router injection. Setting it to "false" disables both the
-// default router and on-start discovery.
-func NewClient(config Config) (*Client, error) {
-	if config.Client.Router == nil && !envvars.Falsy(envvars.Router) {
-		router, err := defaultRouter()
-		if err != nil {
-			return nil, fmt.Errorf("opensearchapi: build default router: %w", err)
-		}
-		config.Client.Router = router
-
-		// Enable on-start discovery for the injected router unless the
-		// caller already picked a value. The opensearch.NewClient
-		// env-discovery path at the same env-var key only fires when
-		// Router == nil; that condition is now false because we just
-		// injected one, so replicate the side-effect here.
-		if config.Client.DiscoverNodesOnStart == nil && !envvars.Falsy(envvars.Router) {
-			t := true
-			config.Client.DiscoverNodesOnStart = &t
-		}
-	}
-
+// buildClient constructs the underlying opensearch client and wraps it with the
+// resolved error mask. It never consults a cache. Router selection is left to
+// opensearch.NewClient and the transport: a nil Router yields the built-in
+// default router plus on-start discovery (unless OPENSEARCH_GO_ROUTER is falsy).
+func buildClient(config Config) (*Client, error) {
 	rootClient, err := opensearch.NewClient(config.Client)
 	if err != nil {
 		return nil, err
@@ -140,16 +106,28 @@ func NewClient(config Config) (*Client, error) {
 	return clientInit(rootClient, resolveErrorMask(config)), nil
 }
 
-// NewDefaultClient returns an api client using defaults: localhost on
-// the default scheme/port plus the default router (see [NewClient] for
-// the router-injection rule).
+// Close releases the client's background resources by closing the underlying
+// opensearch client (see [opensearch.Client.Close]); for a cached default
+// client this decrements the shared entry's refcount. Safe on a zero-value.
+func (c *Client) Close() error {
+	if c.Client != nil {
+		return c.Client.Close()
+	}
+	return nil
+}
+
+// NewDefaultClient returns an api client wrapping the shared, cached
+// [opensearch.Client] from [opensearch.NewDefaultClient], so identical default
+// clients share one transport; the error mask is applied per wrapper. Like
+// [opensearch.NewDefaultClient] it uses http://localhost:9200 unless the
+// OPENSEARCH_URL/ELASTICSEARCH_URL environment variable is set. The transport
+// builds the v5 default router (unless OPENSEARCH_GO_ROUTER is falsy).
 func NewDefaultClient() (*Client, error) {
-	defaultAddress := opensearch.DefaultScheme + "://" + net.JoinHostPort(opensearch.DefaultHost, strconv.Itoa(opensearch.DefaultPort))
-	return NewClient(Config{
-		Client: opensearch.Config{
-			Addresses: []string{defaultAddress},
-		},
-	})
+	root, err := opensearch.NewDefaultClient()
+	if err != nil {
+		return nil, err
+	}
+	return clientInit(root, resolveErrorMask(Config{})), nil
 }
 
 // errMaskWidth is the storage type backing a Client's live error mask.

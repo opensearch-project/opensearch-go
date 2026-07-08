@@ -4,15 +4,14 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package envvars_test
+package envvars //nolint:testpackage // white-box: exercises the unexported parseDefaultClientTTL directly
 
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
 // TestTruthyAndFalsy covers the two boolean env-var helpers. Note the
@@ -54,11 +53,46 @@ func TestTruthyAndFalsy(t *testing.T) {
 				t.Setenv(key, "")
 				os.Unsetenv(key) //nolint:usetesting // t.Setenv cannot unset; this test mutates process env and must not run in parallel
 			}
-			require.Equal(t, tt.wantTruthy, envvars.Truthy(key))
-			require.Equal(t, tt.wantFalsy, envvars.Falsy(key))
+			require.Equal(t, tt.wantTruthy, Truthy(key))
+			require.Equal(t, tt.wantFalsy, Falsy(key))
 			// Truthy and Falsy must never both return true for the same value.
-			require.False(t, envvars.Truthy(key) && envvars.Falsy(key),
+			require.False(t, Truthy(key) && Falsy(key),
 				"Truthy and Falsy must be mutually exclusive")
+		})
+	}
+}
+
+// TestParseDefaultClientTTL covers the pure parser behind DefaultClientTTLValue.
+// The public accessor is sync.Once-cached and cannot be re-driven per case, so
+// the parse logic is tested directly. A negative duration is preserved verbatim
+// (it signals "disable caching" to the cache); 0 means never evict.
+func TestParseDefaultClientTTL(t *testing.T) {
+	tests := []struct {
+		name    string
+		val     string
+		wantTTL time.Duration
+		wantErr error
+	}{
+		{"empty", "", DefaultClientTTLDefault, nil},
+		{"invalid", "notaduration", DefaultClientTTLDefault, ErrInvalidTTL},
+		{"negative disables", "-1s", -time.Second, nil},
+		{"zero indefinite", "0", 0, nil},
+		{"positive", "90s", 90 * time.Second, nil},
+		{"positive minutes", "10m", 10 * time.Minute, nil},
+		{"bare seconds", "30", 30 * time.Second, nil},
+		{"bare fractional seconds", "1.5", 1500 * time.Millisecond, nil},
+		{"bare negative seconds disables", "-1", -time.Second, nil},
+		{"bare zero indefinite", "0.0", 0, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseDefaultClientTTL(tt.val)
+			require.Equal(t, tt.wantTTL, got)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }
