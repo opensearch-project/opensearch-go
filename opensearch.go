@@ -64,14 +64,12 @@ const (
 	DefaultPort = 9200
 
 	// Internal constants
-	defaultScheme      = DefaultScheme
-	defaultHost        = DefaultHost
-	defaultPort        = "9200"
-	defaultURL         = defaultScheme + "://" + defaultHost + ":" + defaultPort
-	openSearch         = "opensearch"
-	unsupportedProduct = "the client noticed that the server is not a supported distribution"
-	envOpenSearchURL   = envvars.OpenSearchURL
-	envRouter          = envvars.Router
+	defaultScheme    = DefaultScheme
+	defaultHost      = DefaultHost
+	defaultPort      = "9200"
+	defaultURL       = defaultScheme + "://" + defaultHost + ":" + defaultPort
+	envOpenSearchURL = envvars.OpenSearchURL
+	envRouter        = envvars.Router
 )
 
 // Version returns the package version as a string.
@@ -86,11 +84,12 @@ var (
 	ErrPathRequired                        = path.ErrRequired
 	ErrTransportMissingMethodMetrics       = errors.New("transport is missing method Metrics()")
 	ErrTransportMissingMethodDiscoverNodes = errors.New("transport is missing method DiscoverNodes()")
-	// ErrCachedTransportType is a should-never-happen guard: the default-client
-	// cache only runs for a hashable config (Transport == nil), so NewClient
-	// always builds the concrete *opensearchtransport.Transport.
-	ErrCachedTransportType = errors.New("cached default client has a non-standard transport")
 )
+
+// errCachedTransportType is a should-never-happen guard: the default-client
+// cache only runs for a hashable config (Transport == nil), so NewClient
+// always builds the concrete *opensearchtransport.Transport.
+var errCachedTransportType = errors.New("cached default client has a non-standard transport")
 
 // Config represents the client configuration.
 type Config struct {
@@ -340,8 +339,6 @@ func ttlcacheDebugf(format string, a ...any) {
 // builds the client and its liveness probe on a miss.
 type cachedDefault struct{ cfg Config }
 
-// Key hashes the config with env-derived seed addresses folded in, or reports
-// ttlcache.ErrNotCacheable for an un-hashable config.
 func (d cachedDefault) Key() (ttlcache.Key, error) {
 	keyCfg := d.cfg
 	if len(keyCfg.Addresses) == 0 {
@@ -368,7 +365,7 @@ func (d cachedDefault) New(context.Context) (ttlcache.Value[*sharedTransport], e
 	// cfg.Transport == nil, so NewClient always built the concrete transport.
 	tp, ok := c.Transport.(*opensearchtransport.Transport)
 	if !ok {
-		return ttlcache.Value[*sharedTransport]{}, ErrCachedTransportType
+		return ttlcache.Value[*sharedTransport]{}, errCachedTransportType
 	}
 	handle := &sharedTransport{Transport: tp, config: c.config}
 	liveness := func() int64 {
@@ -587,6 +584,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		b.String(k)
 		vals := append([]string(nil), cfg.Header[k]...)
 		sort.Strings(vals)
+		b.Int(int64(len(vals)))
 		for _, v := range vals {
 			b.String(v)
 		}

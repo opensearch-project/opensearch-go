@@ -744,6 +744,12 @@ func TestConfigKey(t *testing.T) {
 			{"diff request timeout", Config{RequestTimeout: time.Second}, Config{}, false},
 			{"same header", Config{Header: http.Header{"X": {"1"}}}, Config{Header: http.Header{"X": {"1"}}}, true},
 			{"diff header", Config{Header: http.Header{"X": {"1"}}}, Config{Header: http.Header{"X": {"2"}}}, false},
+			{
+				"header value-count boundary",
+				Config{Header: http.Header{"a": {"b"}, "c": {"d"}}},
+				Config{Header: http.Header{"a": {"b", "c", "d"}}},
+				false,
+			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
