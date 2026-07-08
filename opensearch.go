@@ -332,13 +332,11 @@ func ttlcacheDebugf(format string, a ...any) {
 	}
 }
 
-// cachedDefault is the ttlcache.Cacheable for an implicit default client. Key
-// hashes the config with env-derived seed addresses folded in (so default
-// clients pointed at different env URLs never collide on the empty Config{}
-// hash), reporting ttlcache.ErrNotCacheable for an un-hashable config. New
-// builds the client and its liveness probe on a miss.
+// cachedDefault is the ttlcache.Cacheable for an implicit default client.
 type cachedDefault struct{ cfg Config }
 
+// Key hashes the config into the cache key, folding in env-derived seed
+// addresses, and reports ttlcache.ErrNotCacheable for an un-hashable config.
 func (d cachedDefault) Key() (ttlcache.Key, error) {
 	keyCfg := d.cfg
 	if len(keyCfg.Addresses) == 0 {
