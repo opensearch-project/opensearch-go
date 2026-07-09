@@ -566,3 +566,40 @@ func TestClientGetConfig(t *testing.T) {
 		require.Equal(t, expectedConfig.EnableRetryOnTimeout, config.EnableRetryOnTimeout)
 	})
 }
+
+func TestClientClose(t *testing.T) {
+	t.Run("falls back to transport io.Closer", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		c := &Client{Transport: tc}
+		require.NoError(t, c.Close())
+		require.Equal(t, 1, tc.closed)
+	})
+
+	t.Run("no-op when transport lacks Close", func(t *testing.T) {
+		c := &Client{Transport: stubPerformOnly{}}
+		require.NoError(t, c.Close())
+	})
+
+	t.Run("idempotent", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		c := &Client{Transport: tc}
+		require.NoError(t, c.Close())
+		require.NoError(t, c.Close())
+		require.Equal(t, 2, tc.closed)
+	})
+}
+
+// stubTransportCloser implements opensearchtransport.Interface + io.Closer.
+type stubTransportCloser struct{ closed int }
+
+//nolint:nilnil // stub: Perform is never called, only Close is exercised
+func (s *stubTransportCloser) Perform(*http.Request) (*http.Response, error) { return nil, nil }
+
+//nolint:unparam // Close must return error to satisfy io.Closer; stub never fails
+func (s *stubTransportCloser) Close() error { s.closed++; return nil }
+
+// stubPerformOnly implements only opensearchtransport.Interface.
+type stubPerformOnly struct{}
+
+//nolint:nilnil // stub: Perform is never called, exists only to satisfy Interface
+func (stubPerformOnly) Perform(*http.Request) (*http.Response, error) { return nil, nil }

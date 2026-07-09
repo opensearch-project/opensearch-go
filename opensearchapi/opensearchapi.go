@@ -159,6 +159,15 @@ func NewDefaultClient() (*Client, error) {
 	return clientInit(rootClient, resolveErrorMask(Config{})), nil
 }
 
+// Close releases the client's background resources by closing the underlying
+// opensearch.Client. Safe on a zero value and idempotent.
+func (c *Client) Close() error {
+	if c.Client != nil {
+		return c.Client.Close()
+	}
+	return nil
+}
+
 // NewFromClient creates an opensearchapi client from an existing opensearch.Client.
 // In v4 this preserves the legacy "mask everything" default; use NewClient
 // with Config to enable partial-failure errors.
