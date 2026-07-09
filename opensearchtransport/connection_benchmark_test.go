@@ -30,6 +30,7 @@
 package opensearchtransport
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -42,42 +43,59 @@ import (
 )
 
 func init() {
-	// Start pprof server for benchmark profiling
-	// Can be customized via environment variables:
-	// PPROF_ADDR=":6061" go test -bench=.
-	// Set PPROF_ADDR="disabled" to disable
-	pprofAddr := os.Getenv("PPROF_ADDR")
-	if pprofAddr == "" {
-		pprofAddr = "localhost:6060"
-	}
+	startPprof(os.Getenv("PPROF_ADDR"))
+}
 
+// startPprof binds and serves the pprof server for benchmark runs, returning
+// the listener (nil if not started). PPROF_ADDR selects the address:
+//   - unset/empty: ephemeral loopback port ("localhost:0"), so back-to-back
+//     `go test -bench` runs never collide on a TIME_WAIT socket.
+//   - "disabled":  do not start.
+//   - "host:port": explicit address, e.g. "localhost:6060". Use an explicit
+//     "localhost" host; an empty host (":0") binds all interfaces.
+func startPprof(pprofAddr string) net.Listener {
 	if pprofAddr == "disabled" {
-		return
+		return nil
+	}
+	if pprofAddr == "" {
+		pprofAddr = "localhost:0"
 	}
 
-	// Validate the address before use. This rejects malformed input (including
-	// any CR/LF that could forge log lines) up front, so the sanitized host/port
-	// is all that ever reaches the logger.
+	// Validate the address shape before binding; malformed input is logged and
+	// skipped rather than bound. PPROF_ADDR is a developer-controlled env var in
+	// this benchmark-only test binary, so its value is trusted -- the sanitizing
+	// here is a shape check, not a defense against a hostile caller.
 	host, port, err := net.SplitHostPort(pprofAddr)
 	if err != nil {
 		log.Printf("ignoring invalid PPROF_ADDR: %v", err)
-		return
+		return nil
 	}
 	addr := net.JoinHostPort(host, port)
 
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Printf("pprof server failed to listen: %v", err)
+		return nil
+	}
+
+	log.Printf("pprof server listening on http://%s/debug/pprof/", ln.Addr())
+
 	go func() {
 		server := &http.Server{
-			Addr:         addr,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 5 * time.Second,
 		}
-		// pprof handlers are registered by the import above. The error from
-		// ListenAndServe already names the address, so it need not be echoed
-		// separately (which would also re-introduce env-derived data here).
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("pprof server failed to start: %v", err)
+		// pprof handlers are registered on the default mux by the blank import.
+		// net.ErrClosed is the normal path when a caller closes the listener to
+		// stop the server (e.g. a test's t.Cleanup); it is not a failure.
+		if err := server.Serve(ln); err != nil &&
+			!errors.Is(err, http.ErrServerClosed) &&
+			!errors.Is(err, net.ErrClosed) {
+			log.Printf("pprof server stopped: %v", err)
 		}
 	}()
+
+	return ln
 }
 
 func initSingleServerPool() *singleServerPool {
