@@ -30,72 +30,19 @@
 package opensearchtransport
 
 import (
-	"errors"
 	"fmt"
-	"log"
-	"net"
-	"net/http"
-	_ "net/http/pprof" // Import pprof handlers for benchmark profiling
 	"net/url"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/opensearch-project/opensearch-go/v5/internal/pprofutil"
 )
 
 func init() {
-	startPprof(os.Getenv("PPROF_ADDR"))
-}
-
-// startPprof binds and serves the pprof server for benchmark runs, returning
-// the listener (nil if not started). PPROF_ADDR selects the address:
-//   - unset/empty: ephemeral loopback port ("localhost:0"), so back-to-back
-//     `go test -bench` runs never collide on a TIME_WAIT socket.
-//   - "disabled":  do not start.
-//   - "host:port": explicit address, e.g. "localhost:6060". Use an explicit
-//     "localhost" host; an empty host (":0") binds all interfaces.
-func startPprof(pprofAddr string) net.Listener {
-	if pprofAddr == "disabled" {
-		return nil
-	}
-	if pprofAddr == "" {
-		pprofAddr = "localhost:0"
-	}
-
-	// Validate the address shape before binding; malformed input is logged and
-	// skipped rather than bound. PPROF_ADDR is a developer-controlled env var in
-	// this benchmark-only test binary, so its value is trusted -- the sanitizing
-	// here is a shape check, not a defense against a hostile caller.
-	host, port, err := net.SplitHostPort(pprofAddr)
-	if err != nil {
-		log.Printf("ignoring invalid PPROF_ADDR: %v", err)
-		return nil
-	}
-	addr := net.JoinHostPort(host, port)
-
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		log.Printf("pprof server failed to listen: %v", err)
-		return nil
-	}
-
-	log.Printf("pprof server listening on http://%s/debug/pprof/", ln.Addr())
-
-	go func() {
-		server := &http.Server{
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-		}
-		// pprof handlers are registered on the default mux by the blank import.
-		// net.ErrClosed is the normal path when a caller closes the listener to
-		// stop the server (e.g. a test's t.Cleanup); it is not a failure.
-		if err := server.Serve(ln); err != nil &&
-			!errors.Is(err, http.ErrServerClosed) &&
-			!errors.Is(err, net.ErrClosed) {
-			log.Printf("pprof server stopped: %v", err)
-		}
-	}()
-
-	return ln
+	// PPROF_ADDR selects the pprof address; empty binds an ephemeral loopback
+	// port. See pprofutil.Start for the accepted formats.
+	pprofutil.Start(os.Getenv("PPROF_ADDR"))
 }
 
 func initSingleServerPool() *singleServerPool {
