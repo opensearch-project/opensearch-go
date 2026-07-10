@@ -271,6 +271,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix cat APIs data type compatibility by changing byte fields from int to string to properly handle values like "0b"
 - Fix floating point precision loss in nodes stats concurrent_avg_slice_count field by changing from float32 to float64
 - Fix ISM RefreshSearchAnalyzers missing leading slash in URL path, causing HTTP/2 request failures ([#686](https://github.com/opensearch-project/opensearch-go/pull/686))
+- Default the benchmark pprof server to an ephemeral loopback port so back-to-back `go test -bench` runs no longer collide on a `TIME_WAIT` socket held by the prior run. The startup logic moves into an `internal/pprofutil` package that registers the pprof handlers on a private mux (off `http.DefaultServeMux`); `PPROF_ADDR` pins an explicit `host:port` when needed. ([#864](https://github.com/opensearch-project/opensearch-go/issues/864))
 
 ### Security
 
