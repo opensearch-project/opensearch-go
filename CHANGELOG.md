@@ -6,6 +6,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+- Add `Close()` to `opensearch.Client` and `opensearchapi.Client` to release background goroutines (node discovery, health/stats pollers, DNS refresh) and idle connections; `opensearchutil.NewBulkIndexer` now closes the client it implicitly creates. Backport of #926 without the default-client cache ([#928](https://github.com/opensearch-project/opensearch-go/issues/928), [#893](https://github.com/opensearch-project/opensearch-go/issues/893))
 - Add `cmd/osgen` code generator for typed path builders and API consumer files from the OpenAPI spec
 - v5preview/opensearchapi: `NewClient` and `NewDefaultClient` now inject `opensearchtransport.NewDefaultRouter` when `config.Client.Router` is nil, opting every v5preview client into intelligent request routing by default. The `OPENSEARCH_GO_ROUTER` env var preserves its v4 semantics end-to-end: `=true`/`=1` enables auto-discovery (via `DiscoverNodesOnStart`); `=false`/`=0` suppresses both Router injection and auto-discovery; unset injects the Router without auto-discovery. v4's `opensearchapi.NewClient` is unchanged. ([#816](https://github.com/opensearch-project/opensearch-go/issues/816))
 - Add `envvars.Falsy(name)` helper that distinguishes "explicitly opted out" from "unset" (Truthy collapses both into false). Used by v5preview's router injection rule.

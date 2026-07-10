@@ -370,6 +370,17 @@ func getAddressFromEnvironment() []string {
 	return addrsFromEnvironment(envOpenSearchURL)
 }
 
+// Close releases the client's background resources by closing the underlying
+// transport if it implements io.Closer -- the built-in *opensearchtransport.Client
+// does, canceling pollers and closing idle connections -- and is a no-op for a
+// custom Interface that does not. Safe on a zero value and idempotent.
+func (c *Client) Close() error {
+	if closer, ok := c.Transport.(io.Closer); ok {
+		return closer.Close()
+	}
+	return nil
+}
+
 // ParseVersion returns an int64 representation of version.
 func ParseVersion(version string) (int64, int64, int64, error) {
 	reVersion := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)`)

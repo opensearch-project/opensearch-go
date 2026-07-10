@@ -169,11 +169,24 @@ type bulkIndexer struct {
 	queue   chan BulkIndexerItem
 	workers []*worker
 	ticker  *time.Ticker
-	done    chan bool
-	stats   *bulkIndexerStats
+	// stopFlush cancels the flusher goroutine; flusherDone is closed when that
+	// goroutine returns. Close cancels via stopFlush (non-blocking and
+	// idempotent, so Close never deadlocks even when the flusher already
+	// returned via the construction context) and then waits on flusherDone, so
+	// the periodic flush has fully stopped before Close runs its final drain and
+	// the deferred implicit-client Close.
+	stopFlush   context.CancelFunc
+	flusherDone chan struct{}
+	stats       *bulkIndexerStats
 
 	metaPool         sync.Pool
 	metaPoolMaxBytes int
+
+	// implicitClient is true when NewBulkIndexer implicitly created the client
+	// (cfg.Client was nil). Close then closes it to release its background
+	// goroutines and connection pool; a caller-supplied client is left for its
+	// owner to close.
+	implicitClient bool
 
 	config BulkIndexerConfig
 }
@@ -192,12 +205,14 @@ type bulkIndexerStats struct {
 
 // NewBulkIndexer creates a new bulk indexer.
 func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
+	implicitClient := false
 	if cfg.Client == nil {
 		var err error
 		cfg.Client, err = opensearchapi.NewDefaultClient()
 		if err != nil {
 			return nil, err
 		}
+		implicitClient = true
 	}
 
 	// Initialize context if not provided
@@ -223,9 +238,9 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 
 	bi := bulkIndexer{
 		config:           cfg,
-		done:             make(chan bool),
 		stats:            &bulkIndexerStats{},
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
+		implicitClient:   implicitClient,
 		metaPool: sync.Pool{
 			New: func() any {
 				//nolint:mnd // 512B matches the original per-worker aux preallocation.
@@ -258,11 +273,27 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 }
 
 // Close stops the periodic flush, closes the indexer queue channel,
-// notifies the done channel and calls flush on all writers.
+// stops the flusher goroutine and calls flush on all writers.
 func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 	close(bi.queue)
-	bi.done <- true
+	// Stop the periodic flusher and wait for it to return before the final
+	// drain below, so no auto-flush races the drain. stopFlush is non-blocking
+	// and idempotent; flusherDone is already closed if the flusher exited via
+	// the construction context, so this never blocks Close indefinitely.
+	bi.stopFlush()
+	<-bi.flusherDone
+
+	// Close the implicitly-created client on every exit path (including the
+	// ctx-cancelled early return below), or its background goroutines and
+	// connection pool would leak.
+	if bi.implicitClient {
+		defer func() {
+			if err := bi.config.Client.Close(); err != nil && bi.config.OnError != nil {
+				bi.config.OnError(ctx, err)
+			}
+		}()
+	}
 
 	select {
 	case <-ctx.Done():
@@ -324,13 +355,19 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
 
+	// The flusher stops on either the caller's construction context or Close's
+	// stopFlush cancel, whichever fires first. Deriving flushCtx from ctx folds
+	// both signals into one channel. Workers keep the original ctx so Close can
+	// still drive its final drain flush after stopping the periodic flusher.
+	flushCtx, stopFlush := context.WithCancel(ctx)
+	bi.stopFlush = stopFlush
+	bi.flusherDone = make(chan struct{})
+
 	go func() {
+		defer close(bi.flusherDone)
 		for {
 			select {
-			case <-bi.done:
-				return
-			case <-ctx.Done():
-				// Context cancelled, stop flusher
+			case <-flushCtx.Done():
 				return
 			case <-bi.ticker.C:
 				if bi.config.DebugLogger != nil {

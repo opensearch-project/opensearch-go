@@ -872,3 +872,61 @@ func int64Pointer(i int64) *int64 {
 func intPointer(i int) *int {
 	return &i
 }
+
+func TestBulkIndexerImplicitClientClose(t *testing.T) {
+	t.Run("closes implicitly created client", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		bi := &bulkIndexer{
+			config:         BulkIndexerConfig{Client: &opensearchapi.Client{Client: &opensearch.Client{Transport: tc}}, FlushInterval: time.Hour},
+			implicitClient: true,
+			stats:          &bulkIndexerStats{},
+		}
+		bi.init(t.Context())
+		require.NoError(t, bi.Close(t.Context()))
+		require.Equal(t, 1, tc.closed)
+	})
+
+	t.Run("does not close caller-supplied client", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		bi := &bulkIndexer{
+			config:         BulkIndexerConfig{Client: &opensearchapi.Client{Client: &opensearch.Client{Transport: tc}}, FlushInterval: time.Hour},
+			implicitClient: false,
+			stats:          &bulkIndexerStats{},
+		}
+		bi.init(t.Context())
+		require.NoError(t, bi.Close(t.Context()))
+		require.Equal(t, 0, tc.closed)
+	})
+
+	t.Run("closes implicit client without deadlock under cancelled context", func(t *testing.T) {
+		tc := &stubTransportCloser{}
+		ctx, cancel := context.WithCancel(t.Context())
+		bi := &bulkIndexer{
+			config:         BulkIndexerConfig{Client: &opensearchapi.Client{Client: &opensearch.Client{Transport: tc}}, FlushInterval: time.Hour},
+			implicitClient: true,
+			stats:          &bulkIndexerStats{},
+		}
+		bi.init(ctx)
+		cancel()
+		done := make(chan error, 1)
+		go func() { done <- bi.Close(ctx) }()
+		select {
+		case <-done:
+			// Close returns ctx.Err() on cancelled ctx; the deferred implicit
+			// client Close still runs. Both outcomes acceptable; the point is
+			// no deadlock and the client is closed.
+		case <-time.After(5 * time.Second):
+			t.Fatal("Close deadlocked under cancelled context")
+		}
+		require.Equal(t, 1, tc.closed)
+	})
+}
+
+// stubTransportCloser implements opensearchtransport.Interface + io.Closer.
+type stubTransportCloser struct{ closed int }
+
+//nolint:nilnil // stub: Perform is never called, only Close is exercised
+func (s *stubTransportCloser) Perform(*http.Request) (*http.Response, error) { return nil, nil }
+
+//nolint:unparam // Close must return error to satisfy io.Closer; stub never fails
+func (s *stubTransportCloser) Close() error { s.closed++; return nil }
