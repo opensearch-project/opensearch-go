@@ -260,9 +260,25 @@ func rewriteIdiom2Node(
 		if !ok {
 			return nil, nil, false
 		}
+		// v2-root constructor opensearchv2.NewClient(cfg) -> opensearchapi.NewClient(cfg).
+		// After the import bump the opensearchv2 alias points at the v3 ROOT package,
+		// whose NewClient takes opensearch.Config; the reshaped cfg is an
+		// opensearchapi.Config, so the constructor must move to opensearchapi too. Gated
+		// on the package ident resolving to the exact v2 root path so no other NewClient
+		// is touched.
+		if pkgIdent, ok := sel.X.(*ast.Ident); ok && sel.Sel.Name == "NewClient" {
+			if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && pn.Imported().Path() == v2root {
+				sel.X = ast.NewIdent(apiName)
+				return []string{"repoint opensearchv2.NewClient -> opensearchapi.NewClient (idiom2)"}, []string{apiImportPath}, true
+			}
+		}
 		// Raw-response method on a v2 opensearchapi.Response receiver (resp.Status()
 		// etc). The source is still v2-typed during the walk, so the v2 Response
-		// type is the trigger. Replaces the whole call node.
+		// type is the trigger. Replaces the whole call node. This fires on ANY v2
+		// opensearchapi.Response receiver, not only the seed ops, but that is safe:
+		// both seed ops (Ping, Indices.Exists) are raw-response in v2 and v3, and a
+		// non-seed op is never call-rewritten, so its file won't compile as v3
+		// anyway (the response rewrite there is moot).
 		if isV2Response(info.TypeOf(sel.X)) {
 			if node, needIO, marker := rewriteIdiom2Response(sel); node != nil {
 				c.Replace(node)
@@ -296,6 +312,17 @@ func rewriteIdiom2Node(
 		}
 		return nil, nil, false
 	case *ast.SelectorExpr:
+		// Type reference opensearchv2.Client in type position (the struct field
+		// `client *opensearchv2.Client`) -> opensearchapi.Client. After the import
+		// bump the opensearchv2 alias points at the v3 ROOT package, whose Client has
+		// no API methods (.Ping/.Indices live on opensearchapi.Client), so the field's
+		// package qualifier must move to opensearchapi. Gated on the resolved TypeName
+		// being the exact v2 root Client so no other type ref is touched.
+		if tn, ok := info.Uses[n.Sel].(*types.TypeName); ok &&
+			tn.Pkg() != nil && tn.Name() == typeClient && tn.Pkg().Path() == v2root {
+			n.X = ast.NewIdent(apiName)
+			return []string{"repoint opensearchv2.Client -> opensearchapi.Client (idiom2)"}, []string{apiImportPath}, true
+		}
 		// Post-construction field access on a v2 Config value: cfg.Username ->
 		// cfg.Client.Username, matching the reshaped Config wrapper.
 		if isV2RootConfig(info.TypeOf(n.X)) && reshapeConfigFieldAssign(n) {
