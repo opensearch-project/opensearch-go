@@ -18,7 +18,7 @@ const (
 	// destParams: the option value sets Req.Params.<Field>.
 	destParams
 	// destReqField: the option value sets Req.<Field> directly.
-	destReqField //nolint:unused // consumed by the idiom-2 call-half rewrite (later task)
+	destReqField
 	// destDropped: the option's v3 field was removed (e.g. FilterPath) — marker.
 	destDropped
 	// destMarker: a semantic shape change (Header/OpaqueID) — marker this increment.

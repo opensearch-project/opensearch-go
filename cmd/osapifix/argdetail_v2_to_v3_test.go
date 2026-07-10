@@ -91,8 +91,9 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 					"%s %s -> %s.%s missing in v3", path, opt, reqName, dest.Field)
 				// destReqField options (e.g. Body) may not have a same-named v2 field;
 				// v3-side guard is sufficient here.
+			case destContext, destDropped, destMarker:
+				// no struct field to validate.
 			}
-			// destContext / destDropped / destMarker: no struct field to validate.
 		}
 	}
 }
