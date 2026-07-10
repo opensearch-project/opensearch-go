@@ -115,6 +115,28 @@ The two engine additions this hop required (both report-only -- they never emit 
 
 The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2); they are report-only by design, as the transform above cannot be mechanized.
 
+### Idiom-2 best-effort rewrite
+
+For the two seed operations, `Ping` and `Indices.Exists`, `osapifix rewrite` does a best-effort rewrite of the whole idiom-2 call site (the `client.Ping(...)` root-client family), not just the import path:
+
+- **Call shape.** `client.Ping(client.Ping.WithContext(ctx))` becomes `client.Ping(ctx, &opensearchapi.PingReq{})`. The functional options (`WithContext`, positionals, and known `Params`-bound options such as `WithLocal`) are lifted into the `Req` struct, and `WithContext` becomes the leading `ctx` argument.
+- **Raw-response `Status()`.** `resp.Status()` becomes `fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))`, with `fmt` and `net/http` injected into imports. This reproduces the v2 `"200 OK"` text; v3's own `Status()` formats it differently.
+- **Client lifecycle.** The `opensearch.Config{...}` composite literal is wrapped as `opensearchapi.Config{Client: opensearch.Config{...}}`. Post-construction field assignments (`cfg.Username`, `cfg.Password`, and so on) are rewritten to `cfg.Client.Username`, `cfg.Client.Password`.
+- **Import path.** The v2 import path is bumped to v3.
+
+**Scope: seed ops only.** Only `Ping` and `Indices.Exists` are rewritten this increment. Every other v2 root-client method (`client.Bulk`, `client.Index`, `client.Search`, ...) stays a `MANUAL` worklist item: the rewriter logs it but leaves the call alone.
+
+**The non-guessing invariant.** The pass applies a transform only when it is mechanically certain. Where it cannot prove the result correct, it plants the undefined sentinel `_OSAPIFIX_RESOLVE` plus a salvage comment instead of emitting a plausible but possibly wrong value, so `go build` breaks at that spot rather than compiling something quietly wrong. Cases that produce a marker:
+
+- `WithContext` is absent (the tool will not invent a `context.Background()` for you).
+- An option is dropped in v3 (`WithFilterPath`); the salvage comment names it.
+- An option changes shape rather than renaming (`WithHeader`, `WithOpaqueID`).
+- A response method is removed (`Warnings()`, `HasWarnings()`) or has no faithful one-liner equivalent (`String()`).
+
+After `osapifix rewrite -w`, `go build` fails at each marker, and `grep -r _OSAPIFIX_RESOLVE .` gives the worklist.
+
+**Compiles and behavior-preserving, not textually identical to a hand migration.** The rewriter keeps the response variable and its surviving checks (`resp.IsError()`, `resp.Body.Close()`, `resp.StatusCode`). A person migrating by hand might drop the response altogether, since v3's typed methods return an `error` directly. Both forms compile and behave the same, so the output is not meant to match a hand-written migration line for line.
+
 ## Testing
 
 ```sh
