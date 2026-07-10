@@ -8,7 +8,7 @@ require (
 	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529
 	github.com/stretchr/testify v1.11.1
 	github.com/wI2L/jsondiff v0.7.1
-	golang.org/x/mod v0.37.0
+	golang.org/x/mod v0.38.0
 	golang.org/x/sync v0.21.0
 )
 
