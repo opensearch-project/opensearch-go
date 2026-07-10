@@ -95,3 +95,58 @@ func TestRewriteIdiom2Call_Unrecognized(t *testing.T) {
 	require.Nil(t, out)
 	require.Nil(t, edits)
 }
+
+// parseSelector parses src as a call expr and returns it (the Fun selector is
+// extracted by tests that need it).
+func parseSelector(t *testing.T, src string) *ast.CallExpr {
+	t.Helper()
+	return parseCall(t, src)
+}
+
+// parseSelectorOrExpr returns the *ast.SelectorExpr for src, whether src is a
+// call (resp.Status()) or a bare selector (resp.StatusCode).
+func parseSelectorOrExpr(t *testing.T, src string) *ast.SelectorExpr {
+	t.Helper()
+	e, err := parser.ParseExpr(src)
+	require.NoError(t, err)
+	switch v := e.(type) {
+	case *ast.SelectorExpr:
+		return v
+	case *ast.CallExpr:
+		sel, ok := v.Fun.(*ast.SelectorExpr)
+		require.True(t, ok, "call Fun is not *ast.SelectorExpr: %T", v.Fun)
+		return sel
+	default:
+		t.Fatalf("parseSelectorOrExpr: unexpected expr type %T", e)
+		return nil
+	}
+}
+
+func TestRewriteIdiom2Response_Status(t *testing.T) {
+	sel := parseSelector(t, `resp.Status()`).Fun.(*ast.SelectorExpr)
+	node, needImports, marker := rewriteIdiom2Response(sel)
+	require.Empty(t, marker)
+	require.True(t, needImports)
+	require.Equal(t, `fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))`, mustFormat(t, node))
+}
+
+func TestRewriteIdiom2Response_Warnings(t *testing.T) {
+	sel := parseSelector(t, `resp.Warnings()`).Fun.(*ast.SelectorExpr)
+	_, _, marker := rewriteIdiom2Response(sel)
+	require.Contains(t, marker, "Warnings")
+}
+
+func TestRewriteIdiom2Response_String(t *testing.T) {
+	sel := parseSelector(t, `resp.String()`).Fun.(*ast.SelectorExpr)
+	_, _, marker := rewriteIdiom2Response(sel)
+	require.NotEmpty(t, marker)
+	require.Contains(t, marker, "String")
+}
+
+func TestRewriteIdiom2Response_SurvivorsUntouched(t *testing.T) {
+	for _, src := range []string{`resp.IsError()`, `resp.StatusCode`, `resp.Body`} {
+		node, _, marker := rewriteIdiom2Response(parseSelectorOrExpr(t, src))
+		require.Nil(t, node, "%s should be untouched", src)
+		require.Empty(t, marker, "%s should have no marker", src)
+	}
+}

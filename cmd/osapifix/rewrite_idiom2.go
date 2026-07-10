@@ -181,6 +181,44 @@ func optionCall(arg ast.Expr) *ast.CallExpr {
 	return oc
 }
 
+// rewriteIdiom2Response rewrites a resp.<Method> selector on a v3 raw
+// *opensearch.Response. It returns the replacement node (or nil), whether
+// fmt+net/http imports are needed, and a salvage marker string (empty = no
+// marker needed). The caller builds any marker node; this function only
+// returns the text.
+//
+// Dispositions:
+//   - Status()         → fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+//   - Warnings()       → marker (removed in v3)
+//   - HasWarnings()    → marker (removed in v3)
+//   - String()         → marker (format changed, no faithful one-liner)
+//   - everything else  → (nil, false, "") — left untouched
+func rewriteIdiom2Response(sel *ast.SelectorExpr) (ast.Node, bool, string) {
+	switch sel.Sel.Name {
+	case "Status": //nolint:goconst // API method name; matching literals live in the suppressed callmap data table
+		node := &ast.CallExpr{
+			Fun: &ast.SelectorExpr{X: ast.NewIdent("fmt"), Sel: ast.NewIdent("Sprintf")},
+			Args: []ast.Expr{
+				&ast.BasicLit{Kind: token.STRING, Value: `"%d %s"`},
+				&ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("StatusCode")},
+				&ast.CallExpr{
+					Fun:  &ast.SelectorExpr{X: ast.NewIdent("http"), Sel: ast.NewIdent("StatusText")},
+					Args: []ast.Expr{&ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("StatusCode")}},
+				},
+			},
+		}
+		return node, true, ""
+	case "Warnings":
+		return nil, false, "Warnings() removed in v3"
+	case "HasWarnings":
+		return nil, false, "HasWarnings() removed in v3"
+	case "String":
+		return nil, false, "String() has no faithful one-liner v3 equivalent"
+	default:
+		return nil, false, ""
+	}
+}
+
 // optionValue yields the v3 field value for a non-context option: a 0-arg
 // option (WithPretty()) sets the field to true; a 1-arg option (WithLocal(v))
 // sets it to that arg. More than one arg is not mechanical (ok=false).
