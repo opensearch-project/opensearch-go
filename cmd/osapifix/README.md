@@ -101,10 +101,10 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
 
 The v3 -> v4 and v4 -> v5 hops fit the "purely additive data" model above: they are quiet boundaries where only fields of surviving types change, which the existing engine already handles. **v2 -> v3 does not fit that model** and required two engine additions, because it is the project's one structural boundary: the `opensearchapi` package was redesigned from a function-based request API (`opensearchapi.BulkRequest{...}.Do(ctx, client)`) into a typed sub-client API (`client.Bulk(ctx, BulkReq{...})`). Of 182 v2 structs, only 16 survive by name; 166 are removed outright.
 
-That redesign is a call/response **shape change**, not a set of renames, and it is deliberately **not automated**. There are two consumer idioms; for both, `osapifix` rewrites only the import path and **reports** the rest as `MANUAL` worklist items rather than emitting a rewrite it cannot prove:
+That redesign is a call/response **shape change**, not a set of renames. There are two consumer idioms, handled differently:
 
-- **Idiom 1 (function API):** `opensearchapi.<X>Request{...}.Do(ctx, client)`. The v3 method returns an already-decoded typed `*Resp`, so the raw response handling (`osResp.Body`, `.StatusCode`, `.IsError()`, manual `json.Unmarshal`) that follows the call must be reworked -- a per-op semantic rewrite, not a rename.
-- **Idiom 2 (root client):** `client.Ping(client.Ping.WithContext(ctx))` plus `resp.IsError()`. The root `opensearch.Client` lost all its API method fields (only `Transport` survives); the functional options collapse into a `Req` struct and the raw-response error check moves to the returned `error`.
+- **Idiom 1 (function API):** `opensearchapi.<X>Request{...}.Do(ctx, client)`. The v3 method returns an already-decoded typed `*Resp`, so the raw response handling (`osResp.Body`, `.StatusCode`, `.IsError()`, manual `json.Unmarshal`) that follows the call must be reworked -- a per-op semantic rewrite, not a rename. This is **not automated**: `osapifix` rewrites the import path and **reports** the rest as `MANUAL` worklist items rather than emitting a rewrite it cannot prove.
+- **Idiom 2 (root client):** `client.Ping(client.Ping.WithContext(ctx))` plus `resp.IsError()`. The root `opensearch.Client` lost all its API method fields (only `Transport` survives); the functional options collapse into a `Req` struct and the raw-response error check moves to the returned `error`. For the two seed ops (`Ping`, `Indices.Exists`) this is now rewritten best-effort (see [Idiom-2 best-effort rewrite](#idiom-2-best-effort-rewrite) below); every other root-client op stays `MANUAL`.
 
 Both transforms are documented in [`opensearchapi/UPGRADING_V2_TO_V3.md`](../../opensearchapi/UPGRADING_V2_TO_V3.md).
 
@@ -113,7 +113,7 @@ The two engine additions this hop required (both report-only -- they never emit 
 1. **Removed-type diagnostic.** `DeriveDelta` previously skipped a source type with no target counterpart silently; those types are now recorded in `Delta.RemovedTypes`, and the engine flags any reference to one (idiom 1's `opensearchapi.*Request` family) as a `MANUAL` worklist line. Without this the consumer would get a bare `undefined: BulkRequest` compile error instead of an actionable list.
 2. **Promoted-field access resolution.** `flagFieldAccess` followed embedding to the type that literally declares a field. `gensurface` flattens promoted fields onto the embedding struct, so idiom 2's root-client methods (declared on the embedded, and removed, `opensearchapi.API`) are ruled on `opensearch.Client` in the surface. The engine now also checks the receiver type, so `client.Ping` on the root client is flagged against the `Client` disposition.
 
-The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2); they are report-only by design, as the transform above cannot be mechanized.
+The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2). These two additions are report-only; the seed-op rewrite that builds on them is described next.
 
 ### Idiom-2 best-effort rewrite
 
