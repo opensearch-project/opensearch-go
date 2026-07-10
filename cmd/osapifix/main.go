@@ -78,6 +78,9 @@ import (
 // cmd/gensurface and re-embed when bumping the pinned opensearch-go versions.
 // Register each embedded surface in the surfaces map (transitions.go).
 //
+//go:embed surface_v2.json
+var surfaceV2JSON []byte
+
 //go:embed surface_v3.json
 var surfaceV3JSON []byte
 

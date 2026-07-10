@@ -6,7 +6,7 @@
 osapifix rewrite -w ./...
 ```
 
-Today it supports the v3 -> v4 and v4 -> v5 hops, chainable to migrate v3 -> v5 directly. Additional hops (v2 -> v3) are added as data, without engine changes.
+Today it supports the v2 -> v3, v3 -> v4, and v4 -> v5 hops, chainable to migrate across several majors at once (e.g. v3 -> v5). Most hops are added purely as data, but v2 -> v3 also required two engine additions (see [The v2 -> v3 hop](#the-v2---v3-hop)).
 
 ## Install
 
@@ -97,6 +97,24 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
 
 5. Add `hop_v3_to_v4_test.go` for version-specific facts. The drift guards validate the tables against the surfaces automatically; a `rewrite` against real v3 code fails loudly on any unruled field.
 
+## The v2 -> v3 hop
+
+The v3 -> v4 and v4 -> v5 hops fit the "purely additive data" model above: they are quiet boundaries where only fields of surviving types change, which the existing engine already handles. **v2 -> v3 does not fit that model** and required two engine additions, because it is the project's one structural boundary: the `opensearchapi` package was redesigned from a function-based request API (`opensearchapi.BulkRequest{...}.Do(ctx, client)`) into a typed sub-client API (`client.Bulk(ctx, BulkReq{...})`). Of 182 v2 structs, only 16 survive by name; 166 are removed outright.
+
+That redesign is a call/response **shape change**, not a set of renames, and it is deliberately **not automated**. There are two consumer idioms; for both, `osapifix` rewrites only the import path and **reports** the rest as `MANUAL` worklist items rather than emitting a rewrite it cannot prove:
+
+- **Idiom 1 (function API):** `opensearchapi.<X>Request{...}.Do(ctx, client)`. The v3 method returns an already-decoded typed `*Resp`, so the raw response handling (`osResp.Body`, `.StatusCode`, `.IsError()`, manual `json.Unmarshal`) that follows the call must be reworked -- a per-op semantic rewrite, not a rename.
+- **Idiom 2 (root client):** `client.Ping(client.Ping.WithContext(ctx))` plus `resp.IsError()`. The root `opensearch.Client` lost all its API method fields (only `Transport` survives); the functional options collapse into a `Req` struct and the raw-response error check moves to the returned `error`.
+
+Both transforms are documented in [`opensearchapi/UPGRADING_V2_TO_V3.md`](../../opensearchapi/UPGRADING_V2_TO_V3.md).
+
+The two engine additions this hop required (both report-only -- they never emit a rewrite):
+
+1. **Removed-type diagnostic.** `DeriveDelta` previously skipped a source type with no target counterpart silently; those types are now recorded in `Delta.RemovedTypes`, and the engine flags any reference to one (idiom 1's `opensearchapi.*Request` family) as a `MANUAL` worklist line. Without this the consumer would get a bare `undefined: BulkRequest` compile error instead of an actionable list.
+2. **Promoted-field access resolution.** `flagFieldAccess` followed embedding to the type that literally declares a field. `gensurface` flattens promoted fields onto the embedding struct, so idiom 2's root-client methods (declared on the embedded, and removed, `opensearchapi.API`) are ruled on `opensearch.Client` in the surface. The engine now also checks the receiver type, so `client.Ping` on the root client is flagged against the `Client` disposition.
+
+The root-client method removals themselves are authored as `ActionManual` `FieldDispositions` (idiom 2); they are report-only by design, as the transform above cannot be mechanized.
+
 ## Testing
 
 ```sh
@@ -109,11 +127,13 @@ go test ./...
 | `delta_test.go`                           | Drift guards over every hop's type renames and field dispositions                 |
 | `hop_v3_to_v4_test.go`                    | v3 -> v4 version-specific facts                                                   |
 | `hop_v4_to_v5_test.go`                    | v4 -> v5 version-specific facts                                                   |
+| `hop_v2_to_v3_test.go`                    | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings    |
 | `detect_test.go`                          | Source detection, version parsing, directory resolution                           |
 | `internal/surface/delta_internal_test.go` | Surface diffing internals                                                         |
 
 ## Limitations
 
+- The v2 -> v3 hop is report-only for the API redesign: it rewrites the import path and flags every removed request type (idiom 1) and removed root-client method (idiom 2) as a `MANUAL` worklist item, but does not rewrite the call/response shape change (see [The v2 -> v3 hop](#the-v2---v3-hop)). Because the intermediate module will not compile against v3 until those manual edits are made, a chained `-w` run through v2 (e.g. v2 -> v5) cannot rebuild past the v2 -> v3 step; migrate v2 -> v3 by hand first, then run the remaining hops.
 - `vet` analyzers are v5-specific (`TypedAssertAnalyzer`) and target a single version; they do not chain across hops.
 - A module importing multiple majors migrates from the lowest; per-import-site source selection is not implemented.
 - Files behind custom build tags (`//go:build <tag>`) are loaded under the default build constraints, so they are not rewritten and are skipped without warning. Migrate those files by hand.

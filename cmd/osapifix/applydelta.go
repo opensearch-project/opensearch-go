@@ -191,6 +191,11 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
 				res.edits = append(res.edits, e)
 			}
+			// Reference to a type removed outright on the target (idiom 1's
+			// opensearchapi.*Request family): report as a manual worklist item.
+			if e := flagRemovedTypeRef(n, info, rules.delta.RemovedTypes); e != "" {
+				res.edits = append(res.edits, e)
+			}
 			// Field access into a collapsed/removed field: flag as MANUAL, or as an
 			// unclassified-field bug if the field vanished with no disposition.
 			if edit, unclassified := flagFieldAccess(n, info, rules.delta); unclassified != "" {
@@ -249,34 +254,52 @@ func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta
 	if !ok || !fieldVar.IsField() || fieldVar.Pkg() == nil {
 		return "", ""
 	}
-	// The declaring struct is the field object's "container": recover it by
-	// walking the selection's receiver to the type that actually declares the
-	// field. types.Selection.Recv is the receiver expression's type, which for an
-	// embedded access is the outer type; instead key on where the field is
-	// declared, available via fieldVar's position resolved against the delta by
-	// its declaring named type. We approximate that by scanning the delta for a
-	// struct whose qualified name matches the field's declaring package + the
-	// receiver chain - simplest robust route: match on field name + package.
-	qual := declaringType(selection)
-	if qual == "" {
-		return "", ""
+	// Resolve the struct the delta rules this field on. Two shapes must both work:
+	//
+	//   - declaringType follows embedding to the type that literally declares the
+	//     field (e.g. a consumer's wrapper embedding *opensearchapi.SearchResp maps
+	//     to the opensearchapi type).
+	//   - the receiver type is the type the field is accessed THROUGH. gensurface
+	//     flattens promoted fields onto the embedding struct, so a field declared on
+	//     an embedded (and possibly removed) type like opensearchapi.API appears in
+	//     the surface on the receiver v2.Client. The v2->v3 root-client dispositions
+	//     are keyed on Client, so the receiver type is what matches there.
+	//
+	// Try the declaring type first (the established wrapper case), then the receiver
+	// type. They never both carry a rule for the same field, so first-match is safe.
+	for _, qual := range []string{declaringType(selection), qualifiedType(selection.Recv())} {
+		if qual == "" {
+			continue
+		}
+		if manual, unclassified, matched := flagFieldChange(delta, qual, sel.Sel.Name); matched {
+			return manual, unclassified
+		}
 	}
+	return "", ""
+}
+
+// flagFieldChange looks up field on the delta struct qual and reports it if it is
+// a manual/unclassified change. The bool reports whether a change entry for the
+// field was found (so the caller can stop trying alternative type keys); at most
+// one of the two strings is non-empty.
+func flagFieldChange(delta apirev.Delta, qual, field string) (string, string, bool) {
 	sd, ok := delta.Structs[qual]
 	if !ok {
-		return "", ""
+		return "", "", false
 	}
 	for _, ch := range sd.Changes {
-		if ch.From != sel.Sel.Name {
+		if ch.From != field {
 			continue
 		}
 		switch ch.Kind {
 		case apirev.KindManual:
-			return fmt.Sprintf("MANUAL %s: access .%s - %s", sd.From, ch.From, ch.Note), ""
+			return fmt.Sprintf("MANUAL %s: access .%s - %s", sd.From, ch.From, ch.Note), "", true
 		case apirev.KindUnclassified:
-			return "", fmt.Sprintf("%s#%s (read at a call site) - %s", sd.From, ch.From, ch.Note)
+			return "", fmt.Sprintf("%s#%s (read at a call site) - %s", sd.From, ch.From, ch.Note), true
 		}
+		return "", "", true // a non-reportable change kind still counts as matched
 	}
-	return "", ""
+	return "", "", false
 }
 
 // declaringType returns the qualified type ("<pkgPath>.<Name>") that actually
@@ -585,6 +608,30 @@ func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[st
 	old := sel.Sel.Name
 	sel.Sel = ast.NewIdent(r.ToName)
 	return fmt.Sprintf("type %s -> %s", old, r.ToName)
+}
+
+// flagRemovedTypeRef reports a reference to a source type that was removed
+// outright on the target (delta.RemovedTypes) - e.g. the v2
+// opensearchapi.*Request family deleted in v3's client redesign. Such a type has
+// no mechanical target equivalent (the migration is a call/response shape change,
+// not a rename), so the engine reports it as a MANUAL worklist item rather than
+// rewriting it or leaving the consumer a bare "undefined" compile error. Matches
+// on the resolved TypeName so only genuine references to the removed type are
+// flagged. Report-only: it never mutates the AST. Returns "" if not applicable.
+func flagRemovedTypeRef(sel *ast.SelectorExpr, info *types.Info, removed map[string]bool) string {
+	if len(removed) == 0 {
+		return ""
+	}
+	tn, ok := info.Uses[sel.Sel].(*types.TypeName)
+	if !ok || tn.Pkg() == nil {
+		return ""
+	}
+	key := tn.Pkg().Path() + "." + tn.Name()
+	if !removed[key] {
+		return ""
+	}
+	return fmt.Sprintf("MANUAL %s removed on the target - no mechanical equivalent; "+
+		"migrate this reference by hand (see the hop's follow-ups)", key)
 }
 
 // qualifiedType returns "<pkgPath>.<Name>" for a named struct type (dereferencing

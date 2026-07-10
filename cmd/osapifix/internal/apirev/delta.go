@@ -82,6 +82,15 @@ type StructDelta struct {
 // source type.
 type Delta struct {
 	Structs map[string]StructDelta `json:"structs"`
+	// RemovedTypes is the set of fully-qualified source types ("<pkgPath>.<Name>")
+	// that have NO counterpart in the target and are not covered by a TypeRename -
+	// i.e. types deleted outright across the hop (e.g. the v2 opensearchapi.*Request
+	// family removed in v3's client redesign). The value is the version-agnostic
+	// display name. Unlike a vanished FIELD (which fails loud only if referenced via
+	// an incomplete disposition table), a removed TYPE is a known, deliberate
+	// deletion; the engine reports any reference to one as a manual worklist item
+	// rather than guessing a shape-changing rewrite it cannot express.
+	RemovedTypes map[string]bool `json:"removedTypes,omitempty"`
 }
 
 // TypeRename identifies a source type that was renamed in the target version, by
@@ -164,7 +173,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 		dispByFrom[fieldDispKey(d.FromPkgPath, d.FromType, d.FromField)] = d
 	}
 
-	out := Delta{Structs: map[string]StructDelta{}}
+	out := Delta{Structs: map[string]StructDelta{}, RemovedTypes: map[string]bool{}}
 	for _, sFrom := range from.Structs {
 		var sTo Struct
 		var ok bool
@@ -178,7 +187,12 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 			sTo, ok = to.lookupVersionAgnostic(sFrom.PkgPath, sFrom.Name)
 		}
 		if !ok {
-			continue // removed in target; not mechanically migratable
+			// Removed in target: not mechanically migratable. Record it so the
+			// engine can report a reference to it as a manual worklist item
+			// (see the RemovedTypes doc), rather than silently dropping the type
+			// and leaving the consumer with a bare "undefined" compile error.
+			out.RemovedTypes[sFrom.Qualified()] = true
+			continue
 		}
 
 		sd := StructDelta{From: sFrom.Qualified(), To: sTo.Qualified()}
