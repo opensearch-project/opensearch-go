@@ -83,9 +83,9 @@ func TestRewriteIdiom2Call_ParamsEmission(t *testing.T) {
 	call := parseCall(t, `client.Indices.Exists(idx, client.Indices.Exists.WithContext(ctx), client.Indices.Exists.WithLocal(true))`)
 	root := rootIdent(t, call.Fun.(*ast.SelectorExpr))
 	out, _ := rewriteIdiom2Call(call, root, []string{"Indices", "Exists"}, "opensearchapi")
-	require.Equal(t,
-		`client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: idx, Params: opensearchapi.IndicesExistsParams{Local: true}})`,
-		mustFormat(t, out))
+	want := `client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: idx, ` +
+		`Params: opensearchapi.IndicesExistsParams{Local: opensearchapi.ToPointer(true)}})`
+	require.Equal(t, want, mustFormat(t, out))
 }
 
 func TestRewriteIdiom2Call_Unrecognized(t *testing.T) {

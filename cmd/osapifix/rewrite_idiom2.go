@@ -111,6 +111,14 @@ func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg
 				salvage = append(salvage, fmt.Sprintf("option %s (unexpected arg count)", name))
 				continue
 			}
+			// A *bool v3 Params field (Local, FlatSettings, ...) cannot take a bare
+			// bool; wrap in opensearchapi.ToPointer so the literal compiles.
+			if dest.IsPtr {
+				val = &ast.CallExpr{
+					Fun:  &ast.SelectorExpr{X: ast.NewIdent(apiPkg), Sel: ast.NewIdent("ToPointer")},
+					Args: []ast.Expr{val},
+				}
+			}
 			paramFields = append(paramFields, &ast.KeyValueExpr{Key: ast.NewIdent(dest.Field), Value: val})
 		case destReqField:
 			val, ok := optionValue(oc)

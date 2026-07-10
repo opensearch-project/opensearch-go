@@ -29,6 +29,7 @@ const (
 type optionDest struct {
 	Kind  optionKind
 	Field string // v3 field name when Kind is destParams or destReqField
+	IsPtr bool   // true when the v3 destParams field is a pointer (value must be wrapped in opensearchapi.ToPointer)
 }
 
 // positionalDest maps a v2 positional arg (by index) to its v3 Req field.
@@ -69,12 +70,12 @@ var argDetailV2toV3 = map[string]opArgDetail{
 	"Indices.Exists": {
 		Positionals: []positionalDest{{ReqField: "Indices"}},
 		Options: mergeOptions(universalOptions, map[string]optionDest{
-			"WithAllowNoIndices":    {Kind: destParams, Field: "AllowNoIndices"},
+			"WithAllowNoIndices":    {Kind: destParams, Field: "AllowNoIndices", IsPtr: true},
 			"WithExpandWildcards":   {Kind: destParams, Field: "ExpandWildcards"},
-			"WithFlatSettings":      {Kind: destParams, Field: "FlatSettings"},
-			"WithIgnoreUnavailable": {Kind: destParams, Field: "IgnoreUnavailable"},
-			"WithIncludeDefaults":   {Kind: destParams, Field: "IncludeDefaults"},
-			"WithLocal":             {Kind: destParams, Field: "Local"},
+			"WithFlatSettings":      {Kind: destParams, Field: "FlatSettings", IsPtr: true},
+			"WithIgnoreUnavailable": {Kind: destParams, Field: "IgnoreUnavailable", IsPtr: true},
+			"WithIncludeDefaults":   {Kind: destParams, Field: "IncludeDefaults", IsPtr: true},
+			"WithLocal":             {Kind: destParams, Field: "Local", IsPtr: true},
 		}),
 	},
 }

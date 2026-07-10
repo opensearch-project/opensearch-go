@@ -57,6 +57,19 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 		return m
 	}
 
+	// fieldPtr maps field name -> IsPointer for the named struct, so the arg-detail
+	// IsPtr flag can be checked against the real v3 field pointer-ness (the drift
+	// guard that catches a *bool field emitting a bare value).
+	fieldPtr := func(snap *apirev.Snapshot, pkg, structName string) map[string]bool {
+		st, ok := lookupStruct(snap, pkg, structName)
+		require.Truef(t, ok, "struct %s.%s not found in surface", pkg, structName)
+		m := make(map[string]bool, len(st.Fields))
+		for _, f := range st.Fields {
+			m[f.Name] = f.IsPointer
+		}
+		return m
+	}
+
 	for path, detail := range argDetailV2toV3 {
 		reqName := reqNameByPath[path]
 		require.NotEmptyf(t, reqName, "no V3Req in call map for %s", path)
@@ -66,6 +79,7 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 
 		reqFields := fieldSet(v3Snap, v3CallMapAPIPkg, reqName)
 		paramsFields := fieldSet(v3Snap, v3CallMapAPIPkg, paramsName)
+		paramsPtr := fieldPtr(v3Snap, v3CallMapAPIPkg, paramsName)
 
 		// v2 Request struct name: op path -> e.g. "Ping" -> "PingRequest", "Indices.Exists" -> "IndicesExistsRequest".
 		v2ReqName := strings.ReplaceAll(path, ".", "") + "Request"
@@ -83,6 +97,11 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 			case destParams:
 				require.Truef(t, paramsFields[dest.Field],
 					"%s %s -> %s.%s missing in v3", path, opt, paramsName, dest.Field)
+				// The arg-detail IsPtr flag must match the real v3 field pointer-ness:
+				// a *bool field must be wrapped in opensearchapi.ToPointer, a value field
+				// must not. This catches pointer-ness drift in the v3 Params struct.
+				require.Equalf(t, paramsPtr[dest.Field], dest.IsPtr,
+					"%s %s -> %s.%s IsPtr=%v but v3 field IsPointer=%v", path, opt, paramsName, dest.Field, dest.IsPtr, paramsPtr[dest.Field])
 				// v2 field name matches the dest field name for all seed-op params options.
 				require.Truef(t, v2Fields[dest.Field],
 					"%s %s -> v2 %s.%s missing in v2 surface", path, opt, v2ReqName, dest.Field)
