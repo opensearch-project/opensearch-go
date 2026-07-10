@@ -219,6 +219,28 @@ func rewriteIdiom2Response(sel *ast.SelectorExpr) (ast.Node, bool, string) {
 	}
 }
 
+// reshapeConfigLiteral wraps a v2 root Config literal in the v3 opensearchapi
+// Config struct. The inner literal is reused verbatim; after rewriteImports
+// bumps rootName's import path to v3, rootName.Config resolves to v3
+// opensearch.Config and compiles.
+func reshapeConfigLiteral(lit *ast.CompositeLit, _, apiName string) *ast.CompositeLit {
+	return &ast.CompositeLit{
+		Type: &ast.SelectorExpr{X: ast.NewIdent(apiName), Sel: ast.NewIdent("Config")},
+		Elts: []ast.Expr{
+			&ast.KeyValueExpr{Key: ast.NewIdent("Client"), Value: lit},
+		},
+	}
+}
+
+// reshapeConfigFieldAssign rewrites sel in place from cfg.<Field> to
+// cfg.Client.<Field>, inserting the Client hop for post-construction field
+// accesses on a v2 Config value. Returns true if changed. The caller is
+// responsible for gating on type-info (only v2 Config receivers).
+func reshapeConfigFieldAssign(sel *ast.SelectorExpr) bool {
+	sel.X = &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("Client")}
+	return true
+}
+
 // optionValue yields the v3 field value for a non-context option: a 0-arg
 // option (WithPretty()) sets the field to true; a 1-arg option (WithLocal(v))
 // sets it to that arg. More than one arg is not mechanical (ok=false).

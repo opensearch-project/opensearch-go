@@ -150,3 +150,34 @@ func TestRewriteIdiom2Response_SurvivorsUntouched(t *testing.T) {
 		require.Empty(t, marker, "%s should have no marker", src)
 	}
 }
+
+// parseExpr parses src as a raw ast.Expr.
+func parseExpr(t *testing.T, src string) ast.Expr {
+	t.Helper()
+	e, err := parser.ParseExpr(src)
+	require.NoError(t, err)
+	return e
+}
+
+func TestReshapeConfigLiteral(t *testing.T) {
+	lit := parseExpr(t, `opensearchv2.Config{Addresses: addrs, Transport: tr}`).(*ast.CompositeLit)
+	out := reshapeConfigLiteral(lit, "opensearchv2", "opensearchapi")
+	require.Equal(t,
+		`opensearchapi.Config{Client: opensearchv2.Config{Addresses: addrs, Transport: tr}}`,
+		mustFormat(t, out))
+}
+
+func TestReshapeConfigFieldAssign(t *testing.T) {
+	for _, tc := range []struct {
+		src  string
+		want string
+	}{
+		{`cfg.Username`, `cfg.Client.Username`},
+		{`cfg.Password`, `cfg.Client.Password`},
+	} {
+		sel := parseSelectorOrExpr(t, tc.src)
+		changed := reshapeConfigFieldAssign(sel)
+		require.True(t, changed)
+		require.Equal(t, tc.want, mustFormat(t, sel))
+	}
+}
