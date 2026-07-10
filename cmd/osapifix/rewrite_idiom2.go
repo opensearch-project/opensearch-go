@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"slices"
 	"strings"
 )
@@ -24,11 +25,15 @@ import (
 // function is driven only by argDetailV2toV3 + callMapV2toV3 and the parsed
 // call.
 
+// markerPrefix is the leading identifier of every compile-breaking sentinel the
+// idiom-2 pass plants; the type-aware walk scans for it to record a MANUAL edit.
+const markerPrefix = "_OSAPIFIX_RESOLVE"
+
 // markerExpr builds the compile-breaking sentinel for a call the transform
 // cannot complete mechanically. The salvage text rides in the ident Name as an
 // embedded block comment, which survives go/format without a CommentMap.
 func markerExpr(salvage string) ast.Expr {
-	return &ast.Ident{Name: "_OSAPIFIX_RESOLVE /* OSAPIFIX v2->v3 MANUAL: " + salvage + " */"}
+	return &ast.Ident{Name: markerPrefix + " /* OSAPIFIX v2->v3 MANUAL: " + salvage + " */"}
 }
 
 // rewriteIdiom2Call rewrites a recognized v2 idiom-2 call into its v3 form.
@@ -37,11 +42,8 @@ func markerExpr(salvage string) ast.Expr {
 // replacement call plus edit-log strings, or (nil, nil) if chain is not a
 // recognized, non-removed op.
 //
-// apiPkg is the resolved local opensearchapi import alias; the type-aware
-// caller (a later increment) passes the real name, only the seed tests pin
-// "opensearchapi".
-//
-//nolint:unparam // apiPkg varies once the type-aware caller lands; see doc above
+// apiPkg is the resolved local opensearchapi import alias, passed by the
+// type-aware caller (idiom2ImportNames); the seed tests pin "opensearchapi".
 func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg string) (ast.Expr, []string) {
 	detail, ok := argDetailV2toV3[strings.Join(chain, ".")]
 	if !ok {
@@ -181,18 +183,19 @@ func optionCall(arg ast.Expr) *ast.CallExpr {
 	return oc
 }
 
-// rewriteIdiom2Response rewrites a resp.<Method> selector on a v3 raw
-// *opensearch.Response. It returns the replacement node (or nil), whether
-// fmt+net/http imports are needed, and a salvage marker string (empty = no
-// marker needed). The caller builds any marker node; this function only
+// rewriteIdiom2Response rewrites a resp.<Method> call on a v2
+// opensearchapi.Response receiver (the pre-bump type the walk sees; the
+// import-path bump runs after). It returns the replacement node (or nil),
+// whether fmt+net/http imports are needed, and a salvage marker string (empty
+// = no marker needed). The caller builds any marker node; this function only
 // returns the text.
 //
 // Dispositions:
 //   - Status()         → fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+//   - String()         → marker (no faithful one-liner)
 //   - Warnings()       → marker (removed in v3)
 //   - HasWarnings()    → marker (removed in v3)
-//   - String()         → marker (format changed, no faithful one-liner)
-//   - everything else  → (nil, false, "") — left untouched
+//   - Body, IsError, StatusCode, Header and any other selector → (nil, false, "") — left untouched
 func rewriteIdiom2Response(sel *ast.SelectorExpr) (ast.Node, bool, string) {
 	switch sel.Sel.Name {
 	case "Status": //nolint:goconst // API method name; matching literals live in the suppressed callmap data table
@@ -221,9 +224,8 @@ func rewriteIdiom2Response(sel *ast.SelectorExpr) (ast.Node, bool, string) {
 
 // reshapeConfigLiteral wraps a v2 root Config literal in the v3 opensearchapi
 // Config struct. The inner literal is reused verbatim; after rewriteImports
-// bumps rootName's import path to v3, rootName.Config resolves to v3
-// opensearch.Config and compiles.
-func reshapeConfigLiteral(lit *ast.CompositeLit, _, apiName string) *ast.CompositeLit {
+// bumps the import path, the wrapped literal resolves to the v3 type and compiles.
+func reshapeConfigLiteral(lit *ast.CompositeLit, apiName string) *ast.CompositeLit {
 	return &ast.CompositeLit{
 		Type: &ast.SelectorExpr{X: ast.NewIdent(apiName), Sel: ast.NewIdent("Config")},
 		Elts: []ast.Expr{
@@ -252,5 +254,76 @@ func optionValue(oc *ast.CallExpr) (ast.Expr, bool) {
 		return oc.Args[0], true
 	default:
 		return nil, false
+	}
+}
+
+// v2apiPath is the v2 opensearchapi package path. Its Response type is what the
+// source still types raw responses as during the v2->v3 walk (the source has
+// not yet been bumped to v3), so it is the trigger for rewriteIdiom2Response.
+const v2apiPath = v2root + "/opensearchapi"
+
+// Type-name spellings shared by the idiom-2 predicates and the synthetic nodes
+// they build, named so the same identifier is not repeated as a bare literal.
+const (
+	typeClient   = "Client"
+	typeConfig   = "Config"
+	typeResponse = "Response"
+)
+
+// isV2RootClient reports whether t is the v2 ROOT opensearch.Client (the client
+// whose API method fields were removed in v3), i.e. a named type "Client" in the
+// v2 root module package - NOT the v2/opensearchapi sub-client. Mirrors
+// isOpenSearchAPIClient but pins the exact root package path.
+func isV2RootClient(t types.Type) bool {
+	named := namedOf(t)
+	if named == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Name() == typeClient && named.Obj().Pkg().Path() == v2root
+}
+
+// isV2RootConfig reports whether t is the v2 root opensearch.Config composite
+// type (named "Config" in the v2 root package). Used to recognize both the
+// Config literal to wrap and the cfg receiver whose fields hop under .Client.
+func isV2RootConfig(t types.Type) bool {
+	named := namedOf(t)
+	if named == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Name() == typeConfig && named.Obj().Pkg().Path() == v2root
+}
+
+// isV2Response reports whether t is the v2 opensearchapi.Response (the raw
+// response type read via .Status()/.Warnings() in v2). The source is still typed
+// against v2 during the walk, so this is the trigger for rewriteIdiom2Response.
+func isV2Response(t types.Type) bool {
+	named := namedOf(t)
+	if named == nil || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Name() == typeResponse && named.Obj().Pkg().Path() == v2apiPath
+}
+
+// v2CallChain returns the v2 call path hanging off a v2 ROOT client receiver,
+// plus that receiver expression. It mirrors selectorChain but stops at the
+// sub-expression whose type is the v2 root opensearch.Client - so for
+// client.Indices.Exists it returns (["Indices","Exists"], <client>). Returns
+// (nil, nil) if no v2 root client receiver is on the spine. Being type-gated on
+// info, it never fires on a synthetic (info-less) node the walk produced.
+func v2CallChain(sel *ast.SelectorExpr, info *types.Info) ([]string, ast.Expr) {
+	var chain []string
+	var cur ast.Expr = sel
+	for {
+		s, ok := cur.(*ast.SelectorExpr)
+		if !ok {
+			return nil, nil
+		}
+		if isV2RootClient(info.TypeOf(s.X)) {
+			chain = append(chain, s.Sel.Name)
+			slices.Reverse(chain)
+			return chain, s.X
+		}
+		chain = append(chain, s.Sel.Name)
+		cur = s.X
 	}
 }

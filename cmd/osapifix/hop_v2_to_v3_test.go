@@ -7,6 +7,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -95,6 +96,16 @@ func TestHopV2toV3_Followups(t *testing.T) {
 		"must report the API redesign")
 	require.True(t, containsSubstr(f, "opensearchapi.NewClient"),
 		"must tell the operator how to construct the v3 typed client")
+}
+
+// TestHopV2toV3Idiom2FollowupTrimmed asserts the idiom-2 followup no longer
+// claims the seed ops are wholly MANUAL: with the idiom-2 pass wired in, Ping
+// and Indices.Exists are now rewritten best-effort (call + raw-response +
+// client lifecycle), and the followup says so.
+func TestHopV2toV3Idiom2FollowupTrimmed(t *testing.T) {
+	joined := strings.Join(hopV2toV3.SemanticFollowups, "\n")
+	require.Contains(t, joined, "Ping") // seed ops named as best-effort rewritten
+	require.Contains(t, joined, "best-effort")
 }
 
 // TestHopV2toV3_ChainsToV5 verifies the registered hop composes: a v2->v5 request

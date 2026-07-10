@@ -161,7 +161,7 @@ func parseExpr(t *testing.T, src string) ast.Expr {
 
 func TestReshapeConfigLiteral(t *testing.T) {
 	lit := parseExpr(t, `opensearchv2.Config{Addresses: addrs, Transport: tr}`).(*ast.CompositeLit)
-	out := reshapeConfigLiteral(lit, "opensearchv2", "opensearchapi")
+	out := reshapeConfigLiteral(lit, "opensearchapi")
 	require.Equal(t,
 		`opensearchapi.Config{Client: opensearchv2.Config{Addresses: addrs, Transport: tr}}`,
 		mustFormat(t, out))

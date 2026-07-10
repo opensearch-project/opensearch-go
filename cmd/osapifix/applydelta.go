@@ -178,7 +178,28 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	var res rewriteResult
 	info := pkg.TypesInfo
 
+	// isV2Hop gates the v2->v3 idiom-2 pass: the source module prefix being the v2
+	// root module is the cheap, explicit hop marker (see plan.go importPrefixes).
+	isV2Hop := len(rules.importPrefixes) > 0 && rules.importPrefixes[0][0] == v2root
+	var apiName, apiImportPath string
+	if isV2Hop {
+		apiName = idiom2ImportNames(file)
+		apiImportPath = rules.importPrefixes[0][1] + "/opensearchapi"
+	}
+	var needImports []string // v3 import paths to inject after the walk
+
 	astutil.Apply(file, func(c *astutil.Cursor) bool {
+		if isV2Hop {
+			if edits, imports, handled := rewriteIdiom2Node(c, info, apiName, apiImportPath); handled {
+				res.edits = append(res.edits, edits...)
+				needImports = append(needImports, imports...)
+				// Stop descending: the rewritten call's stale selector (or the
+				// synthetic subtree) must not be re-walked, or flagFieldAccess would
+				// double-report the same op. Synthetic nodes also carry no
+				// info.Selections, so the type gates are inert on them regardless.
+				return false
+			}
+		}
 		switch n := c.Node().(type) {
 		case *ast.CallExpr:
 			res.edits = append(res.edits, rewriteCall(c, n, info, rules)...)
@@ -212,7 +233,117 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// unrelated imports are untouched. Done after the AST walk so type resolution
 	// above still saw the source paths.
 	res.edits = append(res.edits, rewriteImports(file, rules.importPrefixes)...)
+
+	// Inject imports the idiom-2 pass introduced (v3 opensearchapi for the reshaped
+	// Config/Req, fmt+net/http for the raw-response Status rewrite). Done after the
+	// walk and rewriteImports, like the import bump, so type resolution saw the
+	// original source. AddImport is idempotent, so a path already present is a
+	// no-op.
+	for _, p := range dedupe(needImports) {
+		astutil.AddImport(pkg.Fset, file, p)
+	}
 	return res
+}
+
+// rewriteIdiom2Node applies the v2->v3 idiom-2 transforms to a single node,
+// gated entirely on resolved type info so it never fires on the synthetic
+// (info-less) nodes it produces. It returns the edit-log lines, the v3 import
+// paths the rewrite introduced, and whether it handled the node (the caller then
+// stops descending). apiName is the file's local opensearchapi import alias;
+// apiImportPath is the v3 opensearchapi package path to inject.
+func rewriteIdiom2Node(
+	c *astutil.Cursor, info *types.Info, apiName, apiImportPath string,
+) ([]string, []string, bool) {
+	switch n := c.Node().(type) {
+	case *ast.CallExpr:
+		sel, ok := n.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return nil, nil, false
+		}
+		// Raw-response method on a v2 opensearchapi.Response receiver (resp.Status()
+		// etc). The source is still v2-typed during the walk, so the v2 Response
+		// type is the trigger. Replaces the whole call node.
+		if isV2Response(info.TypeOf(sel.X)) {
+			if node, needIO, marker := rewriteIdiom2Response(sel); node != nil {
+				c.Replace(node)
+				var imports []string
+				if needIO {
+					imports = []string{"fmt", "net/http"}
+				}
+				return []string{fmt.Sprintf("rewrite resp.%s() -> fmt.Sprintf/http.StatusText (idiom2)", sel.Sel.Name)}, imports, true
+			} else if marker != "" {
+				c.Replace(markerExpr(marker))
+				return []string{fmt.Sprintf("MANUAL resp.%s() - %s", sel.Sel.Name, marker)}, nil, true
+			}
+			return nil, nil, false
+		}
+		// Idiom-2 client call: client.<v2path>(opts...) -> client.<v3path>(ctx, Req).
+		if chain, root := v2CallChain(sel, info); root != nil {
+			if newNode, edits := rewriteIdiom2Call(n, root, chain, apiName); newNode != nil {
+				c.Replace(newNode)
+				var imports []string
+				if usesPkgIdent(newNode, apiName) {
+					imports = []string{apiImportPath}
+				}
+				return edits, imports, true
+			}
+		}
+		return nil, nil, false
+	case *ast.CompositeLit:
+		if isV2RootConfig(info.TypeOf(n)) {
+			c.Replace(reshapeConfigLiteral(n, apiName))
+			return []string{"reshape v2 Config{...} -> opensearchapi.Config{Client: ...} (idiom2)"}, []string{apiImportPath}, true
+		}
+		return nil, nil, false
+	case *ast.SelectorExpr:
+		// Post-construction field access on a v2 Config value: cfg.Username ->
+		// cfg.Client.Username, matching the reshaped Config wrapper.
+		if isV2RootConfig(info.TypeOf(n.X)) && reshapeConfigFieldAssign(n) {
+			return []string{fmt.Sprintf("reshape cfg.%s -> cfg.Client.%s (idiom2)", n.Sel.Name, n.Sel.Name)}, nil, true
+		}
+		return nil, nil, false
+	default:
+		return nil, nil, false
+	}
+}
+
+// usesPkgIdent reports whether node references a package-qualified identifier
+// name (a selector whose base is the ident name), used to decide whether a
+// rewritten call actually needs its opensearchapi import injected (the salvage
+// marker path does not).
+func usesPkgIdent(node ast.Node, name string) bool {
+	if name == "" {
+		return false
+	}
+	found := false
+	ast.Inspect(node, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok {
+			if id, ok := sel.X.(*ast.Ident); ok && id.Name == name {
+				found = true
+				return false
+			}
+		}
+		return true
+	})
+	return found
+}
+
+// idiom2ImportNames resolves the file's local import alias for the v3
+// opensearchapi package, falling back to the package's default name when
+// unaliased. Both v2 and v3 spellings of the opensearchapi path are accepted,
+// since the walk runs on v2-typed source before the import bump.
+func idiom2ImportNames(file *ast.File) string {
+	apiName := "opensearchapi"
+	for _, imp := range file.Imports {
+		if imp.Path == nil {
+			continue
+		}
+		path := strings.Trim(imp.Path.Value, `"`)
+		if isOpenSearchAPIPath(path) && imp.Name != nil {
+			apiName = imp.Name.Name
+		}
+	}
+	return apiName
 }
 
 // rewriteImports rewrites source opensearch-go import paths to their target

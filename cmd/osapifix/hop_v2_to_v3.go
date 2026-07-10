@@ -139,8 +139,11 @@ var hopV2toV3 = Hop{
 			".Do call (osResp.Body, osResp.StatusCode, osResp.IsError(), manual json.Unmarshal) must be reworked to the typed result.",
 		"Idiom 2 (root client): the root opensearch.Client no longer exposes API methods (only Transport survives). " +
 			"Construct a typed client with opensearchapi.NewClient(opensearchapi.Config{Client: cfg}) and call " +
-			"client.<Endpoint>(ctx, &<Endpoint>Req{...}). The functional options (client.Ping.WithContext(ctx), ...) " +
-			"collapse into the Req struct, and resp.IsError()/resp.Status() on the raw *Response are replaced by the returned error.",
+			"client.<Endpoint>(ctx, &<Endpoint>Req{...}). osapifix now rewrites the seed ops Ping and Indices.Exists " +
+			"best-effort (the call, its raw-response Status/Warnings handling, and the Config client lifecycle); " +
+			"review each rewrite and resolve any _OSAPIFIX_RESOLVE marker. The remaining root-client endpoints are not " +
+			"yet mechanized and stay MANUAL: their functional options (client.Ping.WithContext(ctx), ...) collapse into " +
+			"the Req struct, and resp.IsError()/resp.Status() on the raw *Response are replaced by the returned error.",
 		"The raw *opensearchapi.Response (with .Body, .StatusCode, .Header, .IsError()) is no longer returned by API calls in v3. " +
 			"Responses are decoded typed *Resp values; move any status/error inspection to the returned error " +
 			"and read fields off the typed response.",
