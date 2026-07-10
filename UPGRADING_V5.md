@@ -35,6 +35,7 @@ The recommended call-site pattern is a `for`/`switch` over `opensearchapi.Errors
 - [`opensearchapi/README.md`](opensearchapi/README.md) - full v5 usage guide for these errors, including the type-switch pattern and the rationale for preferring it over `errors.As`/`Has`.
 - [`guides/usage-error_handling.md`](guides/usage-error_handling.md) - cross-version best-practices guide with v4 and v5 examples side-by-side.
 - [`opensearchapi/UPGRADING_V4_TO_V5.md`](opensearchapi/UPGRADING_V4_TO_V5.md) - v4 -> v5 surface delta.
+- [`cmd/osapifix/README.md`](cmd/osapifix/README.md) - the tool that automates most of the v4 -> v5 surface delta.
 
 **Error types in v4 `opensearchapi/`** (the upgrade source):
 

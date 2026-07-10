@@ -13,6 +13,8 @@ This is the version-history index for the OpenSearch Go client. Each entry below
 
 Upgrading from the hand-written v4 `opensearchapi/` package to the code-generated v5 surface is the largest single change in v5. [`UPGRADING_V5.md`](UPGRADING_V5.md) summarizes it; for the field-level delta (every rename, the `*Params` change, embedded `TimeoutParams`/`DebugParams`, `BulkResp.Items` becoming `[]BulkItem`) and the optional forward-compatible `replace` directive, see the deep-dive at [`opensearchapi/UPGRADING_V4_TO_V5.md`](opensearchapi/UPGRADING_V4_TO_V5.md).
 
+The [`osapifix`](cmd/osapifix/README.md) tool automates most of this delta (import bump, type/method/field renames, value-to-pointer adjustments); see the [Automated migration](opensearchapi/UPGRADING_V4_TO_V5.md#automated-migration) section.
+
 ## Related references
 
 - [`COMPATIBILITY.md`](COMPATIBILITY.md) - client/server version support matrix.

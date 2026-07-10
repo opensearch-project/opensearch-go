@@ -140,6 +140,8 @@ func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
 	"api":   "API",
+	"cpu":   "CPU",
+	"dfs":   "DFS", // Distributed Frequency Search
 	"dsl":   "DSL",
 	"http":  "HTTP",
 	"https": "HTTPS",

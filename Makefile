@@ -55,16 +55,18 @@ format:  ## Format all Go files with goimports
 	goimports -w .;
 
 ##@ Testing
-test-unit:  ## Run unit tests across all modules (root + cmd/osgen)
+test-unit:  ## Run unit tests across all modules (root + cmd/osgen + cmd/osapifix)
 	@printf "\033[2m-> Running unit tests...\033[0m\n"
 ifdef race
 	$(eval testunitargs += "-race")
 	$(eval testosgenargs += "-race")
+	$(eval testosapifixargs += "-race")
 endif
 	$(eval testunitargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/unit")
 	$(eval testosgenargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/osgen")
-	@rm -rf $(PWD)/tmp/unit $(PWD)/tmp/osgen
-	@mkdir -p $(PWD)/tmp/unit $(PWD)/tmp/osgen
+	$(eval testosapifixargs += "-cover" "./..." "-args" "-test.gocoverdir=$(PWD)/tmp/osapifix")
+	@rm -rf $(PWD)/tmp/unit $(PWD)/tmp/osgen $(PWD)/tmp/osapifix
+	@mkdir -p $(PWD)/tmp/unit $(PWD)/tmp/osgen $(PWD)/tmp/osapifix
 	@echo "go test -v" $(testunitargs); \
 	go test -v $(testunitargs) 2>&1 | tee test-unit.log; \
 	exit $${PIPESTATUS[0]};
@@ -72,9 +74,14 @@ endif
 	@echo "(cd cmd/osgen && go test -v" $(testosgenargs) ")"; \
 	cd cmd/osgen && go test -v $(testosgenargs) 2>&1 | tee $(PWD)/test-osgen.log; \
 	exit $${PIPESTATUS[0]};
+	@printf "\033[2m-> Running cmd/osapifix unit tests (separate module)...\033[0m\n"
+	@echo "(cd cmd/osapifix && go test -v" $(testosapifixargs) ")"; \
+	cd cmd/osapifix && go test -v $(testosapifixargs) 2>&1 | tee $(PWD)/test-osapifix.log; \
+	exit $${PIPESTATUS[0]};
 ifdef coverage
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit -o $(PWD)/tmp/unit.cov
 	@go tool covdata textfmt -i=$(PWD)/tmp/osgen -o $(PWD)/tmp/osgen.cov
+	@go tool covdata textfmt -i=$(PWD)/tmp/osapifix -o $(PWD)/tmp/osapifix.cov
 endif
 test: test-unit
 
@@ -259,6 +266,8 @@ lint.local:  ## Run lint locally (not in Docker) across all build-tag combinatio
 	done
 	@printf "\033[2m-> Running golangci-lint in cmd/osgen (separate Go module)...\033[0m\n"
 	cd cmd/osgen && golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
+	@printf "\033[2m-> Running golangci-lint in cmd/osapifix (separate Go module)...\033[0m\n"
+	cd cmd/osapifix && golangci-lint run --fix --build-tags $(GOLANGCI_LINT_BUILD_TAGS) --timeout=5m -v ./...
 
 package := "prettier"
 PRETTIER_ARGS := --prose-wrap never --print-width 300 "**/*.md"
@@ -373,27 +382,23 @@ cluster.runtime:  ## Show detected container runtime
 	@$(CTR) --version
 	@$(CTR) compose version
 
-cluster.sysctl:  ## Ensure vm.max_map_count is set for OpenSearch
-	@current=$$(                                                              \
-		if [ "$$(uname)" = "Darwin" ]; then                                   \
-			if command -v rdctl >/dev/null 2>&1; then                          \
-				rdctl shell cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0; \
-			else                                                              \
-				echo 0;                                                        \
-			fi;                                                               \
-		else                                                                  \
-			cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0;             \
-		fi                                                                    \
-	); \
+cluster.sysctl:  ## Ensure vm.max_map_count is set for OpenSearch (Linux, or macOS via Colima/Rancher/Docker)
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		vmexec=""; setter="sudo sysctl -w vm.max_map_count=262144"; \
+	elif command -v colima >/dev/null 2>&1 && colima status >/dev/null 2>&1; then \
+		vmexec="colima ssh --"; setter="colima ssh -- sudo sysctl -w vm.max_map_count=262144"; \
+	elif command -v rdctl >/dev/null 2>&1 && rdctl shell true >/dev/null 2>&1; then \
+		vmexec="rdctl shell"; setter="rdctl shell sudo sysctl -w vm.max_map_count=262144"; \
+	else \
+		vmexec="$(CTR) run --rm --privileged --net=host busybox"; \
+		setter="$(CTR) run --rm --privileged --net=host busybox sysctl -w vm.max_map_count=262144"; \
+	fi; \
+	current=$$($$vmexec cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0); \
 	if [ "$$current" -ge 262144 ]; then \
 		printf "\033[2m-> vm.max_map_count already $$current (>= 262144)\033[0m\n"; \
 	else \
 		printf "\033[2m-> Setting vm.max_map_count=262144 (was $$current)...\033[0m\n"; \
-		if [ "$$(uname)" = "Darwin" ]; then \
-			rdctl shell sudo sysctl -w vm.max_map_count=262144; \
-		else \
-			sudo sysctl -w vm.max_map_count=262144; \
-		fi; \
+		$$setter; \
 	fi
 
 cluster.build:  ## Build OpenSearch Docker images (version-aware)

@@ -376,7 +376,7 @@ type NodesInfoNodeOperatingSystem struct {
 	AvailableProcessors int `json:"available_processors"`
 
 	// Provides CPU information for the node.
-	Cpu *NodesInfoNodeOSCPU `json:"cpu,omitempty"`
+	CPU *NodesInfoNodeOSCPU `json:"cpu,omitempty"`
 
 	// Provides memory information for the node.
 	Mem *NodesInfoNodeMemory `json:"mem,omitempty"`

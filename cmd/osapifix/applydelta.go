@@ -1,0 +1,624 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"go/ast"
+	"go/format"
+	"go/token"
+	"go/types"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/go/packages"
+
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osapifix/internal/apirev"
+)
+
+// applyDelta.go is the type-aware rewriter. Unlike a name-based pass, it loads
+// the consumer module WITH v4 type information (go/packages + go/types), so it
+// can resolve every composite-literal type and field-access receiver to its
+// exact qualified type and apply only that type's delta. This is what prevents
+// a bare field name (Indices, EnableMetrics) from being rewritten on the wrong
+// struct.
+//
+// Precondition: the consumer must still compile against v4 (that is its current
+// state before the bump). The rewriter produces v5-shaped source; the operator
+// then bumps the dependency and builds.
+
+// rewriteConfig bundles everything a rewrite needs. The delta, renames,
+// regroups, removedHelpers, and importPrefixes are all composed for the resolved
+// source->target chain (see compose.go); the engine itself is version-agnostic.
+type rewriteConfig struct {
+	dir            string       // consumer module directory
+	patterns       []string     // go/packages patterns (default ./...)
+	delta          apirev.Delta // composed field-level delta, keyed by qualified source type
+	renames        []apirev.TypeRename
+	regroups       []methodRegroup
+	removedHelpers map[string]string
+	importPrefixes [][2]string // source module prefix -> target module prefix
+	write          bool
+}
+
+// rewriteResult reports per-file edits and any unclassified-field references
+// (a field that vanished on the target with no FieldDisposition - a defect in
+// the tool's field table, since it cannot know rename-vs-remove).
+type rewriteResult struct {
+	path         string
+	edits        []string
+	unclassified []string
+}
+
+// rewriteRules is the per-file bundle the AST walk consumes: the composed delta
+// plus the derived rename index and the call-site/import rules. Passed by value
+// down the walk so no engine function reaches for a package global.
+type rewriteRules struct {
+	delta          apirev.Delta
+	renameByFrom   map[string]apirev.TypeRename
+	regroups       []methodRegroup
+	removedHelpers map[string]string
+	importPrefixes [][2]string
+}
+
+// runTypeAwareRewrite loads the consumer packages against their current (source)
+// deps, rewrites each file, and returns the results.
+func runTypeAwareRewrite(cfg rewriteConfig) ([]rewriteResult, error) {
+	loadCfg := &packages.Config{
+		Dir: cfg.dir,
+		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax |
+			packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports,
+		Tests: true,
+	}
+	pkgs, err := packages.Load(loadCfg, cfg.patterns...)
+	if err != nil {
+		return nil, err
+	}
+	if packages.PrintErrors(pkgs) > 0 {
+		return nil, fmt.Errorf("consumer must compile against the source version before rewriting; load reported errors")
+	}
+
+	// Build quick lookups from the type map: qualified source type -> target
+	// name, so a type reference (opensearchapi.DocumentGetReq) can be renamed to
+	// its target spelling.
+	renameByFrom := map[string]apirev.TypeRename{}
+	for _, r := range cfg.renames {
+		renameByFrom[r.FromPkgPath+"."+r.FromName] = r
+	}
+	rules := rewriteRules{
+		delta:          cfg.delta,
+		renameByFrom:   renameByFrom,
+		regroups:       cfg.regroups,
+		removedHelpers: cfg.removedHelpers,
+		importPrefixes: cfg.importPrefixes,
+	}
+
+	seen := map[string]bool{} // dedupe files shared across test/non-test package variants
+	var results []rewriteResult
+
+	// pending holds files whose AST was mutated, to be flushed only after the
+	// whole module is checked: an unclassified-field reference anywhere aborts the
+	// run before any file is written, so a bug in the field table can never leave
+	// the module half-rewritten.
+	type pendingWrite struct {
+		path string
+		fset *token.FileSet
+		file *ast.File
+	}
+	var pending []pendingWrite
+	var unclassified []string
+
+	for _, pkg := range pkgs {
+		for _, file := range pkg.Syntax {
+			// Resolve the file's path from the token position, not by indexing a
+			// parallel slice - Syntax and CompiledGoFiles are not guaranteed to
+			// be the same length across test/non-test package variants.
+			path := pkg.Fset.Position(file.Pos()).Filename
+			if path == "" || seen[path] {
+				continue
+			}
+			seen[path] = true
+
+			r := rewriteFileTyped(pkg, file, rules)
+			unclassified = append(unclassified, r.unclassified...)
+			if len(r.edits) == 0 {
+				continue
+			}
+			r.path = path
+			results = append(results, r)
+			pending = append(pending, pendingWrite{path: path, fset: pkg.Fset, file: file})
+		}
+	}
+
+	// A referenced unclassified field is an osapifix bug - the field-disposition
+	// table is incomplete. Fail loudly and write nothing rather than guess or
+	// silently drop a caller's value.
+	if len(unclassified) > 0 {
+		return results, fmt.Errorf("osapifix bug: %d field(s) vanished on the target with no disposition "+
+			"(cannot know rename vs remove); classify each in the hop's FieldDispositions table:\n  %s",
+			len(unclassified), strings.Join(unclassified, "\n  "))
+	}
+
+	if !cfg.write {
+		return results, nil
+	}
+
+	// Sandbox all writes to the consumer module directory: os.Root refuses any
+	// path that escapes root (via .., absolute paths, or symlinks), so a
+	// misresolved file position can never overwrite something outside the module
+	// being migrated.
+	abs, err := filepath.Abs(cfg.dir)
+	if err != nil {
+		return results, fmt.Errorf("resolve module dir: %w", err)
+	}
+	root, err := os.OpenRoot(abs)
+	if err != nil {
+		return results, fmt.Errorf("open module dir as sandbox root: %w", err)
+	}
+	defer root.Close()
+
+	for _, w := range pending {
+		if err := writeFormatted(root, cfg.dir, w.path, w.fset, w.file); err != nil {
+			return results, err
+		}
+	}
+	return results, nil
+}
+
+// rewriteFileTyped rewrites a single file's AST using resolved type information.
+func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules) rewriteResult {
+	var res rewriteResult
+	info := pkg.TypesInfo
+
+	astutil.Apply(file, func(c *astutil.Cursor) bool {
+		switch n := c.Node().(type) {
+		case *ast.CallExpr:
+			res.edits = append(res.edits, rewriteCall(c, n, info, rules)...)
+		case *ast.CompositeLit:
+			edits, unclassified := rewriteCompositeLit(n, info, rules.delta, rules.renameByFrom)
+			res.edits = append(res.edits, edits...)
+			res.unclassified = append(res.unclassified, unclassified...)
+		case *ast.SelectorExpr:
+			// Type reference rename: opensearchapi.DocumentGetReq -> .GetReq.
+			if e := rewriteTypeRef(n, info, rules.renameByFrom); e != "" {
+				res.edits = append(res.edits, e)
+			}
+			// Field access into a collapsed/removed field: flag as MANUAL, or as an
+			// unclassified-field bug if the field vanished with no disposition.
+			if edit, unclassified := flagFieldAccess(n, info, rules.delta); unclassified != "" {
+				res.unclassified = append(res.unclassified, unclassified)
+			} else if edit != "" {
+				res.edits = append(res.edits, edit)
+			}
+		}
+		return true
+	}, nil)
+
+	// Import-path bump: source module paths -> target. Purely textual on the
+	// import spec, but scoped to the known opensearch-go module paths so
+	// unrelated imports are untouched. Done after the AST walk so type resolution
+	// above still saw the source paths.
+	res.edits = append(res.edits, rewriteImports(file, rules.importPrefixes)...)
+	return res
+}
+
+// rewriteImports rewrites source opensearch-go import paths to their target
+// prefix in-place. A prefix match covers every sub-package (opensearchapi,
+// opensearchtransport, plugins/*, ...) without enumerating each.
+func rewriteImports(file *ast.File, importPrefixes [][2]string) []string {
+	var edits []string
+	for _, imp := range file.Imports {
+		if imp.Path == nil {
+			continue
+		}
+		val := strings.Trim(imp.Path.Value, `"`)
+		for _, m := range importPrefixes {
+			if val == m[0] || strings.HasPrefix(val, m[0]+"/") {
+				newVal := m[1] + strings.TrimPrefix(val, m[0])
+				imp.Path.Value = `"` + newVal + `"`
+				edits = append(edits, fmt.Sprintf("import %s -> %s", val, newVal))
+				break
+			}
+		}
+	}
+	return edits
+}
+
+// flagFieldAccess detects a read of a field that became "manual" (relocated into
+// a collapsed raw Body, or whose type changed incompatibly) or "unclassified" (a
+// vanished field with no disposition) on a source type, e.g. resp.Deleted or
+// sr.Aggregations. It resolves the field through the SELECTION, so an access via
+// an embedded field (osv4's own SearchResp wrapper embedding
+// *opensearchapi.SearchResp) still maps to the declaring opensearchapi type. It
+// reports (does not rewrite) - the conversion is semantic. It returns
+// (manualEdit, unclassifiedMsg): at most one is non-empty.
+func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
+	selection, ok := info.Selections[sel]
+	if !ok {
+		return "", ""
+	}
+	fieldVar, ok := selection.Obj().(*types.Var)
+	if !ok || !fieldVar.IsField() || fieldVar.Pkg() == nil {
+		return "", ""
+	}
+	// The declaring struct is the field object's "container": recover it by
+	// walking the selection's receiver to the type that actually declares the
+	// field. types.Selection.Recv is the receiver expression's type, which for an
+	// embedded access is the outer type; instead key on where the field is
+	// declared, available via fieldVar's position resolved against the delta by
+	// its declaring named type. We approximate that by scanning the delta for a
+	// struct whose qualified name matches the field's declaring package + the
+	// receiver chain - simplest robust route: match on field name + package.
+	qual := declaringType(selection)
+	if qual == "" {
+		return "", ""
+	}
+	sd, ok := delta.Structs[qual]
+	if !ok {
+		return "", ""
+	}
+	for _, ch := range sd.Changes {
+		if ch.From != sel.Sel.Name {
+			continue
+		}
+		switch ch.Kind {
+		case apirev.KindManual:
+			return fmt.Sprintf("MANUAL %s: access .%s - %s", sd.From, ch.From, ch.Note), ""
+		case apirev.KindUnclassified:
+			return "", fmt.Sprintf("%s#%s (read at a call site) - %s", sd.From, ch.From, ch.Note)
+		}
+	}
+	return "", ""
+}
+
+// declaringType returns the qualified type ("<pkgPath>.<Name>") that actually
+// declares the selected field, following embedding. It uses the selection's
+// index path: Recv() is the outermost receiver type, and the last index step
+// lands in the struct that declares the field.
+func declaringType(sel *types.Selection) string {
+	t := sel.Recv()
+	idx := sel.Index() // path of field indices; last is the field itself
+	for _, i := range idx[:len(idx)-1] {
+		// descend through embedded fields
+		st := underlyingStruct(t)
+		if st == nil {
+			return ""
+		}
+		t = st.Field(i).Type()
+	}
+	st := underlyingStruct(t)
+	if st == nil {
+		return ""
+	}
+	// t is now the struct that declares the field; recover its named type name.
+	named := namedOf(t)
+	if named == nil || named.Obj().Pkg() == nil {
+		return ""
+	}
+	return named.Obj().Pkg().Path() + "." + named.Obj().Name()
+}
+
+func underlyingStruct(t types.Type) *types.Struct {
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	if st, ok := t.Underlying().(*types.Struct); ok {
+		return st
+	}
+	return nil
+}
+
+func namedOf(t types.Type) *types.Named {
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	if n, ok := t.(*types.Named); ok {
+		return n
+	}
+	return nil
+}
+
+// rewriteCompositeLit applies field renames, pointer-wraps, and removals to a
+// composite literal, keyed by the literal's resolved qualified type. It returns
+// (edits, unclassified): a key naming a field that vanished with no disposition
+// is reported as unclassified (a bug) rather than rewritten or dropped.
+func rewriteCompositeLit(
+	lit *ast.CompositeLit, info *types.Info, delta apirev.Delta, renameByFrom map[string]apirev.TypeRename,
+) ([]string, []string) {
+	qual := qualifiedType(info.TypeOf(lit))
+	if qual == "" {
+		return nil, nil
+	}
+	sd, hasDelta := delta.Structs[qual]
+
+	// Index field changes by source field name (may be empty if no delta for this type).
+	byField := map[string]apirev.FieldChange{}
+	if hasDelta {
+		for _, ch := range sd.Changes {
+			byField[ch.From] = ch
+		}
+	}
+
+	label := qual
+	if hasDelta {
+		label = sd.From
+	}
+
+	var edits, unclassified []string
+	kept := lit.Elts[:0]
+	for _, elt := range lit.Elts {
+		kv, ok := elt.(*ast.KeyValueExpr)
+		if !ok {
+			kept = append(kept, elt)
+			continue
+		}
+		key, ok := kv.Key.(*ast.Ident)
+		if !ok {
+			kept = append(kept, elt)
+			continue
+		}
+
+		// Embedded-field key rename: if the key names an embedded field whose
+		// type was renamed v4->v5 (e.g. `IndicesCountResp: x` embedding
+		// *opensearchapi.IndicesCountResp, now CountResp), rename the key to the
+		// v5 type's base name. Resolved via the field object, so only genuine
+		// embedded fields of a renamed type are touched.
+		if e := renameEmbeddedKey(key, info, renameByFrom); e != "" {
+			edits = append(edits, e)
+			kept = append(kept, kv)
+			continue
+		}
+
+		ch, has := byField[key.Name]
+		if !has {
+			kept = append(kept, elt)
+			continue
+		}
+		switch ch.Kind {
+		case apirev.KindRename:
+			edits = append(edits, fmt.Sprintf("%s: field %s -> %s", label, ch.From, ch.To))
+			key.Name = ch.To
+			kept = append(kept, kv)
+		case apirev.KindPointerWrap:
+			if inner, ok := kv.Value.(*ast.CompositeLit); ok {
+				kv.Value = &ast.UnaryExpr{Op: token.AND, X: inner}
+				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in & (now pointer)", label, ch.From))
+			}
+			kept = append(kept, kv)
+		case apirev.KindRemove:
+			// Safe only for a literal key: the field is a knob that no longer
+			// exists (e.g. EnableMetrics). Dropping the key is correct.
+			edits = append(edits, fmt.Sprintf("%s: field %s removed", label, ch.From))
+			// drop it (don't append)
+		case apirev.KindManual:
+			// The field's data relocated (raw Body collapse); we must NOT drop or
+			// rewrite it mechanically. Leave it in place and flag for a human.
+			edits = append(edits, fmt.Sprintf("MANUAL %s: field %s - %s", label, ch.From, ch.Note))
+			kept = append(kept, kv)
+		case apirev.KindUnclassified:
+			// The field vanished on the target and no disposition covers it. We do
+			// NOT drop the key (that would silently lose the caller's value) - we
+			// record a bug and leave the literal intact so the run aborts.
+			unclassified = append(unclassified, fmt.Sprintf("%s#%s (set in a literal) - %s", label, ch.From, ch.Note))
+			kept = append(kept, kv)
+		default:
+			kept = append(kept, kv)
+		}
+	}
+	lit.Elts = kept
+	return edits, unclassified
+}
+
+// renameEmbeddedKey handles a composite-literal key that names an embedded
+// field whose type was renamed v4->v5. For an embedded field, the key IS the
+// type's base name (e.g. `IndicesCountResp: apiResp` embedding
+// *opensearchapi.IndicesCountResp); when that type becomes CountResp the key
+// must follow. Resolved via the field object so only real embedded fields of a
+// renamed type are touched. Returns "" if not applicable.
+func renameEmbeddedKey(key *ast.Ident, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+	obj := info.Uses[key]
+	v, ok := obj.(*types.Var)
+	if !ok || !v.Embedded() {
+		return ""
+	}
+	// The embedded field's type gives the qualified v4 type key.
+	ft := v.Type()
+	if p, ok := ft.(*types.Pointer); ok {
+		ft = p.Elem()
+	}
+	named, ok := ft.(*types.Named)
+	if !ok || named.Obj().Pkg() == nil {
+		return ""
+	}
+	qk := named.Obj().Pkg().Path() + "." + named.Obj().Name()
+	r, ok := renameByFrom[qk]
+	if !ok {
+		return ""
+	}
+	old := key.Name
+	key.Name = r.ToName
+	return fmt.Sprintf("embedded key %s -> %s", old, r.ToName)
+}
+
+// rewriteCall handles call-site rules: removed opensearchapi helpers and client
+// method regrouping onto target sub-clients. It uses the cursor so it can
+// replace the whole call node (e.g. ToPointer(x) -> &x).
+func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules rewriteRules) []string {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return nil
+	}
+
+	// (a) opensearchapi.<Helper>(...) removals.
+	if pkgIdent, ok := sel.X.(*ast.Ident); ok {
+		if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && isOpenSearchAPIPath(pn.Imported().Path()) {
+			switch rules.removedHelpers[sel.Sel.Name] {
+			case "addressOf":
+				// ToPointer(x) -> &x (target methods take *Req directly).
+				if len(call.Args) == 1 {
+					c.Replace(&ast.UnaryExpr{Op: token.AND, X: call.Args[0]})
+					return []string{"opensearchapi.ToPointer(x) -> &x"}
+				}
+			case apirev.KindManual:
+				return []string{fmt.Sprintf("MANUAL opensearchapi.%s removed - replace by hand (no mechanical target equivalent)", sel.Sel.Name)}
+			}
+		}
+	}
+
+	// (b) client method regrouping.
+	if e := regroupMethod(call, sel, info, rules.regroups); e != "" {
+		return []string{e}
+	}
+	return nil
+}
+
+// isOpenSearchAPIPath reports whether path is a v4 or v5 opensearchapi package.
+func isOpenSearchAPIPath(path string) bool {
+	return strings.HasSuffix(path, "/opensearchapi")
+}
+
+// regroupMethod rewrites a client method call whose sub-client path changed in
+// the target (e.g. client.Indices.Count -> client.Count, client.Index ->
+// client.Doc.Index). It matches the trailing selector chain against a
+// methodRegroup.FromPath, rebuilds it as ToPath rooted at the same receiver, and
+// wraps the sole request arg in & when the target method takes a pointer.
+func regroupMethod(call *ast.CallExpr, sel *ast.SelectorExpr, info *types.Info, regroups []methodRegroup) string {
+	chain, root := selectorChain(sel, info)
+	if root == nil {
+		return ""
+	}
+
+	for _, rg := range regroups {
+		if !slices.Equal(chain, rg.FromPath) {
+			continue
+		}
+		call.Fun = buildSelector(root, rg.ToPath)
+		if rg.PtrArg && len(call.Args) >= 1 {
+			last := len(call.Args) - 1
+			// Only wrap if the argument is not ALREADY a pointer. This covers two
+			// cases without double-wrapping: an argument that was
+			// opensearchapi.ToPointer(x) (already rewritten, or typed *Req), and a
+			// plain value Req. Checking the resolved type is robust to traversal
+			// order (the inner ToPointer call may be rewritten before or after
+			// this outer call).
+			if _, isPtr := info.TypeOf(call.Args[last]).(*types.Pointer); !isPtr {
+				call.Args[last] = &ast.UnaryExpr{Op: token.AND, X: call.Args[last]}
+			}
+		}
+		return fmt.Sprintf("call client.%s(...) -> client.%s(...)",
+			strings.Join(rg.FromPath, "."), strings.Join(rg.ToPath, "."))
+	}
+	return ""
+}
+
+// selectorChain returns the method/sub-client name chain that hangs off the
+// opensearchapi client receiver, plus that receiver expression. It walks the
+// selector spine outward and STOPS at the sub-expression whose type is the
+// opensearchapi Client - so for `e.Client.Indices.Count` it returns
+// (["Indices","Count"], <e.Client>), not (["Client","Indices","Count"], <e>).
+// Returns (nil, nil) if no opensearchapi client receiver is found on the spine.
+func selectorChain(sel *ast.SelectorExpr, info *types.Info) ([]string, ast.Expr) {
+	var chain []string
+	var cur ast.Expr = sel
+	for {
+		s, ok := cur.(*ast.SelectorExpr)
+		if !ok {
+			return nil, nil // reached a non-selector without finding the client
+		}
+		// If the receiver of this selector is the client, the chain is complete.
+		if isOpenSearchAPIClient(info.TypeOf(s.X)) {
+			chain = append(chain, s.Sel.Name)
+			slices.Reverse(chain)
+			return chain, s.X
+		}
+		chain = append(chain, s.Sel.Name)
+		cur = s.X
+	}
+}
+
+// buildSelector constructs root.path[0].path[1]... as nested SelectorExprs.
+func buildSelector(root ast.Expr, path []string) ast.Expr {
+	e := root
+	for _, p := range path {
+		e = &ast.SelectorExpr{X: e, Sel: ast.NewIdent(p)}
+	}
+	return e
+}
+
+// isOpenSearchAPIClient reports whether t is *opensearchapi.Client.
+func isOpenSearchAPIClient(t types.Type) bool {
+	if t == nil {
+		return false
+	}
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	named, ok := t.(*types.Named)
+	if !ok || named.Obj().Pkg() == nil {
+		return false
+	}
+	return named.Obj().Name() == "Client" && isOpenSearchAPIPath(named.Obj().Pkg().Path())
+}
+
+// rewriteTypeRef renames a qualified type reference whose v4 type was renamed in
+// v5 (opensearchapi.DocumentGetReq -> opensearchapi.GetReq). It matches on the
+// resolved object so only the intended type is touched.
+func rewriteTypeRef(sel *ast.SelectorExpr, info *types.Info, renameByFrom map[string]apirev.TypeRename) string {
+	obj := info.Uses[sel.Sel]
+	tn, ok := obj.(*types.TypeName)
+	if !ok || tn.Pkg() == nil {
+		return ""
+	}
+	key := tn.Pkg().Path() + "." + tn.Name()
+	r, ok := renameByFrom[key]
+	if !ok {
+		return ""
+	}
+	old := sel.Sel.Name
+	sel.Sel = ast.NewIdent(r.ToName)
+	return fmt.Sprintf("type %s -> %s", old, r.ToName)
+}
+
+// qualifiedType returns "<pkgPath>.<Name>" for a named struct type (dereferencing
+// a pointer), or "" if t is not a named type from a package.
+func qualifiedType(t types.Type) string {
+	if t == nil {
+		return ""
+	}
+	if p, ok := t.(*types.Pointer); ok {
+		t = p.Elem()
+	}
+	named, ok := t.(*types.Named)
+	if !ok || named.Obj().Pkg() == nil {
+		return ""
+	}
+	return named.Obj().Pkg().Path() + "." + named.Obj().Name()
+}
+
+// writeFormatted prints the (mutated) AST back to disk, gofmt-formatted, through
+// the sandbox root. path is the file's absolute path (from the token position);
+// it is made relative to dir so the write goes through root, which rejects any
+// target that escapes the module directory.
+func writeFormatted(root *os.Root, dir, path string, fset *token.FileSet, file *ast.File) error {
+	var buf bytes.Buffer
+	if err := format.Node(&buf, fset, file); err != nil {
+		return err
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(absDir, path)
+	if err != nil {
+		return fmt.Errorf("relativize %q against module dir: %w", path, err)
+	}
+	return root.WriteFile(rel, buf.Bytes(), 0o644)
+}

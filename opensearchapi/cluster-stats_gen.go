@@ -632,12 +632,12 @@ type ClusterStatsNodePackagingType struct {
 //
 // Contains statistics about processes used by selected nodes.
 type ClusterStatsClusterProcess struct {
-	Cpu                 ClusterStatsClusterProcessCpu                 `json:"cpu"`
+	CPU                 ClusterStatsClusterProcessCPU                 `json:"cpu"`
 	OpenFileDescriptors ClusterStatsClusterProcessOpenFileDescriptors `json:"open_file_descriptors"`
 }
 
-// ClusterStatsClusterProcessCpu is a typed component of the cluster.stats operation.
-type ClusterStatsClusterProcessCpu struct {
+// ClusterStatsClusterProcessCPU is a typed component of the cluster.stats operation.
+type ClusterStatsClusterProcessCPU struct {
 	// Percentage of CPU used across all selected nodes. Returns `-1` if not
 	// supported.
 	Percent float64 `json:"percent"`
