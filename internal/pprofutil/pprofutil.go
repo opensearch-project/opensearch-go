@@ -5,8 +5,8 @@
 // compatible open source license.
 
 // Package pprofutil starts a pprof HTTP server for benchmark and diagnostic
-// runs. The blank net/http/pprof import registers the /debug/pprof handlers on
-// the default mux; Start binds a listener and serves them.
+// runs. Start registers the net/http/pprof handlers on a private mux and serves
+// them on its own listener, keeping the endpoints off http.DefaultServeMux.
 package pprofutil
 
 import (
@@ -14,7 +14,7 @@ import (
 	"log"
 	"net"
 	"net/http"
-	_ "net/http/pprof" //nolint:gosec // G108: intentional -- this package's purpose is to expose the pprof endpoints for benchmark/diagnostic runs
+	"net/http/pprof"
 	"net/url"
 	"strings"
 	"time"
@@ -24,6 +24,11 @@ import (
 // fixed Slowloris floor to satisfy gosec (G114), not a tuning knob: this server
 // is a loopback benchmark/diagnostic endpoint hit by hand, not tuned per call.
 const pprofRWTimeout = 5 * time.Second
+
+// pprofPath is the mount point for the pprof handlers. pprof.Index strips this
+// exact prefix when routing to sub-profiles (heap, goroutine, ...), so the
+// index handler must be registered here for those links to resolve.
+const pprofPath = "/debug/pprof/"
 
 // Start binds and serves the pprof server on addr, returning the listener
 // (nil if it could not start). addr accepts an optional scheme:
@@ -54,10 +59,22 @@ func Start(addr string) net.Listener {
 		return nil
 	}
 
-	log.Printf("pprof server listening on http://%s/debug/pprof/", ln.Addr())
+	// Register on a private mux rather than http.DefaultServeMux so these
+	// endpoints stay scoped to this server. pprof.Index handles the sub-profile
+	// routes (heap, goroutine, ...) under pprofPath.
+	mux := http.NewServeMux()
+	mux.HandleFunc(pprofPath, pprof.Index)
+	mux.HandleFunc(pprofPath+"cmdline", pprof.Cmdline)
+	mux.HandleFunc(pprofPath+"profile", pprof.Profile)
+	mux.HandleFunc(pprofPath+"symbol", pprof.Symbol)
+	mux.HandleFunc(pprofPath+"trace", pprof.Trace)
+
+	served := url.URL{Scheme: "http", Host: ln.Addr().String(), Path: pprofPath}
+	log.Printf("pprof server listening on %s", served.String())
 
 	go func() {
 		server := &http.Server{
+			Handler:      mux,
 			ReadTimeout:  pprofRWTimeout,
 			WriteTimeout: pprofRWTimeout,
 		}

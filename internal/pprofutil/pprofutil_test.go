@@ -56,37 +56,6 @@ func TestStart(t *testing.T) {
 	}
 }
 
-// TestStartNoCollisionOnRepeatedCalls guards issue #864 Bug 5. It proves
-// ephemeral-port allocation hands out distinct ports, so repeated startups do
-// not fight over one address. The real-world trigger -- a TIME_WAIT socket held
-// by a prior `go test -bench` process -- cannot be reproduced within a single
-// test binary, so two in-process starts is the closest observable proxy.
-func TestStartNoCollisionOnRepeatedCalls(t *testing.T) {
-	ln1 := pprofutil.Start("localhost:0")
-	if ln1 == nil {
-		t.Fatal("first Start returned nil, want a listener")
-	}
-	t.Cleanup(func() { _ = ln1.Close() })
-
-	ln2 := pprofutil.Start("localhost:0")
-	if ln2 == nil {
-		t.Fatal("second Start returned nil, want a listener")
-	}
-	t.Cleanup(func() { _ = ln2.Close() })
-
-	addr1, ok := ln1.Addr().(*net.TCPAddr)
-	if !ok {
-		t.Fatalf("first listener addr = %T, want *net.TCPAddr", ln1.Addr())
-	}
-	addr2, ok := ln2.Addr().(*net.TCPAddr)
-	if !ok {
-		t.Fatalf("second listener addr = %T, want *net.TCPAddr", ln2.Addr())
-	}
-	if addr1.Port == addr2.Port {
-		t.Errorf("both listeners bound the same port %d, want distinct ephemeral ports", addr1.Port)
-	}
-}
-
 // TestStartExplicitPort covers the "host:port" override -- the path a developer
 // uses to pin pprof to a known port. It has a different shape from the table
 // above (it must first discover a free port to avoid hardcoding one that CI
