@@ -119,6 +119,8 @@ if errors.As(err, &opensearchError) {
 }
 ```
 
+The [`osapifix`](cmd/osapifix/README.md) tool automates the v3 -> v4 import bump and reports the error-model move (which it cannot rewrite mechanically) as a follow-up; see the deep-dive at [`opensearchapi/UPGRADING_V3_TO_V4.md`](opensearchapi/UPGRADING_V3_TO_V4.md).
+
 ### StringError for Unknown JSON Responses
 
 Version 4.0.0 returns `*opensearch.StringError` error type instead of `*fmt.wrapError` when response received from the server is an unknown JSON. For example, consider delete document API which returns an unknown JSON body when document is not found.

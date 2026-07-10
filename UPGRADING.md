@@ -15,6 +15,10 @@ Upgrading from the hand-written v4 `opensearchapi/` package to the code-generate
 
 The [`osapifix`](cmd/osapifix/README.md) tool automates most of this delta (import bump, type/method/field renames, value-to-pointer adjustments); see the [Automated migration](opensearchapi/UPGRADING_V4_TO_V5.md#automated-migration) section.
 
+## v3 to v4 `opensearchapi/` surface delta
+
+The v4 `opensearchapi/` package keeps the v3 client and its sub-clients unchanged, so most call sites only need the new import path. The one change needing a human hand is the error model, which moved out of `opensearchapi` into the root `opensearch` package ([`UPGRADING_V4.md`](UPGRADING_V4.md) covers it). For the tool-assisted delta - the import bump, the error-model follow-ups, and the response/transport fields the tool reports rather than rewrites - see the deep-dive at [`opensearchapi/UPGRADING_V3_TO_V4.md`](opensearchapi/UPGRADING_V3_TO_V4.md) and its [Automated migration](opensearchapi/UPGRADING_V3_TO_V4.md#automated-migration) section.
+
 ## Related references
 
 - [`COMPATIBILITY.md`](COMPATIBILITY.md) - client/server version support matrix.
