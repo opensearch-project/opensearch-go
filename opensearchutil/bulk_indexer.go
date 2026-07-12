@@ -167,11 +167,11 @@ type BulkIndexerDebugLogger interface {
 }
 
 type bulkIndexer struct {
-	wg      sync.WaitGroup
-	queues  []chan BulkIndexerItem
-	rrCounter atomic.Uint64  //added for round-robin fallback
-	workers []*worker
-	ticker  *time.Ticker
+	wg        sync.WaitGroup
+	queues    []chan BulkIndexerItem
+	rrCounter atomic.Uint64 // added for round-robin fallback
+	workers   []*worker
+	ticker    *time.Ticker
 	// stopFlush cancels the flusher goroutine; flusherDone is closed when that
 	// goroutine returns. Close cancels via stopFlush (non-blocking and
 	// idempotent, so Close never deadlocks even when the flusher already
@@ -260,86 +260,87 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 //
 // Adding an item after a call to Close() will panic.
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
-    var targetQueue chan BulkIndexerItem
+	var targetQueue chan BulkIndexerItem
 
-    if item.DocumentID != "" {
-        // Route by murmur3 hash to ensure all actions for the same DocumentID go to the same worker
-        hashValue := shardhash.Hash(item.DocumentID)
-        workerIndex := uint32(hashValue) % uint32(bi.config.NumWorkers)
-        targetQueue = bi.queues[workerIndex]
-    } else {
-        // Round-robin distribution for items without a DocumentID
-        workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
-        targetQueue = bi.queues[workerIndex]
-    }
+	if item.DocumentID != "" {
+		// Route by murmur3 hash to ensure all actions for the same DocumentID go to the same worker
+		hashValue := shardhash.Hash(item.DocumentID)
+		//nolint:gosec // intentional conversion from signed to unsigned for modulo
+		workerIndex := uint32(hashValue) % uint32(bi.config.NumWorkers)
+		targetQueue = bi.queues[workerIndex]
+	} else {
+		// Round-robin distribution for items without a DocumentID
+		workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers) //nolint:gosec // NumWorkers is strictly positive
+		targetQueue = bi.queues[workerIndex]
+	}
 
-    select {
-    case <-ctx.Done():
-        bi.stats.bulkAddFailCount.Add(1)
-        if bi.config.OnError != nil {
-            bi.config.OnError(ctx, ctx.Err())
-        }
-        return ctx.Err()
-    case targetQueue <- item:
-        bi.stats.numAdded.Add(1)
-    }
+	select {
+	case <-ctx.Done():
+		bi.stats.bulkAddFailCount.Add(1)
+		if bi.config.OnError != nil {
+			bi.config.OnError(ctx, ctx.Err())
+		}
+		return ctx.Err()
+	case targetQueue <- item:
+		bi.stats.numAdded.Add(1)
+	}
 
-    return nil
+	return nil
 }
 
 // Close stops the periodic flush, closes the indexer queue channel,
 // stops the flusher goroutine and calls flush on all writers.
 func (bi *bulkIndexer) Close(ctx context.Context) error {
-    bi.ticker.Stop()
-    
-    // Iterate through the slice and close each worker's channel
-    for _, q := range bi.queues {
-        close(q)
-    }
+	bi.ticker.Stop()
 
-    // Stop the periodic flusher and wait for it to return before the final
-    // drain below, so no auto-flush races the drain. stopFlush is non-blocking
-    // and idempotent; flusherDone is already closed if the flusher exited via
-    // the construction context, so this never blocks Close indefinitely.
-    bi.stopFlush()
-    <-bi.flusherDone
+	// Iterate through the slice and close each worker's channel
+	for _, q := range bi.queues {
+		close(q)
+	}
 
-    // Close the implicitly-created client on every exit path (including the
-    // ctx-cancelled early return below), or the shared cache refcount -- and
-    // thus the transport's goroutines and pool -- would leak.
-    if bi.implicitClient {
-        defer func() {
-            if err := bi.config.Client.Close(); err != nil && bi.config.OnError != nil {
-                bi.config.OnError(ctx, err)
-            }
-        }()
-    }
+	// Stop the periodic flusher and wait for it to return before the final
+	// drain below, so no auto-flush races the drain. stopFlush is non-blocking
+	// and idempotent; flusherDone is already closed if the flusher exited via
+	// the construction context, so this never blocks Close indefinitely.
+	bi.stopFlush()
+	<-bi.flusherDone
 
-    select {
-    case <-ctx.Done():
-        if bi.config.OnError != nil {
-            bi.config.OnError(ctx, ctx.Err())
-        }
-        return ctx.Err()
-    default:
-        bi.wg.Wait()
-    }
+	// Close the implicitly-created client on every exit path (including the
+	// ctx-cancelled early return below), or the shared cache refcount -- and
+	// thus the transport's goroutines and pool -- would leak.
+	if bi.implicitClient {
+		defer func() {
+			if err := bi.config.Client.Close(); err != nil && bi.config.OnError != nil {
+				bi.config.OnError(ctx, err)
+			}
+		}()
+	}
 
-    for _, w := range bi.workers {
-        w.mu.Lock()
-        if w.buf.Len() > 0 {
-            if err := w.flush(ctx); err != nil {
-                w.mu.Unlock()
-                if bi.config.OnError != nil {
-                    bi.config.OnError(ctx, err)
-                }
+	select {
+	case <-ctx.Done():
+		if bi.config.OnError != nil {
+			bi.config.OnError(ctx, ctx.Err())
+		}
+		return ctx.Err()
+	default:
+		bi.wg.Wait()
+	}
 
-                continue
-            }
-        }
-        w.mu.Unlock()
-    }
-    return nil
+	for _, w := range bi.workers {
+		w.mu.Lock()
+		if w.buf.Len() > 0 {
+			if err := w.flush(ctx); err != nil {
+				w.mu.Unlock()
+				if bi.config.OnError != nil {
+					bi.config.OnError(ctx, err)
+				}
+
+				continue
+			}
+		}
+		w.mu.Unlock()
+	}
+	return nil
 }
 
 // Stats returns indexer statistics.

@@ -1106,38 +1106,38 @@ func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, 
 func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
 
 func TestBulkIndexer_ConsistentRouting(t *testing.T) {
-    numWorkers := 5
-    
-    bi := &bulkIndexer{
-        config: BulkIndexerConfig{NumWorkers: numWorkers},
-        queues: make([]chan BulkIndexerItem, numWorkers),
-        stats:  &bulkIndexerStats{},
-    }
+	numWorkers := 5
 
-    for i := 0; i < numWorkers; i++ {
-        bi.queues[i] = make(chan BulkIndexerItem, 100)
-    }
+	bi := &bulkIndexer{
+		config: BulkIndexerConfig{NumWorkers: numWorkers},
+		queues: make([]chan BulkIndexerItem, numWorkers),
+		stats:  &bulkIndexerStats{},
+	}
 
-    targetDocID := "user_123"
-    numItems := 100
+	for i := range numWorkers {
+		bi.queues[i] = make(chan BulkIndexerItem, 100)
+	}
 
-    for i := 0; i < numItems; i++ {
-        item := BulkIndexerItem{
-            Action:     "update",
-            DocumentID: targetDocID,
-        }
-        err := bi.Add(context.Background(), item)
-        require.NoError(t, err, "Unexpected error during Add")
-    }
+	targetDocID := "user_123"
+	numItems := 100
 
-    populatedChannels := 0
-    for i, q := range bi.queues {
-        if len(q) == numItems {
-            populatedChannels++
-        } else {
-            require.Empty(t, q, "Expected queue %d to have 0 items", i)
-        }
-    }
+	for range numItems {
+		item := BulkIndexerItem{
+			Action:     "update",
+			DocumentID: targetDocID,
+		}
+		err := bi.Add(context.Background(), item)
+		require.NoError(t, err, "Unexpected error during Add")
+	}
 
-    require.Equal(t, 1, populatedChannels, "Expected exactly 1 channel to receive all items for the same ID")
+	populatedChannels := 0
+	for i, q := range bi.queues {
+		if len(q) == numItems {
+			populatedChannels++
+		} else {
+			require.Empty(t, q, "Expected queue %d to have 0 items", i)
+		}
+	}
+
+	require.Equal(t, 1, populatedChannels, "Expected exactly 1 channel to receive all items for the same ID")
 }
