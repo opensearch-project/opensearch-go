@@ -276,7 +276,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Consistently route bulk requests for the same DocumentID to the same worker to prevent race conditions ([#950](https://github.com/opensearch-project/opensearch-go/pull/950)).
 
-
 ### Security
 
 ### Dependencies
