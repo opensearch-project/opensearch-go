@@ -274,6 +274,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix ISM RefreshSearchAnalyzers missing leading slash in URL path, causing HTTP/2 request failures ([#686](https://github.com/opensearch-project/opensearch-go/pull/686))
 - Default the benchmark pprof server to an ephemeral loopback port so back-to-back `go test -bench` runs no longer collide on a `TIME_WAIT` socket held by the prior run. The startup logic moves into an `internal/pprofutil` package that registers the pprof handlers on a private mux (off `http.DefaultServeMux`); `PPROF_ADDR` pins an explicit `host:port` when needed. ([#864](https://github.com/opensearch-project/opensearch-go/issues/864))
 
+- Consistently route bulk requests for the same DocumentID to the same worker to prevent race conditions ([#950](https://github.com/opensearch-project/opensearch-go/pull/950)).
+
+
 ### Security
 
 ### Dependencies
