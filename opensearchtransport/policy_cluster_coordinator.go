@@ -216,9 +216,10 @@ func (p *CoordinatorPolicy) DiscoveryUpdate(added, removed, unchanged []*Connect
 		}
 	}
 
-	// Update cached state
-	hasCoords := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-	psSetEnabled(&p.policyState, hasCoords)
+	// Update cached state. Dead-but-never-verified connections do not count as
+	// available so the request cascades to the seed fallback rather than being
+	// served as a zombie.
+	psSetEnabled(&p.policyState, p.pool.hasAvailableConnsWithLock())
 
 	return nil
 }

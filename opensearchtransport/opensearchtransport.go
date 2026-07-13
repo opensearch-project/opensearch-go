@@ -763,7 +763,7 @@ func New(cfg Config) (*Client, error) {
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conn := &Connection{URL: u, URLString: u.String()}
+		conn := &Connection{URL: u, URLString: u.String(), seed: true}
 		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
 		conns[idx] = conn
@@ -878,7 +878,7 @@ func New(cfg Config) (*Client, error) {
 	if !client.seedFallbackDisabled && len(cfg.URLs) > 0 {
 		seedConns := make([]*Connection, len(cfg.URLs))
 		for i, u := range cfg.URLs {
-			conn := &Connection{URL: u, URLString: u.String()}
+			conn := &Connection{URL: u, URLString: u.String(), seed: true}
 			conn.estLoad.clock = realClock{}
 			conn.weight.Store(1)
 			conn.mu.Lock()

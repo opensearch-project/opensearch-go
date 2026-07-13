@@ -283,6 +283,33 @@ func (cp *multiServerPool) countByLifecycleWithLock() lifecycleCounts {
 	return counts
 }
 
+// hasAvailableConnsWithLock reports whether the pool holds any connection that
+// is available for routing (see Connection.availableForRouting): any ready
+// connection, or any dead connection that is either a user-supplied seed or
+// currently confirmed reachable.
+//
+// A dead connection not currently confirmed reachable does not count. Counting
+// it as available is what lets an unreachable discovered node mask the seed-URL
+// fallback: the policy reports "enabled", Route hands the request to the pool,
+// and the pool serves the unverified connection as a zombie instead of
+// returning ErrNoConnections. Excluding it here makes the policy report
+// "not enabled" so the request cascades to the seed fallback until a discovered
+// connection actually proves reachable.
+//
+// CALLER RESPONSIBILITIES:
+//   - Caller must hold the pool lock (read or write).
+func (cp *multiServerPool) hasAvailableConnsWithLock() bool {
+	if len(cp.mu.ready) > 0 {
+		return true
+	}
+	for _, c := range cp.mu.dead {
+		if c.availableForRouting() {
+			return true
+		}
+	}
+	return false
+}
+
 // recalculateWarmupParams recalculates activeListCap (when auto-scaling) and sets
 // warmupRounds/warmupSkipCount based on effective pool size.
 //
