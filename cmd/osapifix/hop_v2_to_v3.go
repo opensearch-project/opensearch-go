@@ -40,8 +40,8 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osapifix/internal/api
 // removed opensearchapi.*Request TYPES (idiom 1) are surfaced by the engine's
 // removed-type diagnostic (see applydelta.go), which reports any reference to a
 // type that vanished on the target. The error-model differences and the two
-// idiom transforms are documented as SemanticFollowups and in
-// opensearchapi/UPGRADING_V2_TO_V3.md.
+// idiom transforms are documented as SemanticFollowups and in the README's
+// "The v2 -> v3 hop" section.
 
 const (
 	// v2root is the root opensearch-go v2 module package (opensearch.Client,
@@ -130,8 +130,9 @@ var hopV2toV3 = Hop{
 	// is reported by the removed-type diagnostic.
 	RemovedHelpers: nil,
 
-	// SemanticFollowups: the two idiom transforms and the response-model change,
-	// none of which can be rewritten mechanically. See opensearchapi/UPGRADING_V2_TO_V3.md.
+	// SemanticFollowups: the two idiom transforms and the response-model change.
+	// Seed ops (Ping, Indices.Exists) are rewritten best-effort; everything else
+	// is report-only. See the README's "The v2 -> v3 hop" section.
 	SemanticFollowups: []string{
 		"The opensearchapi package was redesigned from a function-based API to a typed sub-client API. " +
 			"Idiom 1 (function API): opensearchapi.<X>Request{...}.Do(ctx, client) becomes client.<X>(ctx, <X>Req{...}); " +

@@ -99,14 +99,12 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
 
 ## The v2 -> v3 hop
 
-The v3 -> v4 and v4 -> v5 hops fit the "purely additive data" model above: they are quiet boundaries where only fields of surviving types change, which the existing engine already handles. **v2 -> v3 does not fit that model** and required two engine additions, because it is the project's one structural boundary: the `opensearchapi` package was redesigned from a function-based request API (`opensearchapi.BulkRequest{...}.Do(ctx, client)`) into a typed sub-client API (`client.Bulk(ctx, BulkReq{...})`). Of 182 v2 structs, only 16 survive by name; 166 are removed outright.
+The v3 -> v4 and v4 -> v5 hops fit the "purely additive data" model above: quiet boundaries where only fields of surviving types change, which the existing engine handles. **v2 -> v3 does not.** It is the project's one structural boundary: the `opensearchapi` package was redesigned from a function-based request API (`opensearchapi.BulkRequest{...}.Do(ctx, client)`) into a typed sub-client API (`client.Bulk(ctx, BulkReq{...})`). Of 182 v2 structs, only 16 survive by name; the other 166 are removed. That is a call/response **shape change**, not a set of renames, so the hop needed two engine additions on top of the data model.
 
-That redesign is a call/response **shape change**, not a set of renames. There are two consumer idioms, handled differently:
+Consumers use one of two idioms, handled differently:
 
 - **Idiom 1 (function API):** `opensearchapi.<X>Request{...}.Do(ctx, client)`. The v3 method returns an already-decoded typed `*Resp`, so the raw response handling (`osResp.Body`, `.StatusCode`, `.IsError()`, manual `json.Unmarshal`) that follows the call must be reworked -- a per-op semantic rewrite, not a rename. This is **not automated**: `osapifix` rewrites the import path and **reports** the rest as `MANUAL` worklist items rather than emitting a rewrite it cannot prove.
 - **Idiom 2 (root client):** `client.Ping(client.Ping.WithContext(ctx))` plus `resp.IsError()`. The root `opensearch.Client` lost all its API method fields (only `Transport` survives); the functional options collapse into a `Req` struct and the raw-response error check moves to the returned `error`. For the two seed ops (`Ping`, `Indices.Exists`) this is now rewritten best-effort (see [Idiom-2 best-effort rewrite](#idiom-2-best-effort-rewrite) below); every other root-client op stays `MANUAL`.
-
-Both transforms are documented in [`opensearchapi/UPGRADING_V2_TO_V3.md`](../../opensearchapi/UPGRADING_V2_TO_V3.md).
 
 The two engine additions this hop required (both report-only -- they never emit a rewrite):
 
@@ -156,7 +154,53 @@ go test ./...
 
 ## Limitations
 
-- The v2 -> v3 hop is report-only for the API redesign: it rewrites the import path and flags every removed request type (idiom 1) and removed root-client method (idiom 2) as a `MANUAL` worklist item, but does not rewrite the call/response shape change (see [The v2 -> v3 hop](#the-v2---v3-hop)). Because the intermediate module will not compile against v3 until those manual edits are made, a chained `-w` run through v2 (e.g. v2 -> v5) cannot rebuild past the v2 -> v3 step; migrate v2 -> v3 by hand first, then run the remaining hops.
+The v2 -> v3 hop is the only one with structural limits worth enumerating; the others are quiet data hops. Each entry below names what the tool does not rewrite and the before/after edit you finish by hand.
+
+### v2 -> v3: idiom 1 (function API) is report-only
+
+`osapifix` bumps the import path and reports each removed request type as a `MANUAL` worklist line, but does not rewrite the call or the raw-response block that follows it. The v3 method returns an already-decoded typed `*Resp`, so the response handling is control-flow surgery, not a rename.
+
+```go
+// before (v2)
+res, err := opensearchapi.BulkRequest{Body: body}.Do(ctx, client)
+if err != nil {
+    return err
+}
+defer res.Body.Close()
+if res.IsError() {
+    return fmt.Errorf("bulk failed: %s", res.Status())
+}
+var out BulkResponse
+json.NewDecoder(res.Body).Decode(&out)
+
+// after (v3, by hand) - typed sub-client, decoded response, error returned directly
+resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
+if err != nil {
+    return err
+}
+// resp is *opensearchapi.BulkResp; fields are already decoded
+```
+
+### v2 -> v3: idiom 2 (root client) rewrites seed ops only
+
+`Ping` and `Indices.Exists` are rewritten best-effort (call shape, params, client lifecycle, imports). Every other root-client op (`client.Bulk`, `client.Search`, ...) stays a `MANUAL` line.
+
+```go
+// before (v2)
+resp, err := client.Ping(client.Ping.WithContext(ctx))
+
+// after (v3, automatic for Ping/Indices.Exists)
+resp, err := client.Ping(ctx, &opensearchapi.PingReq{})
+```
+
+Where a value can't be derived mechanically, the pass plants the undefined sentinel `_OSAPIFIX_RESOLVE` plus a salvage comment instead of guessing, so `go build` breaks at that spot. See [Idiom-2 best-effort rewrite](#idiom-2-best-effort-rewrite) for the full transform and the marker cases.
+
+### Chained v2 -> v5 stops at v2 -> v3
+
+Because an idiom-1 module won't compile against v3 until its response blocks are ported by hand, a chained `-w` run through v2 cannot rebuild past the v2 -> v3 step. Migrate v2 -> v3 by hand first (idiom 1) or lean on the seed-op rewrite (idiom 2), get a compiling v3 tree, then run the remaining hops.
+
+### Other limits
+
 - `vet` analyzers are v5-specific (`TypedAssertAnalyzer`) and target a single version; they do not chain across hops.
 - A module importing multiple majors migrates from the lowest; per-import-site source selection is not implemented.
 - Files behind custom build tags (`//go:build <tag>`) are loaded under the default build constraints, so they are not rewritten and are skipped without warning. Migrate those files by hand.

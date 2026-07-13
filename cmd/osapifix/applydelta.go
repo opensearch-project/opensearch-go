@@ -451,7 +451,7 @@ func flagFieldChange(delta apirev.Delta, qual, field string) (string, string, bo
 		}
 		switch ch.Kind {
 		case apirev.KindManual:
-			return fmt.Sprintf("MANUAL %s: access .%s - %s", sd.From, ch.From, ch.Note), "", true
+			return fmt.Sprintf("MANUAL %q: access .%s - %s", sd.From, ch.From, ch.Note), "", true
 		case apirev.KindUnclassified:
 			return "", fmt.Sprintf("%s#%s (read at a call site) - %s", sd.From, ch.From, ch.Note), true
 		}
@@ -582,7 +582,7 @@ func rewriteCompositeLit(
 		case apirev.KindManual:
 			// The field's data relocated (raw Body collapse); we must NOT drop or
 			// rewrite it mechanically. Leave it in place and flag for a human.
-			edits = append(edits, fmt.Sprintf("MANUAL %s: field %s - %s", label, ch.From, ch.Note))
+			edits = append(edits, fmt.Sprintf("MANUAL %q: field %s - %s", label, ch.From, ch.Note))
 			kept = append(kept, kv)
 		case apirev.KindUnclassified:
 			// The field vanished on the target and no disposition covers it. We do
@@ -788,7 +788,7 @@ func flagRemovedTypeRef(sel *ast.SelectorExpr, info *types.Info, removed map[str
 	if !removed[key] {
 		return ""
 	}
-	return fmt.Sprintf("MANUAL %s removed on the target - no mechanical equivalent; "+
+	return fmt.Sprintf("MANUAL %q removed on the target - no mechanical equivalent; "+
 		"migrate this reference by hand (see the hop's follow-ups)", key)
 }
 
