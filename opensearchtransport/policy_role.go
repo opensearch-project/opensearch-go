@@ -194,6 +194,17 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 		p.discoveryUpdateRemove(removed)
 	}
 
+	// Recompute the cached enabled bit unconditionally, mirroring RoundRobinPolicy
+	// and CoordinatorPolicy. The discoveryUpdateAdd/Remove helpers only recompute
+	// when they touch the pool, so an unchanged-only cycle (the steady state)
+	// would otherwise leave the bit stale after a health check flips a
+	// connection's routability (dead+lcNeedsHardware -> ready) off the discovery
+	// path. Without this, a freshly verified node never becomes routable and
+	// traffic pins to the seed fallback.
+	p.pool.Lock()
+	psSetEnabled(&p.policyState, p.pool.hasAvailableConnsWithLock())
+	p.pool.Unlock()
+
 	// unchanged connections don't need any action
 	return nil
 }
@@ -252,10 +263,6 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 				)
 				p.pool.appendToDeadWithLock(conn)
 			}
-
-			// Update hasMatching state while holding the lock
-			hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-			psSetEnabled(&p.policyState, hasConnections)
 
 			p.pool.Unlock()
 		}
@@ -346,9 +353,6 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 	gap := activeCountBefore - p.pool.mu.activeCount
 	p.pool.promoteStandbyGracefullyWithLock(p.pool.poolCtx(), gap)
 
-	// Update hasMatching state while holding the lock
-	hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-	psSetEnabled(&p.policyState, hasConnections)
 	p.pool.Unlock()
 }
 
