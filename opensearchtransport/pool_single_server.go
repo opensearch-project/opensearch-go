@@ -54,8 +54,25 @@ func newSingleServerPool(conn *Connection, m *metrics) *singleServerPool {
 // Compile-time check that singleServerPool implements ConnectionPool.
 var _ ConnectionPool = (*singleServerPool)(nil)
 
-// Next returns the single connection.
+// Next returns the single connection, or ErrNoConnections when that
+// connection has never proven reachable.
+//
+// A discovered node whose publish_address is unroutable from the client
+// (e.g. a NAT'd or misconfigured cluster) is minted lcDead|lcNeedsHardware
+// and, when it is the only node, ends up as this pool's sole connection.
+// Returning it blindly would route every request at an unreachable address
+// and -- because the failure surfaces as a dial error rather than
+// ErrNoConnections -- bypass the seed-URL fallback entirely (see
+// availableForRouting and PR #954, which added the same gate to
+// multiServerPool but not here). Reporting ErrNoConnections instead lets
+// the request cascade to performSeedFallback until the node health-checks
+// clean and clears lcNeedsHardware. A user-supplied seed connection is
+// always available (availableForRouting short-circuits on c.seed), so a
+// genuine single-seed-node pool is unaffected.
 func (cp *singleServerPool) Next() (*Connection, error) {
+	if cp.connection == nil || !cp.connection.availableForRouting() {
+		return nil, ErrNoConnections
+	}
 	return cp.connection, nil
 }
 

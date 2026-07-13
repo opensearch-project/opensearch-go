@@ -127,6 +127,63 @@ func TestNewConnectionPool(t *testing.T) {
 	})
 }
 
+func TestSingleServerPool_Next(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil connection returns ErrNoConnections", func(t *testing.T) {
+		t.Parallel()
+		pool := &singleServerPool{}
+
+		conn, err := pool.Next()
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Nil(t, conn)
+	})
+
+	t.Run("discovered node needing hardware returns ErrNoConnections", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://10.42.19.90:9200")
+		// A freshly discovered, never-verified node: dead and still carrying
+		// lcNeedsHardware, its publish_address possibly unroutable. It must not
+		// be handed out, so the seed-URL fallback can serve the request.
+		conn := &Connection{URL: u}
+		conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Nil(t, got)
+	})
+
+	t.Run("discovered node with hardware cleared is served", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://10.42.19.90:9200")
+		// Once the node responds to a hardware/health probe, lcNeedsHardware is
+		// cleared and it becomes available for routing.
+		conn := &Connection{URL: u}
+		conn.state.Store(int64(newConnState(lcActive)))
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.NoError(t, err)
+		require.Same(t, conn, got)
+	})
+
+	t.Run("seed connection is always served", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://seed:9200")
+		// A user-supplied seed short-circuits availableForRouting() to true even
+		// while dead and needing hardware -- a genuine single-seed-node pool must
+		// still serve its connection.
+		conn := &Connection{URL: u, seed: true}
+		conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.NoError(t, err)
+		require.Same(t, conn, got)
+	})
+}
+
 func TestSingleServerPool_OnSuccess(t *testing.T) {
 	t.Parallel()
 
