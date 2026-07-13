@@ -142,15 +142,20 @@ After `osapifix rewrite -w`, `go build` fails at each marker, and `grep -r _OSAP
 go test ./...
 ```
 
-| File                                      | Covers                                                                            |
-| ----------------------------------------- | --------------------------------------------------------------------------------- |
-| `plan_test.go`                            | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces |
-| `delta_test.go`                           | Drift guards over every hop's type renames and field dispositions                 |
-| `hop_v3_to_v4_test.go`                    | v3 -> v4 version-specific facts                                                   |
-| `hop_v4_to_v5_test.go`                    | v4 -> v5 version-specific facts                                                   |
-| `hop_v2_to_v3_test.go`                    | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings    |
-| `detect_test.go`                          | Source detection, version parsing, directory resolution                           |
-| `internal/surface/delta_internal_test.go` | Surface diffing internals                                                         |
+| File                                      | Covers                                                                              |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| `plan_test.go`                            | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces   |
+| `delta_test.go`                           | Drift guards over every hop's type renames and field dispositions                   |
+| `rewrite_corpus_test.go`                  | End-to-end rewrite over fixture modules (`testdata/corpus`), diffed against goldens |
+| `hop_v3_to_v4_test.go`                    | v3 -> v4 version-specific facts                                                     |
+| `hop_v4_to_v5_test.go`                    | v4 -> v5 version-specific facts                                                     |
+| `hop_v2_to_v3_test.go`                    | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings      |
+| `detect_test.go`                          | Source detection, version parsing, directory resolution                             |
+| `internal/surface/delta_internal_test.go` | Surface diffing internals                                                           |
+
+### Rewrite corpus
+
+`rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test . -run TestRewriteCorpus`.
 
 ## Limitations
 

@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+
+	opensearchv2 "github.com/opensearch-project/opensearch-go/v3"
+	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+)
+
+// seedOps exercises the two idiom-2 seed ops the v2->v3 rewrite handles: a
+// WithContext-only Ping and Indices.Exists, plus a Status() read in an error
+// path. The .golden sibling is the expected v3 output.
+func seedOps(ctx context.Context, client *opensearchapi.Client, idx []string) error {
+	resp, err := client.Ping(ctx, &opensearchapi.PingReq{})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.IsError() {
+		return fmt.Errorf("ping failed: %s", fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode)))
+	}
+
+	existsResp, err := client.Indices.Exists(ctx, opensearchapi.IndicesExistsReq{Indices: idx})
+	if err != nil {
+		return err
+	}
+	if existsResp.IsError() {
+		return fmt.Errorf("exists failed: code %d", existsResp.StatusCode)
+	}
+	return nil
+}
+
+// newClient exercises the client-lifecycle reshape: a flat v2 Config literal and
+// NewClient that the rewrite wraps into opensearchapi.Config + opensearchapi.NewClient.
+func newClient(addrs []string) (*opensearchapi.Client, error) {
+	cfg := opensearchapi.Config{Client: opensearchv2.Config{Addresses: addrs}}
+	cfg.Client.Username = "u"
+	cfg.Client.Password = "p"
+	return opensearchapi.NewClient(cfg)
+}
+
+var _ = opensearchapi.PingRequest{}
