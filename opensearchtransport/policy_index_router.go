@@ -359,7 +359,18 @@ func routerDiscoveryUpdate(
 	*activeConns = all
 	mu.Unlock()
 
-	psSetEnabled(policyState, len(all) > 0)
+	// A router policy is enabled only when it has a connection available for
+	// routing -- a user-supplied seed, or a discovered connection confirmed
+	// reachable. A never-verified discovered connection does not count, so the
+	// request cascades to the seed fallback rather than being served as a zombie.
+	hasAvailable := false
+	for _, c := range all {
+		if c.availableForRouting() {
+			hasAvailable = true
+			break
+		}
+	}
+	psSetEnabled(policyState, hasAvailable)
 
 	return nil
 }
