@@ -207,14 +207,6 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 // diffFields computes the field-level changes from a source struct to its
 // resolved target counterpart.
 //
-// Rename inference is deliberately conservative: a rename is only reported when
-// there is EXACTLY ONE unmatched field on each side (a true 1:1). When multiple
-// source fields vanish (e.g. a target Resp collapsed to a single raw Body), they
-// are reported as removals, not all "renamed" to the lone survivor - the latter
-// is both wrong and dangerous. Multi-field restructurings are surfaced as
-// diffFields computes the field-level changes from a source struct to its
-// resolved target counterpart.
-//
 // Renames are NOT inferred. A field present only on the source side is resolved
 // through the FieldDisposition table (dispByFrom, keyed by qualified source type
 // + field): rename/remove/manual per the explicit action. A vanished field with
