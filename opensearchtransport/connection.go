@@ -233,6 +233,16 @@ type Connection struct {
 			lastAt time.Time
 		}
 	}
+
+	// seed marks a connection built from a user-supplied Config.URLs address
+	// (as opposed to one learned from node discovery). Immutable after
+	// construction; set only at the seed-connection construction sites in
+	// opensearchtransport.New. Seed connections are assumed reachable and are
+	// always available for routing (see availableForRouting) so they can serve
+	// as the last-resort fallback when no discovered node is verified. The zero
+	// value (false) means "not a seed", so any connection not explicitly minted
+	// as a seed is treated as needing verification.
+	seed bool
 }
 
 // timeToNano converts a time.Time to its Unix-nanosecond representation. The
@@ -336,6 +346,30 @@ func (c *Connection) markAsReadyWithLock() {
 func (c *Connection) markAsHealthyWithLock() {
 	c.storeDeadSince(time.Time{})
 	c.failures.Store(0)
+}
+
+// availableForRouting reports whether this connection may be routed to when a
+// policy decides if it has anything worth serving. A seed connection (one built
+// from a user-supplied Config.URLs address) is always available: the user
+// asserted it, and it is the last-resort fallback target. Any other connection
+// -- discovered, or a zero-value/test connection -- is available only while
+// currently confirmed reachable, keyed off the lcNeedsHardware lifecycle bit.
+// That bit is set at discovery (createConnection) and on every failure
+// (OnFailure), and cleared whenever the node responds to a hardware/health
+// probe at all (including a non-2xx such as 403 -- it signals reachability, not
+// success). This is a current-state test, not an "ever verified" latch: a
+// connection that verified once and later failed is re-marked lcNeedsHardware
+// and is not available until it responds again. A connection still carrying the
+// bit has never (or not since its last failure) been proven reachable -- a node
+// whose publish_address may be unroutable, e.g. a NAT'd or misconfigured
+// cluster; counting it as available would let it mask the seed-URL fallback.
+// Because the bit is unset on a zero-value connection, connections not minted by
+// discovery default to available. Lock-free (single atomic load).
+func (c *Connection) availableForRouting() bool {
+	if c.seed {
+		return true // user-supplied seed: assumed reachable
+	}
+	return !c.loadConnState().lifecycle().has(lcNeedsHardware)
 }
 
 // RTTMedian returns the median health-check round-trip time for this connection.

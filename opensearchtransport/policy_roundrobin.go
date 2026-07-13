@@ -196,8 +196,14 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 		}
 	}
 
-	// Update cached enabled state
-	psSetEnabled(&p.policyState, len(p.pool.mu.ready)+len(p.pool.mu.dead) > 0)
+	// Update cached enabled state. A policy is enabled only when it has a
+	// connection worth routing to -- a ready connection, or a dead connection
+	// currently confirmed reachable (lcNeedsHardware clear; see
+	// availableForRouting). Dead connections not currently confirmed reachable
+	// (freshly discovered, or verified-then-failed, possibly unroutable) do not
+	// count, so the request cascades to the seed fallback instead of being
+	// served as a zombie.
+	psSetEnabled(&p.policyState, p.pool.hasAvailableConnsWithLock())
 
 	return nil
 }
