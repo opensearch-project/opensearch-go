@@ -244,11 +244,10 @@ func reshapeConfigLiteral(lit *ast.CompositeLit, apiName string) *ast.CompositeL
 
 // reshapeConfigFieldAssign rewrites sel in place from cfg.<Field> to
 // cfg.Client.<Field>, inserting the Client hop for post-construction field
-// accesses on a v2 Config value. Returns true if changed. The caller is
-// responsible for gating on type-info (only v2 Config receivers).
-func reshapeConfigFieldAssign(sel *ast.SelectorExpr) bool {
+// accesses on a v2 Config value. The caller is responsible for gating on
+// type-info (only v2 Config receivers).
+func reshapeConfigFieldAssign(sel *ast.SelectorExpr) {
 	sel.X = &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("Client")}
-	return true
 }
 
 // optionValue yields the v3 field value for a non-context option: a 0-arg

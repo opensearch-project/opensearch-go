@@ -176,8 +176,7 @@ func TestReshapeConfigFieldAssign(t *testing.T) {
 		{`cfg.Password`, `cfg.Client.Password`},
 	} {
 		sel := parseSelectorOrExpr(t, tc.src)
-		changed := reshapeConfigFieldAssign(sel)
-		require.True(t, changed)
+		reshapeConfigFieldAssign(sel)
 		require.Equal(t, tc.want, mustFormat(t, sel))
 	}
 }

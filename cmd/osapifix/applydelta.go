@@ -325,7 +325,8 @@ func rewriteIdiom2Node(
 		}
 		// Post-construction field access on a v2 Config value: cfg.Username ->
 		// cfg.Client.Username, matching the reshaped Config wrapper.
-		if isV2RootConfig(info.TypeOf(n.X)) && reshapeConfigFieldAssign(n) {
+		if isV2RootConfig(info.TypeOf(n.X)) {
+			reshapeConfigFieldAssign(n)
 			return []string{fmt.Sprintf("reshape cfg.%s -> cfg.Client.%s (idiom2)", n.Sel.Name, n.Sel.Name)}, nil, true
 		}
 		return nil, nil, false
