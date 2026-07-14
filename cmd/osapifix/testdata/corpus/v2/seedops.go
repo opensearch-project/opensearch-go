@@ -46,4 +46,12 @@ func newClient(addrs []string) (*opensearchv2.Client, error) {
 	return opensearchv2.NewClient(cfg)
 }
 
+// newClientInline exercises the canonical README idiom: the Config literal is
+// passed inline to NewClient rather than via a named variable. Handling the
+// NewClient call prunes the walk, so the reshape of the inline argument must
+// happen in the NewClient handler itself.
+func newClientInline(addrs []string) (*opensearchv2.Client, error) {
+	return opensearchv2.NewClient(opensearchv2.Config{Addresses: addrs})
+}
+
 var _ = opensearchapi.PingRequest{}

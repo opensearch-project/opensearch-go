@@ -269,7 +269,19 @@ func rewriteIdiom2Node(
 		if pkgIdent, ok := sel.X.(*ast.Ident); ok && sel.Sel.Name == "NewClient" {
 			if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && pn.Imported().Path() == v2root {
 				sel.X = ast.NewIdent(apiName)
-				return []string{"repoint opensearchv2.NewClient -> opensearchapi.NewClient (idiom2)"}, []string{apiImportPath}, true
+				edits := []string{"repoint opensearchv2.NewClient -> opensearchapi.NewClient (idiom2)"}
+				// Inline form NewClient(Config{...}): handling this node prunes the
+				// walk, so the Config-literal arg is never reached by the CompositeLit
+				// branch below - reshape it here. The split form (cfg := Config{}; ...;
+				// NewClient(cfg)) needs nothing extra: the literal is a standalone
+				// assignment the walk reshapes on its own.
+				for i, arg := range n.Args {
+					if lit, ok := arg.(*ast.CompositeLit); ok && isV2RootConfig(info.TypeOf(lit)) {
+						n.Args[i] = reshapeConfigLiteral(lit, apiName)
+						edits = append(edits, "reshape v2 Config{...} -> opensearchapi.Config{Client: ...} (idiom2)")
+					}
+				}
+				return edits, []string{apiImportPath}, true
 			}
 		}
 		// Raw-response method on a v2 opensearchapi.Response receiver (resp.Status()
@@ -399,11 +411,14 @@ func rewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 // flagFieldAccess detects a read of a field that became "manual" (relocated into
 // a collapsed raw Body, or whose type changed incompatibly) or "unclassified" (a
 // vanished field with no disposition) on a source type, e.g. resp.Deleted or
-// sr.Aggregations. It resolves the field through the SELECTION, so an access via
-// an embedded field (osv4's own SearchResp wrapper embedding
-// *opensearchapi.SearchResp) still maps to the declaring opensearchapi type. It
-// reports (does not rewrite) - the conversion is semantic. It returns
-// (manualEdit, unclassifiedMsg): at most one is non-empty.
+// sr.Aggregations. It resolves the field through the SELECTION against two type
+// keys - the declaring type (following embedding, e.g. a consumer's wrapper
+// embedding *opensearchapi.SearchResp maps to the opensearchapi type) and the
+// receiver type (the type the field is accessed through, which matches the
+// root-client dispositions after gensurface flattens promoted fields) - so an
+// access via either shape is caught. It reports (does not rewrite) - the
+// conversion is semantic. It returns (manualEdit, unclassifiedMsg): at most one is
+// non-empty.
 func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
 	selection, ok := info.Selections[sel]
 	if !ok {
