@@ -416,7 +416,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 			// routes consistently. The cluster-state-independent invariants
 			// (client murmur3 vs observer TargetShard, RoutingValue capture)
 			// are hard-asserted after convergence.
-			const maxAttempts = 4
+			const maxAttempts = 32
 			var (
 				lastEvent   *RouteEvent
 				gt          groundTruth
