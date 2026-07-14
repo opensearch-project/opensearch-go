@@ -31,10 +31,10 @@ package main
 // The v3 method receiver kind (value Req vs *Req) and whether the op still
 // returns a raw *opensearch.Response are recorded per row because the eventual
 // call rewrite needs both: ReqPtr decides whether to wrap the Req literal in &,
-// and RawResponse marks the 11 ops (all the *Exists* checks, Ping, and
-// Nodes.HotThreads) whose response half stays a raw *Response rather than a
-// decoded typed *Resp. Only Remote -> Cluster.RemoteInfo is a rename not listed
-// in UPGRADING_V3.md; it is confirmed in the v3 source.
+// and RawResponse marks the 11 ops (the 7 *Exists* checks, Ping, Nodes.HotThreads,
+// and Cluster's Post/DeleteVotingConfigExclusions) whose response half stays a raw
+// *Response rather than a decoded typed *Resp. Only Remote -> Cluster.RemoteInfo is
+// a rename not listed in UPGRADING_V3.md; it is confirmed in the v3 source.
 
 // callMapEntry is one v2 -> v3 op correspondence. The response half is not
 // modeled here - it is a per-site semantic rewrite (raw *Response / typed *Resp

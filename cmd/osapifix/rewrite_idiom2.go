@@ -26,7 +26,9 @@ import (
 // call.
 
 // markerPrefix is the leading identifier of every compile-breaking sentinel the
-// idiom-2 pass plants; the type-aware walk scans for it to record a MANUAL edit.
+// idiom-2 pass plants. The MANUAL edit is recorded when the marker is planted
+// (in rewriteIdiom2Node); the marker's own role is to break the build so a human
+// resolves the call the transform could not complete mechanically.
 const markerPrefix = "_OSAPIFIX_RESOLVE"
 
 // markerExpr builds the compile-breaking sentinel for a call the transform

@@ -85,11 +85,11 @@ type Delta struct {
 	// RemovedTypes is the set of fully-qualified source types ("<pkgPath>.<Name>")
 	// that have NO counterpart in the target and are not covered by a TypeRename -
 	// i.e. types deleted outright across the hop (e.g. the v2 opensearchapi.*Request
-	// family removed in v3's client redesign). The value is the version-agnostic
-	// display name. Unlike a vanished FIELD (which fails loud only if referenced via
-	// an incomplete disposition table), a removed TYPE is a known, deliberate
-	// deletion; the engine reports any reference to one as a manual worklist item
-	// rather than guessing a shape-changing rewrite it cannot express.
+	// family removed in v3's client redesign). It is a set: the qualified name is the
+	// map key and the value is always true. Unlike a vanished FIELD (which fails loud
+	// only if referenced via an incomplete disposition table), a removed TYPE is a
+	// known, deliberate deletion; the engine reports any reference to one as a manual
+	// worklist item rather than guessing a shape-changing rewrite it cannot express.
 	RemovedTypes map[string]bool `json:"removedTypes,omitempty"`
 }
 
@@ -157,10 +157,12 @@ func fieldDispKey(pkgPath, typeName, field string) string {
 //   - otherwise the source struct is paired with the identically named struct in
 //     the SAME package path within the target (same-name survivor).
 //
-// A source struct with no target counterpart is skipped (genuinely removed; not
-// mechanically migratable). Field pairing within a struct: pointerWrap when a
-// surviving field became a pointer; for a vanished field, the FieldDisposition
-// table's action (rename/remove/manual) if present, else "unclassified".
+// A source struct with no target counterpart is recorded in RemovedTypes
+// (genuinely removed; not mechanically migratable) so a reference to it is
+// reported as a manual worklist item. Field pairing within a struct: pointerWrap
+// when a surviving field became a pointer; for a vanished field, the
+// FieldDisposition table's action (rename/remove/manual) if present, else
+// "unclassified".
 func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldDisposition) Delta {
 	// Index explicit renames by qualified source key.
 	renameByFrom := map[string]TypeRename{}
