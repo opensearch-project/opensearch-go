@@ -215,12 +215,12 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{}
-		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
+		resp, err := Execute[NoBody](t.Context(), c, http.MethodGet, req, nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 	})
 
-	t.Run("Generic Do()", func(t *testing.T) {
+	t.Run("Generic Execute()", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
@@ -233,18 +233,18 @@ func TestClientInterfe(t *testing.T) {
 		}
 
 		var got rootResp
-		resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+		resp, err := Execute(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		require.Equal(t, "1.0.0", got.Version.Number)
 		require.Equal(t, "opensearch", got.Version.Distribution)
 	})
 
-	t.Run("Generic Do() nil NoBody pointer", func(t *testing.T) {
+	t.Run("Generic Execute() nil NoBody pointer", func(t *testing.T) {
 		c, err := NewClient(Config{Transport: mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc)})
 		require.NoError(t, err)
 
-		resp, err := Do[NoBody](t.Context(), c, http.MethodGet, testReq{Path: "/"}, nil)
+		resp, err := Execute[NoBody](t.Context(), c, http.MethodGet, testReq{Path: "/"}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 	})
@@ -254,7 +254,7 @@ func TestClientInterfe(t *testing.T) {
 		require.NoError(t, err)
 
 		req := testReq{Error: true}
-		resp, err := c.Do(context.TODO(), http.MethodGet, req, nil)
+		resp, err := Execute[NoBody](t.Context(), c, http.MethodGet, req, nil)
 		require.Error(t, err)
 		require.Nil(t, resp)
 	})
@@ -267,7 +267,7 @@ func TestClientInterfe(t *testing.T) {
 			Version int `json:"version"`
 		}
 		req := testReq{Path: "/"}
-		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
+		resp, err := Execute(t.Context(), c, http.MethodGet, req, &failStr{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrJSONUnmarshalBody)
 		require.NotNil(t, resp)
@@ -291,7 +291,7 @@ func TestClientInterfe(t *testing.T) {
 			Version int `json:"version"`
 		}
 		req := testReq{}
-		resp, err := c.Do(context.TODO(), http.MethodGet, req, &failStr{})
+		resp, err := Execute(t.Context(), c, http.MethodGet, req, &failStr{})
 		require.Error(t, err)
 		require.ErrorIs(t, err, ErrReadBody)
 		require.NotNil(t, resp)
@@ -313,7 +313,7 @@ func TestResponseString_RawBody(t *testing.T) {
 	}
 
 	var got rootResp
-	resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+	resp, err := Execute(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.rawBody, "Do should buffer the decoded body into rawBody")
@@ -352,7 +352,7 @@ func TestResponseString_ErrorBodyNotDrained(t *testing.T) {
 		Version struct{ Number string } `json:"version"`
 	}
 	var got rootResp
-	resp, err := Do(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
+	resp, err := Execute(t.Context(), c, http.MethodGet, testReq{Path: "/"}, &got)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.IsError())
@@ -380,6 +380,10 @@ type fakeTransport struct {
 
 func (f fakeTransport) Stream(*http.Request) (*http.Response, error) {
 	return f.resp, f.err
+}
+
+func (f fakeTransport) Request(req *http.Request) (*http.Response, error) {
+	return f.Stream(req)
 }
 
 // TestDoStreamErrorClassification verifies that Client.Do only labels a
@@ -439,7 +443,7 @@ func TestDoStreamErrorClassification(t *testing.T) {
 				err: tt.streamErr,
 			}
 
-			resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
+			resp, err := Execute[NoBody](t.Context(), c, http.MethodGet, testReq{Path: "/test"}, nil)
 			require.Error(t, err)
 			require.NotNil(t, resp, "response must be returned alongside the error")
 
@@ -475,6 +479,10 @@ func (h *headerCapturingTransport) Stream(req *http.Request) (*http.Response, er
 	}, nil
 }
 
+func (h *headerCapturingTransport) Request(req *http.Request) (*http.Response, error) {
+	return h.Stream(req)
+}
+
 // TestDoInitializesNilRequestHeader guards the contract that Client.Do routes
 // through Client.Stream, which allocates req.Header when a Request builds one
 // with a nil Header. A custom transport that touches req.Header (e.g. calls
@@ -494,7 +502,7 @@ func TestDoInitializesNilRequestHeader(t *testing.T) {
 	c.Transport = tr
 
 	// testReq with no Headers builds an *http.Request whose Header is nil.
-	resp, err := c.Do(context.TODO(), http.MethodGet, testReq{Path: "/test"}, nil)
+	resp, err := Execute[NoBody](t.Context(), c, http.MethodGet, testReq{Path: "/test"}, nil)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -718,6 +726,9 @@ type stubTransportCloser struct{ closed int }
 //nolint:nilnil // stub: Stream is never called, only Close is exercised
 func (s *stubTransportCloser) Stream(*http.Request) (*http.Response, error) { return nil, nil }
 
+//nolint:nilnil // stub: Request is never called, only Close is exercised
+func (s *stubTransportCloser) Request(*http.Request) (*http.Response, error) { return nil, nil }
+
 //nolint:unparam // Close must return error to satisfy io.Closer; stub never fails
 func (s *stubTransportCloser) Close() error { s.closed++; return nil }
 
@@ -726,6 +737,9 @@ type stubStreamOnly struct{}
 
 //nolint:nilnil // stub: Stream is never called, exists only to satisfy Interface
 func (stubStreamOnly) Stream(*http.Request) (*http.Response, error) { return nil, nil }
+
+//nolint:nilnil // stub: Request is never called, exists only to satisfy Interface
+func (stubStreamOnly) Request(*http.Request) (*http.Response, error) { return nil, nil }
 
 func TestConfigKey(t *testing.T) {
 	t.Run("hashable configs", func(t *testing.T) {

@@ -103,6 +103,7 @@ func getConnectionFromPool(c *Transport, req *http.Request) (*Connection, error)
 // The caller owns the response body and must close it.
 type Interface interface {
 	Stream(*http.Request) (*http.Response, error)
+	Request(*http.Request) (*http.Response, error)
 }
 
 // OpenSearchInfo represents the root endpoint response structure for health checks.
@@ -1308,7 +1309,7 @@ func (c *Transport) Request(req *http.Request) (*http.Response, error) {
 	// Buffer the body so the connection returns to the pool. This is core
 	// Request behavior and runs regardless of whether an observer is registered.
 	var n int64
-	if res != nil {
+	if res != nil && res.Body != nil {
 		body, rerr := io.ReadAll(res.Body)
 		//nolint:errcheck // draining an already-read body; the read error is captured below
 		res.Body.Close()
