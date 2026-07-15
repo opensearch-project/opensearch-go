@@ -231,6 +231,13 @@ func (r *PolicyChain) Eval(ctx context.Context, req *http.Request) (NextHop, err
 	}
 
 	for _, policy := range r.policies {
+		// Skip not-enabled policies, mirroring Route. Otherwise a nested chain
+		// reached via Eval could serve an unverified zombie connection and mask
+		// the seed fallback.
+		if !policy.IsEnabled() {
+			continue
+		}
+
 		hop, err := policy.Eval(ctx, req)
 		switch {
 		case err != nil:
