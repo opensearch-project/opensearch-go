@@ -3,6 +3,7 @@ name: Integration for Compatibility
 on: [push, pull_request]
 
 env:
+  CONTAINER_PROVIDER: docker
   CONTAINER_RUNTIME: docker
 
 jobs:
