@@ -8,6 +8,8 @@ package opensearchtransport
 
 import (
 	"math"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -76,6 +78,41 @@ type RouteEvent struct {
 
 	// Timestamp is when the routing decision was made.
 	Timestamp time.Time
+
+	// buf is the pooled backing store for Candidates. nil for events built by
+	// buildRouteEvent (fresh, non-pooled allocation). Set by dispatchRoute and
+	// driven by Retain/Release.
+	buf *routeCandidateBuf
+}
+
+// Retain takes an additional reference to the event's pooled Candidates backing
+// array so the event may be used after OnRoute returns -- for example, after
+// being sent to another goroutine over a channel. Call Retain synchronously
+// inside OnRoute, and call [RouteEvent.Release] exactly once when the retained
+// copy is no longer needed. Without a matching Release the backing array is
+// never returned to the pool (a leak, not corruption).
+//
+// Retain is a no-op on a zero-value or non-pooled event.
+func (e RouteEvent) Retain() {
+	if e.buf != nil {
+		e.buf.refs.Add(1)
+	}
+}
+
+// Release drops one reference to the event's pooled Candidates backing array,
+// returning it to the pool when the last reference is dropped. dispatchRoute
+// holds a reference for the duration of OnRoute, so a synchronous observer need
+// not call Release at all; an observer that called [RouteEvent.Retain] must call
+// Release exactly once when done. After the final Release, Candidates must not
+// be read again.
+//
+// Release is safe to call on a zero-value or non-pooled event (a no-op). It is
+// NOT safe to call Release concurrently with reads of Candidates on the same
+// reference.
+func (e RouteEvent) Release() {
+	if e.buf != nil {
+		e.buf.unref()
+	}
 }
 
 // RouteCandidate holds the score breakdown for one node evaluated
@@ -226,8 +263,19 @@ type routeEventParams struct {
 
 // buildRouteEvent constructs a RouteEvent from a completed
 // routing decision. Called after the best candidate is selected.
+//
+// The returned event owns a freshly allocated Candidates slice, so it is safe
+// to retain. Hot-path routing dispatches through [dispatchRoute] instead, which
+// reuses a pooled backing array and imposes a copy-if-you-retain contract on the
+// observer.
 func buildRouteEvent(p routeEventParams) RouteEvent {
-	cs := make([]RouteCandidate, len(p.candidates))
+	return buildRouteEventInto(make([]RouteCandidate, len(p.candidates)), p)
+}
+
+// buildRouteEventInto fills cs with the candidate breakdown and returns the
+// assembled RouteEvent. cs must have length len(p.candidates); callers pass
+// either a fresh slice (buildRouteEvent) or a pooled one (dispatchRoute).
+func buildRouteEventInto(cs []RouteCandidate, p routeEventParams) RouteEvent {
 	var selected RouteCandidate
 	for i, c := range p.candidates {
 		cs[i] = newRouteCandidate(c, p.slot, p.shard, p.costs, p.poolName, p.poolInfoReady, p.scoreFunc)
@@ -253,6 +301,85 @@ func buildRouteEvent(p routeEventParams) RouteEvent {
 		Timestamp:                  time.Now().UTC(),
 	}
 }
+
+// routeCandidatePool reuses routeCandidateBuf objects (and their
+// []RouteCandidate backing arrays) across routing decisions so the per-request
+// OnRoute event does not allocate one each time.
+//
+//nolint:gochecknoglobals // sync.Pool must be package-level
+var routeCandidatePool = sync.Pool{
+	New: func() any {
+		return &routeCandidateBuf{cs: make([]RouteCandidate, 0, 16)}
+	},
+}
+
+// routeCandidatePoolMaxCap bounds the backing-array capacity returned to
+// routeCandidatePool. A pathologically large fan-out would otherwise pin an
+// oversized array in the pool for the process lifetime; such arrays are dropped
+// for the GC to reclaim instead.
+const routeCandidatePoolMaxCap = 1024
+
+// routeCandidateBuf is the pooled backing store for a RouteEvent's Candidates
+// slice. refs is a reference count: dispatchRoute holds one for the duration of
+// the OnRoute call, and [RouteEvent.Retain] adds one for an async consumer. The
+// backing array is reclaimed when refs reaches zero, which -- because
+// dispatchRoute keeps its reference until after OnRoute returns -- cannot happen
+// while the buffer is still in use, so it is never reclaimed and reused
+// underneath a concurrent reader.
+type routeCandidateBuf struct {
+	cs   []RouteCandidate
+	refs atomic.Int64
+}
+
+// unref drops one reference and reclaims the backing array when the count
+// reaches zero. A count below zero indicates a Release/Retain imbalance in an
+// observer; it is ignored rather than returning the array to the pool twice.
+func (b *routeCandidateBuf) unref() {
+	switch n := b.refs.Add(-1); {
+	case n == 0:
+		// Drop an oversized backing array rather than pinning it in the pool.
+		if cap(b.cs) > routeCandidatePoolMaxCap {
+			return
+		}
+		// Clear so retained RouteCandidate string fields cannot keep heap
+		// objects alive across GC cycles, then truncate for reuse.
+		clear(b.cs[:cap(b.cs)])
+		b.cs = b.cs[:0]
+		routeCandidatePool.Put(b)
+	case n < 0:
+		// Over-release: already reclaimed. Ignore.
+	}
+}
+
+// dispatchRoute builds a RouteEvent whose Candidates slice is backed by a
+// pooled array and delivers it to obs.OnRoute.
+//
+// By default dispatchRoute reclaims the backing array once OnRoute returns,
+// which is correct for a synchronous observer (and the no-op default). An
+// observer that retains the event past the call -- e.g. by handing it to
+// another goroutine -- must call [RouteEvent.Retain] synchronously inside
+// OnRoute, then [RouteEvent.Release] when done.
+//
+// obs must be non-nil (callers guard with observerFromAtomic).
+func dispatchRoute(obs ConnectionObserver, p routeEventParams) {
+	n := len(p.candidates)
+	b := routeCandidatePool.Get().(*routeCandidateBuf) //nolint:forcetypeassert // pool only stores *routeCandidateBuf
+	b.refs.Store(1)                                     // dispatchRoute's own reference
+	if cap(b.cs) < n {
+		b.cs = make([]RouteCandidate, n)
+	} else {
+		b.cs = b.cs[:n]
+	}
+
+	event := buildRouteEventInto(b.cs, p)
+	event.buf = b
+	obs.OnRoute(event)
+
+	// Drop dispatchRoute's reference. Reclaims now unless the observer took a
+	// reference via Retain, in which case the async consumer's Release reclaims.
+	event.Release()
+}
+
 
 // ShardMapInvalidationEvent is emitted when a routing failure flags a
 // connection's shard placement as stale. The connection is excluded from

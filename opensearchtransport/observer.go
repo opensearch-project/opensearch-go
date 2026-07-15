@@ -73,6 +73,18 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// OnRoute is called after the router selects a node for a
 	// request. The event contains the full scoring breakdown for all
 	// candidates considered during the routing decision.
+	//
+	// The event's Candidates slice is backed by a pooled array. A synchronous
+	// observer that finishes within the call needs to do nothing: the array is
+	// reclaimed automatically once OnRoute returns. An observer that retains the
+	// event past the call -- for example by sending it to another goroutine over
+	// a channel -- must call [RouteEvent.Retain] synchronously inside OnRoute,
+	// then [RouteEvent.Release] exactly once when it is done reading Candidates.
+	// To keep the candidates without managing the lifecycle, copy them with
+	// slices.Clone(event.Candidates).
+	//
+	// The scalar RouteEvent fields (IndexName, Selected, TargetShard, ...) are
+	// values and remain valid after the array is reclaimed.
 	OnRoute(event RouteEvent)
 
 	// OnShardMapInvalidation is called when a routing failure flags a

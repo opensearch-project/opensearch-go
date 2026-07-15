@@ -1,17 +1,18 @@
-# Response Body Lifecycle: `Do[T]` vs `Stream`
+# Response Body Lifecycle: `Execute[T]`, `Request`, and `Stream`
 
-The OpenSearch Go client exposes two entry points for issuing requests, each with a different response-body ownership contract. Pick the one that matches your use case; do not mix them.
+The OpenSearch Go client exposes entry points for issuing requests, each with a different response-body ownership contract. Pick the one that matches your use case; do not mix them.
 
-| Entry point                            | Body ownership | Buffering            | Use when                                                                 |
-| -------------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
-| `opensearch.Do[T]`                     | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |
-| `opensearchtransport.Transport.Stream` | Caller         | Unbuffered (raw)     | You want to forward or relay raw bytes downstream (proxy, streaming).    |
+| Entry point                             | Body ownership | Buffering            | Use when                                                                 |
+| --------------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
+| `opensearch.Execute[T]`                 | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |
+| `opensearchtransport.Transport.Request` | SDK            | Buffered (in memory) | You want the buffered `*http.Response` without SDK decoding.             |
+| `opensearchtransport.Transport.Stream`  | Caller         | Unbuffered (raw)     | You want to forward or relay raw bytes downstream (proxy, streaming).    |
 
-There is intentionally no typed streaming helper. "Stream and decode into `T`" is a contradiction: if you want `T`, use `Do[T]`; if you want bytes, use `Stream`.
+There is intentionally no typed streaming helper. "Stream and decode into `T`" is a contradiction: if you want `T`, use `Execute[T]`; if you want bytes, use `Stream`.
 
-## `Do[T]`: typed, buffered, default
+## `Execute[T]`: typed, buffered, default
 
-`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Transport.Perform`, which:
+`opensearch.Execute[T]` (and the per-API `request(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Transport.Request`, which:
 
 1. Reads the entire response body into memory.
 2. Closes the underlying body.
@@ -38,9 +39,15 @@ if err != nil {
 fmt.Println(resp.Status)
 ```
 
+## `Request`: buffered, no decoding
+
+`opensearchtransport.Transport.Request` (and the `opensearch.Client.Request` passthrough) buffers the response body exactly like `Execute[T]` -- the connection is drained and returned to the pool and `Response.Body` is an `io.NopCloser` over the buffered bytes -- but does not decode into a Go value. Use it when you want the buffered `*http.Response` and will inspect the bytes yourself.
+
+Unlike `net/http.Client.Do`, `Request` buffers rather than returning a live stream; use `Stream` when you need the raw, unread body.
+
 ## `Stream`: raw, unbuffered, caller owns the body
 
-`opensearchtransport.Transport.Stream` returns the raw `*http.Response` from the underlying `http.RoundTripper`. The SDK does not read or close `res.Body`; the caller does. Stream still performs routing, retries, signing, header injection, request-body compression, and the seed URL fallback identically to `Perform`.
+`opensearchtransport.Transport.Stream` returns the raw `*http.Response` from the underlying `http.RoundTripper`. The SDK does not read or close `res.Body`; the caller does. Stream still performs routing, retries, signing, header injection, request-body compression, and the seed URL fallback identically to `Request`.
 
 `opensearch.Client` exposes a `Stream` passthrough so callers do not need to type-assert `c.Transport`:
 
@@ -53,7 +60,9 @@ defer res.Body.Close()
 // io.Copy / decode incrementally / forward bytes downstream...
 ```
 
-If the underlying transport is a custom implementation that does not satisfy the `opensearch.Streamer` interface, `client.Stream` returns `opensearch.ErrTransportMissingMethodStream`.
+### Failure contract
+
+Both `Request` and `Stream` follow the same rule: a hard transport failure returns a nil response and an error, while a partial failure (for example a body-read failure, or a context cancellation during retry backoff after a retryable status) returns the response together with an error. Distinguish the two by testing `resp == nil`, not `err != nil`.
 
 ### Proxy and streaming example
 
@@ -90,13 +99,10 @@ In both cases, always call `res.Body.Close()` when done.
 
 ## When to use which
 
-| Scenario                                           | Recommendation |
-| -------------------------------------------------- | -------------- |
-| Standard API calls (CRUD, search, cluster ops)     | `Do[T]`        |
-| Reverse proxy forwarding large responses           | `Stream`       |
-| Streaming bulk responses to clients                | `Stream`       |
-| Scroll/PIT with large result sets piped downstream | `Stream`       |
-
-## Deprecation note
-
-`opensearchtransport.Transport.Perform` and `opensearch.Client.Perform` are deprecated and will be removed before the first stable release. They remain fully functional in the meantime; the buffered-response contract is unchanged. New code should call `Do[T]` for typed results or `Stream` for raw byte forwarding.
+| Scenario                                           | Recommendation  |
+| -------------------------------------------------- | --------------- |
+| Standard API calls (CRUD, search, cluster ops)     | `Execute[T]`    |
+| Buffered `*http.Response` without SDK decoding     | `Request`       |
+| Reverse proxy forwarding large responses           | `Stream`        |
+| Streaming bulk responses to clients                | `Stream`        |
+| Scroll/PIT with large result sets piped downstream | `Stream`        |

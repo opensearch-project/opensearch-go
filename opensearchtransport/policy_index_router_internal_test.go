@@ -16,7 +16,7 @@ import (
 )
 
 // scoreTestConn creates a Connection with a known RTT and load for scoring tests.
-func scoreTestConn(t *testing.T, id string, rtt time.Duration, load float64) *Connection {
+func scoreTestConn(t testing.TB, id string, rtt time.Duration, load float64) *Connection {
 	t.Helper()
 	u := &url.URL{Scheme: "https", Host: id + ":9200"}
 	c := &Connection{

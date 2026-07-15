@@ -43,11 +43,11 @@ func example() error {
 	}
 ```
 
-## Using Do for Typed Responses
+## Using Execute for Typed Responses
 
-When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoints, newly released server APIs, or internal custom endpoints -- use `opensearch.Do()` to execute a request and automatically unmarshal the JSON response into a struct.
+When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoints, newly released server APIs, or internal custom endpoints -- use `opensearch.Execute[T]()` to execute a request and automatically unmarshal the JSON response into a struct.
 
-The `Client.Do()` method accepts `any` for its response parameter, which means passing a non-pointer compiles but fails at runtime during JSON unmarshaling. The generic `opensearch.Do[T]()` function catches this mistake at compile time. `Client.Do()` is marked with a `Deprecated` doc annotation to steer callers toward the safer alternative -- it remains fully functional and will not be removed, but `staticcheck` SA1019 will flag cross-package usage as a nudge.
+`opensearch.Execute[T]()` is generic: the type parameter enforces that the response destination is a pointer at compile time, so passing a non-pointer does not compile. Pass a nil `*T` (for example `(*opensearch.NoBody)(nil)`) to skip unmarshaling.
 
 First, define a request type that satisfies `opensearch.Request`:
 
@@ -63,7 +63,7 @@ First, define a request type that satisfies `opensearch.Request`:
 	}
 ```
 
-Then use `opensearch.Do` to call the endpoint with a typed response:
+Then use `opensearch.Execute` to call the endpoint with a typed response:
 
 ```go
 	type PluginStatusResp struct {
@@ -73,30 +73,30 @@ Then use `opensearch.Do` to call the endpoint with a typed response:
 
 	ctx := context.Background()
 
-	// Preferred: opensearch.Do[T] enforces *T at compile time.
+	// opensearch.Execute[T] enforces *T at compile time.
 	var pluginStatus PluginStatusResp
 	req := customReq{path: "/_plugins/my_plugin/status"}
-	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, &pluginStatus)
+	resp, err := opensearch.Execute(ctx, client.Client, http.MethodGet, req, &pluginStatus)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("plugin status: %s (v%s), http: %d\n", pluginStatus.Status, pluginStatus.Version, resp.StatusCode)
 ```
 
-If you pass a non-pointer value to `opensearch.Do`, the compiler rejects it:
+If you pass a non-pointer value to `opensearch.Execute`, the compiler rejects it:
 
 ```go
 	// Compile error: cannot use pluginStatus (variable of type PluginStatusResp)
-	// as *PluginStatusResp value in argument to opensearch.Do
-	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, pluginStatus)
+	// as *PluginStatusResp value in argument to opensearch.Execute
+	resp, err := opensearch.Execute(ctx, client.Client, http.MethodGet, req, pluginStatus)
 ```
 
 The three levels of the client API, from lowest to highest:
 
 | Level | Function                                                           | Response handling                                         | When to use                                                |
 | ----- | ------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
-| Low   | `client.Perform(req)`                                              | Raw `*http.Response`; caller reads and closes body        | Proxying, streaming, full control needed                   |
-| Mid   | `opensearch.Do(ctx, client, method, req, &resp)`                   | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
+| Low   | `client.Stream(req)`                                               | Raw `*http.Response`; caller reads and closes body        | Proxying, streaming, full control needed                   |
+| Mid   | `opensearch.Execute(ctx, client, method, req, &resp)`              | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
 | High  | `client.Search(ctx, req)` / `client.Indices.Create(ctx, req)` etc. | Fully typed request and response                          | Standard OpenSearch APIs                                   |
 
 ## GET

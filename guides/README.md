@@ -26,7 +26,7 @@ Task-oriented guides for the OpenSearch Go client. Each guide is the canonical r
 ## Responses and Error Handling
 
 - [Error Handling and Partial Failures](usage-error_handling.md) - The canonical reference for detecting and handling partial failures, including the typed error model and helpers.
-- [Response Body Lifecycle: `Do[T]` vs `Stream`](transport-response_buffering.md) - Choose between the buffered and streaming entry points and understand their body-ownership contracts.
+- [Response Body Lifecycle: `Execute[T]`, `Request`, and `Stream`](transport-response_buffering.md) - Choose between the buffered and streaming entry points and understand their body-ownership contracts.
 
 ## Operations and Observability
 
