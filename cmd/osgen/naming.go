@@ -34,12 +34,29 @@ var idiomaticAbbreviations = []struct {
 	from, to      string
 	tailUpperOnly bool
 }{
-	{from: "Msearch", to: "MSearch"},
-	{from: "Mget", to: "MGet"},
-	{from: "Mtermvectors", to: "MTermVectors"},
-	{from: "Termvectors", to: "TermVectors"},
+	// Sorted by `from`. Order-independent: no entry's `to` re-triggers another
+	// entry's `from` at a PascalCase boundary. The aggregation-result entries
+	// (D/L/S/UL/UM/Sig + "terms", and "tdigest") split the terse spec oneOf
+	// titles into the idiomatic PascalCase the decoded type already uses
+	// (e.g. "ulterms" -> "ULTerms", matching UnsignedLongTermsAggregate).
+	{from: "Dterms", to: "DTerms"},
 	{from: "Forcemerge", to: "ForceMerge"},
+	{from: "Lrareterms", to: "LRareTerms"},
+	{from: "Lterms", to: "LTerms"},
+	{from: "Mget", to: "MGet"},
+	{from: "Msearch", to: "MSearch"},
+	{from: "Mtermvectors", to: "MTermVectors"},
 	{from: "Response", to: "Resp", tailUpperOnly: true},
+	{from: "Siglterms", to: "SigLTerms"},
+	{from: "Sigsterms", to: "SigSTerms"},
+	{from: "Srareterms", to: "SRareTerms"},
+	{from: "Sterms", to: "STerms"},
+	{from: "Tdigest", to: "TDigest"},
+	{from: "Termvectors", to: "TermVectors"},
+	{from: "Ulterms", to: "ULTerms"},
+	{from: "Umrareterms", to: "UMRareTerms"},
+	{from: "Umsigterms", to: "UMSigTerms"},
+	{from: "Umterms", to: "UMTerms"},
 }
 
 // applyIdiomaticAbbreviations applies all [idiomaticAbbreviations] to
@@ -140,32 +157,56 @@ func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
 	"api":   "API",
+	"bm25":  "BM25", // Best Matching 25 ranking function
+	"cjk":   "CJK",  // Chinese, Japanese, Korean
 	"cpu":   "CPU",
+	"csv":   "CSV",
+	"dfi":   "DFI", // Divergence From Independence
+	"dfr":   "DFR", // Divergence From Randomness
 	"dfs":   "DFS", // Distributed Frequency Search
 	"dsl":   "DSL",
+	"fs":    "FS",  // File System (store type)
+	"gc":    "GC",  // Garbage Collection
+	"hdr":   "HDR", // High Dynamic Range (percentiles)
+	"html":  "HTML",
 	"http":  "HTTP",
 	"https": "HTTPS",
+	"ib":    "IB",  // Information-Based similarity
+	"icu":   "ICU", // International Components for Unicode
 	"id":    "ID",
+	"ids":   "IDs",
 	"ip":    "IP",
 	"ism":   "ISM", // Index State Management
 	"json":  "JSON",
+	"jvm":   "JVM",
 	"knn":   "KNN", // k-Nearest Neighbors
-	"ltr":   "LTR", // Learning to Rank
-	"ml":    "ML",  // Machine Learning
-	"pit":   "PIT", // Point In Time
+	"lmd":   "LMD",  // Language Model Dirichlet similarity
+	"lmj":   "LMJ",  // Language Model Jelinek-Mercer similarity
+	"ltr":   "LTR",  // Learning to Rank
+	"ml":    "ML",   // Machine Learning
+	"mmap":  "MMap", // memory-mapped store type
+	"nio":   "NIO",  // New I/O (Java, store type)
+	"pit":   "PIT",  // Point In Time
+	"pits":  "PITs",
 	"ppl":   "PPL", // Piped Processing Language
 	"sm":    "SM",  // Snapshot Management
+	"smtp":  "SMTP",
+	"sns":   "SNS", // Simple Notification Service
 	"sql":   "SQL",
 	"ssl":   "SSL",
 	"tcp":   "TCP",
+	"tfidf": "TFIDF", // Term Frequency-Inverse Document Frequency
 	"tls":   "TLS",
 	"ttl":   "TTL",
+	"uax":   "UAX", // Unicode Annex (UAX #29 text segmentation)
 	"ubi":   "UBI", // User Behavior Insights
 	"uri":   "URI",
 	"url":   "URL",
 	"uuid":  "UUID",
+	"wkt":   "WKT", // Well-Known Text (geometry format)
 	"wlm":   "WLM", // Workload Management
 	"xml":   "XML",
+	"xy":    "XY", // Cartesian x/y coordinate types
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.

@@ -7,6 +7,7 @@
 package main
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -490,6 +491,118 @@ func TestClassifyBranchNilRef(t *testing.T) {
 
 	b := w.classifyBranch(nil, "test___Parent", "test", 0)
 	require.Empty(t, b.GoType)
+}
+
+// TestClassifyBranchInlineObject covers the branch naming for inline objects
+// in a oneOf: untitled members get a positional Object<idx> name (kept
+// union-relative so accessors and constructors don't stutter the parent
+// prefix), titled members get their spec title as a semantic name, and a
+// hyphenated title normalizes to a valid PascalCase identifier.
+func TestClassifyBranchInlineObject(t *testing.T) {
+	t.Parallel()
+
+	objectSchema := func(title string) *openapi3.SchemaRef {
+		s := &openapi3.Schema{
+			Type:       &openapi3.Types{"object"},
+			Title:      title,
+			Properties: openapi3.Schemas{"field": {Value: openapi3.NewStringSchema()}},
+		}
+		return &openapi3.SchemaRef{Value: s}
+	}
+
+	tests := []struct {
+		name       string
+		title      string
+		branchIdx  int
+		wantName   string
+		wantGoType string
+	}{
+		{name: "untitled positional", title: "", branchIdx: 1, wantName: "Object1", wantGoType: "ParentObject1"},
+		{name: "titled semantic", title: "keyed", branchIdx: 1, wantName: "Keyed", wantGoType: "ParentKeyed"},
+		{name: "hyphenated title normalized", title: "score-ranker-processor", branchIdx: 2, wantName: "ScoreRankerProcessor", wantGoType: "ParentScoreRankerProcessor"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+			b := w.classifyBranch(objectSchema(tt.title), "_common___Parent", "_common", tt.branchIdx)
+			require.Equal(t, tt.wantName, b.Name)
+			require.Equal(t, tt.wantGoType, b.GoType)
+			require.Equal(t, "object", b.TokenClass)
+		})
+	}
+}
+
+// TestSortBranchesNewestFirstOrderIndependent verifies the sort is a total
+// order keyed on (VersionAdded desc, Ordinal asc), independent of the incoming
+// slice order. Ordinal (spec-array position) is the tiebreaker, so no consumer
+// needs to parse a branch Name to recover order.
+func TestSortBranchesNewestFirstOrderIndependent(t *testing.T) {
+	t.Parallel()
+
+	// Ordinals are the spec-array positions; versions are intentionally varied,
+	// including two unversioned branches that must fall back to Ordinal order.
+	base := []unionBranch{
+		{Name: "Object0", Ordinal: 0, VersionAdded: ""},
+		{Name: "B", Ordinal: 1, VersionAdded: "2.5.0"},
+		{Name: "C", Ordinal: 2, VersionAdded: "2.10.0"},
+		{Name: "Object3", Ordinal: 3, VersionAdded: ""},
+		{Name: "E", Ordinal: 4, VersionAdded: "2.5.0"},
+	}
+	// Newest first; equal versions and the unversioned pair break on Ordinal.
+	want := []string{"C", "B", "E", "Object0", "Object3"}
+
+	orderings := [][]int{
+		{0, 1, 2, 3, 4},
+		{4, 3, 2, 1, 0},
+		{2, 0, 4, 1, 3},
+	}
+	for _, order := range orderings {
+		in := make([]unionBranch, len(order))
+		for i, idx := range order {
+			in[i] = base[idx]
+		}
+		sortBranchesNewestFirst(in)
+		got := make([]string, len(in))
+		for i, b := range in {
+			got[i] = b.Name
+		}
+		require.Equal(t, want, got, "input order %v should not change the result", order)
+	}
+}
+
+// TestSortBranchesNewestFirstDoubleDigitOrdinals guards the case Object10 would
+// sort before Object2 under lexical ordering: with Ordinal an int the tie-break
+// is numeric, so a union with more than ten inline-object branches still orders
+// by spec position. Fails if branch ordering ever reverts to parsing the Name.
+func TestSortBranchesNewestFirstDoubleDigitOrdinals(t *testing.T) {
+	t.Parallel()
+
+	// 12 unversioned branches named/positioned so the lexical order
+	// (Object0, Object1, Object10, Object11, Object2, ...) differs from the
+	// numeric order. Shuffle the input to prove Ordinal, not slice position,
+	// drives the result.
+	const n = 12
+	in := make([]unionBranch, n)
+	for i := range n {
+		// Reverse the input so slice order can't accidentally match.
+		ord := n - 1 - i
+		in[i] = unionBranch{Name: "Object" + strconv.Itoa(ord), Ordinal: ord}
+	}
+
+	sortBranchesNewestFirst(in)
+
+	want := make([]string, n)
+	for i := range n {
+		want[i] = "Object" + strconv.Itoa(i)
+	}
+	got := make([]string, n)
+	for i, b := range in {
+		got[i] = b.Name
+	}
+	require.Equal(t, want, got, "double-digit ordinals must sort numerically, not lexically")
 }
 
 func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {

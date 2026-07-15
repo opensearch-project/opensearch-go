@@ -41,6 +41,9 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 			branchIdx++
 			continue
 		}
+		// branchIdx is the spec-array position; record it as the branch's
+		// order source of truth so no downstream sort has to parse the Name.
+		b.Ordinal = branchIdx
 		classified = append(classified, b)
 		branchIdx++
 	}
@@ -154,10 +157,26 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	if s.Type.Is("object") {
 		// Inline object with properties: walk it to register a named type.
 		if len(s.Properties) > 0 {
-			childKey := fmt.Sprintf("%s.object%d", parentKey, branchIdx)
+			// A named oneOf member carries a spec title; use it for both the
+			// accessor name and the generated type suffix so the branch reads
+			// semantically (e.g. title "keyed" -> Keyed branch). Untitled
+			// members have no spec name, so fall back to a positional suffix.
+			// The branch name stays union-relative -- not the fully-qualified
+			// type name -- so accessors and constructors don't stutter the
+			// union prefix (e.g. NewFooFromObject1, not NewFooFromFooObject1).
+			keySuffix := fmt.Sprintf("object%d", branchIdx)
+			branchName := fmt.Sprintf("Object%d", branchIdx)
+			if s.Title != "" {
+				// baseGoName normalizes the title into an identifier fragment
+				// (splitting on '-', '_', '.'); use it for the key suffix too so
+				// schemaTypeName does not carry a raw hyphen into the type name
+				// (e.g. title "score-ranker-processor" -> ScoreRankerProcessor).
+				branchName = baseGoName(s.Title)
+				keySuffix = branchName
+			}
+			childKey := fmt.Sprintf("%s.%s", parentKey, keySuffix)
 			goTypeName := w.resolveObjectSchema(s, childKey, group, false)
 			if goTypeName != "" && goTypeName != "json.RawMessage" {
-				branchName := baseGoName(goTypeName)
 				return unionBranch{
 					Name:         branchName,
 					GoType:       goTypeName,
@@ -473,13 +492,14 @@ func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
 
 // sortBranchesNewestFirst reorders branches so that those with higher
 // x-version-added values appear first. Branches without version info
-// are placed after versioned branches in their original relative order.
-// This ensures try-each unmarshal attempts the newest schema first.
+// are placed after versioned branches, and ties break on spec-array
+// order (Ordinal) so the result is independent of the incoming slice
+// order. This ensures try-each unmarshal attempts the newest schema first.
 func sortBranchesNewestFirst(branches []unionBranch) {
-	sort.SliceStable(branches, func(i, j int) bool {
+	sort.Slice(branches, func(i, j int) bool {
 		vi, vj := branches[i].VersionAdded, branches[j].VersionAdded
-		if vi == "" && vj == "" {
-			return false
+		if vi == vj {
+			return branches[i].Ordinal < branches[j].Ordinal
 		}
 		if vi == "" {
 			return false
