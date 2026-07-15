@@ -40,12 +40,15 @@ func TestRewriteCorpus(t *testing.T) {
 		edits   []string // substrings that must appear in the report
 	}{
 		{
-			name:    "v2_to_v3",
-			src:     2,
-			dst:     3,
-			corpus:  "v2",
-			stub:    "stub-v2",
-			goldens: []string{"seedops.go"}, // idiom-2 seed ops rewrite to compiling v3
+			name:   "v2_to_v3",
+			src:    2,
+			dst:    3,
+			corpus: "v2",
+			stub:   "stub-v2",
+			// seedops: idiom-2 seed ops -> compiling v3. aliasedimport: aliased
+			// opensearchapi import stays single. paramsemit: destParams nests under
+			// Params. carriedrootclient: a carried v2-root-client arg -> marker.
+			goldens: []string{"seedops.go", "aliasedimport.go", "paramsemit.go", "carriedrootclient.go"},
 			edits: []string{
 				// idiom 2 (seed ops): rewritten best-effort
 				"rewrite client.Ping",

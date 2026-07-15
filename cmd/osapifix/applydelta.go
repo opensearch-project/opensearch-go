@@ -237,12 +237,36 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// Inject imports the idiom-2 pass introduced (v3 opensearchapi for the reshaped
 	// Config/Req, fmt+net/http for the raw-response Status rewrite). Done after the
 	// walk and rewriteImports, like the import bump, so type resolution saw the
-	// original source. AddImport is idempotent, so a path already present is a
-	// no-op.
+	// original source.
+	//
+	// Guard on the resolved import PATH, not astutil's own dedup: astutil matches
+	// on (name, path), so AddImport injecting an unnamed spec for a path the file
+	// already imports under an alias (osapi ".../opensearchapi", which rewriteImports
+	// just bumped to v3 in place) would NOT dedupe - it would add a second, unnamed,
+	// unused import and the output would fail with "imported and not used". The
+	// synthetic nodes reference the file's existing alias (apiName, resolved by
+	// idiom2ImportNames from that same spec), so a path already imported under any
+	// name needs no injection at all; only a genuinely new path is added.
 	for _, p := range dedupe(needImports) {
+		if fileImportsPath(file, p) {
+			continue
+		}
 		astutil.AddImport(pkg.Fset, file, p)
 	}
 	return res
+}
+
+// fileImportsPath reports whether file already imports path, regardless of the
+// spec's local name (alias or unnamed). This is the by-path presence check the
+// idiom-2 import injection needs, since astutil's own dedup keys on (name, path)
+// and so misses an aliased spec bumped to the same path.
+func fileImportsPath(file *ast.File, path string) bool {
+	for _, imp := range file.Imports {
+		if imp.Path != nil && strings.Trim(imp.Path.Value, `"`) == path {
+			return true
+		}
+	}
+	return false
 }
 
 // rewriteIdiom2Node applies the v2->v3 idiom-2 transforms to a single node,
@@ -307,7 +331,12 @@ func rewriteIdiom2Node(
 		}
 		// Idiom-2 client call: client.<v2path>(opts...) -> client.<v3path>(ctx, Req).
 		if chain, root := v2CallChain(sel, info); root != nil {
-			if newNode, edits := rewriteIdiom2Call(n, root, chain, apiName); newNode != nil {
+			// A subexpression carried verbatim into the v3 Req is unsafe to reuse if
+			// it still contains a v2 root-client construct: the descent-stop below
+			// would leave it un-migrated. Flag it so rewriteIdiom2Call plants a
+			// marker rather than emitting non-compiling code with no sentinel.
+			unsafeReuse := func(e ast.Expr) bool { return containsV2RootClientRef(e, info) }
+			if newNode, edits := rewriteIdiom2Call(n, root, chain, apiName, unsafeReuse); newNode != nil {
 				c.Replace(newNode)
 				var imports []string
 				if usesPkgIdent(newNode, apiName) {

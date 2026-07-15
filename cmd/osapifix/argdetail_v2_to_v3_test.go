@@ -70,6 +70,19 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 		return m
 	}
 
+	// fieldType maps field name -> declared type string for the named struct, so
+	// the Params-field convention (a destParams op emits Req{Params: <Op>Params{}})
+	// can be checked against the real v3 Req field type.
+	fieldType := func(snap *apirev.Snapshot, pkg, structName string) map[string]string {
+		st, ok := lookupStruct(snap, pkg, structName)
+		require.Truef(t, ok, "struct %s.%s not found in surface", pkg, structName)
+		m := make(map[string]string, len(st.Fields))
+		for _, f := range st.Fields {
+			m[f.Name] = f.Type
+		}
+		return m
+	}
+
 	for path, detail := range argDetailV2toV3 {
 		reqName := reqNameByPath[path]
 		require.NotEmptyf(t, reqName, "no V3Req in call map for %s", path)
@@ -80,10 +93,32 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 		reqFields := fieldSet(v3Snap, v3CallMapAPIPkg, reqName)
 		paramsFields := fieldSet(v3Snap, v3CallMapAPIPkg, paramsName)
 		paramsPtr := fieldPtr(v3Snap, v3CallMapAPIPkg, paramsName)
+		reqFieldType := fieldType(v3Snap, v3CallMapAPIPkg, reqName)
 
 		// v2 Request struct name: op path -> e.g. "Ping" -> "PingRequest", "Indices.Exists" -> "IndicesExistsRequest".
 		v2ReqName := strings.ReplaceAll(path, ".", "") + "Request"
 		v2Fields := fieldSet(v2Snap, v2CallMapRootPkg+"/opensearchapi", v2ReqName)
+
+		// If the op carries any destParams option, the emit nests them under a Req
+		// field literally named "Params" typed <Op>Params (rewrite_idiom2.go). The
+		// v3-field checks below confirm each param lands on <Op>Params, but not that
+		// the Req actually HAS a Params field of that type - a convention the emit
+		// leans on. Guard it here so a future op whose Req names that field
+		// differently is caught at test time, not as non-compiling emitted output.
+		hasParamsOption := false
+		for _, dest := range detail.Options {
+			if dest.Kind == destParams {
+				hasParamsOption = true
+				break
+			}
+		}
+		if hasParamsOption {
+			require.Truef(t, reqFields["Params"],
+				"%s carries a destParams option but %s has no Params field", path, reqName)
+			wantType := v3CallMapAPIPkg + "." + paramsName
+			require.Equalf(t, wantType, reqFieldType["Params"],
+				"%s Req field Params is %q, want %q (the <Op>Params the emit nests)", path, reqFieldType["Params"], wantType)
+		}
 
 		for i, p := range detail.Positionals {
 			require.Truef(t, reqFields[p.ReqField],

@@ -125,12 +125,13 @@ For the two seed operations, `Ping` and `Indices.Exists`, `osapifix rewrite` doe
 
 **Scope: seed ops only.** Only `Ping` and `Indices.Exists` are rewritten this increment. Every other v2 root-client method (`client.Bulk`, `client.Index`, `client.Search`, ...) stays a `MANUAL` worklist item: the rewriter logs it but leaves the call alone.
 
-**The non-guessing invariant.** The pass applies a transform only when it is mechanically certain. Where it cannot prove the result correct, it plants the undefined sentinel `_OSAPIFIX_RESOLVE` plus a salvage comment instead of emitting a plausible but possibly wrong value, so `go build` breaks at that spot rather than compiling something quietly wrong. Cases that produce a marker:
+**The non-guessing invariant.** The pass applies a transform only when it is mechanically certain. Where it cannot prove the result correct, it plants the undefined sentinel `_OSAPIFIX_RESOLVE` plus a salvage comment (naming what could not be placed, followed by a hand-migration hint pointing back to this section) instead of emitting a plausible but possibly wrong value, so `go build` breaks at that spot rather than compiling something quietly wrong. Cases that produce a marker:
 
 - `WithContext` is absent (the tool will not invent a `context.Background()` for you).
 - An option is dropped in v3 (`WithFilterPath`); the salvage comment names it.
 - An option changes shape rather than renaming (`WithHeader`, `WithOpaqueID`).
 - A response method is removed (`Warnings()`, `HasWarnings()`) or has no faithful one-liner equivalent (`String()`).
+- A value carried verbatim into the v3 `Req` (a positional, an option value, or the ctx arg) still contains a v2 root-client reference the pass would otherwise leave un-migrated; the salvage comment names the field.
 
 After `osapifix rewrite -w`, `go build` fails at each marker, and `grep -r _OSAPIFIX_RESOLVE .` gives the worklist.
 

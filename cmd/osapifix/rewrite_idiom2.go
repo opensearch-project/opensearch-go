@@ -31,11 +31,22 @@ import (
 // resolves the call the transform could not complete mechanically.
 const markerPrefix = "_OSAPIFIX_RESOLVE"
 
+// markerHint is the hand-migration guidance carried in every marker comment,
+// after the case-specific salvage text. It names the v3 target shape so a team
+// hitting the sentinel can migrate the call by hand without cross-referencing
+// the README: the root client's functional-option call collapses into a typed
+// Req passed positionally, and the raw-response inspection moves to the returned
+// error / typed *Resp.
+const markerHint = "migrate by hand: call client.<Endpoint>(ctx, &opensearchapi.<Endpoint>Req{...}) " +
+	"with the option values moved onto the Req/Params fields, and inspect the returned error " +
+	"instead of the raw *Response; see the v2->v3 hop notes in cmd/osapifix/README.md"
+
 // markerExpr builds the compile-breaking sentinel for a call the transform
-// cannot complete mechanically. The salvage text rides in the ident Name as an
-// embedded block comment, which survives go/format without a CommentMap.
+// cannot complete mechanically. The salvage text (what could not be placed) and
+// the hand-migration hint ride in the ident Name as an embedded block comment,
+// which survives go/format without a CommentMap.
 func markerExpr(salvage string) ast.Expr {
-	return &ast.Ident{Name: markerPrefix + " /* OSAPIFIX v2->v3 MANUAL: " + salvage + " */"}
+	return &ast.Ident{Name: markerPrefix + " /* OSAPIFIX v2->v3 MANUAL: " + salvage + " -- " + markerHint + " */"}
 }
 
 // rewriteIdiom2Call rewrites a recognized v2 idiom-2 call into its v3 form.
@@ -46,7 +57,21 @@ func markerExpr(salvage string) ast.Expr {
 //
 // apiPkg is the resolved local opensearchapi import alias, passed by the
 // type-aware caller (idiom2ImportNames); the seed tests pin "opensearchapi".
-func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg string) (ast.Expr, []string) {
+//
+// unsafeReuse reports whether a subexpression carried VERBATIM into the v3 Req
+// (a positional, an option value, or the ctx arg) still needs a rewrite the
+// pass cannot perform here - e.g. it embeds another v2 root-client call that the
+// descent-stop would otherwise leave un-migrated. Such an expr routes through
+// the salvage path so a marker is planted instead of emitting non-compiling
+// code with no sentinel, upholding the rewrite-or-mark invariant. It is
+// type-aware (the caller closes over *types.Info); nil means "never unsafe" for
+// the pure unit tests.
+func rewriteIdiom2Call(
+	call *ast.CallExpr, root ast.Expr, chain []string, apiPkg string, unsafeReuse func(ast.Expr) bool,
+) (ast.Expr, []string) {
+	if unsafeReuse == nil {
+		unsafeReuse = func(ast.Expr) bool { return false }
+	}
 	detail, ok := argDetailV2toV3[strings.Join(chain, ".")]
 	if !ok {
 		return nil, nil
@@ -86,6 +111,10 @@ func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg
 			salvage = append(salvage, "unexpected positional arg count")
 			break
 		}
+		if unsafeReuse(arg) {
+			salvage = append(salvage, fmt.Sprintf("positional %s carries an un-migrated v2 root-client reference", detail.Positionals[i].ReqField))
+			continue
+		}
 		reqFields = append(reqFields, &ast.KeyValueExpr{
 			Key:   ast.NewIdent(detail.Positionals[i].ReqField),
 			Value: arg,
@@ -103,6 +132,10 @@ func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg
 		switch dest.Kind {
 		case destContext:
 			if len(oc.Args) == 1 {
+				if unsafeReuse(oc.Args[0]) {
+					salvage = append(salvage, fmt.Sprintf("option %s carries an un-migrated v2 root-client reference", name))
+					continue
+				}
 				ctxArg = oc.Args[0]
 			} else {
 				salvage = append(salvage, fmt.Sprintf("option %s (expected one arg)", name))
@@ -111,6 +144,10 @@ func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg
 			val, ok := optionValue(oc)
 			if !ok {
 				salvage = append(salvage, fmt.Sprintf("option %s (unexpected arg count)", name))
+				continue
+			}
+			if unsafeReuse(val) {
+				salvage = append(salvage, fmt.Sprintf("option %s carries an un-migrated v2 root-client reference", name))
 				continue
 			}
 			// A *bool v3 Params field (Local, FlatSettings, ...) cannot take a bare
@@ -126,6 +163,10 @@ func rewriteIdiom2Call(call *ast.CallExpr, root ast.Expr, chain []string, apiPkg
 			val, ok := optionValue(oc)
 			if !ok {
 				salvage = append(salvage, fmt.Sprintf("option %s (unexpected arg count)", name))
+				continue
+			}
+			if unsafeReuse(val) {
+				salvage = append(salvage, fmt.Sprintf("option %s carries an un-migrated v2 root-client reference", name))
 				continue
 			}
 			reqFields = append(reqFields, &ast.KeyValueExpr{Key: ast.NewIdent(dest.Field), Value: val})
@@ -311,6 +352,28 @@ func isV2Response(t types.Type) bool {
 		return false
 	}
 	return named.Obj().Name() == typeResponse && named.Obj().Pkg().Path() == v2apiPath
+}
+
+// containsV2RootClientRef reports whether expr contains any subexpression whose
+// resolved type is the v2 root opensearch.Client - i.e. a reference the idiom-2
+// call rewrite would carry verbatim into the v3 Req but the descent-stop would
+// leave un-migrated. It inspects every sub-expression's resolved type (not just
+// obvious call spines), so a client value reused as an arg, or nested inside
+// another expression, is still caught. Used to decide whether to plant a marker
+// instead of emitting a call that would not compile as v3.
+func containsV2RootClientRef(expr ast.Expr, info *types.Info) bool {
+	found := false
+	ast.Inspect(expr, func(n ast.Node) bool {
+		if found {
+			return false
+		}
+		if e, ok := n.(ast.Expr); ok && isV2RootClient(info.TypeOf(e)) {
+			found = true
+			return false
+		}
+		return true
+	})
+	return found
 }
 
 // v2CallChain returns the v2 call path hanging off a v2 ROOT client receiver,
