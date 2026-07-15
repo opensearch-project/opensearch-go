@@ -99,10 +99,10 @@ In both cases, always call `res.Body.Close()` when done.
 
 ## When to use which
 
-| Scenario                                           | Recommendation  |
-| -------------------------------------------------- | --------------- |
-| Standard API calls (CRUD, search, cluster ops)     | `Execute[T]`    |
-| Buffered `*http.Response` without SDK decoding     | `Request`       |
-| Reverse proxy forwarding large responses           | `Stream`        |
-| Streaming bulk responses to clients                | `Stream`        |
-| Scroll/PIT with large result sets piped downstream | `Stream`        |
+| Scenario                                           | Recommendation |
+| -------------------------------------------------- | -------------- |
+| Standard API calls (CRUD, search, cluster ops)     | `Execute[T]`   |
+| Buffered `*http.Response` without SDK decoding     | `Request`      |
+| Reverse proxy forwarding large responses           | `Stream`       |
+| Streaming bulk responses to clients                | `Stream`       |
+| Scroll/PIT with large result sets piped downstream | `Stream`       |

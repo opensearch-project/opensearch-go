@@ -126,7 +126,7 @@ The transport layer sits between the API surface (`opensearchapi`) and the HTTP 
 client.Search(ctx, ...)
   │
   v
-transport.Perform(req)
+transport.Request(req)
   │
   ├── router.Route(ctx, req)               ── policy chain evaluation
   │     │

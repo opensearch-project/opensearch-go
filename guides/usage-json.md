@@ -109,7 +109,7 @@ The following example returns the server version information via `GET /`.
 		return err
 	}
 
-	infoResponse, err := client.Client.Perform(infoRequest)
+	infoResponse, err := client.Request(infoRequest)
 	if err != nil {
 		return err
 	}
@@ -150,7 +150,7 @@ The following example creates an index.
 		return err
 	}
 	createIndexRequest.Header["Content-Type"] = []string{"application/json"}
-	createIndexResp, err := client.Client.Perform(createIndexRequest)
+	createIndexResp, err := client.Request(createIndexRequest)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ The following example searches for a document.
 		return err
 	}
 	searchRequest.Header["Content-Type"] = []string{"application/json"}
-	searchResp, err := client.Client.Perform(searchRequest)
+	searchResp, err := client.Request(searchRequest)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ The following example deletes an index.
 	if err != nil {
 		return err
 	}
-	deleteIndexResp, err := client.Client.Perform(deleteIndexRequest)
+	deleteIndexResp, err := client.Request(deleteIndexRequest)
 	if err != nil {
 		return err
 	}
