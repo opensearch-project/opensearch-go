@@ -222,6 +222,15 @@ func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (NextHop
 	if p.pool == nil {
 		return NextHop{}, nil
 	}
+
+	// Respect the enabled bit from DiscoveryUpdate. With nothing available for
+	// routing, pool.Next() would hand back a zombie from the dead list -- a
+	// transport error, not ErrNoConnections -- masking the seed fallback.
+	// Mirrors the gate in CoordinatorPolicy.Eval and RolePolicy.Eval.
+	if p.policyState.Load()&psEnabled == 0 {
+		return NextHop{}, nil
+	}
+
 	conn, err := p.pool.Next()
 	if err != nil {
 		return NextHop{}, err

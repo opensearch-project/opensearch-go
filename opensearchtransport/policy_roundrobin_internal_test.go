@@ -66,7 +66,7 @@ func TestRoundRobinPolicy(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("Eval returns error when pool has no connections", func(t *testing.T) {
+	t.Run("Eval returns nil conn when not enabled", func(t *testing.T) {
 		policy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		policy.configurePolicySettings(createTestConfig())
 
@@ -74,8 +74,10 @@ func TestRoundRobinPolicy(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		hop, err := policy.Eval(ctx, req)
-		// Pool exists but has no connections -> Next() returns ErrNoConnections
-		require.Error(t, err)
+		// Pool exists but holds nothing available for routing -> policy is not
+		// enabled -> Eval falls through (no conn, no error) rather than serving
+		// a zombie, so the request can cascade to the seed fallback.
+		require.NoError(t, err)
 		require.Nil(t, hop.Conn)
 	})
 

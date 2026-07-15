@@ -138,9 +138,10 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/_bulk", nil)
 
-		// dataPolicy has a pool but no connections -> Next() returns ErrNoConnections
+		// dataPolicy has a pool but nothing available -> not enabled -> its Eval
+		// falls through with no conn and no error.
 		hop, err := policy.Eval(ctx, req)
-		require.Error(t, err)
+		require.NoError(t, err)
 		require.Nil(t, hop.Conn)
 	})
 
@@ -156,9 +157,10 @@ func TestMuxPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodPost, "/myindex/_search", nil)
 
-		// dataPolicy has a pool but no connections -> Next() returns ErrNoConnections
+		// dataPolicy has a pool but nothing available -> not enabled -> its Eval
+		// falls through with no conn and no error.
 		hop, err := policy.Eval(ctx, req)
-		require.Error(t, err)
+		require.NoError(t, err)
 		require.Nil(t, hop.Conn)
 	})
 

@@ -56,9 +56,10 @@ func TestIfEnabledPolicy(t *testing.T) {
 		ctx := context.Background()
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
-		// truePolicy has a pool but no connections -> Next() returns ErrNoConnections
+		// truePolicy has a pool but nothing available -> not enabled -> its Eval
+		// falls through with no conn and no error.
 		hop, err := policy.Eval(ctx, req)
-		require.Error(t, err)
+		require.NoError(t, err)
 		require.Nil(t, hop.Conn)
 	})
 
@@ -100,9 +101,10 @@ func TestIfEnabledPolicy(t *testing.T) {
 		require.NoError(t, err1)
 
 		// Second call: condition returns true (callCount=2)
-		// truePolicy has a pool but no connections -> Next() returns ErrNoConnections
+		// truePolicy has a pool but nothing available -> not enabled -> its Eval
+		// falls through with no conn and no error.
 		hop2, err2 := policy.Eval(ctx, req)
-		require.Error(t, err2)
+		require.NoError(t, err2)
 		require.Nil(t, hop2.Conn)
 	})
 
