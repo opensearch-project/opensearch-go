@@ -49,8 +49,9 @@ var hopV4toV5 = Hop{
 
 	// TypeRenames lists v4 opensearchapi types whose name changed in v5. Derived
 	// by diffing the osv4 consumer's referenced types against the pinned v5
-	// surface (the DocumentGetReq -> GetReq family); extend as new consumers
-	// surface additional renamed types.
+	// surface (the DocumentGetReq -> GetReq family) and from the documented
+	// renames in opensearchapi/UPGRADING_V4_TO_V5.md (the per-shard error types);
+	// extend as new consumers or upgrade-doc entries surface additional renames.
 	TypeRenames: []apirev.TypeRename{
 		{FromPkgPath: v4api, FromName: "DocumentGetReq", ToPkgPath: v5api, ToName: "GetReq"},
 		{FromPkgPath: v4api, FromName: "DocumentGetResp", ToPkgPath: v5api, ToName: "GetResp"},
@@ -60,6 +61,9 @@ var hopV4toV5 = Hop{
 		{FromPkgPath: v4api, FromName: "IndicesCountResp", ToPkgPath: v5api, ToName: "CountResp"},
 		{FromPkgPath: v4api, FromName: "ScrollGetReq", ToPkgPath: v5api, ToName: "ScrollReq"},
 		{FromPkgPath: v4api, FromName: "ScrollGetResp", ToPkgPath: v5api, ToName: "ScrollResp"},
+		// Error-handling per-shard types (opensearchapi/UPGRADING_V4_TO_V5.md).
+		{FromPkgPath: v4api, FromName: "ResponseShards", ToPkgPath: v5api, ToName: "ShardStatistics"},
+		{FromPkgPath: v4api, FromName: "ResponseShardsFailure", ToPkgPath: v5api, ToName: "ShardSearchFailure"},
 	},
 
 	// FieldDispositions rules on struct fields that vanished on the v5 side. Every
@@ -113,6 +117,7 @@ var hopV4toV5 = Hop{
 		"opensearchapi.NewClient now injects a default Router when Config.Client.Router is nil - verify OPENSEARCH_GO_ROUTER expectations.",
 		"EnableMetrics removed: Metrics() no longer errors when disabled - drop any code that branched on that error.",
 		"Timeout/Pretty/Human/ErrorTrace moved into embedded TimeoutParams/DebugParams - restructure those assignments by hand.",
+		"DocumentError -> ErrorRespBase: no field overlap (v4 Reason/Type/RootCause/CausedBy dropped); rework per-error access by hand - see opensearchapi/UPGRADING_V4_TO_V5.md.",
 	},
 }
 
@@ -170,7 +175,9 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 	// opensearchtransport Config knobs dropped in v5 (EnableMetrics is also called
 	// out in SemanticFollowups; DisableResponseBuffering was likewise removed).
 	removals := []struct{ pkg, typ, field string }{
-		{v4api, "ScrollGetResp", "MaxScore"}, // top-level max_score dropped in v5 (moved per-hit)
+		{v4api, "ScrollGetResp", "MaxScore"},        // top-level max_score dropped in v5 (moved per-hit)
+		{v4api, "ResponseShardsFailure", "Primary"}, // dropped in v5 ShardSearchFailure
+		{v4api, "ResponseShardsFailure", "Status"},  // dropped in v5 ShardSearchFailure
 		{v4root, "Config", "EnableMetrics"},
 		{v4root, "Config", "DisableResponseBuffering"},
 		{v4transport, "Config", "EnableMetrics"},

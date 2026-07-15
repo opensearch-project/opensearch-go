@@ -51,6 +51,35 @@ func TestHopV4toV5_KnownChanges(t *testing.T) {
 	transport := "github.com/opensearch-project/opensearch-go/v4/opensearchtransport.Config"
 	assertChangeKind(t, d.Structs[root].Changes, "EnableMetrics", "remove")
 	assertChangeKind(t, d.Structs[transport].Changes, "EnableMetrics", "remove")
+
+	// Error-handling per-shard type renames (opensearchapi/UPGRADING_V4_TO_V5.md).
+	// ResponseShards -> ShardStatistics: same field names, but Skipped becomes
+	// *int (pointerWrap) and Failures' element type rides the ResponseShardsFailure
+	// rename below.
+	shards := d.Structs[v4api+".ResponseShards"]
+	require.Equalf(t, v5api+".ShardStatistics", shards.To,
+		"ResponseShards should map to %s.ShardStatistics", v5api)
+	assertChangeKind(t, shards.Changes, "Skipped", "pointerWrap")
+
+	// ResponseShardsFailure -> ShardSearchFailure: rename dropping Primary, Status.
+	shardsFail := d.Structs[v4api+".ResponseShardsFailure"]
+	require.Equalf(t, v5api+".ShardSearchFailure", shardsFail.To,
+		"ResponseShardsFailure should map to %s.ShardSearchFailure", v5api)
+	assertChangeKind(t, shardsFail.Changes, "Primary", "remove")
+	assertChangeKind(t, shardsFail.Changes, "Status", "remove")
+}
+
+// TestHopV4toV5_ErrorHandlingFollowups asserts the two error-handling changes
+// that are surfaced as semantic followups rather than mechanically rewritten:
+// the DocumentError -> ErrorRespBase restructure (zero field overlap, per
+// opensearchapi/UPGRADING_V4_TO_V5.md) and the errmask default flip (the
+// Config.Errors toggle whose behavior changes v4 -> v5).
+func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
+	followups := planV4toV5(t).followups
+	require.True(t, containsSubstr(followups, "DocumentError"),
+		"expected a followup for the DocumentError -> ErrorRespBase restructure")
+	require.True(t, containsSubstr(followups, "errmask default flipped"),
+		"expected a followup for the errmask default flip (Config.Errors toggle)")
 }
 
 // TestHopV4toV5_NoUnclassifiedInCorpus asserts that none of the field changes the
