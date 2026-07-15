@@ -173,3 +173,69 @@ func TestRoutingLeavesSeedOnceDiscoveredNodeVerified(t *testing.T) {
 	require.NotContains(t, served, seedHost, "routing must leave the seed once a discovered node is verified")
 	require.False(t, tp.discoveryNeeded.Load(), "no seed fallback should occur when a verified node is available")
 }
+
+// TestSeedFallbackAfterDiscoveryReplacesSeedDefaultRouter is the same scenario
+// as TestSeedFallbackAfterDiscoveryReplacesSeed but drives it through the REAL
+// default router topology (NewDefaultRouter) rather than a flat
+// PolicyChain{RoundRobinPolicy}.
+//
+// This distinction matters. The default router nests the catch-all round-robin
+// policy inside a chain reached via Eval, not Route:
+//
+//	PolicyChain.Route
+//	  └─ IfEnabledPolicy.Eval        (coordinating condition false: data-only)
+//	       └─ NewPolicy(mux, roundRobin).Eval   (a nested PolicyChain)
+//	            ├─ mux.Eval        -> data RolePolicy not-enabled -> nil
+//	            └─ roundRobin.Eval -> would serve a zombie
+//
+// The flat-topology test hits PolicyChain.Route's own IsEnabled() gate, so the
+// never-verified round-robin pool is skipped there. The nested round-robin is
+// reached via Eval, which historically ran the leaf's Eval with no enabled
+// check -- and RoundRobinPolicy.Eval did not self-gate either, so it served the
+// unroutable discovered node as a zombie and masked the seed fallback. This
+// test locks in both fixes (RoundRobinPolicy.Eval self-gate and
+// PolicyChain.Eval IsEnabled gate) against the production topology.
+func TestSeedFallbackAfterDiscoveryReplacesSeedDefaultRouter(t *testing.T) {
+	const (
+		seedHost = "seed-node:9200"
+		deadHost = "dead-node:9200"
+	)
+	seedURL, _ := url.Parse("http://" + seedHost)
+
+	rt, servedHosts := hostRecorder(t, seedHost)
+
+	router, err := NewDefaultRouter()
+	require.NoError(t, err)
+
+	tp, err := New(Config{
+		URLs:                  []*url.URL{seedURL},
+		Router:                router,
+		SkipConnectionShuffle: true,
+		HealthCheck:           NoOpHealthCheck,
+		NodeStatsInterval:     -1, // disable stats poller: no background requests
+		DisableRetry:          true,
+		Transport:             rt,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, tp.seedFallbackPool)
+
+	// Discovery replaces the seed with an unroutable, never-verified data node.
+	deadConn := newUnverifiedDiscoveredConn("http://"+deadHost, RoleData)
+	seedInPool := createTestConnection("http://" + seedHost) // matches by URL for removal
+	require.NoError(t, tp.router.DiscoveryUpdate(
+		[]*Connection{deadConn}, []*Connection{seedInPool}, nil,
+	))
+
+	req, _ := http.NewRequest(http.MethodGet, "/test-index/_doc/1", nil)
+	res, err := tp.Stream(req)
+	require.NoError(t, err, "request must succeed via seed fallback, not die on the zombie discovered node")
+	require.NotNil(t, res)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	if res.Body != nil {
+		res.Body.Close()
+	}
+
+	require.Contains(t, servedHosts(), seedHost, "request must be served by the seed host")
+	require.NotContains(t, servedHosts(), deadHost, "request must NOT be routed to the never-verified discovered node")
+	require.True(t, tp.discoveryNeeded.Load(), "seed fallback must set discoveryNeeded")
+}
