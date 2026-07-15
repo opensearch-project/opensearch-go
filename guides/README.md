@@ -32,6 +32,7 @@ Task-oriented guides for the OpenSearch Go client. Each guide is the canonical r
 
 - [Tasks](usage-tasks.md) - Submit long-running operations asynchronously, poll for completion, and inspect task status.
 - [Client-Side Metrics](transport-metrics.md) - Read a point-in-time snapshot of request counters, connection-pool state, and router cache state.
+- [Observer-Based Metrics](transport-observer_metrics.md) - Turn per-request observer events into metrics; record them to Prometheus with the `osprom` module.
 
 ## Configuration and Security
 
