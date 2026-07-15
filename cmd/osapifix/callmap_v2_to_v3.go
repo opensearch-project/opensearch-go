@@ -54,6 +54,14 @@ type callMapEntry struct {
 	ReqPtr bool
 	// RawResponse is true when the v3 method still returns a raw
 	// *opensearch.Response rather than a decoded typed *Resp.
+	//
+	// Forward-data for the not-yet-built response-half rewrite; no code reads it
+	// yet. Unlike every other column it is NOT covered by
+	// TestCallMapV2toV3AgainstSurfaces: the committed surfaces model struct shape
+	// (pkg, name, fields), not method return types, so raw-vs-typed cannot be
+	// derived from them. The 11 true values are set by hand from the v3 source
+	// (v3@v3.1.0) and UPGRADING_V3.md; re-confirm them against the v3 method set
+	// when the response-half increment starts to consume this field.
 	RawResponse bool
 	// Removed is true for a v2 op with no v3 equivalent (UPGRADING_V3.md
 	// "Removed APIs"). Such a call has no rewrite target and is reported MANUAL.

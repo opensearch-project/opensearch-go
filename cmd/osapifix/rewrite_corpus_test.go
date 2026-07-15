@@ -21,10 +21,14 @@ const patternAll = "./..."
 // TestRewriteCorpus runs the real type-aware rewrite over a fixture module and
 // checks two things per hop: each golden-backed fixture matches its committed
 // .golden sibling, and the emitted report lines cover the expected rewrites and
-// MANUAL diagnostics. A fixture that the hop only reports on (idiom 1, whose
-// output does not compile as the target) has no golden and is covered by report
-// assertions alone. Fixtures compile against a local stub of the source-version
-// API (testdata/corpus/stub-vN), so no opensearch-go download is needed.
+// MANUAL diagnostics. A fixture the hop ONLY reports on (pure idiom 1, e.g.
+// bulk_idiom1.go) has no golden and is covered by report assertions alone. A
+// golden is not a promise of compiling v3: seedops.go rewrites its idiom-2 seed
+// ops to compiling v3 but also carries an idiom-1 reference to a removed type
+// (opensearchapi.PingRequest), which stays put as a reported MANUAL item, so its
+// golden deliberately does not compile as pure v3. Fixtures compile against a
+// local stub of the source-version API (testdata/corpus/stub-vN), so no
+// opensearch-go download is needed.
 //
 // Regenerate goldens after an intentional rewrite change with:
 //
