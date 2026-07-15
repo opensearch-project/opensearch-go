@@ -71,13 +71,17 @@ func TestHopV4toV5_KnownChanges(t *testing.T) {
 
 // TestHopV4toV5_ErrorHandlingFollowups asserts the two error-handling changes
 // that are surfaced as semantic followups rather than mechanically rewritten:
-// the DocumentError -> ErrorRespBase restructure (zero field overlap, per
+// the DocumentError -> ErrorRespBase restructure (no 1:1 field mapping, per
 // opensearchapi/UPGRADING_V4_TO_V5.md) and the errmask default flip (the
-// Config.Errors toggle whose behavior changes v4 -> v5).
+// Config.Errors toggle whose behavior changes v4 -> v5). The DocumentError
+// followup must carry actionable guidance (the .Error nesting), not just name
+// the type, so an operator knows where the cause moved.
 func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
 	followups := planV4toV5(t).followups
 	require.True(t, containsSubstr(followups, "DocumentError"),
 		"expected a followup for the DocumentError -> ErrorRespBase restructure")
+	require.True(t, containsSubstr(followups, "ErrorRespBase.Error"),
+		"DocumentError followup must point at the v5 .Error nesting, not just name the type")
 	require.True(t, containsSubstr(followups, "errmask default flipped"),
 		"expected a followup for the errmask default flip (Config.Errors toggle)")
 }
