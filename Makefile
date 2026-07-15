@@ -27,18 +27,46 @@ GOLANGCI_LINT_TAG_SETS := \
 	"integration $(GOLANGCI_LINT_FEATURE_TAGS)" \
 	"integration $(GOLANGCI_LINT_FEATURE_TAGS) multinode"
 
-# Container runtime detection: prefer nerdctl (containerd), fall back to docker.
-# Override with CONTAINER_RUNTIME=docker or CONTAINER_RUNTIME=nerdctl.
-# Detection is lazy: only targets that use $(CTR) or $(CTR_COMPOSE) will fail
-# if no runtime is available, allowing test-unit to work without Docker.
-ifndef CONTAINER_RUNTIME
-  ifneq (,$(shell command -v nerdctl 2>/dev/null))
-    CONTAINER_RUNTIME := nerdctl
+# Container provider detection: prefer Colima, then Rancher Desktop, then Docker.
+# A provider is the machine/daemon backing the containers; it drives the docker
+# context commands talk to, the CLI runtime $(CTR) resolves to, whether the VM
+# is started (cluster.provider.ensure), and how vm.max_map_count is set
+# (cluster.sysctl). Override with CONTAINER_PROVIDER=colima|rancher|docker.
+# Detection is by CLI presence in the order colima -> rancher (rdctl) -> docker.
+ifndef CONTAINER_PROVIDER
+  ifneq (,$(shell command -v colima 2>/dev/null))
+    CONTAINER_PROVIDER := colima
+  else ifneq (,$(shell command -v rdctl 2>/dev/null))
+    CONTAINER_PROVIDER := rancher
   else ifneq (,$(shell command -v docker 2>/dev/null))
-    CONTAINER_RUNTIME := docker
+    CONTAINER_PROVIDER := docker
   endif
 endif
-CTR = $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),$(error No container runtime found. Install docker or nerdctl.))
+
+# Docker context to pin per provider. Colima and Rancher Desktop each register a
+# named docker context; the plain docker provider leaves the active context
+# alone. Exported below so every recipe shell targets the right daemon.
+PROVIDER_CONTEXT := $(if $(filter colima,$(CONTAINER_PROVIDER)),colima,$(if $(filter rancher,$(CONTAINER_PROVIDER)),rancher-desktop,))
+ifneq ($(PROVIDER_CONTEXT),)
+  ifneq ($(origin DOCKER_CONTEXT),environment)
+    export DOCKER_CONTEXT := $(PROVIDER_CONTEXT)
+  endif
+endif
+
+# Container runtime (CLI): defaults to docker for every provider, since Colima
+# and Rancher Desktop both ship a docker shim and register a docker context.
+# Override with CONTAINER_RUNTIME=nerdctl for advanced containerd use (docker
+# context pinning does not apply to nerdctl).
+# Detection is lazy: only targets that use $(CTR) or $(CTR_COMPOSE) will fail
+# if no runtime is available, allowing test-unit to work without a provider.
+ifndef CONTAINER_RUNTIME
+  ifneq (,$(shell command -v docker 2>/dev/null))
+    CONTAINER_RUNTIME := docker
+  else ifneq (,$(shell command -v nerdctl 2>/dev/null))
+    CONTAINER_RUNTIME := nerdctl
+  endif
+endif
+CTR = $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),$(error No container runtime found. Install a provider (colima, rancher, or docker) or set CONTAINER_RUNTIME.))
 REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Compose with optional override files for heterogeneous clusters.
@@ -374,38 +402,64 @@ workflow:  ## Run full CI workflow locally (lint, test, integration)
 	$(MAKE) cluster.stop
 
 ##@ Cluster Lifecycle
-cluster.runtime:  ## Show detected container runtime
-	@echo "Container runtime: $(CTR)"
+cluster.runtime:  ## Show detected container provider, docker context, and runtime
+	@echo "Container provider: $(if $(CONTAINER_PROVIDER),$(CONTAINER_PROVIDER),(none detected))"
+	@echo "Docker context:     $(if $(DOCKER_CONTEXT),$(DOCKER_CONTEXT),(active default))"
+	@echo "Container runtime:  $(CTR)"
 	@$(CTR) --version
 	@$(CTR) compose version
 
-cluster.sysctl:  ## Ensure vm.max_map_count is set for OpenSearch
-	@current=$$(                                                              \
-		if [ "$$(uname)" = "Darwin" ]; then                                   \
-			if command -v rdctl >/dev/null 2>&1; then                          \
-				rdctl shell cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0; \
-			else                                                              \
-				echo 0;                                                        \
-			fi;                                                               \
-		else                                                                  \
-			cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0;             \
-		fi                                                                    \
-	); \
+cluster.provider.ensure:  ## Ensure the selected provider's VM/daemon is running (starts it if needed)
+	@case "$(CONTAINER_PROVIDER)" in \
+	colima) \
+		if colima status >/dev/null 2>&1; then \
+			printf "\033[2m-> Colima already running\033[0m\n"; \
+		else \
+			printf "\033[2m-> Starting Colima...\033[0m\n"; colima start; \
+		fi ;; \
+	rancher) \
+		if rdctl shell true >/dev/null 2>&1; then \
+			printf "\033[2m-> Rancher Desktop already running\033[0m\n"; \
+		else \
+			printf "\033[2m-> Starting Rancher Desktop...\033[0m\n"; rdctl start; \
+		fi ;; \
+	docker) \
+		if $(CTR) info >/dev/null 2>&1; then \
+			printf "\033[2m-> Docker daemon already running\033[0m\n"; \
+		elif [ "$$(uname)" = "Darwin" ]; then \
+			printf "\033[2m-> Starting Docker Desktop...\033[0m\n"; open -a Docker; \
+			for i in $$(seq 30); do $(CTR) info >/dev/null 2>&1 && break; sleep 2; done; \
+			$(CTR) info >/dev/null 2>&1 || { echo "Docker daemon did not become ready"; exit 1; }; \
+		else \
+			echo "Docker daemon is not running; start it and retry."; exit 1; \
+		fi ;; \
+	*) echo "No container provider detected. Install colima, rancher, or docker, or set CONTAINER_PROVIDER."; exit 1 ;; \
+	esac
+
+cluster.sysctl:  ## Ensure vm.max_map_count is set for OpenSearch (Linux, or macOS via Colima/Rancher/Docker)
+	@if [ "$$(uname)" != "Darwin" ]; then \
+		vmexec=""; setter="sudo sysctl -w vm.max_map_count=262144"; \
+	elif [ "$(CONTAINER_PROVIDER)" = "colima" ]; then \
+		vmexec="colima ssh --"; setter="colima ssh -- sudo sysctl -w vm.max_map_count=262144"; \
+	elif [ "$(CONTAINER_PROVIDER)" = "rancher" ]; then \
+		vmexec="rdctl shell"; setter="rdctl shell sudo sysctl -w vm.max_map_count=262144"; \
+	else \
+		vmexec="$(CTR) run --rm --privileged --net=host busybox"; \
+		setter="$(CTR) run --rm --privileged --net=host busybox sysctl -w vm.max_map_count=262144"; \
+	fi; \
+	current=$$($$vmexec cat /proc/sys/vm/max_map_count 2>/dev/null || echo 0); \
 	if [ "$$current" -ge 262144 ]; then \
 		printf "\033[2m-> vm.max_map_count already $$current (>= 262144)\033[0m\n"; \
 	else \
 		printf "\033[2m-> Setting vm.max_map_count=262144 (was $$current)...\033[0m\n"; \
-		if [ "$$(uname)" = "Darwin" ]; then \
-			rdctl shell sudo sysctl -w vm.max_map_count=262144; \
-		else \
-			sudo sysctl -w vm.max_map_count=262144; \
-		fi; \
+		$$setter; \
 	fi
 
 cluster.build:  ## Build OpenSearch Docker images (version-aware)
 	@$(MAKE) cluster.docker-build
 
 cluster.start:  ## Build, start cluster, wait for ready, and fetch certs
+	@$(MAKE) cluster.provider.ensure
 	@$(MAKE) cluster.sysctl
 	@$(MAKE) cluster.docker-up
 	@$(MAKE) cluster.wait-ready
@@ -889,5 +943,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
+.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install
 .SILENT: lint.markdown

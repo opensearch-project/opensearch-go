@@ -8,6 +8,7 @@
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
+      - [Container Providers](#container-providers)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
   - [Advanced Cluster Configuration](#advanced-cluster-configuration)
     - [Cluster Scaling](#cluster-scaling)
@@ -102,6 +103,29 @@ make cluster.build cluster.start
 This command will start the OpenSearch container using the `docker-compose.yaml` configuration file. During the build process, the necessary dependencies and files will be downloaded, which may take some time depending on your internet connection and system resources.
 
 Once the container is built and running, you can open a web browser and navigate to localhost:9200 to access the OpenSearch docker container.
+
+#### Container Providers
+
+The cluster targets work with any of three container providers. When you do not specify one, the Makefile auto-detects a provider by CLI presence in this order:
+
+1. **Colima** (`colima` on `PATH`)
+2. **Rancher Desktop** (`rdctl` on `PATH`)
+3. **Docker** / Docker Desktop (`docker` on `PATH`)
+
+Override the choice explicitly with `CONTAINER_PROVIDER`:
+
+```
+CONTAINER_PROVIDER=docker make cluster.start
+```
+
+Selecting a provider does four things:
+
+- Pins the docker context commands talk to (`colima` for Colima, `rancher-desktop` for Rancher; the Docker provider leaves your active context alone). If `DOCKER_CONTEXT` is already set in your environment, it is respected and not overridden.
+- Resolves the CLI runtime `$(CTR)` (defaults to `docker` for every provider). For advanced containerd use you can force `CONTAINER_RUNTIME=nerdctl`, though docker-context pinning does not apply to nerdctl.
+- Ensures the backing VM/daemon is running (`make cluster.provider.ensure`, run automatically by `cluster.start`), starting it if needed.
+- Sets `vm.max_map_count=262144` through the provider's VM (`colima ssh` / `rdctl shell`) or, for the Docker provider, a privileged helper container.
+
+Run `make cluster.runtime` to see the detected provider, docker context, and runtime.
 
 In order to differentiate unit tests from integration tests, Go has a built-in mechanism for allowing you to logically separate your tests with [build tags](https://pkg.go.dev/cmd/go#hdr-Build_constraints). The build tag needs to be placed as close to the top of the file as possible, and must have a blank line beneath it. Hence, create all integration tests with build tag 'integration'.
 
