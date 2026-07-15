@@ -26,7 +26,7 @@ func TestClusterPostVotingConfigExclusionsParams_get(t *testing.T) {
 		{name: "empty", params: ClusterPostVotingConfigExclusionsParams{}, want: nil},
 		{
 			name:   "node_ids",
-			params: ClusterPostVotingConfigExclusionsParams{NodeIds: []string{"a", "b"}},
+			params: ClusterPostVotingConfigExclusionsParams{NodeIDs: []string{"a", "b"}},
 			want:   map[string]string{"node_ids": "a,b"},
 		},
 		{

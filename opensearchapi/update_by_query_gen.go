@@ -443,7 +443,7 @@ type UpdateByQueryRespBodyType int
 const (
 	UpdateByQueryRespBodyUnknownType UpdateByQueryRespBodyType = iota
 	UpdateByQueryRespBodyBulkByScrollRespBaseType
-	UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
+	UpdateByQueryRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -483,8 +483,8 @@ func NewUpdateByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) Up
 	}
 }
 
-// UpdateByQueryRespBodyObject1 returns the UpdateByQueryRespBodyObject1 branch value.
-func (u *UpdateByQueryRespBody) UpdateByQueryRespBodyObject1() UpdateByQueryRespBodyObject1 {
+// Object1 returns the UpdateByQueryRespBodyObject1 branch value.
+func (u *UpdateByQueryRespBody) Object1() UpdateByQueryRespBodyObject1 {
 	if v, ok := u.value.(*UpdateByQueryRespBodyObject1); ok {
 		return *v
 	}
@@ -492,11 +492,11 @@ func (u *UpdateByQueryRespBody) UpdateByQueryRespBodyObject1() UpdateByQueryResp
 	return zero
 }
 
-// NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1 returns a UpdateByQueryRespBody populated with v
-// on the UpdateByQueryRespBodyObject1 branch.
-func NewUpdateByQueryRespBodyFromUpdateByQueryRespBodyObject1(v UpdateByQueryRespBodyObject1) UpdateByQueryRespBody {
+// NewUpdateByQueryRespBodyFromObject1 returns a UpdateByQueryRespBody populated with v
+// on the Object1 branch.
+func NewUpdateByQueryRespBodyFromObject1(v UpdateByQueryRespBodyObject1) UpdateByQueryRespBody {
 	return UpdateByQueryRespBody{
-		typ:   UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type,
+		typ:   UpdateByQueryRespBodyObject1Type,
 		value: &v,
 	}
 }
@@ -528,7 +528,7 @@ func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = UpdateByQueryRespBodyUpdateByQueryRespBodyObject1Type
+	u.typ = UpdateByQueryRespBodyObject1Type
 	u.value = &m.UpdateByQueryRespBodyObject1
 	return nil
 }

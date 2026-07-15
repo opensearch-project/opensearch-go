@@ -1622,15 +1622,15 @@ func TestDeletePath_Build(t *testing.T) {
 	}
 }
 
-func TestDeleteAllPitsPath_Build(t *testing.T) {
+func TestDeleteAllPITsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     DeleteAllPitsPath
+		path     DeleteAllPITsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: DeleteAllPitsPath{}, wantPath: "/_search/point_in_time/_all", wantErr: false},
+		{name: "all empty", path: DeleteAllPITsPath{}, wantPath: "/_search/point_in_time/_all", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2326,15 +2326,15 @@ func TestGetPath_Build(t *testing.T) {
 	}
 }
 
-func TestGetAllPitsPath_Build(t *testing.T) {
+func TestGetAllPITsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     GetAllPitsPath
+		path     GetAllPITsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: GetAllPitsPath{}, wantPath: "/_search/point_in_time/_all", wantErr: false},
+		{name: "all empty", path: GetAllPITsPath{}, wantPath: "/_search/point_in_time/_all", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

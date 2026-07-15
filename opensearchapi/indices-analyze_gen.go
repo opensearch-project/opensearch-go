@@ -301,10 +301,10 @@ type IndicesAnalyzeBodyCharFilterItemType int
 
 const (
 	IndicesAnalyzeBodyCharFilterItemUnknownType IndicesAnalyzeBodyCharFilterItemType = iota
-	IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisHTMLStripCharFilterType
 	IndicesAnalyzeBodyCharFilterItemCommonAnalysisMappingCharFilterType
 	IndicesAnalyzeBodyCharFilterItemCommonAnalysisPatternReplaceCharFilterType
-	IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType
+	IndicesAnalyzeBodyCharFilterItemCommonAnalysisICUNormalizationCharFilterType
 	IndicesAnalyzeBodyCharFilterItemCommonAnalysisKuromojiIterationMarkCharFilterType
 )
 
@@ -327,20 +327,20 @@ func (u *IndicesAnalyzeBodyCharFilterItem) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesAnalyzeBodyCharFilterItemUnknownType
 }
 
-// CommonAnalysisHtmlStripCharFilter returns the CommonAnalysisHtmlStripCharFilter branch value.
-func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisHtmlStripCharFilter() CommonAnalysisHtmlStripCharFilter {
-	if v, ok := u.value.(*CommonAnalysisHtmlStripCharFilter); ok {
+// CommonAnalysisHTMLStripCharFilter returns the CommonAnalysisHTMLStripCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisHTMLStripCharFilter() CommonAnalysisHTMLStripCharFilter {
+	if v, ok := u.value.(*CommonAnalysisHTMLStripCharFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisHtmlStripCharFilter
+	var zero CommonAnalysisHTMLStripCharFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHtmlStripCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
-// on the CommonAnalysisHtmlStripCharFilter branch.
-func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHtmlStripCharFilter(v CommonAnalysisHtmlStripCharFilter) IndicesAnalyzeBodyCharFilterItem {
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHTMLStripCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisHTMLStripCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHTMLStripCharFilter(v CommonAnalysisHTMLStripCharFilter) IndicesAnalyzeBodyCharFilterItem {
 	return IndicesAnalyzeBodyCharFilterItem{
-		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType,
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisHTMLStripCharFilterType,
 		value: &v,
 	}
 }
@@ -381,20 +381,20 @@ func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisPatternReplaceCharFilt
 	}
 }
 
-// CommonAnalysisIcuNormalizationCharFilter returns the CommonAnalysisIcuNormalizationCharFilter branch value.
-func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisIcuNormalizationCharFilter() CommonAnalysisIcuNormalizationCharFilter {
-	if v, ok := u.value.(*CommonAnalysisIcuNormalizationCharFilter); ok {
+// CommonAnalysisICUNormalizationCharFilter returns the CommonAnalysisICUNormalizationCharFilter branch value.
+func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisICUNormalizationCharFilter() CommonAnalysisICUNormalizationCharFilter {
+	if v, ok := u.value.(*CommonAnalysisICUNormalizationCharFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuNormalizationCharFilter
+	var zero CommonAnalysisICUNormalizationCharFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisIcuNormalizationCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
-// on the CommonAnalysisIcuNormalizationCharFilter branch.
-func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisIcuNormalizationCharFilter(v CommonAnalysisIcuNormalizationCharFilter) IndicesAnalyzeBodyCharFilterItem {
+// NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisICUNormalizationCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
+// on the CommonAnalysisICUNormalizationCharFilter branch.
+func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisICUNormalizationCharFilter(v CommonAnalysisICUNormalizationCharFilter) IndicesAnalyzeBodyCharFilterItem {
 	return IndicesAnalyzeBodyCharFilterItem{
-		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType,
+		typ:   IndicesAnalyzeBodyCharFilterItemCommonAnalysisICUNormalizationCharFilterType,
 		value: &v,
 	}
 }
@@ -430,9 +430,9 @@ func (u *IndicesAnalyzeBodyCharFilterItem) UnmarshalJSON(data []byte) error {
 	// absorbed by a structurally permissive success branch. encoding/json does
 	// not enforce a schema's "required" set, hence the explicit key probe.
 	if build.HasJSONKeys(data, "type") {
-		var v CommonAnalysisHtmlStripCharFilter
+		var v CommonAnalysisHTMLStripCharFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisHtmlStripCharFilterType
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisHTMLStripCharFilterType
 			u.value = &v
 			return nil
 		}
@@ -454,9 +454,9 @@ func (u *IndicesAnalyzeBodyCharFilterItem) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonAnalysisIcuNormalizationCharFilter
+		var v CommonAnalysisICUNormalizationCharFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisIcuNormalizationCharFilterType
+			u.typ = IndicesAnalyzeBodyCharFilterItemCommonAnalysisICUNormalizationCharFilterType
 			u.value = &v
 			return nil
 		}
@@ -539,11 +539,11 @@ const (
 	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiStemmerTokenFilterType
 	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiReadingFormTokenFilterType
 	IndicesAnalyzeBodyFilterItemCommonAnalysisKuromojiPartOfSpeechTokenFilterType
-	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType
-	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType
-	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType
-	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType
-	IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisICUTokenizerType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisICUCollationTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisICUFoldingTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisICUNormalizationTokenFilterType
+	IndicesAnalyzeBodyFilterItemCommonAnalysisICUTransformTokenFilterType
 	IndicesAnalyzeBodyFilterItemCommonAnalysisPhoneticTokenFilterType
 	IndicesAnalyzeBodyFilterItemCommonAnalysisDictionaryDecompounderTokenFilterType
 	IndicesAnalyzeBodyFilterItemCommonAnalysisSmartcnStopTokenFilterType
@@ -1324,92 +1324,92 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiPartOfSpeechTokenF
 	}
 }
 
-// CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
-func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuTokenizer() CommonAnalysisIcuTokenizer {
-	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+// CommonAnalysisICUTokenizer returns the CommonAnalysisICUTokenizer branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUTokenizer() CommonAnalysisICUTokenizer {
+	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuTokenizer
+	var zero CommonAnalysisICUTokenizer
 	return zero
 }
 
-// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTokenizer returns a IndicesAnalyzeBodyFilterItem populated with v
-// on the CommonAnalysisIcuTokenizer branch.
-func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesAnalyzeBodyFilterItem {
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTokenizer returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisICUTokenizer branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTokenizer(v CommonAnalysisICUTokenizer) IndicesAnalyzeBodyFilterItem {
 	return IndicesAnalyzeBodyFilterItem{
-		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType,
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisICUTokenizerType,
 		value: &v,
 	}
 }
 
-// CommonAnalysisIcuCollationTokenFilter returns the CommonAnalysisIcuCollationTokenFilter branch value.
-func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuCollationTokenFilter() CommonAnalysisIcuCollationTokenFilter {
-	if v, ok := u.value.(*CommonAnalysisIcuCollationTokenFilter); ok {
+// CommonAnalysisICUCollationTokenFilter returns the CommonAnalysisICUCollationTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUCollationTokenFilter() CommonAnalysisICUCollationTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisICUCollationTokenFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuCollationTokenFilter
+	var zero CommonAnalysisICUCollationTokenFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuCollationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
-// on the CommonAnalysisIcuCollationTokenFilter branch.
-func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuCollationTokenFilter(v CommonAnalysisIcuCollationTokenFilter) IndicesAnalyzeBodyFilterItem {
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUCollationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisICUCollationTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUCollationTokenFilter(v CommonAnalysisICUCollationTokenFilter) IndicesAnalyzeBodyFilterItem {
 	return IndicesAnalyzeBodyFilterItem{
-		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType,
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisICUCollationTokenFilterType,
 		value: &v,
 	}
 }
 
-// CommonAnalysisIcuFoldingTokenFilter returns the CommonAnalysisIcuFoldingTokenFilter branch value.
-func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuFoldingTokenFilter() CommonAnalysisIcuFoldingTokenFilter {
-	if v, ok := u.value.(*CommonAnalysisIcuFoldingTokenFilter); ok {
+// CommonAnalysisICUFoldingTokenFilter returns the CommonAnalysisICUFoldingTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUFoldingTokenFilter() CommonAnalysisICUFoldingTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisICUFoldingTokenFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuFoldingTokenFilter
+	var zero CommonAnalysisICUFoldingTokenFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
-// on the CommonAnalysisIcuFoldingTokenFilter branch.
-func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuFoldingTokenFilter(v CommonAnalysisIcuFoldingTokenFilter) IndicesAnalyzeBodyFilterItem {
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisICUFoldingTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUFoldingTokenFilter(v CommonAnalysisICUFoldingTokenFilter) IndicesAnalyzeBodyFilterItem {
 	return IndicesAnalyzeBodyFilterItem{
-		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType,
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisICUFoldingTokenFilterType,
 		value: &v,
 	}
 }
 
-// CommonAnalysisIcuNormalizationTokenFilter returns the CommonAnalysisIcuNormalizationTokenFilter branch value.
-func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuNormalizationTokenFilter() CommonAnalysisIcuNormalizationTokenFilter {
-	if v, ok := u.value.(*CommonAnalysisIcuNormalizationTokenFilter); ok {
+// CommonAnalysisICUNormalizationTokenFilter returns the CommonAnalysisICUNormalizationTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUNormalizationTokenFilter() CommonAnalysisICUNormalizationTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisICUNormalizationTokenFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuNormalizationTokenFilter
+	var zero CommonAnalysisICUNormalizationTokenFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuNormalizationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
-// on the CommonAnalysisIcuNormalizationTokenFilter branch.
-func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuNormalizationTokenFilter(v CommonAnalysisIcuNormalizationTokenFilter) IndicesAnalyzeBodyFilterItem {
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUNormalizationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisICUNormalizationTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUNormalizationTokenFilter(v CommonAnalysisICUNormalizationTokenFilter) IndicesAnalyzeBodyFilterItem {
 	return IndicesAnalyzeBodyFilterItem{
-		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType,
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisICUNormalizationTokenFilterType,
 		value: &v,
 	}
 }
 
-// CommonAnalysisIcuTransformTokenFilter returns the CommonAnalysisIcuTransformTokenFilter branch value.
-func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisIcuTransformTokenFilter() CommonAnalysisIcuTransformTokenFilter {
-	if v, ok := u.value.(*CommonAnalysisIcuTransformTokenFilter); ok {
+// CommonAnalysisICUTransformTokenFilter returns the CommonAnalysisICUTransformTokenFilter branch value.
+func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUTransformTokenFilter() CommonAnalysisICUTransformTokenFilter {
+	if v, ok := u.value.(*CommonAnalysisICUTransformTokenFilter); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuTransformTokenFilter
+	var zero CommonAnalysisICUTransformTokenFilter
 	return zero
 }
 
-// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTransformTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
-// on the CommonAnalysisIcuTransformTokenFilter branch.
-func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisIcuTransformTokenFilter(v CommonAnalysisIcuTransformTokenFilter) IndicesAnalyzeBodyFilterItem {
+// NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTransformTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
+// on the CommonAnalysisICUTransformTokenFilter branch.
+func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTransformTokenFilter(v CommonAnalysisICUTransformTokenFilter) IndicesAnalyzeBodyFilterItem {
 	return IndicesAnalyzeBodyFilterItem{
-		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType,
+		typ:   IndicesAnalyzeBodyFilterItemCommonAnalysisICUTransformTokenFilterType,
 		value: &v,
 	}
 }
@@ -1817,41 +1817,41 @@ func (u *IndicesAnalyzeBodyFilterItem) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "rule_files", "type") {
-		var v CommonAnalysisIcuTokenizer
+		var v CommonAnalysisICUTokenizer
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTokenizerType
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisICUTokenizerType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonAnalysisIcuCollationTokenFilter
+		var v CommonAnalysisICUCollationTokenFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuCollationTokenFilterType
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisICUCollationTokenFilterType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "type", "unicode_set_filter") {
-		var v CommonAnalysisIcuFoldingTokenFilter
+		var v CommonAnalysisICUFoldingTokenFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuFoldingTokenFilterType
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisICUFoldingTokenFilterType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "name", "type") {
-		var v CommonAnalysisIcuNormalizationTokenFilter
+		var v CommonAnalysisICUNormalizationTokenFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuNormalizationTokenFilterType
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisICUNormalizationTokenFilterType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "id", "type") {
-		var v CommonAnalysisIcuTransformTokenFilter
+		var v CommonAnalysisICUTransformTokenFilter
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisIcuTransformTokenFilterType
+			u.typ = IndicesAnalyzeBodyFilterItemCommonAnalysisICUTransformTokenFilterType
 			u.value = &v
 			return nil
 		}
@@ -2028,13 +2028,13 @@ const (
 	IndicesAnalyzeBodyTokenizerCommonAnalysisNoriTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisPathHierarchyTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisStandardTokenizerType
-	IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisUAXEmailURLTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisWhitespaceTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisKuromojiTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisPatternTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisSimplePatternSplitTokenizerType
-	IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType
+	IndicesAnalyzeBodyTokenizerCommonAnalysisICUTokenizerType
 	IndicesAnalyzeBodyTokenizerCommonAnalysisSmartcnTokenizerType
 )
 
@@ -2219,20 +2219,20 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer(v CommonA
 	}
 }
 
-// CommonAnalysisUaxEmailURLTokenizer returns the CommonAnalysisUaxEmailURLTokenizer branch value.
-func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUaxEmailURLTokenizer() CommonAnalysisUaxEmailURLTokenizer {
-	if v, ok := u.value.(*CommonAnalysisUaxEmailURLTokenizer); ok {
+// CommonAnalysisUAXEmailURLTokenizer returns the CommonAnalysisUAXEmailURLTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUAXEmailURLTokenizer() CommonAnalysisUAXEmailURLTokenizer {
+	if v, ok := u.value.(*CommonAnalysisUAXEmailURLTokenizer); ok {
 		return *v
 	}
-	var zero CommonAnalysisUaxEmailURLTokenizer
+	var zero CommonAnalysisUAXEmailURLTokenizer
 	return zero
 }
 
-// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailURLTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
-// on the CommonAnalysisUaxEmailURLTokenizer branch.
-func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUaxEmailURLTokenizer(v CommonAnalysisUaxEmailURLTokenizer) IndicesAnalyzeBodyTokenizer {
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUAXEmailURLTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisUAXEmailURLTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUAXEmailURLTokenizer(v CommonAnalysisUAXEmailURLTokenizer) IndicesAnalyzeBodyTokenizer {
 	return IndicesAnalyzeBodyTokenizer{
-		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType,
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisUAXEmailURLTokenizerType,
 		value: &v,
 	}
 }
@@ -2327,20 +2327,20 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternSplitTokenizer
 	}
 }
 
-// CommonAnalysisIcuTokenizer returns the CommonAnalysisIcuTokenizer branch value.
-func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisIcuTokenizer() CommonAnalysisIcuTokenizer {
-	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+// CommonAnalysisICUTokenizer returns the CommonAnalysisICUTokenizer branch value.
+func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisICUTokenizer() CommonAnalysisICUTokenizer {
+	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v
 	}
-	var zero CommonAnalysisIcuTokenizer
+	var zero CommonAnalysisICUTokenizer
 	return zero
 }
 
-// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisIcuTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
-// on the CommonAnalysisIcuTokenizer branch.
-func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesAnalyzeBodyTokenizer {
+// NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisICUTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
+// on the CommonAnalysisICUTokenizer branch.
+func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisICUTokenizer(v CommonAnalysisICUTokenizer) IndicesAnalyzeBodyTokenizer {
 	return IndicesAnalyzeBodyTokenizer{
-		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType,
+		typ:   IndicesAnalyzeBodyTokenizerCommonAnalysisICUTokenizerType,
 		value: &v,
 	}
 }
@@ -2448,9 +2448,9 @@ func (u *IndicesAnalyzeBodyTokenizer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "type") {
-		var v CommonAnalysisUaxEmailURLTokenizer
+		var v CommonAnalysisUAXEmailURLTokenizer
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisUaxEmailURLTokenizerType
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisUAXEmailURLTokenizerType
 			u.value = &v
 			return nil
 		}
@@ -2496,9 +2496,9 @@ func (u *IndicesAnalyzeBodyTokenizer) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if build.HasJSONKeys(data, "rule_files", "type") {
-		var v CommonAnalysisIcuTokenizer
+		var v CommonAnalysisICUTokenizer
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisIcuTokenizerType
+			u.typ = IndicesAnalyzeBodyTokenizerCommonAnalysisICUTokenizerType
 			u.value = &v
 			return nil
 		}

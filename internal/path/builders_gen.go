@@ -169,7 +169,7 @@ var (
 	_ builder = DanglingIndicesImportDanglingIndexPath{}
 	_ builder = DanglingIndicesListDanglingIndicesPath{}
 	_ builder = DeletePath{}
-	_ builder = DeleteAllPitsPath{}
+	_ builder = DeleteAllPITsPath{}
 	_ builder = DeleteByQueryPath{}
 	_ builder = DeleteByQueryRethrottlePath{}
 	_ builder = DeletePITPath{}
@@ -196,7 +196,7 @@ var (
 	_ builder = GeospatialPutIp2geoDatasourcePath{}
 	_ builder = GeospatialPutIp2geoDatasourceSettingsPath{}
 	_ builder = GetPath{}
-	_ builder = GetAllPitsPath{}
+	_ builder = GetAllPITsPath{}
 	_ builder = GetScriptPath{}
 	_ builder = GetScriptContextPath{}
 	_ builder = GetScriptLanguagesPath{}
@@ -2027,20 +2027,20 @@ func (p DeletePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// DeleteAllPitsPath (delete_all_pits)
+// DeleteAllPITsPath (delete_all_pits)
 // ---------------------------------------------------------------------------
 
-// DeleteAllPitsPath builds URL paths for the delete_all_pits operation.
+// DeleteAllPITsPath builds URL paths for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
 //
 // Available: >= 2.4.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-type DeleteAllPitsPath struct {
+type DeleteAllPITsPath struct {
 }
 
-func (p DeleteAllPitsPath) Build() (string, error) {
+func (p DeleteAllPITsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_search")
 	pb.writeLit("point_in_time")
@@ -2725,20 +2725,20 @@ func (p GetPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// GetAllPitsPath (get_all_pits)
+// GetAllPITsPath (get_all_pits)
 // ---------------------------------------------------------------------------
 
-// GetAllPitsPath builds URL paths for the get_all_pits operation.
+// GetAllPITsPath builds URL paths for the get_all_pits operation.
 //
 // Lists all active point in time searches.
 //
 // Available: >= 2.4.0
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-type GetAllPitsPath struct {
+type GetAllPITsPath struct {
 }
 
-func (p GetAllPitsPath) Build() (string, error) {
+func (p GetAllPITsPath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_search")
 	pb.writeLit("point_in_time")

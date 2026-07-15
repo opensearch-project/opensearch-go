@@ -212,8 +212,8 @@ type IndicesOpenRespBodyType int
 
 const (
 	IndicesOpenRespBodyUnknownType IndicesOpenRespBodyType = iota
-	IndicesOpenRespBodyIndicesOpenRespBodyObject0Type
-	IndicesOpenRespBodyIndicesOpenRespBodyObject1Type
+	IndicesOpenRespBodyObject0Type
+	IndicesOpenRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -235,8 +235,8 @@ func (u *IndicesOpenRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesOpenRespBodyUnknownType
 }
 
-// IndicesOpenRespBodyObject0 returns the IndicesOpenRespBodyObject0 branch value.
-func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject0() IndicesOpenRespBodyObject0 {
+// Object0 returns the IndicesOpenRespBodyObject0 branch value.
+func (u *IndicesOpenRespBody) Object0() IndicesOpenRespBodyObject0 {
 	if v, ok := u.value.(*IndicesOpenRespBodyObject0); ok {
 		return *v
 	}
@@ -244,17 +244,17 @@ func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject0() IndicesOpenRespBodyOb
 	return zero
 }
 
-// NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject0 returns a IndicesOpenRespBody populated with v
-// on the IndicesOpenRespBodyObject0 branch.
-func NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject0(v IndicesOpenRespBodyObject0) IndicesOpenRespBody {
+// NewIndicesOpenRespBodyFromObject0 returns a IndicesOpenRespBody populated with v
+// on the Object0 branch.
+func NewIndicesOpenRespBodyFromObject0(v IndicesOpenRespBodyObject0) IndicesOpenRespBody {
 	return IndicesOpenRespBody{
-		typ:   IndicesOpenRespBodyIndicesOpenRespBodyObject0Type,
+		typ:   IndicesOpenRespBodyObject0Type,
 		value: &v,
 	}
 }
 
-// IndicesOpenRespBodyObject1 returns the IndicesOpenRespBodyObject1 branch value.
-func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject1() IndicesOpenRespBodyObject1 {
+// Object1 returns the IndicesOpenRespBodyObject1 branch value.
+func (u *IndicesOpenRespBody) Object1() IndicesOpenRespBodyObject1 {
 	if v, ok := u.value.(*IndicesOpenRespBodyObject1); ok {
 		return *v
 	}
@@ -262,11 +262,11 @@ func (u *IndicesOpenRespBody) IndicesOpenRespBodyObject1() IndicesOpenRespBodyOb
 	return zero
 }
 
-// NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject1 returns a IndicesOpenRespBody populated with v
-// on the IndicesOpenRespBodyObject1 branch.
-func NewIndicesOpenRespBodyFromIndicesOpenRespBodyObject1(v IndicesOpenRespBodyObject1) IndicesOpenRespBody {
+// NewIndicesOpenRespBodyFromObject1 returns a IndicesOpenRespBody populated with v
+// on the Object1 branch.
+func NewIndicesOpenRespBodyFromObject1(v IndicesOpenRespBodyObject1) IndicesOpenRespBody {
 	return IndicesOpenRespBody{
-		typ:   IndicesOpenRespBodyIndicesOpenRespBodyObject1Type,
+		typ:   IndicesOpenRespBodyObject1Type,
 		value: &v,
 	}
 }
@@ -294,11 +294,11 @@ func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesOpenRespBodyIndicesOpenRespBodyObject1Type
+		u.typ = IndicesOpenRespBodyObject1Type
 		u.value = &v
 		return nil
 	}
-	u.typ = IndicesOpenRespBodyIndicesOpenRespBodyObject0Type
+	u.typ = IndicesOpenRespBodyObject0Type
 	u.value = &m.IndicesOpenRespBodyObject0
 	return nil
 }

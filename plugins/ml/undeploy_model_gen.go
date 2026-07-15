@@ -136,6 +136,6 @@ func (r UndeployModelResp) RawBody() io.Reader {
 
 // MLUndeployModelBody is a typed component of the ml.undeploy_model operation.
 type MLUndeployModelBody struct {
-	ModelIds []string `json:"model_ids,omitempty"`
-	NodeIds  []string `json:"node_ids,omitempty"`
+	ModelIDs []string `json:"model_ids,omitempty"`
+	NodeIDs  []string `json:"node_ids,omitempty"`
 }

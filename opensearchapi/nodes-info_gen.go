@@ -159,7 +159,7 @@ type NodesInfoNode struct {
 	IP *string `json:"ip,omitempty"`
 
 	// Provides JVM-specific information for the node.
-	Jvm *NodesInfoNodeJvm `json:"jvm,omitempty"`
+	JVM *NodesInfoNodeJVM `json:"jvm,omitempty"`
 
 	// The list of modules installed on the node.
 	Modules []PluginStats `json:"modules,omitempty"`
@@ -248,21 +248,21 @@ type NodesInfoNodeIngestProcessor struct {
 	Type string `json:"type"`
 }
 
-// NodesInfoNodeJvm is a typed component of the nodes.info operation.
+// NodesInfoNodeJVM is a typed component of the nodes.info operation.
 //
 // Provides JVM-specific information for the node.
-type NodesInfoNodeJvm struct {
+type NodesInfoNodeJVM struct {
 	// Whether the JDK is bundled with OpenSearch.
 	BundledJdk bool `json:"bundled_jdk"`
 
 	// The garbage collectors enabled in the JVM.
-	GcCollectors []string `json:"gc_collectors,omitempty"`
+	GCCollectors []string `json:"gc_collectors,omitempty"`
 
 	// The command line arguments passed to the JVM.
 	InputArguments []string `json:"input_arguments,omitempty"`
 
 	// Provides JVM memory settings and statistics.
-	Mem NodesInfoNodeJvmMemory `json:"mem"`
+	Mem NodesInfoNodeJVMMemory `json:"mem"`
 
 	// The memory pools available to the JVM.
 	MemoryPools []string `json:"memory_pools,omitempty"`
@@ -300,10 +300,10 @@ type NodesInfoNodeJvm struct {
 	VmVersion *string `json:"vm_version,omitempty"`
 }
 
-// NodesInfoNodeJvmMemory is a typed component of the nodes.info operation.
+// NodesInfoNodeJVMMemory is a typed component of the nodes.info operation.
 //
 // Provides JVM memory settings and statistics.
-type NodesInfoNodeJvmMemory struct {
+type NodesInfoNodeJVMMemory struct {
 	// The unique identifier of a node.
 	DirectMax *string `json:"direct_max,omitempty"`
 
@@ -678,13 +678,13 @@ type NodesInfoNodeSettingsIndexStore struct {
 // The hybrid store configuration.
 type NodesInfoNodeSettingsIndexHybrid struct {
 	// The memory-mapped store configuration.
-	Mmap *NodesInfoNodeSettingsIndexStoreMmap `json:"mmap,omitempty"`
+	MMap *NodesInfoNodeSettingsIndexStoreMMap `json:"mmap,omitempty"`
 }
 
-// NodesInfoNodeSettingsIndexStoreMmap is a typed component of the nodes.info operation.
+// NodesInfoNodeSettingsIndexStoreMMap is a typed component of the nodes.info operation.
 //
 // The memory-mapped store configuration.
-type NodesInfoNodeSettingsIndexStoreMmap struct {
+type NodesInfoNodeSettingsIndexStoreMMap struct {
 	// The file extensions configured for memory mapping.
 	Extensions []string `json:"extensions,omitempty"`
 }
@@ -709,7 +709,7 @@ type NodesInfoNodeSettingsIngest struct {
 	Convert *NodesInfoNodeIngestInfo `json:"convert,omitempty"`
 
 	// The ingest processor configuration details.
-	Csv *NodesInfoNodeIngestInfo `json:"csv,omitempty"`
+	CSV *NodesInfoNodeIngestInfo `json:"csv,omitempty"`
 
 	// The ingest processor configuration details.
 	Date *NodesInfoNodeIngestInfo `json:"date,omitempty"`

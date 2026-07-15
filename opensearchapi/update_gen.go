@@ -290,7 +290,7 @@ type UpdateBodySourceType int
 const (
 	UpdateBodySourceUnknownType UpdateBodySourceType = iota
 	UpdateBodySourceStringType
-	UpdateBodySourceUpdateBodySourceObject1Type
+	UpdateBodySourceObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -330,8 +330,8 @@ func NewUpdateBodySourceFromString(v string) UpdateBodySource {
 	}
 }
 
-// UpdateBodySourceObject1 returns the UpdateBodySourceObject1 branch value.
-func (u *UpdateBodySource) UpdateBodySourceObject1() UpdateBodySourceObject1 {
+// Object1 returns the UpdateBodySourceObject1 branch value.
+func (u *UpdateBodySource) Object1() UpdateBodySourceObject1 {
 	if v, ok := u.value.(*UpdateBodySourceObject1); ok {
 		return *v
 	}
@@ -339,11 +339,11 @@ func (u *UpdateBodySource) UpdateBodySourceObject1() UpdateBodySourceObject1 {
 	return zero
 }
 
-// NewUpdateBodySourceFromUpdateBodySourceObject1 returns a UpdateBodySource populated with v
-// on the UpdateBodySourceObject1 branch.
-func NewUpdateBodySourceFromUpdateBodySourceObject1(v UpdateBodySourceObject1) UpdateBodySource {
+// NewUpdateBodySourceFromObject1 returns a UpdateBodySource populated with v
+// on the Object1 branch.
+func NewUpdateBodySourceFromObject1(v UpdateBodySourceObject1) UpdateBodySource {
 	return UpdateBodySource{
-		typ:   UpdateBodySourceUpdateBodySourceObject1Type,
+		typ:   UpdateBodySourceObject1Type,
 		value: &v,
 	}
 }
@@ -368,7 +368,7 @@ func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = UpdateBodySourceUpdateBodySourceObject1Type
+		u.typ = UpdateBodySourceObject1Type
 		u.value = &v
 	default:
 		return fmt.Errorf("UpdateBodySource: unexpected JSON token: %s", data[:1])

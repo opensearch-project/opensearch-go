@@ -68,7 +68,7 @@ type ClusterPostVotingConfigExclusionsParams struct {
 	// configuration. When using this setting, you cannot also specify
 	// `node_names`. Either `node_ids` or `node_names` are required to receive
 	// a valid response.
-	NodeIds []string
+	NodeIDs []string
 
 	// A comma-separated list of node names to exclude from the voting
 	// configuration. When using this setting, you cannot also specify
@@ -88,8 +88,8 @@ func (r ClusterPostVotingConfigExclusionsParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if len(r.NodeIds) > 0 {
-		set("node_ids", strings.Join(r.NodeIds, ","))
+	if len(r.NodeIDs) > 0 {
+		set("node_ids", strings.Join(r.NodeIDs, ","))
 	}
 
 	if len(r.NodeNames) > 0 {

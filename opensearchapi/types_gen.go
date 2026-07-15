@@ -412,9 +412,9 @@ type TopRightBottomLeftGeoBounds struct {
 }
 
 // The bounds specified using WKT format.
-type WktGeoBounds struct {
+type WKTGeoBounds struct {
 	// The WKT string representation of the geographical bounds.
-	Wkt string `json:"wkt"`
+	WKT string `json:"wkt"`
 }
 
 type CommonAggregationsGeoBoundsAggregate struct {
@@ -475,11 +475,11 @@ type CommonAggregationsPercentilesAggregateBase struct {
 	Values CommonAggregationsPercentilesAggregateBaseValues `json:"values"`
 }
 
-type CommonAggregationsHdrPercentilesAggregate struct {
+type CommonAggregationsHDRPercentilesAggregate struct {
 	CommonAggregationsPercentilesAggregateBase
 }
 
-type CommonAggregationsHdrPercentileRanksAggregate struct {
+type CommonAggregationsHDRPercentileRanksAggregate struct {
 	CommonAggregationsPercentilesAggregateBase
 }
 
@@ -2515,7 +2515,7 @@ type CommonQueryDSLHybridQuery struct {
 	Queries         []CommonQueryDSLQueryContainer `json:"queries,omitempty"`
 }
 
-type CommonQueryDSLIdsQuery struct {
+type CommonQueryDSLIDsQuery struct {
 	CommonQueryDSLQueryBase
 	Values *string `json:"values,omitempty"`
 }
@@ -3199,7 +3199,7 @@ type CommonQueryDSLWrapperQuery struct {
 	Query string `json:"query"`
 }
 
-type CommonQueryDSLXyShapeQuery struct {
+type CommonQueryDSLXYShapeQuery struct {
 	CommonQueryDSLQueryBase
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 }
@@ -3230,7 +3230,7 @@ type CommonQueryDSLQueryContainer struct {
 	HasChild       *CommonQueryDSLHasChildQuery       `json:"has_child,omitempty"`
 	HasParent      *CommonQueryDSLHasParentQuery      `json:"has_parent,omitempty"`
 	Hybrid         *CommonQueryDSLHybridQuery         `json:"hybrid,omitempty"`
-	Ids            *CommonQueryDSLIdsQuery            `json:"ids,omitempty"`
+	IDs            *CommonQueryDSLIDsQuery            `json:"ids,omitempty"`
 
 	// Returns documents based on the order and proximity of matching terms.
 	Intervals map[string]CommonQueryDSLIntervalsQuery `json:"intervals,omitempty"`
@@ -3320,7 +3320,7 @@ type CommonQueryDSLQueryContainer struct {
 	Wrapper *CommonQueryDSLWrapperQuery `json:"wrapper,omitempty"`
 
 	// Available: >= 2.4.0.
-	XyShape *CommonQueryDSLXyShapeQuery `json:"xy_shape,omitempty"`
+	XYShape *CommonQueryDSLXYShapeQuery `json:"xy_shape,omitempty"`
 }
 
 // The configuration for an index alias.
@@ -3664,7 +3664,7 @@ type CommonMappingGeoShapeProperty struct {
 }
 
 // The location specified using x and y coordinates.
-type XyCartesianCoordinates struct {
+type XYCartesianCoordinates struct {
 	// The x coordinate.
 	X float64 `json:"x"`
 
@@ -3672,7 +3672,7 @@ type XyCartesianCoordinates struct {
 	Y float64 `json:"y"`
 }
 
-type CommonMappingXyPointProperty struct {
+type CommonMappingXYPointProperty struct {
 	CommonMappingDocValuesPropertyBase
 	IgnoreMalformed *bool `json:"ignore_malformed,omitempty"`
 	IgnoreZValue    *bool `json:"ignore_z_value,omitempty"`
@@ -3682,12 +3682,12 @@ type CommonMappingXyPointProperty struct {
 	// an `[x, y]` array. - As a string in `"x, y"` or WKT point format.
 	//
 	// Available: >= 2.4.0.
-	NullValue *CommonMappingXyPointPropertyNullValue `json:"null_value,omitempty"`
+	NullValue *CommonMappingXYPointPropertyNullValue `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
 }
 
-type CommonMappingXyShapeProperty struct {
+type CommonMappingXYShapeProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Coerce          *bool   `json:"coerce,omitempty"`
 	IgnoreMalformed *bool   `json:"ignore_malformed,omitempty"`
@@ -3855,7 +3855,7 @@ type CommonMappingKNNVectorProperty struct {
 	Type             string                        `json:"type"`
 }
 
-type CommonMappingIcuCollationKeywordProperty struct {
+type CommonMappingICUCollationKeywordProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Alternate              *string `json:"alternate,omitempty"`
 	CaseFirst              *string `json:"case_first,omitempty"`
@@ -4063,7 +4063,7 @@ type CommonAnalysisWhitespaceAnalyzer struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisIcuAnalyzer struct {
+type CommonAnalysisICUAnalyzer struct {
 	Method string `json:"method"`
 	Mode   string `json:"mode"`
 	Type   string `json:"type"`
@@ -4102,12 +4102,12 @@ type CommonAnalysisSmartcnAnalyzer struct {
 	Type *string `json:"type,omitempty"`
 }
 
-type CommonAnalysisCjkAnalyzer struct {
+type CommonAnalysisCJKAnalyzer struct {
 	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
 	// language value corresponds to a predefined list of stop words in Lucene.
 	// See Stop words by language for supported language values and their stop
 	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisCjkAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisCJKAnalyzerStopwords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          *string `json:"type,omitempty"`
@@ -4132,7 +4132,7 @@ type CommonAnalysisCharFilterBase struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisHtmlStripCharFilter struct {
+type CommonAnalysisHTMLStripCharFilter struct {
 	CommonAnalysisCharFilterBase
 	Type string `json:"type"`
 }
@@ -4152,7 +4152,7 @@ type CommonAnalysisPatternReplaceCharFilter struct {
 	Type        string  `json:"type"`
 }
 
-type CommonAnalysisIcuNormalizationCharFilter struct {
+type CommonAnalysisICUNormalizationCharFilter struct {
 	CommonAnalysisCharFilterBase
 	Mode *string `json:"mode,omitempty"`
 	Name *string `json:"name,omitempty"`
@@ -4587,13 +4587,13 @@ type CommonAnalysisTokenizerBase struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisIcuTokenizer struct {
+type CommonAnalysisICUTokenizer struct {
 	CommonAnalysisTokenizerBase
 	RuleFiles string `json:"rule_files"`
 	Type      string `json:"type"`
 }
 
-type CommonAnalysisIcuCollationTokenFilter struct {
+type CommonAnalysisICUCollationTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Alternate              *string `json:"alternate,omitempty"`
 	CaseFirst              *string `json:"caseFirst,omitempty"`
@@ -4610,19 +4610,19 @@ type CommonAnalysisIcuCollationTokenFilter struct {
 	Variant                *string `json:"variant,omitempty"`
 }
 
-type CommonAnalysisIcuFoldingTokenFilter struct {
+type CommonAnalysisICUFoldingTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Type             string `json:"type"`
 	UnicodeSetFilter string `json:"unicode_set_filter"`
 }
 
-type CommonAnalysisIcuNormalizationTokenFilter struct {
+type CommonAnalysisICUNormalizationTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
-type CommonAnalysisIcuTransformTokenFilter struct {
+type CommonAnalysisICUTransformTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Dir  *string `json:"dir,omitempty"`
 	ID   string  `json:"id"`
@@ -4746,7 +4746,7 @@ type CommonAnalysisStandardTokenizer struct {
 	Type           string `json:"type"`
 }
 
-type CommonAnalysisUaxEmailURLTokenizer struct {
+type CommonAnalysisUAXEmailURLTokenizer struct {
 	CommonAnalysisTokenizerBase
 	MaxTokenLength *int   `json:"max_token_length,omitempty"`
 	Type           string `json:"type"`
@@ -5485,7 +5485,7 @@ type IndicesIndexSettingsSearch struct {
 }
 
 // The BM25 similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityBm25 struct {
+type IndicesIndexSettingsSimilarityBM25 struct {
 	// The length normalization parameter.
 	B float32 `json:"b"`
 
@@ -5500,13 +5500,13 @@ type IndicesIndexSettingsSimilarityBm25 struct {
 }
 
 // The divergence from independence (DFI) similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityDfi struct {
+type IndicesIndexSettingsSimilarityDFI struct {
 	IndependenceMeasure string `json:"independence_measure"`
 	Type                string `json:"type"`
 }
 
 // The divergence from randomness (DFR) similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityDfr struct {
+type IndicesIndexSettingsSimilarityDFR struct {
 	AfterEffect   string `json:"after_effect"`
 	BasicModel    string `json:"basic_model"`
 	Normalization string `json:"normalization"`
@@ -5514,7 +5514,7 @@ type IndicesIndexSettingsSimilarityDfr struct {
 }
 
 // The information-based similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityIb struct {
+type IndicesIndexSettingsSimilarityIB struct {
 	Distribution  string `json:"distribution"`
 	Lambda        string `json:"lambda"`
 	Normalization string `json:"normalization"`
@@ -5522,7 +5522,7 @@ type IndicesIndexSettingsSimilarityIb struct {
 }
 
 // The LM Dirichlet similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityLmd struct {
+type IndicesIndexSettingsSimilarityLMD struct {
 	// The smoothing parameter.
 	Mu float32 `json:"mu"`
 
@@ -5530,7 +5530,7 @@ type IndicesIndexSettingsSimilarityLmd struct {
 }
 
 // The LM Jelinek-Mercer similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityLmj struct {
+type IndicesIndexSettingsSimilarityLMJ struct {
 	// The optimal mixture parameter.
 	Lambda float32 `json:"lambda"`
 
@@ -5538,34 +5538,34 @@ type IndicesIndexSettingsSimilarityLmj struct {
 }
 
 // The scripted TF/IDF similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityScriptedTfidf struct {
-	Script IndicesIndexSettingsSimilarityScriptedTfidfScript `json:"script"`
+type IndicesIndexSettingsSimilarityScriptedTFIDF struct {
+	Script IndicesIndexSettingsSimilarityScriptedTFIDFScript `json:"script"`
 	Type   string                                            `json:"type"`
 }
 
 // The configuration for similarity algorithms.
 type IndicesIndexSettingsSimilarity struct {
 	// The BM25 similarity algorithm configuration.
-	Bm25 *IndicesIndexSettingsSimilarityBm25 `json:"bm25,omitempty"`
+	BM25 *IndicesIndexSettingsSimilarityBM25 `json:"bm25,omitempty"`
 
 	// The divergence from independence (DFI) similarity algorithm
 	// configuration.
-	Dfi *IndicesIndexSettingsSimilarityDfi `json:"dfi,omitempty"`
+	DFI *IndicesIndexSettingsSimilarityDFI `json:"dfi,omitempty"`
 
 	// The divergence from randomness (DFR) similarity algorithm configuration.
-	Dfr *IndicesIndexSettingsSimilarityDfr `json:"dfr,omitempty"`
+	DFR *IndicesIndexSettingsSimilarityDFR `json:"dfr,omitempty"`
 
 	// The information-based similarity algorithm configuration.
-	Ib *IndicesIndexSettingsSimilarityIb `json:"ib,omitempty"`
+	IB *IndicesIndexSettingsSimilarityIB `json:"ib,omitempty"`
 
 	// The LM Dirichlet similarity algorithm configuration.
-	Lmd *IndicesIndexSettingsSimilarityLmd `json:"lmd,omitempty"`
+	LMD *IndicesIndexSettingsSimilarityLMD `json:"lmd,omitempty"`
 
 	// The LM Jelinek-Mercer similarity algorithm configuration.
-	Lmj *IndicesIndexSettingsSimilarityLmj `json:"lmj,omitempty"`
+	LMJ *IndicesIndexSettingsSimilarityLMJ `json:"lmj,omitempty"`
 
 	// The scripted TF/IDF similarity algorithm configuration.
-	ScriptedTfidf *IndicesIndexSettingsSimilarityScriptedTfidf `json:"scripted_tfidf,omitempty"`
+	ScriptedTFIDF *IndicesIndexSettingsSimilarityScriptedTFIDF `json:"scripted_tfidf,omitempty"`
 }
 
 // The retention configuration for soft deletes.
@@ -5607,19 +5607,19 @@ type IndicesIndexSegmentSort struct {
 }
 
 // The filesystem storage configuration.
-type IndicesIndexSettingsStoreFs struct {
+type IndicesIndexSettingsStoreFS struct {
 	// The type of file system lock.
-	FsLock *string `json:"fs_lock,omitempty"`
+	FSLock *string `json:"fs_lock,omitempty"`
 }
 
 // The memory-mapped storage configuration.
-type IndicesIndexSettingsStoreHybridMmap struct {
+type IndicesIndexSettingsStoreHybridMMap struct {
 	// The file extensions to use memory-mapping for.
 	Extensions []string `json:"extensions,omitempty"`
 }
 
 // The NIO storage configuration.
-type IndicesIndexSettingsStoreHybridNio struct {
+type IndicesIndexSettingsStoreHybridNIO struct {
 	// The file extensions to use NIO for.
 	Extensions []string `json:"extensions,omitempty"`
 }
@@ -5627,10 +5627,10 @@ type IndicesIndexSettingsStoreHybridNio struct {
 // The hybrid storage type configuration.
 type IndicesIndexSettingsStoreHybrid struct {
 	// The memory-mapped storage configuration.
-	Mmap *IndicesIndexSettingsStoreHybridMmap `json:"mmap,omitempty"`
+	MMap *IndicesIndexSettingsStoreHybridMMap `json:"mmap,omitempty"`
 
 	// The NIO storage configuration.
-	Nio *IndicesIndexSettingsStoreHybridNio `json:"nio,omitempty"`
+	NIO *IndicesIndexSettingsStoreHybridNIO `json:"nio,omitempty"`
 }
 
 type IndicesIndexSettingsStore struct {
@@ -5639,10 +5639,10 @@ type IndicesIndexSettingsStore struct {
 	// `node.store.allow_mmap`. This setting is useful, for example, if you are
 	// in an environment where you can not control the ability to create a lot
 	// of memory maps so you need disable the ability to use memory-mapping.
-	AllowMmap *string `json:"allow_mmap,omitempty"`
+	AllowMMap *string `json:"allow_mmap,omitempty"`
 
 	// The filesystem storage configuration.
-	Fs *IndicesIndexSettingsStoreFs `json:"fs,omitempty"`
+	FS *IndicesIndexSettingsStoreFS `json:"fs,omitempty"`
 
 	// The hybrid storage type configuration.
 	Hybrid *IndicesIndexSettingsStoreHybrid `json:"hybrid,omitempty"`
@@ -5788,7 +5788,7 @@ type IndicesIndexSettings struct {
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
 	// without a unit and `-1` to indicate an unspecified value.
-	GcDeletes *string `json:"gc_deletes,omitempty"`
+	GCDeletes *string `json:"gc_deletes,omitempty"`
 
 	// Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
@@ -7723,7 +7723,7 @@ type IngestConvertProcessor struct {
 	Type string `json:"type"`
 }
 
-type IngestCsvProcessor struct {
+type IngestCSVProcessor struct {
 	IngestProcessorBase
 
 	// Value used to fill empty fields. Empty fields are skipped if this is not
@@ -8251,7 +8251,7 @@ type IngestProcessorContainer struct {
 	Bytes           *IngestBytesProcessor           `json:"bytes,omitempty"`
 	Circle          *IngestCircleProcessor          `json:"circle,omitempty"`
 	Convert         *IngestConvertProcessor         `json:"convert,omitempty"`
-	Csv             *IngestCsvProcessor             `json:"csv,omitempty"`
+	CSV             *IngestCSVProcessor             `json:"csv,omitempty"`
 	Date            *IngestDateProcessor            `json:"date,omitempty"`
 	DateIndexName   *IngestDateIndexNameProcessor   `json:"date_index_name,omitempty"`
 	Dissect         *IngestDissectProcessor         `json:"dissect,omitempty"`
@@ -8950,16 +8950,16 @@ type SearchResultJSONValueHits struct {
 	Hits []SearchResultJSONValueHitsHitsItem `json:"hits,omitempty"`
 }
 
-type SearchResultJSONValueSuggestValueItemObject0OptionsObject0 struct {
+type SearchResultJSONValueSuggestValueItemCompletionOptionsObject0 struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchResultJSONValueSuggestValueItemObject0OptionsItem struct {
+type SearchResultJSONValueSuggestValueItemCompletionOptionsItem struct {
 	Source json.RawMessage `json:"_source"`
 }
 
-type SearchResultJSONValueSuggestValueItemObject0 struct {
-	Options *SearchResultJSONValueSuggestValueItemObject0Options `json:"options,omitempty"`
+type SearchResultJSONValueSuggestValueItemCompletion struct {
+	Options *SearchResultJSONValueSuggestValueItemCompletionOptions `json:"options,omitempty"`
 }
 
 type SearchResultJSONValue struct {
@@ -9937,7 +9937,7 @@ type MLNodeStatsDetails struct {
 	MLFailureCount *int64 `json:"ml_failure_count,omitempty"`
 
 	// The JVM heap usage.
-	MLJvmHeapUsage *int64 `json:"ml_jvm_heap_usage,omitempty"`
+	MLJVMHeapUsage *int64 `json:"ml_jvm_heap_usage,omitempty"`
 
 	// The request count.
 	MLRequestCount *int64 `json:"ml_request_count,omitempty"`
@@ -10493,14 +10493,14 @@ type NotificationsSlackItem struct {
 	URL string `json:"url"`
 }
 
-type NotificationsSmtpAccount struct {
+type NotificationsSMTPAccount struct {
 	FromAddress string `json:"from_address"`
 	Host        string `json:"host"`
 	Method      string `json:"method"`
 	Port        int    `json:"port"`
 }
 
-type NotificationsSnsItem struct {
+type NotificationsSNSItem struct {
 	RoleArn  *string `json:"role_arn,omitempty"`
 	TopicArn string  `json:"topic_arn"`
 }
@@ -10525,8 +10525,8 @@ type NotificationsConfigItem struct {
 	Name           string                           `json:"name"`
 	SesAccount     *NotificationsSesAccount         `json:"ses_account,omitempty"`
 	Slack          *NotificationsSlackItem          `json:"slack,omitempty"`
-	SmtpAccount    *NotificationsSmtpAccount        `json:"smtp_account,omitempty"`
-	Sns            *NotificationsSnsItem            `json:"sns,omitempty"`
+	SMTPAccount    *NotificationsSMTPAccount        `json:"smtp_account,omitempty"`
+	SNS            *NotificationsSNSItem            `json:"sns,omitempty"`
 	Webhook        *NotificationsWebhook            `json:"webhook,omitempty"`
 }
 
@@ -11319,7 +11319,7 @@ type SearchPipelineNormalizationPhaseResultsProcessor struct {
 	Tag           *string                           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemObject0 struct {
+type SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor struct {
 	NormalizationProcessor SearchPipelineNormalizationPhaseResultsProcessor `json:"normalization-processor"`
 }
 
@@ -11332,7 +11332,7 @@ type SearchPipelineScoreRankerPhaseResultsProcessor struct {
 	Combination SearchPipelineScoreRankerCombination `json:"combination"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemObject1 struct {
+type SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor struct {
 	ScoreRankerProcessor SearchPipelineScoreRankerPhaseResultsProcessor `json:"score-ranker-processor"`
 }
 
@@ -11345,7 +11345,7 @@ type SearchPipelineAgenticQueryTranslatorRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject0 struct {
+type SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator struct {
 	// Available: >= 3.2.0.
 	AgenticQueryTranslator SearchPipelineAgenticQueryTranslatorRequestProcessor `json:"agentic_query_translator"`
 }
@@ -11357,7 +11357,7 @@ type SearchPipelineFilterQueryRequestProcessor struct {
 	Tag           *string                       `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject1 struct {
+type SearchPipelineStructureRequestProcessorsItemFilterQuery struct {
 	FilterQuery SearchPipelineFilterQueryRequestProcessor `json:"filter_query"`
 }
 
@@ -11368,7 +11368,7 @@ type SearchPipelineNeuralQueryEnricherRequestProcessor struct {
 	Tag                  *string           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject2 struct {
+type SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher struct {
 	NeuralQueryEnricher SearchPipelineNeuralQueryEnricherRequestProcessor `json:"neural_query_enricher"`
 }
 
@@ -11380,7 +11380,7 @@ type SearchPipelineSearchScriptRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject3 struct {
+type SearchPipelineStructureRequestProcessorsItemScript struct {
 	Script SearchPipelineSearchScriptRequestProcessor `json:"script"`
 }
 
@@ -11392,7 +11392,7 @@ type SearchPipelineOversampleRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject4 struct {
+type SearchPipelineStructureRequestProcessorsItemOversample struct {
 	Oversample SearchPipelineOversampleRequestProcessor `json:"oversample"`
 }
 
@@ -11411,7 +11411,7 @@ type SearchPipelineAgenticContextRespProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject0 struct {
+type SearchPipelineStructureRespProcessorsItemAgenticContext struct {
 	// Available: >= 3.3.0.
 	AgenticContext SearchPipelineAgenticContextRespProcessor `json:"agentic_context"`
 }
@@ -11427,7 +11427,7 @@ type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
 	Weight        float32 `json:"weight"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject1 struct {
+type SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking struct {
 	PersonalizeSearchRanking SearchPipelinePersonalizeSearchRankingRespProcessor `json:"personalize_search_ranking"`
 }
 
@@ -11440,7 +11440,7 @@ type SearchPipelineRetrievalAugmentedGenerationRespProcessor struct {
 	UserInstructions *string  `json:"user_instructions,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject2 struct {
+type SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration struct {
 	RetrievalAugmentedGeneration SearchPipelineRetrievalAugmentedGenerationRespProcessor `json:"retrieval_augmented_generation"`
 }
 
@@ -11452,7 +11452,7 @@ type SearchPipelineRenameFieldRespProcessor struct {
 	TargetField   string  `json:"target_field"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject3 struct {
+type SearchPipelineStructureRespProcessorsItemRenameField struct {
 	RenameField SearchPipelineRenameFieldRespProcessor `json:"rename_field"`
 }
 
@@ -11472,7 +11472,7 @@ type SearchPipelineRerankRespProcessor struct {
 	Tag           *string                             `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject4 struct {
+type SearchPipelineStructureRespProcessorsItemRerank struct {
 	Rerank SearchPipelineRerankRespProcessor `json:"rerank"`
 }
 
@@ -11484,7 +11484,7 @@ type SearchPipelineCollapseRespProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject5 struct {
+type SearchPipelineStructureRespProcessorsItemCollapse struct {
 	Collapse SearchPipelineCollapseRespProcessor `json:"collapse"`
 }
 
@@ -11496,7 +11496,7 @@ type SearchPipelineTruncateHitsRespProcessor struct {
 	TargetSize    *int    `json:"target_size,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject6 struct {
+type SearchPipelineStructureRespProcessorsItemTruncateHits struct {
 	TruncateHits SearchPipelineTruncateHitsRespProcessor `json:"truncate_hits"`
 }
 
@@ -11509,7 +11509,7 @@ type SearchPipelineSortRespProcessor struct {
 	TargetField   *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject7 struct {
+type SearchPipelineStructureRespProcessorsItemSort struct {
 	Sort SearchPipelineSortRespProcessor `json:"sort"`
 }
 
@@ -11523,7 +11523,7 @@ type SearchPipelineSplitRespProcessor struct {
 	TargetField      *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject8 struct {
+type SearchPipelineStructureRespProcessorsItemSplit struct {
 	Split SearchPipelineSplitRespProcessor `json:"split"`
 }
 
@@ -12957,8 +12957,8 @@ type MLAggregation struct {
 }
 
 type MLProfileRequest struct {
-	ModelIds []string `json:"model_ids,omitempty"`
-	NodeIds  []string `json:"node_ids,omitempty"`
+	ModelIDs []string `json:"model_ids,omitempty"`
+	NodeIDs  []string `json:"node_ids,omitempty"`
 
 	// Whether to return all models.
 	ReturnAllModels *bool `json:"return_all_models,omitempty"`
@@ -12966,7 +12966,7 @@ type MLProfileRequest struct {
 	// Whether to return all tasks.
 	ReturnAllTasks *bool `json:"return_all_tasks,omitempty"`
 
-	TaskIds []string `json:"task_ids,omitempty"`
+	TaskIDs []string `json:"task_ids,omitempty"`
 }
 
 type MLInputQuery struct {

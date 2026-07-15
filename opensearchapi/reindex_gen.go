@@ -234,7 +234,7 @@ type ReindexRespBodyType int
 const (
 	ReindexRespBodyUnknownType ReindexRespBodyType = iota
 	ReindexRespBodyBulkByScrollRespBaseType
-	ReindexRespBodyReindexRespBodyObject1Type
+	ReindexRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -274,8 +274,8 @@ func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexR
 	}
 }
 
-// ReindexRespBodyObject1 returns the ReindexRespBodyObject1 branch value.
-func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
+// Object1 returns the ReindexRespBodyObject1 branch value.
+func (u *ReindexRespBody) Object1() ReindexRespBodyObject1 {
 	if v, ok := u.value.(*ReindexRespBodyObject1); ok {
 		return *v
 	}
@@ -283,11 +283,11 @@ func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
 	return zero
 }
 
-// NewReindexRespBodyFromReindexRespBodyObject1 returns a ReindexRespBody populated with v
-// on the ReindexRespBodyObject1 branch.
-func NewReindexRespBodyFromReindexRespBodyObject1(v ReindexRespBodyObject1) ReindexRespBody {
+// NewReindexRespBodyFromObject1 returns a ReindexRespBody populated with v
+// on the Object1 branch.
+func NewReindexRespBodyFromObject1(v ReindexRespBodyObject1) ReindexRespBody {
 	return ReindexRespBody{
-		typ:   ReindexRespBodyReindexRespBodyObject1Type,
+		typ:   ReindexRespBodyObject1Type,
 		value: &v,
 	}
 }
@@ -319,7 +319,7 @@ func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = ReindexRespBodyReindexRespBodyObject1Type
+	u.typ = ReindexRespBodyObject1Type
 	u.value = &m.ReindexRespBodyObject1
 	return nil
 }

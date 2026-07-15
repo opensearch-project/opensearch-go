@@ -430,7 +430,7 @@ type DeleteByQueryRespBodyType int
 const (
 	DeleteByQueryRespBodyUnknownType DeleteByQueryRespBodyType = iota
 	DeleteByQueryRespBodyBulkByScrollRespBaseType
-	DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
+	DeleteByQueryRespBodyObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -470,8 +470,8 @@ func NewDeleteByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) De
 	}
 }
 
-// DeleteByQueryRespBodyObject1 returns the DeleteByQueryRespBodyObject1 branch value.
-func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryRespBodyObject1 {
+// Object1 returns the DeleteByQueryRespBodyObject1 branch value.
+func (u *DeleteByQueryRespBody) Object1() DeleteByQueryRespBodyObject1 {
 	if v, ok := u.value.(*DeleteByQueryRespBodyObject1); ok {
 		return *v
 	}
@@ -479,11 +479,11 @@ func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryResp
 	return zero
 }
 
-// NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1 returns a DeleteByQueryRespBody populated with v
-// on the DeleteByQueryRespBodyObject1 branch.
-func NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1(v DeleteByQueryRespBodyObject1) DeleteByQueryRespBody {
+// NewDeleteByQueryRespBodyFromObject1 returns a DeleteByQueryRespBody populated with v
+// on the Object1 branch.
+func NewDeleteByQueryRespBodyFromObject1(v DeleteByQueryRespBodyObject1) DeleteByQueryRespBody {
 	return DeleteByQueryRespBody{
-		typ:   DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type,
+		typ:   DeleteByQueryRespBodyObject1Type,
 		value: &v,
 	}
 }
@@ -515,7 +515,7 @@ func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
+	u.typ = DeleteByQueryRespBodyObject1Type
 	u.value = &m.DeleteByQueryRespBodyObject1
 	return nil
 }

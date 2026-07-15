@@ -144,23 +144,23 @@ type GetConfigsParams struct {
 
 	SlackURLKeyword string
 
-	SmtpAccountFromAddress string
+	SMTPAccountFromAddress string
 
-	SmtpAccountFromAddressKeyword string
+	SMTPAccountFromAddressKeyword string
 
-	SmtpAccountHost string
+	SMTPAccountHost string
 
-	SmtpAccountHostKeyword string
+	SMTPAccountHostKeyword string
 
-	SmtpAccountMethod string
+	SMTPAccountMethod string
 
-	SnsRoleArn string
+	SNSRoleArn string
 
-	SnsRoleArnKeyword string
+	SNSRoleArnKeyword string
 
-	SnsTopicArn string
+	SNSTopicArn string
 
-	SnsTopicArnKeyword string
+	SNSTopicArnKeyword string
 
 	TextQuery string
 
@@ -292,40 +292,40 @@ func (r GetConfigsParams) get() map[string]string {
 		set("slack.url.keyword", r.SlackURLKeyword)
 	}
 
-	if r.SmtpAccountFromAddress != "" {
-		set("smtp_account.from_address", r.SmtpAccountFromAddress)
+	if r.SMTPAccountFromAddress != "" {
+		set("smtp_account.from_address", r.SMTPAccountFromAddress)
 	}
 
-	if r.SmtpAccountFromAddressKeyword != "" {
-		set("smtp_account.from_address.keyword", r.SmtpAccountFromAddressKeyword)
+	if r.SMTPAccountFromAddressKeyword != "" {
+		set("smtp_account.from_address.keyword", r.SMTPAccountFromAddressKeyword)
 	}
 
-	if r.SmtpAccountHost != "" {
-		set("smtp_account.host", r.SmtpAccountHost)
+	if r.SMTPAccountHost != "" {
+		set("smtp_account.host", r.SMTPAccountHost)
 	}
 
-	if r.SmtpAccountHostKeyword != "" {
-		set("smtp_account.host.keyword", r.SmtpAccountHostKeyword)
+	if r.SMTPAccountHostKeyword != "" {
+		set("smtp_account.host.keyword", r.SMTPAccountHostKeyword)
 	}
 
-	if r.SmtpAccountMethod != "" {
-		set("smtp_account.method", r.SmtpAccountMethod)
+	if r.SMTPAccountMethod != "" {
+		set("smtp_account.method", r.SMTPAccountMethod)
 	}
 
-	if r.SnsRoleArn != "" {
-		set("sns.role_arn", r.SnsRoleArn)
+	if r.SNSRoleArn != "" {
+		set("sns.role_arn", r.SNSRoleArn)
 	}
 
-	if r.SnsRoleArnKeyword != "" {
-		set("sns.role_arn.keyword", r.SnsRoleArnKeyword)
+	if r.SNSRoleArnKeyword != "" {
+		set("sns.role_arn.keyword", r.SNSRoleArnKeyword)
 	}
 
-	if r.SnsTopicArn != "" {
-		set("sns.topic_arn", r.SnsTopicArn)
+	if r.SNSTopicArn != "" {
+		set("sns.topic_arn", r.SNSTopicArn)
 	}
 
-	if r.SnsTopicArnKeyword != "" {
-		set("sns.topic_arn.keyword", r.SnsTopicArnKeyword)
+	if r.SNSTopicArnKeyword != "" {
+		set("sns.topic_arn.keyword", r.SNSTopicArnKeyword)
 	}
 
 	if r.TextQuery != "" {

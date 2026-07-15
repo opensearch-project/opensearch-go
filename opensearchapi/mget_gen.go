@@ -340,7 +340,7 @@ type MGetBody struct {
 	// the request URI.
 	Docs []MGetOperation `json:"docs,omitempty"`
 
-	Ids *string `json:"ids,omitempty"`
+	IDs *string `json:"ids,omitempty"`
 }
 
 // MGetOperation is a typed component of the mget operation.
@@ -397,7 +397,7 @@ type MGetOperationSourceType int
 const (
 	MGetOperationSourceUnknownType MGetOperationSourceType = iota
 	MGetOperationSourceStringType
-	MGetOperationSourceMGetOperationSourceObject1Type
+	MGetOperationSourceObject1Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -437,8 +437,8 @@ func NewMGetOperationSourceFromString(v string) MGetOperationSource {
 	}
 }
 
-// MGetOperationSourceObject1 returns the MGetOperationSourceObject1 branch value.
-func (u *MGetOperationSource) MGetOperationSourceObject1() MGetOperationSourceObject1 {
+// Object1 returns the MGetOperationSourceObject1 branch value.
+func (u *MGetOperationSource) Object1() MGetOperationSourceObject1 {
 	if v, ok := u.value.(*MGetOperationSourceObject1); ok {
 		return *v
 	}
@@ -446,11 +446,11 @@ func (u *MGetOperationSource) MGetOperationSourceObject1() MGetOperationSourceOb
 	return zero
 }
 
-// NewMGetOperationSourceFromMGetOperationSourceObject1 returns a MGetOperationSource populated with v
-// on the MGetOperationSourceObject1 branch.
-func NewMGetOperationSourceFromMGetOperationSourceObject1(v MGetOperationSourceObject1) MGetOperationSource {
+// NewMGetOperationSourceFromObject1 returns a MGetOperationSource populated with v
+// on the Object1 branch.
+func NewMGetOperationSourceFromObject1(v MGetOperationSourceObject1) MGetOperationSource {
 	return MGetOperationSource{
-		typ:   MGetOperationSourceMGetOperationSourceObject1Type,
+		typ:   MGetOperationSourceObject1Type,
 		value: &v,
 	}
 }
@@ -475,7 +475,7 @@ func (u *MGetOperationSource) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = MGetOperationSourceMGetOperationSourceObject1Type
+		u.typ = MGetOperationSourceObject1Type
 		u.value = &v
 	default:
 		return fmt.Errorf("MGetOperationSource: unexpected JSON token: %s", data[:1])

@@ -20,7 +20,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
-// GetAllPitsReq represents the request for the get_all_pits operation.
+// GetAllPITsReq represents the request for the get_all_pits operation.
 //
 // Lists all active point in time searches.
 //
@@ -29,18 +29,18 @@ import (
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-type GetAllPitsReq struct {
+type GetAllPITsReq struct {
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *GetAllPitsParams
+	Params *GetAllPITsParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r GetAllPitsReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.GetAllPitsPath{}.Build()
+func (r GetAllPITsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GetAllPITsPath{}.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +59,13 @@ func (r GetAllPitsReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// GetAllPitsParams represents query parameters for the GetAllPitsReq.
-type GetAllPitsParams struct {
+// GetAllPITsParams represents query parameters for the GetAllPITsReq.
+type GetAllPITsParams struct {
 	TimeoutParams
 	DebugParams
 }
 
-func (r GetAllPitsParams) get() map[string]string {
+func (r GetAllPITsParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -79,27 +79,27 @@ func (r GetAllPitsParams) get() map[string]string {
 	return params
 }
 
-// GetAllPitsResp represents the response for the get_all_pits operation.
+// GetAllPITsResp represents the response for the get_all_pits operation.
 //
 // Lists all active point in time searches.
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-type GetAllPitsResp struct {
-	Pits []PITDetail `json:"pits,omitempty"`
+type GetAllPITsResp struct {
+	PITs []PITDetail `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r GetAllPitsResp) Inspect() Inspect {
+func (r GetAllPITsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r GetAllPitsResp) RawBody() io.Reader {
+func (r GetAllPITsResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
@@ -120,13 +120,13 @@ type PITDetail struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPitsReq) (*GetAllPitsResp, error) {
+func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
 	if req == nil {
-		req = &GetAllPitsReq{}
+		req = &GetAllPITsReq{}
 	}
 
 	var (
-		data GetAllPitsResp
+		data GetAllPITsResp
 		err  error
 	)
 	if data.response, err = request(
@@ -147,6 +147,6 @@ func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPitsReq) (*Get
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-func (c pointInTimeClient) Get(ctx context.Context, req *GetAllPitsReq) (*GetAllPitsResp, error) {
+func (c pointInTimeClient) Get(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
 	return c.GetAll(ctx, req)
 }
