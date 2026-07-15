@@ -17,6 +17,8 @@ type recordingObserver struct {
 	events        map[string][]ConnectionEvent
 	routeEvents   []RouteEvent
 	rewriteEvents []AddressRewriteEvent
+	reqRespEvents []RequestResponseEvent
+	streamEvents  []StreamResponseEvent
 }
 
 func newRecordingObserver() *recordingObserver {
@@ -77,4 +79,28 @@ func (o *recordingObserver) getRewriteEvents() []AddressRewriteEvent {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	return append([]AddressRewriteEvent(nil), o.rewriteEvents...)
+}
+
+func (o *recordingObserver) OnRequestResponse(e RequestResponseEvent) {
+	o.mu.Lock()
+	o.reqRespEvents = append(o.reqRespEvents, e)
+	o.mu.Unlock()
+}
+
+func (o *recordingObserver) OnStreamResponse(e StreamResponseEvent) {
+	o.mu.Lock()
+	o.streamEvents = append(o.streamEvents, e)
+	o.mu.Unlock()
+}
+
+func (o *recordingObserver) getReqRespEvents() []RequestResponseEvent {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return append([]RequestResponseEvent(nil), o.reqRespEvents...)
+}
+
+func (o *recordingObserver) getStreamEvents() []StreamResponseEvent {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return append([]StreamResponseEvent(nil), o.streamEvents...)
 }
