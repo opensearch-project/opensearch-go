@@ -22,10 +22,15 @@ jobs:
         if: matrix.os != 'ubuntu-latest'
       - run: make test-unit race=true coverage=true
         if: matrix.os == 'ubuntu-latest'
+      - id: covfiles
+        # Collect every coverage profile make test-unit produced (root +
+        # each nested module) so codecov picks up new modules with no edit.
+        run: echo "files=$(ls tmp/*.cov | paste -sd, -)" >> "$GITHUB_OUTPUT"
+        if: matrix.os == 'ubuntu-latest'
       - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: tmp/unit.cov,tmp/osgen.cov
+          files: ${{ steps.covfiles.outputs.files }}
           flags: unit
         if: matrix.os == 'ubuntu-latest'
 
