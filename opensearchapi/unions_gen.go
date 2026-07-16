@@ -6846,7 +6846,7 @@ type SearchInnerHitsSourceType int
 const (
 	SearchInnerHitsSourceUnknownType SearchInnerHitsSourceType = iota
 	SearchInnerHitsSourceStringType
-	SearchInnerHitsSourceObject1Type
+	SearchInnerHitsSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -6886,20 +6886,20 @@ func NewSearchInnerHitsSourceFromString(v string) SearchInnerHitsSource {
 	}
 }
 
-// Object1 returns the SearchInnerHitsSourceObject1 branch value.
-func (u *SearchInnerHitsSource) Object1() SearchInnerHitsSourceObject1 {
-	if v, ok := u.value.(*SearchInnerHitsSourceObject1); ok {
+// ExcludesIncludes returns the SearchInnerHitsSourceExcludesIncludes branch value.
+func (u *SearchInnerHitsSource) ExcludesIncludes() SearchInnerHitsSourceExcludesIncludes {
+	if v, ok := u.value.(*SearchInnerHitsSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero SearchInnerHitsSourceObject1
+	var zero SearchInnerHitsSourceExcludesIncludes
 	return zero
 }
 
-// NewSearchInnerHitsSourceFromObject1 returns a SearchInnerHitsSource populated with v
-// on the Object1 branch.
-func NewSearchInnerHitsSourceFromObject1(v SearchInnerHitsSourceObject1) SearchInnerHitsSource {
+// NewSearchInnerHitsSourceFromExcludesIncludes returns a SearchInnerHitsSource populated with v
+// on the ExcludesIncludes branch.
+func NewSearchInnerHitsSourceFromExcludesIncludes(v SearchInnerHitsSourceExcludesIncludes) SearchInnerHitsSource {
 	return SearchInnerHitsSource{
-		typ:   SearchInnerHitsSourceObject1Type,
+		typ:   SearchInnerHitsSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -6920,11 +6920,11 @@ func (u *SearchInnerHitsSource) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsSourceObject1
+		var v SearchInnerHitsSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsSourceObject1Type
+		u.typ = SearchInnerHitsSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsSource: unexpected JSON token: %s", data[:1])
@@ -7068,7 +7068,7 @@ type SearchInnerHitsDocvalueFieldsItemType int
 const (
 	SearchInnerHitsDocvalueFieldsItemUnknownType SearchInnerHitsDocvalueFieldsItemType = iota
 	SearchInnerHitsDocvalueFieldsItemStringType
-	SearchInnerHitsDocvalueFieldsItemObject1Type
+	SearchInnerHitsDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -7110,20 +7110,20 @@ func NewSearchInnerHitsDocvalueFieldsItemFromString(v string) SearchInnerHitsDoc
 	}
 }
 
-// Object1 returns the SearchInnerHitsDocvalueFieldsItemObject1 branch value.
-func (u *SearchInnerHitsDocvalueFieldsItem) Object1() SearchInnerHitsDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*SearchInnerHitsDocvalueFieldsItemObject1); ok {
+// Field returns the SearchInnerHitsDocvalueFieldsItemField branch value.
+func (u *SearchInnerHitsDocvalueFieldsItem) Field() SearchInnerHitsDocvalueFieldsItemField {
+	if v, ok := u.value.(*SearchInnerHitsDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchInnerHitsDocvalueFieldsItemObject1
+	var zero SearchInnerHitsDocvalueFieldsItemField
 	return zero
 }
 
-// NewSearchInnerHitsDocvalueFieldsItemFromObject1 returns a SearchInnerHitsDocvalueFieldsItem populated with v
-// on the Object1 branch.
-func NewSearchInnerHitsDocvalueFieldsItemFromObject1(v SearchInnerHitsDocvalueFieldsItemObject1) SearchInnerHitsDocvalueFieldsItem {
+// NewSearchInnerHitsDocvalueFieldsItemFromField returns a SearchInnerHitsDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewSearchInnerHitsDocvalueFieldsItemFromField(v SearchInnerHitsDocvalueFieldsItemField) SearchInnerHitsDocvalueFieldsItem {
 	return SearchInnerHitsDocvalueFieldsItem{
-		typ:   SearchInnerHitsDocvalueFieldsItemObject1Type,
+		typ:   SearchInnerHitsDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -7144,11 +7144,11 @@ func (u *SearchInnerHitsDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsDocvalueFieldsItemObject1
+		var v SearchInnerHitsDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsDocvalueFieldsItemObject1Type
+		u.typ = SearchInnerHitsDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -7181,7 +7181,7 @@ type SearchInnerHitsFieldsItemType int
 const (
 	SearchInnerHitsFieldsItemUnknownType SearchInnerHitsFieldsItemType = iota
 	SearchInnerHitsFieldsItemStringType
-	SearchInnerHitsFieldsItemObject1Type
+	SearchInnerHitsFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -7221,20 +7221,20 @@ func NewSearchInnerHitsFieldsItemFromString(v string) SearchInnerHitsFieldsItem 
 	}
 }
 
-// Object1 returns the SearchInnerHitsFieldsItemObject1 branch value.
-func (u *SearchInnerHitsFieldsItem) Object1() SearchInnerHitsFieldsItemObject1 {
-	if v, ok := u.value.(*SearchInnerHitsFieldsItemObject1); ok {
+// Field returns the SearchInnerHitsFieldsItemField branch value.
+func (u *SearchInnerHitsFieldsItem) Field() SearchInnerHitsFieldsItemField {
+	if v, ok := u.value.(*SearchInnerHitsFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchInnerHitsFieldsItemObject1
+	var zero SearchInnerHitsFieldsItemField
 	return zero
 }
 
-// NewSearchInnerHitsFieldsItemFromObject1 returns a SearchInnerHitsFieldsItem populated with v
-// on the Object1 branch.
-func NewSearchInnerHitsFieldsItemFromObject1(v SearchInnerHitsFieldsItemObject1) SearchInnerHitsFieldsItem {
+// NewSearchInnerHitsFieldsItemFromField returns a SearchInnerHitsFieldsItem populated with v
+// on the Field branch.
+func NewSearchInnerHitsFieldsItemFromField(v SearchInnerHitsFieldsItemField) SearchInnerHitsFieldsItem {
 	return SearchInnerHitsFieldsItem{
-		typ:   SearchInnerHitsFieldsItemObject1Type,
+		typ:   SearchInnerHitsFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -7255,11 +7255,11 @@ func (u *SearchInnerHitsFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsFieldsItemObject1
+		var v SearchInnerHitsFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsFieldsItemObject1Type
+		u.typ = SearchInnerHitsFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsFieldsItem: unexpected JSON token: %s", data[:1])
@@ -20479,7 +20479,7 @@ type InsightsSourceSourceType int
 const (
 	InsightsSourceSourceUnknownType InsightsSourceSourceType = iota
 	InsightsSourceSourceStringType
-	InsightsSourceSourceObject1Type
+	InsightsSourceSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20519,20 +20519,20 @@ func NewInsightsSourceSourceFromString(v string) InsightsSourceSource {
 	}
 }
 
-// Object1 returns the InsightsSourceSourceObject1 branch value.
-func (u *InsightsSourceSource) Object1() InsightsSourceSourceObject1 {
-	if v, ok := u.value.(*InsightsSourceSourceObject1); ok {
+// ExcludesIncludes returns the InsightsSourceSourceExcludesIncludes branch value.
+func (u *InsightsSourceSource) ExcludesIncludes() InsightsSourceSourceExcludesIncludes {
+	if v, ok := u.value.(*InsightsSourceSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero InsightsSourceSourceObject1
+	var zero InsightsSourceSourceExcludesIncludes
 	return zero
 }
 
-// NewInsightsSourceSourceFromObject1 returns a InsightsSourceSource populated with v
-// on the Object1 branch.
-func NewInsightsSourceSourceFromObject1(v InsightsSourceSourceObject1) InsightsSourceSource {
+// NewInsightsSourceSourceFromExcludesIncludes returns a InsightsSourceSource populated with v
+// on the ExcludesIncludes branch.
+func NewInsightsSourceSourceFromExcludesIncludes(v InsightsSourceSourceExcludesIncludes) InsightsSourceSource {
 	return InsightsSourceSource{
-		typ:   InsightsSourceSourceObject1Type,
+		typ:   InsightsSourceSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -20553,11 +20553,11 @@ func (u *InsightsSourceSource) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceSourceObject1
+		var v InsightsSourceSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceSourceObject1Type
+		u.typ = InsightsSourceSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceSource: unexpected JSON token: %s", data[:1])
@@ -20590,7 +20590,7 @@ type InsightsSourceDocvalueFieldsItemType int
 const (
 	InsightsSourceDocvalueFieldsItemUnknownType InsightsSourceDocvalueFieldsItemType = iota
 	InsightsSourceDocvalueFieldsItemStringType
-	InsightsSourceDocvalueFieldsItemObject1Type
+	InsightsSourceDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20630,20 +20630,20 @@ func NewInsightsSourceDocvalueFieldsItemFromString(v string) InsightsSourceDocva
 	}
 }
 
-// Object1 returns the InsightsSourceDocvalueFieldsItemObject1 branch value.
-func (u *InsightsSourceDocvalueFieldsItem) Object1() InsightsSourceDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*InsightsSourceDocvalueFieldsItemObject1); ok {
+// Field returns the InsightsSourceDocvalueFieldsItemField branch value.
+func (u *InsightsSourceDocvalueFieldsItem) Field() InsightsSourceDocvalueFieldsItemField {
+	if v, ok := u.value.(*InsightsSourceDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero InsightsSourceDocvalueFieldsItemObject1
+	var zero InsightsSourceDocvalueFieldsItemField
 	return zero
 }
 
-// NewInsightsSourceDocvalueFieldsItemFromObject1 returns a InsightsSourceDocvalueFieldsItem populated with v
-// on the Object1 branch.
-func NewInsightsSourceDocvalueFieldsItemFromObject1(v InsightsSourceDocvalueFieldsItemObject1) InsightsSourceDocvalueFieldsItem {
+// NewInsightsSourceDocvalueFieldsItemFromField returns a InsightsSourceDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewInsightsSourceDocvalueFieldsItemFromField(v InsightsSourceDocvalueFieldsItemField) InsightsSourceDocvalueFieldsItem {
 	return InsightsSourceDocvalueFieldsItem{
-		typ:   InsightsSourceDocvalueFieldsItemObject1Type,
+		typ:   InsightsSourceDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -20664,11 +20664,11 @@ func (u *InsightsSourceDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceDocvalueFieldsItemObject1
+		var v InsightsSourceDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceDocvalueFieldsItemObject1Type
+		u.typ = InsightsSourceDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -20701,7 +20701,7 @@ type InsightsSourceFieldsItemType int
 const (
 	InsightsSourceFieldsItemUnknownType InsightsSourceFieldsItemType = iota
 	InsightsSourceFieldsItemStringType
-	InsightsSourceFieldsItemObject1Type
+	InsightsSourceFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20741,20 +20741,20 @@ func NewInsightsSourceFieldsItemFromString(v string) InsightsSourceFieldsItem {
 	}
 }
 
-// Object1 returns the InsightsSourceFieldsItemObject1 branch value.
-func (u *InsightsSourceFieldsItem) Object1() InsightsSourceFieldsItemObject1 {
-	if v, ok := u.value.(*InsightsSourceFieldsItemObject1); ok {
+// Field returns the InsightsSourceFieldsItemField branch value.
+func (u *InsightsSourceFieldsItem) Field() InsightsSourceFieldsItemField {
+	if v, ok := u.value.(*InsightsSourceFieldsItemField); ok {
 		return *v
 	}
-	var zero InsightsSourceFieldsItemObject1
+	var zero InsightsSourceFieldsItemField
 	return zero
 }
 
-// NewInsightsSourceFieldsItemFromObject1 returns a InsightsSourceFieldsItem populated with v
-// on the Object1 branch.
-func NewInsightsSourceFieldsItemFromObject1(v InsightsSourceFieldsItemObject1) InsightsSourceFieldsItem {
+// NewInsightsSourceFieldsItemFromField returns a InsightsSourceFieldsItem populated with v
+// on the Field branch.
+func NewInsightsSourceFieldsItemFromField(v InsightsSourceFieldsItemField) InsightsSourceFieldsItem {
 	return InsightsSourceFieldsItem{
-		typ:   InsightsSourceFieldsItemObject1Type,
+		typ:   InsightsSourceFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -20775,11 +20775,11 @@ func (u *InsightsSourceFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceFieldsItemObject1
+		var v InsightsSourceFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceFieldsItemObject1Type
+		u.typ = InsightsSourceFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceFieldsItem: unexpected JSON token: %s", data[:1])
@@ -21374,7 +21374,7 @@ type SearchResultJSONValueSuggestValueItemCompletionOptionsType int
 
 const (
 	SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType SearchResultJSONValueSuggestValueItemCompletionOptionsType = iota
-	SearchResultJSONValueSuggestValueItemCompletionOptionsObject0Type
+	SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
 	SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
 )
 
@@ -21401,20 +21401,20 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) SetRaw(raw json
 	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
 }
 
-// Object0 returns the SearchResultJSONValueSuggestValueItemCompletionOptionsObject0 branch value.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Object0() SearchResultJSONValueSuggestValueItemCompletionOptionsObject0 {
-	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletionOptionsObject0); ok {
+// Source returns the SearchResultJSONValueSuggestValueItemCompletionOptionsSource branch value.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Source() SearchResultJSONValueSuggestValueItemCompletionOptionsSource {
+	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletionOptionsSource); ok {
 		return *v
 	}
-	var zero SearchResultJSONValueSuggestValueItemCompletionOptionsObject0
+	var zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource
 	return zero
 }
 
-// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromObject0 returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
-// on the Object0 branch.
-func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromObject0(v SearchResultJSONValueSuggestValueItemCompletionOptionsObject0) SearchResultJSONValueSuggestValueItemCompletionOptions {
+// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
+// on the Source branch.
+func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource(v SearchResultJSONValueSuggestValueItemCompletionOptionsSource) SearchResultJSONValueSuggestValueItemCompletionOptions {
 	return SearchResultJSONValueSuggestValueItemCompletionOptions{
-		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsObject0Type,
+		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType,
 		value: &v,
 	}
 }
@@ -21446,11 +21446,11 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSON(d
 	}
 	switch {
 	case data[0] == '{':
-		var v SearchResultJSONValueSuggestValueItemCompletionOptionsObject0
+		var v SearchResultJSONValueSuggestValueItemCompletionOptionsSource
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsObject0Type
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
 		u.value = &v
 	case data[0] == '[':
 		var v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
@@ -21710,7 +21710,7 @@ type MLExecuteAlgorithmResponseType int
 const (
 	MLExecuteAlgorithmResponseUnknownType MLExecuteAlgorithmResponseType = iota
 	MLExecuteAlgorithmResponseMLExecuteLocalSampleCalculatorResponseType
-	MLExecuteAlgorithmResponseObject1Type
+	MLExecuteAlgorithmResponseResultsType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -21750,20 +21750,20 @@ func NewMLExecuteAlgorithmResponseFromMLExecuteLocalSampleCalculatorResponse(v M
 	}
 }
 
-// Object1 returns the MLExecuteAlgorithmRespObject1 branch value.
-func (u *MLExecuteAlgorithmResponse) Object1() MLExecuteAlgorithmRespObject1 {
-	if v, ok := u.value.(*MLExecuteAlgorithmRespObject1); ok {
+// Results returns the MLExecuteAlgorithmRespResults branch value.
+func (u *MLExecuteAlgorithmResponse) Results() MLExecuteAlgorithmRespResults {
+	if v, ok := u.value.(*MLExecuteAlgorithmRespResults); ok {
 		return *v
 	}
-	var zero MLExecuteAlgorithmRespObject1
+	var zero MLExecuteAlgorithmRespResults
 	return zero
 }
 
-// NewMLExecuteAlgorithmResponseFromObject1 returns a MLExecuteAlgorithmResponse populated with v
-// on the Object1 branch.
-func NewMLExecuteAlgorithmResponseFromObject1(v MLExecuteAlgorithmRespObject1) MLExecuteAlgorithmResponse {
+// NewMLExecuteAlgorithmResponseFromResults returns a MLExecuteAlgorithmResponse populated with v
+// on the Results branch.
+func NewMLExecuteAlgorithmResponseFromResults(v MLExecuteAlgorithmRespResults) MLExecuteAlgorithmResponse {
 	return MLExecuteAlgorithmResponse{
-		typ:   MLExecuteAlgorithmResponseObject1Type,
+		typ:   MLExecuteAlgorithmResponseResultsType,
 		value: &v,
 	}
 }
@@ -21790,9 +21790,9 @@ func (u *MLExecuteAlgorithmResponse) UnmarshalJSON(data []byte) error {
 		}
 	}
 	{
-		var v MLExecuteAlgorithmRespObject1
+		var v MLExecuteAlgorithmRespResults
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLExecuteAlgorithmResponseObject1Type
+			u.typ = MLExecuteAlgorithmResponseResultsType
 			u.value = &v
 			return nil
 		}
@@ -24616,8 +24616,8 @@ type WLMQueryGroupRespResourceLimitsType int
 
 const (
 	WLMQueryGroupRespResourceLimitsUnknownType WLMQueryGroupRespResourceLimitsType = iota
-	WLMQueryGroupRespResourceLimitsObject0Type
-	WLMQueryGroupRespResourceLimitsObject1Type
+	WLMQueryGroupRespResourceLimitsMemoryType
+	WLMQueryGroupRespResourceLimitsCPUType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24639,38 +24639,38 @@ func (u *WLMQueryGroupRespResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupRespResourceLimitsUnknownType
 }
 
-// Object0 returns the WLMQueryGroupRespResourceLimitsObject0 branch value.
-func (u *WLMQueryGroupRespResourceLimits) Object0() WLMQueryGroupRespResourceLimitsObject0 {
-	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsObject0); ok {
+// Memory returns the WLMQueryGroupRespResourceLimitsMemory branch value.
+func (u *WLMQueryGroupRespResourceLimits) Memory() WLMQueryGroupRespResourceLimitsMemory {
+	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsMemory); ok {
 		return *v
 	}
-	var zero WLMQueryGroupRespResourceLimitsObject0
+	var zero WLMQueryGroupRespResourceLimitsMemory
 	return zero
 }
 
-// NewWLMQueryGroupRespResourceLimitsFromObject0 returns a WLMQueryGroupRespResourceLimits populated with v
-// on the Object0 branch.
-func NewWLMQueryGroupRespResourceLimitsFromObject0(v WLMQueryGroupRespResourceLimitsObject0) WLMQueryGroupRespResourceLimits {
+// NewWLMQueryGroupRespResourceLimitsFromMemory returns a WLMQueryGroupRespResourceLimits populated with v
+// on the Memory branch.
+func NewWLMQueryGroupRespResourceLimitsFromMemory(v WLMQueryGroupRespResourceLimitsMemory) WLMQueryGroupRespResourceLimits {
 	return WLMQueryGroupRespResourceLimits{
-		typ:   WLMQueryGroupRespResourceLimitsObject0Type,
+		typ:   WLMQueryGroupRespResourceLimitsMemoryType,
 		value: &v,
 	}
 }
 
-// Object1 returns the WLMQueryGroupRespResourceLimitsObject1 branch value.
-func (u *WLMQueryGroupRespResourceLimits) Object1() WLMQueryGroupRespResourceLimitsObject1 {
-	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsObject1); ok {
+// CPU returns the WLMQueryGroupRespResourceLimitsCPU branch value.
+func (u *WLMQueryGroupRespResourceLimits) CPU() WLMQueryGroupRespResourceLimitsCPU {
+	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsCPU); ok {
 		return *v
 	}
-	var zero WLMQueryGroupRespResourceLimitsObject1
+	var zero WLMQueryGroupRespResourceLimitsCPU
 	return zero
 }
 
-// NewWLMQueryGroupRespResourceLimitsFromObject1 returns a WLMQueryGroupRespResourceLimits populated with v
-// on the Object1 branch.
-func NewWLMQueryGroupRespResourceLimitsFromObject1(v WLMQueryGroupRespResourceLimitsObject1) WLMQueryGroupRespResourceLimits {
+// NewWLMQueryGroupRespResourceLimitsFromCPU returns a WLMQueryGroupRespResourceLimits populated with v
+// on the CPU branch.
+func NewWLMQueryGroupRespResourceLimitsFromCPU(v WLMQueryGroupRespResourceLimitsCPU) WLMQueryGroupRespResourceLimits {
 	return WLMQueryGroupRespResourceLimits{
-		typ:   WLMQueryGroupRespResourceLimitsObject1Type,
+		typ:   WLMQueryGroupRespResourceLimitsCPUType,
 		value: &v,
 	}
 }
@@ -24688,17 +24688,17 @@ func (u *WLMQueryGroupRespResourceLimits) UnmarshalJSON(data []byte) error {
 	// absorbed by a structurally permissive success branch. encoding/json does
 	// not enforce a schema's "required" set, hence the explicit key probe.
 	if build.HasJSONKeys(data, "memory") {
-		var v WLMQueryGroupRespResourceLimitsObject0
+		var v WLMQueryGroupRespResourceLimitsMemory
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupRespResourceLimitsObject0Type
+			u.typ = WLMQueryGroupRespResourceLimitsMemoryType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "cpu") {
-		var v WLMQueryGroupRespResourceLimitsObject1
+		var v WLMQueryGroupRespResourceLimitsCPU
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupRespResourceLimitsObject1Type
+			u.typ = WLMQueryGroupRespResourceLimitsCPUType
 			u.value = &v
 			return nil
 		}
@@ -24732,7 +24732,7 @@ type AsynchronousSearchSearchSourceType int
 const (
 	AsynchronousSearchSearchSourceUnknownType AsynchronousSearchSearchSourceType = iota
 	AsynchronousSearchSearchSourceStringType
-	AsynchronousSearchSearchSourceObject1Type
+	AsynchronousSearchSearchSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24772,20 +24772,20 @@ func NewAsynchronousSearchSearchSourceFromString(v string) AsynchronousSearchSea
 	}
 }
 
-// Object1 returns the AsynchronousSearchSearchSourceObject1 branch value.
-func (u *AsynchronousSearchSearchSource) Object1() AsynchronousSearchSearchSourceObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchSourceObject1); ok {
+// ExcludesIncludes returns the AsynchronousSearchSearchSourceExcludesIncludes branch value.
+func (u *AsynchronousSearchSearchSource) ExcludesIncludes() AsynchronousSearchSearchSourceExcludesIncludes {
+	if v, ok := u.value.(*AsynchronousSearchSearchSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchSourceObject1
+	var zero AsynchronousSearchSearchSourceExcludesIncludes
 	return zero
 }
 
-// NewAsynchronousSearchSearchSourceFromObject1 returns a AsynchronousSearchSearchSource populated with v
-// on the Object1 branch.
-func NewAsynchronousSearchSearchSourceFromObject1(v AsynchronousSearchSearchSourceObject1) AsynchronousSearchSearchSource {
+// NewAsynchronousSearchSearchSourceFromExcludesIncludes returns a AsynchronousSearchSearchSource populated with v
+// on the ExcludesIncludes branch.
+func NewAsynchronousSearchSearchSourceFromExcludesIncludes(v AsynchronousSearchSearchSourceExcludesIncludes) AsynchronousSearchSearchSource {
 	return AsynchronousSearchSearchSource{
-		typ:   AsynchronousSearchSearchSourceObject1Type,
+		typ:   AsynchronousSearchSearchSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -24806,11 +24806,11 @@ func (u *AsynchronousSearchSearchSource) UnmarshalJSON(data []byte) error {
 		u.typ = AsynchronousSearchSearchSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchSourceObject1
+		var v AsynchronousSearchSearchSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchSourceObject1Type
+		u.typ = AsynchronousSearchSearchSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchSource: unexpected JSON token: %s", data[:1])
@@ -24843,7 +24843,7 @@ type AsynchronousSearchSearchDocvalueFieldsItemType int
 const (
 	AsynchronousSearchSearchDocvalueFieldsItemUnknownType AsynchronousSearchSearchDocvalueFieldsItemType = iota
 	AsynchronousSearchSearchDocvalueFieldsItemStringType
-	AsynchronousSearchSearchDocvalueFieldsItemObject1Type
+	AsynchronousSearchSearchDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24885,20 +24885,20 @@ func NewAsynchronousSearchSearchDocvalueFieldsItemFromString(v string) Asynchron
 	}
 }
 
-// Object1 returns the AsynchronousSearchSearchDocvalueFieldsItemObject1 branch value.
-func (u *AsynchronousSearchSearchDocvalueFieldsItem) Object1() AsynchronousSearchSearchDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchDocvalueFieldsItemObject1); ok {
+// Field returns the AsynchronousSearchSearchDocvalueFieldsItemField branch value.
+func (u *AsynchronousSearchSearchDocvalueFieldsItem) Field() AsynchronousSearchSearchDocvalueFieldsItemField {
+	if v, ok := u.value.(*AsynchronousSearchSearchDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchDocvalueFieldsItemObject1
+	var zero AsynchronousSearchSearchDocvalueFieldsItemField
 	return zero
 }
 
-// NewAsynchronousSearchSearchDocvalueFieldsItemFromObject1 returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
-// on the Object1 branch.
-func NewAsynchronousSearchSearchDocvalueFieldsItemFromObject1(v AsynchronousSearchSearchDocvalueFieldsItemObject1) AsynchronousSearchSearchDocvalueFieldsItem {
+// NewAsynchronousSearchSearchDocvalueFieldsItemFromField returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewAsynchronousSearchSearchDocvalueFieldsItemFromField(v AsynchronousSearchSearchDocvalueFieldsItemField) AsynchronousSearchSearchDocvalueFieldsItem {
 	return AsynchronousSearchSearchDocvalueFieldsItem{
-		typ:   AsynchronousSearchSearchDocvalueFieldsItemObject1Type,
+		typ:   AsynchronousSearchSearchDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -24919,11 +24919,11 @@ func (u *AsynchronousSearchSearchDocvalueFieldsItem) UnmarshalJSON(data []byte) 
 		u.typ = AsynchronousSearchSearchDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchDocvalueFieldsItemObject1
+		var v AsynchronousSearchSearchDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchDocvalueFieldsItemObject1Type
+		u.typ = AsynchronousSearchSearchDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -24956,7 +24956,7 @@ type AsynchronousSearchSearchFieldsItemType int
 const (
 	AsynchronousSearchSearchFieldsItemUnknownType AsynchronousSearchSearchFieldsItemType = iota
 	AsynchronousSearchSearchFieldsItemStringType
-	AsynchronousSearchSearchFieldsItemObject1Type
+	AsynchronousSearchSearchFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24998,20 +24998,20 @@ func NewAsynchronousSearchSearchFieldsItemFromString(v string) AsynchronousSearc
 	}
 }
 
-// Object1 returns the AsynchronousSearchSearchFieldsItemObject1 branch value.
-func (u *AsynchronousSearchSearchFieldsItem) Object1() AsynchronousSearchSearchFieldsItemObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchFieldsItemObject1); ok {
+// Field returns the AsynchronousSearchSearchFieldsItemField branch value.
+func (u *AsynchronousSearchSearchFieldsItem) Field() AsynchronousSearchSearchFieldsItemField {
+	if v, ok := u.value.(*AsynchronousSearchSearchFieldsItemField); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchFieldsItemObject1
+	var zero AsynchronousSearchSearchFieldsItemField
 	return zero
 }
 
-// NewAsynchronousSearchSearchFieldsItemFromObject1 returns a AsynchronousSearchSearchFieldsItem populated with v
-// on the Object1 branch.
-func NewAsynchronousSearchSearchFieldsItemFromObject1(v AsynchronousSearchSearchFieldsItemObject1) AsynchronousSearchSearchFieldsItem {
+// NewAsynchronousSearchSearchFieldsItemFromField returns a AsynchronousSearchSearchFieldsItem populated with v
+// on the Field branch.
+func NewAsynchronousSearchSearchFieldsItemFromField(v AsynchronousSearchSearchFieldsItemField) AsynchronousSearchSearchFieldsItem {
 	return AsynchronousSearchSearchFieldsItem{
-		typ:   AsynchronousSearchSearchFieldsItemObject1Type,
+		typ:   AsynchronousSearchSearchFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -25032,11 +25032,11 @@ func (u *AsynchronousSearchSearchFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = AsynchronousSearchSearchFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchFieldsItemObject1
+		var v AsynchronousSearchSearchFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchFieldsItemObject1Type
+		u.typ = AsynchronousSearchSearchFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchFieldsItem: unexpected JSON token: %s", data[:1])
@@ -26250,8 +26250,8 @@ type WLMQueryGroupCreateResourceLimitsType int
 
 const (
 	WLMQueryGroupCreateResourceLimitsUnknownType WLMQueryGroupCreateResourceLimitsType = iota
-	WLMQueryGroupCreateResourceLimitsObject0Type
-	WLMQueryGroupCreateResourceLimitsObject1Type
+	WLMQueryGroupCreateResourceLimitsMemoryType
+	WLMQueryGroupCreateResourceLimitsCPUType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -26275,38 +26275,38 @@ func (u *WLMQueryGroupCreateResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupCreateResourceLimitsUnknownType
 }
 
-// Object0 returns the WLMQueryGroupCreateResourceLimitsObject0 branch value.
-func (u *WLMQueryGroupCreateResourceLimits) Object0() WLMQueryGroupCreateResourceLimitsObject0 {
-	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsObject0); ok {
+// Memory returns the WLMQueryGroupCreateResourceLimitsMemory branch value.
+func (u *WLMQueryGroupCreateResourceLimits) Memory() WLMQueryGroupCreateResourceLimitsMemory {
+	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsMemory); ok {
 		return *v
 	}
-	var zero WLMQueryGroupCreateResourceLimitsObject0
+	var zero WLMQueryGroupCreateResourceLimitsMemory
 	return zero
 }
 
-// NewWLMQueryGroupCreateResourceLimitsFromObject0 returns a WLMQueryGroupCreateResourceLimits populated with v
-// on the Object0 branch.
-func NewWLMQueryGroupCreateResourceLimitsFromObject0(v WLMQueryGroupCreateResourceLimitsObject0) WLMQueryGroupCreateResourceLimits {
+// NewWLMQueryGroupCreateResourceLimitsFromMemory returns a WLMQueryGroupCreateResourceLimits populated with v
+// on the Memory branch.
+func NewWLMQueryGroupCreateResourceLimitsFromMemory(v WLMQueryGroupCreateResourceLimitsMemory) WLMQueryGroupCreateResourceLimits {
 	return WLMQueryGroupCreateResourceLimits{
-		typ:   WLMQueryGroupCreateResourceLimitsObject0Type,
+		typ:   WLMQueryGroupCreateResourceLimitsMemoryType,
 		value: &v,
 	}
 }
 
-// Object1 returns the WLMQueryGroupCreateResourceLimitsObject1 branch value.
-func (u *WLMQueryGroupCreateResourceLimits) Object1() WLMQueryGroupCreateResourceLimitsObject1 {
-	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsObject1); ok {
+// CPU returns the WLMQueryGroupCreateResourceLimitsCPU branch value.
+func (u *WLMQueryGroupCreateResourceLimits) CPU() WLMQueryGroupCreateResourceLimitsCPU {
+	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsCPU); ok {
 		return *v
 	}
-	var zero WLMQueryGroupCreateResourceLimitsObject1
+	var zero WLMQueryGroupCreateResourceLimitsCPU
 	return zero
 }
 
-// NewWLMQueryGroupCreateResourceLimitsFromObject1 returns a WLMQueryGroupCreateResourceLimits populated with v
-// on the Object1 branch.
-func NewWLMQueryGroupCreateResourceLimitsFromObject1(v WLMQueryGroupCreateResourceLimitsObject1) WLMQueryGroupCreateResourceLimits {
+// NewWLMQueryGroupCreateResourceLimitsFromCPU returns a WLMQueryGroupCreateResourceLimits populated with v
+// on the CPU branch.
+func NewWLMQueryGroupCreateResourceLimitsFromCPU(v WLMQueryGroupCreateResourceLimitsCPU) WLMQueryGroupCreateResourceLimits {
 	return WLMQueryGroupCreateResourceLimits{
-		typ:   WLMQueryGroupCreateResourceLimitsObject1Type,
+		typ:   WLMQueryGroupCreateResourceLimitsCPUType,
 		value: &v,
 	}
 }
@@ -26324,17 +26324,17 @@ func (u *WLMQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {
 	// absorbed by a structurally permissive success branch. encoding/json does
 	// not enforce a schema's "required" set, hence the explicit key probe.
 	if build.HasJSONKeys(data, "memory") {
-		var v WLMQueryGroupCreateResourceLimitsObject0
+		var v WLMQueryGroupCreateResourceLimitsMemory
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupCreateResourceLimitsObject0Type
+			u.typ = WLMQueryGroupCreateResourceLimitsMemoryType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "cpu") {
-		var v WLMQueryGroupCreateResourceLimitsObject1
+		var v WLMQueryGroupCreateResourceLimitsCPU
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupCreateResourceLimitsObject1Type
+			u.typ = WLMQueryGroupCreateResourceLimitsCPUType
 			u.value = &v
 			return nil
 		}

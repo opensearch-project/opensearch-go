@@ -47,7 +47,7 @@ SearchProcessorExecutionDetail/output_data # bare
 SearchResultHitsHitsItem/_source # bare
 SearchResultJSONValueHitsHitsItem/_source # bare
 SearchResultJSONValueSuggestValueItemCompletionOptionsItem/_source # bare
-SearchResultJSONValueSuggestValueItemCompletionOptionsObject0/_source # bare
+SearchResultJSONValueSuggestValueItemCompletionOptionsSource/_source # bare
 
 # --- asynchronous_search.search ---
 AsynchronousSearchSearch/ext # map

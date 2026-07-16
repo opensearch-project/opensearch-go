@@ -422,8 +422,8 @@ func (r UpdateByQueryResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// UpdateByQueryRespBodyObject1 is a typed component of the update_by_query operation.
-type UpdateByQueryRespBodyObject1 struct {
+// UpdateByQueryRespBodyTask is a typed component of the update_by_query operation.
+type UpdateByQueryRespBodyTask struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
@@ -443,7 +443,7 @@ type UpdateByQueryRespBodyType int
 const (
 	UpdateByQueryRespBodyUnknownType UpdateByQueryRespBodyType = iota
 	UpdateByQueryRespBodyBulkByScrollRespBaseType
-	UpdateByQueryRespBodyObject1Type
+	UpdateByQueryRespBodyTaskType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -483,20 +483,20 @@ func NewUpdateByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) Up
 	}
 }
 
-// Object1 returns the UpdateByQueryRespBodyObject1 branch value.
-func (u *UpdateByQueryRespBody) Object1() UpdateByQueryRespBodyObject1 {
-	if v, ok := u.value.(*UpdateByQueryRespBodyObject1); ok {
+// Task returns the UpdateByQueryRespBodyTask branch value.
+func (u *UpdateByQueryRespBody) Task() UpdateByQueryRespBodyTask {
+	if v, ok := u.value.(*UpdateByQueryRespBodyTask); ok {
 		return *v
 	}
-	var zero UpdateByQueryRespBodyObject1
+	var zero UpdateByQueryRespBodyTask
 	return zero
 }
 
-// NewUpdateByQueryRespBodyFromObject1 returns a UpdateByQueryRespBody populated with v
-// on the Object1 branch.
-func NewUpdateByQueryRespBodyFromObject1(v UpdateByQueryRespBodyObject1) UpdateByQueryRespBody {
+// NewUpdateByQueryRespBodyFromTask returns a UpdateByQueryRespBody populated with v
+// on the Task branch.
+func NewUpdateByQueryRespBodyFromTask(v UpdateByQueryRespBodyTask) UpdateByQueryRespBody {
 	return UpdateByQueryRespBody{
-		typ:   UpdateByQueryRespBodyObject1Type,
+		typ:   UpdateByQueryRespBodyTaskType,
 		value: &v,
 	}
 }
@@ -512,7 +512,7 @@ func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		UpdateByQueryRespBodyObject1
+		UpdateByQueryRespBodyTask
 		Disc0 json.RawMessage `json:"batches"`
 	}
 	var m merged
@@ -528,8 +528,8 @@ func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = UpdateByQueryRespBodyObject1Type
-	u.value = &m.UpdateByQueryRespBodyObject1
+	u.typ = UpdateByQueryRespBodyTaskType
+	u.value = &m.UpdateByQueryRespBodyTask
 	return nil
 }
 

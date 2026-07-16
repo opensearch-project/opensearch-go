@@ -260,8 +260,8 @@ type UpdateBody struct {
 	Upsert json.RawMessage `json:"upsert"`
 }
 
-// UpdateBodySourceObject1 is a typed component of the update operation.
-type UpdateBodySourceObject1 struct {
+// UpdateBodySourceExcludesIncludes is a typed component of the update operation.
+type UpdateBodySourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -290,7 +290,7 @@ type UpdateBodySourceType int
 const (
 	UpdateBodySourceUnknownType UpdateBodySourceType = iota
 	UpdateBodySourceStringType
-	UpdateBodySourceObject1Type
+	UpdateBodySourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -330,20 +330,20 @@ func NewUpdateBodySourceFromString(v string) UpdateBodySource {
 	}
 }
 
-// Object1 returns the UpdateBodySourceObject1 branch value.
-func (u *UpdateBodySource) Object1() UpdateBodySourceObject1 {
-	if v, ok := u.value.(*UpdateBodySourceObject1); ok {
+// ExcludesIncludes returns the UpdateBodySourceExcludesIncludes branch value.
+func (u *UpdateBodySource) ExcludesIncludes() UpdateBodySourceExcludesIncludes {
+	if v, ok := u.value.(*UpdateBodySourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero UpdateBodySourceObject1
+	var zero UpdateBodySourceExcludesIncludes
 	return zero
 }
 
-// NewUpdateBodySourceFromObject1 returns a UpdateBodySource populated with v
-// on the Object1 branch.
-func NewUpdateBodySourceFromObject1(v UpdateBodySourceObject1) UpdateBodySource {
+// NewUpdateBodySourceFromExcludesIncludes returns a UpdateBodySource populated with v
+// on the ExcludesIncludes branch.
+func NewUpdateBodySourceFromExcludesIncludes(v UpdateBodySourceExcludesIncludes) UpdateBodySource {
 	return UpdateBodySource{
-		typ:   UpdateBodySourceObject1Type,
+		typ:   UpdateBodySourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -364,11 +364,11 @@ func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
 		u.typ = UpdateBodySourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v UpdateBodySourceObject1
+		var v UpdateBodySourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = UpdateBodySourceObject1Type
+		u.typ = UpdateBodySourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("UpdateBodySource: unexpected JSON token: %s", data[:1])

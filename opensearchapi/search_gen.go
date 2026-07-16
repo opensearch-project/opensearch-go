@@ -733,8 +733,8 @@ type SearchBody struct {
 	Version *bool `json:"version,omitempty"`
 }
 
-// SearchBodySourceObject1 is a typed component of the search operation.
-type SearchBodySourceObject1 struct {
+// SearchBodySourceExcludesIncludes is a typed component of the search operation.
+type SearchBodySourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -748,8 +748,8 @@ type SearchBodySourceObject1 struct {
 	Includes *string `json:"includes,omitempty"`
 }
 
-// SearchBodyDocvalueFieldsItemObject1 is a typed component of the search operation.
-type SearchBodyDocvalueFieldsItemObject1 struct {
+// SearchBodyDocvalueFieldsItemField is a typed component of the search operation.
+type SearchBodyDocvalueFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -758,8 +758,8 @@ type SearchBodyDocvalueFieldsItemObject1 struct {
 	Format *string `json:"format,omitempty"`
 }
 
-// SearchBodyFieldsItemObject1 is a typed component of the search operation.
-type SearchBodyFieldsItemObject1 struct {
+// SearchBodyFieldsItemField is a typed component of the search operation.
+type SearchBodyFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -804,7 +804,7 @@ type SearchBodySourceType int
 const (
 	SearchBodySourceUnknownType SearchBodySourceType = iota
 	SearchBodySourceStringType
-	SearchBodySourceObject1Type
+	SearchBodySourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -844,20 +844,20 @@ func NewSearchBodySourceFromString(v string) SearchBodySource {
 	}
 }
 
-// Object1 returns the SearchBodySourceObject1 branch value.
-func (u *SearchBodySource) Object1() SearchBodySourceObject1 {
-	if v, ok := u.value.(*SearchBodySourceObject1); ok {
+// ExcludesIncludes returns the SearchBodySourceExcludesIncludes branch value.
+func (u *SearchBodySource) ExcludesIncludes() SearchBodySourceExcludesIncludes {
+	if v, ok := u.value.(*SearchBodySourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero SearchBodySourceObject1
+	var zero SearchBodySourceExcludesIncludes
 	return zero
 }
 
-// NewSearchBodySourceFromObject1 returns a SearchBodySource populated with v
-// on the Object1 branch.
-func NewSearchBodySourceFromObject1(v SearchBodySourceObject1) SearchBodySource {
+// NewSearchBodySourceFromExcludesIncludes returns a SearchBodySource populated with v
+// on the ExcludesIncludes branch.
+func NewSearchBodySourceFromExcludesIncludes(v SearchBodySourceExcludesIncludes) SearchBodySource {
 	return SearchBodySource{
-		typ:   SearchBodySourceObject1Type,
+		typ:   SearchBodySourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -878,11 +878,11 @@ func (u *SearchBodySource) UnmarshalJSON(data []byte) error {
 		u.typ = SearchBodySourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchBodySourceObject1
+		var v SearchBodySourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchBodySourceObject1Type
+		u.typ = SearchBodySourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodySource: unexpected JSON token: %s", data[:1])
@@ -915,7 +915,7 @@ type SearchBodyDocvalueFieldsItemType int
 const (
 	SearchBodyDocvalueFieldsItemUnknownType SearchBodyDocvalueFieldsItemType = iota
 	SearchBodyDocvalueFieldsItemStringType
-	SearchBodyDocvalueFieldsItemObject1Type
+	SearchBodyDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -955,20 +955,20 @@ func NewSearchBodyDocvalueFieldsItemFromString(v string) SearchBodyDocvalueField
 	}
 }
 
-// Object1 returns the SearchBodyDocvalueFieldsItemObject1 branch value.
-func (u *SearchBodyDocvalueFieldsItem) Object1() SearchBodyDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*SearchBodyDocvalueFieldsItemObject1); ok {
+// Field returns the SearchBodyDocvalueFieldsItemField branch value.
+func (u *SearchBodyDocvalueFieldsItem) Field() SearchBodyDocvalueFieldsItemField {
+	if v, ok := u.value.(*SearchBodyDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchBodyDocvalueFieldsItemObject1
+	var zero SearchBodyDocvalueFieldsItemField
 	return zero
 }
 
-// NewSearchBodyDocvalueFieldsItemFromObject1 returns a SearchBodyDocvalueFieldsItem populated with v
-// on the Object1 branch.
-func NewSearchBodyDocvalueFieldsItemFromObject1(v SearchBodyDocvalueFieldsItemObject1) SearchBodyDocvalueFieldsItem {
+// NewSearchBodyDocvalueFieldsItemFromField returns a SearchBodyDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewSearchBodyDocvalueFieldsItemFromField(v SearchBodyDocvalueFieldsItemField) SearchBodyDocvalueFieldsItem {
 	return SearchBodyDocvalueFieldsItem{
-		typ:   SearchBodyDocvalueFieldsItemObject1Type,
+		typ:   SearchBodyDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -989,11 +989,11 @@ func (u *SearchBodyDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchBodyDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchBodyDocvalueFieldsItemObject1
+		var v SearchBodyDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchBodyDocvalueFieldsItemObject1Type
+		u.typ = SearchBodyDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -1026,7 +1026,7 @@ type SearchBodyFieldsItemType int
 const (
 	SearchBodyFieldsItemUnknownType SearchBodyFieldsItemType = iota
 	SearchBodyFieldsItemStringType
-	SearchBodyFieldsItemObject1Type
+	SearchBodyFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -1066,20 +1066,20 @@ func NewSearchBodyFieldsItemFromString(v string) SearchBodyFieldsItem {
 	}
 }
 
-// Object1 returns the SearchBodyFieldsItemObject1 branch value.
-func (u *SearchBodyFieldsItem) Object1() SearchBodyFieldsItemObject1 {
-	if v, ok := u.value.(*SearchBodyFieldsItemObject1); ok {
+// Field returns the SearchBodyFieldsItemField branch value.
+func (u *SearchBodyFieldsItem) Field() SearchBodyFieldsItemField {
+	if v, ok := u.value.(*SearchBodyFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchBodyFieldsItemObject1
+	var zero SearchBodyFieldsItemField
 	return zero
 }
 
-// NewSearchBodyFieldsItemFromObject1 returns a SearchBodyFieldsItem populated with v
-// on the Object1 branch.
-func NewSearchBodyFieldsItemFromObject1(v SearchBodyFieldsItemObject1) SearchBodyFieldsItem {
+// NewSearchBodyFieldsItemFromField returns a SearchBodyFieldsItem populated with v
+// on the Field branch.
+func NewSearchBodyFieldsItemFromField(v SearchBodyFieldsItemField) SearchBodyFieldsItem {
 	return SearchBodyFieldsItem{
-		typ:   SearchBodyFieldsItemObject1Type,
+		typ:   SearchBodyFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -1100,11 +1100,11 @@ func (u *SearchBodyFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchBodyFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchBodyFieldsItemObject1
+		var v SearchBodyFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchBodyFieldsItemObject1Type
+		u.typ = SearchBodyFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchBodyFieldsItem: unexpected JSON token: %s", data[:1])

@@ -2195,7 +2195,7 @@ type CommonQueryDSLGeoShapeQuery struct {
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 }
 
-type SearchInnerHitsSourceObject1 struct {
+type SearchInnerHitsSourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -2222,7 +2222,7 @@ type SearchFieldCollapse struct {
 	MaxConcurrentGroupSearches *int `json:"max_concurrent_group_searches,omitempty"`
 }
 
-type SearchInnerHitsDocvalueFieldsItemObject1 struct {
+type SearchInnerHitsDocvalueFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -2231,7 +2231,7 @@ type SearchInnerHitsDocvalueFieldsItemObject1 struct {
 	Format *string `json:"format,omitempty"`
 }
 
-type SearchInnerHitsFieldsItemObject1 struct {
+type SearchInnerHitsFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -8378,7 +8378,7 @@ type InsightsMeasurements struct {
 	Memory  *InsightsMeasurement `json:"memory,omitempty"`
 }
 
-type InsightsSourceSourceObject1 struct {
+type InsightsSourceSourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -8392,7 +8392,7 @@ type InsightsSourceSourceObject1 struct {
 	Includes *string `json:"includes,omitempty"`
 }
 
-type InsightsSourceDocvalueFieldsItemObject1 struct {
+type InsightsSourceDocvalueFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -8401,7 +8401,7 @@ type InsightsSourceDocvalueFieldsItemObject1 struct {
 	Format *string `json:"format,omitempty"`
 }
 
-type InsightsSourceFieldsItemObject1 struct {
+type InsightsSourceFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -8950,7 +8950,7 @@ type SearchResultJSONValueHits struct {
 	Hits []SearchResultJSONValueHitsHitsItem `json:"hits,omitempty"`
 }
 
-type SearchResultJSONValueSuggestValueItemCompletionOptionsObject0 struct {
+type SearchResultJSONValueSuggestValueItemCompletionOptionsSource struct {
 	Source json.RawMessage `json:"_source"`
 }
 
@@ -9389,7 +9389,7 @@ type MLExecuteAnomalyLocalizationResponse struct {
 	Result *MLResult `json:"result,omitempty"`
 }
 
-type MLExecuteAlgorithmRespObject1 struct {
+type MLExecuteAlgorithmRespResults struct {
 	Results []MLExecuteAnomalyLocalizationResponse `json:"results,omitempty"`
 }
 
@@ -12608,12 +12608,12 @@ type TransformsResponse struct {
 	Transforms      []TransformsTransformResponse `json:"transforms,omitempty"`
 }
 
-type WLMQueryGroupRespResourceLimitsObject0 struct {
+type WLMQueryGroupRespResourceLimitsMemory struct {
 	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
-type WLMQueryGroupRespResourceLimitsObject1 struct {
+type WLMQueryGroupRespResourceLimitsCPU struct {
 	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
@@ -12636,7 +12636,7 @@ type WLMQueryGroupResponse struct {
 	UpdatedAt int64 `json:"updated_at"`
 }
 
-type AsynchronousSearchSearchSourceObject1 struct {
+type AsynchronousSearchSearchSourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -12659,7 +12659,7 @@ type CommonAggregationsAggregationContainer struct {
 	CommonAggregationsAggregation
 }
 
-type AsynchronousSearchSearchDocvalueFieldsItemObject1 struct {
+type AsynchronousSearchSearchDocvalueFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -12668,7 +12668,7 @@ type AsynchronousSearchSearchDocvalueFieldsItemObject1 struct {
 	Format *string `json:"format,omitempty"`
 }
 
-type AsynchronousSearchSearchFieldsItemObject1 struct {
+type AsynchronousSearchSearchFieldsItemField struct {
 	// The path to a field or an array of paths. Some APIs support wildcards in
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -13319,12 +13319,12 @@ type TransformsTransformRequest struct {
 	Transform TransformsTransform `json:"transform"`
 }
 
-type WLMQueryGroupCreateResourceLimitsObject0 struct {
+type WLMQueryGroupCreateResourceLimitsMemory struct {
 	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
-type WLMQueryGroupCreateResourceLimitsObject1 struct {
+type WLMQueryGroupCreateResourceLimitsCPU struct {
 	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }

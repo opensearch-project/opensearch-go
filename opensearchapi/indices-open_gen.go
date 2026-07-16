@@ -186,14 +186,14 @@ func (r IndicesOpenResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// IndicesOpenRespBodyObject0 is a typed component of the indices.open operation.
-type IndicesOpenRespBodyObject0 struct {
+// IndicesOpenRespBodyTask is a typed component of the indices.open operation.
+type IndicesOpenRespBodyTask struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// IndicesOpenRespBodyObject1 is a typed component of the indices.open operation.
-type IndicesOpenRespBodyObject1 struct {
+// IndicesOpenRespBodyAcknowledged is a typed component of the indices.open operation.
+type IndicesOpenRespBodyAcknowledged struct {
 	Acknowledged       bool `json:"acknowledged"`
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
@@ -212,8 +212,8 @@ type IndicesOpenRespBodyType int
 
 const (
 	IndicesOpenRespBodyUnknownType IndicesOpenRespBodyType = iota
-	IndicesOpenRespBodyObject0Type
-	IndicesOpenRespBodyObject1Type
+	IndicesOpenRespBodyTaskType
+	IndicesOpenRespBodyAcknowledgedType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -235,38 +235,38 @@ func (u *IndicesOpenRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesOpenRespBodyUnknownType
 }
 
-// Object0 returns the IndicesOpenRespBodyObject0 branch value.
-func (u *IndicesOpenRespBody) Object0() IndicesOpenRespBodyObject0 {
-	if v, ok := u.value.(*IndicesOpenRespBodyObject0); ok {
+// Task returns the IndicesOpenRespBodyTask branch value.
+func (u *IndicesOpenRespBody) Task() IndicesOpenRespBodyTask {
+	if v, ok := u.value.(*IndicesOpenRespBodyTask); ok {
 		return *v
 	}
-	var zero IndicesOpenRespBodyObject0
+	var zero IndicesOpenRespBodyTask
 	return zero
 }
 
-// NewIndicesOpenRespBodyFromObject0 returns a IndicesOpenRespBody populated with v
-// on the Object0 branch.
-func NewIndicesOpenRespBodyFromObject0(v IndicesOpenRespBodyObject0) IndicesOpenRespBody {
+// NewIndicesOpenRespBodyFromTask returns a IndicesOpenRespBody populated with v
+// on the Task branch.
+func NewIndicesOpenRespBodyFromTask(v IndicesOpenRespBodyTask) IndicesOpenRespBody {
 	return IndicesOpenRespBody{
-		typ:   IndicesOpenRespBodyObject0Type,
+		typ:   IndicesOpenRespBodyTaskType,
 		value: &v,
 	}
 }
 
-// Object1 returns the IndicesOpenRespBodyObject1 branch value.
-func (u *IndicesOpenRespBody) Object1() IndicesOpenRespBodyObject1 {
-	if v, ok := u.value.(*IndicesOpenRespBodyObject1); ok {
+// Acknowledged returns the IndicesOpenRespBodyAcknowledged branch value.
+func (u *IndicesOpenRespBody) Acknowledged() IndicesOpenRespBodyAcknowledged {
+	if v, ok := u.value.(*IndicesOpenRespBodyAcknowledged); ok {
 		return *v
 	}
-	var zero IndicesOpenRespBodyObject1
+	var zero IndicesOpenRespBodyAcknowledged
 	return zero
 }
 
-// NewIndicesOpenRespBodyFromObject1 returns a IndicesOpenRespBody populated with v
-// on the Object1 branch.
-func NewIndicesOpenRespBodyFromObject1(v IndicesOpenRespBodyObject1) IndicesOpenRespBody {
+// NewIndicesOpenRespBodyFromAcknowledged returns a IndicesOpenRespBody populated with v
+// on the Acknowledged branch.
+func NewIndicesOpenRespBodyFromAcknowledged(v IndicesOpenRespBodyAcknowledged) IndicesOpenRespBody {
 	return IndicesOpenRespBody{
-		typ:   IndicesOpenRespBodyObject1Type,
+		typ:   IndicesOpenRespBodyAcknowledgedType,
 		value: &v,
 	}
 }
@@ -282,7 +282,7 @@ func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		IndicesOpenRespBodyObject0
+		IndicesOpenRespBodyTask
 		Disc0 json.RawMessage `json:"acknowledged"`
 	}
 	var m merged
@@ -290,16 +290,16 @@ func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	if len(m.Disc0) > 0 {
-		var v IndicesOpenRespBodyObject1
+		var v IndicesOpenRespBodyAcknowledged
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesOpenRespBodyObject1Type
+		u.typ = IndicesOpenRespBodyAcknowledgedType
 		u.value = &v
 		return nil
 	}
-	u.typ = IndicesOpenRespBodyObject0Type
-	u.value = &m.IndicesOpenRespBodyObject0
+	u.typ = IndicesOpenRespBodyTaskType
+	u.value = &m.IndicesOpenRespBodyTask
 	return nil
 }
 

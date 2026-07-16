@@ -367,8 +367,8 @@ type MGetOperation struct {
 	VersionType *string `json:"version_type,omitempty"`
 }
 
-// MGetOperationSourceObject1 is a typed component of the mget operation.
-type MGetOperationSourceObject1 struct {
+// MGetOperationSourceExcludesIncludes is a typed component of the mget operation.
+type MGetOperationSourceExcludesIncludes struct {
 	// A comma-separated list or a wildcard expression specifying the fields to
 	// include in the statistics. Used as the default list unless a specific
 	// field list is provided in the `completion_fields` or `fielddata_fields`
@@ -397,7 +397,7 @@ type MGetOperationSourceType int
 const (
 	MGetOperationSourceUnknownType MGetOperationSourceType = iota
 	MGetOperationSourceStringType
-	MGetOperationSourceObject1Type
+	MGetOperationSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -437,20 +437,20 @@ func NewMGetOperationSourceFromString(v string) MGetOperationSource {
 	}
 }
 
-// Object1 returns the MGetOperationSourceObject1 branch value.
-func (u *MGetOperationSource) Object1() MGetOperationSourceObject1 {
-	if v, ok := u.value.(*MGetOperationSourceObject1); ok {
+// ExcludesIncludes returns the MGetOperationSourceExcludesIncludes branch value.
+func (u *MGetOperationSource) ExcludesIncludes() MGetOperationSourceExcludesIncludes {
+	if v, ok := u.value.(*MGetOperationSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero MGetOperationSourceObject1
+	var zero MGetOperationSourceExcludesIncludes
 	return zero
 }
 
-// NewMGetOperationSourceFromObject1 returns a MGetOperationSource populated with v
-// on the Object1 branch.
-func NewMGetOperationSourceFromObject1(v MGetOperationSourceObject1) MGetOperationSource {
+// NewMGetOperationSourceFromExcludesIncludes returns a MGetOperationSource populated with v
+// on the ExcludesIncludes branch.
+func NewMGetOperationSourceFromExcludesIncludes(v MGetOperationSourceExcludesIncludes) MGetOperationSource {
 	return MGetOperationSource{
-		typ:   MGetOperationSourceObject1Type,
+		typ:   MGetOperationSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -471,11 +471,11 @@ func (u *MGetOperationSource) UnmarshalJSON(data []byte) error {
 		u.typ = MGetOperationSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v MGetOperationSourceObject1
+		var v MGetOperationSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = MGetOperationSourceObject1Type
+		u.typ = MGetOperationSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("MGetOperationSource: unexpected JSON token: %s", data[:1])
