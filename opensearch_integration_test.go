@@ -29,6 +29,7 @@
 package opensearch_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -269,6 +270,21 @@ func (tr *TestTransport) Stream(req *http.Request) (*http.Response, error) {
 
 func (tr *TestTransport) Count() uint64 {
 	return tr.counter.Load()
+}
+
+// Request buffers the response body so *TestTransport satisfies
+// opensearchtransport.Interface alongside Stream.
+func (tr *TestTransport) Request(req *http.Request) (*http.Response, error) {
+	res, err := tr.Stream(req)
+	if res != nil && res.Body != nil {
+		body, rerr := io.ReadAll(res.Body)
+		res.Body.Close()
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		if rerr != nil && err == nil {
+			err = rerr
+		}
+	}
+	return res, err
 }
 
 func TestClientReplaceTransport(t *testing.T) {
