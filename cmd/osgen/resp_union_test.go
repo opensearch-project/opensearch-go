@@ -519,7 +519,13 @@ func TestClassifyBranchInlineObject(t *testing.T) {
 	}{
 		{name: "untitled positional", title: "", branchIdx: 1, wantName: "Object1", wantGoType: "ParentObject1"},
 		{name: "titled semantic", title: "keyed", branchIdx: 1, wantName: "Keyed", wantGoType: "ParentKeyed"},
-		{name: "hyphenated title normalized", title: "score-ranker-processor", branchIdx: 2, wantName: "ScoreRankerProcessor", wantGoType: "ParentScoreRankerProcessor"},
+		{
+			name:       "hyphenated title normalized",
+			title:      "score-ranker-processor",
+			branchIdx:  2,
+			wantName:   "ScoreRankerProcessor",
+			wantGoType: "ParentScoreRankerProcessor",
+		},
 	}
 
 	for _, tt := range tests {

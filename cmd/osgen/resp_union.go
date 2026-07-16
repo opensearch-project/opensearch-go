@@ -155,39 +155,18 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	}
 
 	if s.Type.Is("object") {
-		// Inline object with properties: walk it to register a named type.
-		if len(s.Properties) > 0 {
-			// A named oneOf member carries a spec title; use it for both the
-			// accessor name and the generated type suffix so the branch reads
-			// semantically (e.g. title "keyed" -> Keyed branch). Untitled
-			// members have no spec name, so fall back to a positional suffix.
-			// The branch name stays union-relative -- not the fully-qualified
-			// type name -- so accessors and constructors don't stutter the
-			// union prefix (e.g. NewFooFromObject1, not NewFooFromFooObject1).
-			keySuffix := fmt.Sprintf("object%d", branchIdx)
-			branchName := fmt.Sprintf("Object%d", branchIdx)
-			if s.Title != "" {
-				// baseGoName normalizes the title into an identifier fragment
-				// (splitting on '-', '_', '.'); use it for the key suffix too so
-				// schemaTypeName does not carry a raw hyphen into the type name
-				// (e.g. title "score-ranker-processor" -> ScoreRankerProcessor).
-				branchName = baseGoName(s.Title)
-				keySuffix = branchName
-			}
-			childKey := fmt.Sprintf("%s.%s", parentKey, keySuffix)
-			goTypeName := w.resolveObjectSchema(s, childKey, group, false)
-			if goTypeName != "" && goTypeName != "json.RawMessage" {
-				return unionBranch{
-					Name:         branchName,
-					GoType:       goTypeName,
-					TokenClass:   "object",
-					Required:     flattenRequired(s),
-					IsRef:        true,
-					VersionAdded: versionAdded,
-				}
-			}
-		}
-		// Open object (additionalProperties).
+		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded)
+	}
+
+	return unionBranch{}
+}
+
+// classifyObjectBranch resolves an inline object oneOf/anyOf branch. An object
+// with properties becomes a named type; an open object (additionalProperties
+// only) falls back to a raw map branch.
+func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group string, branchIdx int, versionAdded string) unionBranch {
+	// Open object (additionalProperties) with no declared properties.
+	if len(s.Properties) == 0 {
 		return unionBranch{
 			Name:         "Map",
 			GoType:       "map[string]json.RawMessage",
@@ -196,7 +175,43 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		}
 	}
 
-	return unionBranch{}
+	// A named oneOf member carries a spec title; use it for both the accessor
+	// name and the generated type suffix so the branch reads semantically
+	// (e.g. title "keyed" -> Keyed branch). Untitled members have no spec name,
+	// so fall back to a positional suffix. The branch name stays union-relative
+	// -- not the fully-qualified type name -- so accessors and constructors
+	// don't stutter the union prefix (e.g. NewFooFromObject1, not
+	// NewFooFromFooObject1).
+	keySuffix := fmt.Sprintf("object%d", branchIdx)
+	branchName := fmt.Sprintf("Object%d", branchIdx)
+	if s.Title != "" {
+		// baseGoName normalizes the title into an identifier fragment
+		// (splitting on '-', '_', '.'); use it for the key suffix too so
+		// schemaTypeName does not carry a raw hyphen into the type name
+		// (e.g. title "score-ranker-processor" -> ScoreRankerProcessor).
+		branchName = baseGoName(s.Title)
+		keySuffix = branchName
+	}
+	childKey := fmt.Sprintf("%s.%s", parentKey, keySuffix)
+	goTypeName := w.resolveObjectSchema(s, childKey, group, false)
+	if goTypeName != "" && goTypeName != "json.RawMessage" {
+		return unionBranch{
+			Name:         branchName,
+			GoType:       goTypeName,
+			TokenClass:   "object",
+			Required:     flattenRequired(s),
+			IsRef:        true,
+			VersionAdded: versionAdded,
+		}
+	}
+
+	// Properties present but unresolvable to a named type: raw map fallback.
+	return unionBranch{
+		Name:         "Map",
+		GoType:       "map[string]json.RawMessage",
+		TokenClass:   "object",
+		VersionAdded: versionAdded,
+	}
 }
 
 // classifyRefBranch resolves a $ref-bearing union branch into its unionBranch.

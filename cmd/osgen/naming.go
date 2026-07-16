@@ -179,7 +179,7 @@ var acronyms = map[string]string{
 	"ism":   "ISM", // Index State Management
 	"json":  "JSON",
 	"jvm":   "JVM",
-	"knn":   "KNN", // k-Nearest Neighbors
+	"knn":   "KNN",  // k-Nearest Neighbors
 	"lmd":   "LMD",  // Language Model Dirichlet similarity
 	"lmj":   "LMJ",  // Language Model Jelinek-Mercer similarity
 	"ltr":   "LTR",  // Learning to Rank
