@@ -320,6 +320,21 @@ type Config struct {
 	// Default: 3
 	StandbyPromotionChecks int
 
+	// VerifyDeadAfter is the duration a dead connection can be blindly
+	// resurrected for use as a zombie connection when no other healthy
+	// connections are available. A connection proven reachable (viable) is a
+	// zombie candidate until it has been continuously dead for longer than this
+	// window, at which point the discovery loop clears the mark so the node must
+	// health-check clean again before it can be routed to (or served as a
+	// last-resort zombie). Seed connections are always available and never
+	// expire this way. 0 = use the default window, <0 = disabled (a viable
+	// connection stays a zombie candidate indefinitely), >0 = explicit window.
+	//
+	// Can be overridden by the OPENSEARCH_GO_VERIFY_DEAD_AFTER environment
+	// variable: a boolean true selects the default, false disables it, and any
+	// other value is a time.ParseDuration string (e.g. "10m").
+	VerifyDeadAfter time.Duration
+
 	// NodeStatsInterval sets the polling interval for /_nodes/_local/stats/jvm,breaker.
 	// A background goroutine polls each ready node's JVM heap usage and circuit breaker
 	// metrics to detect overloaded nodes and shed load away from them.
@@ -444,6 +459,7 @@ type Transport struct {
 	retryBackoff          func(attempt int) time.Duration
 	requestTimeout        time.Duration
 	discoverNodesInterval time.Duration
+	verifyDeadAfter       time.Duration
 
 	includeDedicatedClusterManagers bool
 	discoveryHealthCheckRetries     int
@@ -614,6 +630,23 @@ func New(cfg Config) (*Transport, error) {
 	if envVal, ok := os.LookupEnv(envvars.RequestTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			requestTimeout = d
+		}
+	}
+
+	// VerifyDeadAfter: 0 = default, <0 = disabled, >0 = explicit.
+	// OPENSEARCH_GO_VERIFY_DEAD_AFTER overrides the programmatic value: bool
+	// true = default, false = disabled, otherwise a duration string. An
+	// unparseable env value is ignored (the programmatic/default value stands).
+	verifyDeadAfter := cfg.VerifyDeadAfter
+	switch {
+	case verifyDeadAfter == 0:
+		verifyDeadAfter = envvars.VerifyDeadAfterDefault
+	case verifyDeadAfter < 0:
+		verifyDeadAfter = 0
+	}
+	if envVal, ok := os.LookupEnv(envvars.VerifyDeadAfter); ok && envVal != "" {
+		if d, err := envvars.ParseVerifyDeadAfter(envVal); err == nil {
+			verifyDeadAfter = d
 		}
 	}
 
@@ -910,6 +943,7 @@ func New(cfg Config) (*Transport, error) {
 		retryBackoff:          cfg.RetryBackoff,
 		requestTimeout:        requestTimeout,
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
+		verifyDeadAfter:       verifyDeadAfter,
 
 		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
 		discoveryHealthCheckRetries:     cfg.DiscoveryHealthCheckRetries,

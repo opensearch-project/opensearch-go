@@ -29,7 +29,9 @@ func createBenchBaseConnection(urlStr string, id string, roles ...string) *Conne
 	}
 	// Connections start alive for benchmarking (no health check needed).
 	// Set authoritative atomic state so Next() recognizes them as active.
-	conn.setLifecycleBit(lcActive)
+	// lcViable marks them proven-reachable so availableForRouting() admits
+	// them without a live health check.
+	conn.setLifecycleBit(lcActive | lcViable)
 	return conn
 }
 

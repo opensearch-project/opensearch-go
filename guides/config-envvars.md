@@ -24,6 +24,7 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_SHARD_REQUESTS`](#routing)                                    | `true` (5:256)               | Adaptive MCSR bounds                  |
 | [`OPENSEARCH_GO_DISCOVERY_CONFIG`](#discovery)                                | all enabled                  | Discovery call toggles                |
 | [`OPENSEARCH_GO_FALLBACK`](#discovery)                                        | `true`                       | Seed URL fallback                     |
+| [`OPENSEARCH_GO_VERIFY_DEAD_AFTER`](#discovery)                               | `15m`                        | Zombie-resurrection expiry window     |
 | [`OPENSEARCH_GO_NODE_STATS_INTERVAL`](#load-shedding-and-stats-polling)       | auto                         | Stats polling interval                |
 | [`OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD`](#load-shedding-and-stats-polling) | `85`                         | JVM heap overload threshold           |
 | [`OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`](#load-shedding-and-stats-polling)  | `0.90`                       | Breaker ratio overload threshold      |
@@ -70,10 +71,11 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 ## Discovery
 
-| Variable                         | Accepted values       | Default     | Meaning                                                                                                       | See also                                                                       |
-| -------------------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
 | `OPENSEARCH_GO_DISCOVERY_CONFIG` | Comma-separated flags | all enabled | Skip specific discovery calls. Flags: `-cat_shards`, `-routing_num_shards`, `-cluster_health`, `-node_stats`. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
-| `OPENSEARCH_GO_FALLBACK`         | Bool                  | `true`      | Seed URL fallback when all router pools are exhausted. Set `false` to disable.                                | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_FALLBACK` | Bool | `true` | Seed URL fallback when all router pools are exhausted. Set `false` to disable. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+| `OPENSEARCH_GO_VERIFY_DEAD_AFTER` | Bool or duration/seconds | `15m` | How long a connection proven reachable stays a blind zombie-resurrection candidate while dead. Past this window the discovery loop stops treating the node as a last-resort target until it health-checks clean again. Bool `true` selects the default, `false` disables it (a proven connection stays a candidate indefinitely); any other value is a duration (`10m`) or bare seconds. Seed connections are exempt. Overrides `Config.VerifyDeadAfter` (`0` = default, `<0` = disabled, `>0` = explicit). | [Routing: Connection Pool Lifecycle](transport-routing.md#8-connection-pool-lifecycle) |
 
 ## Load shedding and stats polling
 

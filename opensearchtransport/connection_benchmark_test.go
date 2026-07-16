@@ -46,14 +46,16 @@ func init() {
 }
 
 func initSingleServerPool() *singleServerPool {
-	return &singleServerPool{
-		connection: &Connection{
-			URL: &url.URL{
-				Scheme: "http",
-				Host:   "foo1",
-			},
+	conn := &Connection{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   "foo1",
 		},
 	}
+	// Normal host, proven reachable: latch lcViable so Next() admits it (these
+	// benchmarks do no network I/O, so nothing else sets the bit).
+	conn.setLifecycleBit(lcActive | lcViable)
+	return &singleServerPool{connection: conn}
 }
 
 func BenchmarkSingleServerPool(b *testing.B) {
