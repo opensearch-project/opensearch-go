@@ -19,6 +19,20 @@ import (
 func TestResolveUnionType(t *testing.T) {
 	t.Parallel()
 
+	// inlineObj builds an inline (non-$ref) object branch whose declared
+	// properties are all required, so its content name is the first sorted key.
+	inlineObj := func(props ...string) *openapi3.SchemaRef {
+		p := openapi3.Schemas{}
+		for _, name := range props {
+			p[name] = &openapi3.SchemaRef{Value: openapi3.NewStringSchema()}
+		}
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			Type:       &openapi3.Types{"object"},
+			Required:   props,
+			Properties: p,
+		}}
+	}
+
 	tests := []struct {
 		name       string
 		schema     *openapi3.Schema
@@ -140,6 +154,44 @@ func TestResolveUnionType(t *testing.T) {
 			wantLazy:   false,
 			wantCount:  2,
 			wantBranch: []string{"Float64", "String"},
+		},
+		{
+			// Inline (non-$ref) object branches are named from their content, not
+			// their spec position: each branch here is named for its (sole,
+			// required) property key. This exercises the objectBranchNames pre-pass
+			// wired into resolveUnionType, so a spec reorder can no longer rename
+			// the generated type.
+			name: "distinct inline objects named from content",
+			schema: &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					inlineObj("task"),
+					inlineObj("acknowledged"),
+				},
+			},
+			schemaKey:  "test___InlineDistinct",
+			wantName:   "TestInlineDistinct",
+			wantLazy:   true,
+			wantCount:  2,
+			wantBranch: []string{"Task", "Acknowledged"},
+		},
+		{
+			// Two structurally identical inline objects (same properties and
+			// required set) cannot be told apart by content, so both fall back to
+			// positional Object<idx> suffixes and stay two distinct types. This is
+			// the anti-collapse invariant: collapsing them to one type would
+			// silently drop a union branch (the real SegmentReplication case).
+			name: "identical inline objects stay distinct via positional fallback",
+			schema: &openapi3.Schema{
+				OneOf: openapi3.SchemaRefs{
+					inlineObj("max_bytes_behind"),
+					inlineObj("max_bytes_behind"),
+				},
+			},
+			schemaKey:  "test___InlineIdentical",
+			wantName:   "TestInlineIdentical",
+			wantLazy:   true,
+			wantCount:  2,
+			wantBranch: []string{"Object0", "Object1"},
 		},
 	}
 
