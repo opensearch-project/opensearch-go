@@ -2,10 +2,8 @@ module github.com/opensearch-project/opensearch-go/v5/osotel
 
 go 1.25.9
 
-replace github.com/opensearch-project/opensearch-go/v5 => ../
-
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.0.0-00010101000000-000000000000
+	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc1.0.20260716052420-8d976c370c30
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/metric v1.44.0
