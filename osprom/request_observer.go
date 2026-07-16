@@ -55,15 +55,16 @@ func NewRequestObserver(opts ...RequestObserverOption) *RequestObserver {
 
 	return &RequestObserver{
 		duration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: "opensearch",
-			Subsystem: "client",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "request_duration_seconds",
-			Help:      "Duration of OpenSearch client requests, labeled by method, status class, and mode (request=full-read, stream=time-to-first-byte).",
-			Buckets:   cfg.durationBuckets,
+			Help: "Duration of OpenSearch client requests, labeled by method, status class, " +
+				"and mode (request=full-read, stream=time-to-first-byte).",
+			Buckets: cfg.durationBuckets,
 		}, []string{"method", "status", "mode"}),
 		bytes: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Namespace: "opensearch",
-			Subsystem: "client",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "response_size_bytes",
 			Help:      "Size of buffered OpenSearch client response bodies, labeled by method and status class.",
 			Buckets:   cfg.sizeBuckets,

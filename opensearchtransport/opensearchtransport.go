@@ -1311,7 +1311,6 @@ func (c *Transport) Request(req *http.Request) (*http.Response, error) {
 	var n int64
 	if res != nil && res.Body != nil {
 		body, rerr := io.ReadAll(res.Body)
-		//nolint:errcheck // draining an already-read body; the read error is captured below
 		res.Body.Close()
 		res.Body = io.NopCloser(bytes.NewReader(body))
 		n = int64(len(body))

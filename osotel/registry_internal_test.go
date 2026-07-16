@@ -32,10 +32,10 @@ func mustURL(t *testing.T, s string) *url.URL {
 
 // newTestMeter returns a Meter backed by a ManualReader plus a collect func that
 // gathers the current metrics for assertions.
-func newTestMeter(t *testing.T) (mp *metric.MeterProvider, collect func() metricdata.ResourceMetrics) {
+func newTestMeter(t *testing.T) (*metric.MeterProvider, func() metricdata.ResourceMetrics) {
 	t.Helper()
 	reader := metric.NewManualReader()
-	mp = metric.NewMeterProvider(metric.WithReader(reader))
+	mp := metric.NewMeterProvider(metric.WithReader(reader))
 	return mp, func() metricdata.ResourceMetrics {
 		var rm metricdata.ResourceMetrics
 		require.NoError(t, reader.Collect(context.Background(), &rm))

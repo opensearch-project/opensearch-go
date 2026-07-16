@@ -73,7 +73,7 @@ func TestRegistryRecordsRequestResponse(t *testing.T) {
 
 	require.Equal(t, 1, testutil.CollectAndCount(ro.duration), "one duration observation")
 	require.Equal(t, 1, testutil.CollectAndCount(ro.bytes), "one size observation")
-	require.Equal(t, 0.0, testutil.ToFloat64(reg.dropped), "no drops on an unsaturated buffer")
+	require.InDelta(t, 0.0, testutil.ToFloat64(reg.dropped), 0, "no drops on an unsaturated buffer")
 }
 
 func TestRegistryFanOutToMultipleObservers(t *testing.T) {

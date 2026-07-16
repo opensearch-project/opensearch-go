@@ -720,6 +720,7 @@ func Execute[T any](ctx context.Context, c *Client, method string, req Request, 
 
 	// Transport.Request buffers the body and returns the connection to the pool;
 	// resp.Body is already an io.NopCloser over the buffered bytes.
+	//nolint:bodyclose // Request already drained and closed the socket; resp.Body is a NopCloser over buffered bytes
 	resp, err := c.Request(httpReq)
 	if resp == nil {
 		return nil, err

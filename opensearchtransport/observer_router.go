@@ -364,7 +364,7 @@ func (b *routeCandidateBuf) unref() {
 func dispatchRoute(obs ConnectionObserver, p routeEventParams) {
 	n := len(p.candidates)
 	b := routeCandidatePool.Get().(*routeCandidateBuf) //nolint:forcetypeassert // pool only stores *routeCandidateBuf
-	b.refs.Store(1)                                     // dispatchRoute's own reference
+	b.refs.Store(1)                                    // dispatchRoute's own reference
 	if cap(b.cs) < n {
 		b.cs = make([]RouteCandidate, n)
 	} else {
@@ -379,7 +379,6 @@ func dispatchRoute(obs ConnectionObserver, p routeEventParams) {
 	// reference via Retain, in which case the async consumer's Release reclaims.
 	event.Release()
 }
-
 
 // ShardMapInvalidationEvent is emitted when a routing failure flags a
 // connection's shard placement as stale. The connection is excluded from

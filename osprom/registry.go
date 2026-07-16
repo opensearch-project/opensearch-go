@@ -40,6 +40,13 @@ type sample struct {
 	mode       Mode
 }
 
+// Prometheus metric namespace and subsystem shared by every collector in this
+// module.
+const (
+	metricNamespace = "opensearch"
+	metricSubsystem = "client"
+)
+
 // Mode distinguishes the two response fire points.
 type Mode uint8
 
@@ -99,7 +106,7 @@ func (BaseObserver) OnRequest(RequestSample) {}
 // transport. It copies each event into a pooled envelope, dispatches it to a
 // background goroutine over a buffered channel, and fans it out to the wired
 // [Observer] bundles. Run the dispatch loop with [Registry.Run]; stop it with
-// [Registry.Close] or by cancelling Run's context.
+// [Registry.Close] or by canceling Run's context.
 type Registry struct {
 	opensearchtransport.BaseConnectionObserver
 
@@ -147,8 +154,8 @@ func NewWithOptions(reg prometheus.Registerer, bufferSize int, observers []Obser
 		done:      make(chan struct{}),
 		log:       cfg.logger,
 		dropped: prometheus.NewCounter(prometheus.CounterOpts{
-			Namespace: "opensearch",
-			Subsystem: "client",
+			Namespace: metricNamespace,
+			Subsystem: metricSubsystem,
 			Name:      "observer_dropped_total",
 			Help:      "Number of observer events dropped because the osprom buffer was full.",
 		}),
@@ -258,6 +265,8 @@ func (r *Registry) OnStreamResponse(e opensearchtransport.StreamResponseEvent) {
 
 // Close stops the dispatch loop started by [Registry.Run]. It is idempotent and
 // safe to call concurrently; subsequent calls are no-ops.
+//
+//nolint:unparam // Returns error to satisfy io.Closer; stop never fails
 func (r *Registry) Close() error {
 	r.stop()
 	return nil

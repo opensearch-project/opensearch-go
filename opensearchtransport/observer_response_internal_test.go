@@ -47,7 +47,7 @@ func TestResponseEventFieldPromotion(t *testing.T) {
 	require.Equal(t, 2*time.Millisecond, sev.Duration)
 }
 
-func TestBaseObserverResponseNoops(t *testing.T) {
+func TestBaseObserverResponseNoops(_ *testing.T) {
 	var b BaseConnectionObserver
 	b.OnRequestResponse(RequestResponseEvent{}) // must not panic
 	b.OnStreamResponse(StreamResponseEvent{})   // must not panic

@@ -102,7 +102,7 @@ func (BaseObserver) OnRequest(context.Context, RequestSample) {}
 // transport. It copies each event into a pooled envelope, dispatches it to a
 // background goroutine over a buffered channel, and fans it out to the wired
 // [Observer] bundles. Run the dispatch loop with [Registry.Run]; stop it with
-// [Registry.Close] or by cancelling Run's context.
+// [Registry.Close] or by canceling Run's context.
 type Registry struct {
 	opensearchtransport.BaseConnectionObserver
 
@@ -264,6 +264,8 @@ func (r *Registry) OnStreamResponse(e opensearchtransport.StreamResponseEvent) {
 
 // Close stops the dispatch loop started by [Registry.Run]. It is idempotent and
 // safe to call concurrently; subsequent calls are no-ops.
+//
+//nolint:unparam // Returns error to satisfy io.Closer; stop never fails
 func (r *Registry) Close() error {
 	r.stop()
 	return nil
