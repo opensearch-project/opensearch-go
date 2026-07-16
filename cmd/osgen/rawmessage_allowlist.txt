@@ -46,8 +46,8 @@ SearchProcessorExecutionDetail/input_data # bare
 SearchProcessorExecutionDetail/output_data # bare
 SearchResultHitsHitsItem/_source # bare
 SearchResultJSONValueHitsHitsItem/_source # bare
-SearchResultJSONValueSuggestValueItemObject0OptionsItem/_source # bare
-SearchResultJSONValueSuggestValueItemObject0OptionsObject0/_source # bare
+SearchResultJSONValueSuggestValueItemCompletionOptionsItem/_source # bare
+SearchResultJSONValueSuggestValueItemCompletionOptionsSource/_source # bare
 
 # --- asynchronous_search.search ---
 AsynchronousSearchSearch/ext # map
@@ -157,7 +157,7 @@ IndicesSplitBody/settings # map
 
 # --- ingest._common ---
 IngestAppendProcessor/value # slice
-IngestCsvProcessor/empty_value # bare
+IngestCSVProcessor/empty_value # bare
 IngestPipeline/_meta # map
 IngestSetProcessor/value # bare
 

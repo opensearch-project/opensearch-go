@@ -34,6 +34,7 @@ type unionBranch struct {
 	Required     []string // required fields for object validation (try-each heuristic)
 	IsRef        bool     // branch came from a $ref (needs registry walk)
 	VersionAdded string   // x-version-added from the spec (for try-each ordering)
+	Ordinal      int      // position in the spec oneOf/anyOf array; the source of truth for order (Name must never be parsed for it)
 }
 
 // goType represents a generated Go struct type or discriminated union.

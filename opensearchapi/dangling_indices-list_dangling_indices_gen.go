@@ -124,7 +124,7 @@ type DanglingIndicesListDanglingIndicesDanglingIndex struct {
 
 	IndexName string `json:"index_name"`
 	IndexUUID string `json:"index_uuid"`
-	NodeIds   string `json:"node_ids"`
+	NodeIDs   string `json:"node_ids"`
 }
 
 // ListDanglingIndices returns all dangling indexes.

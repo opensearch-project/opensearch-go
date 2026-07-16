@@ -69,12 +69,12 @@ func TestManual_Aggregation(t *testing.T) {
 		check func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue)
 	}{
 		{
-			name:  "terms (string) decodes via AsSterms",
+			name:  "terms (string) decodes via AsSTerms",
 			key:   "by_category",
 			query: `{"size":0,"aggs":{"by_category":{"terms":{"field":"category"}}}}`,
 			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
 				t.Helper()
-				v, err := agg.AsSterms()
+				v, err := agg.AsSTerms()
 				require.NoError(t, err)
 				require.Len(t, v.Buckets, 3)
 				got := map[string]int64{}

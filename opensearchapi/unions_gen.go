@@ -1666,7 +1666,7 @@ const (
 	CommonAggregationsGeoBoundsAggregateBoundsCoordsType
 	CommonAggregationsGeoBoundsAggregateBoundsTlbrType
 	CommonAggregationsGeoBoundsAggregateBoundsTrblType
-	CommonAggregationsGeoBoundsAggregateBoundsWktType
+	CommonAggregationsGeoBoundsAggregateBoundsWKTType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -1744,20 +1744,20 @@ func NewCommonAggregationsGeoBoundsAggregateBoundsFromTrbl(v TopRightBottomLeftG
 	}
 }
 
-// Wkt returns the WktGeoBounds branch value.
-func (u *CommonAggregationsGeoBoundsAggregateBounds) Wkt() WktGeoBounds {
-	if v, ok := u.value.(*WktGeoBounds); ok {
+// WKT returns the WKTGeoBounds branch value.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) WKT() WKTGeoBounds {
+	if v, ok := u.value.(*WKTGeoBounds); ok {
 		return *v
 	}
-	var zero WktGeoBounds
+	var zero WKTGeoBounds
 	return zero
 }
 
-// NewCommonAggregationsGeoBoundsAggregateBoundsFromWkt returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
-// on the Wkt branch.
-func NewCommonAggregationsGeoBoundsAggregateBoundsFromWkt(v WktGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
+// NewCommonAggregationsGeoBoundsAggregateBoundsFromWKT returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
+// on the WKT branch.
+func NewCommonAggregationsGeoBoundsAggregateBoundsFromWKT(v WKTGeoBounds) CommonAggregationsGeoBoundsAggregateBounds {
 	return CommonAggregationsGeoBoundsAggregateBounds{
-		typ:   CommonAggregationsGeoBoundsAggregateBoundsWktType,
+		typ:   CommonAggregationsGeoBoundsAggregateBoundsWKTType,
 		value: &v,
 	}
 }
@@ -1801,11 +1801,11 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) UnmarshalJSON(data []byte) 
 		return nil
 	}
 	if len(m.Disc2) > 0 {
-		var v WktGeoBounds
+		var v WKTGeoBounds
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsGeoBoundsAggregateBoundsWktType
+		u.typ = CommonAggregationsGeoBoundsAggregateBoundsWKTType
 		u.value = &v
 		return nil
 	}
@@ -4353,9 +4353,9 @@ func NewSearchResultAggregationsValueFromDerivative(v CommonAggregationsDerivati
 	}
 }
 
-// AsDterms decodes the union as CommonAggregationsDoubleTermsAggregate. The caller selects the
+// AsDTerms decodes the union as CommonAggregationsDoubleTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsDterms() (CommonAggregationsDoubleTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsDTerms() (CommonAggregationsDoubleTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsDoubleTermsAggregate); ok {
 		return *v, nil
 	}
@@ -4367,9 +4367,9 @@ func (u *SearchResultAggregationsValue) AsDterms() (CommonAggregationsDoubleTerm
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromDterms returns a SearchResultAggregationsValue populated with v
-// on the Dterms branch.
-func NewSearchResultAggregationsValueFromDterms(v CommonAggregationsDoubleTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromDTerms returns a SearchResultAggregationsValue populated with v
+// on the DTerms branch.
+func NewSearchResultAggregationsValueFromDTerms(v CommonAggregationsDoubleTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -4595,13 +4595,13 @@ func NewSearchResultAggregationsValueFromGlobal(v CommonAggregationsGlobalAggreg
 	}
 }
 
-// AsHdrPercentiles decodes the union as CommonAggregationsHdrPercentilesAggregate. The caller selects the
+// AsHDRPercentiles decodes the union as CommonAggregationsHDRPercentilesAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHdrPercentiles() (CommonAggregationsHdrPercentilesAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsHdrPercentilesAggregate); ok {
+func (u *SearchResultAggregationsValue) AsHDRPercentiles() (CommonAggregationsHDRPercentilesAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsHDRPercentilesAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsHdrPercentilesAggregate
+	var v CommonAggregationsHDRPercentilesAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -4609,21 +4609,21 @@ func (u *SearchResultAggregationsValue) AsHdrPercentiles() (CommonAggregationsHd
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromHdrPercentiles returns a SearchResultAggregationsValue populated with v
-// on the HdrPercentiles branch.
-func NewSearchResultAggregationsValueFromHdrPercentiles(v CommonAggregationsHdrPercentilesAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromHDRPercentiles returns a SearchResultAggregationsValue populated with v
+// on the HDRPercentiles branch.
+func NewSearchResultAggregationsValueFromHDRPercentiles(v CommonAggregationsHDRPercentilesAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsHdrPercentileRanks decodes the union as CommonAggregationsHdrPercentileRanksAggregate. The caller selects the
+// AsHDRPercentileRanks decodes the union as CommonAggregationsHDRPercentileRanksAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHdrPercentileRanks() (CommonAggregationsHdrPercentileRanksAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsHdrPercentileRanksAggregate); ok {
+func (u *SearchResultAggregationsValue) AsHDRPercentileRanks() (CommonAggregationsHDRPercentileRanksAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsHDRPercentileRanksAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsHdrPercentileRanksAggregate
+	var v CommonAggregationsHDRPercentileRanksAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -4631,9 +4631,9 @@ func (u *SearchResultAggregationsValue) AsHdrPercentileRanks() (CommonAggregatio
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromHdrPercentileRanks returns a SearchResultAggregationsValue populated with v
-// on the HdrPercentileRanks branch.
-func NewSearchResultAggregationsValueFromHdrPercentileRanks(v CommonAggregationsHdrPercentileRanksAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromHDRPercentileRanks returns a SearchResultAggregationsValue populated with v
+// on the HDRPercentileRanks branch.
+func NewSearchResultAggregationsValueFromHDRPercentileRanks(v CommonAggregationsHDRPercentileRanksAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -4683,9 +4683,9 @@ func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIPRangeAggr
 	}
 }
 
-// AsLrareterms decodes the union as CommonAggregationsLongRareTermsAggregate. The caller selects the
+// AsLRareTerms decodes the union as CommonAggregationsLongRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsLrareterms() (CommonAggregationsLongRareTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsLRareTerms() (CommonAggregationsLongRareTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsLongRareTermsAggregate); ok {
 		return *v, nil
 	}
@@ -4697,17 +4697,17 @@ func (u *SearchResultAggregationsValue) AsLrareterms() (CommonAggregationsLongRa
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromLrareterms returns a SearchResultAggregationsValue populated with v
-// on the Lrareterms branch.
-func NewSearchResultAggregationsValueFromLrareterms(v CommonAggregationsLongRareTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromLRareTerms returns a SearchResultAggregationsValue populated with v
+// on the LRareTerms branch.
+func NewSearchResultAggregationsValueFromLRareTerms(v CommonAggregationsLongRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsLterms decodes the union as CommonAggregationsLongTermsAggregate. The caller selects the
+// AsLTerms decodes the union as CommonAggregationsLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsLterms() (CommonAggregationsLongTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsLTerms() (CommonAggregationsLongTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsLongTermsAggregate); ok {
 		return *v, nil
 	}
@@ -4719,9 +4719,9 @@ func (u *SearchResultAggregationsValue) AsLterms() (CommonAggregationsLongTermsA
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromLterms returns a SearchResultAggregationsValue populated with v
-// on the Lterms branch.
-func NewSearchResultAggregationsValueFromLterms(v CommonAggregationsLongTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromLTerms returns a SearchResultAggregationsValue populated with v
+// on the LTerms branch.
+func NewSearchResultAggregationsValueFromLTerms(v CommonAggregationsLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5035,9 +5035,9 @@ func NewSearchResultAggregationsValueFromScriptedMetric(v CommonAggregationsScri
 	}
 }
 
-// AsSiglterms decodes the union as CommonAggregationsSignificantLongTermsAggregate. The caller selects the
+// AsSigLTerms decodes the union as CommonAggregationsSignificantLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSiglterms() (CommonAggregationsSignificantLongTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignificantLongTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsSignificantLongTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5049,17 +5049,17 @@ func (u *SearchResultAggregationsValue) AsSiglterms() (CommonAggregationsSignifi
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromSiglterms returns a SearchResultAggregationsValue populated with v
-// on the Siglterms branch.
-func NewSearchResultAggregationsValueFromSiglterms(v CommonAggregationsSignificantLongTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromSigLTerms returns a SearchResultAggregationsValue populated with v
+// on the SigLTerms branch.
+func NewSearchResultAggregationsValueFromSigLTerms(v CommonAggregationsSignificantLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsSigsterms decodes the union as CommonAggregationsSignificantStringTermsAggregate. The caller selects the
+// AsSigSTerms decodes the union as CommonAggregationsSignificantStringTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSigsterms() (CommonAggregationsSignificantStringTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignificantStringTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsSignificantStringTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5071,9 +5071,9 @@ func (u *SearchResultAggregationsValue) AsSigsterms() (CommonAggregationsSignifi
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromSigsterms returns a SearchResultAggregationsValue populated with v
-// on the Sigsterms branch.
-func NewSearchResultAggregationsValueFromSigsterms(v CommonAggregationsSignificantStringTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromSigSTerms returns a SearchResultAggregationsValue populated with v
+// on the SigSTerms branch.
+func NewSearchResultAggregationsValueFromSigSTerms(v CommonAggregationsSignificantStringTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5167,9 +5167,9 @@ func NewSearchResultAggregationsValueFromStatsBucket(v CommonAggregationsStatsBu
 	}
 }
 
-// AsSrareterms decodes the union as CommonAggregationsStringRareTermsAggregate. The caller selects the
+// AsSRareTerms decodes the union as CommonAggregationsStringRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSrareterms() (CommonAggregationsStringRareTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsSRareTerms() (CommonAggregationsStringRareTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsStringRareTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5181,17 +5181,17 @@ func (u *SearchResultAggregationsValue) AsSrareterms() (CommonAggregationsString
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromSrareterms returns a SearchResultAggregationsValue populated with v
-// on the Srareterms branch.
-func NewSearchResultAggregationsValueFromSrareterms(v CommonAggregationsStringRareTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromSRareTerms returns a SearchResultAggregationsValue populated with v
+// on the SRareTerms branch.
+func NewSearchResultAggregationsValueFromSRareTerms(v CommonAggregationsStringRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsSterms decodes the union as CommonAggregationsStringTermsAggregate. The caller selects the
+// AsSTerms decodes the union as CommonAggregationsStringTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSterms() (CommonAggregationsStringTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsSTerms() (CommonAggregationsStringTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsStringTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5203,9 +5203,9 @@ func (u *SearchResultAggregationsValue) AsSterms() (CommonAggregationsStringTerm
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromSterms returns a SearchResultAggregationsValue populated with v
-// on the Sterms branch.
-func NewSearchResultAggregationsValueFromSterms(v CommonAggregationsStringTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromSTerms returns a SearchResultAggregationsValue populated with v
+// on the STerms branch.
+func NewSearchResultAggregationsValueFromSTerms(v CommonAggregationsStringTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5233,9 +5233,9 @@ func NewSearchResultAggregationsValueFromSum(v CommonAggregationsSumAggregate) S
 	}
 }
 
-// AsTdigestPercentiles decodes the union as CommonAggregationsTDigestPercentilesAggregate. The caller selects the
+// AsTDigestPercentiles decodes the union as CommonAggregationsTDigestPercentilesAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsTdigestPercentiles() (CommonAggregationsTDigestPercentilesAggregate, error) {
+func (u *SearchResultAggregationsValue) AsTDigestPercentiles() (CommonAggregationsTDigestPercentilesAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsTDigestPercentilesAggregate); ok {
 		return *v, nil
 	}
@@ -5247,17 +5247,17 @@ func (u *SearchResultAggregationsValue) AsTdigestPercentiles() (CommonAggregatio
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromTdigestPercentiles returns a SearchResultAggregationsValue populated with v
-// on the TdigestPercentiles branch.
-func NewSearchResultAggregationsValueFromTdigestPercentiles(v CommonAggregationsTDigestPercentilesAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromTDigestPercentiles returns a SearchResultAggregationsValue populated with v
+// on the TDigestPercentiles branch.
+func NewSearchResultAggregationsValueFromTDigestPercentiles(v CommonAggregationsTDigestPercentilesAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsTdigestPercentileRanks decodes the union as CommonAggregationsTDigestPercentileRanksAggregate. The caller selects the
+// AsTDigestPercentileRanks decodes the union as CommonAggregationsTDigestPercentileRanksAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsTdigestPercentileRanks() (CommonAggregationsTDigestPercentileRanksAggregate, error) {
+func (u *SearchResultAggregationsValue) AsTDigestPercentileRanks() (CommonAggregationsTDigestPercentileRanksAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsTDigestPercentileRanksAggregate); ok {
 		return *v, nil
 	}
@@ -5269,9 +5269,9 @@ func (u *SearchResultAggregationsValue) AsTdigestPercentileRanks() (CommonAggreg
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromTdigestPercentileRanks returns a SearchResultAggregationsValue populated with v
-// on the TdigestPercentileRanks branch.
-func NewSearchResultAggregationsValueFromTdigestPercentileRanks(v CommonAggregationsTDigestPercentileRanksAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromTDigestPercentileRanks returns a SearchResultAggregationsValue populated with v
+// on the TDigestPercentileRanks branch.
+func NewSearchResultAggregationsValueFromTDigestPercentileRanks(v CommonAggregationsTDigestPercentileRanksAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5321,9 +5321,9 @@ func NewSearchResultAggregationsValueFromTopHits(v CommonAggregationsTopHitsAggr
 	}
 }
 
-// AsUlterms decodes the union as CommonAggregationsUnsignedLongTermsAggregate. The caller selects the
+// AsULTerms decodes the union as CommonAggregationsUnsignedLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUlterms() (CommonAggregationsUnsignedLongTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsULTerms() (CommonAggregationsUnsignedLongTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsUnsignedLongTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5335,17 +5335,17 @@ func (u *SearchResultAggregationsValue) AsUlterms() (CommonAggregationsUnsignedL
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromUlterms returns a SearchResultAggregationsValue populated with v
-// on the Ulterms branch.
-func NewSearchResultAggregationsValueFromUlterms(v CommonAggregationsUnsignedLongTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromULTerms returns a SearchResultAggregationsValue populated with v
+// on the ULTerms branch.
+func NewSearchResultAggregationsValueFromULTerms(v CommonAggregationsUnsignedLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUmrareterms decodes the union as CommonAggregationsUnmappedRareTermsAggregate. The caller selects the
+// AsUMRareTerms decodes the union as CommonAggregationsUnmappedRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUmrareterms() (CommonAggregationsUnmappedRareTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsUMRareTerms() (CommonAggregationsUnmappedRareTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsUnmappedRareTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5357,17 +5357,17 @@ func (u *SearchResultAggregationsValue) AsUmrareterms() (CommonAggregationsUnmap
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromUmrareterms returns a SearchResultAggregationsValue populated with v
-// on the Umrareterms branch.
-func NewSearchResultAggregationsValueFromUmrareterms(v CommonAggregationsUnmappedRareTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromUMRareTerms returns a SearchResultAggregationsValue populated with v
+// on the UMRareTerms branch.
+func NewSearchResultAggregationsValueFromUMRareTerms(v CommonAggregationsUnmappedRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUmsigterms decodes the union as CommonAggregationsUnmappedSignificantTermsAggregate. The caller selects the
+// AsUMSigTerms decodes the union as CommonAggregationsUnmappedSignificantTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUmsigterms() (CommonAggregationsUnmappedSignificantTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsUnmappedSignificantTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsUnmappedSignificantTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5379,17 +5379,17 @@ func (u *SearchResultAggregationsValue) AsUmsigterms() (CommonAggregationsUnmapp
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromUmsigterms returns a SearchResultAggregationsValue populated with v
-// on the Umsigterms branch.
-func NewSearchResultAggregationsValueFromUmsigterms(v CommonAggregationsUnmappedSignificantTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromUMSigTerms returns a SearchResultAggregationsValue populated with v
+// on the UMSigTerms branch.
+func NewSearchResultAggregationsValueFromUMSigTerms(v CommonAggregationsUnmappedSignificantTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUmterms decodes the union as CommonAggregationsUnmappedTermsAggregate. The caller selects the
+// AsUMTerms decodes the union as CommonAggregationsUnmappedTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUmterms() (CommonAggregationsUnmappedTermsAggregate, error) {
+func (u *SearchResultAggregationsValue) AsUMTerms() (CommonAggregationsUnmappedTermsAggregate, error) {
 	if v, ok := u.value.(*CommonAggregationsUnmappedTermsAggregate); ok {
 		return *v, nil
 	}
@@ -5401,9 +5401,9 @@ func (u *SearchResultAggregationsValue) AsUmterms() (CommonAggregationsUnmappedT
 	return v, err
 }
 
-// NewSearchResultAggregationsValueFromUmterms returns a SearchResultAggregationsValue populated with v
-// on the Umterms branch.
-func NewSearchResultAggregationsValueFromUmterms(v CommonAggregationsUnmappedTermsAggregate) SearchResultAggregationsValue {
+// NewSearchResultAggregationsValueFromUMTerms returns a SearchResultAggregationsValue populated with v
+// on the UMTerms branch.
+func NewSearchResultAggregationsValueFromUMTerms(v CommonAggregationsUnmappedTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6846,7 +6846,7 @@ type SearchInnerHitsSourceType int
 const (
 	SearchInnerHitsSourceUnknownType SearchInnerHitsSourceType = iota
 	SearchInnerHitsSourceStringType
-	SearchInnerHitsSourceSearchInnerHitsSourceObject1Type
+	SearchInnerHitsSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -6886,20 +6886,20 @@ func NewSearchInnerHitsSourceFromString(v string) SearchInnerHitsSource {
 	}
 }
 
-// SearchInnerHitsSourceObject1 returns the SearchInnerHitsSourceObject1 branch value.
-func (u *SearchInnerHitsSource) SearchInnerHitsSourceObject1() SearchInnerHitsSourceObject1 {
-	if v, ok := u.value.(*SearchInnerHitsSourceObject1); ok {
+// ExcludesIncludes returns the SearchInnerHitsSourceExcludesIncludes branch value.
+func (u *SearchInnerHitsSource) ExcludesIncludes() SearchInnerHitsSourceExcludesIncludes {
+	if v, ok := u.value.(*SearchInnerHitsSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero SearchInnerHitsSourceObject1
+	var zero SearchInnerHitsSourceExcludesIncludes
 	return zero
 }
 
-// NewSearchInnerHitsSourceFromSearchInnerHitsSourceObject1 returns a SearchInnerHitsSource populated with v
-// on the SearchInnerHitsSourceObject1 branch.
-func NewSearchInnerHitsSourceFromSearchInnerHitsSourceObject1(v SearchInnerHitsSourceObject1) SearchInnerHitsSource {
+// NewSearchInnerHitsSourceFromExcludesIncludes returns a SearchInnerHitsSource populated with v
+// on the ExcludesIncludes branch.
+func NewSearchInnerHitsSourceFromExcludesIncludes(v SearchInnerHitsSourceExcludesIncludes) SearchInnerHitsSource {
 	return SearchInnerHitsSource{
-		typ:   SearchInnerHitsSourceSearchInnerHitsSourceObject1Type,
+		typ:   SearchInnerHitsSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -6920,11 +6920,11 @@ func (u *SearchInnerHitsSource) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsSourceObject1
+		var v SearchInnerHitsSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsSourceSearchInnerHitsSourceObject1Type
+		u.typ = SearchInnerHitsSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsSource: unexpected JSON token: %s", data[:1])
@@ -7068,7 +7068,7 @@ type SearchInnerHitsDocvalueFieldsItemType int
 const (
 	SearchInnerHitsDocvalueFieldsItemUnknownType SearchInnerHitsDocvalueFieldsItemType = iota
 	SearchInnerHitsDocvalueFieldsItemStringType
-	SearchInnerHitsDocvalueFieldsItemSearchInnerHitsDocvalueFieldsItemObject1Type
+	SearchInnerHitsDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -7110,20 +7110,20 @@ func NewSearchInnerHitsDocvalueFieldsItemFromString(v string) SearchInnerHitsDoc
 	}
 }
 
-// SearchInnerHitsDocvalueFieldsItemObject1 returns the SearchInnerHitsDocvalueFieldsItemObject1 branch value.
-func (u *SearchInnerHitsDocvalueFieldsItem) SearchInnerHitsDocvalueFieldsItemObject1() SearchInnerHitsDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*SearchInnerHitsDocvalueFieldsItemObject1); ok {
+// Field returns the SearchInnerHitsDocvalueFieldsItemField branch value.
+func (u *SearchInnerHitsDocvalueFieldsItem) Field() SearchInnerHitsDocvalueFieldsItemField {
+	if v, ok := u.value.(*SearchInnerHitsDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchInnerHitsDocvalueFieldsItemObject1
+	var zero SearchInnerHitsDocvalueFieldsItemField
 	return zero
 }
 
-// NewSearchInnerHitsDocvalueFieldsItemFromSearchInnerHitsDocvalueFieldsItemObject1 returns a SearchInnerHitsDocvalueFieldsItem populated with v
-// on the SearchInnerHitsDocvalueFieldsItemObject1 branch.
-func NewSearchInnerHitsDocvalueFieldsItemFromSearchInnerHitsDocvalueFieldsItemObject1(v SearchInnerHitsDocvalueFieldsItemObject1) SearchInnerHitsDocvalueFieldsItem {
+// NewSearchInnerHitsDocvalueFieldsItemFromField returns a SearchInnerHitsDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewSearchInnerHitsDocvalueFieldsItemFromField(v SearchInnerHitsDocvalueFieldsItemField) SearchInnerHitsDocvalueFieldsItem {
 	return SearchInnerHitsDocvalueFieldsItem{
-		typ:   SearchInnerHitsDocvalueFieldsItemSearchInnerHitsDocvalueFieldsItemObject1Type,
+		typ:   SearchInnerHitsDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -7144,11 +7144,11 @@ func (u *SearchInnerHitsDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsDocvalueFieldsItemObject1
+		var v SearchInnerHitsDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsDocvalueFieldsItemSearchInnerHitsDocvalueFieldsItemObject1Type
+		u.typ = SearchInnerHitsDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -7181,7 +7181,7 @@ type SearchInnerHitsFieldsItemType int
 const (
 	SearchInnerHitsFieldsItemUnknownType SearchInnerHitsFieldsItemType = iota
 	SearchInnerHitsFieldsItemStringType
-	SearchInnerHitsFieldsItemSearchInnerHitsFieldsItemObject1Type
+	SearchInnerHitsFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -7221,20 +7221,20 @@ func NewSearchInnerHitsFieldsItemFromString(v string) SearchInnerHitsFieldsItem 
 	}
 }
 
-// SearchInnerHitsFieldsItemObject1 returns the SearchInnerHitsFieldsItemObject1 branch value.
-func (u *SearchInnerHitsFieldsItem) SearchInnerHitsFieldsItemObject1() SearchInnerHitsFieldsItemObject1 {
-	if v, ok := u.value.(*SearchInnerHitsFieldsItemObject1); ok {
+// Field returns the SearchInnerHitsFieldsItemField branch value.
+func (u *SearchInnerHitsFieldsItem) Field() SearchInnerHitsFieldsItemField {
+	if v, ok := u.value.(*SearchInnerHitsFieldsItemField); ok {
 		return *v
 	}
-	var zero SearchInnerHitsFieldsItemObject1
+	var zero SearchInnerHitsFieldsItemField
 	return zero
 }
 
-// NewSearchInnerHitsFieldsItemFromSearchInnerHitsFieldsItemObject1 returns a SearchInnerHitsFieldsItem populated with v
-// on the SearchInnerHitsFieldsItemObject1 branch.
-func NewSearchInnerHitsFieldsItemFromSearchInnerHitsFieldsItemObject1(v SearchInnerHitsFieldsItemObject1) SearchInnerHitsFieldsItem {
+// NewSearchInnerHitsFieldsItemFromField returns a SearchInnerHitsFieldsItem populated with v
+// on the Field branch.
+func NewSearchInnerHitsFieldsItemFromField(v SearchInnerHitsFieldsItemField) SearchInnerHitsFieldsItem {
 	return SearchInnerHitsFieldsItem{
-		typ:   SearchInnerHitsFieldsItemSearchInnerHitsFieldsItemObject1Type,
+		typ:   SearchInnerHitsFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -7255,11 +7255,11 @@ func (u *SearchInnerHitsFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = SearchInnerHitsFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v SearchInnerHitsFieldsItemObject1
+		var v SearchInnerHitsFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchInnerHitsFieldsItemSearchInnerHitsFieldsItemObject1Type
+		u.typ = SearchInnerHitsFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("SearchInnerHitsFieldsItem: unexpected JSON token: %s", data[:1])
@@ -10712,63 +10712,63 @@ func (u CommonMappingGeoPointPropertyNullValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonMappingXyPointPropertyNullValue struct {
-	typ   CommonMappingXyPointPropertyNullValueType
+type CommonMappingXYPointPropertyNullValue struct {
+	typ   CommonMappingXYPointPropertyNullValueType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonMappingXyPointPropertyNullValueType discriminates the branches of CommonMappingXyPointPropertyNullValue.
-type CommonMappingXyPointPropertyNullValueType int
+// CommonMappingXYPointPropertyNullValueType discriminates the branches of CommonMappingXYPointPropertyNullValue.
+type CommonMappingXYPointPropertyNullValueType int
 
 const (
-	CommonMappingXyPointPropertyNullValueUnknownType CommonMappingXyPointPropertyNullValueType = iota
-	CommonMappingXyPointPropertyNullValueCartesianType
-	CommonMappingXyPointPropertyNullValueArrayType
-	CommonMappingXyPointPropertyNullValueStringType
+	CommonMappingXYPointPropertyNullValueUnknownType CommonMappingXYPointPropertyNullValueType = iota
+	CommonMappingXYPointPropertyNullValueCartesianType
+	CommonMappingXYPointPropertyNullValueArrayType
+	CommonMappingXYPointPropertyNullValueStringType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonMappingXyPointPropertyNullValueUnknownType if the value has not been decoded.
-func (u *CommonMappingXyPointPropertyNullValue) Type() CommonMappingXyPointPropertyNullValueType {
+// Returns CommonMappingXYPointPropertyNullValueUnknownType if the value has not been decoded.
+func (u *CommonMappingXYPointPropertyNullValue) Type() CommonMappingXYPointPropertyNullValueType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonMappingXyPointPropertyNullValue) RawJSON() json.RawMessage { return u.raw }
+func (u *CommonMappingXYPointPropertyNullValue) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonMappingXyPointPropertyNullValueFrom*
+// verbatim when no typed branch is set. Use the NewCommonMappingXYPointPropertyNullValueFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonMappingXyPointPropertyNullValue) SetRaw(raw json.RawMessage) {
+func (u *CommonMappingXYPointPropertyNullValue) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonMappingXyPointPropertyNullValueUnknownType
+	u.typ = CommonMappingXYPointPropertyNullValueUnknownType
 }
 
-// Cartesian returns the XyCartesianCoordinates branch value.
-func (u *CommonMappingXyPointPropertyNullValue) Cartesian() XyCartesianCoordinates {
-	if v, ok := u.value.(*XyCartesianCoordinates); ok {
+// Cartesian returns the XYCartesianCoordinates branch value.
+func (u *CommonMappingXYPointPropertyNullValue) Cartesian() XYCartesianCoordinates {
+	if v, ok := u.value.(*XYCartesianCoordinates); ok {
 		return *v
 	}
-	var zero XyCartesianCoordinates
+	var zero XYCartesianCoordinates
 	return zero
 }
 
-// NewCommonMappingXyPointPropertyNullValueFromCartesian returns a CommonMappingXyPointPropertyNullValue populated with v
+// NewCommonMappingXYPointPropertyNullValueFromCartesian returns a CommonMappingXYPointPropertyNullValue populated with v
 // on the Cartesian branch.
-func NewCommonMappingXyPointPropertyNullValueFromCartesian(v XyCartesianCoordinates) CommonMappingXyPointPropertyNullValue {
-	return CommonMappingXyPointPropertyNullValue{
-		typ:   CommonMappingXyPointPropertyNullValueCartesianType,
+func NewCommonMappingXYPointPropertyNullValueFromCartesian(v XYCartesianCoordinates) CommonMappingXYPointPropertyNullValue {
+	return CommonMappingXYPointPropertyNullValue{
+		typ:   CommonMappingXYPointPropertyNullValueCartesianType,
 		value: &v,
 	}
 }
 
 // Array returns the []float64 branch value.
-func (u *CommonMappingXyPointPropertyNullValue) Array() []float64 {
+func (u *CommonMappingXYPointPropertyNullValue) Array() []float64 {
 	if v, ok := u.value.(*[]float64); ok {
 		return *v
 	}
@@ -10776,17 +10776,17 @@ func (u *CommonMappingXyPointPropertyNullValue) Array() []float64 {
 	return zero
 }
 
-// NewCommonMappingXyPointPropertyNullValueFromArray returns a CommonMappingXyPointPropertyNullValue populated with v
+// NewCommonMappingXYPointPropertyNullValueFromArray returns a CommonMappingXYPointPropertyNullValue populated with v
 // on the Array branch.
-func NewCommonMappingXyPointPropertyNullValueFromArray(v []float64) CommonMappingXyPointPropertyNullValue {
-	return CommonMappingXyPointPropertyNullValue{
-		typ:   CommonMappingXyPointPropertyNullValueArrayType,
+func NewCommonMappingXYPointPropertyNullValueFromArray(v []float64) CommonMappingXYPointPropertyNullValue {
+	return CommonMappingXYPointPropertyNullValue{
+		typ:   CommonMappingXYPointPropertyNullValueArrayType,
 		value: &v,
 	}
 }
 
 // String returns the string branch value.
-func (u *CommonMappingXyPointPropertyNullValue) String() string {
+func (u *CommonMappingXYPointPropertyNullValue) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -10794,51 +10794,51 @@ func (u *CommonMappingXyPointPropertyNullValue) String() string {
 	return zero
 }
 
-// NewCommonMappingXyPointPropertyNullValueFromString returns a CommonMappingXyPointPropertyNullValue populated with v
+// NewCommonMappingXYPointPropertyNullValueFromString returns a CommonMappingXYPointPropertyNullValue populated with v
 // on the String branch.
-func NewCommonMappingXyPointPropertyNullValueFromString(v string) CommonMappingXyPointPropertyNullValue {
-	return CommonMappingXyPointPropertyNullValue{
-		typ:   CommonMappingXyPointPropertyNullValueStringType,
+func NewCommonMappingXYPointPropertyNullValueFromString(v string) CommonMappingXYPointPropertyNullValue {
+	return CommonMappingXYPointPropertyNullValue{
+		typ:   CommonMappingXYPointPropertyNullValueStringType,
 		value: &v,
 	}
 }
 
-func (u *CommonMappingXyPointPropertyNullValue) UnmarshalJSON(data []byte) error {
+func (u *CommonMappingXYPointPropertyNullValue) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonMappingXyPointPropertyNullValueUnknownType
+	u.typ = CommonMappingXYPointPropertyNullValueUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
 	switch {
 	case data[0] == '{':
-		var v XyCartesianCoordinates
+		var v XYCartesianCoordinates
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonMappingXyPointPropertyNullValueCartesianType
+		u.typ = CommonMappingXYPointPropertyNullValueCartesianType
 		u.value = &v
 	case data[0] == '[':
 		var v []float64
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonMappingXyPointPropertyNullValueArrayType
+		u.typ = CommonMappingXYPointPropertyNullValueArrayType
 		u.value = &v
 	case data[0] == '"':
 		var v string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonMappingXyPointPropertyNullValueStringType
+		u.typ = CommonMappingXYPointPropertyNullValueStringType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonMappingXyPointPropertyNullValue: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonMappingXYPointPropertyNullValue: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonMappingXyPointPropertyNullValue) MarshalJSON() ([]byte, error) {
+func (u CommonMappingXYPointPropertyNullValue) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -11004,13 +11004,13 @@ func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingSemanticPr
 	}
 }
 
-// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
+// AsCommonMappingXYPointProperty decodes the union as CommonMappingXYPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXYPointProperty() (CommonMappingXYPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYPointProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyPointProperty
+	var v CommonMappingXYPointProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -11018,21 +11018,21 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXyPointPr
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyPointProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXYPointProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingXYPointProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXYPointProperty(v CommonMappingXYPointProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
 }
 
-// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
+// AsCommonMappingXYShapeProperty decodes the union as CommonMappingXYShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXYShapeProperty() (CommonMappingXYShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYShapeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyShapeProperty
+	var v CommonMappingXYShapeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -11040,9 +11040,9 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingXyShapePr
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyShapeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXYShapeProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingXYShapeProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingXYShapeProperty(v CommonMappingXYShapeProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
@@ -11994,13 +11994,13 @@ func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingKNNVectorP
 	}
 }
 
-// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
+// AsCommonMappingICUCollationKeywordProperty decodes the union as CommonMappingICUCollationKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
+func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingICUCollationKeywordProperty() (CommonMappingICUCollationKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingICUCollationKeywordProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIcuCollationKeywordProperty
+	var v CommonMappingICUCollationKeywordProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -12008,9 +12008,9 @@ func (u *CommonMappingMatchOnlyTextPropertyFieldsValue) AsCommonMappingIcuCollat
 	return v, err
 }
 
-// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
+// NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingICUCollationKeywordProperty returns a CommonMappingMatchOnlyTextPropertyFieldsValue populated with v
+// on the CommonMappingICUCollationKeywordProperty branch.
+func NewCommonMappingMatchOnlyTextPropertyFieldsValueFromCommonMappingICUCollationKeywordProperty(v CommonMappingICUCollationKeywordProperty) CommonMappingMatchOnlyTextPropertyFieldsValue {
 	return CommonMappingMatchOnlyTextPropertyFieldsValue{
 		value: &v,
 	}
@@ -12075,13 +12075,13 @@ func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingSemanticProperty(v 
 	}
 }
 
-// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
+// AsCommonMappingXYPointProperty decodes the union as CommonMappingXYPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXYPointProperty() (CommonMappingXYPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYPointProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyPointProperty
+	var v CommonMappingXYPointProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -12089,21 +12089,21 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXyPointProperty() 
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyPointProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXYPointProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingXYPointProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXYPointProperty(v CommonMappingXYPointProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
 }
 
-// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
+// AsCommonMappingXYShapeProperty decodes the union as CommonMappingXYShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXYShapeProperty() (CommonMappingXYShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYShapeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyShapeProperty
+	var v CommonMappingXYShapeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -12111,9 +12111,9 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingXyShapeProperty() 
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyShapeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXYShapeProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingXYShapeProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingXYShapeProperty(v CommonMappingXYShapeProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
@@ -13065,13 +13065,13 @@ func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingKNNVectorProperty(v
 	}
 }
 
-// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
+// AsCommonMappingICUCollationKeywordProperty decodes the union as CommonMappingICUCollationKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
+func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingICUCollationKeywordProperty() (CommonMappingICUCollationKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingICUCollationKeywordProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIcuCollationKeywordProperty
+	var v CommonMappingICUCollationKeywordProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13079,9 +13079,9 @@ func (u *CommonMappingPropertyBaseFieldsValue) AsCommonMappingIcuCollationKeywor
 	return v, err
 }
 
-// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingPropertyBaseFieldsValue {
+// NewCommonMappingPropertyBaseFieldsValueFromCommonMappingICUCollationKeywordProperty returns a CommonMappingPropertyBaseFieldsValue populated with v
+// on the CommonMappingICUCollationKeywordProperty branch.
+func NewCommonMappingPropertyBaseFieldsValueFromCommonMappingICUCollationKeywordProperty(v CommonMappingICUCollationKeywordProperty) CommonMappingPropertyBaseFieldsValue {
 	return CommonMappingPropertyBaseFieldsValue{
 		value: &v,
 	}
@@ -13146,13 +13146,13 @@ func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingSemanticPropert
 	}
 }
 
-// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
+// AsCommonMappingXYPointProperty decodes the union as CommonMappingXYPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXYPointProperty() (CommonMappingXYPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYPointProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyPointProperty
+	var v CommonMappingXYPointProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13160,21 +13160,21 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXyPointPropert
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyPointProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXYPointProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingXYPointProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXYPointProperty(v CommonMappingXYPointProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
 }
 
-// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
+// AsCommonMappingXYShapeProperty decodes the union as CommonMappingXYShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXYShapeProperty() (CommonMappingXYShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYShapeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyShapeProperty
+	var v CommonMappingXYShapeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -13182,9 +13182,9 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingXyShapePropert
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyShapeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXYShapeProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingXYShapeProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingXYShapeProperty(v CommonMappingXYShapeProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
@@ -14136,13 +14136,13 @@ func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingKNNVectorProper
 	}
 }
 
-// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
+// AsCommonMappingICUCollationKeywordProperty decodes the union as CommonMappingICUCollationKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
+func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingICUCollationKeywordProperty() (CommonMappingICUCollationKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingICUCollationKeywordProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIcuCollationKeywordProperty
+	var v CommonMappingICUCollationKeywordProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -14150,9 +14150,9 @@ func (u *CommonMappingPropertyBasePropertiesValue) AsCommonMappingIcuCollationKe
 	return v, err
 }
 
-// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingPropertyBasePropertiesValue {
+// NewCommonMappingPropertyBasePropertiesValueFromCommonMappingICUCollationKeywordProperty returns a CommonMappingPropertyBasePropertiesValue populated with v
+// on the CommonMappingICUCollationKeywordProperty branch.
+func NewCommonMappingPropertyBasePropertiesValueFromCommonMappingICUCollationKeywordProperty(v CommonMappingICUCollationKeywordProperty) CommonMappingPropertyBasePropertiesValue {
 	return CommonMappingPropertyBasePropertiesValue{
 		value: &v,
 	}
@@ -14217,13 +14217,13 @@ func NewCommonMappingPropertyFromCommonMappingSemanticProperty(v CommonMappingSe
 	}
 }
 
-// AsCommonMappingXyPointProperty decodes the union as CommonMappingXyPointProperty. The caller selects the
+// AsCommonMappingXYPointProperty decodes the union as CommonMappingXYPointProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingProperty) AsCommonMappingXyPointProperty() (CommonMappingXyPointProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyPointProperty); ok {
+func (u *CommonMappingProperty) AsCommonMappingXYPointProperty() (CommonMappingXYPointProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYPointProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyPointProperty
+	var v CommonMappingXYPointProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -14231,21 +14231,21 @@ func (u *CommonMappingProperty) AsCommonMappingXyPointProperty() (CommonMappingX
 	return v, err
 }
 
-// NewCommonMappingPropertyFromCommonMappingXyPointProperty returns a CommonMappingProperty populated with v
-// on the CommonMappingXyPointProperty branch.
-func NewCommonMappingPropertyFromCommonMappingXyPointProperty(v CommonMappingXyPointProperty) CommonMappingProperty {
+// NewCommonMappingPropertyFromCommonMappingXYPointProperty returns a CommonMappingProperty populated with v
+// on the CommonMappingXYPointProperty branch.
+func NewCommonMappingPropertyFromCommonMappingXYPointProperty(v CommonMappingXYPointProperty) CommonMappingProperty {
 	return CommonMappingProperty{
 		value: &v,
 	}
 }
 
-// AsCommonMappingXyShapeProperty decodes the union as CommonMappingXyShapeProperty. The caller selects the
+// AsCommonMappingXYShapeProperty decodes the union as CommonMappingXYShapeProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingProperty) AsCommonMappingXyShapeProperty() (CommonMappingXyShapeProperty, error) {
-	if v, ok := u.value.(*CommonMappingXyShapeProperty); ok {
+func (u *CommonMappingProperty) AsCommonMappingXYShapeProperty() (CommonMappingXYShapeProperty, error) {
+	if v, ok := u.value.(*CommonMappingXYShapeProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingXyShapeProperty
+	var v CommonMappingXYShapeProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -14253,9 +14253,9 @@ func (u *CommonMappingProperty) AsCommonMappingXyShapeProperty() (CommonMappingX
 	return v, err
 }
 
-// NewCommonMappingPropertyFromCommonMappingXyShapeProperty returns a CommonMappingProperty populated with v
-// on the CommonMappingXyShapeProperty branch.
-func NewCommonMappingPropertyFromCommonMappingXyShapeProperty(v CommonMappingXyShapeProperty) CommonMappingProperty {
+// NewCommonMappingPropertyFromCommonMappingXYShapeProperty returns a CommonMappingProperty populated with v
+// on the CommonMappingXYShapeProperty branch.
+func NewCommonMappingPropertyFromCommonMappingXYShapeProperty(v CommonMappingXYShapeProperty) CommonMappingProperty {
 	return CommonMappingProperty{
 		value: &v,
 	}
@@ -15207,13 +15207,13 @@ func NewCommonMappingPropertyFromCommonMappingKNNVectorProperty(v CommonMappingK
 	}
 }
 
-// AsCommonMappingIcuCollationKeywordProperty decodes the union as CommonMappingIcuCollationKeywordProperty. The caller selects the
+// AsCommonMappingICUCollationKeywordProperty decodes the union as CommonMappingICUCollationKeywordProperty. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *CommonMappingProperty) AsCommonMappingIcuCollationKeywordProperty() (CommonMappingIcuCollationKeywordProperty, error) {
-	if v, ok := u.value.(*CommonMappingIcuCollationKeywordProperty); ok {
+func (u *CommonMappingProperty) AsCommonMappingICUCollationKeywordProperty() (CommonMappingICUCollationKeywordProperty, error) {
+	if v, ok := u.value.(*CommonMappingICUCollationKeywordProperty); ok {
 		return *v, nil
 	}
-	var v CommonMappingIcuCollationKeywordProperty
+	var v CommonMappingICUCollationKeywordProperty
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -15221,9 +15221,9 @@ func (u *CommonMappingProperty) AsCommonMappingIcuCollationKeywordProperty() (Co
 	return v, err
 }
 
-// NewCommonMappingPropertyFromCommonMappingIcuCollationKeywordProperty returns a CommonMappingProperty populated with v
-// on the CommonMappingIcuCollationKeywordProperty branch.
-func NewCommonMappingPropertyFromCommonMappingIcuCollationKeywordProperty(v CommonMappingIcuCollationKeywordProperty) CommonMappingProperty {
+// NewCommonMappingPropertyFromCommonMappingICUCollationKeywordProperty returns a CommonMappingProperty populated with v
+// on the CommonMappingICUCollationKeywordProperty branch.
+func NewCommonMappingPropertyFromCommonMappingICUCollationKeywordProperty(v CommonMappingICUCollationKeywordProperty) CommonMappingProperty {
 	return CommonMappingProperty{
 		value: &v,
 	}
@@ -16055,44 +16055,44 @@ func (u CommonAnalysisDutchAnalyzerStopwords) MarshalJSON() ([]byte, error) {
 // Also accepts an array of stop words.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAnalysisCjkAnalyzerStopwords struct {
-	typ   CommonAnalysisCjkAnalyzerStopwordsType
+type CommonAnalysisCJKAnalyzerStopwords struct {
+	typ   CommonAnalysisCJKAnalyzerStopwordsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAnalysisCjkAnalyzerStopwordsType discriminates the branches of CommonAnalysisCjkAnalyzerStopwords.
-type CommonAnalysisCjkAnalyzerStopwordsType int
+// CommonAnalysisCJKAnalyzerStopwordsType discriminates the branches of CommonAnalysisCJKAnalyzerStopwords.
+type CommonAnalysisCJKAnalyzerStopwordsType int
 
 const (
-	CommonAnalysisCjkAnalyzerStopwordsUnknownType CommonAnalysisCjkAnalyzerStopwordsType = iota
-	CommonAnalysisCjkAnalyzerStopwordsStringType
-	CommonAnalysisCjkAnalyzerStopwordsArrayType
+	CommonAnalysisCJKAnalyzerStopwordsUnknownType CommonAnalysisCJKAnalyzerStopwordsType = iota
+	CommonAnalysisCJKAnalyzerStopwordsStringType
+	CommonAnalysisCJKAnalyzerStopwordsArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAnalysisCjkAnalyzerStopwordsUnknownType if the value has not been decoded.
-func (u *CommonAnalysisCjkAnalyzerStopwords) Type() CommonAnalysisCjkAnalyzerStopwordsType {
+// Returns CommonAnalysisCJKAnalyzerStopwordsUnknownType if the value has not been decoded.
+func (u *CommonAnalysisCJKAnalyzerStopwords) Type() CommonAnalysisCJKAnalyzerStopwordsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAnalysisCjkAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
+func (u *CommonAnalysisCJKAnalyzerStopwords) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAnalysisCjkAnalyzerStopwordsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAnalysisCJKAnalyzerStopwordsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAnalysisCjkAnalyzerStopwords) SetRaw(raw json.RawMessage) {
+func (u *CommonAnalysisCJKAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAnalysisCjkAnalyzerStopwordsUnknownType
+	u.typ = CommonAnalysisCJKAnalyzerStopwordsUnknownType
 }
 
 // String returns the string branch value.
-func (u *CommonAnalysisCjkAnalyzerStopwords) String() string {
+func (u *CommonAnalysisCJKAnalyzerStopwords) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -16100,17 +16100,17 @@ func (u *CommonAnalysisCjkAnalyzerStopwords) String() string {
 	return zero
 }
 
-// NewCommonAnalysisCjkAnalyzerStopwordsFromString returns a CommonAnalysisCjkAnalyzerStopwords populated with v
+// NewCommonAnalysisCJKAnalyzerStopwordsFromString returns a CommonAnalysisCJKAnalyzerStopwords populated with v
 // on the String branch.
-func NewCommonAnalysisCjkAnalyzerStopwordsFromString(v string) CommonAnalysisCjkAnalyzerStopwords {
-	return CommonAnalysisCjkAnalyzerStopwords{
-		typ:   CommonAnalysisCjkAnalyzerStopwordsStringType,
+func NewCommonAnalysisCJKAnalyzerStopwordsFromString(v string) CommonAnalysisCJKAnalyzerStopwords {
+	return CommonAnalysisCJKAnalyzerStopwords{
+		typ:   CommonAnalysisCJKAnalyzerStopwordsStringType,
 		value: &v,
 	}
 }
 
 // Array returns the []string branch value.
-func (u *CommonAnalysisCjkAnalyzerStopwords) Array() []string {
+func (u *CommonAnalysisCJKAnalyzerStopwords) Array() []string {
 	if v, ok := u.value.(*[]string); ok {
 		return *v
 	}
@@ -16118,19 +16118,19 @@ func (u *CommonAnalysisCjkAnalyzerStopwords) Array() []string {
 	return zero
 }
 
-// NewCommonAnalysisCjkAnalyzerStopwordsFromArray returns a CommonAnalysisCjkAnalyzerStopwords populated with v
+// NewCommonAnalysisCJKAnalyzerStopwordsFromArray returns a CommonAnalysisCJKAnalyzerStopwords populated with v
 // on the Array branch.
-func NewCommonAnalysisCjkAnalyzerStopwordsFromArray(v []string) CommonAnalysisCjkAnalyzerStopwords {
-	return CommonAnalysisCjkAnalyzerStopwords{
-		typ:   CommonAnalysisCjkAnalyzerStopwordsArrayType,
+func NewCommonAnalysisCJKAnalyzerStopwordsFromArray(v []string) CommonAnalysisCJKAnalyzerStopwords {
+	return CommonAnalysisCJKAnalyzerStopwords{
+		typ:   CommonAnalysisCJKAnalyzerStopwordsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAnalysisCjkAnalyzerStopwords) UnmarshalJSON(data []byte) error {
+func (u *CommonAnalysisCJKAnalyzerStopwords) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAnalysisCjkAnalyzerStopwordsUnknownType
+	u.typ = CommonAnalysisCJKAnalyzerStopwordsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -16140,22 +16140,22 @@ func (u *CommonAnalysisCjkAnalyzerStopwords) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAnalysisCjkAnalyzerStopwordsStringType
+		u.typ = CommonAnalysisCJKAnalyzerStopwordsStringType
 		u.value = &v
 	case data[0] == '[':
 		var v []string
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAnalysisCjkAnalyzerStopwordsArrayType
+		u.typ = CommonAnalysisCJKAnalyzerStopwordsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAnalysisCjkAnalyzerStopwords: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAnalysisCJKAnalyzerStopwords: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAnalysisCjkAnalyzerStopwords) MarshalJSON() ([]byte, error) {
+func (u CommonAnalysisCJKAnalyzerStopwords) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -16406,13 +16406,13 @@ func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisWhitespaceAna
 	}
 }
 
-// AsCommonAnalysisIcuAnalyzer decodes the union as CommonAnalysisIcuAnalyzer. The caller selects the
+// AsCommonAnalysisICUAnalyzer decodes the union as CommonAnalysisICUAnalyzer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisIcuAnalyzer() (CommonAnalysisIcuAnalyzer, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuAnalyzer); ok {
+func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisICUAnalyzer() (CommonAnalysisICUAnalyzer, error) {
+	if v, ok := u.value.(*CommonAnalysisICUAnalyzer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuAnalyzer
+	var v CommonAnalysisICUAnalyzer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16420,9 +16420,9 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisIcuAnalyzer(
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisIcuAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
-// on the CommonAnalysisIcuAnalyzer branch.
-func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisIcuAnalyzer(v CommonAnalysisIcuAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisICUAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisICUAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisICUAnalyzer(v CommonAnalysisICUAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
 	return IndicesIndexSettingsAnalysisAnalyzerValue{
 		value: &v,
 	}
@@ -16516,13 +16516,13 @@ func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisSmartcnAnalyz
 	}
 }
 
-// AsCommonAnalysisCjkAnalyzer decodes the union as CommonAnalysisCjkAnalyzer. The caller selects the
+// AsCommonAnalysisCJKAnalyzer decodes the union as CommonAnalysisCJKAnalyzer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisCjkAnalyzer() (CommonAnalysisCjkAnalyzer, error) {
-	if v, ok := u.value.(*CommonAnalysisCjkAnalyzer); ok {
+func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisCJKAnalyzer() (CommonAnalysisCJKAnalyzer, error) {
+	if v, ok := u.value.(*CommonAnalysisCJKAnalyzer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisCjkAnalyzer
+	var v CommonAnalysisCJKAnalyzer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16530,9 +16530,9 @@ func (u *IndicesIndexSettingsAnalysisAnalyzerValue) AsCommonAnalysisCjkAnalyzer(
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCjkAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
-// on the CommonAnalysisCjkAnalyzer branch.
-func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCjkAnalyzer(v CommonAnalysisCjkAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
+// NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCJKAnalyzer returns a IndicesIndexSettingsAnalysisAnalyzerValue populated with v
+// on the CommonAnalysisCJKAnalyzer branch.
+func NewIndicesIndexSettingsAnalysisAnalyzerValueFromCommonAnalysisCJKAnalyzer(v CommonAnalysisCJKAnalyzer) IndicesIndexSettingsAnalysisAnalyzerValue {
 	return IndicesIndexSettingsAnalysisAnalyzerValue{
 		value: &v,
 	}
@@ -16619,13 +16619,13 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) SetRaw(raw json.RawMessage
 	u.value = nil
 }
 
-// AsCommonAnalysisHtmlStripCharFilter decodes the union as CommonAnalysisHtmlStripCharFilter. The caller selects the
+// AsCommonAnalysisHTMLStripCharFilter decodes the union as CommonAnalysisHTMLStripCharFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisHtmlStripCharFilter() (CommonAnalysisHtmlStripCharFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisHtmlStripCharFilter); ok {
+func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisHTMLStripCharFilter() (CommonAnalysisHTMLStripCharFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisHTMLStripCharFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisHtmlStripCharFilter
+	var v CommonAnalysisHTMLStripCharFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16633,9 +16633,9 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisHtmlStripC
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHtmlStripCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
-// on the CommonAnalysisHtmlStripCharFilter branch.
-func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHtmlStripCharFilter(v CommonAnalysisHtmlStripCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHTMLStripCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisHTMLStripCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisHTMLStripCharFilter(v CommonAnalysisHTMLStripCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
 	return IndicesIndexSettingsAnalysisCharFilterValue{
 		value: &v,
 	}
@@ -16685,13 +16685,13 @@ func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisPatternRepl
 	}
 }
 
-// AsCommonAnalysisIcuNormalizationCharFilter decodes the union as CommonAnalysisIcuNormalizationCharFilter. The caller selects the
+// AsCommonAnalysisICUNormalizationCharFilter decodes the union as CommonAnalysisICUNormalizationCharFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisIcuNormalizationCharFilter() (CommonAnalysisIcuNormalizationCharFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuNormalizationCharFilter); ok {
+func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisICUNormalizationCharFilter() (CommonAnalysisICUNormalizationCharFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisICUNormalizationCharFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuNormalizationCharFilter
+	var v CommonAnalysisICUNormalizationCharFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -16699,9 +16699,9 @@ func (u *IndicesIndexSettingsAnalysisCharFilterValue) AsCommonAnalysisIcuNormali
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisIcuNormalizationCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
-// on the CommonAnalysisIcuNormalizationCharFilter branch.
-func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisIcuNormalizationCharFilter(v CommonAnalysisIcuNormalizationCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
+// NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisICUNormalizationCharFilter returns a IndicesIndexSettingsAnalysisCharFilterValue populated with v
+// on the CommonAnalysisICUNormalizationCharFilter branch.
+func NewIndicesIndexSettingsAnalysisCharFilterValueFromCommonAnalysisICUNormalizationCharFilter(v CommonAnalysisICUNormalizationCharFilter) IndicesIndexSettingsAnalysisCharFilterValue {
 	return IndicesIndexSettingsAnalysisCharFilterValue{
 		value: &v,
 	}
@@ -18031,13 +18031,13 @@ func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisKuromojiPartOfS
 	}
 }
 
-// AsCommonAnalysisIcuTokenizer decodes the union as CommonAnalysisIcuTokenizer. The caller selects the
+// AsCommonAnalysisICUTokenizer decodes the union as CommonAnalysisICUTokenizer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuTokenizer() (CommonAnalysisIcuTokenizer, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisICUTokenizer() (CommonAnalysisICUTokenizer, error) {
+	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuTokenizer
+	var v CommonAnalysisICUTokenizer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18045,21 +18045,21 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuTokenizer()
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTokenizer returns a IndicesIndexSettingsAnalysisFilterValue populated with v
-// on the CommonAnalysisIcuTokenizer branch.
-func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesIndexSettingsAnalysisFilterValue {
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUTokenizer returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisICUTokenizer branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUTokenizer(v CommonAnalysisICUTokenizer) IndicesIndexSettingsAnalysisFilterValue {
 	return IndicesIndexSettingsAnalysisFilterValue{
 		value: &v,
 	}
 }
 
-// AsCommonAnalysisIcuCollationTokenFilter decodes the union as CommonAnalysisIcuCollationTokenFilter. The caller selects the
+// AsCommonAnalysisICUCollationTokenFilter decodes the union as CommonAnalysisICUCollationTokenFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuCollationTokenFilter() (CommonAnalysisIcuCollationTokenFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuCollationTokenFilter); ok {
+func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisICUCollationTokenFilter() (CommonAnalysisICUCollationTokenFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisICUCollationTokenFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuCollationTokenFilter
+	var v CommonAnalysisICUCollationTokenFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18067,21 +18067,21 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuCollationTo
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuCollationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
-// on the CommonAnalysisIcuCollationTokenFilter branch.
-func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuCollationTokenFilter(v CommonAnalysisIcuCollationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUCollationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisICUCollationTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUCollationTokenFilter(v CommonAnalysisICUCollationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
 	return IndicesIndexSettingsAnalysisFilterValue{
 		value: &v,
 	}
 }
 
-// AsCommonAnalysisIcuFoldingTokenFilter decodes the union as CommonAnalysisIcuFoldingTokenFilter. The caller selects the
+// AsCommonAnalysisICUFoldingTokenFilter decodes the union as CommonAnalysisICUFoldingTokenFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuFoldingTokenFilter() (CommonAnalysisIcuFoldingTokenFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuFoldingTokenFilter); ok {
+func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisICUFoldingTokenFilter() (CommonAnalysisICUFoldingTokenFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisICUFoldingTokenFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuFoldingTokenFilter
+	var v CommonAnalysisICUFoldingTokenFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18089,21 +18089,21 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuFoldingToke
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuFoldingTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
-// on the CommonAnalysisIcuFoldingTokenFilter branch.
-func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuFoldingTokenFilter(v CommonAnalysisIcuFoldingTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUFoldingTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisICUFoldingTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUFoldingTokenFilter(v CommonAnalysisICUFoldingTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
 	return IndicesIndexSettingsAnalysisFilterValue{
 		value: &v,
 	}
 }
 
-// AsCommonAnalysisIcuNormalizationTokenFilter decodes the union as CommonAnalysisIcuNormalizationTokenFilter. The caller selects the
+// AsCommonAnalysisICUNormalizationTokenFilter decodes the union as CommonAnalysisICUNormalizationTokenFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuNormalizationTokenFilter() (CommonAnalysisIcuNormalizationTokenFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuNormalizationTokenFilter); ok {
+func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisICUNormalizationTokenFilter() (CommonAnalysisICUNormalizationTokenFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisICUNormalizationTokenFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuNormalizationTokenFilter
+	var v CommonAnalysisICUNormalizationTokenFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18111,21 +18111,21 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuNormalizati
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuNormalizationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
-// on the CommonAnalysisIcuNormalizationTokenFilter branch.
-func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuNormalizationTokenFilter(v CommonAnalysisIcuNormalizationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUNormalizationTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisICUNormalizationTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUNormalizationTokenFilter(v CommonAnalysisICUNormalizationTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
 	return IndicesIndexSettingsAnalysisFilterValue{
 		value: &v,
 	}
 }
 
-// AsCommonAnalysisIcuTransformTokenFilter decodes the union as CommonAnalysisIcuTransformTokenFilter. The caller selects the
+// AsCommonAnalysisICUTransformTokenFilter decodes the union as CommonAnalysisICUTransformTokenFilter. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuTransformTokenFilter() (CommonAnalysisIcuTransformTokenFilter, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuTransformTokenFilter); ok {
+func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisICUTransformTokenFilter() (CommonAnalysisICUTransformTokenFilter, error) {
+	if v, ok := u.value.(*CommonAnalysisICUTransformTokenFilter); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuTransformTokenFilter
+	var v CommonAnalysisICUTransformTokenFilter
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18133,9 +18133,9 @@ func (u *IndicesIndexSettingsAnalysisFilterValue) AsCommonAnalysisIcuTransformTo
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTransformTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
-// on the CommonAnalysisIcuTransformTokenFilter branch.
-func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisIcuTransformTokenFilter(v CommonAnalysisIcuTransformTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
+// NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUTransformTokenFilter returns a IndicesIndexSettingsAnalysisFilterValue populated with v
+// on the CommonAnalysisICUTransformTokenFilter branch.
+func NewIndicesIndexSettingsAnalysisFilterValueFromCommonAnalysisICUTransformTokenFilter(v CommonAnalysisICUTransformTokenFilter) IndicesIndexSettingsAnalysisFilterValue {
 	return IndicesIndexSettingsAnalysisFilterValue{
 		value: &v,
 	}
@@ -18523,13 +18523,13 @@ func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisStandardToke
 	}
 }
 
-// AsCommonAnalysisUaxEmailURLTokenizer decodes the union as CommonAnalysisUaxEmailURLTokenizer. The caller selects the
+// AsCommonAnalysisUAXEmailURLTokenizer decodes the union as CommonAnalysisUAXEmailURLTokenizer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUaxEmailURLTokenizer() (CommonAnalysisUaxEmailURLTokenizer, error) {
-	if v, ok := u.value.(*CommonAnalysisUaxEmailURLTokenizer); ok {
+func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUAXEmailURLTokenizer() (CommonAnalysisUAXEmailURLTokenizer, error) {
+	if v, ok := u.value.(*CommonAnalysisUAXEmailURLTokenizer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisUaxEmailURLTokenizer
+	var v CommonAnalysisUAXEmailURLTokenizer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18537,9 +18537,9 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisUaxEmailURL
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailURLTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
-// on the CommonAnalysisUaxEmailURLTokenizer branch.
-func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUaxEmailURLTokenizer(v CommonAnalysisUaxEmailURLTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUAXEmailURLTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisUAXEmailURLTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisUAXEmailURLTokenizer(v CommonAnalysisUAXEmailURLTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
 	return IndicesIndexSettingsAnalysisTokenizerValue{
 		value: &v,
 	}
@@ -18655,13 +18655,13 @@ func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisSimplePatter
 	}
 }
 
-// AsCommonAnalysisIcuTokenizer decodes the union as CommonAnalysisIcuTokenizer. The caller selects the
+// AsCommonAnalysisICUTokenizer decodes the union as CommonAnalysisICUTokenizer. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisIcuTokenizer() (CommonAnalysisIcuTokenizer, error) {
-	if v, ok := u.value.(*CommonAnalysisIcuTokenizer); ok {
+func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisICUTokenizer() (CommonAnalysisICUTokenizer, error) {
+	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v, nil
 	}
-	var v CommonAnalysisIcuTokenizer
+	var v CommonAnalysisICUTokenizer
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -18669,9 +18669,9 @@ func (u *IndicesIndexSettingsAnalysisTokenizerValue) AsCommonAnalysisIcuTokenize
 	return v, err
 }
 
-// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisIcuTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
-// on the CommonAnalysisIcuTokenizer branch.
-func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisIcuTokenizer(v CommonAnalysisIcuTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
+// NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisICUTokenizer returns a IndicesIndexSettingsAnalysisTokenizerValue populated with v
+// on the CommonAnalysisICUTokenizer branch.
+func NewIndicesIndexSettingsAnalysisTokenizerValueFromCommonAnalysisICUTokenizer(v CommonAnalysisICUTokenizer) IndicesIndexSettingsAnalysisTokenizerValue {
 	return IndicesIndexSettingsAnalysisTokenizerValue{
 		value: &v,
 	}
@@ -19282,47 +19282,47 @@ func (u IndicesIndexSettingsRoutingPath) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// IndicesIndexSettingsSimilarityScriptedTfidfScript is a discriminated union type.
+// IndicesIndexSettingsSimilarityScriptedTFIDFScript is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type IndicesIndexSettingsSimilarityScriptedTfidfScript struct {
-	typ   IndicesIndexSettingsSimilarityScriptedTfidfScriptType
+type IndicesIndexSettingsSimilarityScriptedTFIDFScript struct {
+	typ   IndicesIndexSettingsSimilarityScriptedTFIDFScriptType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesIndexSettingsSimilarityScriptedTfidfScriptType discriminates the branches of IndicesIndexSettingsSimilarityScriptedTfidfScript.
-type IndicesIndexSettingsSimilarityScriptedTfidfScriptType int
+// IndicesIndexSettingsSimilarityScriptedTFIDFScriptType discriminates the branches of IndicesIndexSettingsSimilarityScriptedTFIDFScript.
+type IndicesIndexSettingsSimilarityScriptedTFIDFScriptType int
 
 const (
-	IndicesIndexSettingsSimilarityScriptedTfidfScriptUnknownType IndicesIndexSettingsSimilarityScriptedTfidfScriptType = iota
-	IndicesIndexSettingsSimilarityScriptedTfidfScriptStringType
-	IndicesIndexSettingsSimilarityScriptedTfidfScriptStoredType
+	IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType IndicesIndexSettingsSimilarityScriptedTFIDFScriptType = iota
+	IndicesIndexSettingsSimilarityScriptedTFIDFScriptStringType
+	IndicesIndexSettingsSimilarityScriptedTFIDFScriptStoredType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns IndicesIndexSettingsSimilarityScriptedTfidfScriptUnknownType if the value has not been decoded.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Type() IndicesIndexSettingsSimilarityScriptedTfidfScriptType {
+// Returns IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType if the value has not been decoded.
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) Type() IndicesIndexSettingsSimilarityScriptedTFIDFScriptType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) RawJSON() json.RawMessage { return u.raw }
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFrom*
+// verbatim when no typed branch is set. Use the NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) SetRaw(raw json.RawMessage) {
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptUnknownType
+	u.typ = IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType
 }
 
 // String returns the string branch value.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) String() string {
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) String() string {
 	if v, ok := u.value.(*string); ok {
 		return *v
 	}
@@ -19330,17 +19330,17 @@ func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) String() string {
 	return zero
 }
 
-// NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromString returns a IndicesIndexSettingsSimilarityScriptedTfidfScript populated with v
+// NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromString returns a IndicesIndexSettingsSimilarityScriptedTFIDFScript populated with v
 // on the String branch.
-func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromString(v string) IndicesIndexSettingsSimilarityScriptedTfidfScript {
-	return IndicesIndexSettingsSimilarityScriptedTfidfScript{
-		typ:   IndicesIndexSettingsSimilarityScriptedTfidfScriptStringType,
+func NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromString(v string) IndicesIndexSettingsSimilarityScriptedTFIDFScript {
+	return IndicesIndexSettingsSimilarityScriptedTFIDFScript{
+		typ:   IndicesIndexSettingsSimilarityScriptedTFIDFScriptStringType,
 		value: &v,
 	}
 }
 
 // Stored returns the StoredScriptID branch value.
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Stored() StoredScriptID {
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) Stored() StoredScriptID {
 	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v
 	}
@@ -19348,19 +19348,19 @@ func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) Stored() StoredScrip
 	return zero
 }
 
-// NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored returns a IndicesIndexSettingsSimilarityScriptedTfidfScript populated with v
+// NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromStored returns a IndicesIndexSettingsSimilarityScriptedTFIDFScript populated with v
 // on the Stored branch.
-func NewIndicesIndexSettingsSimilarityScriptedTfidfScriptFromStored(v StoredScriptID) IndicesIndexSettingsSimilarityScriptedTfidfScript {
-	return IndicesIndexSettingsSimilarityScriptedTfidfScript{
-		typ:   IndicesIndexSettingsSimilarityScriptedTfidfScriptStoredType,
+func NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromStored(v StoredScriptID) IndicesIndexSettingsSimilarityScriptedTFIDFScript {
+	return IndicesIndexSettingsSimilarityScriptedTFIDFScript{
+		typ:   IndicesIndexSettingsSimilarityScriptedTFIDFScriptStoredType,
 		value: &v,
 	}
 }
 
-func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) UnmarshalJSON(data []byte) error {
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptUnknownType
+	u.typ = IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -19370,22 +19370,22 @@ func (u *IndicesIndexSettingsSimilarityScriptedTfidfScript) UnmarshalJSON(data [
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptStringType
+		u.typ = IndicesIndexSettingsSimilarityScriptedTFIDFScriptStringType
 		u.value = &v
 	case data[0] == '{':
 		var v StoredScriptID
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesIndexSettingsSimilarityScriptedTfidfScriptStoredType
+		u.typ = IndicesIndexSettingsSimilarityScriptedTFIDFScriptStoredType
 		u.value = &v
 	default:
-		return fmt.Errorf("IndicesIndexSettingsSimilarityScriptedTfidfScript: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("IndicesIndexSettingsSimilarityScriptedTFIDFScript: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u IndicesIndexSettingsSimilarityScriptedTfidfScript) MarshalJSON() ([]byte, error) {
+func (u IndicesIndexSettingsSimilarityScriptedTFIDFScript) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -19742,8 +19742,8 @@ type SegmentsStatsSegmentReplicationType int
 
 const (
 	SegmentsStatsSegmentReplicationUnknownType SegmentsStatsSegmentReplicationType = iota
-	SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject1Type
-	SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject0Type
+	SegmentsStatsSegmentReplicationObject1Type
+	SegmentsStatsSegmentReplicationObject0Type
 )
 
 // Type returns which union branch was populated during decoding.
@@ -19765,8 +19765,8 @@ func (u *SegmentsStatsSegmentReplication) SetRaw(raw json.RawMessage) {
 	u.typ = SegmentsStatsSegmentReplicationUnknownType
 }
 
-// SegmentsStatsSegmentReplicationObject1 returns the SegmentsStatsSegmentReplicationObject1 branch value.
-func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject1() SegmentsStatsSegmentReplicationObject1 {
+// Object1 returns the SegmentsStatsSegmentReplicationObject1 branch value.
+func (u *SegmentsStatsSegmentReplication) Object1() SegmentsStatsSegmentReplicationObject1 {
 	if v, ok := u.value.(*SegmentsStatsSegmentReplicationObject1); ok {
 		return *v
 	}
@@ -19774,17 +19774,17 @@ func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject1
 	return zero
 }
 
-// NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject1 returns a SegmentsStatsSegmentReplication populated with v
-// on the SegmentsStatsSegmentReplicationObject1 branch.
-func NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject1(v SegmentsStatsSegmentReplicationObject1) SegmentsStatsSegmentReplication {
+// NewSegmentsStatsSegmentReplicationFromObject1 returns a SegmentsStatsSegmentReplication populated with v
+// on the Object1 branch.
+func NewSegmentsStatsSegmentReplicationFromObject1(v SegmentsStatsSegmentReplicationObject1) SegmentsStatsSegmentReplication {
 	return SegmentsStatsSegmentReplication{
-		typ:   SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject1Type,
+		typ:   SegmentsStatsSegmentReplicationObject1Type,
 		value: &v,
 	}
 }
 
-// SegmentsStatsSegmentReplicationObject0 returns the SegmentsStatsSegmentReplicationObject0 branch value.
-func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject0() SegmentsStatsSegmentReplicationObject0 {
+// Object0 returns the SegmentsStatsSegmentReplicationObject0 branch value.
+func (u *SegmentsStatsSegmentReplication) Object0() SegmentsStatsSegmentReplicationObject0 {
 	if v, ok := u.value.(*SegmentsStatsSegmentReplicationObject0); ok {
 		return *v
 	}
@@ -19792,11 +19792,11 @@ func (u *SegmentsStatsSegmentReplication) SegmentsStatsSegmentReplicationObject0
 	return zero
 }
 
-// NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject0 returns a SegmentsStatsSegmentReplication populated with v
-// on the SegmentsStatsSegmentReplicationObject0 branch.
-func NewSegmentsStatsSegmentReplicationFromSegmentsStatsSegmentReplicationObject0(v SegmentsStatsSegmentReplicationObject0) SegmentsStatsSegmentReplication {
+// NewSegmentsStatsSegmentReplicationFromObject0 returns a SegmentsStatsSegmentReplication populated with v
+// on the Object0 branch.
+func NewSegmentsStatsSegmentReplicationFromObject0(v SegmentsStatsSegmentReplicationObject0) SegmentsStatsSegmentReplication {
 	return SegmentsStatsSegmentReplication{
-		typ:   SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject0Type,
+		typ:   SegmentsStatsSegmentReplicationObject0Type,
 		value: &v,
 	}
 }
@@ -19816,7 +19816,7 @@ func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
 	if build.HasJSONKeys(data, "max_bytes_behind", "max_replication_lag", "total_bytes_behind") {
 		var v SegmentsStatsSegmentReplicationObject1
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject1Type
+			u.typ = SegmentsStatsSegmentReplicationObject1Type
 			u.value = &v
 			return nil
 		}
@@ -19824,7 +19824,7 @@ func (u *SegmentsStatsSegmentReplication) UnmarshalJSON(data []byte) error {
 	if build.HasJSONKeys(data, "max_bytes_behind", "max_replication_lag", "total_bytes_behind") {
 		var v SegmentsStatsSegmentReplicationObject0
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SegmentsStatsSegmentReplicationSegmentsStatsSegmentReplicationObject0Type
+			u.typ = SegmentsStatsSegmentReplicationObject0Type
 			u.value = &v
 			return nil
 		}
@@ -20479,7 +20479,7 @@ type InsightsSourceSourceType int
 const (
 	InsightsSourceSourceUnknownType InsightsSourceSourceType = iota
 	InsightsSourceSourceStringType
-	InsightsSourceSourceInsightsSourceSourceObject1Type
+	InsightsSourceSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20519,20 +20519,20 @@ func NewInsightsSourceSourceFromString(v string) InsightsSourceSource {
 	}
 }
 
-// InsightsSourceSourceObject1 returns the InsightsSourceSourceObject1 branch value.
-func (u *InsightsSourceSource) InsightsSourceSourceObject1() InsightsSourceSourceObject1 {
-	if v, ok := u.value.(*InsightsSourceSourceObject1); ok {
+// ExcludesIncludes returns the InsightsSourceSourceExcludesIncludes branch value.
+func (u *InsightsSourceSource) ExcludesIncludes() InsightsSourceSourceExcludesIncludes {
+	if v, ok := u.value.(*InsightsSourceSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero InsightsSourceSourceObject1
+	var zero InsightsSourceSourceExcludesIncludes
 	return zero
 }
 
-// NewInsightsSourceSourceFromInsightsSourceSourceObject1 returns a InsightsSourceSource populated with v
-// on the InsightsSourceSourceObject1 branch.
-func NewInsightsSourceSourceFromInsightsSourceSourceObject1(v InsightsSourceSourceObject1) InsightsSourceSource {
+// NewInsightsSourceSourceFromExcludesIncludes returns a InsightsSourceSource populated with v
+// on the ExcludesIncludes branch.
+func NewInsightsSourceSourceFromExcludesIncludes(v InsightsSourceSourceExcludesIncludes) InsightsSourceSource {
 	return InsightsSourceSource{
-		typ:   InsightsSourceSourceInsightsSourceSourceObject1Type,
+		typ:   InsightsSourceSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -20553,11 +20553,11 @@ func (u *InsightsSourceSource) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceSourceObject1
+		var v InsightsSourceSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceSourceInsightsSourceSourceObject1Type
+		u.typ = InsightsSourceSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceSource: unexpected JSON token: %s", data[:1])
@@ -20590,7 +20590,7 @@ type InsightsSourceDocvalueFieldsItemType int
 const (
 	InsightsSourceDocvalueFieldsItemUnknownType InsightsSourceDocvalueFieldsItemType = iota
 	InsightsSourceDocvalueFieldsItemStringType
-	InsightsSourceDocvalueFieldsItemInsightsSourceDocvalueFieldsItemObject1Type
+	InsightsSourceDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20630,20 +20630,20 @@ func NewInsightsSourceDocvalueFieldsItemFromString(v string) InsightsSourceDocva
 	}
 }
 
-// InsightsSourceDocvalueFieldsItemObject1 returns the InsightsSourceDocvalueFieldsItemObject1 branch value.
-func (u *InsightsSourceDocvalueFieldsItem) InsightsSourceDocvalueFieldsItemObject1() InsightsSourceDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*InsightsSourceDocvalueFieldsItemObject1); ok {
+// Field returns the InsightsSourceDocvalueFieldsItemField branch value.
+func (u *InsightsSourceDocvalueFieldsItem) Field() InsightsSourceDocvalueFieldsItemField {
+	if v, ok := u.value.(*InsightsSourceDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero InsightsSourceDocvalueFieldsItemObject1
+	var zero InsightsSourceDocvalueFieldsItemField
 	return zero
 }
 
-// NewInsightsSourceDocvalueFieldsItemFromInsightsSourceDocvalueFieldsItemObject1 returns a InsightsSourceDocvalueFieldsItem populated with v
-// on the InsightsSourceDocvalueFieldsItemObject1 branch.
-func NewInsightsSourceDocvalueFieldsItemFromInsightsSourceDocvalueFieldsItemObject1(v InsightsSourceDocvalueFieldsItemObject1) InsightsSourceDocvalueFieldsItem {
+// NewInsightsSourceDocvalueFieldsItemFromField returns a InsightsSourceDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewInsightsSourceDocvalueFieldsItemFromField(v InsightsSourceDocvalueFieldsItemField) InsightsSourceDocvalueFieldsItem {
 	return InsightsSourceDocvalueFieldsItem{
-		typ:   InsightsSourceDocvalueFieldsItemInsightsSourceDocvalueFieldsItemObject1Type,
+		typ:   InsightsSourceDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -20664,11 +20664,11 @@ func (u *InsightsSourceDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceDocvalueFieldsItemObject1
+		var v InsightsSourceDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceDocvalueFieldsItemInsightsSourceDocvalueFieldsItemObject1Type
+		u.typ = InsightsSourceDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -20701,7 +20701,7 @@ type InsightsSourceFieldsItemType int
 const (
 	InsightsSourceFieldsItemUnknownType InsightsSourceFieldsItemType = iota
 	InsightsSourceFieldsItemStringType
-	InsightsSourceFieldsItemInsightsSourceFieldsItemObject1Type
+	InsightsSourceFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -20741,20 +20741,20 @@ func NewInsightsSourceFieldsItemFromString(v string) InsightsSourceFieldsItem {
 	}
 }
 
-// InsightsSourceFieldsItemObject1 returns the InsightsSourceFieldsItemObject1 branch value.
-func (u *InsightsSourceFieldsItem) InsightsSourceFieldsItemObject1() InsightsSourceFieldsItemObject1 {
-	if v, ok := u.value.(*InsightsSourceFieldsItemObject1); ok {
+// Field returns the InsightsSourceFieldsItemField branch value.
+func (u *InsightsSourceFieldsItem) Field() InsightsSourceFieldsItemField {
+	if v, ok := u.value.(*InsightsSourceFieldsItemField); ok {
 		return *v
 	}
-	var zero InsightsSourceFieldsItemObject1
+	var zero InsightsSourceFieldsItemField
 	return zero
 }
 
-// NewInsightsSourceFieldsItemFromInsightsSourceFieldsItemObject1 returns a InsightsSourceFieldsItem populated with v
-// on the InsightsSourceFieldsItemObject1 branch.
-func NewInsightsSourceFieldsItemFromInsightsSourceFieldsItemObject1(v InsightsSourceFieldsItemObject1) InsightsSourceFieldsItem {
+// NewInsightsSourceFieldsItemFromField returns a InsightsSourceFieldsItem populated with v
+// on the Field branch.
+func NewInsightsSourceFieldsItemFromField(v InsightsSourceFieldsItemField) InsightsSourceFieldsItem {
 	return InsightsSourceFieldsItem{
-		typ:   InsightsSourceFieldsItemInsightsSourceFieldsItemObject1Type,
+		typ:   InsightsSourceFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -20775,11 +20775,11 @@ func (u *InsightsSourceFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = InsightsSourceFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InsightsSourceFieldsItemObject1
+		var v InsightsSourceFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InsightsSourceFieldsItemInsightsSourceFieldsItemObject1Type
+		u.typ = InsightsSourceFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("InsightsSourceFieldsItem: unexpected JSON token: %s", data[:1])
@@ -21360,110 +21360,112 @@ func (u ISMPolicyTemplate) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// SearchResultJSONValueSuggestValueItemObject0Options is a discriminated union type.
+// SearchResultJSONValueSuggestValueItemCompletionOptions is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type SearchResultJSONValueSuggestValueItemObject0Options struct {
-	typ   SearchResultJSONValueSuggestValueItemObject0OptionsType
+type SearchResultJSONValueSuggestValueItemCompletionOptions struct {
+	typ   SearchResultJSONValueSuggestValueItemCompletionOptionsType
 	raw   json.RawMessage
 	value any
 }
 
-// SearchResultJSONValueSuggestValueItemObject0OptionsType discriminates the branches of SearchResultJSONValueSuggestValueItemObject0Options.
-type SearchResultJSONValueSuggestValueItemObject0OptionsType int
+// SearchResultJSONValueSuggestValueItemCompletionOptionsType discriminates the branches of SearchResultJSONValueSuggestValueItemCompletionOptions.
+type SearchResultJSONValueSuggestValueItemCompletionOptionsType int
 
 const (
-	SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType SearchResultJSONValueSuggestValueItemObject0OptionsType = iota
-	SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type
-	SearchResultJSONValueSuggestValueItemObject0OptionsArrayType
+	SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType SearchResultJSONValueSuggestValueItemCompletionOptionsType = iota
+	SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
+	SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
 )
 
 // Type returns which union branch was populated during decoding.
-// Returns SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType if the value has not been decoded.
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) Type() SearchResultJSONValueSuggestValueItemObject0OptionsType {
+// Returns SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType if the value has not been decoded.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Type() SearchResultJSONValueSuggestValueItemCompletionOptionsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) RawJSON() json.RawMessage { return u.raw }
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) RawJSON() json.RawMessage {
+	return u.raw
+}
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchResultJSONValueSuggestValueItemObject0OptionsFrom*
+// verbatim when no typed branch is set. Use the NewSearchResultJSONValueSuggestValueItemCompletionOptionsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) SetRaw(raw json.RawMessage) {
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType
+	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
 }
 
-// SearchResultJSONValueSuggestValueItemObject0OptionsObject0 returns the SearchResultJSONValueSuggestValueItemObject0OptionsObject0 branch value.
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) SearchResultJSONValueSuggestValueItemObject0OptionsObject0() SearchResultJSONValueSuggestValueItemObject0OptionsObject0 {
-	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemObject0OptionsObject0); ok {
+// Source returns the SearchResultJSONValueSuggestValueItemCompletionOptionsSource branch value.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Source() SearchResultJSONValueSuggestValueItemCompletionOptionsSource {
+	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletionOptionsSource); ok {
 		return *v
 	}
-	var zero SearchResultJSONValueSuggestValueItemObject0OptionsObject0
+	var zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource
 	return zero
 }
 
-// NewSearchResultJSONValueSuggestValueItemObject0OptionsFromSearchResultJSONValueSuggestValueItemObject0OptionsObject0 returns a SearchResultJSONValueSuggestValueItemObject0Options populated with v
-// on the SearchResultJSONValueSuggestValueItemObject0OptionsObject0 branch.
-func NewSearchResultJSONValueSuggestValueItemObject0OptionsFromSearchResultJSONValueSuggestValueItemObject0OptionsObject0(v SearchResultJSONValueSuggestValueItemObject0OptionsObject0) SearchResultJSONValueSuggestValueItemObject0Options {
-	return SearchResultJSONValueSuggestValueItemObject0Options{
-		typ:   SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type,
+// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
+// on the Source branch.
+func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource(v SearchResultJSONValueSuggestValueItemCompletionOptionsSource) SearchResultJSONValueSuggestValueItemCompletionOptions {
+	return SearchResultJSONValueSuggestValueItemCompletionOptions{
+		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType,
 		value: &v,
 	}
 }
 
-// Array returns the []SearchResultJSONValueSuggestValueItemObject0OptionsItem branch value.
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) Array() []SearchResultJSONValueSuggestValueItemObject0OptionsItem {
-	if v, ok := u.value.(*[]SearchResultJSONValueSuggestValueItemObject0OptionsItem); ok {
+// Array returns the []SearchResultJSONValueSuggestValueItemCompletionOptionsItem branch value.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() []SearchResultJSONValueSuggestValueItemCompletionOptionsItem {
+	if v, ok := u.value.(*[]SearchResultJSONValueSuggestValueItemCompletionOptionsItem); ok {
 		return *v
 	}
-	var zero []SearchResultJSONValueSuggestValueItemObject0OptionsItem
+	var zero []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
 	return zero
 }
 
-// NewSearchResultJSONValueSuggestValueItemObject0OptionsFromArray returns a SearchResultJSONValueSuggestValueItemObject0Options populated with v
+// NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
 // on the Array branch.
-func NewSearchResultJSONValueSuggestValueItemObject0OptionsFromArray(v []SearchResultJSONValueSuggestValueItemObject0OptionsItem) SearchResultJSONValueSuggestValueItemObject0Options {
-	return SearchResultJSONValueSuggestValueItemObject0Options{
-		typ:   SearchResultJSONValueSuggestValueItemObject0OptionsArrayType,
+func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray(v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem) SearchResultJSONValueSuggestValueItemCompletionOptions {
+	return SearchResultJSONValueSuggestValueItemCompletionOptions{
+		typ:   SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType,
 		value: &v,
 	}
 }
 
-func (u *SearchResultJSONValueSuggestValueItemObject0Options) UnmarshalJSON(data []byte) error {
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsUnknownType
+	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
 	switch {
 	case data[0] == '{':
-		var v SearchResultJSONValueSuggestValueItemObject0OptionsObject0
+		var v SearchResultJSONValueSuggestValueItemCompletionOptionsSource
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsSearchResultJSONValueSuggestValueItemObject0OptionsObject0Type
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType
 		u.value = &v
 	case data[0] == '[':
-		var v []SearchResultJSONValueSuggestValueItemObject0OptionsItem
+		var v []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchResultJSONValueSuggestValueItemObject0OptionsArrayType
+		u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("SearchResultJSONValueSuggestValueItemObject0Options: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("SearchResultJSONValueSuggestValueItemCompletionOptions: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u SearchResultJSONValueSuggestValueItemObject0Options) MarshalJSON() ([]byte, error) {
+func (u SearchResultJSONValueSuggestValueItemCompletionOptions) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -21494,13 +21496,13 @@ func (u *SearchResultJSONValueSuggestValueItem) SetRaw(raw json.RawMessage) {
 	u.value = nil
 }
 
-// AsSearchResultJSONValueSuggestValueItemObject0 decodes the union as SearchResultJSONValueSuggestValueItemObject0. The caller selects the
+// AsCompletion decodes the union as SearchResultJSONValueSuggestValueItemCompletion. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultJSONValueSuggestValueItem) AsSearchResultJSONValueSuggestValueItemObject0() (SearchResultJSONValueSuggestValueItemObject0, error) {
-	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemObject0); ok {
+func (u *SearchResultJSONValueSuggestValueItem) AsCompletion() (SearchResultJSONValueSuggestValueItemCompletion, error) {
+	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletion); ok {
 		return *v, nil
 	}
-	var v SearchResultJSONValueSuggestValueItemObject0
+	var v SearchResultJSONValueSuggestValueItemCompletion
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -21508,9 +21510,9 @@ func (u *SearchResultJSONValueSuggestValueItem) AsSearchResultJSONValueSuggestVa
 	return v, err
 }
 
-// NewSearchResultJSONValueSuggestValueItemFromSearchResultJSONValueSuggestValueItemObject0 returns a SearchResultJSONValueSuggestValueItem populated with v
-// on the SearchResultJSONValueSuggestValueItemObject0 branch.
-func NewSearchResultJSONValueSuggestValueItemFromSearchResultJSONValueSuggestValueItemObject0(v SearchResultJSONValueSuggestValueItemObject0) SearchResultJSONValueSuggestValueItem {
+// NewSearchResultJSONValueSuggestValueItemFromCompletion returns a SearchResultJSONValueSuggestValueItem populated with v
+// on the Completion branch.
+func NewSearchResultJSONValueSuggestValueItemFromCompletion(v SearchResultJSONValueSuggestValueItemCompletion) SearchResultJSONValueSuggestValueItem {
 	return SearchResultJSONValueSuggestValueItem{
 		value: &v,
 	}
@@ -21708,7 +21710,7 @@ type MLExecuteAlgorithmResponseType int
 const (
 	MLExecuteAlgorithmResponseUnknownType MLExecuteAlgorithmResponseType = iota
 	MLExecuteAlgorithmResponseMLExecuteLocalSampleCalculatorResponseType
-	MLExecuteAlgorithmResponseMLExecuteAlgorithmRespObject1Type
+	MLExecuteAlgorithmResponseResultsType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -21748,20 +21750,20 @@ func NewMLExecuteAlgorithmResponseFromMLExecuteLocalSampleCalculatorResponse(v M
 	}
 }
 
-// MLExecuteAlgorithmRespObject1 returns the MLExecuteAlgorithmRespObject1 branch value.
-func (u *MLExecuteAlgorithmResponse) MLExecuteAlgorithmRespObject1() MLExecuteAlgorithmRespObject1 {
-	if v, ok := u.value.(*MLExecuteAlgorithmRespObject1); ok {
+// Results returns the MLExecuteAlgorithmRespResults branch value.
+func (u *MLExecuteAlgorithmResponse) Results() MLExecuteAlgorithmRespResults {
+	if v, ok := u.value.(*MLExecuteAlgorithmRespResults); ok {
 		return *v
 	}
-	var zero MLExecuteAlgorithmRespObject1
+	var zero MLExecuteAlgorithmRespResults
 	return zero
 }
 
-// NewMLExecuteAlgorithmResponseFromMLExecuteAlgorithmRespObject1 returns a MLExecuteAlgorithmResponse populated with v
-// on the MLExecuteAlgorithmRespObject1 branch.
-func NewMLExecuteAlgorithmResponseFromMLExecuteAlgorithmRespObject1(v MLExecuteAlgorithmRespObject1) MLExecuteAlgorithmResponse {
+// NewMLExecuteAlgorithmResponseFromResults returns a MLExecuteAlgorithmResponse populated with v
+// on the Results branch.
+func NewMLExecuteAlgorithmResponseFromResults(v MLExecuteAlgorithmRespResults) MLExecuteAlgorithmResponse {
 	return MLExecuteAlgorithmResponse{
-		typ:   MLExecuteAlgorithmResponseMLExecuteAlgorithmRespObject1Type,
+		typ:   MLExecuteAlgorithmResponseResultsType,
 		value: &v,
 	}
 }
@@ -21788,9 +21790,9 @@ func (u *MLExecuteAlgorithmResponse) UnmarshalJSON(data []byte) error {
 		}
 	}
 	{
-		var v MLExecuteAlgorithmRespObject1
+		var v MLExecuteAlgorithmRespResults
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLExecuteAlgorithmResponseMLExecuteAlgorithmRespObject1Type
+			u.typ = MLExecuteAlgorithmResponseResultsType
 			u.value = &v
 			return nil
 		}
@@ -23529,8 +23531,8 @@ type SearchPipelineStructurePhaseResultsProcessorsItemType int
 
 const (
 	SearchPipelineStructurePhaseResultsProcessorsItemUnknownType SearchPipelineStructurePhaseResultsProcessorsItemType = iota
-	SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject0Type
-	SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject1Type
+	SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessorType
+	SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessorType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -23554,38 +23556,38 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SetRaw(raw json.RawM
 	u.typ = SearchPipelineStructurePhaseResultsProcessorsItemUnknownType
 }
 
-// SearchPipelineStructurePhaseResultsProcessorsItemObject0 returns the SearchPipelineStructurePhaseResultsProcessorsItemObject0 branch value.
-func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SearchPipelineStructurePhaseResultsProcessorsItemObject0() SearchPipelineStructurePhaseResultsProcessorsItemObject0 {
-	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemObject0); ok {
+// NormalizationProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor branch value.
+func (u *SearchPipelineStructurePhaseResultsProcessorsItem) NormalizationProcessor() SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor {
+	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor); ok {
 		return *v
 	}
-	var zero SearchPipelineStructurePhaseResultsProcessorsItemObject0
+	var zero SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor
 	return zero
 }
 
-// NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject0 returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
-// on the SearchPipelineStructurePhaseResultsProcessorsItemObject0 branch.
-func NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject0(v SearchPipelineStructurePhaseResultsProcessorsItemObject0) SearchPipelineStructurePhaseResultsProcessorsItem {
+// NewSearchPipelineStructurePhaseResultsProcessorsItemFromNormalizationProcessor returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
+// on the NormalizationProcessor branch.
+func NewSearchPipelineStructurePhaseResultsProcessorsItemFromNormalizationProcessor(v SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor) SearchPipelineStructurePhaseResultsProcessorsItem {
 	return SearchPipelineStructurePhaseResultsProcessorsItem{
-		typ:   SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject0Type,
+		typ:   SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessorType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructurePhaseResultsProcessorsItemObject1 returns the SearchPipelineStructurePhaseResultsProcessorsItemObject1 branch value.
-func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SearchPipelineStructurePhaseResultsProcessorsItemObject1() SearchPipelineStructurePhaseResultsProcessorsItemObject1 {
-	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemObject1); ok {
+// ScoreRankerProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor branch value.
+func (u *SearchPipelineStructurePhaseResultsProcessorsItem) ScoreRankerProcessor() SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor {
+	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor); ok {
 		return *v
 	}
-	var zero SearchPipelineStructurePhaseResultsProcessorsItemObject1
+	var zero SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor
 	return zero
 }
 
-// NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject1 returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
-// on the SearchPipelineStructurePhaseResultsProcessorsItemObject1 branch.
-func NewSearchPipelineStructurePhaseResultsProcessorsItemFromSearchPipelineStructurePhaseResultsProcessorsItemObject1(v SearchPipelineStructurePhaseResultsProcessorsItemObject1) SearchPipelineStructurePhaseResultsProcessorsItem {
+// NewSearchPipelineStructurePhaseResultsProcessorsItemFromScoreRankerProcessor returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
+// on the ScoreRankerProcessor branch.
+func NewSearchPipelineStructurePhaseResultsProcessorsItemFromScoreRankerProcessor(v SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor) SearchPipelineStructurePhaseResultsProcessorsItem {
 	return SearchPipelineStructurePhaseResultsProcessorsItem{
-		typ:   SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject1Type,
+		typ:   SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessorType,
 		value: &v,
 	}
 }
@@ -23601,7 +23603,7 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data [
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		SearchPipelineStructurePhaseResultsProcessorsItemObject0
+		SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor
 		Disc0 json.RawMessage `json:"score-ranker-processor"`
 	}
 	var m merged
@@ -23609,16 +23611,16 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) UnmarshalJSON(data [
 		return err
 	}
 	if len(m.Disc0) > 0 {
-		var v SearchPipelineStructurePhaseResultsProcessorsItemObject1
+		var v SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject1Type
+		u.typ = SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessorType
 		u.value = &v
 		return nil
 	}
-	u.typ = SearchPipelineStructurePhaseResultsProcessorsItemSearchPipelineStructurePhaseResultsProcessorsItemObject0Type
-	u.value = &m.SearchPipelineStructurePhaseResultsProcessorsItemObject0
+	u.typ = SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessorType
+	u.value = &m.SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor
 	return nil
 }
 
@@ -23646,11 +23648,11 @@ type SearchPipelineStructureRequestProcessorsItemType int
 
 const (
 	SearchPipelineStructureRequestProcessorsItemUnknownType SearchPipelineStructureRequestProcessorsItemType = iota
-	SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject0Type
-	SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject1Type
-	SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject2Type
-	SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject3Type
-	SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject4Type
+	SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslatorType
+	SearchPipelineStructureRequestProcessorsItemFilterQueryType
+	SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricherType
+	SearchPipelineStructureRequestProcessorsItemScriptType
+	SearchPipelineStructureRequestProcessorsItemOversampleType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -23674,92 +23676,92 @@ func (u *SearchPipelineStructureRequestProcessorsItem) SetRaw(raw json.RawMessag
 	u.typ = SearchPipelineStructureRequestProcessorsItemUnknownType
 }
 
-// SearchPipelineStructureRequestProcessorsItemObject0 returns the SearchPipelineStructureRequestProcessorsItemObject0 branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject0() SearchPipelineStructureRequestProcessorsItemObject0 {
-	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemObject0); ok {
+// AgenticQueryTranslator returns the SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator branch value.
+func (u *SearchPipelineStructureRequestProcessorsItem) AgenticQueryTranslator() SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator {
+	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRequestProcessorsItemObject0
+	var zero SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator
 	return zero
 }
 
-// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject0 returns a SearchPipelineStructureRequestProcessorsItem populated with v
-// on the SearchPipelineStructureRequestProcessorsItemObject0 branch.
-func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject0(v SearchPipelineStructureRequestProcessorsItemObject0) SearchPipelineStructureRequestProcessorsItem {
+// NewSearchPipelineStructureRequestProcessorsItemFromAgenticQueryTranslator returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the AgenticQueryTranslator branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromAgenticQueryTranslator(v SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator) SearchPipelineStructureRequestProcessorsItem {
 	return SearchPipelineStructureRequestProcessorsItem{
-		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject0Type,
+		typ:   SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslatorType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRequestProcessorsItemObject1 returns the SearchPipelineStructureRequestProcessorsItemObject1 branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject1() SearchPipelineStructureRequestProcessorsItemObject1 {
-	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemObject1); ok {
+// FilterQuery returns the SearchPipelineStructureRequestProcessorsItemFilterQuery branch value.
+func (u *SearchPipelineStructureRequestProcessorsItem) FilterQuery() SearchPipelineStructureRequestProcessorsItemFilterQuery {
+	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemFilterQuery); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRequestProcessorsItemObject1
+	var zero SearchPipelineStructureRequestProcessorsItemFilterQuery
 	return zero
 }
 
-// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject1 returns a SearchPipelineStructureRequestProcessorsItem populated with v
-// on the SearchPipelineStructureRequestProcessorsItemObject1 branch.
-func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject1(v SearchPipelineStructureRequestProcessorsItemObject1) SearchPipelineStructureRequestProcessorsItem {
+// NewSearchPipelineStructureRequestProcessorsItemFromFilterQuery returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the FilterQuery branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromFilterQuery(v SearchPipelineStructureRequestProcessorsItemFilterQuery) SearchPipelineStructureRequestProcessorsItem {
 	return SearchPipelineStructureRequestProcessorsItem{
-		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject1Type,
+		typ:   SearchPipelineStructureRequestProcessorsItemFilterQueryType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRequestProcessorsItemObject2 returns the SearchPipelineStructureRequestProcessorsItemObject2 branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject2() SearchPipelineStructureRequestProcessorsItemObject2 {
-	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemObject2); ok {
+// NeuralQueryEnricher returns the SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher branch value.
+func (u *SearchPipelineStructureRequestProcessorsItem) NeuralQueryEnricher() SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher {
+	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRequestProcessorsItemObject2
+	var zero SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher
 	return zero
 }
 
-// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject2 returns a SearchPipelineStructureRequestProcessorsItem populated with v
-// on the SearchPipelineStructureRequestProcessorsItemObject2 branch.
-func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject2(v SearchPipelineStructureRequestProcessorsItemObject2) SearchPipelineStructureRequestProcessorsItem {
+// NewSearchPipelineStructureRequestProcessorsItemFromNeuralQueryEnricher returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the NeuralQueryEnricher branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromNeuralQueryEnricher(v SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher) SearchPipelineStructureRequestProcessorsItem {
 	return SearchPipelineStructureRequestProcessorsItem{
-		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject2Type,
+		typ:   SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricherType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRequestProcessorsItemObject3 returns the SearchPipelineStructureRequestProcessorsItemObject3 branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject3() SearchPipelineStructureRequestProcessorsItemObject3 {
-	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemObject3); ok {
+// Script returns the SearchPipelineStructureRequestProcessorsItemScript branch value.
+func (u *SearchPipelineStructureRequestProcessorsItem) Script() SearchPipelineStructureRequestProcessorsItemScript {
+	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemScript); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRequestProcessorsItemObject3
+	var zero SearchPipelineStructureRequestProcessorsItemScript
 	return zero
 }
 
-// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject3 returns a SearchPipelineStructureRequestProcessorsItem populated with v
-// on the SearchPipelineStructureRequestProcessorsItemObject3 branch.
-func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject3(v SearchPipelineStructureRequestProcessorsItemObject3) SearchPipelineStructureRequestProcessorsItem {
+// NewSearchPipelineStructureRequestProcessorsItemFromScript returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the Script branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromScript(v SearchPipelineStructureRequestProcessorsItemScript) SearchPipelineStructureRequestProcessorsItem {
 	return SearchPipelineStructureRequestProcessorsItem{
-		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject3Type,
+		typ:   SearchPipelineStructureRequestProcessorsItemScriptType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRequestProcessorsItemObject4 returns the SearchPipelineStructureRequestProcessorsItemObject4 branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) SearchPipelineStructureRequestProcessorsItemObject4() SearchPipelineStructureRequestProcessorsItemObject4 {
-	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemObject4); ok {
+// Oversample returns the SearchPipelineStructureRequestProcessorsItemOversample branch value.
+func (u *SearchPipelineStructureRequestProcessorsItem) Oversample() SearchPipelineStructureRequestProcessorsItemOversample {
+	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemOversample); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRequestProcessorsItemObject4
+	var zero SearchPipelineStructureRequestProcessorsItemOversample
 	return zero
 }
 
-// NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject4 returns a SearchPipelineStructureRequestProcessorsItem populated with v
-// on the SearchPipelineStructureRequestProcessorsItemObject4 branch.
-func NewSearchPipelineStructureRequestProcessorsItemFromSearchPipelineStructureRequestProcessorsItemObject4(v SearchPipelineStructureRequestProcessorsItemObject4) SearchPipelineStructureRequestProcessorsItem {
+// NewSearchPipelineStructureRequestProcessorsItemFromOversample returns a SearchPipelineStructureRequestProcessorsItem populated with v
+// on the Oversample branch.
+func NewSearchPipelineStructureRequestProcessorsItemFromOversample(v SearchPipelineStructureRequestProcessorsItemOversample) SearchPipelineStructureRequestProcessorsItem {
 	return SearchPipelineStructureRequestProcessorsItem{
-		typ:   SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject4Type,
+		typ:   SearchPipelineStructureRequestProcessorsItemOversampleType,
 		value: &v,
 	}
 }
@@ -23775,7 +23777,7 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		SearchPipelineStructureRequestProcessorsItemObject0
+		SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator
 		Disc0 json.RawMessage `json:"filter_query"`
 		Disc1 json.RawMessage `json:"neural_query_enricher"`
 		Disc2 json.RawMessage `json:"script"`
@@ -23786,43 +23788,43 @@ func (u *SearchPipelineStructureRequestProcessorsItem) UnmarshalJSON(data []byte
 		return err
 	}
 	if len(m.Disc0) > 0 {
-		var v SearchPipelineStructureRequestProcessorsItemObject1
+		var v SearchPipelineStructureRequestProcessorsItemFilterQuery
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject1Type
+		u.typ = SearchPipelineStructureRequestProcessorsItemFilterQueryType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc1) > 0 {
-		var v SearchPipelineStructureRequestProcessorsItemObject2
+		var v SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject2Type
+		u.typ = SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricherType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc2) > 0 {
-		var v SearchPipelineStructureRequestProcessorsItemObject3
+		var v SearchPipelineStructureRequestProcessorsItemScript
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject3Type
+		u.typ = SearchPipelineStructureRequestProcessorsItemScriptType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc3) > 0 {
-		var v SearchPipelineStructureRequestProcessorsItemObject4
+		var v SearchPipelineStructureRequestProcessorsItemOversample
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject4Type
+		u.typ = SearchPipelineStructureRequestProcessorsItemOversampleType
 		u.value = &v
 		return nil
 	}
-	u.typ = SearchPipelineStructureRequestProcessorsItemSearchPipelineStructureRequestProcessorsItemObject0Type
-	u.value = &m.SearchPipelineStructureRequestProcessorsItemObject0
+	u.typ = SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslatorType
+	u.value = &m.SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator
 	return nil
 }
 
@@ -23850,15 +23852,15 @@ type SearchPipelineStructureRespProcessorsItemType int
 
 const (
 	SearchPipelineStructureRespProcessorsItemUnknownType SearchPipelineStructureRespProcessorsItemType = iota
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type
-	SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type
+	SearchPipelineStructureRespProcessorsItemAgenticContextType
+	SearchPipelineStructureRespProcessorsItemPersonalizeSearchRankingType
+	SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGenerationType
+	SearchPipelineStructureRespProcessorsItemRenameFieldType
+	SearchPipelineStructureRespProcessorsItemRerankType
+	SearchPipelineStructureRespProcessorsItemCollapseType
+	SearchPipelineStructureRespProcessorsItemTruncateHitsType
+	SearchPipelineStructureRespProcessorsItemSortType
+	SearchPipelineStructureRespProcessorsItemSplitType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -23882,164 +23884,164 @@ func (u *SearchPipelineStructureRespProcessorsItem) SetRaw(raw json.RawMessage) 
 	u.typ = SearchPipelineStructureRespProcessorsItemUnknownType
 }
 
-// SearchPipelineStructureRespProcessorsItemObject0 returns the SearchPipelineStructureRespProcessorsItemObject0 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject0() SearchPipelineStructureRespProcessorsItemObject0 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject0); ok {
+// AgenticContext returns the SearchPipelineStructureRespProcessorsItemAgenticContext branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) AgenticContext() SearchPipelineStructureRespProcessorsItemAgenticContext {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemAgenticContext); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject0
+	var zero SearchPipelineStructureRespProcessorsItemAgenticContext
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject0 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject0 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject0(v SearchPipelineStructureRespProcessorsItemObject0) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromAgenticContext returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the AgenticContext branch.
+func NewSearchPipelineStructureRespProcessorsItemFromAgenticContext(v SearchPipelineStructureRespProcessorsItemAgenticContext) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type,
+		typ:   SearchPipelineStructureRespProcessorsItemAgenticContextType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject1 returns the SearchPipelineStructureRespProcessorsItemObject1 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject1() SearchPipelineStructureRespProcessorsItemObject1 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject1); ok {
+// PersonalizeSearchRanking returns the SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) PersonalizeSearchRanking() SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject1
+	var zero SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject1 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject1 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject1(v SearchPipelineStructureRespProcessorsItemObject1) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromPersonalizeSearchRanking returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the PersonalizeSearchRanking branch.
+func NewSearchPipelineStructureRespProcessorsItemFromPersonalizeSearchRanking(v SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type,
+		typ:   SearchPipelineStructureRespProcessorsItemPersonalizeSearchRankingType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject2 returns the SearchPipelineStructureRespProcessorsItemObject2 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject2() SearchPipelineStructureRespProcessorsItemObject2 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject2); ok {
+// RetrievalAugmentedGeneration returns the SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) RetrievalAugmentedGeneration() SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject2
+	var zero SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject2 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject2 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject2(v SearchPipelineStructureRespProcessorsItemObject2) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromRetrievalAugmentedGeneration returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the RetrievalAugmentedGeneration branch.
+func NewSearchPipelineStructureRespProcessorsItemFromRetrievalAugmentedGeneration(v SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type,
+		typ:   SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGenerationType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject3 returns the SearchPipelineStructureRespProcessorsItemObject3 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject3() SearchPipelineStructureRespProcessorsItemObject3 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject3); ok {
+// RenameField returns the SearchPipelineStructureRespProcessorsItemRenameField branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) RenameField() SearchPipelineStructureRespProcessorsItemRenameField {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRenameField); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject3
+	var zero SearchPipelineStructureRespProcessorsItemRenameField
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject3 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject3 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject3(v SearchPipelineStructureRespProcessorsItemObject3) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromRenameField returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the RenameField branch.
+func NewSearchPipelineStructureRespProcessorsItemFromRenameField(v SearchPipelineStructureRespProcessorsItemRenameField) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type,
+		typ:   SearchPipelineStructureRespProcessorsItemRenameFieldType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject4 returns the SearchPipelineStructureRespProcessorsItemObject4 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject4() SearchPipelineStructureRespProcessorsItemObject4 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject4); ok {
+// Rerank returns the SearchPipelineStructureRespProcessorsItemRerank branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) Rerank() SearchPipelineStructureRespProcessorsItemRerank {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRerank); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject4
+	var zero SearchPipelineStructureRespProcessorsItemRerank
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject4 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject4 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject4(v SearchPipelineStructureRespProcessorsItemObject4) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromRerank returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the Rerank branch.
+func NewSearchPipelineStructureRespProcessorsItemFromRerank(v SearchPipelineStructureRespProcessorsItemRerank) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type,
+		typ:   SearchPipelineStructureRespProcessorsItemRerankType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject5 returns the SearchPipelineStructureRespProcessorsItemObject5 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject5() SearchPipelineStructureRespProcessorsItemObject5 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject5); ok {
+// Collapse returns the SearchPipelineStructureRespProcessorsItemCollapse branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) Collapse() SearchPipelineStructureRespProcessorsItemCollapse {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemCollapse); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject5
+	var zero SearchPipelineStructureRespProcessorsItemCollapse
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject5 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject5 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject5(v SearchPipelineStructureRespProcessorsItemObject5) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromCollapse returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the Collapse branch.
+func NewSearchPipelineStructureRespProcessorsItemFromCollapse(v SearchPipelineStructureRespProcessorsItemCollapse) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type,
+		typ:   SearchPipelineStructureRespProcessorsItemCollapseType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject6 returns the SearchPipelineStructureRespProcessorsItemObject6 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject6() SearchPipelineStructureRespProcessorsItemObject6 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject6); ok {
+// TruncateHits returns the SearchPipelineStructureRespProcessorsItemTruncateHits branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) TruncateHits() SearchPipelineStructureRespProcessorsItemTruncateHits {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemTruncateHits); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject6
+	var zero SearchPipelineStructureRespProcessorsItemTruncateHits
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject6 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject6 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject6(v SearchPipelineStructureRespProcessorsItemObject6) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromTruncateHits returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the TruncateHits branch.
+func NewSearchPipelineStructureRespProcessorsItemFromTruncateHits(v SearchPipelineStructureRespProcessorsItemTruncateHits) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type,
+		typ:   SearchPipelineStructureRespProcessorsItemTruncateHitsType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject7 returns the SearchPipelineStructureRespProcessorsItemObject7 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject7() SearchPipelineStructureRespProcessorsItemObject7 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject7); ok {
+// Sort returns the SearchPipelineStructureRespProcessorsItemSort branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) Sort() SearchPipelineStructureRespProcessorsItemSort {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemSort); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject7
+	var zero SearchPipelineStructureRespProcessorsItemSort
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject7 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject7 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject7(v SearchPipelineStructureRespProcessorsItemObject7) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromSort returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the Sort branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSort(v SearchPipelineStructureRespProcessorsItemSort) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type,
+		typ:   SearchPipelineStructureRespProcessorsItemSortType,
 		value: &v,
 	}
 }
 
-// SearchPipelineStructureRespProcessorsItemObject8 returns the SearchPipelineStructureRespProcessorsItemObject8 branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) SearchPipelineStructureRespProcessorsItemObject8() SearchPipelineStructureRespProcessorsItemObject8 {
-	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemObject8); ok {
+// Split returns the SearchPipelineStructureRespProcessorsItemSplit branch value.
+func (u *SearchPipelineStructureRespProcessorsItem) Split() SearchPipelineStructureRespProcessorsItemSplit {
+	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemSplit); ok {
 		return *v
 	}
-	var zero SearchPipelineStructureRespProcessorsItemObject8
+	var zero SearchPipelineStructureRespProcessorsItemSplit
 	return zero
 }
 
-// NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject8 returns a SearchPipelineStructureRespProcessorsItem populated with v
-// on the SearchPipelineStructureRespProcessorsItemObject8 branch.
-func NewSearchPipelineStructureRespProcessorsItemFromSearchPipelineStructureRespProcessorsItemObject8(v SearchPipelineStructureRespProcessorsItemObject8) SearchPipelineStructureRespProcessorsItem {
+// NewSearchPipelineStructureRespProcessorsItemFromSplit returns a SearchPipelineStructureRespProcessorsItem populated with v
+// on the Split branch.
+func NewSearchPipelineStructureRespProcessorsItemFromSplit(v SearchPipelineStructureRespProcessorsItemSplit) SearchPipelineStructureRespProcessorsItem {
 	return SearchPipelineStructureRespProcessorsItem{
-		typ:   SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type,
+		typ:   SearchPipelineStructureRespProcessorsItemSplitType,
 		value: &v,
 	}
 }
@@ -24055,7 +24057,7 @@ func (u *SearchPipelineStructureRespProcessorsItem) UnmarshalJSON(data []byte) e
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		SearchPipelineStructureRespProcessorsItemObject0
+		SearchPipelineStructureRespProcessorsItemAgenticContext
 		Disc0 json.RawMessage `json:"personalize_search_ranking"`
 		Disc1 json.RawMessage `json:"retrieval_augmented_generation"`
 		Disc2 json.RawMessage `json:"rename_field"`
@@ -24070,79 +24072,79 @@ func (u *SearchPipelineStructureRespProcessorsItem) UnmarshalJSON(data []byte) e
 		return err
 	}
 	if len(m.Disc0) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject1
+		var v SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject1Type
+		u.typ = SearchPipelineStructureRespProcessorsItemPersonalizeSearchRankingType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc1) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject2
+		var v SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject2Type
+		u.typ = SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGenerationType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc2) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject3
+		var v SearchPipelineStructureRespProcessorsItemRenameField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject3Type
+		u.typ = SearchPipelineStructureRespProcessorsItemRenameFieldType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc3) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject4
+		var v SearchPipelineStructureRespProcessorsItemRerank
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject4Type
+		u.typ = SearchPipelineStructureRespProcessorsItemRerankType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc4) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject5
+		var v SearchPipelineStructureRespProcessorsItemCollapse
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject5Type
+		u.typ = SearchPipelineStructureRespProcessorsItemCollapseType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc5) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject6
+		var v SearchPipelineStructureRespProcessorsItemTruncateHits
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject6Type
+		u.typ = SearchPipelineStructureRespProcessorsItemTruncateHitsType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc6) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject7
+		var v SearchPipelineStructureRespProcessorsItemSort
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject7Type
+		u.typ = SearchPipelineStructureRespProcessorsItemSortType
 		u.value = &v
 		return nil
 	}
 	if len(m.Disc7) > 0 {
-		var v SearchPipelineStructureRespProcessorsItemObject8
+		var v SearchPipelineStructureRespProcessorsItemSplit
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject8Type
+		u.typ = SearchPipelineStructureRespProcessorsItemSplitType
 		u.value = &v
 		return nil
 	}
-	u.typ = SearchPipelineStructureRespProcessorsItemSearchPipelineStructureRespProcessorsItemObject0Type
-	u.value = &m.SearchPipelineStructureRespProcessorsItemObject0
+	u.typ = SearchPipelineStructureRespProcessorsItemAgenticContextType
+	u.value = &m.SearchPipelineStructureRespProcessorsItemAgenticContext
 	return nil
 }
 
@@ -24614,8 +24616,8 @@ type WLMQueryGroupRespResourceLimitsType int
 
 const (
 	WLMQueryGroupRespResourceLimitsUnknownType WLMQueryGroupRespResourceLimitsType = iota
-	WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject0Type
-	WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject1Type
+	WLMQueryGroupRespResourceLimitsMemoryType
+	WLMQueryGroupRespResourceLimitsCPUType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24637,38 +24639,38 @@ func (u *WLMQueryGroupRespResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupRespResourceLimitsUnknownType
 }
 
-// WLMQueryGroupRespResourceLimitsObject0 returns the WLMQueryGroupRespResourceLimitsObject0 branch value.
-func (u *WLMQueryGroupRespResourceLimits) WLMQueryGroupRespResourceLimitsObject0() WLMQueryGroupRespResourceLimitsObject0 {
-	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsObject0); ok {
+// Memory returns the WLMQueryGroupRespResourceLimitsMemory branch value.
+func (u *WLMQueryGroupRespResourceLimits) Memory() WLMQueryGroupRespResourceLimitsMemory {
+	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsMemory); ok {
 		return *v
 	}
-	var zero WLMQueryGroupRespResourceLimitsObject0
+	var zero WLMQueryGroupRespResourceLimitsMemory
 	return zero
 }
 
-// NewWLMQueryGroupRespResourceLimitsFromWLMQueryGroupRespResourceLimitsObject0 returns a WLMQueryGroupRespResourceLimits populated with v
-// on the WLMQueryGroupRespResourceLimitsObject0 branch.
-func NewWLMQueryGroupRespResourceLimitsFromWLMQueryGroupRespResourceLimitsObject0(v WLMQueryGroupRespResourceLimitsObject0) WLMQueryGroupRespResourceLimits {
+// NewWLMQueryGroupRespResourceLimitsFromMemory returns a WLMQueryGroupRespResourceLimits populated with v
+// on the Memory branch.
+func NewWLMQueryGroupRespResourceLimitsFromMemory(v WLMQueryGroupRespResourceLimitsMemory) WLMQueryGroupRespResourceLimits {
 	return WLMQueryGroupRespResourceLimits{
-		typ:   WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject0Type,
+		typ:   WLMQueryGroupRespResourceLimitsMemoryType,
 		value: &v,
 	}
 }
 
-// WLMQueryGroupRespResourceLimitsObject1 returns the WLMQueryGroupRespResourceLimitsObject1 branch value.
-func (u *WLMQueryGroupRespResourceLimits) WLMQueryGroupRespResourceLimitsObject1() WLMQueryGroupRespResourceLimitsObject1 {
-	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsObject1); ok {
+// CPU returns the WLMQueryGroupRespResourceLimitsCPU branch value.
+func (u *WLMQueryGroupRespResourceLimits) CPU() WLMQueryGroupRespResourceLimitsCPU {
+	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsCPU); ok {
 		return *v
 	}
-	var zero WLMQueryGroupRespResourceLimitsObject1
+	var zero WLMQueryGroupRespResourceLimitsCPU
 	return zero
 }
 
-// NewWLMQueryGroupRespResourceLimitsFromWLMQueryGroupRespResourceLimitsObject1 returns a WLMQueryGroupRespResourceLimits populated with v
-// on the WLMQueryGroupRespResourceLimitsObject1 branch.
-func NewWLMQueryGroupRespResourceLimitsFromWLMQueryGroupRespResourceLimitsObject1(v WLMQueryGroupRespResourceLimitsObject1) WLMQueryGroupRespResourceLimits {
+// NewWLMQueryGroupRespResourceLimitsFromCPU returns a WLMQueryGroupRespResourceLimits populated with v
+// on the CPU branch.
+func NewWLMQueryGroupRespResourceLimitsFromCPU(v WLMQueryGroupRespResourceLimitsCPU) WLMQueryGroupRespResourceLimits {
 	return WLMQueryGroupRespResourceLimits{
-		typ:   WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject1Type,
+		typ:   WLMQueryGroupRespResourceLimitsCPUType,
 		value: &v,
 	}
 }
@@ -24686,17 +24688,17 @@ func (u *WLMQueryGroupRespResourceLimits) UnmarshalJSON(data []byte) error {
 	// absorbed by a structurally permissive success branch. encoding/json does
 	// not enforce a schema's "required" set, hence the explicit key probe.
 	if build.HasJSONKeys(data, "memory") {
-		var v WLMQueryGroupRespResourceLimitsObject0
+		var v WLMQueryGroupRespResourceLimitsMemory
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject0Type
+			u.typ = WLMQueryGroupRespResourceLimitsMemoryType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "cpu") {
-		var v WLMQueryGroupRespResourceLimitsObject1
+		var v WLMQueryGroupRespResourceLimitsCPU
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupRespResourceLimitsWLMQueryGroupRespResourceLimitsObject1Type
+			u.typ = WLMQueryGroupRespResourceLimitsCPUType
 			u.value = &v
 			return nil
 		}
@@ -24730,7 +24732,7 @@ type AsynchronousSearchSearchSourceType int
 const (
 	AsynchronousSearchSearchSourceUnknownType AsynchronousSearchSearchSourceType = iota
 	AsynchronousSearchSearchSourceStringType
-	AsynchronousSearchSearchSourceAsynchronousSearchSearchSourceObject1Type
+	AsynchronousSearchSearchSourceExcludesIncludesType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24770,20 +24772,20 @@ func NewAsynchronousSearchSearchSourceFromString(v string) AsynchronousSearchSea
 	}
 }
 
-// AsynchronousSearchSearchSourceObject1 returns the AsynchronousSearchSearchSourceObject1 branch value.
-func (u *AsynchronousSearchSearchSource) AsynchronousSearchSearchSourceObject1() AsynchronousSearchSearchSourceObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchSourceObject1); ok {
+// ExcludesIncludes returns the AsynchronousSearchSearchSourceExcludesIncludes branch value.
+func (u *AsynchronousSearchSearchSource) ExcludesIncludes() AsynchronousSearchSearchSourceExcludesIncludes {
+	if v, ok := u.value.(*AsynchronousSearchSearchSourceExcludesIncludes); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchSourceObject1
+	var zero AsynchronousSearchSearchSourceExcludesIncludes
 	return zero
 }
 
-// NewAsynchronousSearchSearchSourceFromAsynchronousSearchSearchSourceObject1 returns a AsynchronousSearchSearchSource populated with v
-// on the AsynchronousSearchSearchSourceObject1 branch.
-func NewAsynchronousSearchSearchSourceFromAsynchronousSearchSearchSourceObject1(v AsynchronousSearchSearchSourceObject1) AsynchronousSearchSearchSource {
+// NewAsynchronousSearchSearchSourceFromExcludesIncludes returns a AsynchronousSearchSearchSource populated with v
+// on the ExcludesIncludes branch.
+func NewAsynchronousSearchSearchSourceFromExcludesIncludes(v AsynchronousSearchSearchSourceExcludesIncludes) AsynchronousSearchSearchSource {
 	return AsynchronousSearchSearchSource{
-		typ:   AsynchronousSearchSearchSourceAsynchronousSearchSearchSourceObject1Type,
+		typ:   AsynchronousSearchSearchSourceExcludesIncludesType,
 		value: &v,
 	}
 }
@@ -24804,11 +24806,11 @@ func (u *AsynchronousSearchSearchSource) UnmarshalJSON(data []byte) error {
 		u.typ = AsynchronousSearchSearchSourceStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchSourceObject1
+		var v AsynchronousSearchSearchSourceExcludesIncludes
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchSourceAsynchronousSearchSearchSourceObject1Type
+		u.typ = AsynchronousSearchSearchSourceExcludesIncludesType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchSource: unexpected JSON token: %s", data[:1])
@@ -24841,7 +24843,7 @@ type AsynchronousSearchSearchDocvalueFieldsItemType int
 const (
 	AsynchronousSearchSearchDocvalueFieldsItemUnknownType AsynchronousSearchSearchDocvalueFieldsItemType = iota
 	AsynchronousSearchSearchDocvalueFieldsItemStringType
-	AsynchronousSearchSearchDocvalueFieldsItemAsynchronousSearchSearchDocvalueFieldsItemObject1Type
+	AsynchronousSearchSearchDocvalueFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24883,20 +24885,20 @@ func NewAsynchronousSearchSearchDocvalueFieldsItemFromString(v string) Asynchron
 	}
 }
 
-// AsynchronousSearchSearchDocvalueFieldsItemObject1 returns the AsynchronousSearchSearchDocvalueFieldsItemObject1 branch value.
-func (u *AsynchronousSearchSearchDocvalueFieldsItem) AsynchronousSearchSearchDocvalueFieldsItemObject1() AsynchronousSearchSearchDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchDocvalueFieldsItemObject1); ok {
+// Field returns the AsynchronousSearchSearchDocvalueFieldsItemField branch value.
+func (u *AsynchronousSearchSearchDocvalueFieldsItem) Field() AsynchronousSearchSearchDocvalueFieldsItemField {
+	if v, ok := u.value.(*AsynchronousSearchSearchDocvalueFieldsItemField); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchDocvalueFieldsItemObject1
+	var zero AsynchronousSearchSearchDocvalueFieldsItemField
 	return zero
 }
 
-// NewAsynchronousSearchSearchDocvalueFieldsItemFromAsynchronousSearchSearchDocvalueFieldsItemObject1 returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
-// on the AsynchronousSearchSearchDocvalueFieldsItemObject1 branch.
-func NewAsynchronousSearchSearchDocvalueFieldsItemFromAsynchronousSearchSearchDocvalueFieldsItemObject1(v AsynchronousSearchSearchDocvalueFieldsItemObject1) AsynchronousSearchSearchDocvalueFieldsItem {
+// NewAsynchronousSearchSearchDocvalueFieldsItemFromField returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
+// on the Field branch.
+func NewAsynchronousSearchSearchDocvalueFieldsItemFromField(v AsynchronousSearchSearchDocvalueFieldsItemField) AsynchronousSearchSearchDocvalueFieldsItem {
 	return AsynchronousSearchSearchDocvalueFieldsItem{
-		typ:   AsynchronousSearchSearchDocvalueFieldsItemAsynchronousSearchSearchDocvalueFieldsItemObject1Type,
+		typ:   AsynchronousSearchSearchDocvalueFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -24917,11 +24919,11 @@ func (u *AsynchronousSearchSearchDocvalueFieldsItem) UnmarshalJSON(data []byte) 
 		u.typ = AsynchronousSearchSearchDocvalueFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchDocvalueFieldsItemObject1
+		var v AsynchronousSearchSearchDocvalueFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchDocvalueFieldsItemAsynchronousSearchSearchDocvalueFieldsItemObject1Type
+		u.typ = AsynchronousSearchSearchDocvalueFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
@@ -24954,7 +24956,7 @@ type AsynchronousSearchSearchFieldsItemType int
 const (
 	AsynchronousSearchSearchFieldsItemUnknownType AsynchronousSearchSearchFieldsItemType = iota
 	AsynchronousSearchSearchFieldsItemStringType
-	AsynchronousSearchSearchFieldsItemAsynchronousSearchSearchFieldsItemObject1Type
+	AsynchronousSearchSearchFieldsItemFieldType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -24996,20 +24998,20 @@ func NewAsynchronousSearchSearchFieldsItemFromString(v string) AsynchronousSearc
 	}
 }
 
-// AsynchronousSearchSearchFieldsItemObject1 returns the AsynchronousSearchSearchFieldsItemObject1 branch value.
-func (u *AsynchronousSearchSearchFieldsItem) AsynchronousSearchSearchFieldsItemObject1() AsynchronousSearchSearchFieldsItemObject1 {
-	if v, ok := u.value.(*AsynchronousSearchSearchFieldsItemObject1); ok {
+// Field returns the AsynchronousSearchSearchFieldsItemField branch value.
+func (u *AsynchronousSearchSearchFieldsItem) Field() AsynchronousSearchSearchFieldsItemField {
+	if v, ok := u.value.(*AsynchronousSearchSearchFieldsItemField); ok {
 		return *v
 	}
-	var zero AsynchronousSearchSearchFieldsItemObject1
+	var zero AsynchronousSearchSearchFieldsItemField
 	return zero
 }
 
-// NewAsynchronousSearchSearchFieldsItemFromAsynchronousSearchSearchFieldsItemObject1 returns a AsynchronousSearchSearchFieldsItem populated with v
-// on the AsynchronousSearchSearchFieldsItemObject1 branch.
-func NewAsynchronousSearchSearchFieldsItemFromAsynchronousSearchSearchFieldsItemObject1(v AsynchronousSearchSearchFieldsItemObject1) AsynchronousSearchSearchFieldsItem {
+// NewAsynchronousSearchSearchFieldsItemFromField returns a AsynchronousSearchSearchFieldsItem populated with v
+// on the Field branch.
+func NewAsynchronousSearchSearchFieldsItemFromField(v AsynchronousSearchSearchFieldsItemField) AsynchronousSearchSearchFieldsItem {
 	return AsynchronousSearchSearchFieldsItem{
-		typ:   AsynchronousSearchSearchFieldsItemAsynchronousSearchSearchFieldsItemObject1Type,
+		typ:   AsynchronousSearchSearchFieldsItemFieldType,
 		value: &v,
 	}
 }
@@ -25030,11 +25032,11 @@ func (u *AsynchronousSearchSearchFieldsItem) UnmarshalJSON(data []byte) error {
 		u.typ = AsynchronousSearchSearchFieldsItemStringType
 		u.value = &v
 	case data[0] == '{':
-		var v AsynchronousSearchSearchFieldsItemObject1
+		var v AsynchronousSearchSearchFieldsItemField
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = AsynchronousSearchSearchFieldsItemAsynchronousSearchSearchFieldsItemObject1Type
+		u.typ = AsynchronousSearchSearchFieldsItemFieldType
 		u.value = &v
 	default:
 		return fmt.Errorf("AsynchronousSearchSearchFieldsItem: unexpected JSON token: %s", data[:1])
@@ -26248,8 +26250,8 @@ type WLMQueryGroupCreateResourceLimitsType int
 
 const (
 	WLMQueryGroupCreateResourceLimitsUnknownType WLMQueryGroupCreateResourceLimitsType = iota
-	WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject0Type
-	WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject1Type
+	WLMQueryGroupCreateResourceLimitsMemoryType
+	WLMQueryGroupCreateResourceLimitsCPUType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -26273,38 +26275,38 @@ func (u *WLMQueryGroupCreateResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupCreateResourceLimitsUnknownType
 }
 
-// WLMQueryGroupCreateResourceLimitsObject0 returns the WLMQueryGroupCreateResourceLimitsObject0 branch value.
-func (u *WLMQueryGroupCreateResourceLimits) WLMQueryGroupCreateResourceLimitsObject0() WLMQueryGroupCreateResourceLimitsObject0 {
-	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsObject0); ok {
+// Memory returns the WLMQueryGroupCreateResourceLimitsMemory branch value.
+func (u *WLMQueryGroupCreateResourceLimits) Memory() WLMQueryGroupCreateResourceLimitsMemory {
+	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsMemory); ok {
 		return *v
 	}
-	var zero WLMQueryGroupCreateResourceLimitsObject0
+	var zero WLMQueryGroupCreateResourceLimitsMemory
 	return zero
 }
 
-// NewWLMQueryGroupCreateResourceLimitsFromWLMQueryGroupCreateResourceLimitsObject0 returns a WLMQueryGroupCreateResourceLimits populated with v
-// on the WLMQueryGroupCreateResourceLimitsObject0 branch.
-func NewWLMQueryGroupCreateResourceLimitsFromWLMQueryGroupCreateResourceLimitsObject0(v WLMQueryGroupCreateResourceLimitsObject0) WLMQueryGroupCreateResourceLimits {
+// NewWLMQueryGroupCreateResourceLimitsFromMemory returns a WLMQueryGroupCreateResourceLimits populated with v
+// on the Memory branch.
+func NewWLMQueryGroupCreateResourceLimitsFromMemory(v WLMQueryGroupCreateResourceLimitsMemory) WLMQueryGroupCreateResourceLimits {
 	return WLMQueryGroupCreateResourceLimits{
-		typ:   WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject0Type,
+		typ:   WLMQueryGroupCreateResourceLimitsMemoryType,
 		value: &v,
 	}
 }
 
-// WLMQueryGroupCreateResourceLimitsObject1 returns the WLMQueryGroupCreateResourceLimitsObject1 branch value.
-func (u *WLMQueryGroupCreateResourceLimits) WLMQueryGroupCreateResourceLimitsObject1() WLMQueryGroupCreateResourceLimitsObject1 {
-	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsObject1); ok {
+// CPU returns the WLMQueryGroupCreateResourceLimitsCPU branch value.
+func (u *WLMQueryGroupCreateResourceLimits) CPU() WLMQueryGroupCreateResourceLimitsCPU {
+	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsCPU); ok {
 		return *v
 	}
-	var zero WLMQueryGroupCreateResourceLimitsObject1
+	var zero WLMQueryGroupCreateResourceLimitsCPU
 	return zero
 }
 
-// NewWLMQueryGroupCreateResourceLimitsFromWLMQueryGroupCreateResourceLimitsObject1 returns a WLMQueryGroupCreateResourceLimits populated with v
-// on the WLMQueryGroupCreateResourceLimitsObject1 branch.
-func NewWLMQueryGroupCreateResourceLimitsFromWLMQueryGroupCreateResourceLimitsObject1(v WLMQueryGroupCreateResourceLimitsObject1) WLMQueryGroupCreateResourceLimits {
+// NewWLMQueryGroupCreateResourceLimitsFromCPU returns a WLMQueryGroupCreateResourceLimits populated with v
+// on the CPU branch.
+func NewWLMQueryGroupCreateResourceLimitsFromCPU(v WLMQueryGroupCreateResourceLimitsCPU) WLMQueryGroupCreateResourceLimits {
 	return WLMQueryGroupCreateResourceLimits{
-		typ:   WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject1Type,
+		typ:   WLMQueryGroupCreateResourceLimitsCPUType,
 		value: &v,
 	}
 }
@@ -26322,17 +26324,17 @@ func (u *WLMQueryGroupCreateResourceLimits) UnmarshalJSON(data []byte) error {
 	// absorbed by a structurally permissive success branch. encoding/json does
 	// not enforce a schema's "required" set, hence the explicit key probe.
 	if build.HasJSONKeys(data, "memory") {
-		var v WLMQueryGroupCreateResourceLimitsObject0
+		var v WLMQueryGroupCreateResourceLimitsMemory
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject0Type
+			u.typ = WLMQueryGroupCreateResourceLimitsMemoryType
 			u.value = &v
 			return nil
 		}
 	}
 	if build.HasJSONKeys(data, "cpu") {
-		var v WLMQueryGroupCreateResourceLimitsObject1
+		var v WLMQueryGroupCreateResourceLimitsCPU
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = WLMQueryGroupCreateResourceLimitsWLMQueryGroupCreateResourceLimitsObject1Type
+			u.typ = WLMQueryGroupCreateResourceLimitsCPUType
 			u.value = &v
 			return nil
 		}

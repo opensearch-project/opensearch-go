@@ -199,7 +199,7 @@ type NodesStatsStats struct {
 	Caches                   map[string]NodesStatsCache               `json:"caches,omitempty"`
 	ClusterManagerThrottling *NodesStatsShardClusterManagerThrottling `json:"cluster_manager_throttling,omitempty"`
 	Discovery                *NodesStatsDiscovery                     `json:"discovery,omitempty"`
-	Fs                       *NodesStatsFileSystem                    `json:"fs,omitempty"`
+	FS                       *NodesStatsFileSystem                    `json:"fs,omitempty"`
 
 	// The hostname or IP address.
 	Host *string `json:"host,omitempty"`
@@ -212,7 +212,7 @@ type NodesStatsStats struct {
 	// IP address and port for the node.
 	IP *NodesStatsIP `json:"ip,omitempty"`
 
-	Jvm *NodesStatsJvm `json:"jvm,omitempty"`
+	JVM *NodesStatsJVM `json:"jvm,omitempty"`
 
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
@@ -689,15 +689,15 @@ type NodesStatsProcessor struct {
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 }
 
-// NodesStatsJvm is a typed component of the nodes.stats operation.
-type NodesStatsJvm struct {
+// NodesStatsJVM is a typed component of the nodes.stats operation.
+type NodesStatsJVM struct {
 	// Contains statistics about JVM buffer pools for the node.
 	BufferPools map[string]NodesStatsNodeBufferPool `json:"buffer_pools,omitempty"`
 
-	Classes *NodesStatsJvmClasses       `json:"classes,omitempty"`
-	Gc      *NodesStatsGarbageCollector `json:"gc,omitempty"`
-	Mem     *NodesStatsJvmMemory        `json:"mem,omitempty"`
-	Threads *NodesStatsJvmThreads       `json:"threads,omitempty"`
+	Classes *NodesStatsJVMClasses       `json:"classes,omitempty"`
+	GC      *NodesStatsGarbageCollector `json:"gc,omitempty"`
+	Mem     *NodesStatsJVMMemory        `json:"mem,omitempty"`
+	Threads *NodesStatsJVMThreads       `json:"threads,omitempty"`
 
 	// Last time JVM statistics were refreshed.
 	Timestamp *int64 `json:"timestamp,omitempty"`
@@ -728,8 +728,8 @@ type NodesStatsNodeBufferPool struct {
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsJvmClasses is a typed component of the nodes.stats operation.
-type NodesStatsJvmClasses struct {
+// NodesStatsJVMClasses is a typed component of the nodes.stats operation.
+type NodesStatsJVMClasses struct {
 	// Number of classes currently loaded by JVM.
 	CurrentLoadedCount *int64 `json:"current_loaded_count,omitempty"`
 
@@ -758,8 +758,8 @@ type NodesStatsGarbageCollectorTotal struct {
 	CollectionTimeInMillis *int64 `json:"collection_time_in_millis,omitempty"`
 }
 
-// NodesStatsJvmMemory is a typed component of the nodes.stats operation.
-type NodesStatsJvmMemory struct {
+// NodesStatsJVMMemory is a typed component of the nodes.stats operation.
+type NodesStatsJVMMemory struct {
 	// Amount of memory available for use by the heap.
 	HeapCommitted *string `json:"heap_committed,omitempty"`
 
@@ -800,7 +800,7 @@ type NodesStatsJvmMemory struct {
 // NodesStatsPool is a typed component of the nodes.stats operation.
 type NodesStatsPool struct {
 	// Most recent GC cycle stats for a particular memory pool.
-	LastGcStats *NodesStatsLastGc `json:"last_gc_stats,omitempty"`
+	LastGCStats *NodesStatsLastGC `json:"last_gc_stats,omitempty"`
 
 	// Maximum amount of memory available for use by the heap.
 	Max *string `json:"max,omitempty"`
@@ -827,10 +827,10 @@ type NodesStatsPool struct {
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsLastGc is a typed component of the nodes.stats operation.
+// NodesStatsLastGC is a typed component of the nodes.stats operation.
 //
 // Most recent GC cycle stats for a particular memory pool.
-type NodesStatsLastGc struct {
+type NodesStatsLastGC struct {
 	// The unique identifier of a node.
 	Max *string `json:"max,omitempty"`
 
@@ -847,8 +847,8 @@ type NodesStatsLastGc struct {
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsJvmThreads is a typed component of the nodes.stats operation.
-type NodesStatsJvmThreads struct {
+// NodesStatsJVMThreads is a typed component of the nodes.stats operation.
+type NodesStatsJVMThreads struct {
 	// Number of active threads in use by JVM.
 	Count *int64 `json:"count,omitempty"`
 

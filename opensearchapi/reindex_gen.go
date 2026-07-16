@@ -213,8 +213,8 @@ func (r ReindexResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// ReindexRespBodyObject1 is a typed component of the reindex operation.
-type ReindexRespBodyObject1 struct {
+// ReindexRespBodyTask is a typed component of the reindex operation.
+type ReindexRespBodyTask struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
@@ -234,7 +234,7 @@ type ReindexRespBodyType int
 const (
 	ReindexRespBodyUnknownType ReindexRespBodyType = iota
 	ReindexRespBodyBulkByScrollRespBaseType
-	ReindexRespBodyReindexRespBodyObject1Type
+	ReindexRespBodyTaskType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -274,20 +274,20 @@ func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexR
 	}
 }
 
-// ReindexRespBodyObject1 returns the ReindexRespBodyObject1 branch value.
-func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
-	if v, ok := u.value.(*ReindexRespBodyObject1); ok {
+// Task returns the ReindexRespBodyTask branch value.
+func (u *ReindexRespBody) Task() ReindexRespBodyTask {
+	if v, ok := u.value.(*ReindexRespBodyTask); ok {
 		return *v
 	}
-	var zero ReindexRespBodyObject1
+	var zero ReindexRespBodyTask
 	return zero
 }
 
-// NewReindexRespBodyFromReindexRespBodyObject1 returns a ReindexRespBody populated with v
-// on the ReindexRespBodyObject1 branch.
-func NewReindexRespBodyFromReindexRespBodyObject1(v ReindexRespBodyObject1) ReindexRespBody {
+// NewReindexRespBodyFromTask returns a ReindexRespBody populated with v
+// on the Task branch.
+func NewReindexRespBodyFromTask(v ReindexRespBodyTask) ReindexRespBody {
 	return ReindexRespBody{
-		typ:   ReindexRespBodyReindexRespBodyObject1Type,
+		typ:   ReindexRespBodyTaskType,
 		value: &v,
 	}
 }
@@ -303,7 +303,7 @@ func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		ReindexRespBodyObject1
+		ReindexRespBodyTask
 		Disc0 json.RawMessage `json:"batches"`
 	}
 	var m merged
@@ -319,8 +319,8 @@ func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = ReindexRespBodyReindexRespBodyObject1Type
-	u.value = &m.ReindexRespBodyObject1
+	u.typ = ReindexRespBodyTaskType
+	u.value = &m.ReindexRespBodyTask
 	return nil
 }
 

@@ -22,18 +22,18 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-func TestGetAllPitsReq_GetRequest(t *testing.T) {
+func TestGetAllPITsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.GetAllPitsReq
+		req        opensearchapi.GetAllPITsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.GetAllPitsReq{},
+			req:        opensearchapi.GetAllPITsReq{},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_search/point_in_time/_all",
 			wantErr:    false,
@@ -54,7 +54,7 @@ func TestGetAllPitsReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestGetAllPits_Roundtrip(t *testing.T) {
+func TestGetAllPITs_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {

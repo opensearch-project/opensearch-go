@@ -102,7 +102,7 @@ type MTermVectorsParams struct {
 	// A comma-separated list of documents IDs. You must provide either the
 	// `docs` field in the request body or specify `ids` as a query parameter
 	// or in the request body.
-	Ids []string
+	IDs []string
 
 	// If `true`, the response includes term offsets.
 	//
@@ -166,8 +166,8 @@ func (r MTermVectorsParams) get() map[string]string {
 		set("fields", strings.Join(r.Fields, ","))
 	}
 
-	if len(r.Ids) > 0 {
-		set("ids", strings.Join(r.Ids, ","))
+	if len(r.IDs) > 0 {
+		set("ids", strings.Join(r.IDs, ","))
 	}
 
 	if r.Offsets != nil {
@@ -292,7 +292,7 @@ type MTermVectorsBody struct {
 
 	// Simplified syntax to specify documents by their ID if they're in the
 	// same index.
-	Ids []string `json:"ids,omitempty"`
+	IDs []string `json:"ids,omitempty"`
 }
 
 // MTermVectorsOperation is a typed component of the mtermvectors operation.

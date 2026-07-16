@@ -18,36 +18,55 @@ import (
 func TestTitleSegment(t *testing.T) {
 	t.Parallel()
 
+	// Cases are split into two groups, each sorted by input: acronym inputs
+	// (exercising the acronyms map) first, then non-acronym inputs (baseline,
+	// edge cases, idempotence).
 	tests := []struct {
 		name  string
 		input string
 		want  string
 	}{
-		{name: "simple word", input: "cluster", want: "Cluster"},
-		{name: "id acronym", input: "id", want: "ID"},
-		{name: "uuid acronym", input: "uuid", want: "UUID"},
-		{name: "http acronym", input: "http", want: "HTTP"},
-		{name: "url acronym", input: "url", want: "URL"},
-		{name: "ip acronym", input: "ip", want: "IP"},
-		{name: "tls acronym", input: "tls", want: "TLS"},
-		{name: "ssl acronym", input: "ssl", want: "SSL"},
+		// Acronyms, sorted by input.
 		{name: "api acronym", input: "api", want: "API"},
+		{name: "bm25 acronym", input: "bm25", want: "BM25"},
+		{name: "cjk acronym", input: "cjk", want: "CJK"},
 		{name: "cpu acronym", input: "cpu", want: "CPU"},
+		{name: "csv acronym", input: "csv", want: "CSV"},
 		{name: "dfs acronym", input: "dfs", want: "DFS"},
-		{name: "json acronym", input: "json", want: "JSON"},
+		{name: "gc acronym", input: "gc", want: "GC"},
+		{name: "html acronym", input: "html", want: "HTML"},
+		{name: "http acronym", input: "http", want: "HTTP"},
+		{name: "icu acronym", input: "icu", want: "ICU"},
+		{name: "id acronym", input: "id", want: "ID"},
+		{name: "ids plural acronym keeps lowercase s", input: "ids", want: "IDs"},
+		{name: "ip acronym", input: "ip", want: "IP"},
 		{name: "ism acronym", input: "ism", want: "ISM"},
+		{name: "json acronym", input: "json", want: "JSON"},
+		{name: "jvm acronym", input: "jvm", want: "JVM"},
 		{name: "knn acronym", input: "knn", want: "KNN"},
 		{name: "ltr acronym", input: "ltr", want: "LTR"},
 		{name: "ml acronym", input: "ml", want: "ML"},
+		{name: "mmap two-cased not all-caps", input: "mmap", want: "MMap"},
+		{name: "nio acronym", input: "nio", want: "NIO"},
+		{name: "pits plural acronym keeps lowercase s", input: "pits", want: "PITs"},
 		{name: "ppl acronym", input: "ppl", want: "PPL"},
 		{name: "sm acronym", input: "sm", want: "SM"},
+		{name: "ssl acronym", input: "ssl", want: "SSL"},
+		{name: "tfidf acronym", input: "tfidf", want: "TFIDF"},
+		{name: "tls acronym", input: "tls", want: "TLS"},
 		{name: "ubi acronym", input: "ubi", want: "UBI"},
+		{name: "url acronym", input: "url", want: "URL"},
+		{name: "uuid acronym", input: "uuid", want: "UUID"},
 		{name: "wlm acronym", input: "wlm", want: "WLM"},
-		{name: "whole-segment only, not substring", input: "smile", want: "Smile"},
+		{name: "xy acronym", input: "xy", want: "XY"},
+
+		// Non-acronyms (baseline, edge cases, idempotence), sorted by input.
 		{name: "empty", input: "", want: ""},
 		{name: "mixed case id", input: "ID", want: "ID"},
-		{name: "mixed case uuid", input: "UUID", want: "UUID"},
 		{name: "already capitalized", input: "Stats", want: "Stats"},
+		{name: "mixed case uuid", input: "UUID", want: "UUID"},
+		{name: "simple word", input: "cluster", want: "Cluster"},
+		{name: "whole-segment only, not substring", input: "smile", want: "Smile"},
 	}
 
 	for _, tt := range tests {
@@ -167,16 +186,33 @@ func TestUnexportedFieldName(t *testing.T) {
 func TestBaseGoName(t *testing.T) {
 	t.Parallel()
 
+	// Cases are grouped with a blank line between groups: basic segment
+	// splitting first, then aggregation-result branch codes, then hyphenated
+	// titles.
 	tests := []struct {
 		name  string
 		input string
 		want  string
 	}{
-		{name: "simple", input: "cluster_name", want: "ClusterName"},
+		// Basic splitting on '_'/'.' and leading-underscore trimming, sorted by input.
 		{name: "leading underscore", input: "_nodes", want: "Nodes"},
+		{name: "simple", input: "cluster_name", want: "ClusterName"},
 		{name: "uuid", input: "cluster_uuid", want: "ClusterUUID"},
-		{name: "plain", input: "status", want: "Status"},
 		{name: "dotted", input: "some.field", want: "SomeField"},
+		{name: "plain", input: "status", want: "Status"},
+
+		// Aggregation-result branch titles: terse internal codes split into
+		// the idiomatic PascalCase the decoded type uses. Sorted by input.
+		{name: "lrareterms agg code", input: "lrareterms", want: "LRareTerms"},
+		{name: "lterms agg code", input: "lterms", want: "LTerms"},
+		{name: "siglterms agg code", input: "siglterms", want: "SigLTerms"},
+		{name: "sterms agg code", input: "sterms", want: "STerms"},
+		{name: "tdigest agg code", input: "tdigest_percentiles", want: "TDigestPercentiles"},
+		{name: "ulterms agg code", input: "ulterms", want: "ULTerms"},
+		{name: "umterms agg code", input: "umterms", want: "UMTerms"},
+
+		// Hyphenated titles (search-pipeline processors) normalize to PascalCase.
+		{name: "hyphenated title", input: "score-ranker-processor", want: "ScoreRankerProcessor"},
 	}
 
 	for _, tt := range tests {
@@ -285,12 +321,16 @@ func TestGoFieldName(t *testing.T) {
 func TestSchemaTypeName(t *testing.T) {
 	t.Parallel()
 
+	// Cases are grouped by the naming behavior they exercise, with a blank line
+	// between groups: general de-stuttering and prefix handling first, then
+	// embedded-acronym normalization, then idiomatic abbreviations.
 	tests := []struct {
 		name       string
 		schemaKey  string
 		isRespBody bool
 		want       string
 	}{
+		// De-stuttering, prefix stripping, and group._common handling.
 		{name: "common type", schemaKey: "_common___ShardStatistics", want: "ShardStatistics"},
 		{name: "common error cause", schemaKey: "_common___ErrorCause", want: "ErrorCause"},
 		{name: "common acknowledged", schemaKey: "_common___AcknowledgedResponseBase", want: "AcknowledgedRespBase"},
@@ -312,21 +352,30 @@ func TestSchemaTypeName(t *testing.T) {
 		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
 		{name: "ism plugin acronym", schemaKey: "ism._common___Policy", want: "ISMPolicy"},
 		{name: "knn plugin acronym", schemaKey: "knn._common___Stats", want: "KNNStats"},
+
 		// Embedded acronym in the local part must normalize and de-stutter:
 		// "IsmTemplate" -> "ISMTemplate", not "ISMIsmTemplate".
 		{name: "ism embedded acronym de-stutters", schemaKey: "ism._common___IsmTemplate", want: "ISMTemplate"},
 		{name: "knn embedded acronym de-stutters", schemaKey: "knn._common___KnnMethod", want: "KNNMethod"},
+		// Embedded acronyms normalize at PascalCase boundaries wherever they
+		// appear in the local part, including plural forms (lowercase 's' kept)
+		// and the two-cased MMap/NIO store types.
+		{name: "cjk embedded acronym", schemaKey: "_common___AnalysisCjkAnalyzer", want: "AnalysisCJKAnalyzer"},
+		{name: "html embedded acronym", schemaKey: "_common___AnalysisHtmlStripCharFilter", want: "AnalysisHTMLStripCharFilter"},
+		{name: "ids plural embedded acronym", schemaKey: "_common___QueryDSLIdsQuery", want: "QueryDSLIDsQuery"},
+		{name: "mmap embedded two-cased acronym", schemaKey: "_common___StoreHybridMmap", want: "StoreHybridMMap"},
 		{name: "de-stutter empty result kept", schemaKey: "cluster.health___Health", want: "ClusterHealthHealth"},
 
 		// Idiomatic abbreviations: M-prefix initialisms, compound nouns,
 		// and the Response -> Resp shortening. Match at PascalCase
 		// boundaries only -- "Responses" (lowercase 's') stays intact.
+		// Ordered by the underlying abbreviation token, matching the sorted
+		// idiomaticAbbreviations slice in naming.go.
+		{name: "forcemerge compound", schemaKey: "indices.forcemerge___Stats", want: "IndicesForceMergeStats"},
+		{name: "mget initialism", schemaKey: "_core.mget___Operation", want: "MGetOperation"},
 		{name: "msearch initialism", schemaKey: "_core.msearch___RequestItem", want: "MSearchRequestItem"},
 		{name: "msearch within name", schemaKey: "_common___MsearchMultiSearchItem", want: "MSearchMultiSearchItem"},
-		{name: "mget initialism", schemaKey: "_core.mget___Operation", want: "MGetOperation"},
 		{name: "mtermvectors initialism + compound", schemaKey: "_core.mtermvectors___Operation", want: "MTermVectorsOperation"},
-		{name: "termvectors compound", schemaKey: "_common___TermvectorsTerm", want: "TermVectorsTerm"},
-		{name: "forcemerge compound", schemaKey: "indices.forcemerge___Stats", want: "IndicesForceMergeStats"},
 		{name: "Response -> Resp at boundary", schemaKey: "_common___BulkResponseItem", want: "BulkRespItem"},
 		{name: "Response standalone preserved", schemaKey: "_common___ErrorResponse", want: "ErrorResponse"},
 		{
@@ -334,6 +383,7 @@ func TestSchemaTypeName(t *testing.T) {
 			schemaKey: "_common___MsearchMultiSearchResultResponsesItem",
 			want:      "MSearchMultiSearchResultResponsesItem",
 		},
+		{name: "termvectors compound", schemaKey: "_common___TermvectorsTerm", want: "TermVectorsTerm"},
 	}
 
 	for _, tt := range tests {

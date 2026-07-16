@@ -61,10 +61,10 @@ func TestManual_PIT(t *testing.T) {
 
 			getAllResp, err := client.PIT.GetAll(t.Context(), nil)
 			require.NoError(t, err)
-			require.NotEmpty(t, getAllResp.Pits)
+			require.NotEmpty(t, getAllResp.PITs)
 
 			found := false
-			for _, pit := range getAllResp.Pits {
+			for _, pit := range getAllResp.PITs {
 				if pit.PITID != nil && *pit.PITID == pitID {
 					found = true
 					break
@@ -77,9 +77,9 @@ func TestManual_PIT(t *testing.T) {
 				Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
 			})
 			require.NoError(t, err)
-			require.NotEmpty(t, deleteResp.Pits)
-			require.NotNil(t, deleteResp.Pits[0].Successful)
-			require.True(t, *deleteResp.Pits[0].Successful)
+			require.NotEmpty(t, deleteResp.PITs)
+			require.NotNil(t, deleteResp.PITs[0].Successful)
+			require.True(t, *deleteResp.PITs[0].Successful)
 			testutil.CompareRawJSONwithParsedJSON(t, deleteResp, deleteResp.Inspect().Response)
 		})
 	}
@@ -93,7 +93,7 @@ func TestManual_PIT(t *testing.T) {
 
 		resp, err := client.PIT.DeleteAll(t.Context(), nil)
 		require.NoError(t, err)
-		require.NotEmpty(t, resp.Pits)
+		require.NotEmpty(t, resp.PITs)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
 	})
 

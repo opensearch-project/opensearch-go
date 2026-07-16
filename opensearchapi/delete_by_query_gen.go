@@ -409,8 +409,8 @@ func (r DeleteByQueryResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// DeleteByQueryRespBodyObject1 is a typed component of the delete_by_query operation.
-type DeleteByQueryRespBodyObject1 struct {
+// DeleteByQueryRespBodyTask is a typed component of the delete_by_query operation.
+type DeleteByQueryRespBodyTask struct {
 	// The unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
@@ -430,7 +430,7 @@ type DeleteByQueryRespBodyType int
 const (
 	DeleteByQueryRespBodyUnknownType DeleteByQueryRespBodyType = iota
 	DeleteByQueryRespBodyBulkByScrollRespBaseType
-	DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
+	DeleteByQueryRespBodyTaskType
 )
 
 // Type returns which union branch was populated during decoding.
@@ -470,20 +470,20 @@ func NewDeleteByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) De
 	}
 }
 
-// DeleteByQueryRespBodyObject1 returns the DeleteByQueryRespBodyObject1 branch value.
-func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryRespBodyObject1 {
-	if v, ok := u.value.(*DeleteByQueryRespBodyObject1); ok {
+// Task returns the DeleteByQueryRespBodyTask branch value.
+func (u *DeleteByQueryRespBody) Task() DeleteByQueryRespBodyTask {
+	if v, ok := u.value.(*DeleteByQueryRespBodyTask); ok {
 		return *v
 	}
-	var zero DeleteByQueryRespBodyObject1
+	var zero DeleteByQueryRespBodyTask
 	return zero
 }
 
-// NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1 returns a DeleteByQueryRespBody populated with v
-// on the DeleteByQueryRespBodyObject1 branch.
-func NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1(v DeleteByQueryRespBodyObject1) DeleteByQueryRespBody {
+// NewDeleteByQueryRespBodyFromTask returns a DeleteByQueryRespBody populated with v
+// on the Task branch.
+func NewDeleteByQueryRespBodyFromTask(v DeleteByQueryRespBodyTask) DeleteByQueryRespBody {
 	return DeleteByQueryRespBody{
-		typ:   DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type,
+		typ:   DeleteByQueryRespBodyTaskType,
 		value: &v,
 	}
 }
@@ -499,7 +499,7 @@ func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		DeleteByQueryRespBodyObject1
+		DeleteByQueryRespBodyTask
 		Disc0 json.RawMessage `json:"batches"`
 	}
 	var m merged
@@ -515,8 +515,8 @@ func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
-	u.value = &m.DeleteByQueryRespBodyObject1
+	u.typ = DeleteByQueryRespBodyTaskType
+	u.value = &m.DeleteByQueryRespBodyTask
 	return nil
 }
 

@@ -171,47 +171,47 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "smtp_account.from_address",
-			params: GetConfigsParams{SmtpAccountFromAddress: "test-value"},
+			params: GetConfigsParams{SMTPAccountFromAddress: "test-value"},
 			want:   map[string]string{"smtp_account.from_address": "test-value"},
 		},
 		{
 			name:   "smtp_account.from_address.keyword",
-			params: GetConfigsParams{SmtpAccountFromAddressKeyword: "test-value"},
+			params: GetConfigsParams{SMTPAccountFromAddressKeyword: "test-value"},
 			want:   map[string]string{"smtp_account.from_address.keyword": "test-value"},
 		},
 		{
 			name:   "smtp_account.host",
-			params: GetConfigsParams{SmtpAccountHost: "test-value"},
+			params: GetConfigsParams{SMTPAccountHost: "test-value"},
 			want:   map[string]string{"smtp_account.host": "test-value"},
 		},
 		{
 			name:   "smtp_account.host.keyword",
-			params: GetConfigsParams{SmtpAccountHostKeyword: "test-value"},
+			params: GetConfigsParams{SMTPAccountHostKeyword: "test-value"},
 			want:   map[string]string{"smtp_account.host.keyword": "test-value"},
 		},
 		{
 			name:   "smtp_account.method",
-			params: GetConfigsParams{SmtpAccountMethod: "test-value"},
+			params: GetConfigsParams{SMTPAccountMethod: "test-value"},
 			want:   map[string]string{"smtp_account.method": "test-value"},
 		},
 		{
 			name:   "sns.role_arn",
-			params: GetConfigsParams{SnsRoleArn: "test-value"},
+			params: GetConfigsParams{SNSRoleArn: "test-value"},
 			want:   map[string]string{"sns.role_arn": "test-value"},
 		},
 		{
 			name:   "sns.role_arn.keyword",
-			params: GetConfigsParams{SnsRoleArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSRoleArnKeyword: "test-value"},
 			want:   map[string]string{"sns.role_arn.keyword": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn",
-			params: GetConfigsParams{SnsTopicArn: "test-value"},
+			params: GetConfigsParams{SNSTopicArn: "test-value"},
 			want:   map[string]string{"sns.topic_arn": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn.keyword",
-			params: GetConfigsParams{SnsTopicArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSTopicArnKeyword: "test-value"},
 			want:   map[string]string{"sns.topic_arn.keyword": "test-value"},
 		},
 		{

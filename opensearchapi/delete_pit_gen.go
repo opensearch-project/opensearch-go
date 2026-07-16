@@ -107,7 +107,7 @@ func (r DeletePITParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
 type DeletePITResp struct {
-	Pits []PITDeleted `json:"pits,omitempty"`
+	PITs []PITDeleted `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }

@@ -28,6 +28,9 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 
 	var classified []unionBranch
 	branchIdx := 0
+	// Resolve inline object branch names up front: naming is content-based and
+	// collision detection needs the whole branch set (see objectBranchNames).
+	objNames := objectBranchNames(branches)
 	for _, branch := range branches {
 		if branch == nil {
 			continue
@@ -36,11 +39,14 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		if branch.Value != nil && branch.Value.Type != nil && branch.Value.Type.Is("null") {
 			continue
 		}
-		b := w.classifyBranch(branch, schemaKey, group, branchIdx)
+		b := w.classifyBranch(branch, schemaKey, group, branchIdx, objNames[branchIdx])
 		if b.GoType == "" {
 			branchIdx++
 			continue
 		}
+		// branchIdx is the spec-array position; record it as the branch's
+		// order source of truth so no downstream sort has to parse the Name.
+		b.Ordinal = branchIdx
 		classified = append(classified, b)
 		branchIdx++
 	}
@@ -106,8 +112,11 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 }
 
 // classifyBranch resolves a single oneOf/anyOf branch into a unionBranch.
-// branchIdx disambiguates inline objects that would otherwise share a registry key.
-func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string, branchIdx int) unionBranch {
+// branchIdx is the branch's position among non-null branches (its Ordinal).
+// objName is the content-based name resolved for an inline object branch (see
+// objectBranchNames); it is "" for non-object branches and for object branches
+// whose content name collided with a sibling.
+func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string, branchIdx int, objName string) unionBranch {
 	if ref == nil {
 		return unionBranch{}
 	}
@@ -152,23 +161,22 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	}
 
 	if s.Type.Is("object") {
-		// Inline object with properties: walk it to register a named type.
-		if len(s.Properties) > 0 {
-			childKey := fmt.Sprintf("%s.object%d", parentKey, branchIdx)
-			goTypeName := w.resolveObjectSchema(s, childKey, group, false)
-			if goTypeName != "" && goTypeName != "json.RawMessage" {
-				branchName := baseGoName(goTypeName)
-				return unionBranch{
-					Name:         branchName,
-					GoType:       goTypeName,
-					TokenClass:   "object",
-					Required:     flattenRequired(s),
-					IsRef:        true,
-					VersionAdded: versionAdded,
-				}
-			}
-		}
-		// Open object (additionalProperties).
+		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
+	}
+
+	return unionBranch{}
+}
+
+// classifyObjectBranch resolves an inline object oneOf/anyOf branch. An object
+// with properties becomes a named type; an open object (additionalProperties
+// only) falls back to a raw map branch. name is the branch's resolved suffix,
+// computed by the caller from branch content (see objectBranchName); the caller
+// passes "" when content naming collided with a sibling, in which case the
+// branch falls back to a positional Object<idx> suffix so the two remain
+// distinct types.
+func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group string, branchIdx int, versionAdded, name string) unionBranch {
+	// Open object (additionalProperties) with no declared properties.
+	if len(s.Properties) == 0 {
 		return unionBranch{
 			Name:         "Map",
 			GoType:       "map[string]json.RawMessage",
@@ -177,7 +185,105 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		}
 	}
 
-	return unionBranch{}
+	// The branch name doubles as the registry key suffix and the generated type
+	// suffix, so accessors and constructors read semantically without stuttering
+	// the union prefix (e.g. NewFooFromTask, not NewFooFromFooObject1). name is
+	// empty only when content naming collided with a sibling; fall back to the
+	// positional suffix, which keeps colliding branches as distinct types.
+	if name == "" {
+		name = fmt.Sprintf("Object%d", branchIdx)
+	}
+	childKey := fmt.Sprintf("%s.%s", parentKey, name)
+	goTypeName := w.resolveObjectSchema(s, childKey, group, false)
+	if goTypeName != "" && goTypeName != "json.RawMessage" {
+		return unionBranch{
+			Name:         name,
+			GoType:       goTypeName,
+			TokenClass:   "object",
+			Required:     flattenRequired(s),
+			IsRef:        true,
+			VersionAdded: versionAdded,
+		}
+	}
+
+	// Properties present but unresolvable to a named type: raw map fallback.
+	return unionBranch{
+		Name:         "Map",
+		GoType:       "map[string]json.RawMessage",
+		TokenClass:   "object",
+		VersionAdded: versionAdded,
+	}
+}
+
+// objectBranchName derives an inline object branch's name from its content, so
+// the generated type is stable when the spec reorders oneOf/anyOf members. A
+// titled member uses its title. Otherwise a branch that declares required keys
+// is named for its first (sorted) required key -- the field a decoder probes to
+// select it -- and a permissive branch (no required keys) is named for its
+// sorted property keys joined together. Every fragment runs through baseGoName
+// so JSON keys become valid identifier fragments (e.g. "_source" -> "Source").
+// Returns "" for an object with no properties (an open map branch, named
+// elsewhere).
+func objectBranchName(s *openapi3.Schema) string {
+	if s.Title != "" {
+		// baseGoName splits on '-', '_', '.' so a hyphenated title
+		// (e.g. "score-ranker-processor") normalizes to ScoreRankerProcessor.
+		return baseGoName(s.Title)
+	}
+	if len(s.Properties) == 0 {
+		return ""
+	}
+	if req := flattenRequired(s); len(req) > 0 {
+		sorted := slices.Clone(req)
+		sort.Strings(sorted)
+		return baseGoName(sorted[0])
+	}
+	keys := make([]string, 0, len(s.Properties))
+	for k := range s.Properties {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var sb strings.Builder
+	for _, k := range keys {
+		sb.WriteString(baseGoName(k))
+	}
+	return sb.String()
+}
+
+// objectBranchNames resolves the content-based name of every inline object
+// branch in a oneOf/anyOf, keyed by the branch's Ordinal (spec-array position
+// among non-null branches, matching resolveUnionType's branchIdx). Names shared
+// by more than one branch are dropped to "" so those siblings fall back to
+// distinct positional suffixes: two structurally identical branches (same
+// properties and required set) cannot be told apart by content, so collapsing
+// them to one type would silently drop a union branch.
+func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
+	names := map[int]string{}
+	idx := 0
+	for _, br := range branches {
+		if br == nil {
+			continue
+		}
+		if br.Value != nil && br.Value.Type != nil && br.Value.Type.Is("null") {
+			continue
+		}
+		if br.Ref == "" && br.Value != nil && br.Value.Type != nil && br.Value.Type.Is("object") {
+			if n := objectBranchName(br.Value); n != "" {
+				names[idx] = n
+			}
+		}
+		idx++
+	}
+	counts := map[string]int{}
+	for _, n := range names {
+		counts[n]++
+	}
+	for idx, n := range names {
+		if counts[n] > 1 {
+			delete(names, idx) // collision: fall back to positional Object<idx>
+		}
+	}
+	return names
 }
 
 // classifyRefBranch resolves a $ref-bearing union branch into its unionBranch.
@@ -473,13 +579,14 @@ func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
 
 // sortBranchesNewestFirst reorders branches so that those with higher
 // x-version-added values appear first. Branches without version info
-// are placed after versioned branches in their original relative order.
-// This ensures try-each unmarshal attempts the newest schema first.
+// are placed after versioned branches, and ties break on spec-array
+// order (Ordinal) so the result is independent of the incoming slice
+// order. This ensures try-each unmarshal attempts the newest schema first.
 func sortBranchesNewestFirst(branches []unionBranch) {
-	sort.SliceStable(branches, func(i, j int) bool {
+	sort.Slice(branches, func(i, j int) bool {
 		vi, vj := branches[i].VersionAdded, branches[j].VersionAdded
-		if vi == "" && vj == "" {
-			return false
+		if vi == vj {
+			return branches[i].Ordinal < branches[j].Ordinal
 		}
 		if vi == "" {
 			return false

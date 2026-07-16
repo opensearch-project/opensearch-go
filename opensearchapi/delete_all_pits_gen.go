@@ -20,7 +20,7 @@ import (
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
 )
 
-// DeleteAllPitsReq represents the request for the delete_all_pits operation.
+// DeleteAllPITsReq represents the request for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
 //
@@ -29,18 +29,18 @@ import (
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-type DeleteAllPitsReq struct {
+type DeleteAllPITsReq struct {
 
 	// Header provides additional HTTP headers for the request.
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *DeleteAllPitsParams
+	Params *DeleteAllPITsParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r DeleteAllPitsReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.DeleteAllPitsPath{}.Build()
+func (r DeleteAllPITsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.DeleteAllPITsPath{}.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -59,13 +59,13 @@ func (r DeleteAllPitsReq) GetRequest(method string) (*http.Request, error) {
 	)
 }
 
-// DeleteAllPitsParams represents query parameters for the DeleteAllPitsReq.
-type DeleteAllPitsParams struct {
+// DeleteAllPITsParams represents query parameters for the DeleteAllPITsReq.
+type DeleteAllPITsParams struct {
 	TimeoutParams
 	DebugParams
 }
 
-func (r DeleteAllPitsParams) get() map[string]string {
+func (r DeleteAllPITsParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -79,27 +79,27 @@ func (r DeleteAllPitsParams) get() map[string]string {
 	return params
 }
 
-// DeleteAllPitsResp represents the response for the delete_all_pits operation.
+// DeleteAllPITsResp represents the response for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
 //
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-type DeleteAllPitsResp struct {
-	Pits []PITDeleted `json:"pits,omitempty"`
+type DeleteAllPITsResp struct {
+	PITs []PITDeleted `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r DeleteAllPitsResp) Inspect() Inspect {
+func (r DeleteAllPITsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r DeleteAllPitsResp) RawBody() io.Reader {
+func (r DeleteAllPITsResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}
@@ -119,13 +119,13 @@ type PITDeleted struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-func (c pointInTimeClient) DeleteAll(ctx context.Context, req *DeleteAllPitsReq) (*DeleteAllPitsResp, error) {
+func (c pointInTimeClient) DeleteAll(ctx context.Context, req *DeleteAllPITsReq) (*DeleteAllPITsResp, error) {
 	if req == nil {
-		req = &DeleteAllPitsReq{}
+		req = &DeleteAllPITsReq{}
 	}
 
 	var (
-		data DeleteAllPitsResp
+		data DeleteAllPITsResp
 		err  error
 	)
 	if data.response, err = request(

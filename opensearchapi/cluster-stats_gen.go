@@ -296,14 +296,14 @@ type ClusterStatsClusterNodes struct {
 	DiscoveryTypes map[string]int `json:"discovery_types,omitempty"`
 
 	// Contains statistics about file stores by selected nodes.
-	Fs *ClusterStatsClusterFileSystem `json:"fs,omitempty"`
+	FS *ClusterStatsClusterFileSystem `json:"fs,omitempty"`
 
 	IndexingPressure *ClusterStatsIndexingPressure `json:"indexing_pressure,omitempty"`
 	Ingest           *ClusterStatsClusterIngest    `json:"ingest,omitempty"`
 
 	// Contains statistics about the Java Virtual Machines (JVMs) used by
 	// selected nodes.
-	Jvm *ClusterStatsClusterJvm `json:"jvm,omitempty"`
+	JVM *ClusterStatsClusterJVM `json:"jvm,omitempty"`
 
 	// Contains statistics about the transport and HTTP networks used by
 	// selected nodes.
@@ -456,10 +456,10 @@ type ClusterStatsClusterProcessor struct {
 	TimeInMillis int64 `json:"time_in_millis"`
 }
 
-// ClusterStatsClusterJvm is a typed component of the cluster.stats operation.
+// ClusterStatsClusterJVM is a typed component of the cluster.stats operation.
 //
 // Contains statistics about the Java Virtual Machines (JVMs) used by selected nodes.
-type ClusterStatsClusterJvm struct {
+type ClusterStatsClusterJVM struct {
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
 	// without a unit and `-1` to indicate an unspecified value.
@@ -468,17 +468,17 @@ type ClusterStatsClusterJvm struct {
 	// The time unit for milliseconds.
 	MaxUptimeInMillis int64 `json:"max_uptime_in_millis"`
 
-	Mem ClusterStatsClusterJvmMemory `json:"mem"`
+	Mem ClusterStatsClusterJVMMemory `json:"mem"`
 
 	// Number of active threads in use by JVM across all selected nodes.
 	Threads int64 `json:"threads"`
 
 	// Contains statistics about the JVM versions used by selected nodes.
-	Versions []ClusterStatsClusterJvmVersion `json:"versions,omitempty"`
+	Versions []ClusterStatsClusterJVMVersion `json:"versions,omitempty"`
 }
 
-// ClusterStatsClusterJvmMemory is a typed component of the cluster.stats operation.
-type ClusterStatsClusterJvmMemory struct {
+// ClusterStatsClusterJVMMemory is a typed component of the cluster.stats operation.
+type ClusterStatsClusterJVMMemory struct {
 	// Maximum amount of memory available for use by the heap across all
 	// selected nodes.
 	HeapMax *string `json:"heap_max,omitempty"`
@@ -495,8 +495,8 @@ type ClusterStatsClusterJvmMemory struct {
 	HeapUsedInBytes int64 `json:"heap_used_in_bytes"`
 }
 
-// ClusterStatsClusterJvmVersion is a typed component of the cluster.stats operation.
-type ClusterStatsClusterJvmVersion struct {
+// ClusterStatsClusterJVMVersion is a typed component of the cluster.stats operation.
+type ClusterStatsClusterJVMVersion struct {
 	// Always `true`. All distributions come with a bundled Java Development
 	// Kit (JDK).
 	BundledJdk bool `json:"bundled_jdk"`
