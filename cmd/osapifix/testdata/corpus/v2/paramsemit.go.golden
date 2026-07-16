@@ -9,7 +9,6 @@ package corpus
 import (
 	"context"
 
-	opensearchv2 "github.com/opensearch-project/opensearch-go/v3"
 	"github.com/opensearch-project/opensearch-go/v3/opensearchapi"
 )
 

@@ -121,7 +121,7 @@ For the two seed operations, `Ping` and `Indices.Exists`, `osapifix rewrite` doe
 - **Raw-response `Status()`.** `resp.Status()` becomes `fmt.Sprintf("%d %s", resp.StatusCode, http.StatusText(resp.StatusCode))`, with `fmt` and `net/http` injected into imports. This reproduces the v2 `"200 OK"` text; v3's own `Status()` formats it differently. The rewrite is node-local, so where the call sat inside another call (e.g. `fmt.Errorf("...: %s", resp.Status())`) the result nests as `fmt.Errorf("...: %s", fmt.Sprintf(...))` -- correct, if a touch verbose; collapse it by hand if you prefer. A comment adjacent to a rewritten `resp.Status()` may be repositioned mid-expression by the printer -> review the diff around each rewritten `Status()`.
 - **Client lifecycle.** The `opensearch.Config{...}` composite literal is wrapped as `opensearchapi.Config{Client: opensearch.Config{...}}`. Post-construction field assignments (`cfg.Username`, `cfg.Password`, and so on) are rewritten to `cfg.Client.Username`, `cfg.Client.Password`. The client field type `*opensearch.Client` and its constructor `opensearch.NewClient(cfg)` are repointed to `*opensearchapi.Client` and `opensearchapi.NewClient(cfg)`, since the v3 root client no longer carries the API methods.
 - **Pointer params.** A `*bool` v3 `Params` field (`Local`, `FlatSettings`, `IgnoreUnavailable`, `IncludeDefaults`, `AllowNoIndices`) is wrapped: `WithLocal(true)` becomes `Local: opensearchapi.ToPointer(true)`.
-- **Import path.** The v2 import path is bumped to v3.
+- **Import path.** The v2 import path is bumped to v3. If repointing `*opensearch.Client` to `*opensearchapi.Client` leaves the root import with no remaining references, the now-dead root import is dropped so the output does not fail with "imported and not used".
 
 **Scope: seed ops only.** Only `Ping` and `Indices.Exists` are rewritten this increment. Every other v2 root-client method (`client.Bulk`, `client.Index`, `client.Search`, ...) stays a `MANUAL` worklist item: the rewriter logs it but leaves the call alone.
 
@@ -156,7 +156,7 @@ go test ./...
 
 ### Rewrite corpus
 
-`rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test . -run TestRewriteCorpus`.
+`rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test . -run TestRewriteCorpus`.
 
 ## Limitations
 
@@ -207,6 +207,7 @@ Because an idiom-1 module won't compile against v3 until its response blocks are
 
 ### Other limits
 
+- The removed-type diagnostic runs on every hop, not only v2 -> v3. Any reference to a type deleted across a transition (for example the many `opensearchapi` types dropped in v5) is reported as a `MANUAL` worklist line rather than silently dropped, and only when a consumer actually references it. It reports; it does not rewrite, since a removed type has no mechanical counterpart.
 - `vet` analyzers are v5-specific (`TypedAssertAnalyzer`) and target a single version; they do not chain across hops.
 - A module importing multiple majors migrates from the lowest; per-import-site source selection is not implemented.
 - Files behind custom build tags (`//go:build <tag>`) are loaded under the default build constraints, so they are not rewritten and are skipped without warning. Migrate those files by hand.

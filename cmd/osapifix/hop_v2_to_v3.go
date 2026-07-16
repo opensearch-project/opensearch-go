@@ -32,12 +32,14 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osapifix/internal/api
 //     args collapse into a Req struct, and the raw-response error check moves to
 //     the returned error. Also a control-flow change, not a rename.
 //
-// So this hop rewrites only what is genuinely mechanical - the import-path bump -
-// and reports everything else. The 15 field-identical survivors need no field
-// rulings. The root opensearch.Client's removed method fields are ruled as
-// MANUAL (idiom 2), so a real consumer that constructs and calls the root client
-// gets an actionable worklist line rather than a bare "unclassified" bug. The
-// removed opensearchapi.*Request TYPES (idiom 1) are surfaced by the engine's
+// So this hop mechanizes the import-path bump plus the two seed ops Ping and
+// Indices.Exists (their call, raw-response Status() handling, and Config/NewClient
+// lifecycle, best-effort into compiling v3; see rewrite_idiom2.go), and reports
+// everything else. The 15 field-identical survivors need no field rulings. The
+// root opensearch.Client's removed method fields are ruled as MANUAL (idiom 2),
+// so a real consumer that constructs and calls the root client gets an actionable
+// worklist line rather than a bare "unclassified" bug. The removed
+// opensearchapi.*Request TYPES (idiom 1) are surfaced by the engine's
 // removed-type diagnostic (see applydelta.go), which reports any reference to a
 // type that vanished on the target. The error-model differences and the two
 // idiom transforms are documented as SemanticFollowups and in the README's

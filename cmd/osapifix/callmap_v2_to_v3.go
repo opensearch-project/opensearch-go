@@ -12,12 +12,12 @@ package main
 // surfaces record struct fields, not the method regrouping and *Request -> *Req
 // renames that the v3 redesign performed.
 //
-// It exists so the v2 -> v3 hop can eventually mechanize the CALL half of the
-// migration (client.<v2path>(...) -> client.<v3path>(ctx, <Req>{...})) for the
-// ops it covers, and report the rest. This file is only the map + its drift
-// guard (callmap_v2_to_v3_test.go); wiring it into the rewriter is a later
-// increment. Until then the whole v2 -> v3 boundary stays report-only (see
-// hop_v2_to_v3.go).
+// It exists so the v2 -> v3 hop can mechanize the CALL half of the migration
+// (client.<v2path>(...) -> client.<v3path>(ctx, <Req>{...})) for the ops it
+// covers, and report the rest. The map + its drift guard
+// (callmap_v2_to_v3_test.go) live here; the rewriter consumes the map for the
+// seed ops Ping and Indices.Exists (see rewrite_idiom2.go), while the remaining
+// rows are data for later increments and stay report-only until wired.
 //
 // Sources, all in-repo or in the module cache - no external module trees:
 //

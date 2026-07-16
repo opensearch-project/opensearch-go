@@ -7,6 +7,9 @@
 package main
 
 import (
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,15 +22,17 @@ import (
 const patternAll = "./..."
 
 // TestRewriteCorpus runs the real type-aware rewrite over a fixture module and
-// checks two things per hop: each golden-backed fixture matches its committed
-// .golden sibling, and the emitted report lines cover the expected rewrites and
-// MANUAL diagnostics. A fixture the hop ONLY reports on (pure idiom 1, e.g.
-// bulk_idiom1.go) has no golden and is covered by report assertions alone. A
-// golden is not a promise of compiling v3: seedops.go rewrites its idiom-2 seed
-// ops to compiling v3 but also carries an idiom-1 reference to a removed type
-// (opensearchapi.PingRequest), which stays put as a reported MANUAL item, so its
-// golden deliberately does not compile as pure v3. Fixtures compile against a
-// local stub of the source-version API (testdata/corpus/stub-vN), so no
+// checks three things per hop: each golden-backed fixture matches its committed
+// .golden sibling, the emitted report lines cover the expected rewrites and
+// MANUAL diagnostics, and each fixture listed in compileClean is import-clean
+// pure target-version output (no marker, no unused import). A fixture the hop
+// ONLY reports on (pure idiom 1, e.g. bulk_idiom1.go) has no golden and is
+// covered by report assertions alone. Not every golden is a promise of compiling
+// v3: seedops.go rewrites its idiom-2 seed ops to compiling v3 but also carries
+// an idiom-1 reference to a removed type (opensearchapi.PingRequest), which stays
+// put as a reported MANUAL item, so its golden deliberately does not compile as
+// pure v3 - only the compileClean subset makes that promise. Fixtures compile
+// against a local stub of the source-version API (testdata/corpus/stub-vN), so no
 // opensearch-go download is needed.
 //
 // Regenerate goldens after an intentional rewrite change with:
@@ -41,7 +46,14 @@ func TestRewriteCorpus(t *testing.T) {
 		corpus  string   // dir under testdata/corpus holding go.mod + fixtures
 		stub    string   // replace-target dir under testdata/corpus
 		goldens []string // fixture files diffed against <file>.golden
-		edits   []string // substrings that must appear in the report
+		// compileClean lists goldens that must be pure compiling target-version
+		// output: no _OSAPIFIX_RESOLVE marker and no unused import. The corpus does
+		// not run `go build` (the stubs are a minimal API surface, not the real
+		// package), so this is the syntactic stand-in that guards the class of bug
+		// where a rewrite leaves an import dangling - e.g. the root import going
+		// dead once *opensearch.Client is repointed to *opensearchapi.Client.
+		compileClean []string
+		edits        []string // substrings that must appear in the report
 	}{
 		{
 			name:   "v2_to_v3",
@@ -53,6 +65,11 @@ func TestRewriteCorpus(t *testing.T) {
 			// opensearchapi import stays single. paramsemit: destParams nests under
 			// Params. carriedrootclient: a carried v2-root-client arg -> marker.
 			goldens: []string{"seedops.go", "aliasedimport.go", "paramsemit.go", "carriedrootclient.go"},
+			// paramsemit is the one fixture with no marker and no removed-type ref,
+			// so its golden must be import-clean compiling v3. seedops carries an
+			// idiom-1 removed-type ref; carriedrootclient plants a marker; both are
+			// non-compiling by design and excluded.
+			compileClean: []string{"paramsemit.go"},
 			edits: []string{
 				// idiom 2 (seed ops): rewritten best-effort
 				"rewrite client.Ping",
@@ -74,6 +91,21 @@ func TestRewriteCorpus(t *testing.T) {
 			goldens: []string{"client.go"}, // quiet hop: only the import path bumps
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v3",
+			},
+		},
+		{
+			// Cross-hop removed-type diagnostic: flagRemovedTypeRef fires on every
+			// hop, not just v2->v3. AliasDeleteResp exists in v4 but is removed in
+			// v5, so a reference to it must be reported as a MANUAL worklist item.
+			name:    "v4_to_v5",
+			src:     4,
+			dst:     5,
+			corpus:  "v4",
+			stub:    "stub-v4",
+			goldens: []string{"removedtype.go"}, // import bumps; the removed-type ref stays put
+			edits: []string{
+				"import github.com/opensearch-project/opensearch-go/v4",
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.AliasDeleteResp" removed`,
 			},
 		},
 	} {
@@ -117,7 +149,54 @@ func TestRewriteCorpus(t *testing.T) {
 				require.NoError(t, err, "missing golden for %s; regenerate with UPDATE_GOLDEN=1", file)
 				require.Equal(t, string(want), string(got), "rewritten %s does not match golden", file)
 			}
+
+			for _, file := range tc.compileClean {
+				got, err := os.ReadFile(filepath.Join(dir, file))
+				require.NoError(t, err)
+				require.NotContains(t, string(got), markerPrefix,
+					"%s is declared compile-clean but carries an _OSAPIFIX_RESOLVE marker", file)
+				assertNoUnusedImports(t, file, got)
+			}
 		})
+	}
+}
+
+// assertNoUnusedImports parses src as Go and fails if any import is unreferenced
+// (the "imported and not used" compile error, in syntactic form). It resolves
+// each import's local name - the alias, or the last path segment when unnamed -
+// and checks a matching pkg.Sel selector appears somewhere in the file. This is
+// the corpus's compile stand-in for goldens meant to be pure target-version
+// output, since the test does not build against the real packages.
+func assertNoUnusedImports(t *testing.T, file string, src []byte) {
+	t.Helper()
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, file, src, parser.SkipObjectResolution)
+	require.NoError(t, err, "parse %s", file)
+
+	used := map[string]bool{}
+	ast.Inspect(f, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok {
+			if id, ok := sel.X.(*ast.Ident); ok {
+				used[id.Name] = true
+			}
+		}
+		return true
+	})
+
+	for _, imp := range f.Imports {
+		path := strings.Trim(imp.Path.Value, `"`)
+		var name string
+		if imp.Name != nil {
+			name = imp.Name.Name
+		} else if i := strings.LastIndex(path, "/"); i >= 0 {
+			name = path[i+1:]
+		} else {
+			name = path
+		}
+		if name == "_" || name == "." {
+			continue // blank/dot imports are used by side effect
+		}
+		require.Truef(t, used[name], "%s imports %q (as %q) but never references it", file, path, name)
 	}
 }
 
