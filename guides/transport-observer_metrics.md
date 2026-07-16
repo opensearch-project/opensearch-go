@@ -32,7 +32,7 @@ Observer methods run on the request hot path and must return quickly. To do real
 
 ## Prometheus with `osprom`
 
-The [`osprom`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/osprom) module records these events to Prometheus. It is a separate Go module, so the Prometheus client library stays out of the core client's dependency graph -- you opt in by importing it.
+The [`osprom`](https://github.com/opensearch-project/opensearch-go/tree/main/osprom) module records these events to Prometheus. It is a separate Go module, so the Prometheus client library stays out of the core client's dependency graph -- you opt in by importing it.
 
 `osprom.Registry` is the single observer you wire into the client. Into it you wire a Prometheus registerer and any number of `Observer` bundles. The Registry copies each event into a pooled envelope and fans it out to the bundles on a background goroutine, so recording never blocks or allocates on the request path. When the internal buffer is full, events are dropped and a `opensearch_client_observer_dropped_total` counter is incremented -- backpressure is made observable rather than turned into latency.
 
@@ -84,4 +84,4 @@ Any type implementing `osprom.Observer` (embed `osprom.BaseObserver` for default
 
 ## OpenTelemetry with `osotel`
 
-The [`osotel`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/osotel) module is the OpenTelemetry counterpart to `osprom`, with the same `Registry` + `Observer` model and async pooled pipeline. Wire an OTel `metric.Meter` (instead of a Prometheus registerer) and one or more `osotel.Observer` bundles into `osotel.New`; the shipped `osotel.NewRequestObserver` records `opensearch.client.request.duration` and `opensearch.client.response.size` histograms. See `osotel/README.md`.
+The [`osotel`](https://github.com/opensearch-project/opensearch-go/tree/main/osotel) module is the OpenTelemetry counterpart to `osprom`, with the same `Registry` + `Observer` model and async pooled pipeline. Wire an OTel `metric.Meter` (instead of a Prometheus registerer) and one or more `osotel.Observer` bundles into `osotel.New`; the shipped `osotel.NewRequestObserver` records `opensearch.client.request.duration` and `opensearch.client.response.size` histograms. See `osotel/README.md`.
