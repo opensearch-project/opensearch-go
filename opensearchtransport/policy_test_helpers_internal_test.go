@@ -31,8 +31,10 @@ func createTestConnection(urlStr string, roles ...string) *Connection {
 	}
 	// Set lcActive to match the state after allConns pool partition logic
 	// (discovery.go lines 911-922). Policy DiscoveryUpdate checks isReady()
-	// which requires lcActive or lcStandby.
-	conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+	// which requires lcActive or lcStandby. lcViable marks it as proven
+	// reachable (a verified discovered node), so availableForRouting() and the
+	// policy-enabled check treat it as routable.
+	conn.setLifecycleBit(lcActive | lcNeedsWarmup | lcViable)
 	return conn
 }
 
@@ -49,7 +51,7 @@ func createDeadTestConnection(urlStr string, roles ...string) *Connection {
 	for _, role := range roles {
 		conn.Roles[role] = struct{}{}
 	}
-	conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup)))
+	conn.setLifecycleBit(lcDead | lcNeedsWarmup)
 	conn.mu.Lock()
 	conn.markAsDeadWithLock()
 	conn.mu.Unlock()

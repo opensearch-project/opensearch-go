@@ -1309,6 +1309,11 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		{Name: "warm-node", Roles: newRoleSet([]string{RoleWarm})},
 		{Name: "coordinating-node", Roles: newRoleSet([]string{})}, // No specific roles
 	}
+	// Model verified, reachable discovered nodes: latch lcViable so they count
+	// as availableForRouting.
+	for _, c := range connections {
+		c.setLifecycleBit(lcViable)
+	}
 
 	t.Run("ChainPolicy with multiple role requirements (OR logic)", func(t *testing.T) {
 		// Create individual policies for each role combination
@@ -1345,6 +1350,11 @@ func TestGenericRoleBasedSelector(t *testing.T) {
 		connections := []*Connection{
 			{Name: "data-node", URL: &url.URL{Host: "data-node:9200"}, Roles: newRoleSet([]string{RoleData})},
 			{Name: "cluster-manager-node", URL: &url.URL{Host: "cm-node:9200"}, Roles: newRoleSet([]string{RoleClusterManager})},
+		}
+		// Model verified, reachable discovered nodes: latch lcViable so they
+		// count as availableForRouting.
+		for _, c := range connections {
+			c.setLifecycleBit(lcViable)
 		}
 
 		// Create a RolePolicy for data nodes (excludes cluster managers)
@@ -1449,6 +1459,11 @@ func TestRolePolicies(t *testing.T) {
 		{Name: "warm-node", URL: &url.URL{Host: "warm:9200"}, Roles: newRoleSet([]string{RoleWarm})},
 		{Name: "search-node", URL: &url.URL{Host: "search:9200"}, Roles: newRoleSet([]string{RoleSearch})},
 		{Name: "coordinating-node", URL: &url.URL{Host: "coord:9200"}, Roles: newRoleSet([]string{})}, // No specific roles
+	}
+	// Model verified, reachable discovered nodes: set lcViable so they count
+	// as availableForRouting.
+	for _, c := range connections {
+		c.setLifecycleBit(lcViable)
 	}
 
 	t.Run("IngestPolicy", func(t *testing.T) {
@@ -1604,7 +1619,7 @@ func TestComputeWeights(t *testing.T) {
 func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 	t.Run("single ready conn creates singleServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		client := &Client{}
 		// Start with an existing singleServerPool (what you'd have in practice)
@@ -1621,7 +1636,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 
 	t.Run("single dead conn creates singleServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
-		conn.state.Store(int64(newConnState(lcDead)))
+		conn.setLifecycleBit(lcDead)
 
 		client := &Client{}
 		client.mu.connectionPool = &singleServerPool{}
@@ -1637,7 +1652,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 
 	t.Run("demote from multiServerPool", func(t *testing.T) {
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node1:9200"}}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		msp := &multiServerPool{}
 		msp.mu.ready = []*Connection{conn}
@@ -1662,7 +1677,7 @@ func TestCreateOrUpdateSingleNodePool(t *testing.T) {
 		existingPool := &singleServerPool{connection: oldConn, metrics: existingMetrics}
 
 		newConn := &Connection{URL: &url.URL{Scheme: "http", Host: "new:9200"}}
-		newConn.state.Store(int64(newConnState(lcActive)))
+		newConn.setLifecycleBit(lcActive)
 
 		client := &Client{}
 		client.mu.connectionPool = existingPool
@@ -2015,7 +2030,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 
 		ready := makeConn("node1:9200")
 		dead := makeConn("node2:9200")
-		dead.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		dead.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 
 		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{ready}, []*Connection{dead})
 		require.NoError(t, err)
@@ -2044,7 +2059,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 		existing := makeConn("node1:9200")
 		existing.ID = "node-id-1"
 		existing.Name = "node1"
-		existing.state.Store(int64(newConnState(lcActive)))
+		existing.setLifecycleBit(lcActive)
 		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{existing}, nil)
 		require.NoError(t, err)
 
@@ -2084,7 +2099,7 @@ func TestUpdateConnectionPool(t *testing.T) {
 		existing := makeConn("node1:9200")
 		existing.ID = "old-id"
 		existing.Name = "node1"
-		existing.state.Store(int64(newConnState(lcActive)))
+		existing.setLifecycleBit(lcActive)
 		err := client.updateConnectionPool(t.Context(), time.Time{}, []*Connection{existing}, nil)
 		require.NoError(t, err)
 

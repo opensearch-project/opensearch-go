@@ -83,10 +83,11 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		node := &shardNodeInfo{Replicas: 1}
 
 		warmed := scoreTestConn(t, "warmed", rtt, load)
-		warmed.state.Store(int64(newConnState(lcActive))) // no warmup
+		warmed.setLifecycleBit(lcActive)
 
 		warming := scoreTestConn(t, "warming", rtt, load)
-		warming.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 8, 8)))
+		warming.setLifecycleBit(lcActive | lcNeedsWarmup)
+		warming.startWarmup(8, 8)
 
 		warmedScore := calcConnDefaultScore(warmed, shardCostForReads.forNode(node), "", true)
 		warmingScore := calcConnDefaultScore(warming, shardCostForReads.forNode(node), "", true)
@@ -101,7 +102,8 @@ func TestCalcConnScore_IgnoresWarmup(t *testing.T) {
 		load := 10.0
 
 		conn := scoreTestConn(t, "node", rtt, load)
-		conn.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 8, 8)))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
+		conn.startWarmup(8, 8)
 
 		// Unknown shard cost (32.0) vs replica shard cost (1.0)
 		scoreUnknown := calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
@@ -122,7 +124,7 @@ func TestTryWarmupSkip_AdvancesWarmup(t *testing.T) {
 	t.Run("tryWarmupSkip advances warmup counter", func(t *testing.T) {
 		t.Parallel()
 		conn := &Connection{URL: &url.URL{Scheme: "https", Host: "pool-warmup:9200"}}
-		conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 		conn.startWarmup(8, 8)
 
 		before := conn.loadConnState().roundManager()
@@ -142,7 +144,7 @@ func TestTryWarmupSkip_AdvancesWarmup(t *testing.T) {
 	t.Run("repeated tryWarmupSkip completes warmup", func(t *testing.T) {
 		t.Parallel()
 		conn := &Connection{URL: &url.URL{Scheme: "https", Host: "pool-complete:9200"}}
-		conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 		conn.startWarmup(8, 8)
 
 		require.True(t, conn.loadConnState().isWarmingUp(), "should be warming initially")
@@ -164,7 +166,7 @@ func TestTryWarmupSkip_AdvancesWarmup(t *testing.T) {
 	t.Run("tryWarmupSkip with no warmup returns inactive", func(t *testing.T) {
 		t.Parallel()
 		conn := &Connection{URL: &url.URL{Scheme: "https", Host: "pool-no-warmup:9200"}}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		result := conn.tryWarmupSkip()
 		require.Equal(t, warmupInactive, result)
@@ -180,7 +182,7 @@ func TestTryWarmupSkip_AdvancesWarmup(t *testing.T) {
 		// handles warmup gating, not lifecycle. Verify that a dead connection
 		// has tryWarmupSkip return inactive (since it's not warming).
 		conn := &Connection{URL: &url.URL{Scheme: "https", Host: "pool-dead:9200"}}
-		conn.state.Store(int64(newConnState(lcDead)))
+		conn.setLifecycleBit(lcDead)
 
 		result := conn.tryWarmupSkip()
 		require.Equal(t, warmupInactive, result,
@@ -199,10 +201,11 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 		load := 10.0
 
 		warmed := scoreTestConn(t, "warmed", rtt, load)
-		warmed.state.Store(int64(newConnState(lcActive)))
+		warmed.setLifecycleBit(lcActive)
 
 		warming := scoreTestConn(t, "warming", rtt, load)
-		warming.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 8, 8)))
+		warming.setLifecycleBit(lcActive | lcNeedsWarmup)
+		warming.startWarmup(8, 8)
 
 		candidates := []*Connection{warming, warmed}
 
@@ -230,11 +233,11 @@ func TestConnScoreSelect_WarmupGating(t *testing.T) {
 
 		// Both connections are warming.
 		connA := scoreTestConn(t, "nodeA", rtt, load)
-		connA.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		connA.setLifecycleBit(lcActive | lcNeedsWarmup)
 		connA.startWarmup(8, 8)
 
 		connB := scoreTestConn(t, "nodeB", rtt, load)
-		connB.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		connB.setLifecycleBit(lcActive | lcNeedsWarmup)
 		connB.startWarmup(8, 8)
 
 		candidates := []*Connection{connA, connB}

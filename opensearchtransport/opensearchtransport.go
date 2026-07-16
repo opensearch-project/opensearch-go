@@ -766,6 +766,8 @@ func New(cfg Config) (*Client, error) {
 		conn := &Connection{URL: u, URLString: u.String(), seed: true}
 		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
+		// Seeds are user-asserted and always a viable routing/zombie candidate.
+		conn.setLifecycleBit(lcViable) //nolint:errcheck // fresh conn; only errLifecycleNoop possible
 		conns[idx] = conn
 	}
 
@@ -882,7 +884,7 @@ func New(cfg Config) (*Client, error) {
 			conn.estLoad.clock = realClock{}
 			conn.weight.Store(1)
 			conn.mu.Lock()
-			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive|lcViable, lcUnknown|lcStandby) //nolint:errcheck // lock held
 			conn.mu.Unlock()
 			seedConns[i] = conn
 		}

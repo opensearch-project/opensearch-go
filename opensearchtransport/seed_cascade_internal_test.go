@@ -14,13 +14,14 @@ import (
 )
 
 // TestAvailableForRouting covers the per-connection predicate that decides
-// whether a connection may satisfy a policy's "has anything to serve" check.
-// Seeds are always available; discovered connections are available only once
-// they have been verified (lcNeedsHardware cleared).
+// whether a connection may satisfy a policy's "has anything to serve" check
+// (and whether it may be served as a last-resort zombie). Seeds are always
+// available; discovered connections are available only once they have been
+// proven directly reachable (lcViable latched).
 func TestAvailableForRouting(t *testing.T) {
 	newConn := func(seed bool, lc connLifecycle) *Connection {
 		c := &Connection{URL: &url.URL{Scheme: "http", Host: "n:9200"}, seed: seed}
-		c.state.Store(int64(newConnState(lc)))
+		c.setLifecycleBit(lc)
 		return c
 	}
 
@@ -40,19 +41,24 @@ func TestAvailableForRouting(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "discovered never verified is not available",
+			name: "discovered never verified (no lcViable) is not available",
 			conn: newConn(false, lcDead|lcNeedsWarmup|lcNeedsHardware),
 			want: false,
 		},
 		{
-			name: "discovered verified (hardware cleared) is available",
-			conn: newConn(false, lcDead|lcNeedsWarmup),
+			name: "discovered proven reachable (lcViable) is available even while dead",
+			conn: newConn(false, lcDead|lcNeedsWarmup|lcViable),
 			want: true,
 		},
 		{
-			name: "zero-value (non-seed, no hardware bit) defaults to available",
-			conn: &Connection{URL: &url.URL{Scheme: "http", Host: "n:9200"}},
+			name: "discovered proven reachable (lcViable) stays available after a hardware refetch is flagged",
+			conn: newConn(false, lcDead|lcNeedsWarmup|lcNeedsHardware|lcViable),
 			want: true,
+		},
+		{
+			name: "zero-value (non-seed, never verified) is not available",
+			conn: &Connection{URL: &url.URL{Scheme: "http", Host: "n:9200"}},
+			want: false,
 		},
 	}
 
@@ -73,17 +79,18 @@ func TestHasAvailableConnsWithLock(t *testing.T) {
 
 	deadDiscovered := func() *Connection {
 		c := &Connection{URL: discURL, URLString: discURL.String()}
-		c.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		c.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 		return c
 	}
 	deadSeed := func() *Connection {
 		c := &Connection{URL: seedURL, URLString: seedURL.String(), seed: true}
-		c.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		c.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 		return c
 	}
 	verifiedDiscovered := func() *Connection {
 		c := &Connection{URL: discURL, URLString: discURL.String()}
-		c.state.Store(int64(newConnState(lcDead | lcNeedsWarmup))) // hardware cleared
+		// proven reachable at least once
+		c.setLifecycleBit(lcDead | lcNeedsWarmup | lcViable)
 		return c
 	}
 
@@ -108,7 +115,7 @@ func TestHasAvailableConnsWithLock(t *testing.T) {
 	t.Run("any ready conn keeps the pool available", func(t *testing.T) {
 		cp := &multiServerPool{name: "test"}
 		ready := &Connection{URL: discURL, URLString: discURL.String()}
-		ready.state.Store(int64(newConnState(lcActive)))
+		ready.setLifecycleBit(lcActive)
 		cp.mu.ready = []*Connection{ready}
 		require.True(t, cp.hasAvailableConnsWithLock())
 	})

@@ -256,7 +256,7 @@ func TestMetrics(t *testing.T) {
 			URL:   "http://foo1",
 			State: activeState,
 		}
-		require.Equal(t, "{http://foo1 state=ready+active (000000000101)}", m.String())
+		require.Equal(t, "{http://foo1 state=ready+active (0000000000101)}", m.String())
 
 		// Dead connection: lcUnknown|lcNeedsWarmup -- awaiting resurrection
 		tt, _ := time.Parse(time.RFC3339, "2010-11-11T11:00:00Z")

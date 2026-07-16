@@ -155,8 +155,8 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 		}
 		// Initialize warmup: 3 rounds, 1 skip per round.
 		// Total tryWarmupSkip calls to complete: round3(skip1+accept) + round2(skip1+accept) + round1(accept) = 5
-		cs := warmupState(lcActive|lcNeedsWarmup, 3, 1)
-		conn.state.Store(int64(cs))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
+		conn.startWarmup(3, 1)
 
 		// Verify the connection starts in warmup.
 		if !conn.loadConnState().isWarmingUp() {
@@ -197,8 +197,8 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 		conn := &Connection{
 			URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"},
 		}
-		cs := warmupState(lcActive|lcNeedsWarmup, 3, 1)
-		conn.state.Store(int64(cs))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
+		conn.startWarmup(3, 1)
 
 		stateBefore := conn.state.Load()
 
@@ -224,7 +224,7 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 		conn := &Connection{
 			URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"},
 		}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		if conn.loadConnState().isWarmingUp() {
 			t.Fatal("Expected connection to NOT be warming up")
