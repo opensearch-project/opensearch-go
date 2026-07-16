@@ -18,12 +18,15 @@ import (
 func TestTitleSegment(t *testing.T) {
 	t.Parallel()
 
+	// Cases are split into two groups, each sorted by input: acronym inputs
+	// (exercising the acronyms map) first, then non-acronym inputs (baseline,
+	// edge cases, idempotence).
 	tests := []struct {
 		name  string
 		input string
 		want  string
 	}{
-		// Acronym cases, sorted by input.
+		// Acronyms, sorted by input.
 		{name: "api acronym", input: "api", want: "API"},
 		{name: "bm25 acronym", input: "bm25", want: "BM25"},
 		{name: "cjk acronym", input: "cjk", want: "CJK"},
@@ -56,7 +59,8 @@ func TestTitleSegment(t *testing.T) {
 		{name: "uuid acronym", input: "uuid", want: "UUID"},
 		{name: "wlm acronym", input: "wlm", want: "WLM"},
 		{name: "xy acronym", input: "xy", want: "XY"},
-		// Non-acronym cases (baseline, edge cases, idempotence), sorted by input.
+
+		// Non-acronyms (baseline, edge cases, idempotence), sorted by input.
 		{name: "empty", input: "", want: ""},
 		{name: "mixed case id", input: "ID", want: "ID"},
 		{name: "already capitalized", input: "Stats", want: "Stats"},
@@ -182,16 +186,21 @@ func TestUnexportedFieldName(t *testing.T) {
 func TestBaseGoName(t *testing.T) {
 	t.Parallel()
 
+	// Cases are grouped with a blank line between groups: basic segment
+	// splitting first, then aggregation-result branch codes, then hyphenated
+	// titles.
 	tests := []struct {
 		name  string
 		input string
 		want  string
 	}{
+		// Basic splitting on '_'/'.' and leading-underscore trimming.
 		{name: "simple", input: "cluster_name", want: "ClusterName"},
 		{name: "leading underscore", input: "_nodes", want: "Nodes"},
 		{name: "uuid", input: "cluster_uuid", want: "ClusterUUID"},
 		{name: "plain", input: "status", want: "Status"},
 		{name: "dotted", input: "some.field", want: "SomeField"},
+
 		// Aggregation-result branch titles: terse internal codes split into
 		// the idiomatic PascalCase the decoded type uses. Sorted by input.
 		{name: "lrareterms agg code", input: "lrareterms", want: "LRareTerms"},
@@ -201,6 +210,7 @@ func TestBaseGoName(t *testing.T) {
 		{name: "tdigest agg code", input: "tdigest_percentiles", want: "TDigestPercentiles"},
 		{name: "ulterms agg code", input: "ulterms", want: "ULTerms"},
 		{name: "umterms agg code", input: "umterms", want: "UMTerms"},
+
 		// Hyphenated titles (search-pipeline processors) normalize to PascalCase.
 		{name: "hyphenated title", input: "score-ranker-processor", want: "ScoreRankerProcessor"},
 	}
@@ -311,12 +321,16 @@ func TestGoFieldName(t *testing.T) {
 func TestSchemaTypeName(t *testing.T) {
 	t.Parallel()
 
+	// Cases are grouped by the naming behavior they exercise, with a blank line
+	// between groups: general de-stuttering and prefix handling first, then
+	// embedded-acronym normalization, then idiomatic abbreviations.
 	tests := []struct {
 		name       string
 		schemaKey  string
 		isRespBody bool
 		want       string
 	}{
+		// De-stuttering, prefix stripping, and group._common handling.
 		{name: "common type", schemaKey: "_common___ShardStatistics", want: "ShardStatistics"},
 		{name: "common error cause", schemaKey: "_common___ErrorCause", want: "ErrorCause"},
 		{name: "common acknowledged", schemaKey: "_common___AcknowledgedResponseBase", want: "AcknowledgedRespBase"},
@@ -338,6 +352,7 @@ func TestSchemaTypeName(t *testing.T) {
 		{name: "sql plugin", schemaKey: "sql._common___SQLQuery", want: "SQLQuery"},
 		{name: "ism plugin acronym", schemaKey: "ism._common___Policy", want: "ISMPolicy"},
 		{name: "knn plugin acronym", schemaKey: "knn._common___Stats", want: "KNNStats"},
+
 		// Embedded acronym in the local part must normalize and de-stutter:
 		// "IsmTemplate" -> "ISMTemplate", not "ISMIsmTemplate".
 		{name: "ism embedded acronym de-stutters", schemaKey: "ism._common___IsmTemplate", want: "ISMTemplate"},
