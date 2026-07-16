@@ -212,7 +212,7 @@ func (c indicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndex
 		data IndicesPutIndexTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

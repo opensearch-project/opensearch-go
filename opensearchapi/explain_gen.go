@@ -273,7 +273,7 @@ func (c Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, erro
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

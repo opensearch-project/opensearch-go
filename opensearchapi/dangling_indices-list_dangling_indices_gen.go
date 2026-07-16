@@ -143,7 +143,7 @@ func (c danglingClient) ListDanglingIndices(ctx context.Context, req *DanglingIn
 		data DanglingIndicesListDanglingIndicesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

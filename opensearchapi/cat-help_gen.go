@@ -128,7 +128,7 @@ func (c catClient) Help(ctx context.Context, req *CatHelpReq) (*CatHelpResp, err
 		data CatHelpResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

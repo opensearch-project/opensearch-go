@@ -53,14 +53,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +141,7 @@ func (c *Client) Authinfo(ctx context.Context, req *AuthinfoReq) (*AuthinfoResp,
 		req = &AuthinfoReq{}
 	}
 	var resp AuthinfoResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -159,7 +159,7 @@ func (c *Client) Authtoken(ctx context.Context, req *AuthtokenReq) (*AuthtokenRe
 		req = &AuthtokenReq{}
 	}
 	var resp AuthtokenResp
-	if _, err := do(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -179,7 +179,7 @@ func (c *Client) ChangePassword(ctx context.Context, req *ChangePasswordReq) (*C
 		req = &ChangePasswordReq{}
 	}
 	var resp ChangePasswordResp
-	if _, err := do(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -199,7 +199,7 @@ func (c *Client) ConfigUpgradeCheck(ctx context.Context, req *ConfigUpgradeCheck
 		req = &ConfigUpgradeCheckReq{}
 	}
 	var resp ConfigUpgradeCheckResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -219,7 +219,7 @@ func (c *Client) ConfigUpgradePerform(ctx context.Context, req *ConfigUpgradePer
 		req = &ConfigUpgradePerformReq{}
 	}
 	var resp ConfigUpgradePerformResp
-	if _, err := do(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -239,7 +239,7 @@ func (c *Client) FlushCache(ctx context.Context, req *FlushCacheReq) (*FlushCach
 		req = &FlushCacheReq{}
 	}
 	var resp FlushCacheResp
-	if _, err := do(ctx, c, http.MethodDelete, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -259,7 +259,7 @@ func (c *Client) GenerateOboToken(ctx context.Context, req *GenerateOboTokenReq)
 		req = &GenerateOboTokenReq{}
 	}
 	var resp GenerateOboTokenResp
-	if _, err := do(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -274,7 +274,7 @@ func (c *Client) GenerateOboToken(ctx context.Context, req *GenerateOboTokenReq)
 // Not available on: amazon-managed, amazon-serverless.
 func (c *Client) GenerateUserToken(ctx context.Context, req GenerateUserTokenReq) (*GenerateUserTokenResp, error) {
 	var resp GenerateUserTokenResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -289,7 +289,7 @@ func (c *Client) GenerateUserToken(ctx context.Context, req GenerateUserTokenReq
 // Not available on: amazon-managed, amazon-serverless.
 func (c *Client) GenerateUserTokenLegacy(ctx context.Context, req GenerateUserTokenLegacyReq) (*GenerateUserTokenLegacyResp, error) {
 	var resp GenerateUserTokenLegacyResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -309,7 +309,7 @@ func (c *Client) GetAccountDetails(ctx context.Context, req *GetAccountDetailsRe
 		req = &GetAccountDetailsReq{}
 	}
 	var resp GetAccountDetailsResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -324,7 +324,7 @@ func (c *Client) GetAccountDetails(ctx context.Context, req *GetAccountDetailsRe
 // Not available on: amazon-managed, amazon-serverless.
 func (c *Client) GetNodeCertificates(ctx context.Context, req GetNodeCertificatesReq) (*GetNodeCertificatesResp, error) {
 	var resp GetNodeCertificatesResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -342,7 +342,7 @@ func (c *Client) GetPermissionsInfo(ctx context.Context, req *GetPermissionsInfo
 		req = &GetPermissionsInfoReq{}
 	}
 	var resp GetPermissionsInfoResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -358,7 +358,7 @@ func (c *Client) GetSslinfo(ctx context.Context, req *GetSslinfoReq) (*GetSslinf
 		req = &GetSslinfoReq{}
 	}
 	var resp GetSslinfoResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -380,7 +380,7 @@ func (c *Client) Health(ctx context.Context, req *HealthReq) (*HealthResp, error
 		req = &HealthReq{}
 	}
 	var resp HealthResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -398,7 +398,7 @@ func (c *Client) Migrate(ctx context.Context, req *MigrateReq) (*MigrateResp, er
 		req = &MigrateReq{}
 	}
 	var resp MigrateResp
-	if _, err := do(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -418,7 +418,7 @@ func (c *Client) ReloadHTTPCertificates(ctx context.Context, req *ReloadHTTPCert
 		req = &ReloadHTTPCertificatesReq{}
 	}
 	var resp ReloadHTTPCertificatesResp
-	if _, err := do(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -438,7 +438,7 @@ func (c *Client) ReloadTransportCertificates(ctx context.Context, req *ReloadTra
 		req = &ReloadTransportCertificatesReq{}
 	}
 	var resp ReloadTransportCertificatesResp
-	if _, err := do(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -458,7 +458,7 @@ func (c *Client) TenantInfo(ctx context.Context, req *TenantInfoReq) (*TenantInf
 		req = &TenantInfoReq{}
 	}
 	var resp TenantInfoResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -476,7 +476,7 @@ func (c *Client) Validate(ctx context.Context, req *ValidateReq) (*ValidateResp,
 		req = &ValidateReq{}
 	}
 	var resp ValidateResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -496,7 +496,7 @@ func (c *Client) WhoAmI(ctx context.Context, req *WhoAmIReq) (*WhoAmIResp, error
 		req = &WhoAmIReq{}
 	}
 	var resp WhoAmIResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -514,7 +514,7 @@ func (c *Client) WhoAmIProtected(ctx context.Context, req *WhoAmIProtectedReq) (
 		req = &WhoAmIProtectedReq{}
 	}
 	var resp WhoAmIProtectedResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -531,7 +531,7 @@ func (c *Client) WhoAmIProtected(ctx context.Context, req *WhoAmIProtectedReq) (
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-action-group
 func (c actionGroupClient) CreateActionGroup(ctx context.Context, req CreateActionGroupReq) (*CreateActionGroupResp, error) {
 	var resp CreateActionGroupResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -551,7 +551,7 @@ func (c allowlistClient) CreateAllowlist(ctx context.Context, req *CreateAllowli
 		req = &CreateAllowlistReq{}
 	}
 	var resp CreateAllowlistResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -568,7 +568,7 @@ func (c allowlistClient) CreateAllowlist(ctx context.Context, req *CreateAllowli
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-role
 func (c roleClient) CreateRole(ctx context.Context, req CreateRoleReq) (*CreateRoleResp, error) {
 	var resp CreateRoleResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -585,7 +585,7 @@ func (c roleClient) CreateRole(ctx context.Context, req CreateRoleReq) (*CreateR
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-role-mapping
 func (c roleMappingClient) CreateRoleMapping(ctx context.Context, req CreateRoleMappingReq) (*CreateRoleMappingResp, error) {
 	var resp CreateRoleMappingResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -602,7 +602,7 @@ func (c roleMappingClient) CreateRoleMapping(ctx context.Context, req CreateRole
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-tenant
 func (c tenantClient) CreateTenant(ctx context.Context, req CreateTenantReq) (*CreateTenantResp, error) {
 	var resp CreateTenantResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -622,7 +622,7 @@ func (c tenancyConfigClient) CreateUpdateTenancyConfig(ctx context.Context, req 
 		req = &CreateUpdateTenancyConfigReq{}
 	}
 	var resp CreateUpdateTenancyConfigResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -639,7 +639,7 @@ func (c tenancyConfigClient) CreateUpdateTenancyConfig(ctx context.Context, req 
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-user
 func (c userClient) CreateUser(ctx context.Context, req CreateUserReq) (*CreateUserResp, error) {
 	var resp CreateUserResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -654,7 +654,7 @@ func (c userClient) CreateUser(ctx context.Context, req CreateUserReq) (*CreateU
 // Not available on: amazon-managed, amazon-serverless.
 func (c userLegacyClient) CreateUserLegacy(ctx context.Context, req CreateUserLegacyReq) (*CreateUserLegacyResp, error) {
 	var resp CreateUserLegacyResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -671,7 +671,7 @@ func (c userLegacyClient) CreateUserLegacy(ctx context.Context, req CreateUserLe
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-action-group
 func (c actionGroupClient) DeleteActionGroup(ctx context.Context, req DeleteActionGroupReq) (*DeleteActionGroupResp, error) {
 	var resp DeleteActionGroupResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -688,7 +688,7 @@ func (c actionGroupClient) DeleteActionGroup(ctx context.Context, req DeleteActi
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-distinguished-names
 func (c distinguishedNameClient) DeleteDistinguishedName(ctx context.Context, req DeleteDistinguishedNameReq) (*DeleteDistinguishedNameResp, error) {
 	var resp DeleteDistinguishedNameResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -705,7 +705,7 @@ func (c distinguishedNameClient) DeleteDistinguishedName(ctx context.Context, re
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-role
 func (c roleClient) DeleteRole(ctx context.Context, req DeleteRoleReq) (*DeleteRoleResp, error) {
 	var resp DeleteRoleResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -722,7 +722,7 @@ func (c roleClient) DeleteRole(ctx context.Context, req DeleteRoleReq) (*DeleteR
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-role-mapping
 func (c roleMappingClient) DeleteRoleMapping(ctx context.Context, req DeleteRoleMappingReq) (*DeleteRoleMappingResp, error) {
 	var resp DeleteRoleMappingResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -739,7 +739,7 @@ func (c roleMappingClient) DeleteRoleMapping(ctx context.Context, req DeleteRole
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-action-group
 func (c tenantClient) DeleteTenant(ctx context.Context, req DeleteTenantReq) (*DeleteTenantResp, error) {
 	var resp DeleteTenantResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -756,7 +756,7 @@ func (c tenantClient) DeleteTenant(ctx context.Context, req DeleteTenantReq) (*D
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-user
 func (c userClient) DeleteUser(ctx context.Context, req DeleteUserReq) (*DeleteUserResp, error) {
 	var resp DeleteUserResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -771,7 +771,7 @@ func (c userClient) DeleteUser(ctx context.Context, req DeleteUserReq) (*DeleteU
 // Not available on: amazon-managed, amazon-serverless.
 func (c userLegacyClient) DeleteUserLegacy(ctx context.Context, req DeleteUserLegacyReq) (*DeleteUserLegacyResp, error) {
 	var resp DeleteUserLegacyResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -788,7 +788,7 @@ func (c userLegacyClient) DeleteUserLegacy(ctx context.Context, req DeleteUserLe
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-action-group
 func (c actionGroupClient) GetActionGroup(ctx context.Context, req GetActionGroupReq) (*GetActionGroupResp, error) {
 	var resp GetActionGroupResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -808,7 +808,7 @@ func (c actionGroupClient) GetActionGroups(ctx context.Context, req *GetActionGr
 		req = &GetActionGroupsReq{}
 	}
 	var resp GetActionGroupsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -826,7 +826,7 @@ func (c certificateClient) GetAllCertificates(ctx context.Context, req *GetAllCe
 		req = &GetAllCertificatesReq{}
 	}
 	var resp GetAllCertificatesResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -846,7 +846,7 @@ func (c allowlistClient) GetAllowlist(ctx context.Context, req *GetAllowlistReq)
 		req = &GetAllowlistReq{}
 	}
 	var resp GetAllowlistResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -866,7 +866,7 @@ func (c auditConfigurationClient) GetAuditConfiguration(ctx context.Context, req
 		req = &GetAuditConfigurationReq{}
 	}
 	var resp GetAuditConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -886,7 +886,7 @@ func (c certificateClient) GetCertificates(ctx context.Context, req *GetCertific
 		req = &GetCertificatesReq{}
 	}
 	var resp GetCertificatesResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -906,7 +906,7 @@ func (c configurationClient) GetConfiguration(ctx context.Context, req *GetConfi
 		req = &GetConfigurationReq{}
 	}
 	var resp GetConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -924,7 +924,7 @@ func (c dashboardInfoClient) GetDashboardsInfo(ctx context.Context, req *GetDash
 		req = &GetDashboardsInfoReq{}
 	}
 	var resp GetDashboardsInfoResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -941,7 +941,7 @@ func (c dashboardInfoClient) GetDashboardsInfo(ctx context.Context, req *GetDash
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-distinguished-names
 func (c distinguishedNameClient) GetDistinguishedName(ctx context.Context, req GetDistinguishedNameReq) (*GetDistinguishedNameResp, error) {
 	var resp GetDistinguishedNameResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -961,7 +961,7 @@ func (c distinguishedNameClient) GetDistinguishedNames(ctx context.Context, req 
 		req = &GetDistinguishedNamesReq{}
 	}
 	var resp GetDistinguishedNamesResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -978,7 +978,7 @@ func (c distinguishedNameClient) GetDistinguishedNames(ctx context.Context, req 
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role
 func (c roleClient) GetRole(ctx context.Context, req GetRoleReq) (*GetRoleResp, error) {
 	var resp GetRoleResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -995,7 +995,7 @@ func (c roleClient) GetRole(ctx context.Context, req GetRoleReq) (*GetRoleResp, 
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role-mapping
 func (c roleMappingClient) GetRoleMapping(ctx context.Context, req GetRoleMappingReq) (*GetRoleMappingResp, error) {
 	var resp GetRoleMappingResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1015,7 +1015,7 @@ func (c roleMappingClient) GetRoleMappings(ctx context.Context, req *GetRoleMapp
 		req = &GetRoleMappingsReq{}
 	}
 	var resp GetRoleMappingsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1035,7 +1035,7 @@ func (c roleClient) GetRoles(ctx context.Context, req *GetRolesReq) (*GetRolesRe
 		req = &GetRolesReq{}
 	}
 	var resp GetRolesResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1055,7 +1055,7 @@ func (c tenancyConfigClient) GetTenancyConfig(ctx context.Context, req *GetTenan
 		req = &GetTenancyConfigReq{}
 	}
 	var resp GetTenancyConfigResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1072,7 +1072,7 @@ func (c tenancyConfigClient) GetTenancyConfig(ctx context.Context, req *GetTenan
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-tenant
 func (c tenantClient) GetTenant(ctx context.Context, req GetTenantReq) (*GetTenantResp, error) {
 	var resp GetTenantResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1092,7 +1092,7 @@ func (c tenantClient) GetTenants(ctx context.Context, req *GetTenantsReq) (*GetT
 		req = &GetTenantsReq{}
 	}
 	var resp GetTenantsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1109,7 +1109,7 @@ func (c tenantClient) GetTenants(ctx context.Context, req *GetTenantsReq) (*GetT
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-user
 func (c userClient) GetUser(ctx context.Context, req GetUserReq) (*GetUserResp, error) {
 	var resp GetUserResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1124,7 +1124,7 @@ func (c userClient) GetUser(ctx context.Context, req GetUserReq) (*GetUserResp, 
 // Not available on: amazon-managed, amazon-serverless.
 func (c userLegacyClient) GetUserLegacy(ctx context.Context, req GetUserLegacyReq) (*GetUserLegacyResp, error) {
 	var resp GetUserLegacyResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1144,7 +1144,7 @@ func (c userClient) GetUsers(ctx context.Context, req *GetUsersReq) (*GetUsersRe
 		req = &GetUsersReq{}
 	}
 	var resp GetUsersResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1162,7 +1162,7 @@ func (c userLegacyClient) GetUsersLegacy(ctx context.Context, req *GetUsersLegac
 		req = &GetUsersLegacyReq{}
 	}
 	var resp GetUsersLegacyResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1179,7 +1179,7 @@ func (c userLegacyClient) GetUsersLegacy(ctx context.Context, req *GetUsersLegac
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-action-group
 func (c actionGroupClient) PatchActionGroup(ctx context.Context, req PatchActionGroupReq) (*PatchActionGroupResp, error) {
 	var resp PatchActionGroupResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1199,7 +1199,7 @@ func (c actionGroupClient) PatchActionGroups(ctx context.Context, req *PatchActi
 		req = &PatchActionGroupsReq{}
 	}
 	var resp PatchActionGroupsResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1219,7 +1219,7 @@ func (c allowlistClient) PatchAllowlist(ctx context.Context, req *PatchAllowlist
 		req = &PatchAllowlistReq{}
 	}
 	var resp PatchAllowlistResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1239,7 +1239,7 @@ func (c auditConfigurationClient) PatchAuditConfiguration(ctx context.Context, r
 		req = &PatchAuditConfigurationReq{}
 	}
 	var resp PatchAuditConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1259,7 +1259,7 @@ func (c configurationClient) PatchConfiguration(ctx context.Context, req *PatchC
 		req = &PatchConfigurationReq{}
 	}
 	var resp PatchConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1274,7 +1274,7 @@ func (c configurationClient) PatchConfiguration(ctx context.Context, req *PatchC
 // Not available on: amazon-managed, amazon-serverless.
 func (c distinguishedNameClient) PatchDistinguishedName(ctx context.Context, req PatchDistinguishedNameReq) (*PatchDistinguishedNameResp, error) {
 	var resp PatchDistinguishedNameResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1294,7 +1294,7 @@ func (c distinguishedNameClient) PatchDistinguishedNames(ctx context.Context, re
 		req = &PatchDistinguishedNamesReq{}
 	}
 	var resp PatchDistinguishedNamesResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1311,7 +1311,7 @@ func (c distinguishedNameClient) PatchDistinguishedNames(ctx context.Context, re
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-role
 func (c roleClient) PatchRole(ctx context.Context, req PatchRoleReq) (*PatchRoleResp, error) {
 	var resp PatchRoleResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1328,7 +1328,7 @@ func (c roleClient) PatchRole(ctx context.Context, req PatchRoleReq) (*PatchRole
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-role-mapping
 func (c roleMappingClient) PatchRoleMapping(ctx context.Context, req PatchRoleMappingReq) (*PatchRoleMappingResp, error) {
 	var resp PatchRoleMappingResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1348,7 +1348,7 @@ func (c roleMappingClient) PatchRoleMappings(ctx context.Context, req *PatchRole
 		req = &PatchRoleMappingsReq{}
 	}
 	var resp PatchRoleMappingsResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1368,7 +1368,7 @@ func (c roleClient) PatchRoles(ctx context.Context, req *PatchRolesReq) (*PatchR
 		req = &PatchRolesReq{}
 	}
 	var resp PatchRolesResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1385,7 +1385,7 @@ func (c roleClient) PatchRoles(ctx context.Context, req *PatchRolesReq) (*PatchR
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-tenant
 func (c tenantClient) PatchTenant(ctx context.Context, req PatchTenantReq) (*PatchTenantResp, error) {
 	var resp PatchTenantResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1405,7 +1405,7 @@ func (c tenantClient) PatchTenants(ctx context.Context, req *PatchTenantsReq) (*
 		req = &PatchTenantsReq{}
 	}
 	var resp PatchTenantsResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1422,7 +1422,7 @@ func (c tenantClient) PatchTenants(ctx context.Context, req *PatchTenantsReq) (*
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-user
 func (c userClient) PatchUser(ctx context.Context, req PatchUserReq) (*PatchUserResp, error) {
 	var resp PatchUserResp
-	if _, err := do(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1442,7 +1442,7 @@ func (c userClient) PatchUsers(ctx context.Context, req *PatchUsersReq) (*PatchU
 		req = &PatchUsersReq{}
 	}
 	var resp PatchUsersResp
-	if _, err := do(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPatch, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1460,7 +1460,7 @@ func (c dashboardInfoClient) PostDashboardsInfo(ctx context.Context, req *PostDa
 		req = &PostDashboardsInfoReq{}
 	}
 	var resp PostDashboardsInfoResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1480,7 +1480,7 @@ func (c auditConfigurationClient) UpdateAuditConfiguration(ctx context.Context, 
 		req = &UpdateAuditConfigurationReq{}
 	}
 	var resp UpdateAuditConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1500,7 +1500,7 @@ func (c configurationClient) UpdateConfiguration(ctx context.Context, req *Updat
 		req = &UpdateConfigurationReq{}
 	}
 	var resp UpdateConfigurationResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1517,7 +1517,7 @@ func (c configurationClient) UpdateConfiguration(ctx context.Context, req *Updat
 // See: https://opensearch.org/docs/latest/security/access-control/api/#update-distinguished-names
 func (c distinguishedNameClient) UpdateDistinguishedName(ctx context.Context, req UpdateDistinguishedNameReq) (*UpdateDistinguishedNameResp, error) {
 	var resp UpdateDistinguishedNameResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

@@ -185,7 +185,7 @@ func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*Indice
 		data IndicesCloseResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

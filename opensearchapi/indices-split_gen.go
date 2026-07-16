@@ -202,7 +202,7 @@ func (c indicesClient) Split(ctx context.Context, req IndicesSplitReq) (*Indices
 		data IndicesSplitResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

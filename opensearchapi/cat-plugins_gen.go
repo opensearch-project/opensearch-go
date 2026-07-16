@@ -169,7 +169,7 @@ func (c catClient) Plugins(ctx context.Context, req *CatPluginsReq) (*CatPlugins
 		data CatPluginsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

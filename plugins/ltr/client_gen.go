@@ -37,14 +37,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ type storeClient struct {
 // Available: >= 2.19.0.
 func (c *Client) AddFeaturesToSet(ctx context.Context, req AddFeaturesToSetReq) (*AddFeaturesToSetResp, error) {
 	var resp AddFeaturesToSetResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -99,7 +99,7 @@ func (c *Client) AddFeaturesToSet(ctx context.Context, req AddFeaturesToSetReq) 
 // Available: >= 2.19.0.
 func (c *Client) AddFeaturesToSetByQuery(ctx context.Context, req AddFeaturesToSetByQueryReq) (*AddFeaturesToSetByQueryResp, error) {
 	var resp AddFeaturesToSetByQueryResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -115,7 +115,7 @@ func (c *Client) CacheStats(ctx context.Context, req *CacheStatsReq) (*CacheStat
 		req = &CacheStatsReq{}
 	}
 	var resp CacheStatsResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -128,7 +128,7 @@ func (c *Client) CacheStats(ctx context.Context, req *CacheStatsReq) (*CacheStat
 // Available: >= 2.19.0.
 func (c *Client) ClearCache(ctx context.Context, req ClearCacheReq) (*ClearCacheResp, error) {
 	var resp ClearCacheResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -141,7 +141,7 @@ func (c *Client) ClearCache(ctx context.Context, req ClearCacheReq) (*ClearCache
 // Available: >= 2.19.0.
 func (c *Client) CreateModelFromSet(ctx context.Context, req CreateModelFromSetReq) (*CreateModelFromSetResp, error) {
 	var resp CreateModelFromSetResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -157,7 +157,7 @@ func (c *Client) Stats(ctx context.Context, req *StatsReq) (*StatsResp, error) {
 		req = &StatsReq{}
 	}
 	var resp StatsResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -173,7 +173,7 @@ func (c defaultStoreClient) CreateDefaultStore(ctx context.Context, req *CreateD
 		req = &CreateDefaultStoreReq{}
 	}
 	var resp CreateDefaultStoreResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -186,7 +186,7 @@ func (c defaultStoreClient) CreateDefaultStore(ctx context.Context, req *CreateD
 // Available: >= 2.19.0.
 func (c featureClient) CreateFeature(ctx context.Context, req CreateFeatureReq) (*CreateFeatureResp, error) {
 	var resp CreateFeatureResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -199,7 +199,7 @@ func (c featureClient) CreateFeature(ctx context.Context, req CreateFeatureReq) 
 // Available: >= 2.19.0.
 func (c featuresetClient) CreateFeatureset(ctx context.Context, req CreateFeaturesetReq) (*CreateFeaturesetResp, error) {
 	var resp CreateFeaturesetResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -212,7 +212,7 @@ func (c featuresetClient) CreateFeatureset(ctx context.Context, req CreateFeatur
 // Available: >= 2.19.0.
 func (c modelClient) CreateModel(ctx context.Context, req CreateModelReq) (*CreateModelResp, error) {
 	var resp CreateModelResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -225,7 +225,7 @@ func (c modelClient) CreateModel(ctx context.Context, req CreateModelReq) (*Crea
 // Available: >= 2.17.1.
 func (c storeClient) CreateStore(ctx context.Context, req CreateStoreReq) (*CreateStoreResp, error) {
 	var resp CreateStoreResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -241,7 +241,7 @@ func (c defaultStoreClient) DeleteDefaultStore(ctx context.Context, req *DeleteD
 		req = &DeleteDefaultStoreReq{}
 	}
 	var resp DeleteDefaultStoreResp
-	if _, err := do(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -254,7 +254,7 @@ func (c defaultStoreClient) DeleteDefaultStore(ctx context.Context, req *DeleteD
 // Available: >= 2.19.0.
 func (c featureClient) DeleteFeature(ctx context.Context, req DeleteFeatureReq) (*DeleteFeatureResp, error) {
 	var resp DeleteFeatureResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -267,7 +267,7 @@ func (c featureClient) DeleteFeature(ctx context.Context, req DeleteFeatureReq) 
 // Available: >= 2.19.0.
 func (c featuresetClient) DeleteFeatureset(ctx context.Context, req DeleteFeaturesetReq) (*DeleteFeaturesetResp, error) {
 	var resp DeleteFeaturesetResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -280,7 +280,7 @@ func (c featuresetClient) DeleteFeatureset(ctx context.Context, req DeleteFeatur
 // Available: >= 2.19.0.
 func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -293,7 +293,7 @@ func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // Available: >= 2.17.1.
 func (c storeClient) DeleteStore(ctx context.Context, req DeleteStoreReq) (*DeleteStoreResp, error) {
 	var resp DeleteStoreResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -306,7 +306,7 @@ func (c storeClient) DeleteStore(ctx context.Context, req DeleteStoreReq) (*Dele
 // Available: >= 2.19.0.
 func (c featureClient) GetFeature(ctx context.Context, req GetFeatureReq) (*GetFeatureResp, error) {
 	var resp GetFeatureResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -319,7 +319,7 @@ func (c featureClient) GetFeature(ctx context.Context, req GetFeatureReq) (*GetF
 // Available: >= 2.19.0.
 func (c featuresetClient) GetFeatureset(ctx context.Context, req GetFeaturesetReq) (*GetFeaturesetResp, error) {
 	var resp GetFeaturesetResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -332,7 +332,7 @@ func (c featuresetClient) GetFeatureset(ctx context.Context, req GetFeaturesetRe
 // Available: >= 2.19.0.
 func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -345,7 +345,7 @@ func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelRe
 // Available: >= 2.17.1.
 func (c storeClient) GetStore(ctx context.Context, req GetStoreReq) (*GetStoreResp, error) {
 	var resp GetStoreResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -361,7 +361,7 @@ func (c storeClient) ListStores(ctx context.Context, req *ListStoresReq) (*ListS
 		req = &ListStoresReq{}
 	}
 	var resp ListStoresResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -374,7 +374,7 @@ func (c storeClient) ListStores(ctx context.Context, req *ListStoresReq) (*ListS
 // Available: >= 2.19.0.
 func (c featureClient) SearchFeatures(ctx context.Context, req SearchFeaturesReq) (*SearchFeaturesResp, error) {
 	var resp SearchFeaturesResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -387,7 +387,7 @@ func (c featureClient) SearchFeatures(ctx context.Context, req SearchFeaturesReq
 // Available: >= 2.19.0.
 func (c featuresetClient) SearchFeaturesets(ctx context.Context, req SearchFeaturesetsReq) (*SearchFeaturesetsResp, error) {
 	var resp SearchFeaturesetsResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -400,7 +400,7 @@ func (c featuresetClient) SearchFeaturesets(ctx context.Context, req SearchFeatu
 // Available: >= 2.19.0.
 func (c modelClient) SearchModels(ctx context.Context, req SearchModelsReq) (*SearchModelsResp, error) {
 	var resp SearchModelsResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -413,7 +413,7 @@ func (c modelClient) SearchModels(ctx context.Context, req SearchModelsReq) (*Se
 // Available: >= 2.19.0.
 func (c featureClient) UpdateFeature(ctx context.Context, req UpdateFeatureReq) (*UpdateFeatureResp, error) {
 	var resp UpdateFeatureResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -426,7 +426,7 @@ func (c featureClient) UpdateFeature(ctx context.Context, req UpdateFeatureReq) 
 // Available: >= 2.19.0.
 func (c featuresetClient) UpdateFeatureset(ctx context.Context, req UpdateFeaturesetReq) (*UpdateFeaturesetResp, error) {
 	var resp UpdateFeaturesetResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

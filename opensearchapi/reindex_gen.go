@@ -714,7 +714,7 @@ func (c Client) Reindex(ctx context.Context, req *ReindexReq) (*ReindexResp, err
 		data ReindexResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

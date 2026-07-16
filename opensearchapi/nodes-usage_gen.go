@@ -148,7 +148,7 @@ func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsage
 		data NodesUsageResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

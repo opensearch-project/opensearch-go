@@ -448,7 +448,7 @@ func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq
 		data IndicesPutMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -469,7 +469,7 @@ func (c mappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*Ind
 		data IndicesPutMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

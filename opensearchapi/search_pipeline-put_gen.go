@@ -142,7 +142,7 @@ func (c searchPipelineClient) Put(ctx context.Context, req SearchPipelinePutReq)
 		data SearchPipelinePutResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

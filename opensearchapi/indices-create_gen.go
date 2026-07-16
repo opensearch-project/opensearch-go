@@ -165,7 +165,7 @@ func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*Indic
 		data IndicesCreateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

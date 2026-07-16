@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/errmask"
 )
 
-// doTestReq is a minimal opensearch.Request for driving do() in tests.
+// doTestReq is a minimal opensearch.Request for driving request() in tests.
 type doTestReq struct{}
 
 func (doTestReq) GetRequest(method string) (*http.Request, error) {
@@ -44,8 +44,12 @@ func (tr doTestTransport) Stream(*http.Request) (*http.Response, error) {
 	}, nil
 }
 
+func (tr doTestTransport) Request(req *http.Request) (*http.Response, error) {
+	return tr.Stream(req)
+}
+
 // TestDoErrorBodyReadableNoDecodePath guards the regression flagged in review:
-// on the error path with a nil dataPointer, do() must leave the returned
+// on the error path with a nil dataPointer, request() must leave the returned
 // response body readable rather than draining it to empty. The previous
 // implementation called io.Copy(io.Discard, resp.Body) which emptied the
 // buffered body, diverging from the ParseError path (dataPointer != nil) that
@@ -60,7 +64,7 @@ func TestDoErrorBodyReadableNoDecodePath(t *testing.T) {
 	}
 	c := clientInit(osClient, errmask.Empty)
 
-	resp, err := do[opensearch.NoBody](context.Background(), c, http.MethodGet, doTestReq{}, nil)
+	resp, err := request[opensearch.NoBody](context.Background(), c, http.MethodGet, doTestReq{}, nil)
 	require.Error(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.Body, "error-path response body must not be nil")

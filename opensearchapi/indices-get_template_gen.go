@@ -153,7 +153,7 @@ func (c indicesClient) GetTemplate(ctx context.Context, req *IndicesGetTemplateR
 		data IndicesGetTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

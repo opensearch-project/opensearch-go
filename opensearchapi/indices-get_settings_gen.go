@@ -201,7 +201,7 @@ func (c indicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsR
 		data IndicesGetSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -222,7 +222,7 @@ func (c settingsClient) Get(ctx context.Context, req *IndicesGetSettingsReq) (*I
 		data IndicesGetSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -185,7 +185,7 @@ func (c tasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListRes
 		data TasksListResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

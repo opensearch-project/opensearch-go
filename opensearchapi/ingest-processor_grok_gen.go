@@ -122,7 +122,7 @@ func (c ingestClient) ProcessorGrok(ctx context.Context, req *IngestProcessorGro
 		data IngestProcessorGrokResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -128,7 +128,7 @@ func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*Sna
 		data SnapshotDeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

@@ -132,7 +132,7 @@ func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasR
 		data IndicesDeleteAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,
@@ -153,7 +153,7 @@ func (c aliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*I
 		data IndicesDeleteAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

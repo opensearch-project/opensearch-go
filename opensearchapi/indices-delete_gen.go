@@ -160,7 +160,7 @@ func (c indicesClient) Delete(ctx context.Context, req *IndicesDeleteReq) (*Indi
 		data IndicesDeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

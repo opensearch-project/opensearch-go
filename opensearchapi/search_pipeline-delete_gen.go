@@ -116,7 +116,7 @@ func (c searchPipelineClient) Delete(ctx context.Context, req SearchPipelineDele
 		data SearchPipelineDeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

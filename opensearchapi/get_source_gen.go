@@ -216,7 +216,7 @@ func (c documentClient) GetSource(ctx context.Context, req GetSourceReq) (*GetSo
 		data GetSourceResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

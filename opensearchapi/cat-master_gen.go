@@ -168,7 +168,7 @@ func (c catClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterRes
 		data CatMasterResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

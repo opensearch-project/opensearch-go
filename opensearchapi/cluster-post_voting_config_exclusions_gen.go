@@ -140,7 +140,7 @@ func (c clusterClient) PostVotingConfigExclusions(ctx context.Context, req *Clus
 		data ClusterPostVotingConfigExclusionsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

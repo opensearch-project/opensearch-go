@@ -460,7 +460,7 @@ func (c catClient) Snapshots(ctx context.Context, req *CatSnapshotsReq) (*CatSna
 		data CatSnapshotsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

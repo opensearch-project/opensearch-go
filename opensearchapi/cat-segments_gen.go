@@ -149,7 +149,7 @@ func (c catClient) Segments(ctx context.Context, req *CatSegmentsReq) (*CatSegme
 		data CatSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

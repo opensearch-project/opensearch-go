@@ -234,7 +234,7 @@ func (c catClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, 
 		data CatTasksResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

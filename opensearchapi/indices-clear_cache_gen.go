@@ -240,7 +240,7 @@ func (c indicesClient) ClearCache(ctx context.Context, req *IndicesClearCacheReq
 		data IndicesClearCacheResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

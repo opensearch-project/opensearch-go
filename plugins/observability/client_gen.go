@@ -29,14 +29,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *Client) GetLocalstats(ctx context.Context, req *GetLocalstatsReq) (*Get
 		req = &GetLocalstatsReq{}
 	}
 	var resp GetLocalstatsResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -81,7 +81,7 @@ func (c objectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*
 		req = &CreateObjectReq{}
 	}
 	var resp CreateObjectResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -94,7 +94,7 @@ func (c objectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*
 // Available: >= 1.1.0.
 func (c objectClient) DeleteObject(ctx context.Context, req DeleteObjectReq) (*DeleteObjectResp, error) {
 	var resp DeleteObjectResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -110,7 +110,7 @@ func (c objectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) 
 		req = &DeleteObjectsReq{}
 	}
 	var resp DeleteObjectsResp
-	if _, err := do(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -123,7 +123,7 @@ func (c objectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) 
 // Available: >= 1.1.0.
 func (c objectClient) GetObject(ctx context.Context, req GetObjectReq) (*GetObjectResp, error) {
 	var resp GetObjectResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -139,7 +139,7 @@ func (c objectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*Li
 		req = &ListObjectsReq{}
 	}
 	var resp ListObjectsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -152,7 +152,7 @@ func (c objectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*Li
 // Available: >= 1.1.0.
 func (c objectClient) UpdateObject(ctx context.Context, req UpdateObjectReq) (*UpdateObjectResp, error) {
 	var resp UpdateObjectResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

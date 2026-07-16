@@ -197,7 +197,7 @@ func (c indicesClient) Get(ctx context.Context, req *IndicesGetReq) (*IndicesGet
 		data IndicesGetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

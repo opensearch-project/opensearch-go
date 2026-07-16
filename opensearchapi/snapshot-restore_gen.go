@@ -273,7 +273,7 @@ func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*S
 		data SnapshotRestoreResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

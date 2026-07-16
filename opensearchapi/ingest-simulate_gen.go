@@ -344,7 +344,7 @@ func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*Ing
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

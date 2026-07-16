@@ -131,7 +131,7 @@ func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotClean
 		data SnapshotCleanupRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -148,7 +148,7 @@ func (c repositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupReposi
 		data SnapshotCleanupRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

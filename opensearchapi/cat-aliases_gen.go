@@ -180,7 +180,7 @@ func (c catClient) Aliases(ctx context.Context, req *CatAliasesReq) (*CatAliases
 		data CatAliasesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

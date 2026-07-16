@@ -51,14 +51,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ type toolClient struct {
 // Available: >= 3.3.0.
 func (c *Client) CreateMemoryContainerSession(ctx context.Context, req CreateMemoryContainerSessionReq) (*CreateMemoryContainerSessionResp, error) {
 	var resp CreateMemoryContainerSessionResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -141,7 +141,7 @@ func (c *Client) CreateMemoryContainerSession(ctx context.Context, req CreateMem
 // Available: >= 3.3.0.
 func (c *Client) DeleteAgenticMemoryQuery(ctx context.Context, req DeleteAgenticMemoryQueryReq) (*DeleteAgenticMemoryQueryResp, error) {
 	var resp DeleteAgenticMemoryQueryResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -154,7 +154,7 @@ func (c *Client) DeleteAgenticMemoryQuery(ctx context.Context, req DeleteAgentic
 // Available: >= 3.3.0.
 func (c *Client) ExecuteAgentStream(ctx context.Context, req ExecuteAgentStreamReq) (*ExecuteAgentStreamResp, error) {
 	var resp ExecuteAgentStreamResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -167,7 +167,7 @@ func (c *Client) ExecuteAgentStream(ctx context.Context, req ExecuteAgentStreamR
 // Available: >= 2.0.0.
 func (c *Client) ExecuteAlgorithm(ctx context.Context, req ExecuteAlgorithmReq) (*ExecuteAlgorithmResp, error) {
 	var resp ExecuteAlgorithmResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -180,7 +180,7 @@ func (c *Client) ExecuteAlgorithm(ctx context.Context, req ExecuteAlgorithmReq) 
 // Available: >= 2.12.0.
 func (c *Client) GetMessageTraces(ctx context.Context, req GetMessageTracesReq) (*GetMessageTracesResp, error) {
 	var resp GetMessageTracesResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -196,7 +196,7 @@ func (c *Client) GetProfile(ctx context.Context, req *GetProfileReq) (*GetProfil
 		req = &GetProfileReq{}
 	}
 	var resp GetProfileResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -209,7 +209,7 @@ func (c *Client) GetProfile(ctx context.Context, req *GetProfileReq) (*GetProfil
 // Available: >= 2.4.0.
 func (c *Client) GetProfileModels(ctx context.Context, req GetProfileModelsReq) (*GetProfileModelsResp, error) {
 	var resp GetProfileModelsResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -222,7 +222,7 @@ func (c *Client) GetProfileModels(ctx context.Context, req GetProfileModelsReq) 
 // Available: >= 2.4.0.
 func (c *Client) GetProfileTasks(ctx context.Context, req GetProfileTasksReq) (*GetProfileTasksResp, error) {
 	var resp GetProfileTasksResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -235,7 +235,7 @@ func (c *Client) GetProfileTasks(ctx context.Context, req GetProfileTasksReq) (*
 // Available: >= 1.3.0.
 func (c *Client) GetStats(ctx context.Context, req GetStatsReq) (*GetStatsResp, error) {
 	var resp GetStatsResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -248,7 +248,7 @@ func (c *Client) GetStats(ctx context.Context, req GetStatsReq) (*GetStatsResp, 
 // Available: >= 1.3.0.
 func (c *Client) Predict(ctx context.Context, req PredictReq) (*PredictResp, error) {
 	var resp PredictResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -261,7 +261,7 @@ func (c *Client) Predict(ctx context.Context, req PredictReq) (*PredictResp, err
 // Available: >= 3.3.0.
 func (c *Client) PredictModelStream(ctx context.Context, req PredictModelStreamReq) (*PredictModelStreamResp, error) {
 	var resp PredictModelStreamResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -274,7 +274,7 @@ func (c *Client) PredictModelStream(ctx context.Context, req PredictModelStreamR
 // Available: >= 1.3.0.
 func (c *Client) Train(ctx context.Context, req TrainReq) (*TrainResp, error) {
 	var resp TrainResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -287,7 +287,7 @@ func (c *Client) Train(ctx context.Context, req TrainReq) (*TrainResp, error) {
 // Available: >= 1.3.0.
 func (c *Client) TrainPredict(ctx context.Context, req TrainPredictReq) (*TrainPredictResp, error) {
 	var resp TrainPredictResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -300,7 +300,7 @@ func (c *Client) TrainPredict(ctx context.Context, req TrainPredictReq) (*TrainP
 // Available: >= 2.7.0.
 func (c *Client) UploadChunk(ctx context.Context, req UploadChunkReq) (*UploadChunkResp, error) {
 	var resp UploadChunkResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -313,7 +313,7 @@ func (c *Client) UploadChunk(ctx context.Context, req UploadChunkReq) (*UploadCh
 // Available: >= 3.3.0.
 func (c agenticMemoryClient) AddAgenticMemory(ctx context.Context, req AddAgenticMemoryReq) (*AddAgenticMemoryResp, error) {
 	var resp AddAgenticMemoryResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -326,7 +326,7 @@ func (c agenticMemoryClient) AddAgenticMemory(ctx context.Context, req AddAgenti
 // Deprecated: since 2.7.0. Use `upload_chunk` instead.
 func (c modelClient) ChunkModel(ctx context.Context, req ChunkModelReq) (*ChunkModelResp, error) {
 	var resp ChunkModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -340,7 +340,7 @@ func (c connectorClient) CreateConnector(ctx context.Context, req *CreateConnect
 		req = &CreateConnectorReq{}
 	}
 	var resp CreateConnectorResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -353,7 +353,7 @@ func (c connectorClient) CreateConnector(ctx context.Context, req *CreateConnect
 // Available: >= 2.12.0.
 func (c controllerClient) CreateController(ctx context.Context, req CreateControllerReq) (*CreateControllerResp, error) {
 	var resp CreateControllerResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -369,7 +369,7 @@ func (c memoryClient) CreateMemory(ctx context.Context, req *CreateMemoryReq) (*
 		req = &CreateMemoryReq{}
 	}
 	var resp CreateMemoryResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -385,7 +385,7 @@ func (c memoryContainerClient) CreateMemoryContainer(ctx context.Context, req *C
 		req = &CreateMemoryContainerReq{}
 	}
 	var resp CreateMemoryContainerResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -398,7 +398,7 @@ func (c memoryContainerClient) CreateMemoryContainer(ctx context.Context, req *C
 // Available: >= 2.12.0.
 func (c messageClient) CreateMessage(ctx context.Context, req CreateMessageReq) (*CreateMessageResp, error) {
 	var resp CreateMessageResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -414,7 +414,7 @@ func (c modelMetaClient) CreateModelMeta(ctx context.Context, req *CreateModelMe
 		req = &CreateModelMetaReq{}
 	}
 	var resp CreateModelMetaResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -427,7 +427,7 @@ func (c modelMetaClient) CreateModelMeta(ctx context.Context, req *CreateModelMe
 // Available: >= 2.13.0.
 func (c agentClient) DeleteAgent(ctx context.Context, req DeleteAgentReq) (*DeleteAgentResp, error) {
 	var resp DeleteAgentResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -440,7 +440,7 @@ func (c agentClient) DeleteAgent(ctx context.Context, req DeleteAgentReq) (*Dele
 // Available: >= 3.3.0.
 func (c agenticMemoryClient) DeleteAgenticMemory(ctx context.Context, req DeleteAgenticMemoryReq) (*DeleteAgenticMemoryResp, error) {
 	var resp DeleteAgenticMemoryResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -451,7 +451,7 @@ func (c agenticMemoryClient) DeleteAgenticMemory(ctx context.Context, req Delete
 // DELETE /_plugins/_ml/connectors/{connector_id}
 func (c connectorClient) DeleteConnector(ctx context.Context, req DeleteConnectorReq) (*DeleteConnectorResp, error) {
 	var resp DeleteConnectorResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -464,7 +464,7 @@ func (c connectorClient) DeleteConnector(ctx context.Context, req DeleteConnecto
 // Available: >= 2.12.0.
 func (c controllerClient) DeleteController(ctx context.Context, req DeleteControllerReq) (*DeleteControllerResp, error) {
 	var resp DeleteControllerResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -477,7 +477,7 @@ func (c controllerClient) DeleteController(ctx context.Context, req DeleteContro
 // Available: >= 2.12.0.
 func (c memoryClient) DeleteMemory(ctx context.Context, req DeleteMemoryReq) (*DeleteMemoryResp, error) {
 	var resp DeleteMemoryResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -490,7 +490,7 @@ func (c memoryClient) DeleteMemory(ctx context.Context, req DeleteMemoryReq) (*D
 // Available: >= 3.3.0.
 func (c memoryContainerClient) DeleteMemoryContainer(ctx context.Context, req DeleteMemoryContainerReq) (*DeleteMemoryContainerResp, error) {
 	var resp DeleteMemoryContainerResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -503,7 +503,7 @@ func (c memoryContainerClient) DeleteMemoryContainer(ctx context.Context, req De
 // Available: >= 1.3.0.
 func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -514,7 +514,7 @@ func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // DELETE /_plugins/_ml/model_groups/{model_group_id}
 func (c modelGroupClient) DeleteModelGroup(ctx context.Context, req DeleteModelGroupReq) (*DeleteModelGroupResp, error) {
 	var resp DeleteModelGroupResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -527,7 +527,7 @@ func (c modelGroupClient) DeleteModelGroup(ctx context.Context, req DeleteModelG
 // Available: >= 1.3.0.
 func (c taskClient) DeleteTask(ctx context.Context, req DeleteTaskReq) (*DeleteTaskResp, error) {
 	var resp DeleteTaskResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -540,7 +540,7 @@ func (c taskClient) DeleteTask(ctx context.Context, req DeleteTaskReq) (*DeleteT
 // Available: >= 2.7.0.
 func (c modelClient) DeployModel(ctx context.Context, req DeployModelReq) (*DeployModelResp, error) {
 	var resp DeployModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -553,7 +553,7 @@ func (c modelClient) DeployModel(ctx context.Context, req DeployModelReq) (*Depl
 // Available: >= 2.13.0.
 func (c agentClient) ExecuteAgent(ctx context.Context, req ExecuteAgentReq) (*ExecuteAgentResp, error) {
 	var resp ExecuteAgentResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -566,7 +566,7 @@ func (c agentClient) ExecuteAgent(ctx context.Context, req ExecuteAgentReq) (*Ex
 // Available: >= 3.3.0.
 func (c toolClient) ExecuteTool(ctx context.Context, req ExecuteToolReq) (*ExecuteToolResp, error) {
 	var resp ExecuteToolResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -579,7 +579,7 @@ func (c toolClient) ExecuteTool(ctx context.Context, req ExecuteToolReq) (*Execu
 // Available: >= 2.13.0.
 func (c agentClient) GetAgent(ctx context.Context, req GetAgentReq) (*GetAgentResp, error) {
 	var resp GetAgentResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -592,7 +592,7 @@ func (c agentClient) GetAgent(ctx context.Context, req GetAgentReq) (*GetAgentRe
 // Available: >= 3.3.0.
 func (c agenticMemoryClient) GetAgenticMemory(ctx context.Context, req GetAgenticMemoryReq) (*GetAgenticMemoryResp, error) {
 	var resp GetAgenticMemoryResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -608,7 +608,7 @@ func (c memoryClient) GetAllMemories(ctx context.Context, req *GetAllMemoriesReq
 		req = &GetAllMemoriesReq{}
 	}
 	var resp GetAllMemoriesResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -621,7 +621,7 @@ func (c memoryClient) GetAllMemories(ctx context.Context, req *GetAllMemoriesReq
 // Available: >= 2.12.0.
 func (c messageClient) GetAllMessages(ctx context.Context, req GetAllMessagesReq) (*GetAllMessagesResp, error) {
 	var resp GetAllMessagesResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -637,7 +637,7 @@ func (c toolClient) GetAllTools(ctx context.Context, req *GetAllToolsReq) (*GetA
 		req = &GetAllToolsReq{}
 	}
 	var resp GetAllToolsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -650,7 +650,7 @@ func (c toolClient) GetAllTools(ctx context.Context, req *GetAllToolsReq) (*GetA
 // Available: >= 2.11.0.
 func (c connectorClient) GetConnector(ctx context.Context, req GetConnectorReq) (*GetConnectorResp, error) {
 	var resp GetConnectorResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -663,7 +663,7 @@ func (c connectorClient) GetConnector(ctx context.Context, req GetConnectorReq) 
 // Available: >= 2.12.0.
 func (c controllerClient) GetController(ctx context.Context, req GetControllerReq) (*GetControllerResp, error) {
 	var resp GetControllerResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -676,7 +676,7 @@ func (c controllerClient) GetController(ctx context.Context, req GetControllerRe
 // Available: >= 2.12.0.
 func (c memoryClient) GetMemory(ctx context.Context, req GetMemoryReq) (*GetMemoryResp, error) {
 	var resp GetMemoryResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -689,7 +689,7 @@ func (c memoryClient) GetMemory(ctx context.Context, req GetMemoryReq) (*GetMemo
 // Available: >= 3.3.0.
 func (c memoryContainerClient) GetMemoryContainer(ctx context.Context, req GetMemoryContainerReq) (*GetMemoryContainerResp, error) {
 	var resp GetMemoryContainerResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -702,7 +702,7 @@ func (c memoryContainerClient) GetMemoryContainer(ctx context.Context, req GetMe
 // Available: >= 2.12.0.
 func (c messageClient) GetMessage(ctx context.Context, req GetMessageReq) (*GetMessageResp, error) {
 	var resp GetMessageResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -715,7 +715,7 @@ func (c messageClient) GetMessage(ctx context.Context, req GetMessageReq) (*GetM
 // Available: >= 1.3.0.
 func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -726,7 +726,7 @@ func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelRe
 // GET /_plugins/_ml/model_groups/{model_group_id}
 func (c modelGroupClient) GetModelGroup(ctx context.Context, req GetModelGroupReq) (*GetModelGroupResp, error) {
 	var resp GetModelGroupResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -739,7 +739,7 @@ func (c modelGroupClient) GetModelGroup(ctx context.Context, req GetModelGroupRe
 // Available: >= 1.3.0.
 func (c taskClient) GetTask(ctx context.Context, req GetTaskReq) (*GetTaskResp, error) {
 	var resp GetTaskResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -752,7 +752,7 @@ func (c taskClient) GetTask(ctx context.Context, req GetTaskReq) (*GetTaskResp, 
 // Available: >= 2.12.0.
 func (c toolClient) GetTool(ctx context.Context, req GetToolReq) (*GetToolResp, error) {
 	var resp GetToolResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -765,7 +765,7 @@ func (c toolClient) GetTool(ctx context.Context, req GetToolReq) (*GetToolResp, 
 // Deprecated: since 2.7.0. Use `deploy_model` instead.
 func (c modelClient) LoadModel(ctx context.Context, req LoadModelReq) (*LoadModelResp, error) {
 	var resp LoadModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -778,7 +778,7 @@ func (c modelClient) LoadModel(ctx context.Context, req LoadModelReq) (*LoadMode
 // Available: >= 2.12.0.
 func (c modelClient) PredictModel(ctx context.Context, req PredictModelReq) (*PredictModelResp, error) {
 	var resp PredictModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -794,7 +794,7 @@ func (c agentClient) RegisterAgents(ctx context.Context, req *RegisterAgentsReq)
 		req = &RegisterAgentsReq{}
 	}
 	var resp RegisterAgentsResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -810,7 +810,7 @@ func (c modelClient) RegisterModel(ctx context.Context, req *RegisterModelReq) (
 		req = &RegisterModelReq{}
 	}
 	var resp RegisterModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -824,7 +824,7 @@ func (c modelGroupClient) RegisterModelGroup(ctx context.Context, req *RegisterM
 		req = &RegisterModelGroupReq{}
 	}
 	var resp RegisterModelGroupResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -840,7 +840,7 @@ func (c modelMetaClient) RegisterModelMeta(ctx context.Context, req *RegisterMod
 		req = &RegisterModelMetaReq{}
 	}
 	var resp RegisterModelMetaResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -853,7 +853,7 @@ func (c modelMetaClient) RegisterModelMeta(ctx context.Context, req *RegisterMod
 // Available: >= 3.3.0.
 func (c agenticMemoryClient) SearchAgenticMemory(ctx context.Context, req SearchAgenticMemoryReq) (*SearchAgenticMemoryResp, error) {
 	var resp SearchAgenticMemoryResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -871,7 +871,7 @@ func (c agentClient) SearchAgents(ctx context.Context, req *SearchAgentsReq) (*S
 		req = &SearchAgentsReq{}
 	}
 	var resp SearchAgentsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -889,7 +889,7 @@ func (c connectorClient) SearchConnectors(ctx context.Context, req *SearchConnec
 		req = &SearchConnectorsReq{}
 	}
 	var resp SearchConnectorsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -907,7 +907,7 @@ func (c memoryClient) SearchMemory(ctx context.Context, req *SearchMemoryReq) (*
 		req = &SearchMemoryReq{}
 	}
 	var resp SearchMemoryResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -925,7 +925,7 @@ func (c memoryContainerClient) SearchMemoryContainer(ctx context.Context, req *S
 		req = &SearchMemoryContainerReq{}
 	}
 	var resp SearchMemoryContainerResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -940,7 +940,7 @@ func (c memoryContainerClient) SearchMemoryContainer(ctx context.Context, req *S
 // Available: >= 2.12.0.
 func (c messageClient) SearchMessage(ctx context.Context, req SearchMessageReq) (*SearchMessageResp, error) {
 	var resp SearchMessageResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -958,7 +958,7 @@ func (c modelGroupClient) SearchModelGroup(ctx context.Context, req *SearchModel
 		req = &SearchModelGroupReq{}
 	}
 	var resp SearchModelGroupResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -976,7 +976,7 @@ func (c modelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*S
 		req = &SearchModelsReq{}
 	}
 	var resp SearchModelsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -994,7 +994,7 @@ func (c taskClient) SearchTasks(ctx context.Context, req *SearchTasksReq) (*Sear
 		req = &SearchTasksReq{}
 	}
 	var resp SearchTasksResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1007,7 +1007,7 @@ func (c taskClient) SearchTasks(ctx context.Context, req *SearchTasksReq) (*Sear
 // Available: >= 2.7.0.
 func (c modelClient) UndeployModel(ctx context.Context, req UndeployModelReq) (*UndeployModelResp, error) {
 	var resp UndeployModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1020,7 +1020,7 @@ func (c modelClient) UndeployModel(ctx context.Context, req UndeployModelReq) (*
 // Deprecated: since 2.7.0. Use `undeploy_model` instead.
 func (c modelClient) UnloadModel(ctx context.Context, req UnloadModelReq) (*UnloadModelResp, error) {
 	var resp UnloadModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1033,7 +1033,7 @@ func (c modelClient) UnloadModel(ctx context.Context, req UnloadModelReq) (*Unlo
 // Available: >= 3.3.0.
 func (c agenticMemoryClient) UpdateAgenticMemory(ctx context.Context, req UpdateAgenticMemoryReq) (*UpdateAgenticMemoryResp, error) {
 	var resp UpdateAgenticMemoryResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1046,7 +1046,7 @@ func (c agenticMemoryClient) UpdateAgenticMemory(ctx context.Context, req Update
 // Available: >= 2.12.0.
 func (c connectorClient) UpdateConnector(ctx context.Context, req UpdateConnectorReq) (*UpdateConnectorResp, error) {
 	var resp UpdateConnectorResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1059,7 +1059,7 @@ func (c connectorClient) UpdateConnector(ctx context.Context, req UpdateConnecto
 // Available: >= 2.12.0.
 func (c controllerClient) UpdateController(ctx context.Context, req UpdateControllerReq) (*UpdateControllerResp, error) {
 	var resp UpdateControllerResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1072,7 +1072,7 @@ func (c controllerClient) UpdateController(ctx context.Context, req UpdateContro
 // Available: >= 2.12.0.
 func (c memoryClient) UpdateMemory(ctx context.Context, req UpdateMemoryReq) (*UpdateMemoryResp, error) {
 	var resp UpdateMemoryResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1085,7 +1085,7 @@ func (c memoryClient) UpdateMemory(ctx context.Context, req UpdateMemoryReq) (*U
 // Available: >= 3.3.0.
 func (c memoryContainerClient) UpdateMemoryContainer(ctx context.Context, req UpdateMemoryContainerReq) (*UpdateMemoryContainerResp, error) {
 	var resp UpdateMemoryContainerResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1098,7 +1098,7 @@ func (c memoryContainerClient) UpdateMemoryContainer(ctx context.Context, req Up
 // Available: >= 2.12.0.
 func (c messageClient) UpdateMessage(ctx context.Context, req UpdateMessageReq) (*UpdateMessageResp, error) {
 	var resp UpdateMessageResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1111,7 +1111,7 @@ func (c messageClient) UpdateMessage(ctx context.Context, req UpdateMessageReq) 
 // Available: >= 2.12.0.
 func (c modelClient) UpdateModel(ctx context.Context, req UpdateModelReq) (*UpdateModelResp, error) {
 	var resp UpdateModelResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1124,7 +1124,7 @@ func (c modelClient) UpdateModel(ctx context.Context, req UpdateModelReq) (*Upda
 // Available: >= 2.9.0.
 func (c modelGroupClient) UpdateModelGroup(ctx context.Context, req UpdateModelGroupReq) (*UpdateModelGroupResp, error) {
 	var resp UpdateModelGroupResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -1140,7 +1140,7 @@ func (c modelClient) UploadModel(ctx context.Context, req *UploadModelReq) (*Upl
 		req = &UploadModelReq{}
 	}
 	var resp UploadModelResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

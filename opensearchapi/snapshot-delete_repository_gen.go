@@ -128,7 +128,7 @@ func (c snapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDelet
 		data SnapshotDeleteRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,
@@ -149,7 +149,7 @@ func (c repositoryClient) Delete(ctx context.Context, req *SnapshotDeleteReposit
 		data SnapshotDeleteRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

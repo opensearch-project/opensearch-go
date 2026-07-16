@@ -135,7 +135,7 @@ func (c indicesClient) ExistsAlias(ctx context.Context, req *IndicesExistsAliasR
 		req = &IndicesExistsAliasReq{}
 	}
 
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }
 
 // Deprecated: use IndicesExistsAlias via the parent client instead.
@@ -144,5 +144,5 @@ func (c aliasClient) Exists(ctx context.Context, req *IndicesExistsAliasReq) (*o
 		req = &IndicesExistsAliasReq{}
 	}
 
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

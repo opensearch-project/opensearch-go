@@ -172,7 +172,7 @@ func (c indicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStr
 		data IndicesDataStreamsStatsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

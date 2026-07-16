@@ -108,5 +108,5 @@ func (r IndicesExistsIndexTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
 func (c indicesClient) ExistsIndexTemplate(ctx context.Context, req IndicesExistsIndexTemplateReq) (*opensearch.Response, error) {
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

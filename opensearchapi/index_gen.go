@@ -269,7 +269,7 @@ func (c documentClient) Index(ctx context.Context, req IndexReq) (*IndexResp, er
 		data IndexResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

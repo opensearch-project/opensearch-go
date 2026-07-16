@@ -168,7 +168,7 @@ func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 		data SnapshotCreateRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -185,7 +185,7 @@ func (c repositoryClient) Create(ctx context.Context, req SnapshotCreateReposito
 		data SnapshotCreateRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

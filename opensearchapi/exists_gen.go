@@ -173,5 +173,5 @@ func (r ExistsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
 func (c documentClient) Exists(ctx context.Context, req ExistsReq) (*opensearch.Response, error) {
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

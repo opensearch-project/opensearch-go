@@ -272,7 +272,7 @@ func (c documentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error
 		data BulkResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

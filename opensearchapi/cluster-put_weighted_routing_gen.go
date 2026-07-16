@@ -149,7 +149,7 @@ func (c clusterClient) PutWeightedRouting(ctx context.Context, req ClusterPutWei
 		data ClusterPutWeightedRoutingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

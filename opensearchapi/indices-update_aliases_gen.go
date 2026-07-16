@@ -466,7 +466,7 @@ func (c indicesClient) UpdateAliases(ctx context.Context, req *IndicesUpdateAlia
 		data IndicesUpdateAliasesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

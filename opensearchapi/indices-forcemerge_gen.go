@@ -240,7 +240,7 @@ func (c indicesClient) ForceMerge(ctx context.Context, req *IndicesForceMergeReq
 		data IndicesForceMergeResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

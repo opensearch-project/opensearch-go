@@ -112,5 +112,5 @@ func (c indicesClient) ExistsTemplate(ctx context.Context, req *IndicesExistsTem
 		req = &IndicesExistsTemplateReq{}
 	}
 
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

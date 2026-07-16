@@ -185,7 +185,7 @@ func (c indicesClient) GetAlias(ctx context.Context, req *IndicesGetAliasReq) (*
 		data IndicesGetAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -206,7 +206,7 @@ func (c aliasClient) Get(ctx context.Context, req *IndicesGetAliasReq) (*Indices
 		data IndicesGetAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
