@@ -236,7 +236,7 @@ Remove conflicting role combinations from the server's `opensearch.yml`. Common 
 ### Discovery failures
 
 - Verify network connectivity to cluster nodes on their HTTP publish addresses, not only the seed addresses.
-- Check authentication credentials: discovery calls `/_nodes/http,os`, which requires the `cluster:monitor/nodes/info` privilege. For the full set of privileges the routing and discovery machinery needs -- and a copy-paste least-privilege role -- see [Security: Cluster Permissions for Routing and Discovery](config-security.md#cluster-permissions-for-routing-and-discovery).
+- Check authentication credentials: discovery calls `/_nodes/http,os`, which requires the `cluster:monitor/nodes` permission.
 - Ensure the seed addresses are reachable and point to nodes in the target cluster.
 
 ## Example: Complete Setup

@@ -522,7 +522,9 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 // TestRolePolicies tests the router+policy with various configurations
 func TestRolePolicies(t *testing.T) {
-	// Create test connections with different roles
+	// Create test connections with different roles. Mark them viable: they
+	// stand in for nodes already proven reachable, so availableForRouting
+	// (which gates on lcViable for non-seed connections) keeps them eligible.
 	connections := []*Connection{
 		{Name: "data-node", URL: &url.URL{Host: "data:9200"}, Roles: newRoleSet([]string{RoleData})},
 		{Name: "ingest-node", URL: &url.URL{Host: "ingest:9200"}, Roles: newRoleSet([]string{RoleIngest})},
@@ -531,6 +533,9 @@ func TestRolePolicies(t *testing.T) {
 		{Name: "warm-node", URL: &url.URL{Host: "warm:9200"}, Roles: newRoleSet([]string{RoleWarm})},
 		{Name: "search-node", URL: &url.URL{Host: "search:9200"}, Roles: newRoleSet([]string{RoleSearch})},
 		{Name: "coordinating-node", URL: &url.URL{Host: "coord:9200"}, Roles: newRoleSet([]string{})}, // No specific roles
+	}
+	for _, c := range connections {
+		c.setLifecycleBit(lcViable) //nolint:errcheck // fresh conn, no concurrent access
 	}
 
 	t.Run("IngestPolicy", func(t *testing.T) {
@@ -571,6 +576,9 @@ func TestRolePolicies(t *testing.T) {
 		dataOnlyConns := []*Connection{
 			{Name: "data-node", URL: &url.URL{Host: "data:9200"}, Roles: newRoleSet([]string{RoleData})},                    // No ingest
 			{Name: "cluster-manager-node", URL: &url.URL{Host: "cm:9200"}, Roles: newRoleSet([]string{RoleClusterManager})}, // No ingest
+		}
+		for _, c := range dataOnlyConns {
+			c.setLifecycleBit(lcViable) //nolint:errcheck // fresh conn, no concurrent access
 		}
 
 		// Adding non-matching connections should not affect the policy

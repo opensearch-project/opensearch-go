@@ -87,6 +87,7 @@ func initSingleServerPool() *singleServerPool {
 				Scheme: "http",
 				Host:   "foo1",
 			},
+			seed: true,
 		},
 	}
 }

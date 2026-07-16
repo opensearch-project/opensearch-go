@@ -66,8 +66,9 @@ import (
 func BenchmarkConnectionPool(b *testing.B) {
 	b.Run("Single", func(b *testing.B) {
 		conn := &Connection{
-			URL: &url.URL{Scheme: "http", Host: "bench1:9200"},
-			ID:  "bench1",
+			URL:  &url.URL{Scheme: "http", Host: "bench1:9200"},
+			ID:   "bench1",
+			seed: true,
 		}
 		pool := &singleServerPool{connection: conn}
 
@@ -85,6 +86,9 @@ func BenchmarkConnectionPool(b *testing.B) {
 			{URL: &url.URL{Scheme: "http", Host: "bench1:9200"}, ID: "bench1"},
 			{URL: &url.URL{Scheme: "http", Host: "bench2:9200"}, ID: "bench2"},
 			{URL: &url.URL{Scheme: "http", Host: "bench3:9200"}, ID: "bench3"},
+		}
+		for _, c := range connections {
+			c.setLifecycleBit(lcActive | lcViable) //nolint:errcheck // fresh conn, no concurrent access
 		}
 		pool := NewConnectionPool(connections, nil)
 
