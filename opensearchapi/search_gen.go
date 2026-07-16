@@ -1568,7 +1568,7 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

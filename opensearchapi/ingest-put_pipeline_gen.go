@@ -168,7 +168,7 @@ func (c ingestClient) PutPipeline(ctx context.Context, req IngestPutPipelineReq)
 		data IngestPutPipelineResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

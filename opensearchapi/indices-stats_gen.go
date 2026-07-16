@@ -438,7 +438,7 @@ func (c indicesClient) Stats(ctx context.Context, req *IndicesStatsReq) (*Indice
 		data IndicesStatsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

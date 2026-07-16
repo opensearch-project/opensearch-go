@@ -394,7 +394,7 @@ func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*
 		data IndicesSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

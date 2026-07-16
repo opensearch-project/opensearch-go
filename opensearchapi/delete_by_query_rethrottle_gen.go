@@ -136,7 +136,7 @@ func (c Client) DeleteByQueryRethrottle(ctx context.Context, req DeleteByQueryRe
 		data DeleteByQueryRethrottleResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

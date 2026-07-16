@@ -343,7 +343,7 @@ func (c Client) SearchTemplate(ctx context.Context, req *SearchTemplateReq) (*Se
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

@@ -173,7 +173,7 @@ func (c catClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*
 		data CatPendingTasksResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -164,7 +164,7 @@ func (c clusterClient) PutSettings(ctx context.Context, req *ClusterPutSettingsR
 		data ClusterPutSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

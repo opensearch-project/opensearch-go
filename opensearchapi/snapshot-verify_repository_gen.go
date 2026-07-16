@@ -128,7 +128,7 @@ func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerify
 		data SnapshotVerifyRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -145,7 +145,7 @@ func (c repositoryClient) Verify(ctx context.Context, req SnapshotVerifyReposito
 		data SnapshotVerifyRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

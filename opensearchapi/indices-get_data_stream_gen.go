@@ -126,7 +126,7 @@ func (c indicesClient) GetDataStream(ctx context.Context, req *IndicesGetDataStr
 		data IndicesGetDataStreamResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

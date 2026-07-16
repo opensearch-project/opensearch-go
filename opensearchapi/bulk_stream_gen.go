@@ -281,7 +281,7 @@ func (c documentClient) BulkStream(ctx context.Context, req BulkStreamReq) (*Bul
 		data BulkStreamResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

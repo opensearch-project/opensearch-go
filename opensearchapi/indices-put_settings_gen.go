@@ -196,7 +196,7 @@ func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsR
 		data IndicesPutSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,
@@ -217,7 +217,7 @@ func (c settingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*I
 		data IndicesPutSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

@@ -136,7 +136,7 @@ func (c Client) UpdateByQueryRethrottle(ctx context.Context, req UpdateByQueryRe
 		data UpdateByQueryRethrottleResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

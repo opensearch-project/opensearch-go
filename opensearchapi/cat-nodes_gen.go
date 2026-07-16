@@ -493,7 +493,7 @@ func (c catClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, 
 		data CatNodesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

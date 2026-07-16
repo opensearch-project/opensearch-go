@@ -131,7 +131,7 @@ func (c clusterClient) GetDecommissionAwareness(ctx context.Context, req Cluster
 		data ClusterGetDecommissionAwarenessResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

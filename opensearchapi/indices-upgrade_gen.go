@@ -204,7 +204,7 @@ func (c indicesClient) Upgrade(ctx context.Context, req *IndicesUpgradeReq) (*In
 		data IndicesUpgradeResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

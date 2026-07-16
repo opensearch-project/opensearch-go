@@ -211,7 +211,7 @@ func (c Client) ReindexRethrottle(ctx context.Context, req ReindexRethrottleReq)
 		data ReindexRethrottleResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

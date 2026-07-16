@@ -230,7 +230,7 @@ func (c catClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatT
 		data CatThreadPoolResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

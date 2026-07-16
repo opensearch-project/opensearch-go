@@ -192,7 +192,7 @@ func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetField
 		data IndicesGetFieldMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -213,7 +213,7 @@ func (c mappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq
 		data IndicesGetFieldMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

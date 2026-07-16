@@ -131,7 +131,7 @@ func (c danglingClient) ImportDanglingIndex(ctx context.Context, req DanglingInd
 		data DanglingIndicesImportDanglingIndexResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

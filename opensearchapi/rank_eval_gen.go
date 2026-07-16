@@ -350,7 +350,7 @@ func (c Client) RankEval(ctx context.Context, req *RankEvalReq) (*RankEvalResp, 
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

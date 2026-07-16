@@ -26,14 +26,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return &Client{Client: client}
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#delete-an-index-rollup-job
 func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var resp DeleteResp
-	if _, err := do(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -72,7 +72,7 @@ func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error)
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#explain-an-index-rollup-job
 func (c *Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, error) {
 	var resp ExplainResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -87,7 +87,7 @@ func (c *Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, err
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#get-an-index-rollup-job
 func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var resp GetResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -102,7 +102,7 @@ func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#create-or-update-an-index-rollup-job
 func (c *Client) Put(ctx context.Context, req PutReq) (*PutResp, error) {
 	var resp PutResp
-	if _, err := do(ctx, c, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -117,7 +117,7 @@ func (c *Client) Put(ctx context.Context, req PutReq) (*PutResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#start-or-stop-an-index-rollup-job
 func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 	var resp StartResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -132,7 +132,7 @@ func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#start-or-stop-an-index-rollup-job
 func (c *Client) Stop(ctx context.Context, req StopReq) (*StopResp, error) {
 	var resp StopResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

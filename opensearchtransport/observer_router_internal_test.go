@@ -10,6 +10,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 
@@ -105,6 +106,221 @@ func TestBuildRouteEvent(t *testing.T) {
 	// Verify candidates are in order
 	require.Equal(t, "node-a", event.Candidates[0].ID)
 	require.Equal(t, "node-b", event.Candidates[1].ID)
+}
+
+// captureCandidatesObserver records, for each OnRoute call, the length, the
+// backing-array identity (address of the first element), and the candidate IDs
+// of event.Candidates. When retain is true it calls RouteEvent.Retain inside
+// OnRoute and stashes the event in retained, modeling an async consumer that
+// takes ownership; the test drives the matching Release later.
+type captureCandidatesObserver struct {
+	BaseConnectionObserver
+	retain   bool
+	lens     []int
+	firstPtr []*RouteCandidate
+	ids      [][]string
+	retained []RouteEvent
+}
+
+func (o *captureCandidatesObserver) OnRoute(e RouteEvent) {
+	o.lens = append(o.lens, len(e.Candidates))
+	if len(e.Candidates) > 0 {
+		o.firstPtr = append(o.firstPtr, &e.Candidates[0])
+	} else {
+		o.firstPtr = append(o.firstPtr, nil)
+	}
+	ids := make([]string, len(e.Candidates))
+	for i, c := range e.Candidates {
+		ids[i] = c.ID
+	}
+	o.ids = append(o.ids, ids)
+	if o.retain {
+		e.Retain()
+		o.retained = append(o.retained, e)
+	}
+}
+
+func TestDispatchRouteSyncNoBleed(t *testing.T) {
+	t.Parallel()
+
+	conn1 := scoreTestConn(t, "node-a", 200*time.Microsecond, 2.0)
+	conn1.Name = "alpha"
+	conn2 := scoreTestConn(t, "node-b", 400*time.Microsecond, 1.0)
+	conn2.Name = "beta"
+	conn3 := scoreTestConn(t, "node-c", 300*time.Microsecond, 1.5)
+	conn3.Name = "gamma"
+
+	slot := &indexSlot{}
+	// A synchronous observer does nothing special; dispatchRoute auto-reclaims
+	// the backing array after OnRoute returns, so the next dispatch may reuse it.
+	obs := &captureCandidatesObserver{}
+
+	dispatchRoute(obs, routeEventParams{
+		indexName: "idx", key: "idx",
+		candidates: []*Connection{conn1, conn2}, best: conn1,
+		slot: slot, costs: &shardCostForReads, targetShard: -1, poolInfoReady: true,
+	})
+	dispatchRoute(obs, routeEventParams{
+		indexName: "idx", key: "idx",
+		candidates: []*Connection{conn3, conn1, conn2}, best: conn3,
+		slot: slot, costs: &shardCostForReads, targetShard: -1, poolInfoReady: true,
+	})
+
+	// Auto-reclaim + reuse must not leak the first dispatch's candidates into the
+	// second. Pointer-identity of the reused array is a sync.Pool implementation
+	// detail asserted by the benchmark's allocs/op, not here.
+	require.Equal(t, []int{2, 3}, obs.lens, "each dispatch delivers its own candidate count")
+	require.Equal(t, []string{"node-a", "node-b"}, obs.ids[0], "first dispatch candidates correct")
+	require.Equal(t, []string{"node-c", "node-a", "node-b"}, obs.ids[1], "second dispatch candidates correct, no bleed")
+}
+
+func TestDispatchRouteRetainedNotReused(t *testing.T) {
+	t.Parallel()
+
+	conn1 := scoreTestConn(t, "node-a", 200*time.Microsecond, 2.0)
+	conn2 := scoreTestConn(t, "node-b", 400*time.Microsecond, 1.0)
+
+	slot := &indexSlot{}
+	// An async consumer retains each event and defers Release, so the transport
+	// must not recycle a retained backing array under it.
+	obs := &captureCandidatesObserver{retain: true}
+
+	params := routeEventParams{
+		indexName:     "idx",
+		key:           "idx",
+		candidates:    []*Connection{conn1, conn2},
+		best:          conn1,
+		slot:          slot,
+		costs:         &shardCostForReads,
+		targetShard:   -1,
+		poolInfoReady: true,
+	}
+	dispatchRoute(obs, params)
+	dispatchRoute(obs, params)
+
+	// Both events are still retained (unreleased), so their backing arrays must
+	// be distinct -- reusing the first under the second would corrupt candidates
+	// the first consumer may still read on another goroutine.
+	require.NotSame(t, obs.firstPtr[0], obs.firstPtr[1], "retained arrays must not be reused")
+
+	// Releasing the retained references returns the arrays to the pool.
+	require.NotPanics(t, func() {
+		for _, e := range obs.retained {
+			e.Release()
+		}
+	})
+}
+
+func TestRouteEventReleaseSafety(t *testing.T) {
+	t.Parallel()
+
+	conn1 := scoreTestConn(t, "node-a", 200*time.Microsecond, 2.0)
+	slot := &indexSlot{}
+
+	// Retain once inside OnRoute, then over-release: the matching Release plus an
+	// extra one must not panic or return the buffer to the pool twice.
+	var captured RouteEvent
+	obs := &shardRoutingObserver{onRoute: func(e RouteEvent) {
+		e.Retain()
+		captured = e
+	}}
+
+	dispatchRoute(obs, routeEventParams{
+		indexName:     "idx",
+		key:           "idx",
+		candidates:    []*Connection{conn1},
+		best:          conn1,
+		slot:          slot,
+		costs:         &shardCostForReads,
+		targetShard:   -1,
+		poolInfoReady: true,
+	})
+
+	require.NotPanics(t, func() {
+		captured.Release() // matches the Retain: refs 1 -> 0, reclaimed
+		captured.Release() // over-release: refs -> -1, ignored (not a double Put)
+	})
+
+	// A zero-value / non-pooled event is safe to Retain and Release.
+	require.NotPanics(t, func() {
+		RouteEvent{}.Retain()
+		RouteEvent{}.Release()
+	})
+}
+
+// TestDispatchRouteConcurrentRetainRelease is the core async-safety check: many
+// goroutines dispatch routes while their observers retain the event, hand it to
+// a second goroutine, read Candidates there, and Release. Under -race this
+// proves the refcount prevents a retained backing array from being reclaimed and
+// reused by a concurrent dispatch while a reader still holds it.
+func TestDispatchRouteConcurrentRetainRelease(t *testing.T) {
+	t.Parallel()
+
+	conn1 := scoreTestConn(t, "node-a", 200*time.Microsecond, 2.0)
+	conn1.Name = "alpha"
+	conn2 := scoreTestConn(t, "node-b", 400*time.Microsecond, 1.0)
+	conn2.Name = "beta"
+	slot := &indexSlot{}
+
+	// The observer retains synchronously, then a reader goroutine consumes the
+	// candidates and releases. A wrong count would let the array be recycled and
+	// mutated under that read, tripping -race or the ID assertion.
+	var wg sync.WaitGroup
+	obs := &shardRoutingObserver{onRoute: func(e RouteEvent) {
+		e.Retain()
+		wg.Go(func() {
+			defer e.Release()
+			ids := make([]string, len(e.Candidates))
+			for i, c := range e.Candidates {
+				ids[i] = c.ID
+			}
+			require.Equal(t, []string{"node-a", "node-b"}, ids)
+		})
+	}}
+
+	params := routeEventParams{
+		indexName: "idx", key: "idx",
+		candidates: []*Connection{conn1, conn2}, best: conn1,
+		slot: slot, costs: &shardCostForReads, targetShard: -1, poolInfoReady: true,
+	}
+
+	var dispatchers sync.WaitGroup
+	for range 64 {
+		dispatchers.Go(func() {
+			dispatchRoute(obs, params)
+		})
+	}
+	dispatchers.Wait()
+	wg.Wait()
+}
+
+func TestDispatchRouteDropsOversizedBacking(t *testing.T) {
+	t.Parallel()
+
+	n := routeCandidatePoolMaxCap + 1
+	conns := make([]*Connection, n)
+	for i := range conns {
+		conns[i] = scoreTestConn(t, "node", 200*time.Microsecond, 1.0)
+	}
+	slot := &indexSlot{}
+	obs := &captureCandidatesObserver{}
+
+	// A fan-out beyond the pool cap must still deliver all candidates; on
+	// Release the oversized backing array is dropped, not returned to the pool.
+	require.NotPanics(t, func() {
+		dispatchRoute(obs, routeEventParams{
+			indexName:     "idx",
+			key:           "idx",
+			candidates:    conns,
+			best:          conns[0],
+			slot:          slot,
+			costs:         &shardCostForReads,
+			targetShard:   -1,
+			poolInfoReady: true,
+		})
+	})
+
+	require.Equal(t, []int{n}, obs.lens, "oversized dispatch still delivers every candidate")
 }
 
 func TestIndexRouterEmitsObserverEvent(t *testing.T) {
@@ -315,4 +531,51 @@ func TestBuildConnectionMetricScoringFields(t *testing.T) {
 
 		require.Nil(t, cm.EstLoad)
 	})
+}
+
+// BenchmarkDispatchRouteReleased proves the pooling goal: when the observer
+// releases the event, repeated dispatches reuse the backing array and report
+// near-zero allocations per operation. Contrast with a non-releasing observer,
+// which allocates a fresh []RouteCandidate every dispatch.
+func BenchmarkDispatchRouteReleased(b *testing.B) {
+	conn1 := scoreTestConn(b, "node-a", 200*time.Microsecond, 2.0)
+	conn2 := scoreTestConn(b, "node-b", 400*time.Microsecond, 1.0)
+	slot := &indexSlot{}
+	obs := &captureCandidatesObserver{}
+	params := routeEventParams{
+		indexName: "idx", key: "idx",
+		candidates: []*Connection{conn1, conn2}, best: conn1,
+		slot: slot, costs: &shardCostForReads, targetShard: -1, poolInfoReady: true,
+	}
+
+	b.ReportAllocs()
+	for b.Loop() {
+		// Reset capture slices so the observer's own appends don't dominate.
+		obs.lens = obs.lens[:0]
+		obs.firstPtr = obs.firstPtr[:0]
+		obs.ids = obs.ids[:0]
+		dispatchRoute(obs, params)
+	}
+}
+
+// noopRouteObserver is a no-op ConnectionObserver so a benchmark measures
+// dispatchRoute's own allocations (including the auto-reclaim) without the
+// capture-slice overhead of captureCandidatesObserver. A synchronous observer
+// does not call Release; dispatchRoute reclaims the buffer itself.
+type noopRouteObserver struct{ BaseConnectionObserver }
+
+func BenchmarkDispatchRoutePooledAllocs(b *testing.B) {
+	conn1 := scoreTestConn(b, "node-a", 200*time.Microsecond, 2.0)
+	conn2 := scoreTestConn(b, "node-b", 400*time.Microsecond, 1.0)
+	slot := &indexSlot{}
+	obs := noopRouteObserver{}
+	params := routeEventParams{
+		indexName: "idx", key: "idx",
+		candidates: []*Connection{conn1, conn2}, best: conn1,
+		slot: slot, costs: &shardCostForReads, targetShard: -1, poolInfoReady: true,
+	}
+	b.ReportAllocs()
+	for b.Loop() {
+		dispatchRoute(obs, params)
+	}
 }

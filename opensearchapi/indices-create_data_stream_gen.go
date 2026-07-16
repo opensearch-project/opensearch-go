@@ -127,7 +127,7 @@ func (c indicesClient) CreateDataStream(ctx context.Context, req IndicesCreateDa
 		data IndicesCreateDataStreamResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

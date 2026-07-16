@@ -136,7 +136,7 @@ func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*Sna
 		data SnapshotStatusResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

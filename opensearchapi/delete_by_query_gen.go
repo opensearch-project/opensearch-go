@@ -559,7 +559,7 @@ func (c Client) DeleteByQuery(ctx context.Context, req *DeleteByQueryReq) (*Dele
 		data DeleteByQueryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

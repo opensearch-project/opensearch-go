@@ -29,14 +29,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (c *Client) ListChannels(ctx context.Context, req *ListChannelsReq) (*ListC
 		req = &ListChannelsReq{}
 	}
 	var resp ListChannelsResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -85,7 +85,7 @@ func (c *Client) ListFeatures(ctx context.Context, req *ListFeaturesReq) (*ListF
 		req = &ListFeaturesReq{}
 	}
 	var resp ListFeaturesResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -102,7 +102,7 @@ func (c *Client) ListFeatures(ctx context.Context, req *ListFeaturesReq) (*ListF
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#send-test-notification
 func (c *Client) SendTest(ctx context.Context, req SendTestReq) (*SendTestResp, error) {
 	var resp SendTestResp
-	if _, err := do(ctx, c, http.MethodPost, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -120,7 +120,7 @@ func (c configClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*
 		req = &CreateConfigReq{}
 	}
 	var resp CreateConfigResp
-	if _, err := do(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -135,7 +135,7 @@ func (c configClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#delete-channel-configuration
 func (c configClient) DeleteConfig(ctx context.Context, req DeleteConfigReq) (*DeleteConfigResp, error) {
 	var resp DeleteConfigResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -153,7 +153,7 @@ func (c configClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) 
 		req = &DeleteConfigsReq{}
 	}
 	var resp DeleteConfigsResp
-	if _, err := do(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -166,7 +166,7 @@ func (c configClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) 
 // Available: >= 2.0.0.
 func (c configClient) GetConfig(ctx context.Context, req GetConfigReq) (*GetConfigResp, error) {
 	var resp GetConfigResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -184,7 +184,7 @@ func (c configClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetC
 		req = &GetConfigsReq{}
 	}
 	var resp GetConfigsResp
-	if _, err := do(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -199,7 +199,7 @@ func (c configClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetC
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#update-channel-configuration
 func (c configClient) UpdateConfig(ctx context.Context, req UpdateConfigReq) (*UpdateConfigResp, error) {
 	var resp UpdateConfigResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

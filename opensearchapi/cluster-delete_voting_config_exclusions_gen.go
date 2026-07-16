@@ -133,7 +133,7 @@ func (c clusterClient) DeleteVotingConfigExclusions(ctx context.Context, req *Cl
 		data ClusterDeleteVotingConfigExclusionsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

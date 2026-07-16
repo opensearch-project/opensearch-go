@@ -200,7 +200,7 @@ func (c catClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndices
 		data CatIndicesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

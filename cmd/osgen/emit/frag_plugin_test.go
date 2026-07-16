@@ -36,7 +36,7 @@ func TestPluginClientFragment_Body(t *testing.T) {
 	}{
 		{name: "Client struct", want: "type Client struct"},
 		{name: "NewClient", want: "func NewClient(client *opensearch.Client) *Client"},
-		{name: "do helper", want: "func do[T any](ctx context.Context"},
+		{name: "do helper", want: "func request[T any](ctx context.Context"},
 		{name: "pointer req method", want: "func (c *Client) GetRoles(ctx context.Context, req *SecurityGetRolesReq)"},
 		{name: "value req method", want: "func (c *Client) CreateRole(ctx context.Context, req SecurityCreateRoleReq)"},
 		{name: "nil guard", want: "if req == nil"},
@@ -158,7 +158,7 @@ func TestPluginClientFragment_WithSubClients(t *testing.T) {
 		{name: "root method", want: "func (c *Client) FlushCache("},
 		{name: "sub-client method GetRole", want: "func (c roleClient) GetRole("},
 		{name: "sub-client method CreateRole", want: "func (c roleClient) CreateRole("},
-		{name: "sub-client uses c.client", want: "do(ctx, c.client,"},
+		{name: "sub-client uses c.client", want: "request(ctx, c.client,"},
 		{name: "deprecated GetRole", want: "return c.Role.GetRole(ctx, req)"},
 		{name: "deprecated CreateRole", want: "return c.Role.CreateRole(ctx, req)"},
 		{name: "deprecated comment", want: "Deprecated: use Client.Role.GetRole instead"},

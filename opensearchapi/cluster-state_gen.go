@@ -210,7 +210,7 @@ func (c clusterClient) State(ctx context.Context, req *ClusterStateReq) (*Cluste
 		data ClusterStateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

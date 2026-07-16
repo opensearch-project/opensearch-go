@@ -190,7 +190,7 @@ func (c indicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq
 		data IndicesGetMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -211,7 +211,7 @@ func (c mappingClient) Get(ctx context.Context, req *IndicesGetMappingReq) (*Ind
 		data IndicesGetMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

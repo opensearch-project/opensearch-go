@@ -147,7 +147,7 @@ func (c Client) GetScriptContext(ctx context.Context, req *GetScriptContextReq) 
 		data GetScriptContextResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodGet,

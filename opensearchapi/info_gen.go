@@ -138,7 +138,7 @@ func (c Client) Info(ctx context.Context, req *InfoReq) (*InfoResp, error) {
 		data InfoResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodGet,

@@ -99,5 +99,5 @@ func (r ClusterExistsComponentTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 func (c clusterClient) ExistsComponentTemplate(ctx context.Context, req ClusterExistsComponentTemplateReq) (*opensearch.Response, error) {
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

@@ -168,9 +168,12 @@ External code that implements `Route` (custom routing policies) must add an `OpI
 
 ## `Perform` removed; `Stream` is now the transport interface method
 
-`opensearchtransport.Interface` previously required `Perform(*http.Request) (*http.Response, error)`, which buffered the entire response body before returning. It now requires `Stream(*http.Request) (*http.Response, error)`, which returns the raw, unbuffered body. The caller owns the body and must close it.
+`opensearchtransport.Interface` previously required `Perform(*http.Request) (*http.Response, error)`, which buffered the entire response body before returning. It now requires two methods:
 
-**Custom transport implementations** must rename `Perform` to `Stream` and stop pre-buffering the body:
+- `Stream(*http.Request) (*http.Response, error)` -- returns the raw, unbuffered body; the caller owns and must close it.
+- `Request(*http.Request) (*http.Response, error)` -- buffers the body (draining the connection back to the pool) and returns it as an `io.NopCloser` over the buffered bytes, the same contract the old `Perform` had.
+
+**Custom transport implementations** must provide both methods. The old `Perform` maps directly onto `Request`:
 
 ```go
 // Before
@@ -180,16 +183,23 @@ func (t *MyTransport) Perform(req *http.Request) (*http.Response, error) {
     return resp, err
 }
 
-// After
+// After: Stream returns the raw body ...
 func (t *MyTransport) Stream(req *http.Request) (*http.Response, error) {
     return t.inner.RoundTrip(req)
+}
+
+// ... and Request buffers it (old Perform behavior).
+func (t *MyTransport) Request(req *http.Request) (*http.Response, error) {
+    resp, err := t.inner.RoundTrip(req)
+    // ... buffer resp.Body into an io.NopCloser over a bytes.Reader ...
+    return resp, err
 }
 ```
 
 **Callers of `(*opensearch.Client).Perform`** should switch to the appropriate alternative:
 
 - Use `client.Stream(req)` for raw byte forwarding (proxy/streaming use cases). You are responsible for closing `resp.Body`.
-- Use `opensearch.Do[T](ctx, client, method, req, &result)` for typed, decoded responses.
+- Use `opensearch.Execute[T](ctx, client, method, req, &result)` for typed, decoded responses.
 
 The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.
 
@@ -201,7 +211,7 @@ The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStr
 body, err := io.ReadAll(resp.Body)
 ```
 
-For responses decoded by `Client.Do`, the buffered bytes are also available without consuming the body reader via the `RawBody() []byte` method (useful for inspection or comparison testing):
+For responses decoded by `opensearch.Execute`, the buffered bytes are also available without consuming the body reader via the `RawBody() []byte` method (useful for inspection or comparison testing):
 
 ```go
 raw := resp.RawBody() // nil for streamed or error responses; read resp.Body directly there

@@ -160,7 +160,7 @@ func (c Client) Restore(ctx context.Context, req *RemoteStoreRestoreReq) (*Remot
 		data RemoteStoreRestoreResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

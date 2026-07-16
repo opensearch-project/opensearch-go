@@ -124,7 +124,7 @@ func (c indicesClient) DeleteTemplate(ctx context.Context, req IndicesDeleteTemp
 		data IndicesDeleteTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

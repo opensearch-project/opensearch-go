@@ -13,7 +13,7 @@ import (
 )
 
 // RoundtripTestFragment renders an httptest-based roundtrip test that exercises
-// the full dispatch method -> do() -> opensearch.Do() -> unmarshal pipeline.
+// the full dispatch method -> request() -> opensearch.Execute() -> unmarshal pipeline.
 type RoundtripTestFragment struct {
 	PkgName    string
 	ImportPath string

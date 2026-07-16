@@ -117,7 +117,9 @@ var hopV4toV5 = Hop{
 		"opensearchapi.NewClient now injects a default Router when Config.Client.Router is nil - verify OPENSEARCH_GO_ROUTER expectations.",
 		"EnableMetrics removed: Metrics() no longer errors when disabled - drop any code that branched on that error.",
 		"Timeout/Pretty/Human/ErrorTrace moved into embedded TimeoutParams/DebugParams - restructure those assignments by hand.",
-		"DocumentError -> ErrorRespBase: v5 nests the cause in ErrorRespBase.Error (an ErrorCause) with Status on the envelope; read Reason/Type/CausedBy/RootCause from .Error (Reason is now *string - nil-check) and rework per-error access by hand - see opensearchapi/UPGRADING_V4_TO_V5.md.",
+		"DocumentError -> ErrorRespBase: v5 nests the cause in ErrorRespBase.Error (an ErrorCause) with Status on the envelope; " +
+			"read Reason/Type/CausedBy/RootCause from .Error (Reason is now *string - nil-check) and rework per-error access by hand " +
+			"- see opensearchapi/UPGRADING_V4_TO_V5.md.",
 	},
 }
 

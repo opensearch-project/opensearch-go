@@ -167,7 +167,7 @@ func (c catClient) Templates(ctx context.Context, req CatTemplatesReq) (*CatTemp
 		data CatTemplatesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

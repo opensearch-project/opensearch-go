@@ -666,34 +666,49 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 // Stream delegates to Transport.Stream, returning the raw [http.Response] from
 // the underlying [http.RoundTripper]. The caller owns the response body and
 // must close it. Use Stream for proxy and streaming use cases where bytes are
-// forwarded incrementally; use [Do] when you want a decoded Go value.
+// forwarded incrementally; use [Execute] when you want a decoded Go value.
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {
-	if req.Header == nil {
-		// Pre-allocate for the headers the transport layer sets on every
-		// outgoing request (User-Agent, Authorization, Content-Type,
-		// Content-Encoding, etc.) so the map does not have to resize on
-		// the hot path.
-		const defaultHeaderCount = 8
-		req.Header = make(http.Header, defaultHeaderCount)
-	}
+	c.ensureReqHeader(req)
 	return c.Transport.Stream(req)
 }
 
-// Do gets and performs the request. It also tries to parse the response into the dataPointer.
+// Request delegates to Transport.Request, returning an [http.Response] whose
+// body has been read and buffered; the connection is already back in the pool.
+// Callers that want a decoded Go value should use [Execute] rather than calling
+// Request directly.
+func (c *Client) Request(req *http.Request) (*http.Response, error) {
+	c.ensureReqHeader(req)
+	return c.Transport.Request(req)
+}
+
+// ensureReqHeader initializes req.Header if the caller left it nil, pre-sizing
+// for the headers the transport sets on every request (User-Agent,
+// Authorization, Content-Type, Content-Encoding, etc.) so the map does not
+// resize on the hot path.
+func (c *Client) ensureReqHeader(req *http.Request) {
+	if req.Header == nil {
+		const defaultHeaderCount = 8
+		req.Header = make(http.Header, defaultHeaderCount)
+	}
+}
+
+// NoBody is a marker type for [Execute] calls that expect no response body.
+// Pass (*NoBody)(nil) to skip JSON unmarshaling while retaining compile-time
+// pointer enforcement.
+type NoBody struct{}
+
+// Execute performs the request and parses the response body into dataPointer.
+// The generic parameter enforces that dataPointer is a pointer at compile time;
+// pass a nil *T (for example (*NoBody)(nil)) to skip JSON unmarshaling.
 //
-// On error, Do may return a non-nil *Response alongside a non-nil error. This
-// happens when the transport received a response but a subsequent failure
+// On error, Execute may return a non-nil *Response alongside a non-nil error.
+// This happens when the transport received a response but a subsequent failure
 // occurred (a body-read failure during buffering, or an unrelated transport
 // error such as context cancellation during retry backoff). Callers that need
 // to distinguish a hard transport failure should check resp == nil rather than
 // err != nil, and may inspect the returned *Response in the error case. A nil
 // *Response always signals that no usable response was produced.
-//
-// Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
-// Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
-// unmarshaling. The method remains fully functional and will not be removed; this annotation
-// exists to steer callers toward the safer generic alternative.
-func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer any) (*Response, error) {
+func Execute[T any](ctx context.Context, c *Client, method string, req Request, dataPointer *T) (*Response, error) {
 	httpReq, err := req.GetRequest(method)
 	if err != nil {
 		return nil, err
@@ -703,20 +718,12 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		httpReq = httpReq.WithContext(ctx)
 	}
 
-	resp, err := c.Stream(httpReq)
+	// Transport.Request buffers the body and returns the connection to the pool;
+	// resp.Body is already an io.NopCloser over the buffered bytes.
+	//nolint:bodyclose // Request already drained and closed the socket; resp.Body is a NopCloser over buffered bytes
+	resp, err := c.Request(httpReq)
 	if resp == nil {
 		return nil, err
-	}
-
-	// Buffer and close the raw body so the TCP connection returns to the pool.
-	// Stream returns the body unbuffered; Do owns it from here.
-	if resp.Body != nil {
-		body, rerr := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		resp.Body = io.NopCloser(bytes.NewReader(body))
-		if rerr != nil && err == nil {
-			err = fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, rerr)
-		}
 	}
 
 	response := &Response{
@@ -727,7 +734,7 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	if err != nil {
-		// Stream may return (resp != nil, err != nil) in two cases: a body-read
+		// Request may return (resp != nil, err != nil) in two cases: a body-read
 		// failure (ErrResponseBodyRead) or an unrelated transport error alongside
 		// a response (e.g. context cancellation during retry backoff). Only label
 		// the former as ErrReadBody so callers can distinguish the two.
@@ -757,24 +764,6 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	return response, nil
-}
-
-// NoBody is a marker type for [Do] calls that expect no response body.
-// Pass (*NoBody)(nil) to skip JSON unmarshaling while retaining compile-time
-// pointer enforcement.
-type NoBody struct{}
-
-// Do is a generic version of [Client.Do] that enforces dataPointer as a pointer at compile time.
-// It delegates to [Client.Do] after the type system has guaranteed *T.
-//
-// A nil dataPointer is forwarded as untyped nil so that [Client.Do] skips
-// unmarshalling. This prevents a typed nil (e.g. (*MyResp)(nil)) from being
-// widened into a non-nil any interface that would reach [json.Unmarshal].
-func Do[T any](ctx context.Context, c *Client, method string, req Request, dataPointer *T) (*Response, error) {
-	if dataPointer == nil {
-		return c.Do(ctx, method, req, nil)
-	}
-	return c.Do(ctx, method, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

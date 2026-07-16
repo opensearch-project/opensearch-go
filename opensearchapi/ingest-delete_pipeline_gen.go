@@ -124,7 +124,7 @@ func (c ingestClient) DeletePipeline(ctx context.Context, req IngestDeletePipeli
 		data IngestDeletePipelineResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

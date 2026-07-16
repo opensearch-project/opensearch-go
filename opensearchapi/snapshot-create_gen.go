@@ -206,7 +206,7 @@ func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*Sna
 		data SnapshotCreateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

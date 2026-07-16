@@ -177,7 +177,7 @@ func (c clusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutC
 		data ClusterPutComponentTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

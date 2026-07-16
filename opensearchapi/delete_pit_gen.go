@@ -149,7 +149,7 @@ func (c pointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*Dele
 		data DeletePITResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

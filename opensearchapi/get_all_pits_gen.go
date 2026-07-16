@@ -129,7 +129,7 @@ func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPitsReq) (*Get
 		data GetAllPitsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

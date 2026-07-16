@@ -183,7 +183,7 @@ func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*I
 		data IndicesPutAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,
@@ -200,7 +200,7 @@ func (c aliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesP
 		data IndicesPutAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

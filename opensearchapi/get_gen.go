@@ -230,7 +230,7 @@ func (c documentClient) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 		data GetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -744,7 +744,7 @@ func writeOperationConst(group string) string {
 }
 
 // dispatchTemplateText is the per-operation dispatch handler template.
-// Each route renders one Go method that builds the request, calls do(),
+// Each route renders one Go method that builds the request, calls request(),
 // then delegates partial-failure detection to the Resp's PartialFailures
 // aggregator (emitted by [PartialFailureFragment]).
 //
@@ -784,7 +784,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	}
 {{end}}
 {{- if $op.IsNoBody}}
-	return do(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
+	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
 {{- else}}
 	var (
 		data {{$op.TypePrefix}}Resp
@@ -795,7 +795,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	if req.Body != nil{{if $op.HasTypedBody}} || req.BodyReader != nil{{end}} {
 		method = {{methodConst (bodyMethodSwitch $op)}}
 	}
-	if data.response, err = do( {{- ""}}
+	if data.response, err = request( {{- ""}}
 		ctx,
 		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
 		method,
@@ -804,7 +804,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		return &data, err
 	}
 {{- else}}
-	if data.response, err = do( {{- ""}}
+	if data.response, err = request( {{- ""}}
 		ctx,
 		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
 		{{methodConst (primaryMethod $op)}},

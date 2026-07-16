@@ -423,7 +423,7 @@ func (c Client) MSearch(ctx context.Context, req *MSearchReq) (*MSearchResp, err
 	if req.Body != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

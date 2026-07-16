@@ -124,7 +124,7 @@ func (c Client) DeleteScript(ctx context.Context, req DeleteScriptReq) (*DeleteS
 		data DeleteScriptResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodDelete,

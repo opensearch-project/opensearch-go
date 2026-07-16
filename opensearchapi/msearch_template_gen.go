@@ -266,7 +266,7 @@ func (c Client) MSearchTemplate(ctx context.Context, req *MSearchTemplateReq) (*
 	if req.Body != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

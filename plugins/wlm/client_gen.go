@@ -29,14 +29,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return c
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c queryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 		req = &CreateQueryGroupReq{}
 	}
 	var resp CreateQueryGroupResp
-	if _, err := do(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -78,7 +78,7 @@ func (c queryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 // Available: >= 2.17.0.
 func (c queryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryGroupReq) (*DeleteQueryGroupResp, error) {
 	var resp DeleteQueryGroupResp
-	if _, err := do(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -91,7 +91,7 @@ func (c queryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryG
 // Available: >= 2.17.0.
 func (c queryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
 	var resp GetQueryGroupResp
-	if _, err := do(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -104,7 +104,7 @@ func (c queryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupRe
 // Available: >= 2.17.0.
 func (c queryGroupClient) UpdateQueryGroup(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error) {
 	var resp UpdateQueryGroupResp
-	if _, err := do(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

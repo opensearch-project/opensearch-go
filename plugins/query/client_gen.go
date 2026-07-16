@@ -26,14 +26,14 @@ func NewClient(client *opensearch.Client) *Client {
 	return &Client{Client: client}
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 // Available: >= 2.7.0.
 func (c *Client) DatasourceDelete(ctx context.Context, req DatasourceDeleteReq) (*DatasourceDeleteResp, error) {
 	var resp DatasourceDeleteResp
-	if _, err := do(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -68,7 +68,7 @@ func (c *Client) DatasourceDelete(ctx context.Context, req DatasourceDeleteReq) 
 // Available: >= 2.7.0.
 func (c *Client) DatasourceRetrieve(ctx context.Context, req DatasourceRetrieveReq) (*DatasourceRetrieveResp, error) {
 	var resp DatasourceRetrieveResp
-	if _, err := do(ctx, c, http.MethodGet, req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -84,7 +84,7 @@ func (c *Client) DatasourcesCreate(ctx context.Context, req *DatasourcesCreateRe
 		req = &DatasourcesCreateReq{}
 	}
 	var resp DatasourcesCreateResp
-	if _, err := do(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -100,7 +100,7 @@ func (c *Client) DatasourcesList(ctx context.Context, req *DatasourcesListReq) (
 		req = &DatasourcesListReq{}
 	}
 	var resp DatasourcesListResp
-	if _, err := do(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -116,7 +116,7 @@ func (c *Client) DatasourcesUpdate(ctx context.Context, req *DatasourcesUpdateRe
 		req = &DatasourcesUpdateReq{}
 	}
 	var resp DatasourcesUpdateResp
-	if _, err := do(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

@@ -460,7 +460,7 @@ func (c clusterClient) AllocationExplain(ctx context.Context, req *ClusterAlloca
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

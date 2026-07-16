@@ -73,6 +73,18 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// OnRoute is called after the router selects a node for a
 	// request. The event contains the full scoring breakdown for all
 	// candidates considered during the routing decision.
+	//
+	// The event's Candidates slice is backed by a pooled array. A synchronous
+	// observer that finishes within the call needs to do nothing: the array is
+	// reclaimed automatically once OnRoute returns. An observer that retains the
+	// event past the call -- for example by sending it to another goroutine over
+	// a channel -- must call [RouteEvent.Retain] synchronously inside OnRoute,
+	// then [RouteEvent.Release] exactly once when it is done reading Candidates.
+	// To keep the candidates without managing the lifecycle, copy them with
+	// slices.Clone(event.Candidates).
+	//
+	// The scalar RouteEvent fields (IndexName, Selected, TargetShard, ...) are
+	// values and remain valid after the array is reclaimed.
 	OnRoute(event RouteEvent)
 
 	// OnShardMapInvalidation is called when a routing failure flags a
@@ -84,6 +96,17 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// node's URL during discovery. The event contains the original and
 	// rewritten URLs.
 	OnAddressRewrite(event AddressRewriteEvent)
+
+	// OnRequestResponse is called once per logical request by
+	// [Transport.Request] after the response body has been read and buffered.
+	// The event carries the full-read Duration and the exact ResponseBytes.
+	OnRequestResponse(event RequestResponseEvent)
+
+	// OnStreamResponse is called once per logical request by [Transport.Stream]
+	// at round-trip return, before the caller reads the body. The event carries
+	// the time-to-first-byte Duration and the Content-Length header
+	// (ContentLength), not a measured byte count.
+	OnStreamResponse(event StreamResponseEvent)
 }
 
 // BaseConnectionObserver is an embeddable no-op implementation of
@@ -143,6 +166,12 @@ func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) 
 
 // OnAddressRewrite implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnAddressRewrite(AddressRewriteEvent) {}
+
+// OnRequestResponse implements ConnectionObserver (no-op).
+func (BaseConnectionObserver) OnRequestResponse(RequestResponseEvent) {}
+
+// OnStreamResponse implements ConnectionObserver (no-op).
+func (BaseConnectionObserver) OnStreamResponse(StreamResponseEvent) {}
 
 // Compile-time check that BaseConnectionObserver implements ConnectionObserver.
 var _ ConnectionObserver = (*BaseConnectionObserver)(nil)

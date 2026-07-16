@@ -445,7 +445,7 @@ func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*
 		data IndicesRecoveryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

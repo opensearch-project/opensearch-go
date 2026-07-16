@@ -202,7 +202,7 @@ func (c pointInTimeClient) Create(ctx context.Context, req *CreatePITReq) (*Crea
 		data CreatePITResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

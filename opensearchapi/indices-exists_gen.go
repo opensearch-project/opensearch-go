@@ -153,5 +153,5 @@ func (c indicesClient) Exists(ctx context.Context, req *IndicesExistsReq) (*open
 		req = &IndicesExistsReq{}
 	}
 
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

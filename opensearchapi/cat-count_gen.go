@@ -275,7 +275,7 @@ func (c catClient) Count(ctx context.Context, req *CatCountReq) (*CatCountResp, 
 		data CatCountResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

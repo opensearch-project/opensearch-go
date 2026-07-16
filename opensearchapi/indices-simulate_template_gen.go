@@ -168,7 +168,7 @@ func (c indicesClient) SimulateTemplate(ctx context.Context, req IndicesSimulate
 		data IndicesSimulateTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

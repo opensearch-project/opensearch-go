@@ -688,7 +688,7 @@ func (c Client) UpdateByQuery(ctx context.Context, req *UpdateByQueryReq) (*Upda
 		data UpdateByQueryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

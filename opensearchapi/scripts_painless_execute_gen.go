@@ -171,7 +171,7 @@ func (c Client) ScriptsPainlessExecute(ctx context.Context, req *ScriptsPainless
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

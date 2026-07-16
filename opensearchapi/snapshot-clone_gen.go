@@ -159,7 +159,7 @@ func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*Snaps
 		data SnapshotCloneResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

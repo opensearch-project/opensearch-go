@@ -103,6 +103,7 @@ func getConnectionFromPool(c *Transport, req *http.Request) (*Connection, error)
 // The caller owns the response body and must close it.
 type Interface interface {
 	Stream(*http.Request) (*http.Response, error)
+	Request(*http.Request) (*http.Response, error)
 }
 
 // OpenSearchInfo represents the root endpoint response structure for health checks.
@@ -1235,29 +1236,126 @@ func (c *Transport) Close() error {
 	return nil
 }
 
-// Stream executes the request and returns the raw [http.Response] from the
-// underlying [http.RoundTripper]. The caller owns the response body: Stream
-// does not read or close res.Body. Use Stream when you want to forward or
-// relay raw bytes downstream without interpreting them (for example, a
-// reverse proxy streaming a response to its own client).
+// streamResult carries the timing the stream core measured for the final
+// round-trip attempt, so Stream and Request can build response events without
+// the core needing to know which event to fire. All fields describe the last
+// attempt; they are zero when no round trip occurred (hard transport failure).
+type streamResult struct {
+	attempt   int           // zero-based index of the final attempt
+	ttfb      time.Duration // time-to-first-byte: send until RoundTrip returned
+	sendStart time.Time     // when the final attempt was sent
+}
+
+// Stream executes the request and returns the raw [http.Response] unread. The
+// caller owns the body and must close it; Stream neither reads nor closes it.
+// Use Stream to forward bytes downstream without interpreting them, such as a
+// reverse proxy relaying a response to its own client.
 //
-// Stream may return a non-nil *http.Response together with a non-nil error
-// (for example, when the request context is cancelled during retry backoff
-// after a retryable status was received). Callers must therefore treat
-// resp == nil, not err != nil, as the signal for a hard transport failure.
+// Stream rewrites req.URL to the selected backend so signing, retry, and routing
+// operate on the resolved address, and applies retry, signing, header injection,
+// request-body compression, metrics, and seed URL fallback.
 //
-// Stream mutates req.URL to point at the selected backend (Scheme/Host) so
-// that signing, retry, and routing all see the resolved address. It performs
-// retry, signing, header injection, request-body compression, metrics, and
-// the seed URL fallback before returning the raw RoundTrip body.
+// A hard transport failure returns a nil response and an error. A partial
+// failure returns the response together with an error, such as a context
+// cancellation during retry backoff after a retryable status. Callers
+// distinguish the two by testing resp == nil, not err != nil.
 //
-// Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
-// for typed, decoded results (the SDK owns the body), use Stream for raw
-// byte forwarding (the caller owns the body).
+// For typed, decoded results where the SDK owns the body, use
+// [github.com/opensearch-project/opensearch-go/v5.Execute] instead.
 func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
+	res, sr, err := c.stream(req)
+
+	// Fire the streaming response event (time-to-first-byte, Content-Length
+	// header) only when an observer is registered, so a request without one
+	// incurs no extra work.
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		statusCode, contentLength := 0, int64(-1)
+		if res != nil {
+			statusCode = res.StatusCode
+			contentLength = res.ContentLength
+		}
+		obs.OnStreamResponse(StreamResponseEvent{
+			ResponseEvent: ResponseEvent{
+				Request:    newRequestEvent(req, sr.attempt),
+				StatusCode: statusCode,
+				Err:        err,
+			},
+			Duration:      sr.ttfb,
+			ContentLength: contentLength,
+		})
+	}
+
+	return res, err
+}
+
+// Request executes the request, then reads and buffers the entire response body
+// before returning. The returned body is an [io.NopCloser] over the buffered
+// bytes, so the connection is already drained and back in the pool; callers may
+// read it without a network round trip and closing it is a formality. Request
+// fires OnRequestResponse with the full-read duration and the exact number of
+// body bytes read.
+//
+// Unlike [net/http.Client.Do], Request buffers the body rather than returning a
+// live stream. Use [Transport.Stream] when you need the raw, unread body for
+// proxy or streaming forwarding.
+//
+// A hard transport failure returns a nil response and an error. A partial
+// failure returns the buffered response together with an error, such as
+// [ErrResponseBodyRead] when the body read fails. Callers distinguish the two
+// by testing resp == nil, not err != nil.
+func (c *Transport) Request(req *http.Request) (*http.Response, error) {
+	res, sr, err := c.stream(req)
+
+	// Buffer the body so the connection returns to the pool. This is core
+	// Request behavior and runs regardless of whether an observer is registered.
+	var n int64
+	if res != nil && res.Body != nil {
+		body, rerr := io.ReadAll(res.Body)
+		res.Body.Close()
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		n = int64(len(body))
+		if rerr != nil && err == nil {
+			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
+		}
+	}
+
+	// Fire the buffered response event (full-read duration, exact byte count)
+	// only when an observer is registered.
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		statusCode := 0
+		if res != nil {
+			statusCode = res.StatusCode
+		}
+		// sendStart is zero when no round trip occurred (hard transport
+		// failure); report a zero duration rather than time since the epoch.
+		var dur time.Duration
+		if !sr.sendStart.IsZero() {
+			dur = time.Since(sr.sendStart)
+		}
+		obs.OnRequestResponse(RequestResponseEvent{
+			ResponseEvent: ResponseEvent{
+				Request:    newRequestEvent(req, sr.attempt),
+				StatusCode: statusCode,
+				Err:        err,
+			},
+			Duration:      dur,
+			ResponseBytes: n,
+		})
+	}
+
+	return res, err
+}
+
+// stream is the shared transport core behind Stream and Request. It performs
+// routing, signing, header injection, request-body compression, retry, metrics,
+// and seed URL fallback, and returns the raw response alongside the timing of
+// the final attempt. It does not read the body or fire observer events; the
+// callers own those concerns.
+func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, error) {
 	var (
 		res *http.Response
 		err error
+		sr  streamResult
 	)
 
 	if c.metrics != nil {
@@ -1273,7 +1371,7 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 			buf, err := c.pooledGzipCompressor.compress(req.Body)
 			defer c.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
-				return nil, fmt.Errorf("failed to compress request body: %w", err)
+				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}
 
 			req.GetBody = func() (io.ReadCloser, error) {
@@ -1344,7 +1442,7 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 				res = nil
 				break
 			}
-			return nil, err
+			return nil, sr, err
 		}
 
 		// Update request
@@ -1354,13 +1452,13 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
 			body, err := req.GetBody()
 			if err != nil {
-				return nil, fmt.Errorf("cannot get request body: %w", err)
+				return nil, sr, fmt.Errorf("cannot get request body: %w", err)
 			}
 			req.Body = body
 		}
 
 		if err = c.signRequest(req); err != nil {
-			return nil, fmt.Errorf("failed to sign request: %w", err)
+			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
 		// Set up time measures and execute the request
@@ -1399,6 +1497,9 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 			}
 		}
 		dur := time.Since(start)
+		sr.attempt = i
+		sr.ttfb = dur
+		sr.sendStart = start
 		if poolName != "" {
 			conn.releaseInFlight(poolName)
 		}
@@ -1593,7 +1694,24 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 	}
 
 	// TODO: Consider wrapping the error with request context.
-	return res, err
+	return res, sr, err
+}
+
+// newRequestEvent builds a RequestEvent snapshot from the outgoing request. By
+// the time a response event fires, req.URL has been rewritten to the selected
+// backend, so Host reflects the node actually contacted.
+func newRequestEvent(req *http.Request, attempt int) RequestEvent {
+	var host string
+	if req.URL != nil {
+		host = req.URL.Scheme + "://" + req.URL.Host
+	}
+	return RequestEvent{
+		Method:       req.Method,
+		Path:         req.URL.Path,
+		Host:         host,
+		Attempt:      attempt,
+		RequestBytes: req.ContentLength,
+	}
 }
 
 // performSeedFallback attempts a single request using the seed URL fallback pool.

@@ -26,12 +26,13 @@ Task-oriented guides for the OpenSearch Go client. Each guide is the canonical r
 ## Responses and Error Handling
 
 - [Error Handling and Partial Failures](usage-error_handling.md) - The canonical reference for detecting and handling partial failures, including the typed error model and helpers.
-- [Response Body Lifecycle: `Do[T]` vs `Stream`](transport-response_buffering.md) - Choose between the buffered and streaming entry points and understand their body-ownership contracts.
+- [Response Body Lifecycle: `Execute[T]`, `Request`, and `Stream`](transport-response_buffering.md) - Choose between the buffered and streaming entry points and understand their body-ownership contracts.
 
 ## Operations and Observability
 
 - [Tasks](usage-tasks.md) - Submit long-running operations asynchronously, poll for completion, and inspect task status.
 - [Client-Side Metrics](transport-metrics.md) - Read a point-in-time snapshot of request counters, connection-pool state, and router cache state.
+- [Observer-Based Metrics](transport-observer_metrics.md) - Turn per-request observer events into metrics; record them to Prometheus with the `osprom` module.
 
 ## Configuration and Security
 
