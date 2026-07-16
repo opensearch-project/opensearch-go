@@ -395,6 +395,10 @@ func (c *Client) doDiscoverNodes(ctx context.Context) error {
 		}
 	}
 
+	// Expire the zombie-resurrection grace on connections that have been dead
+	// too long, so a node that never comes back stops being blindly retried.
+	c.resetDeadConnViability()
+
 	// Rotate standby connections after discovery completes.
 	// This piggybacks on the discovery interval rather than using a separate timer.
 	// Each rotation health-checks one standby and, if healthy, swaps it with a random active.
@@ -1342,6 +1346,53 @@ func (c *Client) discoveryLoop() {
 			delay = time.Millisecond
 		}
 		timer.Reset(delay)
+	}
+}
+
+// resetDeadConnViability clears the viability mark on any discovered connection
+// that has been continuously dead longer than verifyDeadAfter, so a node that
+// never recovers stops being blindly served as a last-resort zombie (see
+// Connection.availableForRouting and the lcViable const). Seed connections are
+// exempt -- they are always available regardless of this bit.
+//
+// No-op when verifyDeadAfter <= 0 (the feature is disabled). Enumerates the
+// allConns pool; policy pools share the same *Connection pointers, so clearing
+// the bit once via CAS is visible everywhere.
+func (c *Client) resetDeadConnViability() {
+	if c.verifyDeadAfter <= 0 {
+		return
+	}
+
+	c.mu.RLock()
+	pool, ok := c.mu.connectionPool.(*multiServerPool)
+	c.mu.RUnlock()
+	if !ok {
+		return
+	}
+
+	_, dead := pool.connectionsByState()
+	cutoff := time.Now().Add(-c.verifyDeadAfter)
+
+	for _, conn := range dead {
+		if conn.seed {
+			continue
+		}
+		// Skip connections that aren't currently dead or whose viability mark is
+		// already clear -- nothing to expire.
+		if conn.deadSinceIsZero() || !conn.loadConnState().lifecycle().has(lcViable) {
+			continue
+		}
+		if conn.loadDeadSince().After(cutoff) {
+			continue // not dead long enough yet
+		}
+		conn.mu.Lock()
+		if err := conn.casLifecycle(conn.loadConnState(), 0, 0, lcViable); err == nil {
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("resetDeadConnViability: cleared lcViable on %s (dead since %s)\n",
+					conn.URL, conn.loadDeadSince())
+			}
+		}
+		conn.mu.Unlock()
 	}
 }
 
