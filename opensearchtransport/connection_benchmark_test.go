@@ -46,14 +46,16 @@ func init() {
 }
 
 func initSingleServerPool() *singleServerPool {
-	return &singleServerPool{
-		connection: &Connection{
-			URL: &url.URL{
-				Scheme: "http",
-				Host:   "foo1",
-			},
+	conn := &Connection{
+		URL: &url.URL{
+			Scheme: "http",
+			Host:   "foo1",
 		},
 	}
+	// Normal host, proven reachable: latch lcViable so Next() admits it (these
+	// benchmarks do no network I/O, so nothing else sets the bit).
+	conn.setLifecycleBit(lcActive | lcViable)
+	return &singleServerPool{connection: conn}
 }
 
 func BenchmarkSingleServerPool(b *testing.B) {
@@ -123,8 +125,10 @@ func createMultiServerPool(conns []*Connection) *multiServerPool {
 	ready := make([]*Connection, len(conns))
 	copy(ready, conns)
 	for _, conn := range ready {
-		conn.state.Store(int64(newConnState(lcActive)))
 		conn.mu.Lock()
+		// Reset reused conns to the lcActive baseline: set lcActive and clear
+		// any dead/standby/overloaded/warmup bits left by prior sub-runs.
+		conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby|lcOverloaded|lcNeedsWarmup)
 		conn.storeDeadSince(time.Time{}) // Reset from prior benchmark sub-runs
 		conn.mu.Unlock()
 	}

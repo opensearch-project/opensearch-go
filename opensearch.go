@@ -160,6 +160,18 @@ type Config struct {
 	DiscoverNodesOnStart  *bool
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
+	// VerifyDeadAfter is the duration a dead connection can be blindly
+	// resurrected for use as a zombie connection when no other healthy
+	// connections are available. A connection proven reachable is a zombie
+	// candidate until it has been dead longer than this window; after that the
+	// discovery loop clears the mark, so the node must health-check clean again
+	// before it can be used. Seeds are always available and never expire this
+	// way. 0 = use the default window, <0 = disabled (a viable connection stays
+	// a zombie candidate indefinitely), >0 = explicit window. Overridable by
+	// OPENSEARCH_GO_VERIFY_DEAD_AFTER (bool true = default, false = disabled,
+	// else a duration string).
+	VerifyDeadAfter time.Duration
+
 	// Health check configuration
 	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 3s.
 	HealthCheckMaxRetries int           // Max retries for health checks. Default: 3. Set to -1 to disable health checks.
@@ -452,6 +464,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 
+		VerifyDeadAfter: cfg.VerifyDeadAfter,
+
 		HealthCheckTimeout:    cfg.HealthCheckTimeout,
 		HealthCheckMaxRetries: cfg.HealthCheckMaxRetries,
 		HealthCheckJitter:     cfg.HealthCheckJitter,
@@ -615,6 +629,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		b.Int(-1)
 	}
 	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.VerifyDeadAfter)).
 		Int(int64(cfg.HealthCheckTimeout)).
 		Int(int64(cfg.HealthCheckMaxRetries)).
 		Int(int64(cfg.ResurrectTimeoutInitial)).

@@ -236,7 +236,9 @@ func TestMetrics(t *testing.T) {
 		conn.storeDeadSince(deadAt)
 		conn.storeOverloadedAt(overAt)
 		// lcUnknown without lcActive/lcStandby => IsDead; lcOverloaded => IsOverloaded.
-		conn.state.Store(int64(newConnState(lcDead | lcUnknown | lcOverloaded)))
+		// Reset the seed conn (born lcActive) to dead+overloaded: clear the
+		// active/standby position bits and set lcUnknown|lcOverloaded.
+		conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcOverloaded, lcReady|lcActive|lcStandby)
 		conn.mu.Unlock()
 
 		m, err := tp.Metrics()
@@ -385,7 +387,7 @@ func TestMetrics(t *testing.T) {
 			URL:   "http://foo1",
 			State: activeState,
 		}
-		require.Equal(t, "{http://foo1 state=ready+active (000000000101)}", m.String())
+		require.Equal(t, "{http://foo1 state=ready+active (0000000000101)}", m.String())
 
 		// Dead connection: lcUnknown|lcNeedsWarmup -- awaiting resurrection
 		tt, _ := time.Parse(time.RFC3339, "2010-11-11T11:00:00Z")

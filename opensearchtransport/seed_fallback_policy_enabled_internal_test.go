@@ -31,7 +31,7 @@ func newUnverifiedDiscoveredConn(urlStr string, roles ...string) *Connection {
 	for _, role := range roles {
 		conn.Roles[role] = struct{}{}
 	}
-	conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+	conn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 	conn.mu.Lock()
 	conn.markAsDeadWithLock()
 	conn.mu.Unlock()

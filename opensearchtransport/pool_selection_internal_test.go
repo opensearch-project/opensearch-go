@@ -56,7 +56,7 @@ func TestMultiServerPoolNext(t *testing.T) {
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
 		}
 		for _, conn := range pool.mu.ready {
-			conn.state.Store(int64(newConnState(lcActive)))
+			conn.setLifecycleBit(lcActive)
 		}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = []*Connection{}
@@ -89,7 +89,7 @@ func TestMultiServerPoolNext(t *testing.T) {
 			{URL: &url.URL{Scheme: "http", Host: "foo3"}},
 		}
 		for _, conn := range pool.mu.ready {
-			conn.state.Store(int64(newConnState(lcActive)))
+			conn.setLifecycleBit(lcActive)
 		}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = []*Connection{}
@@ -126,10 +126,14 @@ func TestMultiServerPoolNext(t *testing.T) {
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
+			// Both were reachable before failing (lcViable latched), so they
+			// remain eligible zombie candidates for fast retry.
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
+			conn1.setLifecycleBit(lcViable)
 			conn1.failures.Store(3)
 			conn1.storeDeadSince(time.Now().UTC()) // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
+			conn2.setLifecycleBit(lcViable)
 			conn2.failures.Store(1)
 			conn2.storeDeadSince(time.Now().UTC()) // Mark as dead
 			return []*Connection{conn1, conn2}
@@ -174,10 +178,14 @@ func TestMultiServerPoolNextResurrectDead(t *testing.T) {
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
+			// Both were reachable before failing (lcViable latched), so they
+			// remain eligible zombie candidates for fast retry.
 			conn1 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}}
+			conn1.setLifecycleBit(lcViable)
 			conn1.failures.Store(3)
 			conn1.storeDeadSince(time.Now().UTC()) // Mark as dead
 			conn2 := &Connection{URL: &url.URL{Scheme: "http", Host: "foo2"}}
+			conn2.setLifecycleBit(lcViable)
 			conn2.failures.Store(1)
 			conn2.storeDeadSince(time.Now().UTC()) // Mark as dead
 			return []*Connection{conn1, conn2}
@@ -233,8 +241,8 @@ func TestNextWithEviction(t *testing.T) {
 	t.Run("evicts externally demoted then falls to standby", func(t *testing.T) {
 		demoted := newActiveConn("demoted")
 		// Externally kill demoted (no position bits)
-		demoted.state.Store(int64(newConnState(lcDead)))
 		demoted.mu.Lock()
+		demoted.casLifecycle(demoted.loadConnState(), 0, lcDead, lcActive)
 		demoted.storeDeadSince(time.Now())
 		demoted.mu.Unlock()
 
@@ -259,9 +267,13 @@ func TestNextWithEviction(t *testing.T) {
 
 	t.Run("all externally demoted falls to standby", func(t *testing.T) {
 		demoted1 := newActiveConn("d1")
-		demoted1.state.Store(int64(newConnState(lcDead)))
+		demoted1.mu.Lock()
+		demoted1.casLifecycle(demoted1.loadConnState(), 0, lcDead, lcActive)
+		demoted1.mu.Unlock()
 		demoted2 := newActiveConn("d2")
-		demoted2.state.Store(int64(newConnState(lcDead)))
+		demoted2.mu.Lock()
+		demoted2.casLifecycle(demoted2.loadConnState(), 0, lcDead, lcActive)
+		demoted2.mu.Unlock()
 		standby := newStandbyConn("s1")
 
 		pool := &multiServerPool{}
@@ -281,7 +293,9 @@ func TestEvictExternallyDemotedWithLock(t *testing.T) {
 		a1 := newActiveConn("a1")
 		a2 := newActiveConn("a2")
 		// Mark a1 as externally dead
-		a1.state.Store(int64(newConnState(lcDead)))
+		a1.mu.Lock()
+		a1.casLifecycle(a1.loadConnState(), 0, lcDead, lcActive)
+		a1.mu.Unlock()
 
 		obs := newRecordingObserver()
 		pool := &multiServerPool{}
@@ -354,6 +368,7 @@ func TestNextFallback(t *testing.T) {
 
 	t.Run("zombie from dead when no active or standby", func(t *testing.T) {
 		d1 := &Connection{URL: &url.URL{Scheme: "http", Host: "dead1"}}
+		d1.setLifecycleBit(lcViable)
 		d1.storeDeadSince(time.Now())
 
 		pool := &multiServerPool{}
@@ -380,7 +395,9 @@ func TestNextFallback(t *testing.T) {
 
 	t.Run("evicts externally demoted then finds healthy active", func(t *testing.T) {
 		demoted := newActiveConn("d1")
-		demoted.state.Store(int64(newConnState(lcDead)))
+		demoted.mu.Lock()
+		demoted.casLifecycle(demoted.loadConnState(), 0, lcDead, lcActive)
+		demoted.mu.Unlock()
 		healthy := newActiveConn("a1")
 
 		pool := &multiServerPool{}
@@ -399,10 +416,15 @@ func TestNextFallback(t *testing.T) {
 
 	t.Run("evicts all demoted in fallback then uses zombie", func(t *testing.T) {
 		d1 := newActiveConn("d1")
-		d1.state.Store(int64(newConnState(lcDead)))
+		d1.mu.Lock()
+		d1.casLifecycle(d1.loadConnState(), 0, lcDead, lcActive)
+		d1.mu.Unlock()
 		d2 := newActiveConn("d2")
-		d2.state.Store(int64(newConnState(lcDead)))
+		d2.mu.Lock()
+		d2.casLifecycle(d2.loadConnState(), 0, lcDead, lcActive)
+		d2.mu.Unlock()
 		zombie := &Connection{URL: &url.URL{Scheme: "http", Host: "zombie"}}
+		zombie.setLifecycleBit(lcViable)
 		zombie.storeDeadSince(time.Now())
 
 		pool := &multiServerPool{}
@@ -422,7 +444,7 @@ func TestNextWithWarmup(t *testing.T) {
 	t.Run("warming connection eventually accepted", func(t *testing.T) {
 		// Create a warming connection: lcActive|lcNeedsWarmup with warmup managers set
 		conn := &Connection{URL: &url.URL{Scheme: "http", Host: "warming"}}
-		conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 		conn.startWarmup(1, 1) // 1 round, 1 skip -> first call skips, second accepts
 
 		obs := newRecordingObserver()
@@ -459,7 +481,9 @@ func TestTryZombieWithLock(t *testing.T) {
 
 	t.Run("rotates dead list", func(t *testing.T) {
 		d1 := &Connection{URL: &url.URL{Scheme: "http", Host: "d1"}}
+		d1.setLifecycleBit(lcViable)
 		d2 := &Connection{URL: &url.URL{Scheme: "http", Host: "d2"}}
+		d2.setLifecycleBit(lcViable)
 
 		pool := &multiServerPool{}
 		pool.mu.dead = []*Connection{d1, d2}
@@ -472,5 +496,44 @@ func TestTryZombieWithLock(t *testing.T) {
 		// After rotation: [d2, d1]
 		require.Equal(t, "d2", pool.mu.dead[0].URL.Host)
 		require.Equal(t, "d1", pool.mu.dead[1].URL.Host)
+	})
+
+	t.Run("skips a never-verified discovered node (no lcViable)", func(t *testing.T) {
+		// A discovered node that never proved reachable (lcNeedsHardware, no
+		// lcViable) must not be served as a zombie -- it would be dialed and fail
+		// with a transport error that never triggers the seed fallback.
+		u, _ := url.Parse("http://10.42.0.9:9200")
+		unverified := &Connection{URL: u}
+		unverified.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
+
+		pool := &multiServerPool{}
+		pool.mu.dead = []*Connection{unverified}
+
+		pool.mu.Lock()
+		c := pool.tryZombieWithLock()
+		pool.mu.Unlock()
+
+		require.Nil(t, c, "never-verified discovered node must not be an eligible zombie")
+	})
+
+	t.Run("returns only the viable connection from a mixed dead list", func(t *testing.T) {
+		uUnverified, _ := url.Parse("http://10.42.0.9:9200")
+		unverified := &Connection{URL: uUnverified}
+		unverified.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
+
+		uViable, _ := url.Parse("http://seed:9200")
+		viable := &Connection{URL: uViable}
+		viable.setLifecycleBit(lcViable)
+		viable.storeDeadSince(time.Now())
+
+		pool := &multiServerPool{}
+		pool.mu.dead = []*Connection{unverified, viable}
+
+		pool.mu.Lock()
+		c := pool.tryZombieWithLock()
+		pool.mu.Unlock()
+
+		require.NotNil(t, c)
+		require.Equal(t, "seed:9200", c.URL.Host, "only the viable connection is an eligible zombie")
 	})
 }

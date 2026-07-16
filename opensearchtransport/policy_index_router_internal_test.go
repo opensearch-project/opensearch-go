@@ -243,7 +243,7 @@ func TestConnScoreSelectLargePool(t *testing.T) {
 			conns := make([]*Connection, tt.n)
 			for i := range tt.n {
 				conns[i] = scoreTestConn(t, fmt.Sprintf("node-%d", i), 200*time.Microsecond, 0)
-				conns[i].state.Store(int64(newConnState(lcActive)))
+				conns[i].setLifecycleBit(lcActive)
 			}
 
 			scoreBuf := acquireFloats(len(conns))

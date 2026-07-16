@@ -230,10 +230,11 @@ func (c *Connection) clusterHealthUnavailable() bool {
 //
 // Extended metadata (bits 8-11) -- independent flags, freely combinable:
 //
-//	lcNeedsHardware          (0x100) -- needs hardware info (/_nodes/_local/http,os)
-//	lcNeedsCatUpdate         (0x200) -- shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
-//	lcClusterHealthProbed    (0x400) -- node has been probed for /_cluster/health capability
-//	lcClusterHealthAvailable (0x800) -- probe succeeded; /_cluster/health?local=true is usable
+//	lcNeedsHardware          (0x0100) -- needs (re)fetch of hardware info (/_nodes/_local/http,os)
+//	lcNeedsCatUpdate         (0x0200) -- shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+//	lcClusterHealthProbed    (0x0400) -- node has been probed for /_cluster/health capability
+//	lcClusterHealthAvailable (0x0800) -- probe succeeded; /_cluster/health?local=true is usable
+//	lcViable                 (0x1000) -- ever proven directly reachable; monotonic latch, never cleared by failure
 //
 // Metadata bits are observability signals for metrics and monitoring.
 // They do NOT serve as concurrency guards -- mutexes and actual field
@@ -258,14 +259,50 @@ const (
 
 // Metadata flags (independent -- freely combinable with readiness and position).
 const (
-	lcNeedsWarmup            connLifecycle = 0x10  // needs warmup before full traffic
-	lcOverloaded             connLifecycle = 0x20  // node resource overload; parked in standby
-	lcHealthChecking         connLifecycle = 0x40  // health check goroutine running
-	lcDraining               connLifecycle = 0x80  // HTTP/2 GOAWAY; no new requests
-	lcNeedsHardware          connLifecycle = 0x100 // needs hardware info (/_nodes/_local/http,os)
-	lcNeedsCatUpdate         connLifecycle = 0x200 // shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
-	lcClusterHealthProbed    connLifecycle = 0x400 // node has been probed for /_cluster/health capability
-	lcClusterHealthAvailable connLifecycle = 0x800 // probe succeeded; /_cluster/health?local=true is usable
+	lcNeedsWarmup    connLifecycle = 0x0010 // needs warmup before full traffic
+	lcOverloaded     connLifecycle = 0x0020 // node resource overload; parked in standby
+	lcHealthChecking connLifecycle = 0x0040 // health check goroutine running
+	lcDraining       connLifecycle = 0x0080 // HTTP/2 GOAWAY; no new requests
+	// lcNeedsHardware marks that hardware info (/_nodes/_local/http,os) needs a
+	// (re)fetch. It may be re-set on a reset/scaling event and does NOT imply the
+	// node was never reachable -- see lcViable for "ever reachable".
+	lcNeedsHardware  connLifecycle = 0x0100
+	lcNeedsCatUpdate connLifecycle = 0x0200 // shard placement stale; excluded from shard-aware routing until /_cat/shards refresh
+
+	// lcClusterHealthProbed and lcClusterHealthAvailable together encode a
+	// tri-state for the one-time /_cluster/health capability probe (see
+	// probeClusterHealthLocal), which detects whether the node's credentials
+	// carry the cluster:monitor/health privilege the Security plugin requires.
+	// Two bits are needed because the state machine has three cases, and a
+	// single bit cannot distinguish "not yet asked" from "asked, answer was no":
+	//
+	//   - pending      (neither set): never probed; probe on the next cycle.
+	//   - available    (both set):    probe returned 200; use /_cluster/health?local=true.
+	//   - unavailable  (probed only): probe returned 401/403; the privilege is
+	//                                 absent, so keep using GET / and retry the
+	//                                 probe only after MaxRetryClusterHealth.
+	//
+	// The bits are cleared together to force a re-probe (e.g. on demotion). They
+	// describe an authorization capability, not reachability, so lcViable is a
+	// separate bit rather than a reuse of either: a node can be reachable
+	// (lcViable) yet lack the health privilege (probed, not available), and the
+	// two must be tracked independently.
+	lcClusterHealthProbed    connLifecycle = 0x0400 // cluster-health probe has run (see the block comment above)
+	lcClusterHealthAvailable connLifecycle = 0x0800 // cluster-health probe returned 200 (see the block comment above)
+
+	// lcViable records that a connection has been proven directly reachable at
+	// least once: we set it on the first successful health check or request
+	// (markAsReadyWithLock/markAsHealthyWithLock), and on a user-supplied seed at
+	// construction. It is monotonic -- once set it is never cleared by failure,
+	// so it answers "was this endpoint ever reachable", which lcNeedsHardware
+	// (re-set on any failure or scaling event) cannot.
+	//
+	// availableForRouting gates on lcViable (seeds short-circuit): a connection
+	// without it -- e.g. a freshly discovered node whose publish_address may be
+	// unroutable (a NAT'd or misconfigured cluster) -- is neither routed to nor
+	// served as a last-resort zombie, so a pool holding only such nodes reports
+	// ErrNoConnections and the request cascades to the seed-URL fallback.
+	lcViable connLifecycle = 0x1000
 )
 
 // Compound aliases for common lifecycle combinations.
@@ -300,10 +337,11 @@ const (
 	lcNameNeedsCatUpdate         = "needsCatUpdate"
 	lcNameClusterHealthProbed    = "clusterHealthProbed"
 	lcNameClusterHealthAvailable = "clusterHealthAvailable"
+	lcNameViable                 = "viable"
 )
 
 // connLifecycleBits maps each bit to its human-readable name.
-var connLifecycleBits = [12]struct { //nolint:gochecknoglobals // lookup table, not mutable state
+var connLifecycleBits = [13]struct { //nolint:gochecknoglobals // lookup table, not mutable state
 	bit  connLifecycle
 	name string
 }{
@@ -319,10 +357,11 @@ var connLifecycleBits = [12]struct { //nolint:gochecknoglobals // lookup table, 
 	{lcNeedsCatUpdate, lcNameNeedsCatUpdate},
 	{lcClusterHealthProbed, lcNameClusterHealthProbed},
 	{lcClusterHealthAvailable, lcNameClusterHealthAvailable},
+	{lcViable, lcNameViable},
 }
 
 // String returns a human-readable name for the lifecycle.
-// Format: "flag+flag+... (000000000101)" -- set bits named, followed by binary.
+// Format: "flag+flag+... (0000000000101)" -- set bits named, followed by binary.
 func (lc connLifecycle) String() string {
 	var b strings.Builder
 	for _, entry := range connLifecycleBits {
@@ -336,7 +375,7 @@ func (lc connLifecycle) String() string {
 	if b.Len() == 0 {
 		b.WriteString("none")
 	}
-	return fmt.Sprintf("%s (%012b)", b.String(), uint16(lc)) //nolint:gosec // G115: only bottom 12 bits used
+	return fmt.Sprintf("%s (%013b)", b.String(), uint16(lc)) //nolint:gosec // G115: only bottom 13 bits used
 }
 
 // ---------------------------------------------------------------------------
@@ -415,26 +454,27 @@ func (wm warmupManager) withSkipCount(skipCount int) warmupManager {
 //
 // Bit layout:
 //
-//	63      52 51           26 25            0
+//	63      51 50           26 25            0
 //	+----------+--------------+--------------+
 //	|    LC    | warmupConfig | warmupState  |
 //	+----------+--------------+--------------+
-//	  12 bits      26 bits        26 bits
+//	  13 bits      25 bits        26 bits
 //
-// LC detail (connLifecycle, 12 bits):
+// LC detail (connLifecycle, 13 bits):
 //
-//	11   8   7        4  3     2  1      0
-//	+------+-----------+-------+---------+
-//	| ext  | metadata  |  pos  |readiness|
-//	+------+-----------+-------+---------+
-//	 4 bits   4 bits    2 bits   2 bits
+//	12    11   8   7        4  3     2  1      0
+//	+-----+------+-----------+-------+---------+
+//	|viable| ext | metadata  |  pos  |readiness|
+//	+-----+------+-----------+-------+---------+
+//	 1 bit  4 bits   4 bits    2 bits   2 bits
 //
 // readiness (bits 0-1):  lcReady=0x01, lcUnknown=0x02 (mutually exclusive)
 // position  (bits 2-3):  lcActive=0x04, lcStandby=0x08 (at most one; 0=dead)
 // metadata  (bits 4-7):  lcNeedsWarmup, lcOverloaded, lcHealthChecking, lcDraining
 // extended  (bits 8-11): lcNeedsHardware=0x100, lcNeedsCatUpdate=0x200, lcClusterHealthProbed=0x400, lcClusterHealthAvailable=0x800
+// viable    (bit 12):    lcViable=0x1000 (monotonic latch: ever proven directly reachable)
 //
-// Each 26-bit warmupManager field uses the lower 16 bits:
+// Each warmupManager field uses the lower 16 bits (warmupConfig has 25 bits, warmupState 26):
 //
 //	25              16 15     8 7        0
 //	+----------------+--------+---------+
@@ -448,18 +488,18 @@ func (wm warmupManager) withSkipCount(skipCount int) warmupManager {
 type connState int64
 
 const (
-	csLifecycleShift = 52
-	csLifecycleMask  = 0xFFF // 12 bits
+	csLifecycleShift = 51
+	csLifecycleMask  = 0x1FFF // 13 bits
 
 	csLifecycleMgrShift = 26
-	csLifecycleMgrMask  = 0x03FFFFFF // 26 bits
+	csLifecycleMgrMask  = 0x01FFFFFF // 25 bits
 
 	csRoundMgrShift = 0
 	csRoundMgrMask  = 0x03FFFFFF // 26 bits
 
-	// csLowerBitsMask clears the top 12 lifecycle bits, keeping the lower 52 bits.
+	// csLowerBitsMask clears the top 13 lifecycle bits, keeping the lower 51 bits.
 	// Defined as a positive constant to avoid int64 overflow.
-	csLowerBitsMask int64 = (1 << csLifecycleShift) - 1 // 0x000FFFFFFFFFFFFF
+	csLowerBitsMask int64 = (1 << csLifecycleShift) - 1 // 0x0007FFFFFFFFFFFF
 )
 
 // Default warmup parameters.

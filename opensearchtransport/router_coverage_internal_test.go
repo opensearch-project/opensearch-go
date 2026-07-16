@@ -197,7 +197,7 @@ func makeRoleConnections(t *testing.T) []*Connection {
 		}
 		conns[i].rttRing.add(200 * time.Microsecond)
 		conns[i].weight.Store(1)
-		conns[i].state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		conns[i].setLifecycleBit(lcActive | lcNeedsWarmup)
 	}
 	return conns
 }
