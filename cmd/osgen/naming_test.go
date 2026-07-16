@@ -194,12 +194,12 @@ func TestBaseGoName(t *testing.T) {
 		input string
 		want  string
 	}{
-		// Basic splitting on '_'/'.' and leading-underscore trimming.
-		{name: "simple", input: "cluster_name", want: "ClusterName"},
+		// Basic splitting on '_'/'.' and leading-underscore trimming, sorted by input.
 		{name: "leading underscore", input: "_nodes", want: "Nodes"},
+		{name: "simple", input: "cluster_name", want: "ClusterName"},
 		{name: "uuid", input: "cluster_uuid", want: "ClusterUUID"},
-		{name: "plain", input: "status", want: "Status"},
 		{name: "dotted", input: "some.field", want: "SomeField"},
+		{name: "plain", input: "status", want: "Status"},
 
 		// Aggregation-result branch titles: terse internal codes split into
 		// the idiomatic PascalCase the decoded type uses. Sorted by input.
