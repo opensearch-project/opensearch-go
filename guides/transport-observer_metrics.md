@@ -81,3 +81,7 @@ Tune the buckets with `osprom.WithDurationBuckets` / `osprom.WithSizeBuckets`.
 ### Custom bundles
 
 Any type implementing `osprom.Observer` (embed `osprom.BaseObserver` for defaults) can be wired into the same Registry to build whatever metric set you need; each receives the same `RequestSample` on the dispatch goroutine. Bundle metrics are registered with the same Prometheus registerer when you pass the bundle to `New`.
+
+## OpenTelemetry with `osotel`
+
+The [`osotel`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/osotel) module is the OpenTelemetry counterpart to `osprom`, with the same `Registry` + `Observer` model and async pooled pipeline. Wire an OTel `metric.Meter` (instead of a Prometheus registerer) and one or more `osotel.Observer` bundles into `osotel.New`; the shipped `osotel.NewRequestObserver` records `opensearch.client.request.duration` and `opensearch.client.response.size` histograms. See `osotel/README.md`.
