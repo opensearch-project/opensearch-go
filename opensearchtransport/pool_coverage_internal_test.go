@@ -75,8 +75,8 @@ func TestShouldSkipOverloaded(t *testing.T) {
 	t.Run("overloaded connection returns true", func(t *testing.T) {
 		t.Parallel()
 		conn := createTestConnection("http://node1:9200", "data")
-		// Set overloaded bit
-		conn.state.Store(int64(newConnState(lcActive | lcOverloaded)))
+		// Set overloaded bit (conn is already active from createTestConnection)
+		conn.setLifecycleBit(lcOverloaded)
 		pool := &multiServerPool{name: "test"}
 
 		require.True(t, pool.shouldSkipOverloaded(conn))
@@ -115,7 +115,9 @@ func TestNewConnectionPool(t *testing.T) {
 		u1, _ := url.Parse("http://node1:9200")
 		u2, _ := url.Parse("http://node2:9200")
 		c1 := &Connection{URL: u1}
+		c1.setLifecycleBit(lcActive | lcViable)
 		c2 := &Connection{URL: u2}
+		c2.setLifecycleBit(lcActive | lcViable)
 
 		pool := NewConnectionPool([]*Connection{c1, c2}, nil)
 		mp := pool.(*multiServerPool)
@@ -146,7 +148,7 @@ func TestSingleServerPool_Next(t *testing.T) {
 		// lcNeedsHardware, its publish_address possibly unroutable. It must not
 		// be handed out, so the seed-URL fallback can serve the request.
 		conn := &Connection{URL: u}
-		conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		conn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 		pool := &singleServerPool{connection: conn}
 
 		got, err := pool.Next()
@@ -154,13 +156,13 @@ func TestSingleServerPool_Next(t *testing.T) {
 		require.Nil(t, got)
 	})
 
-	t.Run("discovered node with hardware cleared is served", func(t *testing.T) {
+	t.Run("discovered node proven reachable is served", func(t *testing.T) {
 		t.Parallel()
 		u, _ := url.Parse("http://10.42.19.90:9200")
-		// Once the node responds to a hardware/health probe, lcNeedsHardware is
-		// cleared and it becomes available for routing.
+		// Once the node has been proven directly reachable (lcViable latched by
+		// a successful health check/request), it is available for routing.
 		conn := &Connection{URL: u}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive | lcViable)
 		pool := &singleServerPool{connection: conn}
 
 		got, err := pool.Next()
@@ -175,7 +177,7 @@ func TestSingleServerPool_Next(t *testing.T) {
 		// while dead and needing hardware -- a genuine single-seed-node pool must
 		// still serve its connection.
 		conn := &Connection{URL: u, seed: true}
-		conn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		conn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 		pool := &singleServerPool{connection: conn}
 
 		got, err := pool.Next()
@@ -293,9 +295,15 @@ func TestCountByLifecycleWithLock(t *testing.T) {
 		t.Parallel()
 		active := createTestConnection("http://node1:9200", "data")
 		standby := createTestConnection("http://node2:9200", "data")
-		standby.state.Store(int64(newConnState(lcStandby)))
+		// Transition active -> standby.
+		standby.mu.Lock()
+		standby.casLifecycle(standby.loadConnState(), 0, lcStandby, lcActive)
+		standby.mu.Unlock()
 		dead := createTestConnection("http://node3:9200", "data")
-		dead.state.Store(int64(newConnState(lcDead)))
+		// Transition active -> dead.
+		dead.mu.Lock()
+		dead.casLifecycle(dead.loadConnState(), 0, lcDead, lcActive)
+		dead.mu.Unlock()
 
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{active, standby}

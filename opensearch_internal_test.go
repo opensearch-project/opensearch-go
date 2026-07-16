@@ -826,7 +826,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 46
+	const knownFieldCount = 47
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

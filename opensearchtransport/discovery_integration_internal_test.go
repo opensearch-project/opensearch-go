@@ -520,8 +520,9 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 	}
 }
 
-// TestRolePolicies tests the router+policy with various configurations
-func TestRolePolicies(t *testing.T) {
+// TestRolePolicies_Integration tests the router+policy with various
+// configurations (built under the integration tag).
+func TestRolePolicies_Integration(t *testing.T) {
 	// Create test connections with different roles
 	connections := []*Connection{
 		{Name: "data-node", URL: &url.URL{Host: "data:9200"}, Roles: newRoleSet([]string{RoleData})},
@@ -531,6 +532,11 @@ func TestRolePolicies(t *testing.T) {
 		{Name: "warm-node", URL: &url.URL{Host: "warm:9200"}, Roles: newRoleSet([]string{RoleWarm})},
 		{Name: "search-node", URL: &url.URL{Host: "search:9200"}, Roles: newRoleSet([]string{RoleSearch})},
 		{Name: "coordinating-node", URL: &url.URL{Host: "coord:9200"}, Roles: newRoleSet([]string{})}, // No specific roles
+	}
+	// Model verified, reachable discovered nodes: set lcViable so they count
+	// as availableForRouting.
+	for _, c := range connections {
+		c.setLifecycleBit(lcViable)
 	}
 
 	t.Run("IngestPolicy", func(t *testing.T) {

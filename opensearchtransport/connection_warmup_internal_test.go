@@ -281,7 +281,7 @@ func TestWarmupProgression(t *testing.T) {
 	t.Parallel()
 
 	conn := &Connection{URL: &url.URL{Scheme: "http", Host: "warmup-test:9200"}}
-	conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+	conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 	conn.startWarmup(8, 8)
 
 	state := conn.loadConnState()
@@ -543,7 +543,7 @@ func TestWarmupProgressionTable(t *testing.T) {
 			t.Parallel()
 
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "table-test:9200"}}
-			conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+			conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 			conn.startWarmup(tt.rounds, tt.skipCount)
 
 			var (
@@ -623,7 +623,7 @@ func TestWarmupNoWarmup(t *testing.T) {
 	t.Parallel()
 
 	conn := &Connection{URL: &url.URL{Scheme: "http", Host: "no-warmup:9200"}}
-	conn.state.Store(int64(newConnState(lcActive)))
+	conn.setLifecycleBit(lcActive)
 
 	// No warmup configured -- tryWarmupSkip should return warmupInactive.
 	if result := conn.tryWarmupSkip(); result != warmupInactive {
@@ -635,7 +635,7 @@ func TestWarmupClearOnDeath(t *testing.T) {
 	t.Parallel()
 
 	conn := &Connection{URL: &url.URL{Scheme: "http", Host: "clear-test:9200"}}
-	conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+	conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 	conn.startWarmup(8, 8)
 
 	if !conn.loadConnState().isWarmingUp() {
@@ -687,7 +687,7 @@ func TestWarmupConcurrentSkip(t *testing.T) {
 			t.Parallel()
 
 			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "concurrent:9200"}}
-			conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+			conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 			conn.startWarmup(tt.rounds, tt.skipCount)
 
 			var wg sync.WaitGroup
@@ -729,7 +729,7 @@ func TestWarmupSmallValues(t *testing.T) {
 
 	// Test with minimal warmup: 1 round, 1 skip
 	conn := &Connection{URL: &url.URL{Scheme: "http", Host: "small:9200"}}
-	conn.state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+	conn.setLifecycleBit(lcActive | lcNeedsWarmup)
 	conn.startWarmup(1, 1)
 
 	// Should skip once

@@ -84,8 +84,8 @@ func TestPolicyChainOnSuccess(t *testing.T) {
 		t.Parallel()
 		chain := makeChain(t)
 		conn := createDeadTestConnection("http://node:9200")
-		// Add lcOverloaded to lifecycle bits
-		conn.state.Store(int64(newConnState(lcDead | lcOverloaded | lcNeedsWarmup)))
+		// Add lcOverloaded to lifecycle bits (conn is already dead).
+		conn.setLifecycleBit(lcOverloaded | lcNeedsWarmup)
 
 		conn.mu.RLock()
 		deadBefore := conn.loadDeadSince()
@@ -168,7 +168,7 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		for i := range n {
 			u, _ := url.Parse("http://node:920" + string(rune('0'+i)))
 			conns[i] = &Connection{URL: u}
-			conns[i].state.Store(int64(newConnState(lcActive)))
+			conns[i].setLifecycleBit(lcActive)
 		}
 		return conns
 	}
@@ -203,7 +203,10 @@ func TestGetNextActiveConnWithLock(t *testing.T) {
 		t.Parallel()
 		conns := makeConns(4) // 2 active + 2 standby
 		for i := 2; i < 4; i++ {
-			conns[i].state.Store(int64(newConnState(lcStandby)))
+			// Transition active -> standby: set lcStandby, clear lcActive.
+			conns[i].mu.Lock()
+			conns[i].casLifecycle(conns[i].loadConnState(), 0, lcStandby, lcActive)
+			conns[i].mu.Unlock()
 		}
 		sel := &testSelector{conn: conns[0], activeCap: capGrow}
 		pool := makeTestPool(nextTestPoolName(), conns, 2, sel)
@@ -248,9 +251,9 @@ func TestDeferredStandbyPromotion(t *testing.T) {
 			u, _ := url.Parse("http://node:920" + string(rune('0'+i)))
 			conns[i] = &Connection{URL: u}
 		}
-		conns[0].state.Store(int64(newConnState(lcActive)))
-		conns[1].state.Store(int64(newConnState(lcActive)))
-		conns[2].state.Store(int64(newConnState(lcStandby | lcNeedsWarmup)))
+		conns[0].setLifecycleBit(lcActive)
+		conns[1].setLifecycleBit(lcActive)
+		conns[2].setLifecycleBit(lcStandby | lcNeedsWarmup)
 
 		pool := makeTestPool(nextTestPoolName(), conns, 2, nil)
 
@@ -265,7 +268,7 @@ func TestDeferredStandbyPromotion(t *testing.T) {
 		for i := range conns {
 			u, _ := url.Parse("http://node:920" + string(rune('0'+i)))
 			conns[i] = &Connection{URL: u}
-			conns[i].state.Store(int64(newConnState(lcActive)))
+			conns[i].setLifecycleBit(lcActive)
 		}
 		pool := makeTestPool(nextTestPoolName(), conns, 2, nil)
 

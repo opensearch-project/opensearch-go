@@ -43,7 +43,9 @@ import (
 func TestSingleServerPoolNext(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		pool := &singleServerPool{
-			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}},
+			// A single configured URL models a user-supplied seed, which is
+			// always availableForRouting (and so always returned by Next).
+			connection: &Connection{URL: &url.URL{Scheme: "http", Host: "foo1"}, seed: true},
 		}
 
 		for range 7 {
@@ -187,7 +189,7 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			{URL: &url.URL{Scheme: "http", Host: "foo2"}},
 		}
 		for _, conn := range pool.mu.ready {
-			conn.state.Store(int64(newConnState(lcActive)))
+			conn.setLifecycleBit(lcActive)
 		}
 		pool.mu.activeCount = len(pool.mu.ready)
 		pool.mu.dead = func() []*Connection {
@@ -263,12 +265,14 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 		pool.mu.dead = []*Connection{}
 
 		for _, c := range pool.mu.ready {
-			c.state.Store(int64(newConnState(lcActive)))
+			c.setLifecycleBit(lcActive)
 		}
 
 		conn := pool.mu.ready[0]
-		conn.state.Store(int64(newConnState(lcDead)))
+		// Transition active -> dead: set lcUnknown (lcDead) and clear the
+		// active position bit so the connection isn't left ready+dead.
 		conn.mu.Lock()
+		conn.casLifecycle(conn.loadConnState(), 0, lcDead, lcActive)
 		conn.storeDeadSince(time.Now().UTC())
 		conn.mu.Unlock()
 
@@ -408,10 +412,10 @@ func TestPolicySnapshot_HealthCheckingCount(t *testing.T) {
 	}
 
 	// 2 in ready (1 health-checking), 2 in dead (1 health-checking)
-	conns[0].state.Store(int64(newConnState(lcReady | lcActive)))
-	conns[1].state.Store(int64(newConnState(lcReady | lcActive | lcHealthChecking)))
-	conns[2].state.Store(int64(newConnState(lcDead)))
-	conns[3].state.Store(int64(newConnState(lcDead | lcHealthChecking)))
+	conns[0].setLifecycleBit(lcReady | lcActive)
+	conns[1].setLifecycleBit(lcReady | lcActive | lcHealthChecking)
+	conns[2].setLifecycleBit(lcDead)
+	conns[3].setLifecycleBit(lcDead | lcHealthChecking)
 
 	cp := &multiServerPool{
 		name:          "test",
@@ -438,7 +442,7 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 		u, _ := url.Parse("http://" + name)
 		c := &Connection{URL: u, Name: name}
 		c.weight.Store(int32(min(weight, math.MaxInt32))) //nolint:gosec // test values are small
-		c.state.Store(int64(newConnState(lcReady | lcActive)))
+		c.setLifecycleBit(lcReady | lcActive)
 		return c
 	}
 
