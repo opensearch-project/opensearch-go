@@ -52,16 +52,27 @@ When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoi
 First, define a request type that satisfies `opensearch.Request`:
 
 ```go
-	// customReq builds an *http.Request with a relative path to satisfy the
-	// opensearch.Request interface. The transport prepends the base URL.
-	// method is an HTTP method (e.g. http.MethodGet) forwarded by the caller.
+	// customReq builds an *http.Request from a path with a leading slash (e.g.
+	// "/_plugins/my_plugin/status") to satisfy the opensearch.Request interface.
+	// The transport prepends the base URL. method is an HTTP method
+	// (e.g. http.MethodGet) forwarded by the caller.
 	type customReq struct {
 		path string
 		body io.Reader
 	}
 
 	func (r customReq) GetRequest(method string) (*http.Request, error) {
-		return http.NewRequest(method, r.path, r.body)
+		req, err := http.NewRequest(method, r.path, r.body)
+		if err != nil {
+			return nil, err
+		}
+		// opensearch.BuildRequest set this automatically for a non-nil body;
+		// http.NewRequest does not, so set it here or OpenSearch may reject a
+		// JSON body with 400/415.
+		if r.body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		return req, nil
 	}
 ```
 
