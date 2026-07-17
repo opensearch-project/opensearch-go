@@ -71,3 +71,30 @@ func TestIsRawBodyCollapse(t *testing.T) {
 	}}
 	require.False(t, isRawBodyCollapse(structured), "multi-field struct must not be treated as a raw-body collapse")
 }
+
+// TestDeriveDelta_RemovedTypes verifies that a source type with no target
+// counterpart (and no covering TypeRename) is recorded in Delta.RemovedTypes -
+// the v2->v3 case where the opensearchapi.*Request family is deleted outright.
+// A surviving type must NOT appear there, and a type covered by a TypeRename is a
+// rename, not a removal.
+func TestDeriveDelta_RemovedTypes(t *testing.T) {
+	const pkg = "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+	const pkgV3 = "github.com/opensearch-project/opensearch-go/v3/opensearchapi"
+
+	from := &Snapshot{Version: "v2", Structs: []Struct{
+		{PkgPath: pkg, Name: "BulkRequest", Fields: []Field{{Name: "Index", Type: "string"}}}, // removed outright
+		{PkgPath: pkg, Name: "Renamed", Fields: []Field{{Name: "X", Type: "string"}}},         // covered by a rename
+		{PkgPath: pkg, Name: "InfoResp", Fields: []Field{{Name: "Version", Type: "string"}}},  // survives by name
+	}}
+	to := &Snapshot{Version: "v3", Structs: []Struct{
+		{PkgPath: pkgV3, Name: "NewName", Fields: []Field{{Name: "X", Type: "string"}}},
+		{PkgPath: pkgV3, Name: "InfoResp", Fields: []Field{{Name: "Version", Type: "string"}}},
+	}}
+	renames := []TypeRename{{FromPkgPath: pkg, FromName: "Renamed", ToPkgPath: pkgV3, ToName: "NewName"}}
+
+	d := DeriveDelta(from, to, renames, nil)
+
+	require.True(t, d.RemovedTypes[pkg+".BulkRequest"], "type deleted outright must be recorded as removed")
+	require.False(t, d.RemovedTypes[pkg+".Renamed"], "a renamed type is resolved, not removed")
+	require.False(t, d.RemovedTypes[pkg+".InfoResp"], "a same-name survivor is not removed")
+}

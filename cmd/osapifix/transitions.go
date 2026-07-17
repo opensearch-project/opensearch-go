@@ -28,6 +28,7 @@ type Major int
 //
 //nolint:gochecknoglobals // const-ish surface registry, immutable after init
 var surfaces = map[Major][]byte{
+	2: surfaceV2JSON,
 	3: surfaceV3JSON,
 	4: surfaceV4JSON,
 	5: surfaceV5JSON,
@@ -73,6 +74,7 @@ type Hop struct {
 //
 //nolint:gochecknoglobals // const-ish transition registry, immutable after init
 var hops = map[Major]Hop{
+	2: hopV2toV3,
 	3: hopV3toV4,
 	4: hopV4toV5,
 }

@@ -1,0 +1,32 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"context"
+
+	opensearchv2 "github.com/opensearch-project/opensearch-go/v2"
+	osapi "github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+)
+
+// aliasedImport exercises an aliased opensearchapi import on the idiom-2 path.
+// The file imports opensearchapi under an explicit alias (osapi), and the Ping
+// rewrite emits an osapi-qualified synthetic Req, so the pass wants to inject the
+// v3 opensearchapi import. rewriteImports bumps the osapi spec's path to v3 in
+// place but keeps the alias; the injection must recognize the path is already
+// present (under that alias) and NOT add a second, unnamed v3 opensearchapi
+// import - an unused duplicate that would fail to compile. The golden keeps
+// exactly one aliased import.
+func aliasedImport(ctx context.Context, client *opensearchv2.Client) error {
+	resp, err := client.Ping(client.Ping.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	_ = osapi.PingRequest{}
+	return nil
+}

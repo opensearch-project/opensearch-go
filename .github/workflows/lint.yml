@@ -39,12 +39,15 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
       - id: find
-        # Every nested go.mod (exclude the root module and any dotdirs) as a
-        # compact JSON array, so the lint matrix below picks up new modules with
-        # no workflow edit. Mirrors the Makefile's SUBMODULES discovery.
+        # Every nested go.mod (exclude the root module, any dotdirs, and
+        # testdata fixtures) as a compact JSON array, so the lint matrix below
+        # picks up new modules with no workflow edit. Mirrors the Makefile's
+        # SUBMODULES discovery. testdata/ holds corpus fixtures (stub + golden
+        # modules for the rewrite tests) that are not real modules to lint.
         run: |
           set -euo pipefail
           modules=$(find . -name go.mod -not -path './go.mod' -not -path '*/.*' \
+            -not -path '*/testdata/*' \
             -exec dirname {} \; | sed 's|^\./||' | sort | jq -R . | jq -sc .)
           echo "modules=$modules" >> "$GITHUB_OUTPUT"
           echo "Discovered sub-modules: $modules"
