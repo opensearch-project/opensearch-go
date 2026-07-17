@@ -156,57 +156,58 @@ func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
-	"api":   "API",
-	"bm25":  "BM25", // Best Matching 25 ranking function
-	"cjk":   "CJK",  // Chinese, Japanese, Korean
-	"cpu":   "CPU",
-	"csv":   "CSV",
-	"dfi":   "DFI", // Divergence From Independence
-	"dfr":   "DFR", // Divergence From Randomness
-	"dfs":   "DFS", // Distributed Frequency Search
-	"dsl":   "DSL",
-	"fs":    "FS",  // File System (store type)
-	"gc":    "GC",  // Garbage Collection
-	"hdr":   "HDR", // High Dynamic Range (percentiles)
-	"html":  "HTML",
-	"http":  "HTTP",
-	"https": "HTTPS",
-	"ib":    "IB",  // Information-Based similarity
-	"icu":   "ICU", // International Components for Unicode
-	"id":    "ID",
-	"ids":   "IDs",
-	"ip":    "IP",
-	"ism":   "ISM", // Index State Management
-	"json":  "JSON",
-	"jvm":   "JVM",
-	"knn":   "KNN",  // k-Nearest Neighbors
-	"lmd":   "LMD",  // Language Model Dirichlet similarity
-	"lmj":   "LMJ",  // Language Model Jelinek-Mercer similarity
-	"ltr":   "LTR",  // Learning to Rank
-	"ml":    "ML",   // Machine Learning
-	"mmap":  "MMap", // memory-mapped store type
-	"nio":   "NIO",  // New I/O (Java, store type)
-	"pit":   "PIT",  // Point In Time
-	"pits":  "PITs",
-	"ppl":   "PPL", // Piped Processing Language
-	"sm":    "SM",  // Snapshot Management
-	"smtp":  "SMTP",
-	"sns":   "SNS", // Simple Notification Service
-	"sql":   "SQL",
-	"ssl":   "SSL",
-	"tcp":   "TCP",
-	"tfidf": "TFIDF", // Term Frequency-Inverse Document Frequency
-	"tls":   "TLS",
-	"ttl":   "TTL",
-	"uax":   "UAX", // Unicode Annex (UAX #29 text segmentation)
-	"ubi":   "UBI", // User Behavior Insights
-	"uri":   "URI",
-	"url":   "URL",
-	"uuid":  "UUID",
-	"wkt":   "WKT", // Well-Known Text (geometry format)
-	"wlm":   "WLM", // Workload Management
-	"xml":   "XML",
-	"xy":    "XY", // Cartesian x/y coordinate types
+	"api":    "API",
+	"bm25":   "BM25", // Best Matching 25 ranking function
+	"cjk":    "CJK",  // Chinese, Japanese, Korean
+	"cpu":    "CPU",
+	"csv":    "CSV",
+	"dfi":    "DFI", // Divergence From Independence
+	"dfr":    "DFR", // Divergence From Randomness
+	"dfs":    "DFS", // Distributed Frequency Search
+	"dsl":    "DSL",
+	"fs":     "FS",  // File System (store type)
+	"gc":     "GC",  // Garbage Collection
+	"hdr":    "HDR", // High Dynamic Range (percentiles)
+	"html":   "HTML",
+	"http":   "HTTP",
+	"https":  "HTTPS",
+	"ib":     "IB",  // Information-Based similarity
+	"icu":    "ICU", // International Components for Unicode
+	"id":     "ID",
+	"ids":    "IDs",
+	"ip":     "IP",
+	"ip2geo": "IP2Geo", // IP-to-geolocation datasource (geospatial plugin)
+	"ism":    "ISM",    // Index State Management
+	"json":   "JSON",
+	"jvm":    "JVM",
+	"knn":    "KNN",  // k-Nearest Neighbors
+	"lmd":    "LMD",  // Language Model Dirichlet similarity
+	"lmj":    "LMJ",  // Language Model Jelinek-Mercer similarity
+	"ltr":    "LTR",  // Learning to Rank
+	"ml":     "ML",   // Machine Learning
+	"mmap":   "MMap", // memory-mapped store type
+	"nio":    "NIO",  // New I/O (Java, store type)
+	"pit":    "PIT",  // Point In Time
+	"pits":   "PITs",
+	"ppl":    "PPL", // Piped Processing Language
+	"sm":     "SM",  // Snapshot Management
+	"smtp":   "SMTP",
+	"sns":    "SNS", // Simple Notification Service
+	"sql":    "SQL",
+	"ssl":    "SSL",
+	"tcp":    "TCP",
+	"tfidf":  "TFIDF", // Term Frequency-Inverse Document Frequency
+	"tls":    "TLS",
+	"ttl":    "TTL",
+	"uax":    "UAX", // Unicode Annex (UAX #29 text segmentation)
+	"ubi":    "UBI", // User Behavior Insights
+	"uri":    "URI",
+	"url":    "URL",
+	"uuid":   "UUID",
+	"wkt":    "WKT", // Well-Known Text (geometry format)
+	"wlm":    "WLM", // Workload Management
+	"xml":    "XML",
+	"xy":     "XY", // Cartesian x/y coordinate types
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.
