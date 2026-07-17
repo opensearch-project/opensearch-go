@@ -3,7 +3,7 @@ module github.com/opensearch-project/opensearch-go/v5/osprom
 go 1.25.9
 
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc1.0.20260716052420-8d976c370c30
+	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc2
 	github.com/prometheus/client_golang v1.23.2
 	github.com/stretchr/testify v1.11.1
 )
