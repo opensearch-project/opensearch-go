@@ -41,6 +41,17 @@ type multiServerPool struct {
 		dead        []*Connection            // List of dead connections
 		activeCount int                      // Number of active connections; elements past this index are standby
 		members     map[*Connection]struct{} // O(1) containment check; tracks all conns in ready+dead
+
+		// Standby pool configuration.
+		// When activeListCap > 0, discovery overflow and resurrected connections go to standby
+		// instead of active when the ready list's active partition is at capacity.
+		activeListCap int // 0 = disabled (all connections go to active)
+
+		// Dynamic warmup parameters, scaled by recalculateWarmupParams().
+		// Small pools get lighter warmup (fewer rounds, fewer skips) so connections
+		// ramp up quickly. Large pools get heavier warmup to avoid traffic spikes.
+		warmupRounds    int // 0 = use defaultWarmupRounds
+		warmupSkipCount int // 0 = use defaultWarmupSkipCount
 	}
 
 	// selector determines how the pool picks the next connection from the
@@ -59,16 +70,7 @@ type multiServerPool struct {
 	clientsPerServer             float64 // estimated client instances per server
 
 	// Standby pool configuration.
-	// When activeListCap > 0, discovery overflow and resurrected connections go to standby
-	// instead of active when the ready list's active partition is at capacity.
-	activeListCap          int   // 0 = disabled (all connections go to active)
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
-
-	// Dynamic warmup parameters, scaled by recalculateWarmupParams().
-	// Small pools get lighter warmup (fewer rounds, fewer skips) so connections
-	// ramp up quickly. Large pools get heavier warmup to avoid traffic spikes.
-	warmupRounds    int // 0 = use defaultWarmupRounds
-	warmupSkipCount int // 0 = use defaultWarmupSkipCount
 
 	// activeListCapConfig preserves the user's original intent:
 	//   nil = auto-scale activeListCap with cluster size during discovery
@@ -159,8 +161,8 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 	cp.mu.activeCount++
 
 	// Also grow the cap so the promoted connection stays active.
-	if cp.activeListCap > 0 && cp.mu.activeCount > cp.activeListCap {
-		cp.activeListCap = cp.mu.activeCount
+	if cp.mu.activeListCap > 0 && cp.mu.activeCount > cp.mu.activeListCap {
+		cp.mu.activeListCap = cp.mu.activeCount
 	}
 
 	if cp.metrics != nil {
@@ -169,7 +171,7 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 
 	if dl := loadDebugLogger(); dl != nil {
 		dl.Logf("[%s] deferredStandbyPromotion: promoted %q to active (active=%d, standby=%d, cap=%d)\n",
-			cp.name, c.URL, cp.mu.activeCount, len(cp.mu.ready)-cp.mu.activeCount, cp.activeListCap)
+			cp.name, c.URL, cp.mu.activeCount, len(cp.mu.ready)-cp.mu.activeCount, cp.mu.activeListCap)
 	}
 }
 
@@ -200,6 +202,7 @@ func (cp *multiServerPool) triggerCapEnforcement() {
 func (cp *multiServerPool) snapshot() PolicySnapshot {
 	cp.mu.RLock()
 	counts := cp.countByLifecycleWithLock()
+	activeListCap := cp.mu.activeListCap
 	cp.mu.RUnlock()
 
 	return PolicySnapshot{
@@ -207,7 +210,7 @@ func (cp *multiServerPool) snapshot() PolicySnapshot {
 		ActiveCount:         counts.active,
 		StandbyCount:        counts.standby,
 		DeadCount:           counts.dead,
-		ActiveListCap:       cp.activeListCap,
+		ActiveListCap:       activeListCap,
 		WarmingCount:        counts.warming,
 		HealthCheckingCount: counts.healthCheck,
 		Requests:            cp.poolRequests.Load(),
@@ -325,30 +328,30 @@ func (cp *multiServerPool) hasAvailableConnsWithLock() bool {
 func (cp *multiServerPool) recalculateWarmupParams(poolSize int) {
 	// Auto-scale activeListCap when the user didn't specify an explicit value.
 	if cp.activeListCapConfig == nil && poolSize > 0 {
-		cp.activeListCap = poolSize
+		cp.mu.activeListCap = poolSize
 	}
 
 	n := poolSize
-	if cp.activeListCap > 0 && cp.activeListCap < n {
-		n = cp.activeListCap
+	if cp.mu.activeListCap > 0 && cp.mu.activeListCap < n {
+		n = cp.mu.activeListCap
 	}
 	if n <= 0 {
 		n = minWarmupRounds
 	}
 
 	rounds := max(min(n, maxWarmupRounds), minWarmupRounds)
-	cp.warmupRounds = rounds
-	cp.warmupSkipCount = rounds * warmupSkipMultiple
+	cp.mu.warmupRounds = rounds
+	cp.mu.warmupSkipCount = rounds * warmupSkipMultiple
 }
 
 // getWarmupParams returns the effective warmup parameters for this pool.
 // Returns pool-specific values if set, otherwise falls back to defaults.
 func (cp *multiServerPool) getWarmupParams() (int, int) {
-	rounds := cp.warmupRounds
+	rounds := cp.mu.warmupRounds
 	if rounds <= 0 {
 		rounds = defaultWarmupRounds
 	}
-	skipCount := cp.warmupSkipCount
+	skipCount := cp.mu.warmupSkipCount
 	if skipCount <= 0 {
 		skipCount = defaultWarmupSkipCount
 	}
@@ -595,7 +598,7 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 
 	// Add to ready list. If below cap (or cap disabled), promote to active with warmup.
 	// Otherwise the connection lands in the standby portion (warmup deferred to promotion).
-	if cp.activeListCap <= 0 || cp.mu.activeCount < cp.activeListCap {
+	if cp.mu.activeListCap <= 0 || cp.mu.activeCount < cp.mu.activeListCap {
 		// Transition state: dead -> active with warmup (lcNeedsWarmup preserved if set)
 		c.casLifecycle(c.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		rounds, skip := cp.getWarmupParams()
@@ -608,7 +611,7 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 		cp.appendToReadyStandbyWithLock(c)
 		if dl := loadDebugLogger(); dl != nil {
 			dl.Logf("[%s] Resurrected %q to standby (active at cap=%d, standby=%d)\n",
-				cp.name, c.URL, cp.activeListCap, len(cp.mu.ready)-cp.mu.activeCount)
+				cp.name, c.URL, cp.mu.activeListCap, len(cp.mu.ready)-cp.mu.activeCount)
 		}
 	}
 }

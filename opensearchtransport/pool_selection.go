@@ -85,16 +85,16 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				cp.poolWarmupAccepts.Add(1)
 				// Check if warmup finished and cap enforcement is needed.
 				warmupDone := !conn.loadConnState().isWarmingUp()
-				if warmupDone && cp.activeListCap > 0 && cp.mu.activeCount > cp.activeListCap {
+				if warmupDone && cp.mu.activeListCap > 0 && cp.mu.activeCount > cp.mu.activeListCap {
 					needsCapEnforce = true
 					if dl := loadDebugLogger(); dl != nil {
 						dl.Logf("[%s] Next: warmup complete for %s, triggering cap enforcement (active=%d, cap=%d)\n",
-							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+							cp.name, conn.URL, cp.mu.activeCount, cp.mu.activeListCap)
 					}
 				} else if warmupDone {
 					if dl := loadDebugLogger(); dl != nil {
 						dl.Logf("[%s] Next: warmup complete for %s, no cap enforcement (active=%d, cap=%d)\n",
-							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+							cp.name, conn.URL, cp.mu.activeCount, cp.mu.activeListCap)
 					}
 				}
 

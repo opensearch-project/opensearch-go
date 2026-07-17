@@ -161,7 +161,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 // CALLER RESPONSIBILITIES:
 //   - Caller must hold pool write lock
 func (cp *multiServerPool) enforceActiveCapWithLock() {
-	if cp.activeListCap <= 0 || cp.mu.activeCount <= cp.activeListCap {
+	if cp.mu.activeListCap <= 0 || cp.mu.activeCount <= cp.mu.activeListCap {
 		return
 	}
 
@@ -173,7 +173,7 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 		}
 	}
 
-	if nonWarmCount <= cp.activeListCap {
+	if nonWarmCount <= cp.mu.activeListCap {
 		// Not enough fully-warmed connections to enforce the cap.
 		// Warming connections need to finish before we can evict.
 		return
@@ -192,7 +192,7 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 	}
 
 	// New active count = warming connections + capped non-warming connections.
-	newActiveCount := warmCount + cp.activeListCap
+	newActiveCount := warmCount + cp.mu.activeListCap
 	overflow := cp.mu.activeCount - newActiveCount
 
 	// Transition overflow connections (non-warming, at tail) from active to standby.
@@ -225,7 +225,7 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 
 	if dl := loadDebugLogger(); dl != nil {
 		dl.Logf("[%s] Enforced active cap=%d: moved %d connections to standby (active=%d, standby=%d)\n",
-			cp.name, cp.activeListCap, overflow, cp.mu.activeCount, len(cp.mu.ready)-cp.mu.activeCount)
+			cp.name, cp.mu.activeListCap, overflow, cp.mu.activeCount, len(cp.mu.ready)-cp.mu.activeCount)
 	}
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {

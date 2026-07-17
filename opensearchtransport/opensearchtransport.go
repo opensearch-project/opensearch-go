@@ -986,10 +986,10 @@ func New(cfg Config) (*Client, error) {
 				jitterScale:                  jitterScale,
 				serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
 				clientsPerServer:             clientsPerServer,
-				activeListCap:                activeListCap,
 				activeListCapConfig:          activeListCapConfig,
 				standbyPromotionChecks:       standbyPromotionChecks,
 			}
+			pool.mu.activeListCap = activeListCap
 			// Initialize all connections as active with proper state.
 			for _, conn := range conns {
 				conn.mu.Lock()
@@ -2436,10 +2436,10 @@ func (c *Client) newMultiServerPoolFromClientWithLock(name string, m *metrics) *
 		clientsPerServer:             c.clientsPerServer,
 		healthCheck:                  c.healthCheck,
 		metrics:                      m,
-		activeListCap:                c.activeListCap,
 		activeListCapConfig:          c.activeListCapConfig,
 		standbyPromotionChecks:       c.standbyPromotionChecks,
 	}
+	pool.mu.activeListCap = c.activeListCap
 	if obs := c.observer.Load(); obs != nil {
 		pool.observer.Store(obs)
 	}

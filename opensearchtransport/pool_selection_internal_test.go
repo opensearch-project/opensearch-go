@@ -331,7 +331,7 @@ func TestEnforceActiveCap(t *testing.T) {
 		a2 := newActiveConn("a2")
 		a3 := newActiveConn("a3")
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, nil)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
