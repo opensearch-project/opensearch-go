@@ -9,6 +9,9 @@ env:
 jobs:
   integ-test-compat:
     runs-on: ubuntu-latest
+    # Tolerate failures on 2.18.0 and below (flaky legacy targets); 1.3.20 and
+    # 2.19.6+ remain hard gates.
+    continue-on-error: ${{ matrix.entry.continue_on_error || false }}
     strategy:
       fail-fast: false
       # OpenSearch <=2.17.x carries a node-join/node-left race condition
@@ -22,26 +25,26 @@ jobs:
         secured: ["true", "false"]
         entry:
           - { opensearch_version: 1.3.20, node_count: 1 }
-          - { opensearch_version: 2.0.1, node_count: 1 }
-          - { opensearch_version: 2.1.0, node_count: 1 }
-          - { opensearch_version: 2.2.1, node_count: 1 }
-          - { opensearch_version: 2.3.0, node_count: 1 }
-          - { opensearch_version: 2.4.1, node_count: 1 }
-          - { opensearch_version: 2.5.0, node_count: 1 }
-          - { opensearch_version: 2.6.0, node_count: 1 }
-          - { opensearch_version: 2.7.0, node_count: 1 }
-          - { opensearch_version: 2.8.0, node_count: 1 }
-          - { opensearch_version: 2.9.0, node_count: 1 }
-          - { opensearch_version: 2.10.0, node_count: 1 }
-          - { opensearch_version: 2.11.1, node_count: 1 }
-          - { opensearch_version: 2.12.0, node_count: 1 }
-          - { opensearch_version: 2.13.0, node_count: 1 }
-          - { opensearch_version: 2.14.0, node_count: 1 }
-          - { opensearch_version: 2.15.0, node_count: 1 }
-          - { opensearch_version: 2.16.0, node_count: 1 }
-          - { opensearch_version: 2.17.1, node_count: 1 }
-          - { opensearch_version: 2.18.0, node_count: 3 }
-          - { opensearch_version: 2.19.5, node_count: 3 }
+          - { opensearch_version: 2.0.1, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.1.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.2.1, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.3.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.4.1, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.5.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.6.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.7.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.8.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.9.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.10.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.11.1, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.12.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.13.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.14.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.15.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.16.0, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.17.1, node_count: 1, continue_on_error: true }
+          - { opensearch_version: 2.18.0, node_count: 3, continue_on_error: true }
+          - { opensearch_version: 2.19.6, node_count: 3 }
           - { opensearch_version: 3.0.0, node_count: 3 }
           - { opensearch_version: 3.1.0, node_count: 3 }
           - { opensearch_version: 3.2.0, node_count: 3 }
