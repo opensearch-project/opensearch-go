@@ -769,7 +769,7 @@ func (c *Transport) updateConnectionPool(
 	// Set up health check function and observer for pools that support it
 	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 		pool.mu.Lock()
-		pool.healthCheck = c.DefaultHealthCheck
+		pool.mu.healthCheck = c.DefaultHealthCheck
 		pool.mu.Unlock()
 		if obs := c.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
@@ -791,8 +791,11 @@ func (c *Transport) updateConnectionPool(
 	// This handles connections reused by nodeDiscovery() that were never health-checked,
 	// which would otherwise leave rttRing at rttBucketUnknown and break connection scoring.
 	if pool, ok := newConnectionPool.(*multiServerPool); ok {
+		pool.mu.RLock()
+		hc := pool.mu.healthCheck
+		pool.mu.RUnlock()
 		for _, conn := range finalReady {
-			if conn.rttRing != nil && conn.rttRing.medianBucket().IsUnknown() && pool.healthCheck != nil {
+			if conn.rttRing != nil && conn.rttRing.medianBucket().IsUnknown() && hc != nil {
 				go pool.scheduleRTTProbe(conn) //nolint:contextcheck // scheduleRTTProbe uses pool's long-lived context.
 			}
 		}

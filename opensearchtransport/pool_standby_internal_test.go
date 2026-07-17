@@ -371,7 +371,7 @@ func TestFindActiveCandidate(t *testing.T) {
 func TestPerformStandbyHealthCheck(t *testing.T) {
 	t.Run("Passes with healthy check", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -382,7 +382,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 
 	t.Run("Fails on unhealthy check", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -393,7 +393,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 
 	t.Run("Succeeds when no health check configured", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = nil
+		pool.mu.healthCheck = nil
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -405,7 +405,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 	t.Run("Fails on partial health check failure", func(t *testing.T) {
 		calls := 0
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
 			calls++
 			if calls == 2 {
 				return nil, errors.New("intermittent failure")
@@ -429,7 +429,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		obs := newRecordingObserver()
 		var iface ConnectionObserver = obs
@@ -485,7 +485,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 
 	t.Run("No standby available", func(t *testing.T) {
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, nil)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		attempted, rotated, _ := pool.rotateStandbyOnce(context.Background())
 
@@ -501,7 +501,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
@@ -527,7 +527,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 	t.Run("Promotes to active when no active connections exist", func(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool(nil, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
@@ -556,7 +556,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{a1, a2},
 			[]*Connection{s1, s2, s3},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
@@ -574,7 +574,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 5)
 
@@ -594,7 +594,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{a1},
 			[]*Connection{s1, s2},
 		)
-		pool.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
 			if c.URL.Host == "s2-bad" {
 				return nil, errors.New("unhealthy")
 			}
@@ -617,7 +617,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1"), newStandbyConn("s2")},
 		)
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
@@ -639,7 +639,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 0)
 		if rotated != 0 {
@@ -912,7 +912,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
 			// Simulate concurrent state change to lcUnknown during health check:
 			// clear the position bits so the connection reads as dead/unknown.
 			c.mu.Lock()
@@ -934,7 +934,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		candidate, err := pool.healthcheckStart(context.Background())
 
@@ -949,7 +949,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
 			// Simulate concurrent removal: remove s1 from ready
 			pool.mu.Lock()
 			pool.mu.ready = pool.mu.ready[:pool.mu.activeCount]
@@ -968,7 +968,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		candidate, err := pool.healthcheckStart(context.Background())
 
@@ -1037,7 +1037,7 @@ func TestPartitionConsistency(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		s2 := newStandbyConn("s2")
 		pool := newStandbyPool([]*Connection{a1, a2}, []*Connection{s1, s2})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		pool.rotateStandby(context.Background(), 2)
 
