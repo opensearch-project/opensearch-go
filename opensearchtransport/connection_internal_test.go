@@ -34,6 +34,7 @@ import (
 	"net/url"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -511,6 +512,32 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 
 		require.Equal(t, 1, pool.mu.activeCount)
 		require.Len(t, pool.mu.ready, 3) // 1 active + 2 standby
+	})
+
+	t.Run("appendToReadyStandbyWithLock schedules RTT probe when rtt unknown", func(t *testing.T) {
+		// A standby connection with an unknown RTT and a configured health check
+		// must trigger an async one-shot RTT probe (populating rttRing so the
+		// connection can be scored). Covers the RTT-probe branch in
+		// appendToReadyStandbyWithLock.
+		var probed atomic.Int32
+		pool := &multiServerPool{name: "test"}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{}
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			probed.Add(1)
+			return nil, errors.New("probe stub")
+		}
+
+		c := makeWeightedConn("standby", 1)
+		c.rttRing = newRTTRing(4) // fresh ring: every slot is rttBucketUnknown
+
+		pool.mu.Lock()
+		pool.appendToReadyStandbyWithLock(c)
+		pool.mu.Unlock()
+
+		require.Eventually(t, func() bool {
+			return probed.Load() >= 1
+		}, 2*time.Second, 10*time.Millisecond, "expected an async RTT probe to be scheduled")
 	})
 
 	t.Run("weighted round-robin distribution", func(t *testing.T) {
