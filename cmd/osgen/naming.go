@@ -386,30 +386,36 @@ func isPredeclaredIdent(s string) bool {
 // When isRespBody is true, the function returns the response body type name
 // (e.g. "ClusterHealthResp") regardless of the local schema name.
 func schemaTypeName(schemaKey string, isRespBody bool) string {
-	// An explicit override wins over every heuristic below. This is reserved
-	// for schema refs whose derived name collides with another ref's derived
-	// name (see typeNameCollisions); each entry documents the specific clash it
-	// resolves. Overrides are only consulted for structural type names, not
-	// response-body names (which are keyed on the operation, not the schema).
-	if !isRespBody {
-		if name, ok := typeNameOverrides[schemaKey]; ok {
-			return name
-		}
+	// An explicit override wins over the heuristics below. Overrides break name
+	// collisions the heuristics cannot resolve on their own; each entry documents
+	// the specific clash it resolves. A ref may be reached both as a response body
+	// and structurally (e.g. a response schema also used as a nested _source
+	// field), and isRespBody propagates transitively through nested walks, so the
+	// SAME ref can be visited with either value. Its overridden name must be
+	// identical on both paths or the emitted shared type and its references would
+	// disagree -- hence the lookup consults the merged table regardless of
+	// isRespBody, giving each overridden ref exactly one name everywhere.
+	if name, ok := allTypeNameOverrides[schemaKey]; ok {
+		return name
 	}
 
 	name := deriveSchemaTypeName(schemaKey, isRespBody)
 
-	// Completeness guard. typeNameCollisions is keyed by the colliding name, and
+	// Completeness guard. A collision table is keyed by the colliding name and
 	// lists every ref that derives it -- so every legitimate participant returns
 	// early at the override lookup above. If the heuristic still produces a name
 	// that is a known collision key, this ref derives a colliding name but is not
-	// enumerated in that group (e.g. a third schema the de-stutter happens to map
-	// onto an existing pair). Registering it would silently drop a type, so fail
-	// loudly: the collision group must list every candidate.
-	if !isRespBody {
-		if _, isCollision := typeNameCollisions[name]; isCollision {
-			panic(fmt.Sprintf("schemaTypeName: ref %q derives collision name %q but is not listed in typeNameCollisions[%q]; add it to that group", schemaKey, name, name))
-		}
+	// enumerated in that group (e.g. a new schema the heuristic maps onto an
+	// existing collision). Registering it would silently drop a type, so fail
+	// loudly: the collision group must list every candidate. Structural and
+	// response-body names collide independently, so the guard checks the table
+	// for the path actually taken.
+	collisions, table := typeNameCollisions, "typeNameCollisions"
+	if isRespBody {
+		collisions, table = respTypeNameCollisions, "respTypeNameCollisions"
+	}
+	if _, isCollision := collisions[name]; isCollision {
+		panic(fmt.Sprintf("schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group", schemaKey, name, table, name))
 	}
 
 	return name
@@ -530,30 +536,79 @@ var typeNameCollisions = map[string]map[string]string{
 	},
 }
 
-// typeNameOverrides is the ref -> explicit Go name lookup consulted by
-// schemaTypeName, flattened from typeNameCollisions.
+// respTypeNameCollisions is the response-body counterpart of typeNameCollisions,
+// consulted when isRespBody is true. Response-body names derive from the schema
+// group as "<Group>Resp" (e.g. ClusterHealthResp), which is correct for the
+// common case of one response body per group. A handful of groups define
+// multiple distinct response-body schemas, so every one collapses to the same
+// "<Group>Resp" name; the registry keeps one and drops the rest, degrading the
+// dropped operations' responses to raw json.RawMessage. Each group here maps
+// every colliding ref to a distinct name -- including the ref that keeps
+// "<Group>Resp" (pinned) -- following the package's shared-type convention of
+// "<Group><LocalSchemaName>" for the disambiguated ones. Keyed by the colliding
+// "<Group>Resp" name; see typeNameCollisions for the shape and guarantees.
 //
-//nolint:gochecknoglobals // derived once from typeNameCollisions at init
-var typeNameOverrides = buildTypeNameOverrides()
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var respTypeNameCollisions = map[string]map[string]string{
+	// flow_framework.common defines four distinct response bodies, all deriving
+	// "FlowFrameworkCommonResp": WorkflowIDResponse ({workflow_id}, shared by
+	// create/provision/deprovision), FlowFrameworkGetResponse ({name, version,
+	// ...}, the get response), WorkflowSearchResponse ({took, timed_out, _shards,
+	// hits}, search), and WorkflowSearchStateResponse (same shape with StateHits,
+	// search_state). Left to the heuristic, search and search_state degrade to raw
+	// json.RawMessage. Keep WorkflowIDResponse as FlowFrameworkCommonResp and give
+	// the others their "<Group><LocalName>" structural names.
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/flow_framework.common.yaml
+	"FlowFrameworkCommonResp": {
+		"flow_framework.common___WorkflowIDResponse":          "FlowFrameworkCommonResp",
+		"flow_framework.common___FlowFrameworkGetResponse":    "FlowFrameworkCommonGetResp",
+		"flow_framework.common___WorkflowSearchResponse":      "FlowFrameworkCommonWorkflowSearchResp",
+		"flow_framework.common___WorkflowSearchStateResponse": "FlowFrameworkCommonWorkflowSearchStateResp",
+	},
+	// security_analytics.findings defines two distinct response bodies, both
+	// deriving "SecurityAnalyticsFindingsResp": GetFindingsResponse
+	// ({total_findings, findings}, the get findings response) and
+	// SearchFindingCorrelationsResponse ({findings: [FindingWithScore]}, the
+	// correlations search). Left to the heuristic, the correlations response
+	// degrades to raw json.RawMessage. Keep GetFindingsResponse as
+	// SecurityAnalyticsFindingsResp and give the other its structural name.
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/security_analytics.findings.yaml
+	"SecurityAnalyticsFindingsResp": {
+		"security_analytics.findings___GetFindingsResponse":               "SecurityAnalyticsFindingsResp",
+		"security_analytics.findings___SearchFindingCorrelationsResponse": "SecurityAnalyticsFindingsSearchCorrelationsResp",
+	},
+}
 
-// buildTypeNameOverrides flattens typeNameCollisions into a ref -> name map. It
-// panics on a malformed table (the same ref in two collision groups, or two
-// refs in one group resolving to the same name) since that is a generator
-// misconfiguration that would reintroduce the collision the table exists to
-// prevent.
-func buildTypeNameOverrides() map[string]string {
+// allTypeNameOverrides is the merged ref -> explicit Go name lookup consulted by
+// schemaTypeName on both the structural and response-body paths, flattened from
+// both collision tables. Merging is what guarantees a ref reached via either
+// path resolves to one name; see the schemaTypeName comment.
+//
+//nolint:gochecknoglobals // derived once from the collision tables at init
+var allTypeNameOverrides = buildTypeNameOverrides(typeNameCollisions, respTypeNameCollisions)
+
+// buildTypeNameOverrides flattens one or more collision tables into a single
+// ref -> name map. It panics on a malformed configuration (a ref mapped to two
+// different names, or two refs in one group resolving to the same name) since
+// that is a generator misconfiguration that would reintroduce the collision the
+// tables exist to prevent. A ref may appear in more than one table only if every
+// occurrence maps it to the same name (e.g. a dual-role response schema listed
+// in both the structural and response-body tables).
+func buildTypeNameOverrides(tables ...map[string]map[string]string) map[string]string {
 	overrides := make(map[string]string)
-	for collision, group := range typeNameCollisions {
-		seenName := make(map[string]string, len(group))
-		for ref, name := range group {
-			if prev, dup := overrides[ref]; dup {
-				panic(fmt.Sprintf("typeNameCollisions: ref %q listed in two groups (%q and %q)", ref, prev, name))
+	for _, collisions := range tables {
+		for collision, group := range collisions {
+			seenName := make(map[string]string, len(group))
+			for ref, name := range group {
+				if prev, dup := overrides[ref]; dup && prev != name {
+					panic(fmt.Sprintf("collision tables: ref %q mapped to two names (%q and %q)", ref, prev, name))
+				}
+				if prevRef, dup := seenName[name]; dup {
+					panic(fmt.Sprintf("collision group %q: refs %q and %q both resolve to %q", collision, prevRef, ref, name))
+				}
+				seenName[name] = ref
+				overrides[ref] = name
 			}
-			if prevRef, dup := seenName[name]; dup {
-				panic(fmt.Sprintf("typeNameCollisions[%q]: refs %q and %q both resolve to %q", collision, prevRef, ref, name))
-			}
-			seenName[name] = ref
-			overrides[ref] = name
 		}
 	}
 	return overrides

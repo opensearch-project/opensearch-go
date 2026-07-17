@@ -89,7 +89,7 @@ DeleteByQueryResp/- # bare
 ExplainRespBodyGet/_source # bare
 
 # --- flow_framework.common ---
-FlowFrameworkCommonFlowFrameworkGetResponse/workflows # bare
+FlowFrameworkCommonGetResp/workflows # bare
 
 # --- flow_framework.create ---
 FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
@@ -99,12 +99,6 @@ GetResp/workflows # bare
 
 # --- flow_framework.get_status ---
 GetStatusResp/- # bare
-
-# --- flow_framework.search ---
-SearchResp/- # bare
-
-# --- flow_framework.search_state ---
-SearchStateResp/- # bare
 
 # --- flow_framework.update ---
 FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
@@ -391,9 +385,6 @@ HealthResp/settings # map
 
 # --- security.tenant_info ---
 TenantInfoResp/[entries] # map
-
-# --- security_analytics.search_finding_correlations ---
-SearchFindingCorrelationsResp/- # bare
 
 # --- snapshot._common ---
 SnapshotInfo/metadata # map
