@@ -167,6 +167,9 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 {{range .SubClients}}
+// {{.TypeName}} groups a related subset of this plugin's API. {{.TypeName}}
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
 type {{.TypeName}} struct {
 	client *Client
 }

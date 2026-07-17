@@ -156,6 +156,9 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	return client
 }
 {{range .SubClients}}
+// {{.TypeName}} groups a related subset of the OpenSearch API. {{.TypeName}}
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
 type {{.TypeName}} struct {
 	apiClient *Client
 {{- range nestedFields $.Hierarchy .TypeName}}

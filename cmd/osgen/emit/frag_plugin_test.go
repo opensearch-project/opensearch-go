@@ -123,7 +123,7 @@ func TestNewPluginClientFile_Render(t *testing.T) {
 func TestPluginClientFragment_WithSubClients(t *testing.T) {
 	t.Parallel()
 
-	roleSC := &emit.PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
+	roleSC := &emit.PluginSubClient{TypeName: "RoleClient", FieldName: "Role"}
 
 	ops := []emit.PluginClientOp{
 		{MethodName: "FlushCache", TypePrefix: "SecurityFlushCache", IsPointerReq: true, IsNoBody: true, HTTPMethod: "http.MethodDelete"},
@@ -151,13 +151,13 @@ func TestPluginClientFragment_WithSubClients(t *testing.T) {
 		name string
 		want string
 	}{
-		{name: "sub-client field on Client", want: "Role roleClient"},
-		{name: "sub-client struct", want: "type roleClient struct"},
+		{name: "sub-client field on Client", want: "Role RoleClient"},
+		{name: "sub-client struct", want: "type RoleClient struct"},
 		{name: "sub-client back pointer", want: "client *Client"},
-		{name: "NewClient init", want: "c.Role = roleClient{client: c}"},
+		{name: "NewClient init", want: "c.Role = RoleClient{client: c}"},
 		{name: "root method", want: "func (c *Client) FlushCache("},
-		{name: "sub-client method GetRole", want: "func (c roleClient) GetRole("},
-		{name: "sub-client method CreateRole", want: "func (c roleClient) CreateRole("},
+		{name: "sub-client method GetRole", want: "func (c RoleClient) GetRole("},
+		{name: "sub-client method CreateRole", want: "func (c RoleClient) CreateRole("},
 		{name: "sub-client uses c.client", want: "request(ctx, c.client,"},
 		{name: "deprecated GetRole", want: "return c.Role.GetRole(ctx, req)"},
 		{name: "deprecated CreateRole", want: "return c.Role.CreateRole(ctx, req)"},
@@ -175,7 +175,7 @@ func TestPluginClientFragment_WithSubClients(t *testing.T) {
 func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 	t.Parallel()
 
-	roleSC := &emit.PluginSubClient{TypeName: "roleClient", FieldName: "Role"}
+	roleSC := &emit.PluginSubClient{TypeName: "RoleClient", FieldName: "Role"}
 
 	ops := []*ir.Operation{
 		{
@@ -205,8 +205,8 @@ func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 
 	output := string(src)
 	require.Contains(t, output, "package ossecurity")
-	require.Contains(t, output, "roleClient")
+	require.Contains(t, output, "RoleClient")
 	require.Contains(t, output, "func (c *Client) FlushCache(")
-	require.Contains(t, output, "func (c roleClient) GetRole(")
-	require.Contains(t, output, "func (c roleClient) CreateRole(")
+	require.Contains(t, output, "func (c RoleClient) GetRole(")
+	require.Contains(t, output, "func (c RoleClient) CreateRole(")
 }

@@ -135,23 +135,23 @@ func operationFilename(group string) string {
 
 // dispatchRoute describes how an operation group maps to a dispatch method.
 type dispatchRoute struct {
-	ReceiverType string // Go type name (e.g. "clusterClient", "Client")
+	ReceiverType string // Go type name (e.g. "ClusterClient", "Client")
 	MethodName   string // exported method name (e.g. "Health")
 	TopLevel     bool   // true for Client, false for sub-clients
 	Deprecated   bool   // true for nested sub-client forwarding methods
 	// Forward, when non-empty, marks this route as a thin compatibility
 	// forwarder: the emitted method body is `return c.<Forward>(ctx, req)`
 	// instead of a full dispatch. The expression is relative to the receiver
-	// (e.g. "Doc.Bulk" on Client, or "GetSource" on documentClient). The
+	// (e.g. "Doc.Bulk" on Client, or "GetSource" on DocumentClient). The
 	// canonical implementation lives on the route this one forwards to.
 	Forward string
 }
 
 // subClientInfo describes a sub-client type and its placement in the hierarchy.
 type subClientInfo struct {
-	TypeName  string // e.g. "catClient"
+	TypeName  string // e.g. "CatClient"
 	FieldName string // exported field on parent (e.g. "Cat")
-	Parent    string // parent client type ("Client" or "indicesClient")
+	Parent    string // parent client type ("Client" or "IndicesClient")
 	// Aliases are additional exported field names on the parent that point at
 	// the same sub-client value as FieldName. They exist for compatibility
 	// (e.g. "Document" aliasing "Doc", "PointInTime" aliasing "PIT") so callers
@@ -167,20 +167,20 @@ type subClientInfo struct {
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var nestedSubClientOverrides = map[string]dispatchRoute{
-	"indices.delete_alias":        {ReceiverType: "aliasClient", MethodName: "Delete", Deprecated: true},
-	"indices.exists_alias":        {ReceiverType: "aliasClient", MethodName: "Exists", Deprecated: true},
-	"indices.get_alias":           {ReceiverType: "aliasClient", MethodName: "Get", Deprecated: true},
-	"indices.get_field_mapping":   {ReceiverType: "mappingClient", MethodName: "Field", Deprecated: true},
-	"indices.get_mapping":         {ReceiverType: "mappingClient", MethodName: "Get", Deprecated: true},
-	"indices.get_settings":        {ReceiverType: "settingsClient", MethodName: "Get", Deprecated: true},
-	"indices.put_alias":           {ReceiverType: "aliasClient", MethodName: "Put", Deprecated: true},
-	"indices.put_mapping":         {ReceiverType: "mappingClient", MethodName: "Put", Deprecated: true},
-	"indices.put_settings":        {ReceiverType: "settingsClient", MethodName: "Put", Deprecated: true},
-	"snapshot.cleanup_repository": {ReceiverType: "repositoryClient", MethodName: "Cleanup", Deprecated: true},
-	"snapshot.create_repository":  {ReceiverType: "repositoryClient", MethodName: "Create", Deprecated: true},
-	"snapshot.delete_repository":  {ReceiverType: "repositoryClient", MethodName: "Delete", Deprecated: true},
-	"snapshot.get_repository":     {ReceiverType: "repositoryClient", MethodName: "Get", Deprecated: true},
-	"snapshot.verify_repository":  {ReceiverType: "repositoryClient", MethodName: "Verify", Deprecated: true},
+	"indices.delete_alias":        {ReceiverType: "AliasClient", MethodName: "Delete", Deprecated: true},
+	"indices.exists_alias":        {ReceiverType: "AliasClient", MethodName: "Exists", Deprecated: true},
+	"indices.get_alias":           {ReceiverType: "AliasClient", MethodName: "Get", Deprecated: true},
+	"indices.get_field_mapping":   {ReceiverType: "MappingClient", MethodName: "Field", Deprecated: true},
+	"indices.get_mapping":         {ReceiverType: "MappingClient", MethodName: "Get", Deprecated: true},
+	"indices.get_settings":        {ReceiverType: "SettingsClient", MethodName: "Get", Deprecated: true},
+	"indices.put_alias":           {ReceiverType: "AliasClient", MethodName: "Put", Deprecated: true},
+	"indices.put_mapping":         {ReceiverType: "MappingClient", MethodName: "Put", Deprecated: true},
+	"indices.put_settings":        {ReceiverType: "SettingsClient", MethodName: "Put", Deprecated: true},
+	"snapshot.cleanup_repository": {ReceiverType: "RepositoryClient", MethodName: "Cleanup", Deprecated: true},
+	"snapshot.create_repository":  {ReceiverType: "RepositoryClient", MethodName: "Create", Deprecated: true},
+	"snapshot.delete_repository":  {ReceiverType: "RepositoryClient", MethodName: "Delete", Deprecated: true},
+	"snapshot.get_repository":     {ReceiverType: "RepositoryClient", MethodName: "Get", Deprecated: true},
+	"snapshot.verify_repository":  {ReceiverType: "RepositoryClient", MethodName: "Verify", Deprecated: true},
 }
 
 // subClientHierarchy defines the sub-client types and their nesting. The
@@ -189,32 +189,32 @@ var nestedSubClientOverrides = map[string]dispatchRoute{
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var subClientHierarchy = []subClientInfo{
-	{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
-	{TypeName: "clusterClient", FieldName: "Cluster", Parent: "Client"},
-	{TypeName: "danglingClient", FieldName: "Dangling", Parent: "Client"},
-	{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
-	{TypeName: "indicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
-	{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
-	{TypeName: "mappingClient", FieldName: "Mapping", Parent: "indicesClient"},
-	{TypeName: "settingsClient", FieldName: "Settings", Parent: "indicesClient"},
-	{TypeName: "nodesClient", FieldName: "Nodes", Parent: "Client"},
-	{TypeName: "scriptClient", FieldName: "Script", Parent: "Client"},
-	{TypeName: "componentTemplateClient", FieldName: "ComponentTemplate", Parent: "Client"},
-	{TypeName: "indexTemplateClient", FieldName: "IndexTemplate", Parent: "Client"},
-	{TypeName: "templateClient", FieldName: "Template", Parent: "Client"},
-	{TypeName: "dataStreamClient", FieldName: "DataStream", Parent: "Client"},
-	{TypeName: "pointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
-	{TypeName: "ingestClient", FieldName: "Ingest", Parent: "Client"},
-	{TypeName: "tasksClient", FieldName: "Tasks", Parent: "Client"},
-	{TypeName: "scrollClient", FieldName: "Scroll", Parent: "Client"},
-	{TypeName: "searchPipelineClient", FieldName: "SearchPipeline", Parent: "Client"},
-	{TypeName: "snapshotClient", FieldName: "Snapshot", Parent: "Client"},
-	{TypeName: "repositoryClient", FieldName: "Repository", Parent: "snapshotClient"},
+	{TypeName: "CatClient", FieldName: "Cat", Parent: "Client"},
+	{TypeName: "ClusterClient", FieldName: "Cluster", Parent: "Client"},
+	{TypeName: "DanglingClient", FieldName: "Dangling", Parent: "Client"},
+	{TypeName: "DocumentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
+	{TypeName: "IndicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
+	{TypeName: "AliasClient", FieldName: "Alias", Parent: "IndicesClient"},
+	{TypeName: "MappingClient", FieldName: "Mapping", Parent: "IndicesClient"},
+	{TypeName: "SettingsClient", FieldName: "Settings", Parent: "IndicesClient"},
+	{TypeName: "NodesClient", FieldName: "Nodes", Parent: "Client"},
+	{TypeName: "ScriptClient", FieldName: "Script", Parent: "Client"},
+	{TypeName: "ComponentTemplateClient", FieldName: "ComponentTemplate", Parent: "Client"},
+	{TypeName: "IndexTemplateClient", FieldName: "IndexTemplate", Parent: "Client"},
+	{TypeName: "TemplateClient", FieldName: "Template", Parent: "Client"},
+	{TypeName: "DataStreamClient", FieldName: "DataStream", Parent: "Client"},
+	{TypeName: "PointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
+	{TypeName: "IngestClient", FieldName: "Ingest", Parent: "Client"},
+	{TypeName: "TasksClient", FieldName: "Tasks", Parent: "Client"},
+	{TypeName: "ScrollClient", FieldName: "Scroll", Parent: "Client"},
+	{TypeName: "SearchPipelineClient", FieldName: "SearchPipeline", Parent: "Client"},
+	{TypeName: "SnapshotClient", FieldName: "Snapshot", Parent: "Client"},
+	{TypeName: "RepositoryClient", FieldName: "Repository", Parent: "SnapshotClient"},
 }
 
 // resolveFieldPath translates a sub-client receiver type name into the
 // dotted field path used to access it from a *Client. e.g.
-// "clusterClient" -> "Cluster", "aliasClient" -> "Indices.Alias".
+// "ClusterClient" -> "Cluster", "AliasClient" -> "Indices.Alias".
 func resolveFieldPath(receiverType string) string {
 	for _, sc := range subClientHierarchy {
 		if sc.TypeName == receiverType {
@@ -240,7 +240,7 @@ func parentOf(typeName string) string {
 
 // usedSubClientTypes returns the set of sub-client type names that at least one
 // operation routes to. A type is "used" when any dispatch route targets it
-// (deprecated forwarding routes count, so nested aliases like aliasClient stay).
+// (deprecated forwarding routes count, so nested aliases like AliasClient stay).
 // The set is expanded to include every ancestor so a retained child never
 // references a dropped parent.
 func usedSubClientTypes(ops []*ir.Operation) map[string]bool {
@@ -284,17 +284,17 @@ func filterSubClients(used map[string]bool) []subClientInfo {
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var prefixToReceiverType = map[string]string{
-	"cat":              "catClient",
-	"cluster":          "clusterClient",
-	"dangling_indices": "danglingClient",
-	"indices":          "indicesClient",
-	"ingest":           "ingestClient",
-	"nodes":            "nodesClient",
+	"cat":              "CatClient",
+	"cluster":          "ClusterClient",
+	"dangling_indices": "DanglingClient",
+	"indices":          "IndicesClient",
+	"ingest":           "IngestClient",
+	"nodes":            "NodesClient",
 	"remote_store":     "Client",
-	"scroll":           "scrollClient",
-	"search_pipeline":  "searchPipelineClient",
-	"snapshot":         "snapshotClient",
-	"tasks":            "tasksClient",
+	"scroll":           "ScrollClient",
+	"search_pipeline":  "SearchPipelineClient",
+	"snapshot":         "SnapshotClient",
+	"tasks":            "TasksClient",
 }
 
 // unprefixedGroupOverrides routes prefix-less operation groups (no dot) that
@@ -304,8 +304,8 @@ var prefixToReceiverType = map[string]string{
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var unprefixedGroupOverrides = map[string]dispatchRoute{
-	"clear_scroll": {ReceiverType: "scrollClient", MethodName: "Delete", TopLevel: false},
-	"scroll":       {ReceiverType: "scrollClient", MethodName: "Get", TopLevel: false},
+	"clear_scroll": {ReceiverType: "ScrollClient", MethodName: "Delete", TopLevel: false},
+	"scroll":       {ReceiverType: "ScrollClient", MethodName: "Get", TopLevel: false},
 }
 
 // unprefixedSubClientGroup assigns a set of prefix-less operation groups to a
@@ -315,7 +315,7 @@ var unprefixedGroupOverrides = map[string]dispatchRoute{
 // mirroring how the OpenSearch server groups them by REST-action package
 // (document operations under one family, point-in-time under another).
 type unprefixedSubClientGroup struct {
-	ReceiverType string   // sub-client receiver type (e.g. "documentClient")
+	ReceiverType string   // sub-client receiver type (e.g. "DocumentClient")
 	TrimSuffixes []string // tail tokens stripped before deriving the method name, longest-first
 	Groups       []string // prefix-less group names owned by this sub-client
 }
@@ -327,14 +327,14 @@ type unprefixedSubClientGroup struct {
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var unprefixedSubClientGroups = []unprefixedSubClientGroup{
 	{
-		ReceiverType: "pointInTimeClient",
+		ReceiverType: "PointInTimeClient",
 		// "create_pit" -> Create, "get_all_pits" -> GetAll: drop the redundant
 		// pit/pits tail since the sub-client name already conveys it.
 		TrimSuffixes: []string{"_pits", "_pit"},
 		Groups:       []string{"create_pit", "delete_pit", "get_all_pits", "delete_all_pits"},
 	},
 	{
-		ReceiverType: "documentClient",
+		ReceiverType: "DocumentClient",
 		// The 13 operations the OpenSearch server groups under its
 		// rest/action/document/ package. Group names are already verb-only, so
 		// no suffix trimming is needed ("create" -> Create, "bulk" -> Bulk).
@@ -409,23 +409,23 @@ type compatForwarder struct {
 // should forward to its canonical (primary) route. Two shapes appear:
 //
 //   - top-level forwarders: operations that were reachable as bare
-//     client.Bulk/MGet/Update now live on documentClient; the forwarder
+//     client.Bulk/MGet/Update now live on DocumentClient; the forwarder
 //     restores the top-level Client method. The index document op is
 //     deliberately excluded: Index is now the indices sub-client field on
-//     Client (see indicesClient.FieldName), and a field and a method of the
+//     Client (see IndicesClient.FieldName), and a field and a method of the
 //     same name cannot coexist in Go, so client.Doc.Index is the only
 //     spelling -- there is no top-level client.Index(...) forwarder.
 //   - same-receiver name aliases: an operation whose canonical method name was
 //     renamed keeps its historical name as a forwarder on the same sub-client
-//     (e.g. documentClient.Source -> GetSource, pointInTimeClient.Get -> GetAll).
+//     (e.g. DocumentClient.Source -> GetSource, PointInTimeClient.Get -> GetAll).
 //
 // Keys are sorted alphabetically; keep them that way when adding entries.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var compatForwarders = map[string][]compatForwarder{
 	"bulk":         {{ReceiverType: "Client", MethodName: "Bulk"}},
-	"get_all_pits": {{ReceiverType: "pointInTimeClient", MethodName: "Get"}},
-	"get_source":   {{ReceiverType: "documentClient", MethodName: "Source"}},
+	"get_all_pits": {{ReceiverType: "PointInTimeClient", MethodName: "Get"}},
+	"get_source":   {{ReceiverType: "DocumentClient", MethodName: "Source"}},
 	"mget":         {{ReceiverType: "Client", MethodName: "MGet"}},
 	"update":       {{ReceiverType: "Client", MethodName: "Update"}},
 }
@@ -461,7 +461,7 @@ func compatForwardersFor(group string, primary dispatchRoute) []dispatchRoute {
 // can be added without restructuring callers.
 type CompatConfig struct {
 	// V4Compat emits the v4 compatibility forwarder methods (e.g. top-level
-	// Client.Bulk forwarding to Doc.Bulk, documentClient.Source forwarding to
+	// Client.Bulk forwarding to Doc.Bulk, DocumentClient.Source forwarding to
 	// GetSource).
 	V4Compat bool
 	// V4Deprecation marks those forwarders with a Deprecated doc comment. It has
@@ -514,7 +514,7 @@ func resolvePrimaryDispatch(group, prefix string) dispatchRoute {
 
 	receiver, ok := prefixToReceiverType[prefix]
 	if !ok {
-		receiver = prefix + "Client"
+		receiver = titleSegment(prefix) + "Client"
 	}
 
 	suffix := group
@@ -762,12 +762,12 @@ var irregularSingulars = map[string]string{
 	"niches":  "niche",
 }
 
-// resourceToTypeName converts a resource noun to an unexported Go client type
-// name. e.g. "action_group" -> "actionGroupClient".
+// resourceToTypeName converts a resource noun to an exported Go client type
+// name. e.g. "action_group" -> "ActionGroupClient".
 func resourceToTypeName(resource string) string {
 	parts := strings.Split(resource, "_")
 	var sb strings.Builder
-	sb.WriteString(parts[0])
+	sb.WriteString(titleSegment(parts[0]))
 	for _, p := range parts[1:] {
 		sb.WriteString(titleSegment(p))
 	}
