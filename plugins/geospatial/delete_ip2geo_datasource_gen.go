@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// DeleteIp2geoDatasourceReq represents the request for the geospatial.delete_ip2geo_datasource operation.
+// DeleteIP2GeoDatasourceReq represents the request for the geospatial.delete_ip2geo_datasource operation.
 //
 // Delete a specific IP2Geo data source.
 //
@@ -29,7 +29,7 @@ import (
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
-type DeleteIp2geoDatasourceReq struct {
+type DeleteIP2GeoDatasourceReq struct {
 	// Name specifies the path segment for the request URL.
 	Name string
 
@@ -37,12 +37,12 @@ type DeleteIp2geoDatasourceReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *DeleteIp2geoDatasourceParams
+	Params *DeleteIP2GeoDatasourceParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r DeleteIp2geoDatasourceReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.GeospatialDeleteIp2geoDatasourcePath{
+func (r DeleteIP2GeoDatasourceReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GeospatialDeleteIP2GeoDatasourcePath{
 		Name: r.Name,
 	}.Build()
 	if err != nil {
@@ -63,13 +63,13 @@ func (r DeleteIp2geoDatasourceReq) GetRequest(method string) (*http.Request, err
 	)
 }
 
-// DeleteIp2geoDatasourceParams represents query parameters for the DeleteIp2geoDatasourceReq.
-type DeleteIp2geoDatasourceParams struct {
+// DeleteIP2GeoDatasourceParams represents query parameters for the DeleteIP2GeoDatasourceReq.
+type DeleteIP2GeoDatasourceParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 }
 
-func (r DeleteIp2geoDatasourceParams) get() map[string]string {
+func (r DeleteIP2GeoDatasourceParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -83,14 +83,14 @@ func (r DeleteIp2geoDatasourceParams) get() map[string]string {
 	return params
 }
 
-// DeleteIp2geoDatasourceResp represents the response for the geospatial.delete_ip2geo_datasource operation.
+// DeleteIP2GeoDatasourceResp represents the response for the geospatial.delete_ip2geo_datasource operation.
 //
 // Delete a specific IP2Geo data source.
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
-type DeleteIp2geoDatasourceResp struct {
+type DeleteIP2GeoDatasourceResp struct {
 	// For a successful response, this value is always true. On failure, an
 	// exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
@@ -99,13 +99,13 @@ type DeleteIp2geoDatasourceResp struct {
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r DeleteIp2geoDatasourceResp) Inspect() Inspect {
+func (r DeleteIP2GeoDatasourceResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r DeleteIp2geoDatasourceResp) RawBody() io.Reader {
+func (r DeleteIP2GeoDatasourceResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}

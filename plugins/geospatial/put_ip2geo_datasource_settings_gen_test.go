@@ -19,25 +19,25 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/plugins/geospatial"
 )
 
-func TestPutIp2geoDatasourceSettingsReq_GetRequest(t *testing.T) {
+func TestPutIP2GeoDatasourceSettingsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        geospatial.PutIp2geoDatasourceSettingsReq
+		req        geospatial.PutIP2GeoDatasourceSettingsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        geospatial.PutIp2geoDatasourceSettingsReq{},
+			req:        geospatial.PutIP2GeoDatasourceSettingsReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        geospatial.PutIp2geoDatasourceSettingsReq{Name: "test-name"},
+			req:        geospatial.PutIP2GeoDatasourceSettingsReq{Name: "test-name"},
 			wantMethod: http.MethodPut,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/test-name/_settings",
 			wantErr:    false,

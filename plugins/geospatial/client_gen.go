@@ -12,7 +12,7 @@
 // [Client]. Each sub-client below has its own godoc page listing its methods;
 // operations that are not grouped are methods on [Client] directly.
 //
-//   - client.Ip2geoDatasource reaches [Ip2geoDatasourceClient]
+//   - client.IP2GeoDatasource reaches [IP2GeoDatasourceClient]
 package geospatial
 
 import (
@@ -26,13 +26,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client           *opensearch.Client
-	Ip2geoDatasource Ip2geoDatasourceClient
+	IP2GeoDatasource IP2GeoDatasourceClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Ip2geoDatasource = Ip2geoDatasourceClient{client: c}
+	c.IP2GeoDatasource = IP2GeoDatasourceClient{client: c}
 	return c
 }
 
@@ -58,10 +58,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-// Ip2geoDatasourceClient groups a related subset of this plugin's API. Ip2geoDatasourceClient
+// IP2GeoDatasourceClient groups a related subset of this plugin's API. IP2GeoDatasourceClient
 // values should be obtained from a [Client] created with [NewClient]; the zero
 // value is not usable.
-type Ip2geoDatasourceClient struct {
+type IP2GeoDatasourceClient struct {
 	client *Client
 }
 
@@ -119,55 +119,55 @@ func (c *Client) GetUploadStats(ctx context.Context, req *GetUploadStatsReq) (*G
 	return &resp, nil
 }
 
-// PutIp2geoDatasourceSettings update a specific IP2Geo data source.
+// PutIP2GeoDatasourceSettings update a specific IP2Geo data source.
 //
 // PUT /_plugins/geospatial/ip2geo/datasource/{name}/_settings
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#updating-an-ip2geo-data-source
-func (c *Client) PutIp2geoDatasourceSettings(ctx context.Context, req PutIp2geoDatasourceSettingsReq) (*PutIp2geoDatasourceSettingsResp, error) {
-	var resp PutIp2geoDatasourceSettingsResp
+func (c *Client) PutIP2GeoDatasourceSettings(ctx context.Context, req PutIP2GeoDatasourceSettingsReq) (*PutIP2GeoDatasourceSettingsResp, error) {
+	var resp PutIP2GeoDatasourceSettingsResp
 	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
 }
 
-// DeleteIp2geoDatasource delete a specific IP2Geo data source.
+// DeleteIP2GeoDatasource delete a specific IP2Geo data source.
 //
 // DELETE /_plugins/geospatial/ip2geo/datasource/{name}
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
-func (c Ip2geoDatasourceClient) DeleteIp2geoDatasource(ctx context.Context, req DeleteIp2geoDatasourceReq) (*DeleteIp2geoDatasourceResp, error) {
-	var resp DeleteIp2geoDatasourceResp
+func (c IP2GeoDatasourceClient) DeleteIP2GeoDatasource(ctx context.Context, req DeleteIP2GeoDatasourceReq) (*DeleteIP2GeoDatasourceResp, error) {
+	var resp DeleteIP2GeoDatasourceResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
 }
 
-// GetIp2geoDatasource get one or more IP2Geo data sources, defaulting to returning all if no names specified.
+// GetIP2GeoDatasource get one or more IP2Geo data sources, defaulting to returning all if no names specified.
 //
 // GET /_plugins/geospatial/ip2geo/datasource
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
-func (c Ip2geoDatasourceClient) GetIp2geoDatasource(ctx context.Context, req *GetIp2geoDatasourceReq) (*GetIp2geoDatasourceResp, error) {
+func (c IP2GeoDatasourceClient) GetIP2GeoDatasource(ctx context.Context, req *GetIP2GeoDatasourceReq) (*GetIP2GeoDatasourceResp, error) {
 	if req == nil {
-		req = &GetIp2geoDatasourceReq{}
+		req = &GetIP2GeoDatasourceReq{}
 	}
-	var resp GetIp2geoDatasourceResp
+	var resp GetIP2GeoDatasourceResp
 	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
 }
 
-// PutIp2geoDatasource create a specific IP2Geo data source.
+// PutIP2GeoDatasource create a specific IP2Geo data source.
 //
 // Default values:
 //   - `endpoint`: `"https://geoip.maps.opensearch.org/v1/geolite2-city/manifest.json"`
@@ -178,27 +178,27 @@ func (c Ip2geoDatasourceClient) GetIp2geoDatasource(ctx context.Context, req *Ge
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#data-source-options
-func (c Ip2geoDatasourceClient) PutIp2geoDatasource(ctx context.Context, req PutIp2geoDatasourceReq) (*PutIp2geoDatasourceResp, error) {
-	var resp PutIp2geoDatasourceResp
+func (c IP2GeoDatasourceClient) PutIP2GeoDatasource(ctx context.Context, req PutIP2GeoDatasourceReq) (*PutIP2GeoDatasourceResp, error) {
+	var resp PutIP2GeoDatasourceResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
 }
 
-// Deprecated: use Client.Ip2geoDatasource.DeleteIp2geoDatasource instead.
-func (c *Client) DeleteIp2geoDatasource(ctx context.Context, req DeleteIp2geoDatasourceReq) (*DeleteIp2geoDatasourceResp, error) {
-	return c.Ip2geoDatasource.DeleteIp2geoDatasource(ctx, req)
+// Deprecated: use Client.IP2GeoDatasource.DeleteIP2GeoDatasource instead.
+func (c *Client) DeleteIP2GeoDatasource(ctx context.Context, req DeleteIP2GeoDatasourceReq) (*DeleteIP2GeoDatasourceResp, error) {
+	return c.IP2GeoDatasource.DeleteIP2GeoDatasource(ctx, req)
 }
 
-// Deprecated: use Client.Ip2geoDatasource.GetIp2geoDatasource instead.
-func (c *Client) GetIp2geoDatasource(ctx context.Context, req *GetIp2geoDatasourceReq) (*GetIp2geoDatasourceResp, error) {
-	return c.Ip2geoDatasource.GetIp2geoDatasource(ctx, req)
+// Deprecated: use Client.IP2GeoDatasource.GetIP2GeoDatasource instead.
+func (c *Client) GetIP2GeoDatasource(ctx context.Context, req *GetIP2GeoDatasourceReq) (*GetIP2GeoDatasourceResp, error) {
+	return c.IP2GeoDatasource.GetIP2GeoDatasource(ctx, req)
 }
 
-// Deprecated: use Client.Ip2geoDatasource.PutIp2geoDatasource instead.
-func (c *Client) PutIp2geoDatasource(ctx context.Context, req PutIp2geoDatasourceReq) (*PutIp2geoDatasourceResp, error) {
-	return c.Ip2geoDatasource.PutIp2geoDatasource(ctx, req)
+// Deprecated: use Client.IP2GeoDatasource.PutIP2GeoDatasource instead.
+func (c *Client) PutIP2GeoDatasource(ctx context.Context, req PutIP2GeoDatasourceReq) (*PutIP2GeoDatasourceResp, error) {
+	return c.IP2GeoDatasource.PutIP2GeoDatasource(ctx, req)
 }
 
 // noBody is a sentinel used when an operation returns no JSON body.

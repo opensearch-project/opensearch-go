@@ -19,25 +19,25 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/plugins/geospatial"
 )
 
-func TestDeleteIp2geoDatasourceReq_GetRequest(t *testing.T) {
+func TestDeleteIP2GeoDatasourceReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        geospatial.DeleteIp2geoDatasourceReq
+		req        geospatial.DeleteIP2GeoDatasourceReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "missing required fields",
-			req:        geospatial.DeleteIp2geoDatasourceReq{},
+			req:        geospatial.DeleteIP2GeoDatasourceReq{},
 			wantMethod: "",
 			wantPath:   "",
 			wantErr:    true,
 		},
 		{
 			name:       "all path fields",
-			req:        geospatial.DeleteIp2geoDatasourceReq{Name: "test-name"},
+			req:        geospatial.DeleteIP2GeoDatasourceReq{Name: "test-name"},
 			wantMethod: http.MethodDelete,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/test-name",
 			wantErr:    false,

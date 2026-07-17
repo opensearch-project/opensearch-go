@@ -188,13 +188,13 @@ var (
 	_ builder = FlowFrameworkSearchPath{}
 	_ builder = FlowFrameworkSearchStatePath{}
 	_ builder = FlowFrameworkUpdatePath{}
-	_ builder = GeospatialDeleteIp2geoDatasourcePath{}
+	_ builder = GeospatialDeleteIP2GeoDatasourcePath{}
 	_ builder = GeospatialGeojsonUploadPostPath{}
 	_ builder = GeospatialGeojsonUploadPutPath{}
-	_ builder = GeospatialGetIp2geoDatasourcePath{}
+	_ builder = GeospatialGetIP2GeoDatasourcePath{}
 	_ builder = GeospatialGetUploadStatsPath{}
-	_ builder = GeospatialPutIp2geoDatasourcePath{}
-	_ builder = GeospatialPutIp2geoDatasourceSettingsPath{}
+	_ builder = GeospatialPutIP2GeoDatasourcePath{}
+	_ builder = GeospatialPutIP2GeoDatasourceSettingsPath{}
 	_ builder = GetPath{}
 	_ builder = GetAllPITsPath{}
 	_ builder = GetScriptPath{}
@@ -2515,23 +2515,23 @@ func (p FlowFrameworkUpdatePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// GeospatialDeleteIp2geoDatasourcePath (geospatial.delete_ip2geo_datasource)
+// GeospatialDeleteIP2GeoDatasourcePath (geospatial.delete_ip2geo_datasource)
 // ---------------------------------------------------------------------------
 
-// GeospatialDeleteIp2geoDatasourcePath builds URL paths for the geospatial.delete_ip2geo_datasource operation.
+// GeospatialDeleteIP2GeoDatasourcePath builds URL paths for the geospatial.delete_ip2geo_datasource operation.
 //
 // Delete a specific IP2Geo data source.
 //
 // Available: >= 2.11.0
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
-type GeospatialDeleteIp2geoDatasourcePath struct {
+type GeospatialDeleteIP2GeoDatasourcePath struct {
 	Name string
 }
 
-func (p GeospatialDeleteIp2geoDatasourcePath) Build() (string, error) {
+func (p GeospatialDeleteIP2GeoDatasourcePath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("GeospatialDeleteIp2geoDatasourcePath.Name: %w", errRequired)
+		return "", fmt.Errorf("GeospatialDeleteIP2GeoDatasourcePath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -2589,21 +2589,21 @@ func (p GeospatialGeojsonUploadPutPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// GeospatialGetIp2geoDatasourcePath (geospatial.get_ip2geo_datasource)
+// GeospatialGetIP2GeoDatasourcePath (geospatial.get_ip2geo_datasource)
 // ---------------------------------------------------------------------------
 
-// GeospatialGetIp2geoDatasourcePath builds URL paths for the geospatial.get_ip2geo_datasource operation.
+// GeospatialGetIP2GeoDatasourcePath builds URL paths for the geospatial.get_ip2geo_datasource operation.
 //
 // Get one or more IP2Geo data sources, defaulting to returning all if no names specified.
 //
 // Available: >= 2.11.0
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
-type GeospatialGetIp2geoDatasourcePath struct {
+type GeospatialGetIP2GeoDatasourcePath struct {
 	Name []string
 }
 
-func (p GeospatialGetIp2geoDatasourcePath) Build() (string, error) {
+func (p GeospatialGetIP2GeoDatasourcePath) Build() (string, error) {
 	pb := acquire()
 	pb.writeLit("_plugins")
 	pb.writeLit("geospatial")
@@ -2635,10 +2635,10 @@ func (p GeospatialGetUploadStatsPath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// GeospatialPutIp2geoDatasourcePath (geospatial.put_ip2geo_datasource)
+// GeospatialPutIP2GeoDatasourcePath (geospatial.put_ip2geo_datasource)
 // ---------------------------------------------------------------------------
 
-// GeospatialPutIp2geoDatasourcePath builds URL paths for the geospatial.put_ip2geo_datasource operation.
+// GeospatialPutIP2GeoDatasourcePath builds URL paths for the geospatial.put_ip2geo_datasource operation.
 //
 // Create a specific IP2Geo data source.
 // Default values:
@@ -2648,13 +2648,13 @@ func (p GeospatialGetUploadStatsPath) Build() (string, error) {
 // Available: >= 2.11.0
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#data-source-options
-type GeospatialPutIp2geoDatasourcePath struct {
+type GeospatialPutIP2GeoDatasourcePath struct {
 	Name string
 }
 
-func (p GeospatialPutIp2geoDatasourcePath) Build() (string, error) {
+func (p GeospatialPutIP2GeoDatasourcePath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("GeospatialPutIp2geoDatasourcePath.Name: %w", errRequired)
+		return "", fmt.Errorf("GeospatialPutIP2GeoDatasourcePath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")
@@ -2666,23 +2666,23 @@ func (p GeospatialPutIp2geoDatasourcePath) Build() (string, error) {
 }
 
 // ---------------------------------------------------------------------------
-// GeospatialPutIp2geoDatasourceSettingsPath (geospatial.put_ip2geo_datasource_settings)
+// GeospatialPutIP2GeoDatasourceSettingsPath (geospatial.put_ip2geo_datasource_settings)
 // ---------------------------------------------------------------------------
 
-// GeospatialPutIp2geoDatasourceSettingsPath builds URL paths for the geospatial.put_ip2geo_datasource_settings operation.
+// GeospatialPutIP2GeoDatasourceSettingsPath builds URL paths for the geospatial.put_ip2geo_datasource_settings operation.
 //
 // Update a specific IP2Geo data source.
 //
 // Available: >= 2.11.0
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#updating-an-ip2geo-data-source
-type GeospatialPutIp2geoDatasourceSettingsPath struct {
+type GeospatialPutIP2GeoDatasourceSettingsPath struct {
 	Name string
 }
 
-func (p GeospatialPutIp2geoDatasourceSettingsPath) Build() (string, error) {
+func (p GeospatialPutIP2GeoDatasourceSettingsPath) Build() (string, error) {
 	if p.Name == "" {
-		return "", fmt.Errorf("GeospatialPutIp2geoDatasourceSettingsPath.Name: %w", errRequired)
+		return "", fmt.Errorf("GeospatialPutIP2GeoDatasourceSettingsPath.Name: %w", errRequired)
 	}
 	pb := acquire()
 	pb.writeLit("_plugins")

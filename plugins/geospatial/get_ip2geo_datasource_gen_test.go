@@ -19,25 +19,25 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/plugins/geospatial"
 )
 
-func TestGetIp2geoDatasourceReq_GetRequest(t *testing.T) {
+func TestGetIP2GeoDatasourceReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        geospatial.GetIp2geoDatasourceReq
+		req        geospatial.GetIP2GeoDatasourceReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        geospatial.GetIp2geoDatasourceReq{},
+			req:        geospatial.GetIP2GeoDatasourceReq{},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        geospatial.GetIp2geoDatasourceReq{Name: []string{"a", "b"}},
+			req:        geospatial.GetIP2GeoDatasourceReq{Name: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/a,b",
 			wantErr:    false,
