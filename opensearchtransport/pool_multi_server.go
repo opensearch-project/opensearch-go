@@ -52,6 +52,10 @@ type multiServerPool struct {
 		// ramp up quickly. Large pools get heavier warmup to avoid traffic spikes.
 		warmupRounds    int // 0 = use defaultWarmupRounds
 		warmupSkipCount int // 0 = use defaultWarmupSkipCount
+
+		// Health check function - returns HTTP response on success, error on failure.
+		// Rewritten by updateConnectionPool on pool reuse, so reads must hold the lock.
+		healthCheck HealthCheckFunc
 	}
 
 	// selector determines how the pool picks the next connection from the
@@ -76,9 +80,6 @@ type multiServerPool struct {
 	//   nil = auto-scale activeListCap with cluster size during discovery
 	//   non-nil = user-specified value (activeListCap is fixed)
 	activeListCapConfig *int
-
-	// Health check function - returns HTTP response on success, error on failure
-	healthCheck HealthCheckFunc
 
 	// Per-pool request counters (atomic, lock-free)
 	poolRequests      atomic.Int64 // Connections returned by Next()
@@ -685,7 +686,7 @@ func (cp *multiServerPool) appendToReadyActiveWithLock(c *Connection) {
 	// If RTT is unknown and a health check function is configured, schedule
 	// an async one-shot health check to populate the rttRing. This handles
 	// connections reused by nodeDiscovery() that were never health-checked.
-	if c.rttRing != nil && c.rttRing.medianBucket().IsUnknown() && cp.healthCheck != nil {
+	if c.rttRing != nil && c.rttRing.medianBucket().IsUnknown() && cp.mu.healthCheck != nil {
 		go cp.scheduleRTTProbe(c)
 	}
 
@@ -710,7 +711,7 @@ func (cp *multiServerPool) appendToReadyActiveWithLock(c *Connection) {
 func (cp *multiServerPool) appendToReadyStandbyWithLock(c *Connection) {
 	// If RTT is unknown and a health check function is configured, schedule
 	// an async one-shot health check to populate the rttRing.
-	if c.rttRing != nil && c.rttRing.medianBucket().IsUnknown() && cp.healthCheck != nil {
+	if c.rttRing != nil && c.rttRing.medianBucket().IsUnknown() && cp.mu.healthCheck != nil {
 		go cp.scheduleRTTProbe(c)
 	}
 

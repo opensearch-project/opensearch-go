@@ -232,9 +232,9 @@ func (cp *multiServerPool) checkDeadOne(ctx context.Context, conn *Connection, h
 // for retry logic and resetting checkStartedAt.
 func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection, recordRTT bool) bool {
 	// Snapshot the health check function under the pool lock so we don't race
-	// with updateConnectionPool writing cp.healthCheck on pool reuse.
+	// with updateConnectionPool writing cp.mu.healthCheck on pool reuse.
 	cp.mu.RLock()
-	hc := cp.healthCheck
+	hc := cp.mu.healthCheck
 	cp.mu.RUnlock()
 
 	start := time.Now()
@@ -457,7 +457,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				}
 
 				// Execute health check if configured before resurrecting
-				if cp.healthCheck != nil {
+				if cp.mu.healthCheck != nil {
 					if shouldRetry := cp.attemptHealthCheckWithRelock(ctx, c, &stillInPool); shouldRetry != nil {
 						return *shouldRetry
 					}

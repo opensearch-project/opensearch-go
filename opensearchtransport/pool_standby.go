@@ -320,7 +320,7 @@ func (cp *multiServerPool) promoteStandbyWithLock(c *Connection) bool {
 // checks pass. This pre-warms the connection before it handles production traffic.
 func (cp *multiServerPool) performStandbyHealthCheck(ctx context.Context, c *Connection) bool {
 	cp.mu.RLock()
-	hc := cp.healthCheck
+	hc := cp.mu.healthCheck
 	cp.mu.RUnlock()
 
 	if hc == nil {
