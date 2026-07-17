@@ -11,6 +11,7 @@ package flow_framework
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -101,33 +102,24 @@ func (r SearchStateParams) get() map[string]string {
 	return params
 }
 
-// SearchStateResp represents the response for the SearchState operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// SearchStateResp represents the response for the flow_framework.search_state operation.
 //
 // Search for workflows by using a query matching a field.
 //
+// Available: >= 2.12.0.
+//
 // See: https://opensearch.org/docs/latest/automating-configurations/api/search-workflow-state/
 type SearchStateResp struct {
-	Body     json.RawMessage `json:"-"`
+	Shards *FlowFrameworkCommonShards    `json:"_shards,omitempty"`
+	Hits   *FlowFrameworkCommonStateHits `json:"hits,omitempty"`
+
+	// Whether the request timed out.
+	TimedOut *bool `json:"timed_out,omitempty"`
+
+	// The amount of time in milliseconds that the request took to complete.
+	Took *int `json:"took,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *SearchStateResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r SearchStateResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
@@ -142,4 +134,186 @@ func (r SearchStateResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
+}
+
+// FlowFrameworkCommonStateHits is a typed component of the flow_framework.search_state operation.
+type FlowFrameworkCommonStateHits struct {
+	// The list of search hits.
+	Hits []FlowFrameworkCommonStateItems `json:"hits,omitempty"`
+
+	MaxScore *float32                  `json:"max_score"`
+	Total    *FlowFrameworkCommonTotal `json:"total,omitempty"`
+}
+
+// FlowFrameworkCommonStateItems is a typed component of the flow_framework.search_state operation.
+type FlowFrameworkCommonStateItems struct {
+	// The document ID.
+	ID *string `json:"_id,omitempty"`
+
+	// The index name where the document resides.
+	Index *string `json:"_index,omitempty"`
+
+	// The primary term of the document.
+	PrimaryTerm *int `json:"_primary_term,omitempty"`
+
+	// The score of the search hit.
+	Score *float32 `json:"_score,omitempty"`
+
+	// The sequence number of the document.
+	SeqNo *int `json:"_seq_no,omitempty"`
+
+	Source *FlowFrameworkCommonSearchStateResponse `json:"_source,omitempty"`
+
+	// The version of the document.
+	Version *int `json:"_version,omitempty"`
+}
+
+// FlowFrameworkCommonSearchStateResponse is a typed component of the flow_framework.search_state operation.
+type FlowFrameworkCommonSearchStateResponse struct {
+	// When the provisioning operation completed.
+	ProvisionEndTime *string `json:"provision_end_time,omitempty"`
+
+	// When the provisioning operation started.
+	ProvisionStartTime *string `json:"provision_start_time,omitempty"`
+
+	// The current progress status of the provisioning operation.
+	ProvisioningProgress *string `json:"provisioning_progress,omitempty"`
+
+	ResourcesCreated *FlowFrameworkCommonSearchStateRespResourcesCreated `json:"resources_created,omitempty"`
+
+	// The current state of the workflow.
+	State *string `json:"state,omitempty"`
+
+	User *FlowFrameworkCommonUser `json:"user,omitempty"`
+
+	// The ID of the workflow.
+	WorkflowID *string `json:"workflow_id,omitempty"`
+}
+
+// FlowFrameworkCommonResourcesCreated is a typed component of the flow_framework.search_state operation.
+type FlowFrameworkCommonResourcesCreated struct {
+	// The unique identifier for the created resource.
+	ResourceID *string `json:"resource_id,omitempty"`
+
+	// The type of resource created.
+	ResourceType *string `json:"resource_type,omitempty"`
+
+	// The unique identifier for the workflow step.
+	WorkflowStepID *string `json:"workflow_step_id,omitempty"`
+
+	// The name of the workflow step.
+	WorkflowStepName *string `json:"workflow_step_name,omitempty"`
+}
+
+// FlowFrameworkCommonSearchStateRespResourcesCreated is a discriminated union type.
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type FlowFrameworkCommonSearchStateRespResourcesCreated struct {
+	typ   FlowFrameworkCommonSearchStateRespResourcesCreatedType
+	raw   json.RawMessage
+	value any
+}
+
+// FlowFrameworkCommonSearchStateRespResourcesCreatedType discriminates the branches of FlowFrameworkCommonSearchStateRespResourcesCreated.
+type FlowFrameworkCommonSearchStateRespResourcesCreatedType int
+
+const (
+	FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType FlowFrameworkCommonSearchStateRespResourcesCreatedType = iota
+	FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+	FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
+)
+
+// Type returns which union branch was populated during decoding.
+// Returns FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType if the value has not been decoded.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Type() FlowFrameworkCommonSearchStateRespResourcesCreatedType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewFlowFrameworkCommonSearchStateRespResourcesCreatedFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
+}
+
+// FlowFrameworkCommonResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) FlowFrameworkCommonResourcesCreated() FlowFrameworkCommonResourcesCreated {
+	if v, ok := u.value.(*FlowFrameworkCommonResourcesCreated); ok {
+		return *v
+	}
+	var zero FlowFrameworkCommonResourcesCreated
+	return zero
+}
+
+// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
+// on the FlowFrameworkCommonResourcesCreated branch.
+func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
+	return FlowFrameworkCommonSearchStateRespResourcesCreated{
+		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType,
+		value: &v,
+	}
+}
+
+// Array returns the []FlowFrameworkCommonResourcesCreated branch value.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Array() []FlowFrameworkCommonResourcesCreated {
+	if v, ok := u.value.(*[]FlowFrameworkCommonResourcesCreated); ok {
+		return *v
+	}
+	var zero []FlowFrameworkCommonResourcesCreated
+	return zero
+}
+
+// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromArray returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
+// on the Array branch.
+func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromArray(v []FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
+	return FlowFrameworkCommonSearchStateRespResourcesCreated{
+		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType,
+		value: &v,
+	}
+}
+
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '{':
+		var v FlowFrameworkCommonResourcesCreated
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+		u.value = &v
+	case data[0] == '[':
+		var v []FlowFrameworkCommonResourcesCreated
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("FlowFrameworkCommonSearchStateRespResourcesCreated: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u FlowFrameworkCommonSearchStateRespResourcesCreated) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
 }
