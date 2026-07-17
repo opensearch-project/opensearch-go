@@ -52,14 +52,16 @@ The `Client.Do()` method accepts `any` for its response parameter, which means p
 First, define a request type that satisfies `opensearch.Request`:
 
 ```go
-	// customReq wraps opensearch.BuildRequest to satisfy the opensearch.Request interface.
+	// customReq builds an *http.Request with a relative path to satisfy the
+	// opensearch.Request interface. The transport prepends the base URL.
+	// method is an HTTP method (e.g. http.MethodGet) forwarded by the caller.
 	type customReq struct {
 		path string
 		body io.Reader
 	}
 
 	func (r customReq) GetRequest(method string) (*http.Request, error) {
-		return opensearch.BuildRequest(method, r.path, r.body, nil, nil)
+		return http.NewRequest(method, r.path, r.body)
 	}
 ```
 
