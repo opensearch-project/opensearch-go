@@ -502,7 +502,7 @@ func (u MGetOperationSource) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/multi-get/
-func (c documentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
+func (c DocumentClient) MGet(ctx context.Context, req MGetReq) (*MGetResp, error) {
 	var (
 		data MGetResp
 		err  error

@@ -140,7 +140,7 @@ type DeletePITBody struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-func (c pointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
+func (c PointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
 	if req == nil {
 		req = &DeletePITReq{}
 	}

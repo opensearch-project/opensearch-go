@@ -276,7 +276,7 @@ func (r *BulkStreamResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 2.17.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk-streaming/
-func (c documentClient) BulkStream(ctx context.Context, req BulkStreamReq) (*BulkStreamResp, error) {
+func (c DocumentClient) BulkStream(ctx context.Context, req BulkStreamReq) (*BulkStreamResp, error) {
 	var (
 		data BulkStreamResp
 		err  error

@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Policy policyClient
+	Policy PolicyClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Policy = policyClient{client: c}
+	c.Policy = PolicyClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type policyClient struct {
+// PolicyClient groups a related subset of this plugin's API. PolicyClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type PolicyClient struct {
 	client *Client
 }
 
@@ -99,7 +102,7 @@ func (c *Client) StopPolicy(ctx context.Context, req StopPolicyReq) (*StopPolicy
 // POST /_plugins/_sm/policies/{policy_name}
 //
 // Available: >= 2.1.0.
-func (c policyClient) CreatePolicy(ctx context.Context, req CreatePolicyReq) (*CreatePolicyResp, error) {
+func (c PolicyClient) CreatePolicy(ctx context.Context, req CreatePolicyReq) (*CreatePolicyResp, error) {
 	var resp CreatePolicyResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -112,7 +115,7 @@ func (c policyClient) CreatePolicy(ctx context.Context, req CreatePolicyReq) (*C
 // DELETE /_plugins/_sm/policies/{policy_name}
 //
 // Available: >= 2.1.0.
-func (c policyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
+func (c PolicyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
 	var resp DeletePolicyResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -125,7 +128,7 @@ func (c policyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*D
 // GET /_plugins/_sm/policies
 //
 // Available: >= 2.1.0.
-func (c policyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error) {
+func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error) {
 	if req == nil {
 		req = &GetPoliciesReq{}
 	}
@@ -141,7 +144,7 @@ func (c policyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 // GET /_plugins/_sm/policies/{policy_name}
 //
 // Available: >= 2.1.0.
-func (c policyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
+func (c PolicyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
 	var resp GetPolicyResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -154,7 +157,7 @@ func (c policyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPoli
 // PUT /_plugins/_sm/policies/{policy_name}
 //
 // Available: >= 2.1.0.
-func (c policyClient) UpdatePolicy(ctx context.Context, req UpdatePolicyReq) (*UpdatePolicyResp, error) {
+func (c PolicyClient) UpdatePolicy(ctx context.Context, req UpdatePolicyReq) (*UpdatePolicyResp, error) {
 	var resp UpdatePolicyResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

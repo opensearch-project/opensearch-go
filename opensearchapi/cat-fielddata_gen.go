@@ -170,7 +170,7 @@ type CatFielddataRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-field-data/
-func (c catClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFielddataResp, error) {
+func (c CatClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFielddataResp, error) {
 	if req == nil {
 		req = &CatFielddataReq{}
 	}

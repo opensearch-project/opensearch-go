@@ -120,7 +120,7 @@ func (r SearchPipelineGetResp) RawBody() io.Reader {
 // GET /_search/pipeline
 //
 // Available: >= 2.9.0.
-func (c searchPipelineClient) Get(ctx context.Context, req SearchPipelineGetReq) (*SearchPipelineGetResp, error) {
+func (c SearchPipelineClient) Get(ctx context.Context, req SearchPipelineGetReq) (*SearchPipelineGetResp, error) {
 	var (
 		data SearchPipelineGetResp
 		err  error

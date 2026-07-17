@@ -533,7 +533,7 @@ func (r *UpdateResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/update-document/
-func (c documentClient) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
+func (c DocumentClient) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
 	var (
 		data UpdateResp
 		err  error

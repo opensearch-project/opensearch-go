@@ -385,7 +385,7 @@ func (r *IndicesSegmentsResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*IndicesSegmentsResp, error) {
+func (c IndicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*IndicesSegmentsResp, error) {
 	if req == nil {
 		req = &IndicesSegmentsReq{}
 	}

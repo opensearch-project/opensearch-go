@@ -149,7 +149,7 @@ type CatRepositoriesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-repositories/
-func (c catClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*CatRepositoriesResp, error) {
+func (c CatClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*CatRepositoriesResp, error) {
 	if req == nil {
 		req = &CatRepositoriesReq{}
 	}

@@ -195,7 +195,7 @@ func (r *IndicesUpgradeResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Deprecated: since 1.0.0. Available >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Upgrade(ctx context.Context, req *IndicesUpgradeReq) (*IndicesUpgradeResp, error) {
+func (c IndicesClient) Upgrade(ctx context.Context, req *IndicesUpgradeReq) (*IndicesUpgradeResp, error) {
 	if req == nil {
 		req = &IndicesUpgradeReq{}
 	}

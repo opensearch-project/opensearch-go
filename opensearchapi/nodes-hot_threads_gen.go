@@ -158,7 +158,7 @@ func (r NodesHotThreadsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-hot-threads/
-func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*NodesHotThreadsResp, error) {
+func (c NodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*NodesHotThreadsResp, error) {
 	if req == nil {
 		req = &NodesHotThreadsReq{}
 	}

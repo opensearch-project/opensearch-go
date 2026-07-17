@@ -154,7 +154,7 @@ type SnapshotCloneBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c snapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*SnapshotCloneResp, error) {
+func (c SnapshotClient) Clone(ctx context.Context, req SnapshotCloneReq) (*SnapshotCloneResp, error) {
 	var (
 		data SnapshotCloneResp
 		err  error

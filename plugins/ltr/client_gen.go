@@ -19,21 +19,21 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client       *opensearch.Client
-	DefaultStore defaultStoreClient
-	Feature      featureClient
-	Featureset   featuresetClient
-	Model        modelClient
-	Store        storeClient
+	DefaultStore DefaultStoreClient
+	Feature      FeatureClient
+	Featureset   FeaturesetClient
+	Model        ModelClient
+	Store        StoreClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.DefaultStore = defaultStoreClient{client: c}
-	c.Feature = featureClient{client: c}
-	c.Featureset = featuresetClient{client: c}
-	c.Model = modelClient{client: c}
-	c.Store = storeClient{client: c}
+	c.DefaultStore = DefaultStoreClient{client: c}
+	c.Feature = FeatureClient{client: c}
+	c.Featureset = FeaturesetClient{client: c}
+	c.Model = ModelClient{client: c}
+	c.Store = StoreClient{client: c}
 	return c
 }
 
@@ -59,23 +59,38 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type defaultStoreClient struct {
+// DefaultStoreClient groups a related subset of this plugin's API. DefaultStoreClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type DefaultStoreClient struct {
 	client *Client
 }
 
-type featureClient struct {
+// FeatureClient groups a related subset of this plugin's API. FeatureClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type FeatureClient struct {
 	client *Client
 }
 
-type featuresetClient struct {
+// FeaturesetClient groups a related subset of this plugin's API. FeaturesetClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type FeaturesetClient struct {
 	client *Client
 }
 
-type modelClient struct {
+// ModelClient groups a related subset of this plugin's API. ModelClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ModelClient struct {
 	client *Client
 }
 
-type storeClient struct {
+// StoreClient groups a related subset of this plugin's API. StoreClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type StoreClient struct {
 	client *Client
 }
 
@@ -168,7 +183,7 @@ func (c *Client) Stats(ctx context.Context, req *StatsReq) (*StatsResp, error) {
 // PUT /_ltr
 //
 // Available: >= 2.17.1.
-func (c defaultStoreClient) CreateDefaultStore(ctx context.Context, req *CreateDefaultStoreReq) (*CreateDefaultStoreResp, error) {
+func (c DefaultStoreClient) CreateDefaultStore(ctx context.Context, req *CreateDefaultStoreReq) (*CreateDefaultStoreResp, error) {
 	if req == nil {
 		req = &CreateDefaultStoreReq{}
 	}
@@ -184,7 +199,7 @@ func (c defaultStoreClient) CreateDefaultStore(ctx context.Context, req *CreateD
 // PUT /_ltr/_feature/{id}
 //
 // Available: >= 2.19.0.
-func (c featureClient) CreateFeature(ctx context.Context, req CreateFeatureReq) (*CreateFeatureResp, error) {
+func (c FeatureClient) CreateFeature(ctx context.Context, req CreateFeatureReq) (*CreateFeatureResp, error) {
 	var resp CreateFeatureResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -197,7 +212,7 @@ func (c featureClient) CreateFeature(ctx context.Context, req CreateFeatureReq) 
 // PUT /_ltr/_featureset/{id}
 //
 // Available: >= 2.19.0.
-func (c featuresetClient) CreateFeatureset(ctx context.Context, req CreateFeaturesetReq) (*CreateFeaturesetResp, error) {
+func (c FeaturesetClient) CreateFeatureset(ctx context.Context, req CreateFeaturesetReq) (*CreateFeaturesetResp, error) {
 	var resp CreateFeaturesetResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -210,7 +225,7 @@ func (c featuresetClient) CreateFeatureset(ctx context.Context, req CreateFeatur
 // PUT /_ltr/_model/{id}
 //
 // Available: >= 2.19.0.
-func (c modelClient) CreateModel(ctx context.Context, req CreateModelReq) (*CreateModelResp, error) {
+func (c ModelClient) CreateModel(ctx context.Context, req CreateModelReq) (*CreateModelResp, error) {
 	var resp CreateModelResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -223,7 +238,7 @@ func (c modelClient) CreateModel(ctx context.Context, req CreateModelReq) (*Crea
 // PUT /_ltr/{store}
 //
 // Available: >= 2.17.1.
-func (c storeClient) CreateStore(ctx context.Context, req CreateStoreReq) (*CreateStoreResp, error) {
+func (c StoreClient) CreateStore(ctx context.Context, req CreateStoreReq) (*CreateStoreResp, error) {
 	var resp CreateStoreResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -236,7 +251,7 @@ func (c storeClient) CreateStore(ctx context.Context, req CreateStoreReq) (*Crea
 // DELETE /_ltr
 //
 // Available: >= 2.17.1.
-func (c defaultStoreClient) DeleteDefaultStore(ctx context.Context, req *DeleteDefaultStoreReq) (*DeleteDefaultStoreResp, error) {
+func (c DefaultStoreClient) DeleteDefaultStore(ctx context.Context, req *DeleteDefaultStoreReq) (*DeleteDefaultStoreResp, error) {
 	if req == nil {
 		req = &DeleteDefaultStoreReq{}
 	}
@@ -252,7 +267,7 @@ func (c defaultStoreClient) DeleteDefaultStore(ctx context.Context, req *DeleteD
 // DELETE /_ltr/_feature/{id}
 //
 // Available: >= 2.19.0.
-func (c featureClient) DeleteFeature(ctx context.Context, req DeleteFeatureReq) (*DeleteFeatureResp, error) {
+func (c FeatureClient) DeleteFeature(ctx context.Context, req DeleteFeatureReq) (*DeleteFeatureResp, error) {
 	var resp DeleteFeatureResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -265,7 +280,7 @@ func (c featureClient) DeleteFeature(ctx context.Context, req DeleteFeatureReq) 
 // DELETE /_ltr/_featureset/{id}
 //
 // Available: >= 2.19.0.
-func (c featuresetClient) DeleteFeatureset(ctx context.Context, req DeleteFeaturesetReq) (*DeleteFeaturesetResp, error) {
+func (c FeaturesetClient) DeleteFeatureset(ctx context.Context, req DeleteFeaturesetReq) (*DeleteFeaturesetResp, error) {
 	var resp DeleteFeaturesetResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -278,7 +293,7 @@ func (c featuresetClient) DeleteFeatureset(ctx context.Context, req DeleteFeatur
 // DELETE /_ltr/_model/{id}
 //
 // Available: >= 2.19.0.
-func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
+func (c ModelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -291,7 +306,7 @@ func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // DELETE /_ltr/{store}
 //
 // Available: >= 2.17.1.
-func (c storeClient) DeleteStore(ctx context.Context, req DeleteStoreReq) (*DeleteStoreResp, error) {
+func (c StoreClient) DeleteStore(ctx context.Context, req DeleteStoreReq) (*DeleteStoreResp, error) {
 	var resp DeleteStoreResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -304,7 +319,7 @@ func (c storeClient) DeleteStore(ctx context.Context, req DeleteStoreReq) (*Dele
 // GET /_ltr/_feature/{id}
 //
 // Available: >= 2.19.0.
-func (c featureClient) GetFeature(ctx context.Context, req GetFeatureReq) (*GetFeatureResp, error) {
+func (c FeatureClient) GetFeature(ctx context.Context, req GetFeatureReq) (*GetFeatureResp, error) {
 	var resp GetFeatureResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -317,7 +332,7 @@ func (c featureClient) GetFeature(ctx context.Context, req GetFeatureReq) (*GetF
 // GET /_ltr/_featureset/{id}
 //
 // Available: >= 2.19.0.
-func (c featuresetClient) GetFeatureset(ctx context.Context, req GetFeaturesetReq) (*GetFeaturesetResp, error) {
+func (c FeaturesetClient) GetFeatureset(ctx context.Context, req GetFeaturesetReq) (*GetFeaturesetResp, error) {
 	var resp GetFeaturesetResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -330,7 +345,7 @@ func (c featuresetClient) GetFeatureset(ctx context.Context, req GetFeaturesetRe
 // GET /_ltr/_model/{id}
 //
 // Available: >= 2.19.0.
-func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
+func (c ModelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -343,7 +358,7 @@ func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelRe
 // GET /_ltr/{store}
 //
 // Available: >= 2.17.1.
-func (c storeClient) GetStore(ctx context.Context, req GetStoreReq) (*GetStoreResp, error) {
+func (c StoreClient) GetStore(ctx context.Context, req GetStoreReq) (*GetStoreResp, error) {
 	var resp GetStoreResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -356,7 +371,7 @@ func (c storeClient) GetStore(ctx context.Context, req GetStoreReq) (*GetStoreRe
 // GET /_ltr
 //
 // Available: >= 2.17.1.
-func (c storeClient) ListStores(ctx context.Context, req *ListStoresReq) (*ListStoresResp, error) {
+func (c StoreClient) ListStores(ctx context.Context, req *ListStoresReq) (*ListStoresResp, error) {
 	if req == nil {
 		req = &ListStoresReq{}
 	}
@@ -372,7 +387,7 @@ func (c storeClient) ListStores(ctx context.Context, req *ListStoresReq) (*ListS
 // GET /_ltr/_feature
 //
 // Available: >= 2.19.0.
-func (c featureClient) SearchFeatures(ctx context.Context, req SearchFeaturesReq) (*SearchFeaturesResp, error) {
+func (c FeatureClient) SearchFeatures(ctx context.Context, req SearchFeaturesReq) (*SearchFeaturesResp, error) {
 	var resp SearchFeaturesResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -385,7 +400,7 @@ func (c featureClient) SearchFeatures(ctx context.Context, req SearchFeaturesReq
 // GET /_ltr/_featureset
 //
 // Available: >= 2.19.0.
-func (c featuresetClient) SearchFeaturesets(ctx context.Context, req SearchFeaturesetsReq) (*SearchFeaturesetsResp, error) {
+func (c FeaturesetClient) SearchFeaturesets(ctx context.Context, req SearchFeaturesetsReq) (*SearchFeaturesetsResp, error) {
 	var resp SearchFeaturesetsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -398,7 +413,7 @@ func (c featuresetClient) SearchFeaturesets(ctx context.Context, req SearchFeatu
 // GET /_ltr/_model
 //
 // Available: >= 2.19.0.
-func (c modelClient) SearchModels(ctx context.Context, req SearchModelsReq) (*SearchModelsResp, error) {
+func (c ModelClient) SearchModels(ctx context.Context, req SearchModelsReq) (*SearchModelsResp, error) {
 	var resp SearchModelsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -411,7 +426,7 @@ func (c modelClient) SearchModels(ctx context.Context, req SearchModelsReq) (*Se
 // POST /_ltr/_feature/{id}
 //
 // Available: >= 2.19.0.
-func (c featureClient) UpdateFeature(ctx context.Context, req UpdateFeatureReq) (*UpdateFeatureResp, error) {
+func (c FeatureClient) UpdateFeature(ctx context.Context, req UpdateFeatureReq) (*UpdateFeatureResp, error) {
 	var resp UpdateFeatureResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -424,7 +439,7 @@ func (c featureClient) UpdateFeature(ctx context.Context, req UpdateFeatureReq) 
 // POST /_ltr/_featureset/{id}
 //
 // Available: >= 2.19.0.
-func (c featuresetClient) UpdateFeatureset(ctx context.Context, req UpdateFeaturesetReq) (*UpdateFeaturesetResp, error) {
+func (c FeaturesetClient) UpdateFeatureset(ctx context.Context, req UpdateFeaturesetReq) (*UpdateFeaturesetResp, error) {
 	var resp UpdateFeaturesetResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err

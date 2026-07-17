@@ -119,7 +119,7 @@ func (r IndicesDeleteIndexTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/#delete-a-template
-func (c indicesClient) DeleteIndexTemplate(ctx context.Context, req IndicesDeleteIndexTemplateReq) (*IndicesDeleteIndexTemplateResp, error) {
+func (c IndicesClient) DeleteIndexTemplate(ctx context.Context, req IndicesDeleteIndexTemplateReq) (*IndicesDeleteIndexTemplateResp, error) {
 	var (
 		data IndicesDeleteIndexTemplateResp
 		err  error

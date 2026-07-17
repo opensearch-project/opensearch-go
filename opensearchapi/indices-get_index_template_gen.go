@@ -148,7 +148,7 @@ type IndicesGetIndexTemplateIndexTemplateItem struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) GetIndexTemplate(ctx context.Context, req IndicesGetIndexTemplateReq) (*IndicesGetIndexTemplateResp, error) {
+func (c IndicesClient) GetIndexTemplate(ctx context.Context, req IndicesGetIndexTemplateReq) (*IndicesGetIndexTemplateResp, error) {
 	var (
 		data IndicesGetIndexTemplateResp
 		err  error

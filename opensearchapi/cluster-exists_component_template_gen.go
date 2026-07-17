@@ -98,6 +98,6 @@ func (r ClusterExistsComponentTemplateParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) ExistsComponentTemplate(ctx context.Context, req ClusterExistsComponentTemplateReq) (*opensearch.Response, error) {
+func (c ClusterClient) ExistsComponentTemplate(ctx context.Context, req ClusterExistsComponentTemplateReq) (*opensearch.Response, error) {
 	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client           *opensearch.Client
-	Ip2geoDatasource ip2geoDatasourceClient
+	Ip2geoDatasource Ip2geoDatasourceClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Ip2geoDatasource = ip2geoDatasourceClient{client: c}
+	c.Ip2geoDatasource = Ip2geoDatasourceClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type ip2geoDatasourceClient struct {
+// Ip2geoDatasourceClient groups a related subset of this plugin's API. Ip2geoDatasourceClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type Ip2geoDatasourceClient struct {
 	client *Client
 }
 
@@ -131,7 +134,7 @@ func (c *Client) PutIp2geoDatasourceSettings(ctx context.Context, req PutIp2geoD
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
-func (c ip2geoDatasourceClient) DeleteIp2geoDatasource(ctx context.Context, req DeleteIp2geoDatasourceReq) (*DeleteIp2geoDatasourceResp, error) {
+func (c Ip2geoDatasourceClient) DeleteIp2geoDatasource(ctx context.Context, req DeleteIp2geoDatasourceReq) (*DeleteIp2geoDatasourceResp, error) {
 	var resp DeleteIp2geoDatasourceResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -146,7 +149,7 @@ func (c ip2geoDatasourceClient) DeleteIp2geoDatasource(ctx context.Context, req 
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
-func (c ip2geoDatasourceClient) GetIp2geoDatasource(ctx context.Context, req *GetIp2geoDatasourceReq) (*GetIp2geoDatasourceResp, error) {
+func (c Ip2geoDatasourceClient) GetIp2geoDatasource(ctx context.Context, req *GetIp2geoDatasourceReq) (*GetIp2geoDatasourceResp, error) {
 	if req == nil {
 		req = &GetIp2geoDatasourceReq{}
 	}
@@ -168,7 +171,7 @@ func (c ip2geoDatasourceClient) GetIp2geoDatasource(ctx context.Context, req *Ge
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#data-source-options
-func (c ip2geoDatasourceClient) PutIp2geoDatasource(ctx context.Context, req PutIp2geoDatasourceReq) (*PutIp2geoDatasourceResp, error) {
+func (c Ip2geoDatasourceClient) PutIp2geoDatasource(ctx context.Context, req PutIp2geoDatasourceReq) (*PutIp2geoDatasourceResp, error) {
 	var resp PutIp2geoDatasourceResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

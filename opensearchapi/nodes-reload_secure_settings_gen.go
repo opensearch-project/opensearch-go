@@ -279,7 +279,7 @@ type NodesReloadSecureSettingsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-reload-secure/
-func (c nodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadSecureSettingsReq) (*NodesReloadSecureSettingsResp, error) {
+func (c NodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadSecureSettingsReq) (*NodesReloadSecureSettingsResp, error) {
 	if req == nil {
 		req = &NodesReloadSecureSettingsReq{}
 	}

@@ -181,7 +181,7 @@ func (r *IndicesRefreshResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/remote-store/index/#refresh-level-and-request-level-durability
-func (c indicesClient) Refresh(ctx context.Context, req *IndicesRefreshReq) (*IndicesRefreshResp, error) {
+func (c IndicesClient) Refresh(ctx context.Context, req *IndicesRefreshReq) (*IndicesRefreshResp, error) {
 	if req == nil {
 		req = &IndicesRefreshReq{}
 	}

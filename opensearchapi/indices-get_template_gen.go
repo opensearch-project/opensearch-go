@@ -144,7 +144,7 @@ func (r IndicesGetTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) GetTemplate(ctx context.Context, req *IndicesGetTemplateReq) (*IndicesGetTemplateResp, error) {
+func (c IndicesClient) GetTemplate(ctx context.Context, req *IndicesGetTemplateReq) (*IndicesGetTemplateResp, error) {
 	if req == nil {
 		req = &IndicesGetTemplateReq{}
 	}

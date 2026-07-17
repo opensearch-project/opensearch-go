@@ -163,7 +163,7 @@ type SnapshotCreateRepositoryBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-repository/
-func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
+func (c SnapshotClient) CreateRepository(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
 	var (
 		data SnapshotCreateRepositoryResp
 		err  error
@@ -180,7 +180,7 @@ func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 }
 
 // Deprecated: use SnapshotCreateRepository via the parent client instead.
-func (c repositoryClient) Create(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
+func (c RepositoryClient) Create(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
 	var (
 		data SnapshotCreateRepositoryResp
 		err  error

@@ -124,7 +124,7 @@ func (r ClusterDeleteVotingConfigExclusionsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) DeleteVotingConfigExclusions(ctx context.Context, req *ClusterDeleteVotingConfigExclusionsReq) (*ClusterDeleteVotingConfigExclusionsResp, error) {
+func (c ClusterClient) DeleteVotingConfigExclusions(ctx context.Context, req *ClusterDeleteVotingConfigExclusionsReq) (*ClusterDeleteVotingConfigExclusionsResp, error) {
 	if req == nil {
 		req = &ClusterDeleteVotingConfigExclusionsReq{}
 	}

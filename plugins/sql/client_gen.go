@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Stat   statClient
+	Stat   StatClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Stat = statClient{client: c}
+	c.Stat = StatClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type statClient struct {
+// StatClient groups a related subset of this plugin's API. StatClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type StatClient struct {
 	client *Client
 }
 
@@ -134,7 +137,7 @@ func (c *Client) Settings(ctx context.Context, req *SettingsReq) (*SettingsResp,
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/monitoring/
-func (c statClient) GetStats(ctx context.Context, req *GetStatsReq) (*GetStatsResp, error) {
+func (c StatClient) GetStats(ctx context.Context, req *GetStatsReq) (*GetStatsResp, error) {
 	if req == nil {
 		req = &GetStatsReq{}
 	}
@@ -152,7 +155,7 @@ func (c statClient) GetStats(ctx context.Context, req *GetStatsReq) (*GetStatsRe
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/monitoring/
-func (c statClient) PostStats(ctx context.Context, req *PostStatsReq) (*PostStatsResp, error) {
+func (c StatClient) PostStats(ctx context.Context, req *PostStatsReq) (*PostStatsResp, error) {
 	if req == nil {
 		req = &PostStatsReq{}
 	}

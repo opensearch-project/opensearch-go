@@ -139,7 +139,7 @@ type NodesUsageNode struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, error) {
+func (c NodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, error) {
 	if req == nil {
 		req = &NodesUsageReq{}
 	}

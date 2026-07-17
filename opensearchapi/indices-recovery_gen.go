@@ -436,7 +436,7 @@ type IndicesRecoveryStatus struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*IndicesRecoveryResp, error) {
+func (c IndicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*IndicesRecoveryResp, error) {
 	if req == nil {
 		req = &IndicesRecoveryReq{}
 	}

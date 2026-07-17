@@ -236,7 +236,7 @@ func (r *CreateResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/index-document/
-func (c documentClient) Create(ctx context.Context, req CreateReq) (*CreateResp, error) {
+func (c DocumentClient) Create(ctx context.Context, req CreateReq) (*CreateResp, error) {
 	var (
 		data CreateResp
 		err  error

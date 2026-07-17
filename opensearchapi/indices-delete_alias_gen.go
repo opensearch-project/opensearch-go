@@ -123,7 +123,7 @@ func (r IndicesDeleteAliasResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/#delete-aliases
-func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
+func (c IndicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
 	if req == nil {
 		req = &IndicesDeleteAliasReq{}
 	}
@@ -144,7 +144,7 @@ func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasR
 }
 
 // Deprecated: use IndicesDeleteAlias via the parent client instead.
-func (c aliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
+func (c AliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
 	if req == nil {
 		req = &IndicesDeleteAliasReq{}
 	}

@@ -144,7 +144,7 @@ type ClusterPutWeightedRoutingBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-awareness/#example-weighted-round-robin-search
-func (c clusterClient) PutWeightedRouting(ctx context.Context, req ClusterPutWeightedRoutingReq) (*ClusterPutWeightedRoutingResp, error) {
+func (c ClusterClient) PutWeightedRouting(ctx context.Context, req ClusterPutWeightedRoutingReq) (*ClusterPutWeightedRoutingResp, error) {
 	var (
 		data ClusterPutWeightedRoutingResp
 		err  error

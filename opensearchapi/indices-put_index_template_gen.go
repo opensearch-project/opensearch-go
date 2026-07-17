@@ -207,7 +207,7 @@ type IndicesPutIndexTemplateIndexTemplateMapping struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndexTemplateReq) (*IndicesPutIndexTemplateResp, error) {
+func (c IndicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndexTemplateReq) (*IndicesPutIndexTemplateResp, error) {
 	var (
 		data IndicesPutIndexTemplateResp
 		err  error

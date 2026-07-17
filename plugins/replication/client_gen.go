@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client          *opensearch.Client
-	ReplicationRule replicationRuleClient
+	ReplicationRule ReplicationRuleClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.ReplicationRule = replicationRuleClient{client: c}
+	c.ReplicationRule = ReplicationRuleClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type replicationRuleClient struct {
+// ReplicationRuleClient groups a related subset of this plugin's API. ReplicationRuleClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ReplicationRuleClient struct {
 	client *Client
 }
 
@@ -206,7 +209,7 @@ func (c *Client) UpdateSettings(ctx context.Context, req UpdateSettingsReq) (*Up
 // Available: >= 1.1.0.
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#create-replication-rule
-func (c replicationRuleClient) CreateReplicationRule(ctx context.Context, req *CreateReplicationRuleReq) (*CreateReplicationRuleResp, error) {
+func (c ReplicationRuleClient) CreateReplicationRule(ctx context.Context, req *CreateReplicationRuleReq) (*CreateReplicationRuleResp, error) {
 	if req == nil {
 		req = &CreateReplicationRuleReq{}
 	}
@@ -224,7 +227,7 @@ func (c replicationRuleClient) CreateReplicationRule(ctx context.Context, req *C
 // Available: >= 1.1.0.
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#delete-replication-rule
-func (c replicationRuleClient) DeleteReplicationRule(ctx context.Context, req *DeleteReplicationRuleReq) (*DeleteReplicationRuleResp, error) {
+func (c ReplicationRuleClient) DeleteReplicationRule(ctx context.Context, req *DeleteReplicationRuleReq) (*DeleteReplicationRuleResp, error) {
 	if req == nil {
 		req = &DeleteReplicationRuleReq{}
 	}

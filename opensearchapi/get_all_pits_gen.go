@@ -120,7 +120,7 @@ type PITDetail struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
+func (c PointInTimeClient) GetAll(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
 	if req == nil {
 		req = &GetAllPITsReq{}
 	}
@@ -147,6 +147,6 @@ func (c pointInTimeClient) GetAll(ctx context.Context, req *GetAllPITsReq) (*Get
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#list-all-pits
-func (c pointInTimeClient) Get(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
+func (c PointInTimeClient) Get(ctx context.Context, req *GetAllPITsReq) (*GetAllPITsResp, error) {
 	return c.GetAll(ctx, req)
 }

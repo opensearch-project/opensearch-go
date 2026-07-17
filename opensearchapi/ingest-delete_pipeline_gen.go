@@ -119,7 +119,7 @@ func (r IngestDeletePipelineResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/ingest-apis/delete-ingest/
-func (c ingestClient) DeletePipeline(ctx context.Context, req IngestDeletePipelineReq) (*IngestDeletePipelineResp, error) {
+func (c IngestClient) DeletePipeline(ctx context.Context, req IngestDeletePipelineReq) (*IngestDeletePipelineResp, error) {
 	var (
 		data IngestDeletePipelineResp
 		err  error

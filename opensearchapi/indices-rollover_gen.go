@@ -240,7 +240,7 @@ type IndicesRolloverConditions struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/dashboards/im-dashboards/rollover/
-func (c indicesClient) Rollover(ctx context.Context, req IndicesRolloverReq) (*IndicesRolloverResp, error) {
+func (c IndicesClient) Rollover(ctx context.Context, req IndicesRolloverReq) (*IndicesRolloverResp, error) {
 	var (
 		data IndicesRolloverResp
 		err  error

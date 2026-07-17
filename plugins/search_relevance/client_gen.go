@@ -19,21 +19,21 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client              *opensearch.Client
-	Experiment          experimentClient
-	Judgment            judgmentClient
-	QuerySet            querySetClient
-	ScheduledExperiment scheduledExperimentClient
-	SearchConfiguration searchConfigurationClient
+	Experiment          ExperimentClient
+	Judgment            JudgmentClient
+	QuerySet            QuerySetClient
+	ScheduledExperiment ScheduledExperimentClient
+	SearchConfiguration SearchConfigurationClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Experiment = experimentClient{client: c}
-	c.Judgment = judgmentClient{client: c}
-	c.QuerySet = querySetClient{client: c}
-	c.ScheduledExperiment = scheduledExperimentClient{client: c}
-	c.SearchConfiguration = searchConfigurationClient{client: c}
+	c.Experiment = ExperimentClient{client: c}
+	c.Judgment = JudgmentClient{client: c}
+	c.QuerySet = QuerySetClient{client: c}
+	c.ScheduledExperiment = ScheduledExperimentClient{client: c}
+	c.SearchConfiguration = SearchConfigurationClient{client: c}
 	return c
 }
 
@@ -59,23 +59,38 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type experimentClient struct {
+// ExperimentClient groups a related subset of this plugin's API. ExperimentClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ExperimentClient struct {
 	client *Client
 }
 
-type judgmentClient struct {
+// JudgmentClient groups a related subset of this plugin's API. JudgmentClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type JudgmentClient struct {
 	client *Client
 }
 
-type querySetClient struct {
+// QuerySetClient groups a related subset of this plugin's API. QuerySetClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type QuerySetClient struct {
 	client *Client
 }
 
-type scheduledExperimentClient struct {
+// ScheduledExperimentClient groups a related subset of this plugin's API. ScheduledExperimentClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ScheduledExperimentClient struct {
 	client *Client
 }
 
-type searchConfigurationClient struct {
+// SearchConfigurationClient groups a related subset of this plugin's API. SearchConfigurationClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type SearchConfigurationClient struct {
 	client *Client
 }
 
@@ -110,7 +125,7 @@ func (c *Client) GetStats(ctx context.Context, req GetStatsReq) (*GetStatsResp, 
 // DELETE /_plugins/_search_relevance/experiments/{experiment_id}
 //
 // Available: >= 3.1.0.
-func (c experimentClient) DeleteExperiments(ctx context.Context, req DeleteExperimentsReq) (*DeleteExperimentsResp, error) {
+func (c ExperimentClient) DeleteExperiments(ctx context.Context, req DeleteExperimentsReq) (*DeleteExperimentsResp, error) {
 	var resp DeleteExperimentsResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -123,7 +138,7 @@ func (c experimentClient) DeleteExperiments(ctx context.Context, req DeleteExper
 // DELETE /_plugins/_search_relevance/judgments/{judgment_id}
 //
 // Available: >= 3.1.0.
-func (c judgmentClient) DeleteJudgments(ctx context.Context, req DeleteJudgmentsReq) (*DeleteJudgmentsResp, error) {
+func (c JudgmentClient) DeleteJudgments(ctx context.Context, req DeleteJudgmentsReq) (*DeleteJudgmentsResp, error) {
 	var resp DeleteJudgmentsResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -136,7 +151,7 @@ func (c judgmentClient) DeleteJudgments(ctx context.Context, req DeleteJudgments
 // DELETE /_plugins/_search_relevance/query_sets/{query_set_id}
 //
 // Available: >= 3.1.0.
-func (c querySetClient) DeleteQuerySets(ctx context.Context, req DeleteQuerySetsReq) (*DeleteQuerySetsResp, error) {
+func (c QuerySetClient) DeleteQuerySets(ctx context.Context, req DeleteQuerySetsReq) (*DeleteQuerySetsResp, error) {
 	var resp DeleteQuerySetsResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -149,7 +164,7 @@ func (c querySetClient) DeleteQuerySets(ctx context.Context, req DeleteQuerySets
 // DELETE /_plugins/_search_relevance/experiments/schedule/{experiment_id}
 //
 // Available: >= 3.4.0.
-func (c scheduledExperimentClient) DeleteScheduledExperiments(ctx context.Context, req DeleteScheduledExperimentsReq) (*DeleteScheduledExperimentsResp, error) {
+func (c ScheduledExperimentClient) DeleteScheduledExperiments(ctx context.Context, req DeleteScheduledExperimentsReq) (*DeleteScheduledExperimentsResp, error) {
 	var resp DeleteScheduledExperimentsResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -162,7 +177,7 @@ func (c scheduledExperimentClient) DeleteScheduledExperiments(ctx context.Contex
 // DELETE /_plugins/_search_relevance/search_configurations/{search_configuration_id}
 //
 // Available: >= 3.1.0.
-func (c searchConfigurationClient) DeleteSearchConfigurations(ctx context.Context, req DeleteSearchConfigurationsReq) (*DeleteSearchConfigurationsResp, error) {
+func (c SearchConfigurationClient) DeleteSearchConfigurations(ctx context.Context, req DeleteSearchConfigurationsReq) (*DeleteSearchConfigurationsResp, error) {
 	var resp DeleteSearchConfigurationsResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -175,7 +190,7 @@ func (c searchConfigurationClient) DeleteSearchConfigurations(ctx context.Contex
 // GET /_plugins/_search_relevance/experiments
 //
 // Available: >= 3.1.0.
-func (c experimentClient) GetExperiments(ctx context.Context, req GetExperimentsReq) (*GetExperimentsResp, error) {
+func (c ExperimentClient) GetExperiments(ctx context.Context, req GetExperimentsReq) (*GetExperimentsResp, error) {
 	var resp GetExperimentsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -188,7 +203,7 @@ func (c experimentClient) GetExperiments(ctx context.Context, req GetExperiments
 // GET /_plugins/_search_relevance/judgments
 //
 // Available: >= 3.1.0.
-func (c judgmentClient) GetJudgments(ctx context.Context, req GetJudgmentsReq) (*GetJudgmentsResp, error) {
+func (c JudgmentClient) GetJudgments(ctx context.Context, req GetJudgmentsReq) (*GetJudgmentsResp, error) {
 	var resp GetJudgmentsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -201,7 +216,7 @@ func (c judgmentClient) GetJudgments(ctx context.Context, req GetJudgmentsReq) (
 // GET /_plugins/_search_relevance/query_sets
 //
 // Available: >= 3.1.0.
-func (c querySetClient) GetQuerySets(ctx context.Context, req GetQuerySetsReq) (*GetQuerySetsResp, error) {
+func (c QuerySetClient) GetQuerySets(ctx context.Context, req GetQuerySetsReq) (*GetQuerySetsResp, error) {
 	var resp GetQuerySetsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -214,7 +229,7 @@ func (c querySetClient) GetQuerySets(ctx context.Context, req GetQuerySetsReq) (
 // GET /_plugins/_search_relevance/experiments/schedule
 //
 // Available: >= 3.4.0.
-func (c scheduledExperimentClient) GetScheduledExperiments(ctx context.Context, req GetScheduledExperimentsReq) (*GetScheduledExperimentsResp, error) {
+func (c ScheduledExperimentClient) GetScheduledExperiments(ctx context.Context, req GetScheduledExperimentsReq) (*GetScheduledExperimentsResp, error) {
 	var resp GetScheduledExperimentsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -227,7 +242,7 @@ func (c scheduledExperimentClient) GetScheduledExperiments(ctx context.Context, 
 // GET /_plugins/_search_relevance/search_configurations
 //
 // Available: >= 3.1.0.
-func (c searchConfigurationClient) GetSearchConfigurations(ctx context.Context, req GetSearchConfigurationsReq) (*GetSearchConfigurationsResp, error) {
+func (c SearchConfigurationClient) GetSearchConfigurations(ctx context.Context, req GetSearchConfigurationsReq) (*GetSearchConfigurationsResp, error) {
 	var resp GetSearchConfigurationsResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -240,7 +255,7 @@ func (c searchConfigurationClient) GetSearchConfigurations(ctx context.Context, 
 // POST /_plugins/_search_relevance/query_sets
 //
 // Available: >= 3.1.0.
-func (c querySetClient) PostQuerySets(ctx context.Context, req *PostQuerySetsReq) (*PostQuerySetsResp, error) {
+func (c QuerySetClient) PostQuerySets(ctx context.Context, req *PostQuerySetsReq) (*PostQuerySetsResp, error) {
 	if req == nil {
 		req = &PostQuerySetsReq{}
 	}
@@ -256,7 +271,7 @@ func (c querySetClient) PostQuerySets(ctx context.Context, req *PostQuerySetsReq
 // POST /_plugins/_search_relevance/experiments/schedule
 //
 // Available: >= 3.4.0.
-func (c scheduledExperimentClient) PostScheduledExperiments(ctx context.Context, req *PostScheduledExperimentsReq) (*PostScheduledExperimentsResp, error) {
+func (c ScheduledExperimentClient) PostScheduledExperiments(ctx context.Context, req *PostScheduledExperimentsReq) (*PostScheduledExperimentsResp, error) {
 	if req == nil {
 		req = &PostScheduledExperimentsReq{}
 	}
@@ -272,7 +287,7 @@ func (c scheduledExperimentClient) PostScheduledExperiments(ctx context.Context,
 // PUT /_plugins/_search_relevance/experiments
 //
 // Available: >= 3.1.0.
-func (c experimentClient) PutExperiments(ctx context.Context, req *PutExperimentsReq) (*PutExperimentsResp, error) {
+func (c ExperimentClient) PutExperiments(ctx context.Context, req *PutExperimentsReq) (*PutExperimentsResp, error) {
 	if req == nil {
 		req = &PutExperimentsReq{}
 	}
@@ -288,7 +303,7 @@ func (c experimentClient) PutExperiments(ctx context.Context, req *PutExperiment
 // PUT /_plugins/_search_relevance/judgments
 //
 // Available: >= 3.1.0.
-func (c judgmentClient) PutJudgments(ctx context.Context, req *PutJudgmentsReq) (*PutJudgmentsResp, error) {
+func (c JudgmentClient) PutJudgments(ctx context.Context, req *PutJudgmentsReq) (*PutJudgmentsResp, error) {
 	if req == nil {
 		req = &PutJudgmentsReq{}
 	}
@@ -304,7 +319,7 @@ func (c judgmentClient) PutJudgments(ctx context.Context, req *PutJudgmentsReq) 
 // PUT /_plugins/_search_relevance/query_sets
 //
 // Available: >= 3.1.0.
-func (c querySetClient) PutQuerySets(ctx context.Context, req *PutQuerySetsReq) (*PutQuerySetsResp, error) {
+func (c QuerySetClient) PutQuerySets(ctx context.Context, req *PutQuerySetsReq) (*PutQuerySetsResp, error) {
 	if req == nil {
 		req = &PutQuerySetsReq{}
 	}
@@ -320,7 +335,7 @@ func (c querySetClient) PutQuerySets(ctx context.Context, req *PutQuerySetsReq) 
 // PUT /_plugins/_search_relevance/search_configurations
 //
 // Available: >= 3.1.0.
-func (c searchConfigurationClient) PutSearchConfigurations(ctx context.Context, req *PutSearchConfigurationsReq) (*PutSearchConfigurationsResp, error) {
+func (c SearchConfigurationClient) PutSearchConfigurations(ctx context.Context, req *PutSearchConfigurationsReq) (*PutSearchConfigurationsResp, error) {
 	if req == nil {
 		req = &PutSearchConfigurationsReq{}
 	}

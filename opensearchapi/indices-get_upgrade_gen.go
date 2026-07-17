@@ -153,7 +153,7 @@ func (r IndicesGetUpgradeResp) RawBody() io.Reader {
 // Deprecated: since 1.0.0. Available >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq) (*IndicesGetUpgradeResp, error) {
+func (c IndicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq) (*IndicesGetUpgradeResp, error) {
 	if req == nil {
 		req = &IndicesGetUpgradeReq{}
 	}

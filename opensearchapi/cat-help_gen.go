@@ -119,7 +119,7 @@ func (r CatHelpResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/index/
-func (c catClient) Help(ctx context.Context, req *CatHelpReq) (*CatHelpResp, error) {
+func (c CatClient) Help(ctx context.Context, req *CatHelpReq) (*CatHelpResp, error) {
 	if req == nil {
 		req = &CatHelpReq{}
 	}

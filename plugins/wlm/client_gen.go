@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client     *opensearch.Client
-	QueryGroup queryGroupClient
+	QueryGroup QueryGroupClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.QueryGroup = queryGroupClient{client: c}
+	c.QueryGroup = QueryGroupClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type queryGroupClient struct {
+// QueryGroupClient groups a related subset of this plugin's API. QueryGroupClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type QueryGroupClient struct {
 	client *Client
 }
 
@@ -60,7 +63,7 @@ type queryGroupClient struct {
 // PUT /_wlm/query_group
 //
 // Available: >= 2.17.0.
-func (c queryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQueryGroupReq) (*CreateQueryGroupResp, error) {
+func (c QueryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQueryGroupReq) (*CreateQueryGroupResp, error) {
 	if req == nil {
 		req = &CreateQueryGroupReq{}
 	}
@@ -76,7 +79,7 @@ func (c queryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 // DELETE /_wlm/query_group/{name}
 //
 // Available: >= 2.17.0.
-func (c queryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryGroupReq) (*DeleteQueryGroupResp, error) {
+func (c QueryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryGroupReq) (*DeleteQueryGroupResp, error) {
 	var resp DeleteQueryGroupResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -89,7 +92,7 @@ func (c queryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryG
 // GET /_wlm/query_group
 //
 // Available: >= 2.17.0.
-func (c queryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
+func (c QueryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
 	var resp GetQueryGroupResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -102,7 +105,7 @@ func (c queryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupRe
 // PUT /_wlm/query_group/{name}
 //
 // Available: >= 2.17.0.
-func (c queryGroupClient) UpdateQueryGroup(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error) {
+func (c QueryGroupClient) UpdateQueryGroup(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error) {
 	var resp UpdateQueryGroupResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

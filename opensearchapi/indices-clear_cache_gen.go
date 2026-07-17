@@ -231,7 +231,7 @@ func (r *IndicesClearCacheResp) PartialFailures(mask errmask.ErrorMask) []error 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clear-index-cache/
-func (c indicesClient) ClearCache(ctx context.Context, req *IndicesClearCacheReq) (*IndicesClearCacheResp, error) {
+func (c IndicesClient) ClearCache(ctx context.Context, req *IndicesClearCacheReq) (*IndicesClearCacheResp, error) {
 	if req == nil {
 		req = &IndicesClearCacheReq{}
 	}

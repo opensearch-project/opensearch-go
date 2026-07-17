@@ -163,7 +163,7 @@ type IngestPutPipelineBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/ingest-pipelines/create-ingest/
-func (c ingestClient) PutPipeline(ctx context.Context, req IngestPutPipelineReq) (*IngestPutPipelineResp, error) {
+func (c IngestClient) PutPipeline(ctx context.Context, req IngestPutPipelineReq) (*IngestPutPipelineResp, error) {
 	var (
 		data IngestPutPipelineResp
 		err  error

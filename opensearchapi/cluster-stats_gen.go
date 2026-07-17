@@ -665,7 +665,7 @@ type ClusterStatsClusterProcessOpenFileDescriptors struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-stats/
-func (c clusterClient) Stats(ctx context.Context, req *ClusterStatsReq) (*ClusterStatsResp, error) {
+func (c ClusterClient) Stats(ctx context.Context, req *ClusterStatsReq) (*ClusterStatsResp, error) {
 	if req == nil {
 		req = &ClusterStatsReq{}
 	}

@@ -188,7 +188,7 @@ type IndicesCloneBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clone/
-func (c indicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*IndicesCloneResp, error) {
+func (c IndicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*IndicesCloneResp, error) {
 	var (
 		data IndicesCloneResp
 		err  error

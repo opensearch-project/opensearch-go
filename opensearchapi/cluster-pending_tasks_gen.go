@@ -162,7 +162,7 @@ type ClusterPendingTasksPendingTask struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTasksReq) (*ClusterPendingTasksResp, error) {
+func (c ClusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTasksReq) (*ClusterPendingTasksResp, error) {
 	if req == nil {
 		req = &ClusterPendingTasksReq{}
 	}

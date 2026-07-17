@@ -19,37 +19,37 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client             *opensearch.Client
-	ActionGroup        actionGroupClient
-	Allowlist          allowlistClient
-	AuditConfiguration auditConfigurationClient
-	Certificate        certificateClient
-	Configuration      configurationClient
-	DashboardInfo      dashboardInfoClient
-	DistinguishedName  distinguishedNameClient
-	Role               roleClient
-	RoleMapping        roleMappingClient
-	TenancyConfig      tenancyConfigClient
-	Tenant             tenantClient
-	User               userClient
-	UserLegacy         userLegacyClient
+	ActionGroup        ActionGroupClient
+	Allowlist          AllowlistClient
+	AuditConfiguration AuditConfigurationClient
+	Certificate        CertificateClient
+	Configuration      ConfigurationClient
+	DashboardInfo      DashboardInfoClient
+	DistinguishedName  DistinguishedNameClient
+	Role               RoleClient
+	RoleMapping        RoleMappingClient
+	TenancyConfig      TenancyConfigClient
+	Tenant             TenantClient
+	User               UserClient
+	UserLegacy         UserLegacyClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.ActionGroup = actionGroupClient{client: c}
-	c.Allowlist = allowlistClient{client: c}
-	c.AuditConfiguration = auditConfigurationClient{client: c}
-	c.Certificate = certificateClient{client: c}
-	c.Configuration = configurationClient{client: c}
-	c.DashboardInfo = dashboardInfoClient{client: c}
-	c.DistinguishedName = distinguishedNameClient{client: c}
-	c.Role = roleClient{client: c}
-	c.RoleMapping = roleMappingClient{client: c}
-	c.TenancyConfig = tenancyConfigClient{client: c}
-	c.Tenant = tenantClient{client: c}
-	c.User = userClient{client: c}
-	c.UserLegacy = userLegacyClient{client: c}
+	c.ActionGroup = ActionGroupClient{client: c}
+	c.Allowlist = AllowlistClient{client: c}
+	c.AuditConfiguration = AuditConfigurationClient{client: c}
+	c.Certificate = CertificateClient{client: c}
+	c.Configuration = ConfigurationClient{client: c}
+	c.DashboardInfo = DashboardInfoClient{client: c}
+	c.DistinguishedName = DistinguishedNameClient{client: c}
+	c.Role = RoleClient{client: c}
+	c.RoleMapping = RoleMappingClient{client: c}
+	c.TenancyConfig = TenancyConfigClient{client: c}
+	c.Tenant = TenantClient{client: c}
+	c.User = UserClient{client: c}
+	c.UserLegacy = UserLegacyClient{client: c}
 	return c
 }
 
@@ -75,55 +75,94 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type actionGroupClient struct {
+// ActionGroupClient groups a related subset of this plugin's API. ActionGroupClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ActionGroupClient struct {
 	client *Client
 }
 
-type allowlistClient struct {
+// AllowlistClient groups a related subset of this plugin's API. AllowlistClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type AllowlistClient struct {
 	client *Client
 }
 
-type auditConfigurationClient struct {
+// AuditConfigurationClient groups a related subset of this plugin's API. AuditConfigurationClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type AuditConfigurationClient struct {
 	client *Client
 }
 
-type certificateClient struct {
+// CertificateClient groups a related subset of this plugin's API. CertificateClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type CertificateClient struct {
 	client *Client
 }
 
-type configurationClient struct {
+// ConfigurationClient groups a related subset of this plugin's API. ConfigurationClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ConfigurationClient struct {
 	client *Client
 }
 
-type dashboardInfoClient struct {
+// DashboardInfoClient groups a related subset of this plugin's API. DashboardInfoClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type DashboardInfoClient struct {
 	client *Client
 }
 
-type distinguishedNameClient struct {
+// DistinguishedNameClient groups a related subset of this plugin's API. DistinguishedNameClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type DistinguishedNameClient struct {
 	client *Client
 }
 
-type roleClient struct {
+// RoleClient groups a related subset of this plugin's API. RoleClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type RoleClient struct {
 	client *Client
 }
 
-type roleMappingClient struct {
+// RoleMappingClient groups a related subset of this plugin's API. RoleMappingClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type RoleMappingClient struct {
 	client *Client
 }
 
-type tenancyConfigClient struct {
+// TenancyConfigClient groups a related subset of this plugin's API. TenancyConfigClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type TenancyConfigClient struct {
 	client *Client
 }
 
-type tenantClient struct {
+// TenantClient groups a related subset of this plugin's API. TenantClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type TenantClient struct {
 	client *Client
 }
 
-type userClient struct {
+// UserClient groups a related subset of this plugin's API. UserClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type UserClient struct {
 	client *Client
 }
 
-type userLegacyClient struct {
+// UserLegacyClient groups a related subset of this plugin's API. UserLegacyClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type UserLegacyClient struct {
 	client *Client
 }
 
@@ -529,7 +568,7 @@ func (c *Client) WhoAmIProtected(ctx context.Context, req *WhoAmIProtectedReq) (
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-action-group
-func (c actionGroupClient) CreateActionGroup(ctx context.Context, req CreateActionGroupReq) (*CreateActionGroupResp, error) {
+func (c ActionGroupClient) CreateActionGroup(ctx context.Context, req CreateActionGroupReq) (*CreateActionGroupResp, error) {
 	var resp CreateActionGroupResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -546,7 +585,7 @@ func (c actionGroupClient) CreateActionGroup(ctx context.Context, req CreateActi
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#access-control-for-the-api
-func (c allowlistClient) CreateAllowlist(ctx context.Context, req *CreateAllowlistReq) (*CreateAllowlistResp, error) {
+func (c AllowlistClient) CreateAllowlist(ctx context.Context, req *CreateAllowlistReq) (*CreateAllowlistResp, error) {
 	if req == nil {
 		req = &CreateAllowlistReq{}
 	}
@@ -566,7 +605,7 @@ func (c allowlistClient) CreateAllowlist(ctx context.Context, req *CreateAllowli
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-role
-func (c roleClient) CreateRole(ctx context.Context, req CreateRoleReq) (*CreateRoleResp, error) {
+func (c RoleClient) CreateRole(ctx context.Context, req CreateRoleReq) (*CreateRoleResp, error) {
 	var resp CreateRoleResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -583,7 +622,7 @@ func (c roleClient) CreateRole(ctx context.Context, req CreateRoleReq) (*CreateR
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-role-mapping
-func (c roleMappingClient) CreateRoleMapping(ctx context.Context, req CreateRoleMappingReq) (*CreateRoleMappingResp, error) {
+func (c RoleMappingClient) CreateRoleMapping(ctx context.Context, req CreateRoleMappingReq) (*CreateRoleMappingResp, error) {
 	var resp CreateRoleMappingResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -600,7 +639,7 @@ func (c roleMappingClient) CreateRoleMapping(ctx context.Context, req CreateRole
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-tenant
-func (c tenantClient) CreateTenant(ctx context.Context, req CreateTenantReq) (*CreateTenantResp, error) {
+func (c TenantClient) CreateTenant(ctx context.Context, req CreateTenantReq) (*CreateTenantResp, error) {
 	var resp CreateTenantResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -617,7 +656,7 @@ func (c tenantClient) CreateTenant(ctx context.Context, req CreateTenantReq) (*C
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/multi-tenancy/dynamic-config/#configuring-multi-tenancy-with-the-rest-api
-func (c tenancyConfigClient) CreateUpdateTenancyConfig(ctx context.Context, req *CreateUpdateTenancyConfigReq) (*CreateUpdateTenancyConfigResp, error) {
+func (c TenancyConfigClient) CreateUpdateTenancyConfig(ctx context.Context, req *CreateUpdateTenancyConfigReq) (*CreateUpdateTenancyConfigResp, error) {
 	if req == nil {
 		req = &CreateUpdateTenancyConfigReq{}
 	}
@@ -637,7 +676,7 @@ func (c tenancyConfigClient) CreateUpdateTenancyConfig(ctx context.Context, req 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#create-user
-func (c userClient) CreateUser(ctx context.Context, req CreateUserReq) (*CreateUserResp, error) {
+func (c UserClient) CreateUser(ctx context.Context, req CreateUserReq) (*CreateUserResp, error) {
 	var resp CreateUserResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -652,7 +691,7 @@ func (c userClient) CreateUser(ctx context.Context, req CreateUserReq) (*CreateU
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c userLegacyClient) CreateUserLegacy(ctx context.Context, req CreateUserLegacyReq) (*CreateUserLegacyResp, error) {
+func (c UserLegacyClient) CreateUserLegacy(ctx context.Context, req CreateUserLegacyReq) (*CreateUserLegacyResp, error) {
 	var resp CreateUserLegacyResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -669,7 +708,7 @@ func (c userLegacyClient) CreateUserLegacy(ctx context.Context, req CreateUserLe
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-action-group
-func (c actionGroupClient) DeleteActionGroup(ctx context.Context, req DeleteActionGroupReq) (*DeleteActionGroupResp, error) {
+func (c ActionGroupClient) DeleteActionGroup(ctx context.Context, req DeleteActionGroupReq) (*DeleteActionGroupResp, error) {
 	var resp DeleteActionGroupResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -686,7 +725,7 @@ func (c actionGroupClient) DeleteActionGroup(ctx context.Context, req DeleteActi
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-distinguished-names
-func (c distinguishedNameClient) DeleteDistinguishedName(ctx context.Context, req DeleteDistinguishedNameReq) (*DeleteDistinguishedNameResp, error) {
+func (c DistinguishedNameClient) DeleteDistinguishedName(ctx context.Context, req DeleteDistinguishedNameReq) (*DeleteDistinguishedNameResp, error) {
 	var resp DeleteDistinguishedNameResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -703,7 +742,7 @@ func (c distinguishedNameClient) DeleteDistinguishedName(ctx context.Context, re
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-role
-func (c roleClient) DeleteRole(ctx context.Context, req DeleteRoleReq) (*DeleteRoleResp, error) {
+func (c RoleClient) DeleteRole(ctx context.Context, req DeleteRoleReq) (*DeleteRoleResp, error) {
 	var resp DeleteRoleResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -720,7 +759,7 @@ func (c roleClient) DeleteRole(ctx context.Context, req DeleteRoleReq) (*DeleteR
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-role-mapping
-func (c roleMappingClient) DeleteRoleMapping(ctx context.Context, req DeleteRoleMappingReq) (*DeleteRoleMappingResp, error) {
+func (c RoleMappingClient) DeleteRoleMapping(ctx context.Context, req DeleteRoleMappingReq) (*DeleteRoleMappingResp, error) {
 	var resp DeleteRoleMappingResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -737,7 +776,7 @@ func (c roleMappingClient) DeleteRoleMapping(ctx context.Context, req DeleteRole
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-action-group
-func (c tenantClient) DeleteTenant(ctx context.Context, req DeleteTenantReq) (*DeleteTenantResp, error) {
+func (c TenantClient) DeleteTenant(ctx context.Context, req DeleteTenantReq) (*DeleteTenantResp, error) {
 	var resp DeleteTenantResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -754,7 +793,7 @@ func (c tenantClient) DeleteTenant(ctx context.Context, req DeleteTenantReq) (*D
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-user
-func (c userClient) DeleteUser(ctx context.Context, req DeleteUserReq) (*DeleteUserResp, error) {
+func (c UserClient) DeleteUser(ctx context.Context, req DeleteUserReq) (*DeleteUserResp, error) {
 	var resp DeleteUserResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -769,7 +808,7 @@ func (c userClient) DeleteUser(ctx context.Context, req DeleteUserReq) (*DeleteU
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c userLegacyClient) DeleteUserLegacy(ctx context.Context, req DeleteUserLegacyReq) (*DeleteUserLegacyResp, error) {
+func (c UserLegacyClient) DeleteUserLegacy(ctx context.Context, req DeleteUserLegacyReq) (*DeleteUserLegacyResp, error) {
 	var resp DeleteUserLegacyResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -786,7 +825,7 @@ func (c userLegacyClient) DeleteUserLegacy(ctx context.Context, req DeleteUserLe
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-action-group
-func (c actionGroupClient) GetActionGroup(ctx context.Context, req GetActionGroupReq) (*GetActionGroupResp, error) {
+func (c ActionGroupClient) GetActionGroup(ctx context.Context, req GetActionGroupReq) (*GetActionGroupResp, error) {
 	var resp GetActionGroupResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -803,7 +842,7 @@ func (c actionGroupClient) GetActionGroup(ctx context.Context, req GetActionGrou
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-action-groups
-func (c actionGroupClient) GetActionGroups(ctx context.Context, req *GetActionGroupsReq) (*GetActionGroupsResp, error) {
+func (c ActionGroupClient) GetActionGroups(ctx context.Context, req *GetActionGroupsReq) (*GetActionGroupsResp, error) {
 	if req == nil {
 		req = &GetActionGroupsReq{}
 	}
@@ -821,7 +860,7 @@ func (c actionGroupClient) GetActionGroups(ctx context.Context, req *GetActionGr
 // Available: >= 2.15.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c certificateClient) GetAllCertificates(ctx context.Context, req *GetAllCertificatesReq) (*GetAllCertificatesResp, error) {
+func (c CertificateClient) GetAllCertificates(ctx context.Context, req *GetAllCertificatesReq) (*GetAllCertificatesResp, error) {
 	if req == nil {
 		req = &GetAllCertificatesReq{}
 	}
@@ -841,7 +880,7 @@ func (c certificateClient) GetAllCertificates(ctx context.Context, req *GetAllCe
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#access-control-for-the-api
-func (c allowlistClient) GetAllowlist(ctx context.Context, req *GetAllowlistReq) (*GetAllowlistResp, error) {
+func (c AllowlistClient) GetAllowlist(ctx context.Context, req *GetAllowlistReq) (*GetAllowlistResp, error) {
 	if req == nil {
 		req = &GetAllowlistReq{}
 	}
@@ -861,7 +900,7 @@ func (c allowlistClient) GetAllowlist(ctx context.Context, req *GetAllowlistReq)
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#audit-logs
-func (c auditConfigurationClient) GetAuditConfiguration(ctx context.Context, req *GetAuditConfigurationReq) (*GetAuditConfigurationResp, error) {
+func (c AuditConfigurationClient) GetAuditConfiguration(ctx context.Context, req *GetAuditConfigurationReq) (*GetAuditConfigurationResp, error) {
 	if req == nil {
 		req = &GetAuditConfigurationReq{}
 	}
@@ -881,7 +920,7 @@ func (c auditConfigurationClient) GetAuditConfiguration(ctx context.Context, req
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-certificates
-func (c certificateClient) GetCertificates(ctx context.Context, req *GetCertificatesReq) (*GetCertificatesResp, error) {
+func (c CertificateClient) GetCertificates(ctx context.Context, req *GetCertificatesReq) (*GetCertificatesResp, error) {
 	if req == nil {
 		req = &GetCertificatesReq{}
 	}
@@ -901,7 +940,7 @@ func (c certificateClient) GetCertificates(ctx context.Context, req *GetCertific
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-configuration
-func (c configurationClient) GetConfiguration(ctx context.Context, req *GetConfigurationReq) (*GetConfigurationResp, error) {
+func (c ConfigurationClient) GetConfiguration(ctx context.Context, req *GetConfigurationReq) (*GetConfigurationResp, error) {
 	if req == nil {
 		req = &GetConfigurationReq{}
 	}
@@ -919,7 +958,7 @@ func (c configurationClient) GetConfiguration(ctx context.Context, req *GetConfi
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c dashboardInfoClient) GetDashboardsInfo(ctx context.Context, req *GetDashboardsInfoReq) (*GetDashboardsInfoResp, error) {
+func (c DashboardInfoClient) GetDashboardsInfo(ctx context.Context, req *GetDashboardsInfoReq) (*GetDashboardsInfoResp, error) {
 	if req == nil {
 		req = &GetDashboardsInfoReq{}
 	}
@@ -939,7 +978,7 @@ func (c dashboardInfoClient) GetDashboardsInfo(ctx context.Context, req *GetDash
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-distinguished-names
-func (c distinguishedNameClient) GetDistinguishedName(ctx context.Context, req GetDistinguishedNameReq) (*GetDistinguishedNameResp, error) {
+func (c DistinguishedNameClient) GetDistinguishedName(ctx context.Context, req GetDistinguishedNameReq) (*GetDistinguishedNameResp, error) {
 	var resp GetDistinguishedNameResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -956,7 +995,7 @@ func (c distinguishedNameClient) GetDistinguishedName(ctx context.Context, req G
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-distinguished-names
-func (c distinguishedNameClient) GetDistinguishedNames(ctx context.Context, req *GetDistinguishedNamesReq) (*GetDistinguishedNamesResp, error) {
+func (c DistinguishedNameClient) GetDistinguishedNames(ctx context.Context, req *GetDistinguishedNamesReq) (*GetDistinguishedNamesResp, error) {
 	if req == nil {
 		req = &GetDistinguishedNamesReq{}
 	}
@@ -976,7 +1015,7 @@ func (c distinguishedNameClient) GetDistinguishedNames(ctx context.Context, req 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role
-func (c roleClient) GetRole(ctx context.Context, req GetRoleReq) (*GetRoleResp, error) {
+func (c RoleClient) GetRole(ctx context.Context, req GetRoleReq) (*GetRoleResp, error) {
 	var resp GetRoleResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -993,7 +1032,7 @@ func (c roleClient) GetRole(ctx context.Context, req GetRoleReq) (*GetRoleResp, 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role-mapping
-func (c roleMappingClient) GetRoleMapping(ctx context.Context, req GetRoleMappingReq) (*GetRoleMappingResp, error) {
+func (c RoleMappingClient) GetRoleMapping(ctx context.Context, req GetRoleMappingReq) (*GetRoleMappingResp, error) {
 	var resp GetRoleMappingResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -1010,7 +1049,7 @@ func (c roleMappingClient) GetRoleMapping(ctx context.Context, req GetRoleMappin
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-role-mappings
-func (c roleMappingClient) GetRoleMappings(ctx context.Context, req *GetRoleMappingsReq) (*GetRoleMappingsResp, error) {
+func (c RoleMappingClient) GetRoleMappings(ctx context.Context, req *GetRoleMappingsReq) (*GetRoleMappingsResp, error) {
 	if req == nil {
 		req = &GetRoleMappingsReq{}
 	}
@@ -1030,7 +1069,7 @@ func (c roleMappingClient) GetRoleMappings(ctx context.Context, req *GetRoleMapp
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-roles
-func (c roleClient) GetRoles(ctx context.Context, req *GetRolesReq) (*GetRolesResp, error) {
+func (c RoleClient) GetRoles(ctx context.Context, req *GetRolesReq) (*GetRolesResp, error) {
 	if req == nil {
 		req = &GetRolesReq{}
 	}
@@ -1050,7 +1089,7 @@ func (c roleClient) GetRoles(ctx context.Context, req *GetRolesReq) (*GetRolesRe
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/multi-tenancy/dynamic-config/#configuring-multi-tenancy-with-the-rest-api
-func (c tenancyConfigClient) GetTenancyConfig(ctx context.Context, req *GetTenancyConfigReq) (*GetTenancyConfigResp, error) {
+func (c TenancyConfigClient) GetTenancyConfig(ctx context.Context, req *GetTenancyConfigReq) (*GetTenancyConfigResp, error) {
 	if req == nil {
 		req = &GetTenancyConfigReq{}
 	}
@@ -1070,7 +1109,7 @@ func (c tenancyConfigClient) GetTenancyConfig(ctx context.Context, req *GetTenan
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-tenant
-func (c tenantClient) GetTenant(ctx context.Context, req GetTenantReq) (*GetTenantResp, error) {
+func (c TenantClient) GetTenant(ctx context.Context, req GetTenantReq) (*GetTenantResp, error) {
 	var resp GetTenantResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -1087,7 +1126,7 @@ func (c tenantClient) GetTenant(ctx context.Context, req GetTenantReq) (*GetTena
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-tenants
-func (c tenantClient) GetTenants(ctx context.Context, req *GetTenantsReq) (*GetTenantsResp, error) {
+func (c TenantClient) GetTenants(ctx context.Context, req *GetTenantsReq) (*GetTenantsResp, error) {
 	if req == nil {
 		req = &GetTenantsReq{}
 	}
@@ -1107,7 +1146,7 @@ func (c tenantClient) GetTenants(ctx context.Context, req *GetTenantsReq) (*GetT
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-user
-func (c userClient) GetUser(ctx context.Context, req GetUserReq) (*GetUserResp, error) {
+func (c UserClient) GetUser(ctx context.Context, req GetUserReq) (*GetUserResp, error) {
 	var resp GetUserResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -1122,7 +1161,7 @@ func (c userClient) GetUser(ctx context.Context, req GetUserReq) (*GetUserResp, 
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c userLegacyClient) GetUserLegacy(ctx context.Context, req GetUserLegacyReq) (*GetUserLegacyResp, error) {
+func (c UserLegacyClient) GetUserLegacy(ctx context.Context, req GetUserLegacyReq) (*GetUserLegacyResp, error) {
 	var resp GetUserLegacyResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -1139,7 +1178,7 @@ func (c userLegacyClient) GetUserLegacy(ctx context.Context, req GetUserLegacyRe
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#get-users
-func (c userClient) GetUsers(ctx context.Context, req *GetUsersReq) (*GetUsersResp, error) {
+func (c UserClient) GetUsers(ctx context.Context, req *GetUsersReq) (*GetUsersResp, error) {
 	if req == nil {
 		req = &GetUsersReq{}
 	}
@@ -1157,7 +1196,7 @@ func (c userClient) GetUsers(ctx context.Context, req *GetUsersReq) (*GetUsersRe
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c userLegacyClient) GetUsersLegacy(ctx context.Context, req *GetUsersLegacyReq) (*GetUsersLegacyResp, error) {
+func (c UserLegacyClient) GetUsersLegacy(ctx context.Context, req *GetUsersLegacyReq) (*GetUsersLegacyResp, error) {
 	if req == nil {
 		req = &GetUsersLegacyReq{}
 	}
@@ -1177,7 +1216,7 @@ func (c userLegacyClient) GetUsersLegacy(ctx context.Context, req *GetUsersLegac
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-action-group
-func (c actionGroupClient) PatchActionGroup(ctx context.Context, req PatchActionGroupReq) (*PatchActionGroupResp, error) {
+func (c ActionGroupClient) PatchActionGroup(ctx context.Context, req PatchActionGroupReq) (*PatchActionGroupResp, error) {
 	var resp PatchActionGroupResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1194,7 +1233,7 @@ func (c actionGroupClient) PatchActionGroup(ctx context.Context, req PatchAction
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-action-groups
-func (c actionGroupClient) PatchActionGroups(ctx context.Context, req *PatchActionGroupsReq) (*PatchActionGroupsResp, error) {
+func (c ActionGroupClient) PatchActionGroups(ctx context.Context, req *PatchActionGroupsReq) (*PatchActionGroupsResp, error) {
 	if req == nil {
 		req = &PatchActionGroupsReq{}
 	}
@@ -1214,7 +1253,7 @@ func (c actionGroupClient) PatchActionGroups(ctx context.Context, req *PatchActi
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#access-control-for-the-api
-func (c allowlistClient) PatchAllowlist(ctx context.Context, req *PatchAllowlistReq) (*PatchAllowlistResp, error) {
+func (c AllowlistClient) PatchAllowlist(ctx context.Context, req *PatchAllowlistReq) (*PatchAllowlistResp, error) {
 	if req == nil {
 		req = &PatchAllowlistReq{}
 	}
@@ -1234,7 +1273,7 @@ func (c allowlistClient) PatchAllowlist(ctx context.Context, req *PatchAllowlist
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#audit-logs
-func (c auditConfigurationClient) PatchAuditConfiguration(ctx context.Context, req *PatchAuditConfigurationReq) (*PatchAuditConfigurationResp, error) {
+func (c AuditConfigurationClient) PatchAuditConfiguration(ctx context.Context, req *PatchAuditConfigurationReq) (*PatchAuditConfigurationResp, error) {
 	if req == nil {
 		req = &PatchAuditConfigurationReq{}
 	}
@@ -1254,7 +1293,7 @@ func (c auditConfigurationClient) PatchAuditConfiguration(ctx context.Context, r
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-configuration
-func (c configurationClient) PatchConfiguration(ctx context.Context, req *PatchConfigurationReq) (*PatchConfigurationResp, error) {
+func (c ConfigurationClient) PatchConfiguration(ctx context.Context, req *PatchConfigurationReq) (*PatchConfigurationResp, error) {
 	if req == nil {
 		req = &PatchConfigurationReq{}
 	}
@@ -1272,7 +1311,7 @@ func (c configurationClient) PatchConfiguration(ctx context.Context, req *PatchC
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c distinguishedNameClient) PatchDistinguishedName(ctx context.Context, req PatchDistinguishedNameReq) (*PatchDistinguishedNameResp, error) {
+func (c DistinguishedNameClient) PatchDistinguishedName(ctx context.Context, req PatchDistinguishedNameReq) (*PatchDistinguishedNameResp, error) {
 	var resp PatchDistinguishedNameResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1289,7 +1328,7 @@ func (c distinguishedNameClient) PatchDistinguishedName(ctx context.Context, req
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#update-all-distinguished-names
-func (c distinguishedNameClient) PatchDistinguishedNames(ctx context.Context, req *PatchDistinguishedNamesReq) (*PatchDistinguishedNamesResp, error) {
+func (c DistinguishedNameClient) PatchDistinguishedNames(ctx context.Context, req *PatchDistinguishedNamesReq) (*PatchDistinguishedNamesResp, error) {
 	if req == nil {
 		req = &PatchDistinguishedNamesReq{}
 	}
@@ -1309,7 +1348,7 @@ func (c distinguishedNameClient) PatchDistinguishedNames(ctx context.Context, re
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-role
-func (c roleClient) PatchRole(ctx context.Context, req PatchRoleReq) (*PatchRoleResp, error) {
+func (c RoleClient) PatchRole(ctx context.Context, req PatchRoleReq) (*PatchRoleResp, error) {
 	var resp PatchRoleResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1326,7 +1365,7 @@ func (c roleClient) PatchRole(ctx context.Context, req PatchRoleReq) (*PatchRole
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-role-mapping
-func (c roleMappingClient) PatchRoleMapping(ctx context.Context, req PatchRoleMappingReq) (*PatchRoleMappingResp, error) {
+func (c RoleMappingClient) PatchRoleMapping(ctx context.Context, req PatchRoleMappingReq) (*PatchRoleMappingResp, error) {
 	var resp PatchRoleMappingResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1343,7 +1382,7 @@ func (c roleMappingClient) PatchRoleMapping(ctx context.Context, req PatchRoleMa
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-role-mappings
-func (c roleMappingClient) PatchRoleMappings(ctx context.Context, req *PatchRoleMappingsReq) (*PatchRoleMappingsResp, error) {
+func (c RoleMappingClient) PatchRoleMappings(ctx context.Context, req *PatchRoleMappingsReq) (*PatchRoleMappingsResp, error) {
 	if req == nil {
 		req = &PatchRoleMappingsReq{}
 	}
@@ -1363,7 +1402,7 @@ func (c roleMappingClient) PatchRoleMappings(ctx context.Context, req *PatchRole
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-roles
-func (c roleClient) PatchRoles(ctx context.Context, req *PatchRolesReq) (*PatchRolesResp, error) {
+func (c RoleClient) PatchRoles(ctx context.Context, req *PatchRolesReq) (*PatchRolesResp, error) {
 	if req == nil {
 		req = &PatchRolesReq{}
 	}
@@ -1383,7 +1422,7 @@ func (c roleClient) PatchRoles(ctx context.Context, req *PatchRolesReq) (*PatchR
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-tenant
-func (c tenantClient) PatchTenant(ctx context.Context, req PatchTenantReq) (*PatchTenantResp, error) {
+func (c TenantClient) PatchTenant(ctx context.Context, req PatchTenantReq) (*PatchTenantResp, error) {
 	var resp PatchTenantResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1400,7 +1439,7 @@ func (c tenantClient) PatchTenant(ctx context.Context, req PatchTenantReq) (*Pat
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-tenants
-func (c tenantClient) PatchTenants(ctx context.Context, req *PatchTenantsReq) (*PatchTenantsResp, error) {
+func (c TenantClient) PatchTenants(ctx context.Context, req *PatchTenantsReq) (*PatchTenantsResp, error) {
 	if req == nil {
 		req = &PatchTenantsReq{}
 	}
@@ -1420,7 +1459,7 @@ func (c tenantClient) PatchTenants(ctx context.Context, req *PatchTenantsReq) (*
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-user
-func (c userClient) PatchUser(ctx context.Context, req PatchUserReq) (*PatchUserResp, error) {
+func (c UserClient) PatchUser(ctx context.Context, req PatchUserReq) (*PatchUserResp, error) {
 	var resp PatchUserResp
 	if _, err := request(ctx, c.client, http.MethodPatch, req, &resp); err != nil {
 		return &resp, err
@@ -1437,7 +1476,7 @@ func (c userClient) PatchUser(ctx context.Context, req PatchUserReq) (*PatchUser
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#patch-users
-func (c userClient) PatchUsers(ctx context.Context, req *PatchUsersReq) (*PatchUsersResp, error) {
+func (c UserClient) PatchUsers(ctx context.Context, req *PatchUsersReq) (*PatchUsersResp, error) {
 	if req == nil {
 		req = &PatchUsersReq{}
 	}
@@ -1455,7 +1494,7 @@ func (c userClient) PatchUsers(ctx context.Context, req *PatchUsersReq) (*PatchU
 // Available: >= 1.0.0.
 //
 // Not available on: amazon-managed, amazon-serverless.
-func (c dashboardInfoClient) PostDashboardsInfo(ctx context.Context, req *PostDashboardsInfoReq) (*PostDashboardsInfoResp, error) {
+func (c DashboardInfoClient) PostDashboardsInfo(ctx context.Context, req *PostDashboardsInfoReq) (*PostDashboardsInfoResp, error) {
 	if req == nil {
 		req = &PostDashboardsInfoReq{}
 	}
@@ -1475,7 +1514,7 @@ func (c dashboardInfoClient) PostDashboardsInfo(ctx context.Context, req *PostDa
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#audit-logs
-func (c auditConfigurationClient) UpdateAuditConfiguration(ctx context.Context, req *UpdateAuditConfigurationReq) (*UpdateAuditConfigurationResp, error) {
+func (c AuditConfigurationClient) UpdateAuditConfiguration(ctx context.Context, req *UpdateAuditConfigurationReq) (*UpdateAuditConfigurationResp, error) {
 	if req == nil {
 		req = &UpdateAuditConfigurationReq{}
 	}
@@ -1495,7 +1534,7 @@ func (c auditConfigurationClient) UpdateAuditConfiguration(ctx context.Context, 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#update-configuration
-func (c configurationClient) UpdateConfiguration(ctx context.Context, req *UpdateConfigurationReq) (*UpdateConfigurationResp, error) {
+func (c ConfigurationClient) UpdateConfiguration(ctx context.Context, req *UpdateConfigurationReq) (*UpdateConfigurationResp, error) {
 	if req == nil {
 		req = &UpdateConfigurationReq{}
 	}
@@ -1515,7 +1554,7 @@ func (c configurationClient) UpdateConfiguration(ctx context.Context, req *Updat
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#update-distinguished-names
-func (c distinguishedNameClient) UpdateDistinguishedName(ctx context.Context, req UpdateDistinguishedNameReq) (*UpdateDistinguishedNameResp, error) {
+func (c DistinguishedNameClient) UpdateDistinguishedName(ctx context.Context, req UpdateDistinguishedNameReq) (*UpdateDistinguishedNameResp, error) {
 	var resp UpdateDistinguishedNameResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

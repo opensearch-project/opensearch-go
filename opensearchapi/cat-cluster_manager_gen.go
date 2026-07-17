@@ -155,7 +155,7 @@ type CatClusterManagerRecord struct {
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-cluster_manager/
-func (c catClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq) (*CatClusterManagerResp, error) {
+func (c CatClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq) (*CatClusterManagerResp, error) {
 	if req == nil {
 		req = &CatClusterManagerReq{}
 	}

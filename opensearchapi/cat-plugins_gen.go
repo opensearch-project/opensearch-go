@@ -160,7 +160,7 @@ type CatPluginsRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-plugins/
-func (c catClient) Plugins(ctx context.Context, req *CatPluginsReq) (*CatPluginsResp, error) {
+func (c CatClient) Plugins(ctx context.Context, req *CatPluginsReq) (*CatPluginsResp, error) {
 	if req == nil {
 		req = &CatPluginsReq{}
 	}

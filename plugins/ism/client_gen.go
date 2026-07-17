@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Policy policyClient
+	Policy PolicyClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Policy = policyClient{client: c}
+	c.Policy = PolicyClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type policyClient struct {
+// PolicyClient groups a related subset of this plugin's API. PolicyClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type PolicyClient struct {
 	client *Client
 }
 
@@ -135,7 +138,7 @@ func (c *Client) RetryIndex(ctx context.Context, req *RetryIndexReq) (*RetryInde
 // POST /_plugins/_ism/add
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#add-policy
-func (c policyClient) AddPolicy(ctx context.Context, req *AddPolicyReq) (*AddPolicyResp, error) {
+func (c PolicyClient) AddPolicy(ctx context.Context, req *AddPolicyReq) (*AddPolicyResp, error) {
 	if req == nil {
 		req = &AddPolicyReq{}
 	}
@@ -151,7 +154,7 @@ func (c policyClient) AddPolicy(ctx context.Context, req *AddPolicyReq) (*AddPol
 // POST /_plugins/_ism/change_policy
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#update-managed-index-policy
-func (c policyClient) ChangePolicy(ctx context.Context, req *ChangePolicyReq) (*ChangePolicyResp, error) {
+func (c PolicyClient) ChangePolicy(ctx context.Context, req *ChangePolicyReq) (*ChangePolicyResp, error) {
 	if req == nil {
 		req = &ChangePolicyReq{}
 	}
@@ -167,7 +170,7 @@ func (c policyClient) ChangePolicy(ctx context.Context, req *ChangePolicyReq) (*
 // DELETE /_plugins/_ism/policies/{policy_id}
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#delete-policy
-func (c policyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
+func (c PolicyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
 	var resp DeletePolicyResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -180,7 +183,7 @@ func (c policyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*D
 // GET /_plugins/_ism/policies
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#get-policy
-func (c policyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error) {
+func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*GetPoliciesResp, error) {
 	if req == nil {
 		req = &GetPoliciesReq{}
 	}
@@ -196,7 +199,7 @@ func (c policyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 // GET /_plugins/_ism/policies/{policy_id}
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#put-policy
-func (c policyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
+func (c PolicyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
 	var resp GetPolicyResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -209,7 +212,7 @@ func (c policyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPoli
 // PUT /_plugins/_ism/policies
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
-func (c policyClient) PutPolicies(ctx context.Context, req *PutPoliciesReq) (*PutPoliciesResp, error) {
+func (c PolicyClient) PutPolicies(ctx context.Context, req *PutPoliciesReq) (*PutPoliciesResp, error) {
 	if req == nil {
 		req = &PutPoliciesReq{}
 	}
@@ -225,7 +228,7 @@ func (c policyClient) PutPolicies(ctx context.Context, req *PutPoliciesReq) (*Pu
 // PUT /_plugins/_ism/policies/{policy_id}
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
-func (c policyClient) PutPolicy(ctx context.Context, req PutPolicyReq) (*PutPolicyResp, error) {
+func (c PolicyClient) PutPolicy(ctx context.Context, req PutPolicyReq) (*PutPolicyResp, error) {
 	var resp PutPolicyResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

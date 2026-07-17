@@ -265,7 +265,7 @@ type TermVectorsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c documentClient) TermVectors(ctx context.Context, req TermVectorsReq) (*TermVectorsResp, error) {
+func (c DocumentClient) TermVectors(ctx context.Context, req TermVectorsReq) (*TermVectorsResp, error) {
 	var (
 		data TermVectorsResp
 		err  error

@@ -429,7 +429,7 @@ func (r *IndicesStatsResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Stats(ctx context.Context, req *IndicesStatsReq) (*IndicesStatsResp, error) {
+func (c IndicesClient) Stats(ctx context.Context, req *IndicesStatsReq) (*IndicesStatsResp, error) {
 	if req == nil {
 		req = &IndicesStatsReq{}
 	}

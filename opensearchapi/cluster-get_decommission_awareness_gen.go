@@ -126,7 +126,7 @@ func (r ClusterGetDecommissionAwarenessResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-decommission/#example-getting-zone-decommission-status
-func (c clusterClient) GetDecommissionAwareness(ctx context.Context, req ClusterGetDecommissionAwarenessReq) (*ClusterGetDecommissionAwarenessResp, error) {
+func (c ClusterClient) GetDecommissionAwareness(ctx context.Context, req ClusterGetDecommissionAwarenessReq) (*ClusterGetDecommissionAwarenessResp, error) {
 	var (
 		data ClusterGetDecommissionAwarenessResp
 		err  error

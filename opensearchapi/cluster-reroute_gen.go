@@ -319,7 +319,7 @@ type ClusterRerouteCommandMoveAction struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) Reroute(ctx context.Context, req *ClusterRerouteReq) (*ClusterRerouteResp, error) {
+func (c ClusterClient) Reroute(ctx context.Context, req *ClusterRerouteReq) (*ClusterRerouteResp, error) {
 	if req == nil {
 		req = &ClusterRerouteReq{}
 	}

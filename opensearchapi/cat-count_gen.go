@@ -266,7 +266,7 @@ func (u CatCountRecordEpoch) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-count/
-func (c catClient) Count(ctx context.Context, req *CatCountReq) (*CatCountResp, error) {
+func (c CatClient) Count(ctx context.Context, req *CatCountReq) (*CatCountResp, error) {
 	if req == nil {
 		req = &CatCountReq{}
 	}

@@ -225,7 +225,7 @@ type CatTasksRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-tasks/
-func (c catClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, error) {
+func (c CatClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, error) {
 	if req == nil {
 		req = &CatTasksReq{}
 	}

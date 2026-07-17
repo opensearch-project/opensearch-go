@@ -176,7 +176,7 @@ func (r TasksListResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/
-func (c tasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListResp, error) {
+func (c TasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListResp, error) {
 	if req == nil {
 		req = &TasksListReq{}
 	}

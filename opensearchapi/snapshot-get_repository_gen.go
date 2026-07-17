@@ -135,7 +135,7 @@ func (r SnapshotGetRepositoryResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/get-snapshot-repository/
-func (c snapshotClient) GetRepository(ctx context.Context, req *SnapshotGetRepositoryReq) (*SnapshotGetRepositoryResp, error) {
+func (c SnapshotClient) GetRepository(ctx context.Context, req *SnapshotGetRepositoryReq) (*SnapshotGetRepositoryResp, error) {
 	if req == nil {
 		req = &SnapshotGetRepositoryReq{}
 	}
@@ -156,7 +156,7 @@ func (c snapshotClient) GetRepository(ctx context.Context, req *SnapshotGetRepos
 }
 
 // Deprecated: use SnapshotGetRepository via the parent client instead.
-func (c repositoryClient) Get(ctx context.Context, req *SnapshotGetRepositoryReq) (*SnapshotGetRepositoryResp, error) {
+func (c RepositoryClient) Get(ctx context.Context, req *SnapshotGetRepositoryReq) (*SnapshotGetRepositoryResp, error) {
 	if req == nil {
 		req = &SnapshotGetRepositoryReq{}
 	}

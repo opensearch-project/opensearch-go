@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Config configClient
+	Config ConfigClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Config = configClient{client: c}
+	c.Config = ConfigClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type configClient struct {
+// ConfigClient groups a related subset of this plugin's API. ConfigClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ConfigClient struct {
 	client *Client
 }
 
@@ -115,7 +118,7 @@ func (c *Client) SendTest(ctx context.Context, req SendTestReq) (*SendTestResp, 
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#create-channel-configuration
-func (c configClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*CreateConfigResp, error) {
+func (c ConfigClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*CreateConfigResp, error) {
 	if req == nil {
 		req = &CreateConfigReq{}
 	}
@@ -133,7 +136,7 @@ func (c configClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#delete-channel-configuration
-func (c configClient) DeleteConfig(ctx context.Context, req DeleteConfigReq) (*DeleteConfigResp, error) {
+func (c ConfigClient) DeleteConfig(ctx context.Context, req DeleteConfigReq) (*DeleteConfigResp, error) {
 	var resp DeleteConfigResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -148,7 +151,7 @@ func (c configClient) DeleteConfig(ctx context.Context, req DeleteConfigReq) (*D
 // Available: >= 2.2.0.
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#delete-channel-configuration
-func (c configClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) (*DeleteConfigsResp, error) {
+func (c ConfigClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) (*DeleteConfigsResp, error) {
 	if req == nil {
 		req = &DeleteConfigsReq{}
 	}
@@ -164,7 +167,7 @@ func (c configClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) 
 // GET /_plugins/_notifications/configs/{config_id}
 //
 // Available: >= 2.0.0.
-func (c configClient) GetConfig(ctx context.Context, req GetConfigReq) (*GetConfigResp, error) {
+func (c ConfigClient) GetConfig(ctx context.Context, req GetConfigReq) (*GetConfigResp, error) {
 	var resp GetConfigResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -179,7 +182,7 @@ func (c configClient) GetConfig(ctx context.Context, req GetConfigReq) (*GetConf
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#list-all-notification-configurations
-func (c configClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetConfigsResp, error) {
+func (c ConfigClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetConfigsResp, error) {
 	if req == nil {
 		req = &GetConfigsReq{}
 	}
@@ -197,7 +200,7 @@ func (c configClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetC
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#update-channel-configuration
-func (c configClient) UpdateConfig(ctx context.Context, req UpdateConfigReq) (*UpdateConfigResp, error) {
+func (c ConfigClient) UpdateConfig(ctx context.Context, req UpdateConfigReq) (*UpdateConfigResp, error) {
 	var resp UpdateConfigResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

@@ -131,7 +131,7 @@ func (r ClusterPostVotingConfigExclusionsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) PostVotingConfigExclusions(ctx context.Context, req *ClusterPostVotingConfigExclusionsReq) (*ClusterPostVotingConfigExclusionsResp, error) {
+func (c ClusterClient) PostVotingConfigExclusions(ctx context.Context, req *ClusterPostVotingConfigExclusionsReq) (*ClusterPostVotingConfigExclusionsResp, error) {
 	if req == nil {
 		req = &ClusterPostVotingConfigExclusionsReq{}
 	}

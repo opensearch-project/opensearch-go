@@ -505,7 +505,7 @@ func (u CatRecoveryRecordStopTimeMillis) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-plugins/
-func (c catClient) Recovery(ctx context.Context, req *CatRecoveryReq) (*CatRecoveryResp, error) {
+func (c CatClient) Recovery(ctx context.Context, req *CatRecoveryReq) (*CatRecoveryResp, error) {
 	if req == nil {
 		req = &CatRecoveryReq{}
 	}

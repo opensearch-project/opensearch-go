@@ -264,7 +264,7 @@ func (r *IndexResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/index-document/
-func (c documentClient) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
+func (c DocumentClient) Index(ctx context.Context, req IndexReq) (*IndexResp, error) {
 	var (
 		data IndexResp
 		err  error

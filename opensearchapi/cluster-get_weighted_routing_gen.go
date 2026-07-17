@@ -124,7 +124,7 @@ type ClusterWeightedRoutingWeightsBase struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-awareness/#example-getting-weights-for-all-zones
-func (c clusterClient) GetWeightedRouting(ctx context.Context, req ClusterGetWeightedRoutingReq) (*ClusterGetWeightedRoutingResp, error) {
+func (c ClusterClient) GetWeightedRouting(ctx context.Context, req ClusterGetWeightedRoutingReq) (*ClusterGetWeightedRoutingResp, error) {
 	var (
 		data ClusterGetWeightedRoutingResp
 		err  error

@@ -148,7 +148,7 @@ func (r IndicesExistsParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/exists/
-func (c indicesClient) Exists(ctx context.Context, req *IndicesExistsReq) (*opensearch.Response, error) {
+func (c IndicesClient) Exists(ctx context.Context, req *IndicesExistsReq) (*opensearch.Response, error) {
 	if req == nil {
 		req = &IndicesExistsReq{}
 	}

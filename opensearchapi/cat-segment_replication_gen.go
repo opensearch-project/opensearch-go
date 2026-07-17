@@ -267,7 +267,7 @@ type CatSegmentReplicationRecord struct {
 // Available: >= 2.6.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segment-replication/
-func (c catClient) SegmentReplication(ctx context.Context, req *CatSegmentReplicationReq) (*CatSegmentReplicationResp, error) {
+func (c CatClient) SegmentReplication(ctx context.Context, req *CatSegmentReplicationReq) (*CatSegmentReplicationResp, error) {
 	if req == nil {
 		req = &CatSegmentReplicationReq{}
 	}

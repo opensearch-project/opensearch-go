@@ -175,7 +175,7 @@ type IndicesResolveIndexItem struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveIndexReq) (*IndicesResolveIndexResp, error) {
+func (c IndicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveIndexReq) (*IndicesResolveIndexResp, error) {
 	if req == nil {
 		req = &IndicesResolveIndexReq{}
 	}

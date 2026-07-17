@@ -171,7 +171,7 @@ type CatNodeattrsNodeAttributesRecord struct {
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-nodeattrs/
-func (c catClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNodeattrsResp, error) {
+func (c CatClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNodeattrsResp, error) {
 	if req == nil {
 		req = &CatNodeattrsReq{}
 	}

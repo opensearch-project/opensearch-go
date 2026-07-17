@@ -143,7 +143,7 @@ func (r SnapshotGetResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c snapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotGetResp, error) {
+func (c SnapshotClient) Get(ctx context.Context, req SnapshotGetReq) (*SnapshotGetResp, error) {
 	var (
 		data SnapshotGetResp
 		err  error

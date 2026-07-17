@@ -19,35 +19,35 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client          *opensearch.Client
-	Agent           agentClient
-	AgenticMemory   agenticMemoryClient
-	Connector       connectorClient
-	Controller      controllerClient
-	Memory          memoryClient
-	MemoryContainer memoryContainerClient
-	Message         messageClient
-	Model           modelClient
-	ModelGroup      modelGroupClient
-	ModelMeta       modelMetaClient
-	Task            taskClient
-	Tool            toolClient
+	Agent           AgentClient
+	AgenticMemory   AgenticMemoryClient
+	Connector       ConnectorClient
+	Controller      ControllerClient
+	Memory          MemoryClient
+	MemoryContainer MemoryContainerClient
+	Message         MessageClient
+	Model           ModelClient
+	ModelGroup      ModelGroupClient
+	ModelMeta       ModelMetaClient
+	Task            TaskClient
+	Tool            ToolClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Agent = agentClient{client: c}
-	c.AgenticMemory = agenticMemoryClient{client: c}
-	c.Connector = connectorClient{client: c}
-	c.Controller = controllerClient{client: c}
-	c.Memory = memoryClient{client: c}
-	c.MemoryContainer = memoryContainerClient{client: c}
-	c.Message = messageClient{client: c}
-	c.Model = modelClient{client: c}
-	c.ModelGroup = modelGroupClient{client: c}
-	c.ModelMeta = modelMetaClient{client: c}
-	c.Task = taskClient{client: c}
-	c.Tool = toolClient{client: c}
+	c.Agent = AgentClient{client: c}
+	c.AgenticMemory = AgenticMemoryClient{client: c}
+	c.Connector = ConnectorClient{client: c}
+	c.Controller = ControllerClient{client: c}
+	c.Memory = MemoryClient{client: c}
+	c.MemoryContainer = MemoryContainerClient{client: c}
+	c.Message = MessageClient{client: c}
+	c.Model = ModelClient{client: c}
+	c.ModelGroup = ModelGroupClient{client: c}
+	c.ModelMeta = ModelMetaClient{client: c}
+	c.Task = TaskClient{client: c}
+	c.Tool = ToolClient{client: c}
 	return c
 }
 
@@ -73,51 +73,87 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type agentClient struct {
+// AgentClient groups a related subset of this plugin's API. AgentClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type AgentClient struct {
 	client *Client
 }
 
-type agenticMemoryClient struct {
+// AgenticMemoryClient groups a related subset of this plugin's API. AgenticMemoryClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type AgenticMemoryClient struct {
 	client *Client
 }
 
-type connectorClient struct {
+// ConnectorClient groups a related subset of this plugin's API. ConnectorClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ConnectorClient struct {
 	client *Client
 }
 
-type controllerClient struct {
+// ControllerClient groups a related subset of this plugin's API. ControllerClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ControllerClient struct {
 	client *Client
 }
 
-type memoryClient struct {
+// MemoryClient groups a related subset of this plugin's API. MemoryClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type MemoryClient struct {
 	client *Client
 }
 
-type memoryContainerClient struct {
+// MemoryContainerClient groups a related subset of this plugin's API. MemoryContainerClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type MemoryContainerClient struct {
 	client *Client
 }
 
-type messageClient struct {
+// MessageClient groups a related subset of this plugin's API. MessageClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type MessageClient struct {
 	client *Client
 }
 
-type modelClient struct {
+// ModelClient groups a related subset of this plugin's API. ModelClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ModelClient struct {
 	client *Client
 }
 
-type modelGroupClient struct {
+// ModelGroupClient groups a related subset of this plugin's API. ModelGroupClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ModelGroupClient struct {
 	client *Client
 }
 
-type modelMetaClient struct {
+// ModelMetaClient groups a related subset of this plugin's API. ModelMetaClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ModelMetaClient struct {
 	client *Client
 }
 
-type taskClient struct {
+// TaskClient groups a related subset of this plugin's API. TaskClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type TaskClient struct {
 	client *Client
 }
 
-type toolClient struct {
+// ToolClient groups a related subset of this plugin's API. ToolClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ToolClient struct {
 	client *Client
 }
 
@@ -311,7 +347,7 @@ func (c *Client) UploadChunk(ctx context.Context, req UploadChunkReq) (*UploadCh
 // POST /_plugins/_ml/memory_containers/{memory_container_id}/memories
 //
 // Available: >= 3.3.0.
-func (c agenticMemoryClient) AddAgenticMemory(ctx context.Context, req AddAgenticMemoryReq) (*AddAgenticMemoryResp, error) {
+func (c AgenticMemoryClient) AddAgenticMemory(ctx context.Context, req AddAgenticMemoryReq) (*AddAgenticMemoryResp, error) {
 	var resp AddAgenticMemoryResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -324,7 +360,7 @@ func (c agenticMemoryClient) AddAgenticMemory(ctx context.Context, req AddAgenti
 // POST /_plugins/_ml/models/{model_id}/chunk/{chunk_number}
 //
 // Deprecated: since 2.7.0. Use `upload_chunk` instead.
-func (c modelClient) ChunkModel(ctx context.Context, req ChunkModelReq) (*ChunkModelResp, error) {
+func (c ModelClient) ChunkModel(ctx context.Context, req ChunkModelReq) (*ChunkModelResp, error) {
 	var resp ChunkModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -335,7 +371,7 @@ func (c modelClient) ChunkModel(ctx context.Context, req ChunkModelReq) (*ChunkM
 // CreateConnector creates a standalone connector.
 //
 // POST /_plugins/_ml/connectors/_create
-func (c connectorClient) CreateConnector(ctx context.Context, req *CreateConnectorReq) (*CreateConnectorResp, error) {
+func (c ConnectorClient) CreateConnector(ctx context.Context, req *CreateConnectorReq) (*CreateConnectorResp, error) {
 	if req == nil {
 		req = &CreateConnectorReq{}
 	}
@@ -351,7 +387,7 @@ func (c connectorClient) CreateConnector(ctx context.Context, req *CreateConnect
 // POST /_plugins/_ml/controllers/{model_id}
 //
 // Available: >= 2.12.0.
-func (c controllerClient) CreateController(ctx context.Context, req CreateControllerReq) (*CreateControllerResp, error) {
+func (c ControllerClient) CreateController(ctx context.Context, req CreateControllerReq) (*CreateControllerResp, error) {
 	var resp CreateControllerResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -364,7 +400,7 @@ func (c controllerClient) CreateController(ctx context.Context, req CreateContro
 // POST /_plugins/_ml/memory
 //
 // Available: >= 2.12.0.
-func (c memoryClient) CreateMemory(ctx context.Context, req *CreateMemoryReq) (*CreateMemoryResp, error) {
+func (c MemoryClient) CreateMemory(ctx context.Context, req *CreateMemoryReq) (*CreateMemoryResp, error) {
 	if req == nil {
 		req = &CreateMemoryReq{}
 	}
@@ -380,7 +416,7 @@ func (c memoryClient) CreateMemory(ctx context.Context, req *CreateMemoryReq) (*
 // POST /_plugins/_ml/memory_containers/_create
 //
 // Available: >= 3.3.0.
-func (c memoryContainerClient) CreateMemoryContainer(ctx context.Context, req *CreateMemoryContainerReq) (*CreateMemoryContainerResp, error) {
+func (c MemoryContainerClient) CreateMemoryContainer(ctx context.Context, req *CreateMemoryContainerReq) (*CreateMemoryContainerResp, error) {
 	if req == nil {
 		req = &CreateMemoryContainerReq{}
 	}
@@ -396,7 +432,7 @@ func (c memoryContainerClient) CreateMemoryContainer(ctx context.Context, req *C
 // POST /_plugins/_ml/memory/{memory_id}/messages
 //
 // Available: >= 2.12.0.
-func (c messageClient) CreateMessage(ctx context.Context, req CreateMessageReq) (*CreateMessageResp, error) {
+func (c MessageClient) CreateMessage(ctx context.Context, req CreateMessageReq) (*CreateMessageResp, error) {
 	var resp CreateMessageResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -409,7 +445,7 @@ func (c messageClient) CreateMessage(ctx context.Context, req CreateMessageReq) 
 // POST /_plugins/_ml/models/meta
 //
 // Deprecated: since 2.7.0. Use `_register_meta` instead.
-func (c modelMetaClient) CreateModelMeta(ctx context.Context, req *CreateModelMetaReq) (*CreateModelMetaResp, error) {
+func (c ModelMetaClient) CreateModelMeta(ctx context.Context, req *CreateModelMetaReq) (*CreateModelMetaResp, error) {
 	if req == nil {
 		req = &CreateModelMetaReq{}
 	}
@@ -425,7 +461,7 @@ func (c modelMetaClient) CreateModelMeta(ctx context.Context, req *CreateModelMe
 // DELETE /_plugins/_ml/agents/{agent_id}
 //
 // Available: >= 2.13.0.
-func (c agentClient) DeleteAgent(ctx context.Context, req DeleteAgentReq) (*DeleteAgentResp, error) {
+func (c AgentClient) DeleteAgent(ctx context.Context, req DeleteAgentReq) (*DeleteAgentResp, error) {
 	var resp DeleteAgentResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -438,7 +474,7 @@ func (c agentClient) DeleteAgent(ctx context.Context, req DeleteAgentReq) (*Dele
 // DELETE /_plugins/_ml/memory_containers/{memory_container_id}/memories/{type}/{id}
 //
 // Available: >= 3.3.0.
-func (c agenticMemoryClient) DeleteAgenticMemory(ctx context.Context, req DeleteAgenticMemoryReq) (*DeleteAgenticMemoryResp, error) {
+func (c AgenticMemoryClient) DeleteAgenticMemory(ctx context.Context, req DeleteAgenticMemoryReq) (*DeleteAgenticMemoryResp, error) {
 	var resp DeleteAgenticMemoryResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -449,7 +485,7 @@ func (c agenticMemoryClient) DeleteAgenticMemory(ctx context.Context, req Delete
 // DeleteConnector deletes a standalone connector.
 //
 // DELETE /_plugins/_ml/connectors/{connector_id}
-func (c connectorClient) DeleteConnector(ctx context.Context, req DeleteConnectorReq) (*DeleteConnectorResp, error) {
+func (c ConnectorClient) DeleteConnector(ctx context.Context, req DeleteConnectorReq) (*DeleteConnectorResp, error) {
 	var resp DeleteConnectorResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -462,7 +498,7 @@ func (c connectorClient) DeleteConnector(ctx context.Context, req DeleteConnecto
 // DELETE /_plugins/_ml/controllers/{model_id}
 //
 // Available: >= 2.12.0.
-func (c controllerClient) DeleteController(ctx context.Context, req DeleteControllerReq) (*DeleteControllerResp, error) {
+func (c ControllerClient) DeleteController(ctx context.Context, req DeleteControllerReq) (*DeleteControllerResp, error) {
 	var resp DeleteControllerResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -475,7 +511,7 @@ func (c controllerClient) DeleteController(ctx context.Context, req DeleteContro
 // DELETE /_plugins/_ml/memory/{memory_id}
 //
 // Available: >= 2.12.0.
-func (c memoryClient) DeleteMemory(ctx context.Context, req DeleteMemoryReq) (*DeleteMemoryResp, error) {
+func (c MemoryClient) DeleteMemory(ctx context.Context, req DeleteMemoryReq) (*DeleteMemoryResp, error) {
 	var resp DeleteMemoryResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -488,7 +524,7 @@ func (c memoryClient) DeleteMemory(ctx context.Context, req DeleteMemoryReq) (*D
 // DELETE /_plugins/_ml/memory_containers/{memory_container_id}
 //
 // Available: >= 3.3.0.
-func (c memoryContainerClient) DeleteMemoryContainer(ctx context.Context, req DeleteMemoryContainerReq) (*DeleteMemoryContainerResp, error) {
+func (c MemoryContainerClient) DeleteMemoryContainer(ctx context.Context, req DeleteMemoryContainerReq) (*DeleteMemoryContainerResp, error) {
 	var resp DeleteMemoryContainerResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -501,7 +537,7 @@ func (c memoryContainerClient) DeleteMemoryContainer(ctx context.Context, req De
 // DELETE /_plugins/_ml/models/{model_id}
 //
 // Available: >= 1.3.0.
-func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
+func (c ModelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -512,7 +548,7 @@ func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // DeleteModelGroup deletes a model group.
 //
 // DELETE /_plugins/_ml/model_groups/{model_group_id}
-func (c modelGroupClient) DeleteModelGroup(ctx context.Context, req DeleteModelGroupReq) (*DeleteModelGroupResp, error) {
+func (c ModelGroupClient) DeleteModelGroup(ctx context.Context, req DeleteModelGroupReq) (*DeleteModelGroupResp, error) {
 	var resp DeleteModelGroupResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -525,7 +561,7 @@ func (c modelGroupClient) DeleteModelGroup(ctx context.Context, req DeleteModelG
 // DELETE /_plugins/_ml/tasks/{task_id}
 //
 // Available: >= 1.3.0.
-func (c taskClient) DeleteTask(ctx context.Context, req DeleteTaskReq) (*DeleteTaskResp, error) {
+func (c TaskClient) DeleteTask(ctx context.Context, req DeleteTaskReq) (*DeleteTaskResp, error) {
 	var resp DeleteTaskResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -538,7 +574,7 @@ func (c taskClient) DeleteTask(ctx context.Context, req DeleteTaskReq) (*DeleteT
 // POST /_plugins/_ml/models/{model_id}/_deploy
 //
 // Available: >= 2.7.0.
-func (c modelClient) DeployModel(ctx context.Context, req DeployModelReq) (*DeployModelResp, error) {
+func (c ModelClient) DeployModel(ctx context.Context, req DeployModelReq) (*DeployModelResp, error) {
 	var resp DeployModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -551,7 +587,7 @@ func (c modelClient) DeployModel(ctx context.Context, req DeployModelReq) (*Depl
 // POST /_plugins/_ml/agents/{agent_id}/_execute
 //
 // Available: >= 2.13.0.
-func (c agentClient) ExecuteAgent(ctx context.Context, req ExecuteAgentReq) (*ExecuteAgentResp, error) {
+func (c AgentClient) ExecuteAgent(ctx context.Context, req ExecuteAgentReq) (*ExecuteAgentResp, error) {
 	var resp ExecuteAgentResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -564,7 +600,7 @@ func (c agentClient) ExecuteAgent(ctx context.Context, req ExecuteAgentReq) (*Ex
 // POST /_plugins/_ml/tools/_execute/{tool_name}
 //
 // Available: >= 3.3.0.
-func (c toolClient) ExecuteTool(ctx context.Context, req ExecuteToolReq) (*ExecuteToolResp, error) {
+func (c ToolClient) ExecuteTool(ctx context.Context, req ExecuteToolReq) (*ExecuteToolResp, error) {
 	var resp ExecuteToolResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -577,7 +613,7 @@ func (c toolClient) ExecuteTool(ctx context.Context, req ExecuteToolReq) (*Execu
 // GET /_plugins/_ml/agents/{agent_id}
 //
 // Available: >= 2.13.0.
-func (c agentClient) GetAgent(ctx context.Context, req GetAgentReq) (*GetAgentResp, error) {
+func (c AgentClient) GetAgent(ctx context.Context, req GetAgentReq) (*GetAgentResp, error) {
 	var resp GetAgentResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -590,7 +626,7 @@ func (c agentClient) GetAgent(ctx context.Context, req GetAgentReq) (*GetAgentRe
 // GET /_plugins/_ml/memory_containers/{memory_container_id}/memories/{type}/{id}
 //
 // Available: >= 3.3.0.
-func (c agenticMemoryClient) GetAgenticMemory(ctx context.Context, req GetAgenticMemoryReq) (*GetAgenticMemoryResp, error) {
+func (c AgenticMemoryClient) GetAgenticMemory(ctx context.Context, req GetAgenticMemoryReq) (*GetAgenticMemoryResp, error) {
 	var resp GetAgenticMemoryResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -603,7 +639,7 @@ func (c agenticMemoryClient) GetAgenticMemory(ctx context.Context, req GetAgenti
 // GET /_plugins/_ml/memory
 //
 // Available: >= 2.12.0.
-func (c memoryClient) GetAllMemories(ctx context.Context, req *GetAllMemoriesReq) (*GetAllMemoriesResp, error) {
+func (c MemoryClient) GetAllMemories(ctx context.Context, req *GetAllMemoriesReq) (*GetAllMemoriesResp, error) {
 	if req == nil {
 		req = &GetAllMemoriesReq{}
 	}
@@ -619,7 +655,7 @@ func (c memoryClient) GetAllMemories(ctx context.Context, req *GetAllMemoriesReq
 // GET /_plugins/_ml/memory/{memory_id}/messages
 //
 // Available: >= 2.12.0.
-func (c messageClient) GetAllMessages(ctx context.Context, req GetAllMessagesReq) (*GetAllMessagesResp, error) {
+func (c MessageClient) GetAllMessages(ctx context.Context, req GetAllMessagesReq) (*GetAllMessagesResp, error) {
 	var resp GetAllMessagesResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -632,7 +668,7 @@ func (c messageClient) GetAllMessages(ctx context.Context, req GetAllMessagesReq
 // GET /_plugins/_ml/tools
 //
 // Available: >= 2.12.0.
-func (c toolClient) GetAllTools(ctx context.Context, req *GetAllToolsReq) (*GetAllToolsResp, error) {
+func (c ToolClient) GetAllTools(ctx context.Context, req *GetAllToolsReq) (*GetAllToolsResp, error) {
 	if req == nil {
 		req = &GetAllToolsReq{}
 	}
@@ -648,7 +684,7 @@ func (c toolClient) GetAllTools(ctx context.Context, req *GetAllToolsReq) (*GetA
 // GET /_plugins/_ml/connectors/{connector_id}
 //
 // Available: >= 2.11.0.
-func (c connectorClient) GetConnector(ctx context.Context, req GetConnectorReq) (*GetConnectorResp, error) {
+func (c ConnectorClient) GetConnector(ctx context.Context, req GetConnectorReq) (*GetConnectorResp, error) {
 	var resp GetConnectorResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -661,7 +697,7 @@ func (c connectorClient) GetConnector(ctx context.Context, req GetConnectorReq) 
 // GET /_plugins/_ml/controllers/{model_id}
 //
 // Available: >= 2.12.0.
-func (c controllerClient) GetController(ctx context.Context, req GetControllerReq) (*GetControllerResp, error) {
+func (c ControllerClient) GetController(ctx context.Context, req GetControllerReq) (*GetControllerResp, error) {
 	var resp GetControllerResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -674,7 +710,7 @@ func (c controllerClient) GetController(ctx context.Context, req GetControllerRe
 // GET /_plugins/_ml/memory/{memory_id}
 //
 // Available: >= 2.12.0.
-func (c memoryClient) GetMemory(ctx context.Context, req GetMemoryReq) (*GetMemoryResp, error) {
+func (c MemoryClient) GetMemory(ctx context.Context, req GetMemoryReq) (*GetMemoryResp, error) {
 	var resp GetMemoryResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -687,7 +723,7 @@ func (c memoryClient) GetMemory(ctx context.Context, req GetMemoryReq) (*GetMemo
 // GET /_plugins/_ml/memory_containers/{memory_container_id}
 //
 // Available: >= 3.3.0.
-func (c memoryContainerClient) GetMemoryContainer(ctx context.Context, req GetMemoryContainerReq) (*GetMemoryContainerResp, error) {
+func (c MemoryContainerClient) GetMemoryContainer(ctx context.Context, req GetMemoryContainerReq) (*GetMemoryContainerResp, error) {
 	var resp GetMemoryContainerResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -700,7 +736,7 @@ func (c memoryContainerClient) GetMemoryContainer(ctx context.Context, req GetMe
 // GET /_plugins/_ml/memory/message/{message_id}
 //
 // Available: >= 2.12.0.
-func (c messageClient) GetMessage(ctx context.Context, req GetMessageReq) (*GetMessageResp, error) {
+func (c MessageClient) GetMessage(ctx context.Context, req GetMessageReq) (*GetMessageResp, error) {
 	var resp GetMessageResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -713,7 +749,7 @@ func (c messageClient) GetMessage(ctx context.Context, req GetMessageReq) (*GetM
 // GET /_plugins/_ml/models/{model_id}
 //
 // Available: >= 1.3.0.
-func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
+func (c ModelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -724,7 +760,7 @@ func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelRe
 // GetModelGroup retrieves a model group.
 //
 // GET /_plugins/_ml/model_groups/{model_group_id}
-func (c modelGroupClient) GetModelGroup(ctx context.Context, req GetModelGroupReq) (*GetModelGroupResp, error) {
+func (c ModelGroupClient) GetModelGroup(ctx context.Context, req GetModelGroupReq) (*GetModelGroupResp, error) {
 	var resp GetModelGroupResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -737,7 +773,7 @@ func (c modelGroupClient) GetModelGroup(ctx context.Context, req GetModelGroupRe
 // GET /_plugins/_ml/tasks/{task_id}
 //
 // Available: >= 1.3.0.
-func (c taskClient) GetTask(ctx context.Context, req GetTaskReq) (*GetTaskResp, error) {
+func (c TaskClient) GetTask(ctx context.Context, req GetTaskReq) (*GetTaskResp, error) {
 	var resp GetTaskResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -750,7 +786,7 @@ func (c taskClient) GetTask(ctx context.Context, req GetTaskReq) (*GetTaskResp, 
 // GET /_plugins/_ml/tools/{tool_name}
 //
 // Available: >= 2.12.0.
-func (c toolClient) GetTool(ctx context.Context, req GetToolReq) (*GetToolResp, error) {
+func (c ToolClient) GetTool(ctx context.Context, req GetToolReq) (*GetToolResp, error) {
 	var resp GetToolResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -763,7 +799,7 @@ func (c toolClient) GetTool(ctx context.Context, req GetToolReq) (*GetToolResp, 
 // POST /_plugins/_ml/models/{model_id}/_load
 //
 // Deprecated: since 2.7.0. Use `deploy_model` instead.
-func (c modelClient) LoadModel(ctx context.Context, req LoadModelReq) (*LoadModelResp, error) {
+func (c ModelClient) LoadModel(ctx context.Context, req LoadModelReq) (*LoadModelResp, error) {
 	var resp LoadModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -776,7 +812,7 @@ func (c modelClient) LoadModel(ctx context.Context, req LoadModelReq) (*LoadMode
 // POST /_plugins/_ml/models/{model_id}/_predict
 //
 // Available: >= 2.12.0.
-func (c modelClient) PredictModel(ctx context.Context, req PredictModelReq) (*PredictModelResp, error) {
+func (c ModelClient) PredictModel(ctx context.Context, req PredictModelReq) (*PredictModelResp, error) {
 	var resp PredictModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -789,7 +825,7 @@ func (c modelClient) PredictModel(ctx context.Context, req PredictModelReq) (*Pr
 // POST /_plugins/_ml/agents/_register
 //
 // Available: >= 2.13.0.
-func (c agentClient) RegisterAgents(ctx context.Context, req *RegisterAgentsReq) (*RegisterAgentsResp, error) {
+func (c AgentClient) RegisterAgents(ctx context.Context, req *RegisterAgentsReq) (*RegisterAgentsResp, error) {
 	if req == nil {
 		req = &RegisterAgentsReq{}
 	}
@@ -805,7 +841,7 @@ func (c agentClient) RegisterAgents(ctx context.Context, req *RegisterAgentsReq)
 // POST /_plugins/_ml/models/_register
 //
 // Available: >= 2.7.0.
-func (c modelClient) RegisterModel(ctx context.Context, req *RegisterModelReq) (*RegisterModelResp, error) {
+func (c ModelClient) RegisterModel(ctx context.Context, req *RegisterModelReq) (*RegisterModelResp, error) {
 	if req == nil {
 		req = &RegisterModelReq{}
 	}
@@ -819,7 +855,7 @@ func (c modelClient) RegisterModel(ctx context.Context, req *RegisterModelReq) (
 // RegisterModelGroup registers a model group.
 //
 // POST /_plugins/_ml/model_groups/_register
-func (c modelGroupClient) RegisterModelGroup(ctx context.Context, req *RegisterModelGroupReq) (*RegisterModelGroupResp, error) {
+func (c ModelGroupClient) RegisterModelGroup(ctx context.Context, req *RegisterModelGroupReq) (*RegisterModelGroupResp, error) {
 	if req == nil {
 		req = &RegisterModelGroupReq{}
 	}
@@ -835,7 +871,7 @@ func (c modelGroupClient) RegisterModelGroup(ctx context.Context, req *RegisterM
 // POST /_plugins/_ml/models/_register_meta
 //
 // Available: >= 2.7.0.
-func (c modelMetaClient) RegisterModelMeta(ctx context.Context, req *RegisterModelMetaReq) (*RegisterModelMetaResp, error) {
+func (c ModelMetaClient) RegisterModelMeta(ctx context.Context, req *RegisterModelMetaReq) (*RegisterModelMetaResp, error) {
 	if req == nil {
 		req = &RegisterModelMetaReq{}
 	}
@@ -851,7 +887,7 @@ func (c modelMetaClient) RegisterModelMeta(ctx context.Context, req *RegisterMod
 // GET /_plugins/_ml/memory_containers/{memory_container_id}/memories/{type}/_search
 //
 // Available: >= 3.3.0.
-func (c agenticMemoryClient) SearchAgenticMemory(ctx context.Context, req SearchAgenticMemoryReq) (*SearchAgenticMemoryResp, error) {
+func (c AgenticMemoryClient) SearchAgenticMemory(ctx context.Context, req SearchAgenticMemoryReq) (*SearchAgenticMemoryResp, error) {
 	var resp SearchAgenticMemoryResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -866,7 +902,7 @@ func (c agenticMemoryClient) SearchAgenticMemory(ctx context.Context, req Search
 // Methods: GET, POST
 //
 // Available: >= 2.13.0.
-func (c agentClient) SearchAgents(ctx context.Context, req *SearchAgentsReq) (*SearchAgentsResp, error) {
+func (c AgentClient) SearchAgents(ctx context.Context, req *SearchAgentsReq) (*SearchAgentsResp, error) {
 	if req == nil {
 		req = &SearchAgentsReq{}
 	}
@@ -884,7 +920,7 @@ func (c agentClient) SearchAgents(ctx context.Context, req *SearchAgentsReq) (*S
 // Methods: GET, POST
 //
 // Available: >= 2.11.0.
-func (c connectorClient) SearchConnectors(ctx context.Context, req *SearchConnectorsReq) (*SearchConnectorsResp, error) {
+func (c ConnectorClient) SearchConnectors(ctx context.Context, req *SearchConnectorsReq) (*SearchConnectorsResp, error) {
 	if req == nil {
 		req = &SearchConnectorsReq{}
 	}
@@ -902,7 +938,7 @@ func (c connectorClient) SearchConnectors(ctx context.Context, req *SearchConnec
 // Methods: GET, POST
 //
 // Available: >= 2.12.0.
-func (c memoryClient) SearchMemory(ctx context.Context, req *SearchMemoryReq) (*SearchMemoryResp, error) {
+func (c MemoryClient) SearchMemory(ctx context.Context, req *SearchMemoryReq) (*SearchMemoryResp, error) {
 	if req == nil {
 		req = &SearchMemoryReq{}
 	}
@@ -920,7 +956,7 @@ func (c memoryClient) SearchMemory(ctx context.Context, req *SearchMemoryReq) (*
 // Methods: POST, GET
 //
 // Available: >= 3.3.0.
-func (c memoryContainerClient) SearchMemoryContainer(ctx context.Context, req *SearchMemoryContainerReq) (*SearchMemoryContainerResp, error) {
+func (c MemoryContainerClient) SearchMemoryContainer(ctx context.Context, req *SearchMemoryContainerReq) (*SearchMemoryContainerResp, error) {
 	if req == nil {
 		req = &SearchMemoryContainerReq{}
 	}
@@ -938,7 +974,7 @@ func (c memoryContainerClient) SearchMemoryContainer(ctx context.Context, req *S
 // Methods: GET, POST
 //
 // Available: >= 2.12.0.
-func (c messageClient) SearchMessage(ctx context.Context, req SearchMessageReq) (*SearchMessageResp, error) {
+func (c MessageClient) SearchMessage(ctx context.Context, req SearchMessageReq) (*SearchMessageResp, error) {
 	var resp SearchMessageResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -953,7 +989,7 @@ func (c messageClient) SearchMessage(ctx context.Context, req SearchMessageReq) 
 // Methods: GET, POST
 //
 // Available: >= 2.9.0.
-func (c modelGroupClient) SearchModelGroup(ctx context.Context, req *SearchModelGroupReq) (*SearchModelGroupResp, error) {
+func (c ModelGroupClient) SearchModelGroup(ctx context.Context, req *SearchModelGroupReq) (*SearchModelGroupResp, error) {
 	if req == nil {
 		req = &SearchModelGroupReq{}
 	}
@@ -971,7 +1007,7 @@ func (c modelGroupClient) SearchModelGroup(ctx context.Context, req *SearchModel
 // Methods: GET, POST
 //
 // Available: >= 1.3.0.
-func (c modelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error) {
+func (c ModelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error) {
 	if req == nil {
 		req = &SearchModelsReq{}
 	}
@@ -989,7 +1025,7 @@ func (c modelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*S
 // Methods: GET, POST
 //
 // Available: >= 1.3.0.
-func (c taskClient) SearchTasks(ctx context.Context, req *SearchTasksReq) (*SearchTasksResp, error) {
+func (c TaskClient) SearchTasks(ctx context.Context, req *SearchTasksReq) (*SearchTasksResp, error) {
 	if req == nil {
 		req = &SearchTasksReq{}
 	}
@@ -1005,7 +1041,7 @@ func (c taskClient) SearchTasks(ctx context.Context, req *SearchTasksReq) (*Sear
 // POST /_plugins/_ml/models/_undeploy
 //
 // Available: >= 2.7.0.
-func (c modelClient) UndeployModel(ctx context.Context, req UndeployModelReq) (*UndeployModelResp, error) {
+func (c ModelClient) UndeployModel(ctx context.Context, req UndeployModelReq) (*UndeployModelResp, error) {
 	var resp UndeployModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -1018,7 +1054,7 @@ func (c modelClient) UndeployModel(ctx context.Context, req UndeployModelReq) (*
 // POST /_plugins/_ml/models/_unload
 //
 // Deprecated: since 2.7.0. Use `undeploy_model` instead.
-func (c modelClient) UnloadModel(ctx context.Context, req UnloadModelReq) (*UnloadModelResp, error) {
+func (c ModelClient) UnloadModel(ctx context.Context, req UnloadModelReq) (*UnloadModelResp, error) {
 	var resp UnloadModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
@@ -1031,7 +1067,7 @@ func (c modelClient) UnloadModel(ctx context.Context, req UnloadModelReq) (*Unlo
 // PUT /_plugins/_ml/memory_containers/{memory_container_id}/memories/{type}/{id}
 //
 // Available: >= 3.3.0.
-func (c agenticMemoryClient) UpdateAgenticMemory(ctx context.Context, req UpdateAgenticMemoryReq) (*UpdateAgenticMemoryResp, error) {
+func (c AgenticMemoryClient) UpdateAgenticMemory(ctx context.Context, req UpdateAgenticMemoryReq) (*UpdateAgenticMemoryResp, error) {
 	var resp UpdateAgenticMemoryResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1044,7 +1080,7 @@ func (c agenticMemoryClient) UpdateAgenticMemory(ctx context.Context, req Update
 // PUT /_plugins/_ml/connectors/{connector_id}
 //
 // Available: >= 2.12.0.
-func (c connectorClient) UpdateConnector(ctx context.Context, req UpdateConnectorReq) (*UpdateConnectorResp, error) {
+func (c ConnectorClient) UpdateConnector(ctx context.Context, req UpdateConnectorReq) (*UpdateConnectorResp, error) {
 	var resp UpdateConnectorResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1057,7 +1093,7 @@ func (c connectorClient) UpdateConnector(ctx context.Context, req UpdateConnecto
 // PUT /_plugins/_ml/controllers/{model_id}
 //
 // Available: >= 2.12.0.
-func (c controllerClient) UpdateController(ctx context.Context, req UpdateControllerReq) (*UpdateControllerResp, error) {
+func (c ControllerClient) UpdateController(ctx context.Context, req UpdateControllerReq) (*UpdateControllerResp, error) {
 	var resp UpdateControllerResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1070,7 +1106,7 @@ func (c controllerClient) UpdateController(ctx context.Context, req UpdateContro
 // PUT /_plugins/_ml/memory/{memory_id}
 //
 // Available: >= 2.12.0.
-func (c memoryClient) UpdateMemory(ctx context.Context, req UpdateMemoryReq) (*UpdateMemoryResp, error) {
+func (c MemoryClient) UpdateMemory(ctx context.Context, req UpdateMemoryReq) (*UpdateMemoryResp, error) {
 	var resp UpdateMemoryResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1083,7 +1119,7 @@ func (c memoryClient) UpdateMemory(ctx context.Context, req UpdateMemoryReq) (*U
 // PUT /_plugins/_ml/memory_containers/{memory_container_id}
 //
 // Available: >= 3.3.0.
-func (c memoryContainerClient) UpdateMemoryContainer(ctx context.Context, req UpdateMemoryContainerReq) (*UpdateMemoryContainerResp, error) {
+func (c MemoryContainerClient) UpdateMemoryContainer(ctx context.Context, req UpdateMemoryContainerReq) (*UpdateMemoryContainerResp, error) {
 	var resp UpdateMemoryContainerResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1096,7 +1132,7 @@ func (c memoryContainerClient) UpdateMemoryContainer(ctx context.Context, req Up
 // PUT /_plugins/_ml/memory/message/{message_id}
 //
 // Available: >= 2.12.0.
-func (c messageClient) UpdateMessage(ctx context.Context, req UpdateMessageReq) (*UpdateMessageResp, error) {
+func (c MessageClient) UpdateMessage(ctx context.Context, req UpdateMessageReq) (*UpdateMessageResp, error) {
 	var resp UpdateMessageResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1109,7 +1145,7 @@ func (c messageClient) UpdateMessage(ctx context.Context, req UpdateMessageReq) 
 // PUT /_plugins/_ml/models/{model_id}
 //
 // Available: >= 2.12.0.
-func (c modelClient) UpdateModel(ctx context.Context, req UpdateModelReq) (*UpdateModelResp, error) {
+func (c ModelClient) UpdateModel(ctx context.Context, req UpdateModelReq) (*UpdateModelResp, error) {
 	var resp UpdateModelResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1122,7 +1158,7 @@ func (c modelClient) UpdateModel(ctx context.Context, req UpdateModelReq) (*Upda
 // PUT /_plugins/_ml/model_groups/{model_group_id}
 //
 // Available: >= 2.9.0.
-func (c modelGroupClient) UpdateModelGroup(ctx context.Context, req UpdateModelGroupReq) (*UpdateModelGroupResp, error) {
+func (c ModelGroupClient) UpdateModelGroup(ctx context.Context, req UpdateModelGroupReq) (*UpdateModelGroupResp, error) {
 	var resp UpdateModelGroupResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
@@ -1135,7 +1171,7 @@ func (c modelGroupClient) UpdateModelGroup(ctx context.Context, req UpdateModelG
 // POST /_plugins/_ml/models/_upload
 //
 // Deprecated: since 2.7.0. Use `register_model` instead.
-func (c modelClient) UploadModel(ctx context.Context, req *UploadModelReq) (*UploadModelResp, error) {
+func (c ModelClient) UploadModel(ctx context.Context, req *UploadModelReq) (*UploadModelResp, error) {
 	if req == nil {
 		req = &UploadModelReq{}
 	}

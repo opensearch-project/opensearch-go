@@ -183,7 +183,7 @@ type IndicesGetFieldMappingTypeFieldMappings struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/field-types/index/
-func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
+func (c IndicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetFieldMappingReq{}
 	}
@@ -204,7 +204,7 @@ func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetField
 }
 
 // Deprecated: use IndicesGetFieldMapping via the parent client instead.
-func (c mappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
+func (c MappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetFieldMappingReq{}
 	}

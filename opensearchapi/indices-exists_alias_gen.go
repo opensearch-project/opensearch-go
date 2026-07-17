@@ -130,7 +130,7 @@ func (r IndicesExistsAliasParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ExistsAlias(ctx context.Context, req *IndicesExistsAliasReq) (*opensearch.Response, error) {
+func (c IndicesClient) ExistsAlias(ctx context.Context, req *IndicesExistsAliasReq) (*opensearch.Response, error) {
 	if req == nil {
 		req = &IndicesExistsAliasReq{}
 	}
@@ -139,7 +139,7 @@ func (c indicesClient) ExistsAlias(ctx context.Context, req *IndicesExistsAliasR
 }
 
 // Deprecated: use IndicesExistsAlias via the parent client instead.
-func (c aliasClient) Exists(ctx context.Context, req *IndicesExistsAliasReq) (*opensearch.Response, error) {
+func (c AliasClient) Exists(ctx context.Context, req *IndicesExistsAliasReq) (*opensearch.Response, error) {
 	if req == nil {
 		req = &IndicesExistsAliasReq{}
 	}

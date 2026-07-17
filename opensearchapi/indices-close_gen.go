@@ -176,7 +176,7 @@ type IndicesCloseShardResult struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/close-index/
-func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*IndicesCloseResp, error) {
+func (c IndicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*IndicesCloseResp, error) {
 	if req == nil {
 		req = &IndicesCloseReq{}
 	}

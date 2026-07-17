@@ -317,7 +317,7 @@ func (u CatHealthRecordEpoch) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-health/
-func (c catClient) Health(ctx context.Context, req *CatHealthReq) (*CatHealthResp, error) {
+func (c CatClient) Health(ctx context.Context, req *CatHealthReq) (*CatHealthResp, error) {
 	if req == nil {
 		req = &CatHealthReq{}
 	}

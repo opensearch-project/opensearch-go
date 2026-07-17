@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Model  modelClient
+	Model  ModelClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Model = modelClient{client: c}
+	c.Model = ModelClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type modelClient struct {
+// ModelClient groups a related subset of this plugin's API. ModelClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ModelClient struct {
 	client *Client
 }
 
@@ -98,7 +101,7 @@ func (c *Client) Warmup(ctx context.Context, req *WarmupReq) (*WarmupResp, error
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#delete-a-model
-func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
+func (c ModelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -113,7 +116,7 @@ func (c modelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#get-a-model
-func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
+func (c ModelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -130,7 +133,7 @@ func (c modelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelRe
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#search-for-a-model
-func (c modelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error) {
+func (c ModelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*SearchModelsResp, error) {
 	if req == nil {
 		req = &SearchModelsReq{}
 	}
@@ -148,7 +151,7 @@ func (c modelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*S
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#train-a-model
-func (c modelClient) TrainModel(ctx context.Context, req TrainModelReq) (*TrainModelResp, error) {
+func (c ModelClient) TrainModel(ctx context.Context, req TrainModelReq) (*TrainModelResp, error) {
 	var resp TrainModelResp
 	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err

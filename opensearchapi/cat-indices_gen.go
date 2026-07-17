@@ -191,7 +191,7 @@ func (r CatIndicesResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-indices/
-func (c catClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndicesResp, error) {
+func (c CatClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndicesResp, error) {
 	if req == nil {
 		req = &CatIndicesReq{}
 	}

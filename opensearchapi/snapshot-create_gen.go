@@ -201,7 +201,7 @@ type SnapshotCreateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-snapshot/
-func (c snapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*SnapshotCreateResp, error) {
+func (c SnapshotClient) Create(ctx context.Context, req SnapshotCreateReq) (*SnapshotCreateResp, error) {
 	var (
 		data SnapshotCreateResp
 		err  error

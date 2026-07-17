@@ -19,13 +19,13 @@ import (
 // Client provides methods for this plugin API.
 type Client struct {
 	Client *opensearch.Client
-	Object objectClient
+	Object ObjectClient
 }
 
 // NewClient creates a new plugin client wrapping the given opensearch.Client.
 func NewClient(client *opensearch.Client) *Client {
 	c := &Client{Client: client}
-	c.Object = objectClient{client: c}
+	c.Object = ObjectClient{client: c}
 	return c
 }
 
@@ -51,7 +51,10 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 	return resp, nil
 }
 
-type objectClient struct {
+// ObjectClient groups a related subset of this plugin's API. ObjectClient
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
+type ObjectClient struct {
 	client *Client
 }
 
@@ -76,7 +79,7 @@ func (c *Client) GetLocalstats(ctx context.Context, req *GetLocalstatsReq) (*Get
 // POST /_plugins/_observability/object
 //
 // Available: >= 1.1.0.
-func (c objectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*CreateObjectResp, error) {
+func (c ObjectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*CreateObjectResp, error) {
 	if req == nil {
 		req = &CreateObjectReq{}
 	}
@@ -92,7 +95,7 @@ func (c objectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*
 // DELETE /_plugins/_observability/object/{object_id}
 //
 // Available: >= 1.1.0.
-func (c objectClient) DeleteObject(ctx context.Context, req DeleteObjectReq) (*DeleteObjectResp, error) {
+func (c ObjectClient) DeleteObject(ctx context.Context, req DeleteObjectReq) (*DeleteObjectResp, error) {
 	var resp DeleteObjectResp
 	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
@@ -105,7 +108,7 @@ func (c objectClient) DeleteObject(ctx context.Context, req DeleteObjectReq) (*D
 // DELETE /_plugins/_observability/object
 //
 // Available: >= 1.1.0.
-func (c objectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) (*DeleteObjectsResp, error) {
+func (c ObjectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) (*DeleteObjectsResp, error) {
 	if req == nil {
 		req = &DeleteObjectsReq{}
 	}
@@ -121,7 +124,7 @@ func (c objectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) 
 // GET /_plugins/_observability/object/{object_id}
 //
 // Available: >= 1.1.0.
-func (c objectClient) GetObject(ctx context.Context, req GetObjectReq) (*GetObjectResp, error) {
+func (c ObjectClient) GetObject(ctx context.Context, req GetObjectReq) (*GetObjectResp, error) {
 	var resp GetObjectResp
 	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
@@ -134,7 +137,7 @@ func (c objectClient) GetObject(ctx context.Context, req GetObjectReq) (*GetObje
 // GET /_plugins/_observability/object
 //
 // Available: >= 1.1.0.
-func (c objectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*ListObjectsResp, error) {
+func (c ObjectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*ListObjectsResp, error) {
 	if req == nil {
 		req = &ListObjectsReq{}
 	}
@@ -150,7 +153,7 @@ func (c objectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*Li
 // PUT /_plugins/_observability/object/{object_id}
 //
 // Available: >= 1.1.0.
-func (c objectClient) UpdateObject(ctx context.Context, req UpdateObjectReq) (*UpdateObjectResp, error) {
+func (c ObjectClient) UpdateObject(ctx context.Context, req UpdateObjectReq) (*UpdateObjectResp, error) {
 	var resp UpdateObjectResp
 	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err

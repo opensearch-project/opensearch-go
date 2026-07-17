@@ -126,7 +126,7 @@ func (r DanglingIndicesImportDanglingIndexResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/dangling-index/
-func (c danglingClient) ImportDanglingIndex(ctx context.Context, req DanglingIndicesImportDanglingIndexReq) (*DanglingIndicesImportDanglingIndexResp, error) {
+func (c DanglingClient) ImportDanglingIndex(ctx context.Context, req DanglingIndicesImportDanglingIndexReq) (*DanglingIndicesImportDanglingIndexResp, error) {
 	var (
 		data DanglingIndicesImportDanglingIndexResp
 		err  error

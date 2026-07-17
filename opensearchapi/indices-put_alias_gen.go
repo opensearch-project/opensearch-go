@@ -178,7 +178,7 @@ type IndicesPutAliasBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-alias/
-func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
+func (c IndicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
 	var (
 		data IndicesPutAliasResp
 		err  error
@@ -195,7 +195,7 @@ func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*I
 }
 
 // Deprecated: use IndicesPutAlias via the parent client instead.
-func (c aliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
+func (c AliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
 	var (
 		data IndicesPutAliasResp
 		err  error
