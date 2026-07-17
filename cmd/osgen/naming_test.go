@@ -384,6 +384,13 @@ func TestSchemaTypeName(t *testing.T) {
 			want:      "MSearchMultiSearchResultResponsesItem",
 		},
 		{name: "termvectors compound", schemaKey: "_common___TermvectorsTerm", want: "TermVectorsTerm"},
+
+		// typeNameOverrides: the search "profile" container is renamed to avoid
+		// colliding with the per-search SearchProfile item, which keeps its
+		// heuristic-derived name.
+		{name: "override profile container", schemaKey: "_core.search___Profile", want: "SearchProfileResult"},
+		{name: "override sibling keeps derived name", schemaKey: "_core.search___SearchProfile", want: "SearchProfile"},
+		{name: "override ignored for resp body", schemaKey: "_core.search___Profile", isRespBody: true, want: "SearchResp"},
 	}
 
 	for _, tt := range tests {
@@ -392,6 +399,43 @@ func TestSchemaTypeName(t *testing.T) {
 			require.Equal(t, tt.want, schemaTypeName(tt.schemaKey, tt.isRespBody))
 		})
 	}
+}
+
+// TestSchemaTypeName_UnenumeratedCollisionPanics verifies the completeness
+// guard: a ref that is not listed in a collision group but whose heuristic
+// derives a name that IS a collision key must panic, rather than silently
+// registering (and dropping) a type. The synthetic refs below lack the "_core."
+// prefix of the real overridden refs, so they miss the override lookup and fall
+// through to the heuristic, which derives the collision key "SearchProfile".
+func TestSchemaTypeName_UnenumeratedCollisionPanics(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		schemaKey string
+	}{
+		{name: "local Profile re-prepends prefix", schemaKey: "search___Profile"},
+		{name: "local SearchProfile de-stutters then re-prepends", schemaKey: "search___SearchProfile"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			want := `schemaTypeName: ref "` + tt.schemaKey +
+				`" derives collision name "SearchProfile" but is not listed in ` +
+				`typeNameCollisions["SearchProfile"]; add it to that group`
+			require.PanicsWithValue(t, want, func() { schemaTypeName(tt.schemaKey, false) })
+		})
+	}
+}
+
+// TestSchemaTypeName_CollisionKeyAsRespBodyNoPanic verifies the guard does not
+// fire for response-body names: those are keyed on the operation, not the
+// schema, and are never consulted against the collision table.
+func TestSchemaTypeName_CollisionKeyAsRespBodyNoPanic(t *testing.T) {
+	t.Parallel()
+
+	require.NotPanics(t, func() { schemaTypeName("search___Profile", true) })
 }
 
 func TestIsScalarAlias(t *testing.T) {

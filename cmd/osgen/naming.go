@@ -386,6 +386,40 @@ func isPredeclaredIdent(s string) bool {
 // When isRespBody is true, the function returns the response body type name
 // (e.g. "ClusterHealthResp") regardless of the local schema name.
 func schemaTypeName(schemaKey string, isRespBody bool) string {
+	// An explicit override wins over every heuristic below. This is reserved
+	// for schema refs whose derived name collides with another ref's derived
+	// name (see typeNameCollisions); each entry documents the specific clash it
+	// resolves. Overrides are only consulted for structural type names, not
+	// response-body names (which are keyed on the operation, not the schema).
+	if !isRespBody {
+		if name, ok := typeNameOverrides[schemaKey]; ok {
+			return name
+		}
+	}
+
+	name := deriveSchemaTypeName(schemaKey, isRespBody)
+
+	// Completeness guard. typeNameCollisions is keyed by the colliding name, and
+	// lists every ref that derives it -- so every legitimate participant returns
+	// early at the override lookup above. If the heuristic still produces a name
+	// that is a known collision key, this ref derives a colliding name but is not
+	// enumerated in that group (e.g. a third schema the de-stutter happens to map
+	// onto an existing pair). Registering it would silently drop a type, so fail
+	// loudly: the collision group must list every candidate.
+	if !isRespBody {
+		if _, isCollision := typeNameCollisions[name]; isCollision {
+			panic(fmt.Sprintf("schemaTypeName: ref %q derives collision name %q but is not listed in typeNameCollisions[%q]; add it to that group", schemaKey, name, name))
+		}
+	}
+
+	return name
+}
+
+// deriveSchemaTypeName applies the group-prefix and de-stutter heuristics to a
+// schema key. It is the naming logic that typeNameCollisions overrides exist to
+// correct; schemaTypeName wraps it with the override lookup and completeness
+// guard.
+func deriveSchemaTypeName(schemaKey string, isRespBody bool) string {
 	groupPart, localPart, ok := strings.Cut(schemaKey, "___")
 	if !ok {
 		return pascalFromSegments(schemaKey)
@@ -459,6 +493,70 @@ func pascalFromSegments(s string) string {
 		sb.WriteString(titleSegment(p))
 	}
 	return applyIdiomaticAbbreviations(sb.String())
+}
+
+// typeNameCollisions groups schema refs whose heuristic-derived Go names
+// collide, keyed by the colliding name they all produce. Each group maps every
+// ref in the collision to its explicit Go name -- including the ref that keeps
+// the derived name (mapped to that same name) -- so the table is the
+// authoritative, self-documenting record of the clash: a reader never has to
+// know which side the heuristic happened to keep, and the surviving name is
+// pinned against a later heuristic change. Without disambiguation the type
+// registry silently drops all but one colliding ref, degrading those types to
+// json.RawMessage or mis-typing fields.
+//
+// buildTypeNameOverrides flattens this into the ref -> name lookup consulted by
+// schemaTypeName. Prefer generalizing the derivation when a rule can fix a whole
+// class; use this table only for genuine, spec-driven ambiguities. When a new
+// collision is reported at generation time, add its group here.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var typeNameCollisions = map[string]map[string]string{
+	// The search group has two distinct profile schemas whose derived names
+	// both resolve to "SearchProfile":
+	//   - _core.search___Profile ({shards: [...]}), the top-level container in a
+	//     search response's "profile" field, derives Search+Profile = SearchProfile.
+	//   - _core.search___SearchProfile ({collector, query, rewrite_time}), an item
+	//     of ShardProfile.searches, de-stutters SearchProfile -> Profile then
+	//     re-prepends the group prefix -> SearchProfile.
+	// Left to the heuristics, _core.search___Profile is dropped and the response's
+	// Profile field is mis-typed as the per-search item. Rename the container to
+	// SearchProfileResult; the per-search item keeps SearchProfile.
+	// Both schemas are defined in the upstream spec (Profile and SearchProfile):
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/_core.search.yaml
+	"SearchProfile": {
+		"_core.search___Profile":       "SearchProfileResult",
+		"_core.search___SearchProfile": "SearchProfile",
+	},
+}
+
+// typeNameOverrides is the ref -> explicit Go name lookup consulted by
+// schemaTypeName, flattened from typeNameCollisions.
+//
+//nolint:gochecknoglobals // derived once from typeNameCollisions at init
+var typeNameOverrides = buildTypeNameOverrides()
+
+// buildTypeNameOverrides flattens typeNameCollisions into a ref -> name map. It
+// panics on a malformed table (the same ref in two collision groups, or two
+// refs in one group resolving to the same name) since that is a generator
+// misconfiguration that would reintroduce the collision the table exists to
+// prevent.
+func buildTypeNameOverrides() map[string]string {
+	overrides := make(map[string]string)
+	for collision, group := range typeNameCollisions {
+		seenName := make(map[string]string, len(group))
+		for ref, name := range group {
+			if prev, dup := overrides[ref]; dup {
+				panic(fmt.Sprintf("typeNameCollisions: ref %q listed in two groups (%q and %q)", ref, prev, name))
+			}
+			if prevRef, dup := seenName[name]; dup {
+				panic(fmt.Sprintf("typeNameCollisions[%q]: refs %q and %q both resolve to %q", collision, prevRef, ref, name))
+			}
+			seenName[name] = ref
+			overrides[ref] = name
+		}
+	}
+	return overrides
 }
 
 // scalarAliases maps OpenAPI spec $ref suffixes to their Go primitive types.
