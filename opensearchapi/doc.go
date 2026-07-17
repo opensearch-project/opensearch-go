@@ -33,6 +33,46 @@ Invoke an operation by calling its method with a context and a Req value:
 
 	resp, err := client.Indices.Create(ctx, opensearchapi.IndicesCreateReq{Index: "movies"})
 
+# Sub-clients
+
+Operations are partitioned across the top-level Client and a set of sub-clients reached
+through exported fields on Client. The partition is exclusive: a sub-client exposes only
+its own operations, and the Client's own methods are not promoted onto sub-clients (nor the
+reverse). Each sub-client below has its own godoc page listing its full method set:
+
+  - client.Doc, client.Document reach [DocumentClient]: single-document and bulk operations (Get, Index, Bulk, Update, MGet, TermVectors, ...)
+  - client.Index, client.Indices, client.Indexes reach [IndicesClient]: index lifecycle, mappings, settings, aliases, templates, data streams
+  - client.Cat reaches [CatClient]: compact human-readable cluster/index/node tables (Health, Indices, Nodes, Shards, ...)
+  - client.Cluster reaches [ClusterClient]: cluster health, state, settings, routing, component templates
+  - client.Nodes reaches [NodesClient]: per-node info, stats, usage, hot threads
+  - client.Snapshot reaches [SnapshotClient]: snapshots and snapshot repositories
+  - client.Ingest reaches [IngestClient]: ingest pipelines
+  - client.Tasks reaches [TasksClient]: task management (List, Get, Cancel)
+  - client.Dangling reaches [DanglingClient]: dangling index recovery
+  - client.PIT, client.PointInTime reach [PointInTimeClient]: point-in-time search contexts
+  - client.Scroll reaches [ScrollClient]: scroll search contexts
+  - client.SearchPipeline reaches [SearchPipelineClient]: search pipelines
+
+The Indices and Snapshot sub-clients also carry nested sub-clients that predate the flat
+methods and are retained for backward compatibility: client.Indices.Alias, .Mapping, and
+.Settings ([AliasClient], [MappingClient], [SettingsClient]), and
+client.Snapshot.Repository ([RepositoryClient]). Their methods are deprecated in favor of
+the equivalent flat methods on the parent (e.g. prefer client.Indices.GetAlias over
+client.Indices.Alias.Get).
+
+The top-level Client itself holds the cross-cutting query and search operations that do not
+belong to a single resource family: Search, MSearch, SearchTemplate, Explain, Count,
+FieldCaps, Reindex, DeleteByQuery, UpdateByQuery, the script operations (PutScript,
+GetScript, ...), Info, and Ping. See [Client] for the full list.
+
+A few method names appear on both Client and a sub-client. Client.Bulk, Client.MGet, and
+Client.Update are backward-compatibility forwarders to the canonical methods on client.Doc.
+Client.Count, Client.Info, and Client.Restore are distinct operations from the same-named
+sub-client methods (they take different request types): Client.Count counts documents by
+query while CatClient.Count returns a cat table; Client.Info returns cluster info while
+NodesClient.Info returns node info; Client.Restore is a remote-store restore while
+SnapshotClient.Restore restores a snapshot.
+
 OpenSearch is a distributed system in which operations may partially succeed. By default
 the client surfaces partial failures as errors; see the ../guides/usage-error_handling.md guide
 for the canonical reference on partial-failure types and helpers. The ../guides/README.md

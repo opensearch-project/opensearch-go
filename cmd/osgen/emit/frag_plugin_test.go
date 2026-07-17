@@ -118,6 +118,8 @@ func TestNewPluginClientFile_Render(t *testing.T) {
 	require.Contains(t, output, "package ossecurity")
 	require.Contains(t, output, "func (c *Client) GetRoles")
 	require.Contains(t, output, "func (c *Client) CreateRole")
+	// A plugin package with no sub-clients gets no generated package doc.
+	require.NotContains(t, output, "Package ossecurity wraps")
 }
 
 func TestPluginClientFragment_WithSubClients(t *testing.T) {
@@ -209,4 +211,12 @@ func TestNewPluginClientFile_WithSubClients(t *testing.T) {
 	require.Contains(t, output, "func (c *Client) FlushCache(")
 	require.Contains(t, output, "func (c RoleClient) GetRole(")
 	require.Contains(t, output, "func (c RoleClient) CreateRole(")
+	// A plugin package with sub-clients gets a generated package doc that maps
+	// each Client field to its sub-client type.
+	require.Contains(t, output, "Package ossecurity wraps the OpenSearch ossecurity plugin API.")
+	require.Contains(t, output, "client.Role reaches [RoleClient]")
+	// The doc comment must attach to the package clause: the "// Package" line
+	// is immediately followed by the "package" clause with no blank line, so Go
+	// treats it as the package documentation rather than a floating comment.
+	require.Regexp(t, `(?m)^// Package ossecurity wraps[\s\S]*?\npackage ossecurity\n`, output)
 }
