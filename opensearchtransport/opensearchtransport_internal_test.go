@@ -1658,7 +1658,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 		require.Equal(t, 300*time.Second, pool.resurrectTimeoutMax)
 		require.Equal(t, 7, pool.resurrectTimeoutFactorCutoff)
 		require.Equal(t, 100*time.Millisecond, pool.minimumResurrectTimeout)
-		require.Equal(t, 3, pool.activeListCap)
+		require.Equal(t, 3, pool.mu.activeListCap)
 		require.Equal(t, int64(5), pool.standbyPromotionChecks)
 		require.NotNil(t, pool.ctx, "pool should inherit client context")
 		require.NotNil(t, pool.healthCheck, "pool should inherit client health check")

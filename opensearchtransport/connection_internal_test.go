@@ -418,9 +418,9 @@ func TestPolicySnapshot_HealthCheckingCount(t *testing.T) {
 	conns[3].setLifecycleBit(lcDead | lcHealthChecking)
 
 	cp := &multiServerPool{
-		name:          "test",
-		activeListCap: 2,
+		name: "test",
 	}
+	cp.mu.activeListCap = 2
 	cp.mu.ready = conns[:2]
 	cp.mu.activeCount = 2
 	cp.mu.dead = conns[2:]

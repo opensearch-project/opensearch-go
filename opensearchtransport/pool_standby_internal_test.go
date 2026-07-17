@@ -80,7 +80,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2"), newActiveConn("a3")},
 			nil,
 		)
-		pool.activeListCap = 0 // disabled
+		pool.mu.activeListCap = 0 // disabled
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -96,7 +96,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2"), newActiveConn("a3"), newActiveConn("a4")},
 			nil,
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		obs := newRecordingObserver()
 		var iface ConnectionObserver = obs
@@ -137,7 +137,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -225,7 +225,7 @@ func TestEnforceCapDemotesToStandby(t *testing.T) {
 		a3 := newActiveConn("a3")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, []*Connection{s1})
-		pool.activeListCap = 1
+		pool.mu.activeListCap = 1
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -256,7 +256,7 @@ func TestEnforceCapDemotesToStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -845,7 +845,7 @@ func TestEnforceCapWithWarmingConnections(t *testing.T) {
 		a3 := newActiveConn("a3-warming")
 
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, nil)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		// Set warming state AFTER pool creation (newStandbyPool overwrites state):
 		// flag warmup, then startWarmup populates the warmup managers.
@@ -869,7 +869,7 @@ func TestEnforceCapWithWarmingConnections(t *testing.T) {
 		a3 := newActiveConn("a3")
 
 		pool := newStandbyPool([]*Connection{a1, warming, a2, a3}, nil)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		// Set warming state AFTER pool creation: flag warmup, then startWarmup
 		// populates the warmup managers.
@@ -1010,7 +1010,7 @@ func TestPartitionConsistency(t *testing.T) {
 			conns[i] = newActiveConn("a" + string(rune('1'+i)))
 		}
 		pool := newStandbyPool(conns, nil)
-		pool.activeListCap = 3
+		pool.mu.activeListCap = 3
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
