@@ -1037,27 +1037,28 @@ Selection priority when `Next()` is called:
 Each connection's full state is packed into a single atomic 64-bit word, enabling lock-free reads and CAS-based updates:
 
 ```
-63              52 51                      26 25                       0
+63              51 50                      26 25                       0
 ┌────────────────┬──────────────────────────┬──────────────────────────┐
 │   lifecycle    │     warmupConfig         │      warmupState         │
-│   (12 bits)    │     (26 bits)            │      (26 bits)           │
+│   (13 bits)    │     (25 bits)            │      (26 bits)           │
 └────────────────┴──────────────────────────┴──────────────────────────┘
 ```
 
 The lifecycle bits encode readiness, position, and metadata flags:
 
-| Bit   | Name               | Meaning                               |
-| ----- | ------------------ | ------------------------------------- |
-| 0x01  | `lcReady`          | Connection believed functional        |
-| 0x02  | `lcUnknown`        | Status uncertain, needs health check  |
-| 0x04  | `lcActive`         | In active partition, serving requests |
-| 0x08  | `lcStandby`        | In standby partition, idle            |
-| 0x10  | `lcNeedsWarmup`    | Needs warmup before full traffic      |
-| 0x20  | `lcOverloaded`     | Node under excessive load, parked     |
-| 0x40  | `lcHealthChecking` | Health check goroutine running        |
-| 0x80  | `lcDraining`       | HTTP/2 GOAWAY received                |
-| 0x100 | `lcNeedsHardware`  | Needs `/_nodes/_local/http,os` call   |
-| 0x200 | `lcNeedsCatUpdate` | Shard placement stale                 |
+| Bit    | Name               | Meaning                                                                 |
+| ------ | ------------------ | ----------------------------------------------------------------------- |
+| 0x01   | `lcReady`          | Connection believed functional                                          |
+| 0x02   | `lcUnknown`        | Status uncertain, needs health check                                    |
+| 0x04   | `lcActive`         | In active partition, serving requests                                   |
+| 0x08   | `lcStandby`        | In standby partition, idle                                              |
+| 0x10   | `lcNeedsWarmup`    | Needs warmup before full traffic                                        |
+| 0x20   | `lcOverloaded`     | Node under excessive load, parked                                       |
+| 0x40   | `lcHealthChecking` | Health check goroutine running                                          |
+| 0x80   | `lcDraining`       | HTTP/2 GOAWAY received                                                  |
+| 0x100  | `lcNeedsHardware`  | Needs `/_nodes/_local/http,os` call                                     |
+| 0x200  | `lcNeedsCatUpdate` | Shard placement stale                                                   |
+| 0x1000 | `lcViable`         | Proven directly reachable at least once (zombie-resurrection candidate) |
 
 When neither position bit (`lcActive` | `lcStandby`) is set, the connection is on the dead list.
 
@@ -1114,6 +1115,16 @@ The lifecycle state machine governs how connections move between partitions:
 ```
 
 When a connection transitions to dead via `OnFailure()`, `lcNeedsHardware` is set so that hardware info is re-verified on resurrection -- the node may have been replaced with different hardware during the outage.
+
+### Zombie Connection Resurrection and Connection Viability
+
+When `Next()` finds no active or standby connection, it falls back to a **zombie**: a dead connection served blindly, without a fresh health check, on the chance the node has recovered since it was marked dead. This is the last line of defense against `ErrNoConnections` -- but it must not send every request into a black hole when a node is genuinely gone.
+
+The `lcViable` bit gates which dead connections are eligible zombies. A connection earns `lcViable` the first time it is proven directly reachable (a successful health check or request); seed connections (those built from the user-supplied `Addresses`) are always viable. A freshly discovered node whose `publish_address` is unroutable from the client -- a NAT'd or Service/NodePort topology, common in Kubernetes -- never earns the bit, so it is never served as a zombie and the request cascades to the seed-URL fallback instead of dying on an unreachable pod IP.
+
+Viability is **not** permanent. The discovery loop runs `resetDeadConnViability` each cycle: any non-seed connection that has been continuously dead longer than `VerifyDeadAfter` loses `lcViable`, so a node that never comes back stops being blindly retried and must health-check clean again before it is routed to. `VerifyDeadAfter` defaults to `15m`; set `Config.VerifyDeadAfter` (or `OPENSEARCH_GO_VERIFY_DEAD_AFTER`) to a negative value to disable the expiry entirely, or to an explicit window to tune it. See [Configuration Reference](#14-configuration-reference).
+
+A connection earns `lcViable` back through the ordinary resurrection health check, which begins with `GET /` and needs no privileges — so viability and its expiry work even with no `cluster:monitor/*` grants. Permissions matter for the _richer_ signals layered on top (topology, load-based scoring, shard placement): if the client's account is missing them, those features silently degrade and a dead node may take longer to be re-verified and resurrected.
 
 ### Warmup
 
@@ -1830,20 +1841,21 @@ Request routing reduces the fraction of requests that require coordinator proxyi
 
 ### Client Configuration
 
-| Setting                   | Default      | Env Override                              | Description                                            |
-| ------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------ |
-| `RequestTimeout`          | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip           |
-| `DiscoverNodesInterval`   | 5m           | --                                        | Full topology + shard refresh interval                 |
-| `HealthCheckTimeout`      | 5s           | --                                        | Per-request health check timeout                       |
-| `ResurrectTimeoutInitial` | 5s           | --                                        | Starting backoff for dead connections                  |
-| `ResurrectTimeoutMax`     | 30s          | --                                        | Cap before jitter                                      |
-| `MinimumResurrectTimeout` | 500ms        | --                                        | Absolute floor                                         |
-| `JitterScale`             | 0.5          | --                                        | Jitter multiplier for resurrection                     |
-| `MaxRetryClusterHealth`   | 4h           | --                                        | Retry interval for unavailable cluster health endpoint |
-| `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                 |
-| `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                     |
-| `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                |
-| `ShardCostConfig`         | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)            |
+| Setting                   | Default      | Env Override                              | Description                                                                                                                    |
+| ------------------------- | ------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `RequestTimeout`          | 0 (none)     | `OPENSEARCH_GO_REQUEST_TIMEOUT`           | Per-attempt timeout for each HTTP round-trip                                                                                   |
+| `DiscoverNodesInterval`   | 5m           | --                                        | Full topology + shard refresh interval                                                                                         |
+| `VerifyDeadAfter`         | 15m          | `OPENSEARCH_GO_VERIFY_DEAD_AFTER`         | Zombie-resurrection expiry: how long a proven-reachable connection stays a blind fallback candidate while dead (`<0` disables) |
+| `HealthCheckTimeout`      | 5s           | --                                        | Per-request health check timeout                                                                                               |
+| `ResurrectTimeoutInitial` | 5s           | --                                        | Starting backoff for dead connections                                                                                          |
+| `ResurrectTimeoutMax`     | 30s          | --                                        | Cap before jitter                                                                                                              |
+| `MinimumResurrectTimeout` | 500ms        | --                                        | Absolute floor                                                                                                                 |
+| `JitterScale`             | 0.5          | --                                        | Jitter multiplier for resurrection                                                                                             |
+| `MaxRetryClusterHealth`   | 4h           | --                                        | Retry interval for unavailable cluster health endpoint                                                                         |
+| `NodeStatsInterval`       | auto (5-30s) | `OPENSEARCH_GO_NODE_STATS_INTERVAL`       | Stats polling interval                                                                                                         |
+| `OverloadedHeapThreshold` | 85%          | `OPENSEARCH_GO_OVERLOADED_HEAP_THRESHOLD` | JVM heap threshold                                                                                                             |
+| `OverloadedBreakerRatio`  | 0.90         | `OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO`  | Breaker ratio threshold                                                                                                        |
+| `ShardCostConfig`         | (defaults)   | `OPENSEARCH_GO_SHARD_COST`                | Override shard cost multipliers (see below)                                                                                    |
 
 ### Router Options
 

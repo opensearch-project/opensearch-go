@@ -245,7 +245,7 @@ func TestSeedFallback(t *testing.T) {
 		// replaced by a singleServerPool holding the lone discovered node -- dead
 		// and still needing hardware, exactly as a node minted from /_nodes/http is.
 		podConn := &Connection{URL: podURL, URLString: podURL.String()}
-		podConn.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		podConn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 		tp.mu.Lock()
 		tp.mu.connectionPool = newSingleServerPool(podConn, nil)
 		tp.mu.Unlock()

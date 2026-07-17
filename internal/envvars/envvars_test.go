@@ -9,6 +9,7 @@ package envvars_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -59,6 +60,43 @@ func TestTruthyAndFalsy(t *testing.T) {
 			// Truthy and Falsy must never both return true for the same value.
 			require.False(t, envvars.Truthy(key) && envvars.Falsy(key),
 				"Truthy and Falsy must be mutually exclusive")
+		})
+	}
+}
+
+// TestParseVerifyDeadAfter covers the VerifyDeadAfter value parser. Booleans are
+// handled first (true => default, false => disabled); other values parse as a
+// duration or bare seconds. "Disabled" outcomes -- explicit false, empty, or a
+// non-positive duration -- return (0, nil); only an unparseable value returns a
+// non-nil error wrapping ErrInvalidVerifyDeadAfter.
+func TestParseVerifyDeadAfter(t *testing.T) {
+	tests := []struct {
+		name    string
+		val     string
+		wantDur time.Duration
+		wantErr error
+	}{
+		{"empty disabled", "", 0, nil},
+		{"bool true uses default", "true", envvars.VerifyDeadAfterDefault, nil},
+		{"bool 1 uses default", "1", envvars.VerifyDeadAfterDefault, nil},
+		{"bool false disabled", "false", 0, nil},
+		{"bool 0 disabled", "0", 0, nil},
+		{"duration minutes", "10m", 10 * time.Minute, nil},
+		{"duration seconds", "90s", 90 * time.Second, nil},
+		{"bare seconds", "600", 600 * time.Second, nil},
+		{"bare fractional seconds", "1.5", 1500 * time.Millisecond, nil},
+		{"negative duration disabled", "-5m", 0, nil},
+		{"unparseable errors", "notaduration", 0, envvars.ErrInvalidVerifyDeadAfter},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotDur, err := envvars.ParseVerifyDeadAfter(tt.val)
+			require.Equal(t, tt.wantDur, gotDur)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

@@ -59,7 +59,7 @@ func TestAppendToDeadWithLock_Invariants(t *testing.T) {
 			URL: &url.URL{Scheme: "http", Host: "node1:9200"},
 		}
 		// Start with lcActive -- no lcUnknown
-		c.state.Store(int64(newConnState(lcActive)))
+		c.setLifecycleBit(lcActive)
 
 		pool.appendToDeadWithLock(c)
 
@@ -72,7 +72,7 @@ func TestAppendToDeadWithLock_Invariants(t *testing.T) {
 		c := &Connection{
 			URL: &url.URL{Scheme: "http", Host: "node1:9200"},
 		}
-		c.state.Store(int64(newConnState(lcDead | lcNeedsWarmup | lcNeedsHardware)))
+		c.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
 
 		pool.appendToDeadWithLock(c)
 

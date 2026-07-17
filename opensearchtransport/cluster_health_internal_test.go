@@ -1295,7 +1295,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
@@ -1314,7 +1314,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		a1 := &Connection{URL: serverURL}
-		a1.state.Store(int64(newConnState(lcActive)))
+		a1.setLifecycleBit(lcActive)
 		s1 := newStandbyConn("backup")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
 
@@ -1334,7 +1334,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
@@ -1359,7 +1359,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive | lcOverloaded)))
+		conn.setLifecycleBit(lcActive | lcOverloaded)
 
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
@@ -1380,7 +1380,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcStandby | lcOverloaded)))
+		conn.setLifecycleBit(lcStandby | lcOverloaded)
 		conn.mu.Lock()
 		conn.storeOverloadedAt(time.Now())
 		conn.mu.Unlock()
@@ -1405,7 +1405,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
@@ -1424,7 +1424,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 		pool := newStandbyPool([]*Connection{conn}, nil)
 
 		client := newTestClientWithPool(server.Client().Transport, pool)
@@ -1451,7 +1451,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		// Use singleServerPool so the client calls with pool=nil.
 		singlePool := &singleServerPool{connection: conn}
@@ -1484,7 +1484,7 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 
 		client := newTestClientWithPool(server.Client().Transport, &singleServerPool{connection: conn})
 		client.overloadedHeapThreshold = 85
@@ -1517,7 +1517,7 @@ func TestPollNodeStats_SingleServerPool(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive)))
+		conn.setLifecycleBit(lcActive)
 		singlePool := &singleServerPool{connection: conn}
 
 		client := newTestClientWithPool(server.Client().Transport, singlePool)
@@ -1552,17 +1552,17 @@ func TestPollNodeStats_SingleServerPool(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		a1 := &Connection{URL: serverURL, Name: "a1"}
-		a1.state.Store(int64(newConnState(lcActive)))
+		a1.setLifecycleBit(lcActive)
 		a2 := &Connection{URL: serverURL, Name: "a2"}
-		a2.state.Store(int64(newConnState(lcActive)))
+		a2.setLifecycleBit(lcActive)
 
 		// Dead connection without overloaded flag should NOT be polled.
 		dead := &Connection{URL: serverURL, Name: "dead"}
-		dead.state.Store(int64(newConnState(lcDead)))
+		dead.setLifecycleBit(lcDead)
 
 		// Dead connection WITH overloaded flag SHOULD be polled.
 		overloaded := &Connection{URL: serverURL, Name: "overloaded"}
-		overloaded.state.Store(int64(newConnState(lcDead | lcOverloaded)))
+		overloaded.setLifecycleBit(lcDead | lcOverloaded)
 
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{a1, a2}
@@ -1841,7 +1841,7 @@ func TestFetchAndEvaluateNodeStats_DebugLogging(t *testing.T) {
 
 		serverURL, _ := url.Parse(server.URL)
 		conn := &Connection{URL: serverURL}
-		conn.state.Store(int64(newConnState(lcActive | lcOverloaded)))
+		conn.setLifecycleBit(lcActive | lcOverloaded)
 
 		pool := newStandbyPool([]*Connection{conn}, nil)
 		client := newTestClientWithPool(server.Client().Transport, pool)

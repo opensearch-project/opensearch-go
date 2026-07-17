@@ -87,6 +87,7 @@ func initSingleServerPool() *singleServerPool {
 				Scheme: "http",
 				Host:   "foo1",
 			},
+			seed: true,
 		},
 	}
 }
@@ -158,8 +159,10 @@ func createMultiServerPool(conns []*Connection) *multiServerPool {
 	ready := make([]*Connection, len(conns))
 	copy(ready, conns)
 	for _, conn := range ready {
-		conn.state.Store(int64(newConnState(lcActive)))
 		conn.mu.Lock()
+		// Reset reused conns to the lcActive baseline: set lcActive and clear
+		// any dead/standby/overloaded/warmup bits left by prior sub-runs.
+		conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby|lcOverloaded|lcNeedsWarmup)
 		conn.storeDeadSince(time.Time{}) // Reset from prior benchmark sub-runs
 		conn.mu.Unlock()
 	}
