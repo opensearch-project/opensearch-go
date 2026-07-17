@@ -61,17 +61,19 @@ Within `opensearchapi/`, the bulk, NDJSON, and single-document write operations 
 // v4
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  opensearchapi.SearchParams{Size: 20},
+    Params:  opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
 })
 
 // v5
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  &opensearchapi.SearchParams{Size: 20},
+    Params:  &opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
 })
 ```
 
-Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy.
+Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy. `Size` itself has been `*int` since v4.0.0 and is unchanged here -- only the surrounding `Params` value became a pointer.
+
+> On Go 1.26+ you can write `new(20)` in place of `opensearch.ToPointer(20)`; both produce a `*int`.
 
 ### Shared parameters move into embedded structs
 

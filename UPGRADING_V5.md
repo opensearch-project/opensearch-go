@@ -214,7 +214,7 @@ body, err := io.ReadAll(resp.Body)
 For responses decoded by `opensearch.Execute`, the buffered bytes are also available without consuming the body reader via the `RawBody() []byte` method (useful for inspection or comparison testing):
 
 ```go
-raw := resp.RawBody() // nil for streamed or error responses; read resp.Body directly there
+raw := resp.RawBody() // nil for streamed responses (Client.Stream); read resp.Body directly there
 ```
 
 ## `signer/aws` removed in favor of `signer/awsv2`
