@@ -10,6 +10,7 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Vacha Shah              | [VachaShah](https://github.com/VachaShah) | Amazon              |
 | Vijayan Balasubramanian | [VijayanB](https://github.com/VijayanB)   | Amazon              |
 | Sean Chittenden         | [sean-](https://github.com/sean-)         | CrowdStrike         |
+| Ryan Yuan               | [ryanyuan](https://github.com/ryanyuan)   | CrowdStrike         |
 
 ## Emeritus
 
