@@ -67,11 +67,13 @@ client.Search(ctx, &opensearchapi.SearchReq{
 // v5
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  &opensearchapi.SearchParams{Size: 20},
+    Params:  &opensearchapi.SearchParams{Size: new(20)},
 })
 ```
 
 Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy.
+
+> `Size` is also now a `*int` (see [Optional `bool` query parameters become `*bool`](#optional-bool-query-parameters-become-bool) -- the same pointerization applies to optional scalars). The `new(20)` literal above needs Go 1.26+; on earlier toolchains use `opensearch.ToPointer(20)`.
 
 ### Shared parameters move into embedded structs
 

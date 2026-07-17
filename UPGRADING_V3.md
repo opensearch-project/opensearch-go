@@ -15,7 +15,6 @@ client, err := opensearch.NewDefaultClient()
 // with config
 client, err := opensearch.NewClient(
     opensearch.Config{
-	    InsecureSkipVerify: true,
 		Addresses: []string{"https://localhost:9200"},
 		Username:  "admin",
 		Password:  "admin",
@@ -33,7 +32,6 @@ client, err := opensearchapi.NewDefaultClient()
 client, err := opensearchapi.NewClient(
     opensearchapi.Config{
 		Client: opensearch.Config{
-			InsecureSkipVerify: true, // For testing only. Use certificate for validation.
 			Addresses:          []string{"https://localhost:9200"},
 			Username:           "admin", // For testing only. Don't store credentials in code.
 			Password:           "admin",
@@ -161,8 +159,8 @@ if err != nil {
 defer resp.Body.Close()
 
 // Check if the status code is >299
-if createIndexResp.IsError() {
-    fmt.Errorf("Opensearch returned an error. Status: %d", createIndexResp.StatusCode)
+if resp.IsError() {
+    return fmt.Errorf("Opensearch returned an error. Status: %d", resp.StatusCode)
 }
 ```
 
@@ -310,8 +308,8 @@ Version 3.0.0 reorganized APIs into logical sub-clients. The following tables co
 | `client.Count(...)`                      | `client.Indices.Count(ctx, req)`        |
 | `client.FieldCaps(...)`                  | `client.Indices.FieldCaps(ctx, req)`    |
 | `client.Mget(...)`                       | `client.MGet(ctx, req)`                 |
-| `client.MSearch(...)`                    | `client.MSearch(ctx, req)`              |
-| `client.MSearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
+| `client.Msearch(...)`                    | `client.MSearch(ctx, req)`              |
+| `client.MsearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
 | `client.Mtermvectors(...)`               | `client.MTermvectors(ctx, req)`         |
 | `client.Indices.AddBlock(...)`           | `client.Indices.Block(ctx, req)`        |
 | `client.Indices.ResolveIndex(...)`       | `client.Indices.Resolve(ctx, req)`      |

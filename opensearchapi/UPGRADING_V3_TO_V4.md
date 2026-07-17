@@ -29,15 +29,15 @@ Files behind custom build tags (`//go:build <tag>`) are loaded under the default
 
 In v3 the API error types lived in `opensearchapi` (`opensearchapi/error.go`). In v4 they moved to the root `opensearch` package and were redesigned. Update the imports and package qualifiers by hand:
 
-| v3                                              | v4                                                    |
-| ----------------------------------------------- | ----------------------------------------------------- |
-| `opensearchapi.Error` (`{Err Err; Status int}`) | `opensearch.StructError` (same shape)                 |
-| —                                               | `opensearch.Error` (new, simpler `{Err string}`)      |
-| `opensearchapi.Err`                             | `opensearch.Err` (adds optional `CausedBy *CausedBy`) |
-| `opensearchapi.RootCause`                       | `opensearch.RootCause`                                |
-| `opensearchapi.StringError`                     | `opensearch.StringError`                              |
+| v3                                              | v4                                                                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------- |
+| `opensearchapi.Error` (`{Err Err; Status int}`) | `opensearch.StructError` (same shape)                                   |
+| —                                               | `opensearch.Error` (new, simpler `{Err string}`)                        |
+| `opensearchapi.Err`                             | `opensearch.Err` (later gains optional `CausedBy *CausedBy`, see below) |
+| `opensearchapi.RootCause`                       | `opensearch.RootCause`                                                  |
+| `opensearchapi.StringError`                     | `opensearch.StringError`                                                |
 
-The v3 detailed-error type `opensearchapi.Error{Err Err; Status int}` is now `opensearch.StructError`; the v4 `opensearch.Error` is a different, simpler type. Re-point type switches and assertions that decoded the detailed error to `opensearch.StructError`. `opensearch.Err` gains an optional `CausedBy *CausedBy` field for nested causes; existing field access is unaffected.
+The v3 detailed-error type `opensearchapi.Error{Err Err; Status int}` is now `opensearch.StructError`; the v4 `opensearch.Error` is a different, simpler type. Re-point type switches and assertions that decoded the detailed error to `opensearch.StructError`. In a later v4 release (`v4.6.0`), `opensearch.Err` gained an optional `CausedBy *CausedBy` field for nested causes; existing field access is unaffected.
 
 ## Response types no longer expose raw maps
 

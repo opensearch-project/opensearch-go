@@ -14,7 +14,23 @@ GetRequest() (*http.Request, error)
 GetRequest(method string) (*http.Request, error)
 ```
 
-This change is invisible to almost all callers: the typed `Req` structs that the client consumes (e.g. `opensearchapi.SearchReq`, `opensearchapi.IndexReq`) already implement the new signature. Only code that defines a custom type satisfying `opensearch.Request` is affected. If you maintain such a type, add a `method string` parameter and forward it to your underlying `http.NewRequest` call (or `opensearch.BuildRequest`).
+This change is invisible to almost all callers: the typed `Req` structs that the client consumes (e.g. `opensearchapi.SearchReq`, `opensearchapi.IndexReq`) already implement the new signature. Only code that defines a custom type satisfying `opensearch.Request` is affected.
+
+If you maintain such a type, add a `method string` parameter and forward it to your request builder. The `opensearch.BuildRequest` helper that earlier v4 releases exposed for this purpose was **removed in 4.7.0**; construct the request with `net/http` directly instead. Pass a relative path -- the transport prepends the base URL.
+
+```go
+// Before (<= 4.6.0): fixed method, built via the removed opensearch.BuildRequest helper
+func (r customReq) GetRequest() (*http.Request, error) {
+    return opensearch.BuildRequest(http.MethodGet, r.path, r.body, nil, nil)
+}
+
+// After (>= 4.7.0): method comes from the caller, built with net/http
+func (r customReq) GetRequest(method string) (*http.Request, error) {
+    return http.NewRequest(method, r.path, r.body)
+}
+```
+
+`opensearch.BuildRequest` also accepted `params map[string]string` and `headers http.Header` arguments. To preserve those, set them on the `*http.Request` after construction: encode params onto `req.URL.RawQuery` (via `url.Values`) and add headers to `req.Header`.
 
 ### Path segment values are percent-encoded
 
