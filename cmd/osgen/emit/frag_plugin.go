@@ -186,7 +186,8 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) (
 	return request(ctx, c, {{.HTTPMethod}}, *req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := request(ctx, c, {{.HTTPMethod}}, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, {{.HTTPMethod}}, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -200,7 +201,8 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({
 	return request(ctx, c, {{.HTTPMethod}}, req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := request(ctx, c, {{.HTTPMethod}}, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, {{.HTTPMethod}}, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -220,7 +222,8 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.Ty
 	return request(ctx, c.client, {{.HTTPMethod}}, *req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := request(ctx, c.client, {{.HTTPMethod}}, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, {{.HTTPMethod}}, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -234,7 +237,8 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.Typ
 	return request(ctx, c.client, {{.HTTPMethod}}, req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := request(ctx, c.client, {{.HTTPMethod}}, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, {{.HTTPMethod}}, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

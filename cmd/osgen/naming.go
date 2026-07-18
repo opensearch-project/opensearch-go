@@ -415,7 +415,10 @@ func schemaTypeName(schemaKey string, isRespBody bool) string {
 		collisions, table = respTypeNameCollisions, "respTypeNameCollisions"
 	}
 	if _, isCollision := collisions[name]; isCollision {
-		panic(fmt.Sprintf("schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group", schemaKey, name, table, name))
+		panic(fmt.Sprintf(
+			"schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group",
+			schemaKey, name, table, name,
+		))
 	}
 
 	return name

@@ -40,8 +40,8 @@ through exported fields on Client. The partition is exclusive: a sub-client expo
 its own operations, and the Client's own methods are not promoted onto sub-clients (nor the
 reverse). Each sub-client below has its own godoc page listing its full method set:
 
-  - client.Doc, client.Document reach [DocumentClient]: single-document and bulk operations (Get, Index, Bulk, Update, MGet, TermVectors, ...)
-  - client.Index, client.Indices, client.Indexes reach [IndicesClient]: index lifecycle, mappings, settings, aliases, templates, data streams
+  - client.Doc, client.Document reach [DocumentClient]: single-document and bulk operations (Get, Index, Bulk, Update, MGet, ...)
+  - client.Index, client.Indices, client.Indexes reach [IndicesClient]: index lifecycle, mappings, settings, aliases, templates
   - client.Cat reaches [CatClient]: compact human-readable cluster/index/node tables (Health, Indices, Nodes, Shards, ...)
   - client.Cluster reaches [ClusterClient]: cluster health, state, settings, routing, component templates
   - client.Nodes reaches [NodesClient]: per-node info, stats, usage, hot threads

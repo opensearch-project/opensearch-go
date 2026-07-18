@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -417,30 +418,38 @@ func TestSchemaTypeName_UnenumeratedCollisionPanics(t *testing.T) {
 		name       string
 		schemaKey  string
 		isRespBody bool
-		want       string
+		collision  string
+		table      string
 	}{
 		{
 			name:      "structural local Profile re-prepends prefix",
 			schemaKey: "search___Profile",
-			want:      `schemaTypeName: ref "search___Profile" derives collision name "SearchProfile" but is not listed in typeNameCollisions["SearchProfile"]; add it to that group`,
+			collision: "SearchProfile",
+			table:     "typeNameCollisions",
 		},
 		{
 			name:      "structural local SearchProfile de-stutters then re-prepends",
 			schemaKey: "search___SearchProfile",
-			want:      `schemaTypeName: ref "search___SearchProfile" derives collision name "SearchProfile" but is not listed in typeNameCollisions["SearchProfile"]; add it to that group`,
+			collision: "SearchProfile",
+			table:     "typeNameCollisions",
 		},
 		{
 			name:       "resp body unenumerated flow_framework.common schema",
 			schemaKey:  "flow_framework.common___SomeNewResponse",
 			isRespBody: true,
-			want:       `schemaTypeName: ref "flow_framework.common___SomeNewResponse" derives collision name "FlowFrameworkCommonResp" but is not listed in respTypeNameCollisions["FlowFrameworkCommonResp"]; add it to that group`,
+			collision:  "FlowFrameworkCommonResp",
+			table:      "respTypeNameCollisions",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			require.PanicsWithValue(t, tt.want, func() { schemaTypeName(tt.schemaKey, tt.isRespBody) })
+			want := fmt.Sprintf(
+				"schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group",
+				tt.schemaKey, tt.collision, tt.table, tt.collision,
+			)
+			require.PanicsWithValue(t, want, func() { schemaTypeName(tt.schemaKey, tt.isRespBody) })
 		})
 	}
 }
@@ -458,10 +467,26 @@ func TestSchemaTypeName_RespBodyOverrides(t *testing.T) {
 	}{
 		{name: "flow_framework pinned", schemaKey: "flow_framework.common___WorkflowIDResponse", want: "FlowFrameworkCommonResp"},
 		{name: "flow_framework get", schemaKey: "flow_framework.common___FlowFrameworkGetResponse", want: "FlowFrameworkCommonGetResp"},
-		{name: "flow_framework search", schemaKey: "flow_framework.common___WorkflowSearchResponse", want: "FlowFrameworkCommonWorkflowSearchResp"},
-		{name: "flow_framework search_state", schemaKey: "flow_framework.common___WorkflowSearchStateResponse", want: "FlowFrameworkCommonWorkflowSearchStateResp"},
-		{name: "security_analytics pinned", schemaKey: "security_analytics.findings___GetFindingsResponse", want: "SecurityAnalyticsFindingsResp"},
-		{name: "security_analytics correlations", schemaKey: "security_analytics.findings___SearchFindingCorrelationsResponse", want: "SecurityAnalyticsFindingsSearchCorrelationsResp"},
+		{
+			name:      "flow_framework search",
+			schemaKey: "flow_framework.common___WorkflowSearchResponse",
+			want:      "FlowFrameworkCommonWorkflowSearchResp",
+		},
+		{
+			name:      "flow_framework search_state",
+			schemaKey: "flow_framework.common___WorkflowSearchStateResponse",
+			want:      "FlowFrameworkCommonWorkflowSearchStateResp",
+		},
+		{
+			name:      "security_analytics pinned",
+			schemaKey: "security_analytics.findings___GetFindingsResponse",
+			want:      "SecurityAnalyticsFindingsResp",
+		},
+		{
+			name:      "security_analytics correlations",
+			schemaKey: "security_analytics.findings___SearchFindingCorrelationsResponse",
+			want:      "SecurityAnalyticsFindingsSearchCorrelationsResp",
+		},
 	}
 
 	for _, tt := range tests {
