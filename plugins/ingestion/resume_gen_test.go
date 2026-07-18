@@ -11,11 +11,15 @@
 package ingestion_test
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/plugins/ingestion"
 )
 
@@ -56,4 +60,43 @@ func TestResumeReq_GetRequest(t *testing.T) {
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
 		})
 	}
+}
+
+func TestResume_Roundtrip(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		client := ingestion.NewClient(osClient)
+
+		resp, err := client.Resume(t.Context(), ingestion.ResumeReq{Index: "test", BodyReader: strings.NewReader("{}")})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Inspect().Response)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"status":400,"error":{"reason":"test error","type":"invalid_request"}}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		errClient := ingestion.NewClient(osClient)
+
+		resp, err := errClient.Resume(t.Context(), ingestion.ResumeReq{Index: "test", BodyReader: strings.NewReader("{}")})
+		require.Error(t, err)
+		require.NotNil(t, resp)
+	})
 }

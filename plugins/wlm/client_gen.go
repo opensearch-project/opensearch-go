@@ -75,7 +75,8 @@ func (c QueryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 		req = &CreateQueryGroupReq{}
 	}
 	var resp CreateQueryGroupResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -88,7 +89,8 @@ func (c QueryGroupClient) CreateQueryGroup(ctx context.Context, req *CreateQuery
 // Available: >= 2.17.0.
 func (c QueryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryGroupReq) (*DeleteQueryGroupResp, error) {
 	var resp DeleteQueryGroupResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -101,7 +103,8 @@ func (c QueryGroupClient) DeleteQueryGroup(ctx context.Context, req DeleteQueryG
 // Available: >= 2.17.0.
 func (c QueryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupReq) (*GetQueryGroupResp, error) {
 	var resp GetQueryGroupResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -114,7 +117,8 @@ func (c QueryGroupClient) GetQueryGroup(ctx context.Context, req GetQueryGroupRe
 // Available: >= 2.17.0.
 func (c QueryGroupClient) UpdateQueryGroup(ctx context.Context, req UpdateQueryGroupReq) (*UpdateQueryGroupResp, error) {
 	var resp UpdateQueryGroupResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

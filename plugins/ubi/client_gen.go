@@ -58,7 +58,8 @@ func (c *Client) Initialize(ctx context.Context, req *InitializeReq) (*Initializ
 		req = &InitializeReq{}
 	}
 	var resp InitializeResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

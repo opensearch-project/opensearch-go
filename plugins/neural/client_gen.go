@@ -55,7 +55,8 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 // Available: >= 3.0.0.
 func (c *Client) Stats(ctx context.Context, req StatsReq) (*StatsResp, error) {
 	var resp StatsResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

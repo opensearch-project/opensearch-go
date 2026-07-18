@@ -60,7 +60,8 @@ func (c *Client) Create(ctx context.Context, req *CreateReq) (*CreateResp, error
 		req = &CreateReq{}
 	}
 	var resp CreateResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -75,7 +76,8 @@ func (c *Client) Create(ctx context.Context, req *CreateReq) (*CreateResp, error
 // See: https://opensearch.org/docs/latest/automating-configurations/api/delete-workflow/
 func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var resp DeleteResp
-	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -90,7 +92,8 @@ func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error)
 // See: https://opensearch.org/docs/latest/automating-configurations/api/deprovision-workflow/
 func (c *Client) Deprovision(ctx context.Context, req DeprovisionReq) (*DeprovisionResp, error) {
 	var resp DeprovisionResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -105,7 +108,8 @@ func (c *Client) Deprovision(ctx context.Context, req DeprovisionReq) (*Deprovis
 // See: https://opensearch.org/docs/latest/automating-configurations/api/get-workflow/
 func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var resp GetResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -120,7 +124,8 @@ func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 // See: https://opensearch.org/docs/latest/automating-configurations/api/get-workflow-status/
 func (c *Client) GetStatus(ctx context.Context, req GetStatusReq) (*GetStatusResp, error) {
 	var resp GetStatusResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -138,7 +143,8 @@ func (c *Client) GetSteps(ctx context.Context, req *GetStepsReq) (*GetStepsResp,
 		req = &GetStepsReq{}
 	}
 	var resp GetStepsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -153,7 +159,8 @@ func (c *Client) GetSteps(ctx context.Context, req *GetStepsReq) (*GetStepsResp,
 // See: https://opensearch.org/docs/latest/automating-configurations/api/provision-workflow/
 func (c *Client) Provision(ctx context.Context, req ProvisionReq) (*ProvisionResp, error) {
 	var resp ProvisionResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -173,7 +180,8 @@ func (c *Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error
 		req = &SearchReq{}
 	}
 	var resp SearchResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -193,7 +201,8 @@ func (c *Client) SearchState(ctx context.Context, req *SearchStateReq) (*SearchS
 		req = &SearchStateReq{}
 	}
 	var resp SearchStateResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -208,7 +217,8 @@ func (c *Client) SearchState(ctx context.Context, req *SearchStateReq) (*SearchS
 // See: https://opensearch.org/docs/latest/automating-configurations/api/create-workflow/
 func (c *Client) Update(ctx context.Context, req UpdateReq) (*UpdateResp, error) {
 	var resp UpdateResp
-	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

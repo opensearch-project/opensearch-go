@@ -77,7 +77,8 @@ func (c *Client) ListChannels(ctx context.Context, req *ListChannelsReq) (*ListC
 		req = &ListChannelsReq{}
 	}
 	var resp ListChannelsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -95,7 +96,8 @@ func (c *Client) ListFeatures(ctx context.Context, req *ListFeaturesReq) (*ListF
 		req = &ListFeaturesReq{}
 	}
 	var resp ListFeaturesResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -112,7 +114,8 @@ func (c *Client) ListFeatures(ctx context.Context, req *ListFeaturesReq) (*ListF
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#send-test-notification
 func (c *Client) SendTest(ctx context.Context, req SendTestReq) (*SendTestResp, error) {
 	var resp SendTestResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -130,7 +133,8 @@ func (c ConfigClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*
 		req = &CreateConfigReq{}
 	}
 	var resp CreateConfigResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -145,7 +149,8 @@ func (c ConfigClient) CreateConfig(ctx context.Context, req *CreateConfigReq) (*
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#delete-channel-configuration
 func (c ConfigClient) DeleteConfig(ctx context.Context, req DeleteConfigReq) (*DeleteConfigResp, error) {
 	var resp DeleteConfigResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -163,7 +168,8 @@ func (c ConfigClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) 
 		req = &DeleteConfigsReq{}
 	}
 	var resp DeleteConfigsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -176,7 +182,8 @@ func (c ConfigClient) DeleteConfigs(ctx context.Context, req *DeleteConfigsReq) 
 // Available: >= 2.0.0.
 func (c ConfigClient) GetConfig(ctx context.Context, req GetConfigReq) (*GetConfigResp, error) {
 	var resp GetConfigResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -194,7 +201,8 @@ func (c ConfigClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetC
 		req = &GetConfigsReq{}
 	}
 	var resp GetConfigsResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -209,7 +217,8 @@ func (c ConfigClient) GetConfigs(ctx context.Context, req *GetConfigsReq) (*GetC
 // See: https://opensearch.org/docs/latest/observing-your-data/notifications/api/#update-channel-configuration
 func (c ConfigClient) UpdateConfig(ctx context.Context, req UpdateConfigReq) (*UpdateConfigResp, error) {
 	var resp UpdateConfigResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

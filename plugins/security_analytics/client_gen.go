@@ -60,7 +60,8 @@ func (c *Client) GetAlerts(ctx context.Context, req *GetAlertsReq) (*GetAlertsRe
 		req = &GetAlertsReq{}
 	}
 	var resp GetAlertsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -78,7 +79,8 @@ func (c *Client) GetFindings(ctx context.Context, req *GetFindingsReq) (*GetFind
 		req = &GetFindingsReq{}
 	}
 	var resp GetFindingsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -96,7 +98,8 @@ func (c *Client) SearchFindingCorrelations(ctx context.Context, req *SearchFindi
 		req = &SearchFindingCorrelationsReq{}
 	}
 	var resp SearchFindingCorrelationsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

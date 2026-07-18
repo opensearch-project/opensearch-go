@@ -55,7 +55,8 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 // Available: >= 2.7.0.
 func (c *Client) DatasourceDelete(ctx context.Context, req DatasourceDeleteReq) (*DatasourceDeleteResp, error) {
 	var resp DatasourceDeleteResp
-	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -68,7 +69,8 @@ func (c *Client) DatasourceDelete(ctx context.Context, req DatasourceDeleteReq) 
 // Available: >= 2.7.0.
 func (c *Client) DatasourceRetrieve(ctx context.Context, req DatasourceRetrieveReq) (*DatasourceRetrieveResp, error) {
 	var resp DatasourceRetrieveResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -84,7 +86,8 @@ func (c *Client) DatasourcesCreate(ctx context.Context, req *DatasourcesCreateRe
 		req = &DatasourcesCreateReq{}
 	}
 	var resp DatasourcesCreateResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -100,7 +103,8 @@ func (c *Client) DatasourcesList(ctx context.Context, req *DatasourcesListReq) (
 		req = &DatasourcesListReq{}
 	}
 	var resp DatasourcesListResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -116,7 +120,8 @@ func (c *Client) DatasourcesUpdate(ctx context.Context, req *DatasourcesUpdateRe
 		req = &DatasourcesUpdateReq{}
 	}
 	var resp DatasourcesUpdateResp
-	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

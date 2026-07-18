@@ -60,7 +60,8 @@ func (c *Client) Help(ctx context.Context, req *HelpReq) (*HelpResp, error) {
 		req = &HelpReq{}
 	}
 	var resp HelpResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -78,7 +79,8 @@ func (c *Client) Indices(ctx context.Context, req *IndicesReq) (*IndicesResp, er
 		req = &IndicesReq{}
 	}
 	var resp IndicesResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -96,7 +98,8 @@ func (c *Client) Shards(ctx context.Context, req *ShardsReq) (*ShardsResp, error
 		req = &ShardsReq{}
 	}
 	var resp ShardsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

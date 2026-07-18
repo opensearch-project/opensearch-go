@@ -57,7 +57,8 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#delete-searches-and-results
 func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var resp DeleteResp
-	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -72,7 +73,8 @@ func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error)
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#get-partial-results
 func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var resp GetResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -90,7 +92,8 @@ func (c *Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error
 		req = &SearchReq{}
 	}
 	var resp SearchResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -108,7 +111,8 @@ func (c *Client) Stats(ctx context.Context, req *StatsReq) (*StatsResp, error) {
 		req = &StatsReq{}
 	}
 	var resp StatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

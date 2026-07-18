@@ -112,7 +112,8 @@ type SearchConfigurationClient struct {
 // Available: >= 3.1.0.
 func (c *Client) GetNodeStats(ctx context.Context, req GetNodeStatsReq) (*GetNodeStatsResp, error) {
 	var resp GetNodeStatsResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -125,7 +126,8 @@ func (c *Client) GetNodeStats(ctx context.Context, req GetNodeStatsReq) (*GetNod
 // Available: >= 3.1.0.
 func (c *Client) GetStats(ctx context.Context, req GetStatsReq) (*GetStatsResp, error) {
 	var resp GetStatsResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -138,7 +140,8 @@ func (c *Client) GetStats(ctx context.Context, req GetStatsReq) (*GetStatsResp, 
 // Available: >= 3.1.0.
 func (c ExperimentClient) DeleteExperiments(ctx context.Context, req DeleteExperimentsReq) (*DeleteExperimentsResp, error) {
 	var resp DeleteExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -151,7 +154,8 @@ func (c ExperimentClient) DeleteExperiments(ctx context.Context, req DeleteExper
 // Available: >= 3.1.0.
 func (c JudgmentClient) DeleteJudgments(ctx context.Context, req DeleteJudgmentsReq) (*DeleteJudgmentsResp, error) {
 	var resp DeleteJudgmentsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -164,7 +168,8 @@ func (c JudgmentClient) DeleteJudgments(ctx context.Context, req DeleteJudgments
 // Available: >= 3.1.0.
 func (c QuerySetClient) DeleteQuerySets(ctx context.Context, req DeleteQuerySetsReq) (*DeleteQuerySetsResp, error) {
 	var resp DeleteQuerySetsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -177,7 +182,8 @@ func (c QuerySetClient) DeleteQuerySets(ctx context.Context, req DeleteQuerySets
 // Available: >= 3.4.0.
 func (c ScheduledExperimentClient) DeleteScheduledExperiments(ctx context.Context, req DeleteScheduledExperimentsReq) (*DeleteScheduledExperimentsResp, error) {
 	var resp DeleteScheduledExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -190,7 +196,8 @@ func (c ScheduledExperimentClient) DeleteScheduledExperiments(ctx context.Contex
 // Available: >= 3.1.0.
 func (c SearchConfigurationClient) DeleteSearchConfigurations(ctx context.Context, req DeleteSearchConfigurationsReq) (*DeleteSearchConfigurationsResp, error) {
 	var resp DeleteSearchConfigurationsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -203,7 +210,8 @@ func (c SearchConfigurationClient) DeleteSearchConfigurations(ctx context.Contex
 // Available: >= 3.1.0.
 func (c ExperimentClient) GetExperiments(ctx context.Context, req GetExperimentsReq) (*GetExperimentsResp, error) {
 	var resp GetExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -216,7 +224,8 @@ func (c ExperimentClient) GetExperiments(ctx context.Context, req GetExperiments
 // Available: >= 3.1.0.
 func (c JudgmentClient) GetJudgments(ctx context.Context, req GetJudgmentsReq) (*GetJudgmentsResp, error) {
 	var resp GetJudgmentsResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -229,7 +238,8 @@ func (c JudgmentClient) GetJudgments(ctx context.Context, req GetJudgmentsReq) (
 // Available: >= 3.1.0.
 func (c QuerySetClient) GetQuerySets(ctx context.Context, req GetQuerySetsReq) (*GetQuerySetsResp, error) {
 	var resp GetQuerySetsResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -242,7 +252,8 @@ func (c QuerySetClient) GetQuerySets(ctx context.Context, req GetQuerySetsReq) (
 // Available: >= 3.4.0.
 func (c ScheduledExperimentClient) GetScheduledExperiments(ctx context.Context, req GetScheduledExperimentsReq) (*GetScheduledExperimentsResp, error) {
 	var resp GetScheduledExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -255,7 +266,8 @@ func (c ScheduledExperimentClient) GetScheduledExperiments(ctx context.Context, 
 // Available: >= 3.1.0.
 func (c SearchConfigurationClient) GetSearchConfigurations(ctx context.Context, req GetSearchConfigurationsReq) (*GetSearchConfigurationsResp, error) {
 	var resp GetSearchConfigurationsResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -271,7 +283,8 @@ func (c QuerySetClient) PostQuerySets(ctx context.Context, req *PostQuerySetsReq
 		req = &PostQuerySetsReq{}
 	}
 	var resp PostQuerySetsResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -287,7 +300,8 @@ func (c ScheduledExperimentClient) PostScheduledExperiments(ctx context.Context,
 		req = &PostScheduledExperimentsReq{}
 	}
 	var resp PostScheduledExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -303,7 +317,8 @@ func (c ExperimentClient) PutExperiments(ctx context.Context, req *PutExperiment
 		req = &PutExperimentsReq{}
 	}
 	var resp PutExperimentsResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -319,7 +334,8 @@ func (c JudgmentClient) PutJudgments(ctx context.Context, req *PutJudgmentsReq) 
 		req = &PutJudgmentsReq{}
 	}
 	var resp PutJudgmentsResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -335,7 +351,8 @@ func (c QuerySetClient) PutQuerySets(ctx context.Context, req *PutQuerySetsReq) 
 		req = &PutQuerySetsReq{}
 	}
 	var resp PutQuerySetsResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -351,7 +368,8 @@ func (c SearchConfigurationClient) PutSearchConfigurations(ctx context.Context, 
 		req = &PutSearchConfigurationsReq{}
 	}
 	var resp PutSearchConfigurationsResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

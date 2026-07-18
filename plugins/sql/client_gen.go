@@ -77,7 +77,8 @@ func (c *Client) Close(ctx context.Context, req *CloseReq) (*CloseResp, error) {
 		req = &CloseReq{}
 	}
 	var resp CloseResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -95,7 +96,8 @@ func (c *Client) Explain(ctx context.Context, req *ExplainReq) (*ExplainResp, er
 		req = &ExplainReq{}
 	}
 	var resp ExplainResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -113,7 +115,8 @@ func (c *Client) Query(ctx context.Context, req *QueryReq) (*QueryResp, error) {
 		req = &QueryReq{}
 	}
 	var resp QueryResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -131,7 +134,8 @@ func (c *Client) Settings(ctx context.Context, req *SettingsReq) (*SettingsResp,
 		req = &SettingsReq{}
 	}
 	var resp SettingsResp
-	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -149,7 +153,8 @@ func (c StatClient) GetStats(ctx context.Context, req *GetStatsReq) (*GetStatsRe
 		req = &GetStatsReq{}
 	}
 	var resp GetStatsResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -167,7 +172,8 @@ func (c StatClient) PostStats(ctx context.Context, req *PostStatsReq) (*PostStat
 		req = &PostStatsReq{}
 	}
 	var resp PostStatsResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

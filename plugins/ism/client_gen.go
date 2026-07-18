@@ -86,7 +86,8 @@ func (c *Client) ExplainPolicy(ctx context.Context, req *ExplainPolicyReq) (*Exp
 		req = &ExplainPolicyReq{}
 	}
 	var resp ExplainPolicyResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -102,7 +103,8 @@ func (c *Client) RefreshSearchAnalyzers(ctx context.Context, req *RefreshSearchA
 		req = &RefreshSearchAnalyzersReq{}
 	}
 	var resp RefreshSearchAnalyzersResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -118,7 +120,8 @@ func (c *Client) RemovePolicy(ctx context.Context, req *RemovePolicyReq) (*Remov
 		req = &RemovePolicyReq{}
 	}
 	var resp RemovePolicyResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -134,7 +137,8 @@ func (c *Client) RetryIndex(ctx context.Context, req *RetryIndexReq) (*RetryInde
 		req = &RetryIndexReq{}
 	}
 	var resp RetryIndexResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -150,7 +154,8 @@ func (c PolicyClient) AddPolicy(ctx context.Context, req *AddPolicyReq) (*AddPol
 		req = &AddPolicyReq{}
 	}
 	var resp AddPolicyResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -166,7 +171,8 @@ func (c PolicyClient) ChangePolicy(ctx context.Context, req *ChangePolicyReq) (*
 		req = &ChangePolicyReq{}
 	}
 	var resp ChangePolicyResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -179,7 +185,8 @@ func (c PolicyClient) ChangePolicy(ctx context.Context, req *ChangePolicyReq) (*
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#delete-policy
 func (c PolicyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
 	var resp DeletePolicyResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -195,7 +202,8 @@ func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 		req = &GetPoliciesReq{}
 	}
 	var resp GetPoliciesResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -208,7 +216,8 @@ func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#put-policy
 func (c PolicyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
 	var resp GetPolicyResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -224,7 +233,8 @@ func (c PolicyClient) PutPolicies(ctx context.Context, req *PutPoliciesReq) (*Pu
 		req = &PutPoliciesReq{}
 	}
 	var resp PutPoliciesResp
-	if _, err := request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -237,7 +247,8 @@ func (c PolicyClient) PutPolicies(ctx context.Context, req *PutPoliciesReq) (*Pu
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#create-policy
 func (c PolicyClient) PutPolicy(ctx context.Context, req PutPolicyReq) (*PutPolicyResp, error) {
 	var resp PutPolicyResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

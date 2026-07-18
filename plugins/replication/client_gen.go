@@ -77,7 +77,8 @@ func (c *Client) AutofollowStats(ctx context.Context, req *AutofollowStatsReq) (
 		req = &AutofollowStatsReq{}
 	}
 	var resp AutofollowStatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -95,7 +96,8 @@ func (c *Client) FollowerStats(ctx context.Context, req *FollowerStatsReq) (*Fol
 		req = &FollowerStatsReq{}
 	}
 	var resp FollowerStatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -113,7 +115,8 @@ func (c *Client) LeaderStats(ctx context.Context, req *LeaderStatsReq) (*LeaderS
 		req = &LeaderStatsReq{}
 	}
 	var resp LeaderStatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -128,7 +131,8 @@ func (c *Client) LeaderStats(ctx context.Context, req *LeaderStatsReq) (*LeaderS
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#pause-replication
 func (c *Client) Pause(ctx context.Context, req PauseReq) (*PauseResp, error) {
 	var resp PauseResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -143,7 +147,8 @@ func (c *Client) Pause(ctx context.Context, req PauseReq) (*PauseResp, error) {
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#resume-replication
 func (c *Client) Resume(ctx context.Context, req ResumeReq) (*ResumeResp, error) {
 	var resp ResumeResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -158,7 +163,8 @@ func (c *Client) Resume(ctx context.Context, req ResumeReq) (*ResumeResp, error)
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#start-replication
 func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 	var resp StartResp
-	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -173,7 +179,8 @@ func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#get-replication-status
 func (c *Client) Status(ctx context.Context, req StatusReq) (*StatusResp, error) {
 	var resp StatusResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -188,7 +195,8 @@ func (c *Client) Status(ctx context.Context, req StatusReq) (*StatusResp, error)
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#stop-replication
 func (c *Client) Stop(ctx context.Context, req StopReq) (*StopResp, error) {
 	var resp StopResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -203,7 +211,8 @@ func (c *Client) Stop(ctx context.Context, req StopReq) (*StopResp, error) {
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#update-settings
 func (c *Client) UpdateSettings(ctx context.Context, req UpdateSettingsReq) (*UpdateSettingsResp, error) {
 	var resp UpdateSettingsResp
-	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -221,7 +230,8 @@ func (c ReplicationRuleClient) CreateReplicationRule(ctx context.Context, req *C
 		req = &CreateReplicationRuleReq{}
 	}
 	var resp CreateReplicationRuleResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -239,7 +249,8 @@ func (c ReplicationRuleClient) DeleteReplicationRule(ctx context.Context, req *D
 		req = &DeleteReplicationRuleReq{}
 	}
 	var resp DeleteReplicationRuleResp
-	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

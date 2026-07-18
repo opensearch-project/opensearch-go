@@ -72,7 +72,8 @@ type PolicyClient struct {
 // Available: >= 2.1.0.
 func (c *Client) ExplainPolicy(ctx context.Context, req ExplainPolicyReq) (*ExplainPolicyResp, error) {
 	var resp ExplainPolicyResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -85,7 +86,8 @@ func (c *Client) ExplainPolicy(ctx context.Context, req ExplainPolicyReq) (*Expl
 // Available: >= 2.1.0.
 func (c *Client) StartPolicy(ctx context.Context, req StartPolicyReq) (*StartPolicyResp, error) {
 	var resp StartPolicyResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -98,7 +100,8 @@ func (c *Client) StartPolicy(ctx context.Context, req StartPolicyReq) (*StartPol
 // Available: >= 2.1.0.
 func (c *Client) StopPolicy(ctx context.Context, req StopPolicyReq) (*StopPolicyResp, error) {
 	var resp StopPolicyResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -111,7 +114,8 @@ func (c *Client) StopPolicy(ctx context.Context, req StopPolicyReq) (*StopPolicy
 // Available: >= 2.1.0.
 func (c PolicyClient) CreatePolicy(ctx context.Context, req CreatePolicyReq) (*CreatePolicyResp, error) {
 	var resp CreatePolicyResp
-	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -124,7 +128,8 @@ func (c PolicyClient) CreatePolicy(ctx context.Context, req CreatePolicyReq) (*C
 // Available: >= 2.1.0.
 func (c PolicyClient) DeletePolicy(ctx context.Context, req DeletePolicyReq) (*DeletePolicyResp, error) {
 	var resp DeletePolicyResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -140,7 +145,8 @@ func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 		req = &GetPoliciesReq{}
 	}
 	var resp GetPoliciesResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -153,7 +159,8 @@ func (c PolicyClient) GetPolicies(ctx context.Context, req *GetPoliciesReq) (*Ge
 // Available: >= 2.1.0.
 func (c PolicyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPolicyResp, error) {
 	var resp GetPolicyResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -166,7 +173,8 @@ func (c PolicyClient) GetPolicy(ctx context.Context, req GetPolicyReq) (*GetPoli
 // Available: >= 2.1.0.
 func (c PolicyClient) UpdatePolicy(ctx context.Context, req UpdatePolicyReq) (*UpdatePolicyResp, error) {
 	var resp UpdatePolicyResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

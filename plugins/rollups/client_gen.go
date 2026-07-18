@@ -57,7 +57,8 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#delete-an-index-rollup-job
 func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var resp DeleteResp
-	if _, err := request(ctx, c, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -72,7 +73,8 @@ func (c *Client) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error)
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#explain-an-index-rollup-job
 func (c *Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, error) {
 	var resp ExplainResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -87,7 +89,8 @@ func (c *Client) Explain(ctx context.Context, req ExplainReq) (*ExplainResp, err
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#get-an-index-rollup-job
 func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var resp GetResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -102,7 +105,8 @@ func (c *Client) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#create-or-update-an-index-rollup-job
 func (c *Client) Put(ctx context.Context, req PutReq) (*PutResp, error) {
 	var resp PutResp
-	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -117,7 +121,8 @@ func (c *Client) Put(ctx context.Context, req PutReq) (*PutResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#start-or-stop-an-index-rollup-job
 func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 	var resp StartResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -132,7 +137,8 @@ func (c *Client) Start(ctx context.Context, req StartReq) (*StartResp, error) {
 // See: https://opensearch.org/docs/latest/im-plugin/index-rollups/rollup-api/#start-or-stop-an-index-rollup-job
 func (c *Client) Stop(ctx context.Context, req StopReq) (*StopResp, error) {
 	var resp StopResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

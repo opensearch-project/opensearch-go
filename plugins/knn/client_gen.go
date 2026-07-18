@@ -77,7 +77,8 @@ func (c *Client) Stats(ctx context.Context, req *StatsReq) (*StatsResp, error) {
 		req = &StatsReq{}
 	}
 	var resp StatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -95,7 +96,8 @@ func (c *Client) Warmup(ctx context.Context, req *WarmupReq) (*WarmupResp, error
 		req = &WarmupReq{}
 	}
 	var resp WarmupResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -110,7 +112,8 @@ func (c *Client) Warmup(ctx context.Context, req *WarmupReq) (*WarmupResp, error
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#delete-a-model
 func (c ModelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*DeleteModelResp, error) {
 	var resp DeleteModelResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -125,7 +128,8 @@ func (c ModelClient) DeleteModel(ctx context.Context, req DeleteModelReq) (*Dele
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#get-a-model
 func (c ModelClient) GetModel(ctx context.Context, req GetModelReq) (*GetModelResp, error) {
 	var resp GetModelResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -145,7 +149,8 @@ func (c ModelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*S
 		req = &SearchModelsReq{}
 	}
 	var resp SearchModelsResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -160,7 +165,8 @@ func (c ModelClient) SearchModels(ctx context.Context, req *SearchModelsReq) (*S
 // See: https://docs.opensearch.org/latest/vector-search/api/knn/#train-a-model
 func (c ModelClient) TrainModel(ctx context.Context, req TrainModelReq) (*TrainModelResp, error) {
 	var resp TrainModelResp
-	if _, err := request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

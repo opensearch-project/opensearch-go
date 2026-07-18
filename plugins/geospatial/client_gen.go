@@ -78,7 +78,8 @@ func (c *Client) GeojsonUploadPost(ctx context.Context, req *GeojsonUploadPostRe
 		req = &GeojsonUploadPostReq{}
 	}
 	var resp GeojsonUploadPostResp
-	if _, err := request(ctx, c, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -97,7 +98,8 @@ func (c *Client) GeojsonUploadPut(ctx context.Context, req *GeojsonUploadPutReq)
 		req = &GeojsonUploadPutReq{}
 	}
 	var resp GeojsonUploadPutResp
-	if _, err := request(ctx, c, http.MethodPut, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -113,7 +115,8 @@ func (c *Client) GetUploadStats(ctx context.Context, req *GetUploadStatsReq) (*G
 		req = &GetUploadStatsReq{}
 	}
 	var resp GetUploadStatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -128,7 +131,8 @@ func (c *Client) GetUploadStats(ctx context.Context, req *GetUploadStatsReq) (*G
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#updating-an-ip2geo-data-source
 func (c *Client) PutIP2GeoDatasourceSettings(ctx context.Context, req PutIP2GeoDatasourceSettingsReq) (*PutIP2GeoDatasourceSettingsResp, error) {
 	var resp PutIP2GeoDatasourceSettingsResp
-	if _, err := request(ctx, c, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -143,7 +147,8 @@ func (c *Client) PutIP2GeoDatasourceSettings(ctx context.Context, req PutIP2GeoD
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#deleting-the-ip2geo-data-source
 func (c IP2GeoDatasourceClient) DeleteIP2GeoDatasource(ctx context.Context, req DeleteIP2GeoDatasourceReq) (*DeleteIP2GeoDatasourceResp, error) {
 	var resp DeleteIP2GeoDatasourceResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -161,7 +166,8 @@ func (c IP2GeoDatasourceClient) GetIP2GeoDatasource(ctx context.Context, req *Ge
 		req = &GetIP2GeoDatasourceReq{}
 	}
 	var resp GetIP2GeoDatasourceResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -180,7 +186,8 @@ func (c IP2GeoDatasourceClient) GetIP2GeoDatasource(ctx context.Context, req *Ge
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#data-source-options
 func (c IP2GeoDatasourceClient) PutIP2GeoDatasource(ctx context.Context, req PutIP2GeoDatasourceReq) (*PutIP2GeoDatasourceResp, error) {
 	var resp PutIP2GeoDatasourceResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

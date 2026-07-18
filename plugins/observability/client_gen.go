@@ -75,7 +75,8 @@ func (c *Client) GetLocalstats(ctx context.Context, req *GetLocalstatsReq) (*Get
 		req = &GetLocalstatsReq{}
 	}
 	var resp GetLocalstatsResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -91,7 +92,8 @@ func (c ObjectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*
 		req = &CreateObjectReq{}
 	}
 	var resp CreateObjectResp
-	if _, err := request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPost, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -104,7 +106,8 @@ func (c ObjectClient) CreateObject(ctx context.Context, req *CreateObjectReq) (*
 // Available: >= 1.1.0.
 func (c ObjectClient) DeleteObject(ctx context.Context, req DeleteObjectReq) (*DeleteObjectResp, error) {
 	var resp DeleteObjectResp
-	if _, err := request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -120,7 +123,8 @@ func (c ObjectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) 
 		req = &DeleteObjectsReq{}
 	}
 	var resp DeleteObjectsResp
-	if _, err := request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodDelete, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -133,7 +137,8 @@ func (c ObjectClient) DeleteObjects(ctx context.Context, req *DeleteObjectsReq) 
 // Available: >= 1.1.0.
 func (c ObjectClient) GetObject(ctx context.Context, req GetObjectReq) (*GetObjectResp, error) {
 	var resp GetObjectResp
-	if _, err := request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -149,7 +154,8 @@ func (c ObjectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*Li
 		req = &ListObjectsReq{}
 	}
 	var resp ListObjectsResp
-	if _, err := request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -162,7 +168,8 @@ func (c ObjectClient) ListObjects(ctx context.Context, req *ListObjectsReq) (*Li
 // Available: >= 1.1.0.
 func (c ObjectClient) UpdateObject(ctx context.Context, req UpdateObjectReq) (*UpdateObjectResp, error) {
 	var resp UpdateObjectResp
-	if _, err := request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, http.MethodPut, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
