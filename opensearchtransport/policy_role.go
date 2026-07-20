@@ -164,8 +164,8 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 
 	// Compute projected pool size for warmup/activeListCap scaling and
 	// recalculate the warmup parameters under the pool write lock. The lock is
-	// required because recalculateWarmupParams writes the pool's warmupRounds,
-	// warmupSkipCount, and activeListCap fields, which getWarmupParams and the
+	// required because recalculateWarmupParamsWithLock writes the pool's warmupRounds,
+	// warmupSkipCount, and activeListCap fields, which getWarmupParamsWithLock and the
 	// other DiscoveryUpdate callers (roundrobin, cluster_coordinator) read and
 	// write under the same lock. Done before the mutations below so startWarmup
 	// calls during discoveryUpdateAdd use the new values. The lock is released
@@ -183,7 +183,7 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 			targetPoolSize--
 		}
 	}
-	p.pool.recalculateWarmupParams(targetPoolSize)
+	p.pool.recalculateWarmupParamsWithLock(targetPoolSize)
 	p.pool.Unlock()
 
 	if added != nil {
@@ -248,7 +248,7 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 				conn.mu.Lock()
 				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
-				rounds, skip := p.pool.getWarmupParams()
+				rounds, skip := p.pool.getWarmupParamsWithLock()
 				conn.startWarmup(rounds, skip)
 				p.pool.appendToReadyActiveWithLock(conn)
 				p.pool.shuffleActiveWithLock()

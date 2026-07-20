@@ -47,7 +47,7 @@ type multiServerPool struct {
 		// instead of active when the ready list's active partition is at capacity.
 		activeListCap int // 0 = disabled (all connections go to active)
 
-		// Dynamic warmup parameters, scaled by recalculateWarmupParams().
+		// Dynamic warmup parameters, scaled by recalculateWarmupParamsWithLock().
 		// Small pools get lighter warmup (fewer rounds, fewer skips) so connections
 		// ramp up quickly. Large pools get heavier warmup to avoid traffic spikes.
 		warmupRounds    int // 0 = use defaultWarmupRounds
@@ -314,7 +314,7 @@ func (cp *multiServerPool) hasAvailableConnsWithLock() bool {
 	return false
 }
 
-// recalculateWarmupParams recalculates activeListCap (when auto-scaling) and sets
+// recalculateWarmupParamsWithLock recalculates activeListCap (when auto-scaling) and sets
 // warmupRounds/warmupSkipCount based on effective pool size.
 //
 // poolSize is the projected total number of connections in the pool (ready + dead)
@@ -326,7 +326,10 @@ func (cp *multiServerPool) hasAvailableConnsWithLock() bool {
 //	n = poolSize                   when activeListCap <= 0
 //	rounds = clamp(n, minWarmupRounds, maxWarmupRounds)
 //	skipCount = rounds * warmupSkipMultiple
-func (cp *multiServerPool) recalculateWarmupParams(poolSize int) {
+//
+// Caller must hold the pool write lock: it reads and writes the mu-guarded
+// activeListCap, warmupRounds, and warmupSkipCount fields.
+func (cp *multiServerPool) recalculateWarmupParamsWithLock(poolSize int) {
 	// Auto-scale activeListCap when the user didn't specify an explicit value.
 	if cp.activeListCapConfig == nil && poolSize > 0 {
 		cp.mu.activeListCap = poolSize
@@ -345,9 +348,12 @@ func (cp *multiServerPool) recalculateWarmupParams(poolSize int) {
 	cp.mu.warmupSkipCount = rounds * warmupSkipMultiple
 }
 
-// getWarmupParams returns the effective warmup parameters for this pool.
+// getWarmupParamsWithLock returns the effective warmup parameters for this pool.
 // Returns pool-specific values if set, otherwise falls back to defaults.
-func (cp *multiServerPool) getWarmupParams() (int, int) {
+//
+// Caller must hold the pool lock: it reads the mu-guarded warmupRounds and
+// warmupSkipCount fields.
+func (cp *multiServerPool) getWarmupParamsWithLock() (int, int) {
 	rounds := cp.mu.warmupRounds
 	if rounds <= 0 {
 		rounds = defaultWarmupRounds
@@ -602,7 +608,7 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 	if cp.mu.activeListCap <= 0 || cp.mu.activeCount < cp.mu.activeListCap {
 		// Transition state: dead -> active with warmup (lcNeedsWarmup preserved if set)
 		c.casLifecycle(c.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
-		rounds, skip := cp.getWarmupParams()
+		rounds, skip := cp.getWarmupParamsWithLock()
 		c.startWarmup(rounds, skip)
 		cp.appendToReadyActiveWithLock(c)
 		cp.shuffleActiveWithLock()
