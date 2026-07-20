@@ -126,7 +126,7 @@ func (r IngestGetPipelineResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/ingest-apis/get-ingest/
-func (c ingestClient) GetPipeline(ctx context.Context, req IngestGetPipelineReq) (*IngestGetPipelineResp, error) {
+func (c IngestClient) GetPipeline(ctx context.Context, req IngestGetPipelineReq) (*IngestGetPipelineResp, error) {
 	var (
 		data IngestGetPipelineResp
 		err  error

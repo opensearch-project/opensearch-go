@@ -163,7 +163,7 @@ func (r *IndicesDataStreamsStatsResp) PartialFailures(mask errmask.ErrorMask) []
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStreamsStatsReq) (*IndicesDataStreamsStatsResp, error) {
+func (c IndicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStreamsStatsReq) (*IndicesDataStreamsStatsResp, error) {
 	if req == nil {
 		req = &IndicesDataStreamsStatsReq{}
 	}

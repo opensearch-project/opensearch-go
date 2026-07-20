@@ -914,6 +914,102 @@ type SearchProcessorExecutionDetail struct {
 	Tag            *string         `json:"tag,omitempty"`
 }
 
+type SearchAggregationBreakdown struct {
+	BuildAggregation        int64  `json:"build_aggregation"`
+	BuildAggregationCount   int64  `json:"build_aggregation_count"`
+	BuildLeafCollector      int64  `json:"build_leaf_collector"`
+	BuildLeafCollectorCount int64  `json:"build_leaf_collector_count"`
+	Collect                 int64  `json:"collect"`
+	CollectCount            int64  `json:"collect_count"`
+	Initialize              int64  `json:"initialize"`
+	InitializeCount         int64  `json:"initialize_count"`
+	PostCollection          *int64 `json:"post_collection,omitempty"`
+	PostCollectionCount     *int64 `json:"post_collection_count,omitempty"`
+	Reduce                  int64  `json:"reduce"`
+	ReduceCount             int64  `json:"reduce_count"`
+}
+
+type SearchAggregationProfileDelegateDebugFilter struct {
+	Query                         *string `json:"query,omitempty"`
+	ResultsFromMetadata           *int    `json:"results_from_metadata,omitempty"`
+	SegmentsCountedInConstantTime *int    `json:"segments_counted_in_constant_time,omitempty"`
+	SpecializedFor                *string `json:"specialized_for,omitempty"`
+}
+
+type SearchAggregationProfileDelegateDebug struct {
+	Filters                   []SearchAggregationProfileDelegateDebugFilter `json:"filters,omitempty"`
+	SegmentsCollected         *int                                          `json:"segments_collected,omitempty"`
+	SegmentsCounted           *int                                          `json:"segments_counted,omitempty"`
+	SegmentsWithDeletedDocs   *int                                          `json:"segments_with_deleted_docs,omitempty"`
+	SegmentsWithDocCountField *int                                          `json:"segments_with_doc_count_field,omitempty"`
+}
+
+type SearchAggregationProfileDebug struct {
+	BuiltBuckets                      *int                                   `json:"built_buckets,omitempty"`
+	CharsFetched                      *int                                   `json:"chars_fetched,omitempty"`
+	CollectAnalyzedCount              *int                                   `json:"collect_analyzed_count,omitempty"`
+	CollectAnalyzedNs                 *int                                   `json:"collect_analyzed_ns,omitempty"`
+	CollectionStrategy                *string                                `json:"collection_strategy,omitempty"`
+	DeferredAggregators               []string                               `json:"deferred_aggregators,omitempty"`
+	Delegate                          *string                                `json:"delegate,omitempty"`
+	DelegateDebug                     *SearchAggregationProfileDelegateDebug `json:"delegate_debug,omitempty"`
+	EmptyCollectorsUsed               *int                                   `json:"empty_collectors_used,omitempty"`
+	ExtractCount                      *int                                   `json:"extract_count,omitempty"`
+	ExtractNs                         *int                                   `json:"extract_ns,omitempty"`
+	HasFilter                         *bool                                  `json:"has_filter,omitempty"`
+	MapReducer                        *string                                `json:"map_reducer,omitempty"`
+	NumericCollectorsUsed             *int                                   `json:"numeric_collectors_used,omitempty"`
+	OrdinalsCollectorsOverheadTooHigh *int                                   `json:"ordinals_collectors_overhead_too_high,omitempty"`
+	OrdinalsCollectorsUsed            *int                                   `json:"ordinals_collectors_used,omitempty"`
+	ResultStrategy                    *string                                `json:"result_strategy,omitempty"`
+	SegmentsWithMultiValuedOrds       *int                                   `json:"segments_with_multi_valued_ords,omitempty"`
+	SegmentsWithSingleValuedOrds      *int                                   `json:"segments_with_single_valued_ords,omitempty"`
+	StringHashingCollectorsUsed       *int                                   `json:"string_hashing_collectors_used,omitempty"`
+	SurvivingBuckets                  *int                                   `json:"surviving_buckets,omitempty"`
+	TotalBuckets                      *int                                   `json:"total_buckets,omitempty"`
+	ValuesFetched                     *int                                   `json:"values_fetched,omitempty"`
+}
+
+type SearchAggregationProfile struct {
+	Breakdown   SearchAggregationBreakdown     `json:"breakdown"`
+	Children    []SearchAggregationProfile     `json:"children,omitempty"`
+	Debug       *SearchAggregationProfileDebug `json:"debug,omitempty"`
+	Description string                         `json:"description"`
+
+	// Time unit for nanoseconds.
+	TimeInNanos int64 `json:"time_in_nanos"`
+
+	Type string `json:"type"`
+}
+
+type SearchFetchProfileBreakdown struct {
+	LoadSource            *int `json:"load_source,omitempty"`
+	LoadSourceCount       *int `json:"load_source_count,omitempty"`
+	LoadStoredFields      *int `json:"load_stored_fields,omitempty"`
+	LoadStoredFieldsCount *int `json:"load_stored_fields_count,omitempty"`
+	NextReader            *int `json:"next_reader,omitempty"`
+	NextReaderCount       *int `json:"next_reader_count,omitempty"`
+	Process               *int `json:"process,omitempty"`
+	ProcessCount          *int `json:"process_count,omitempty"`
+}
+
+type SearchFetchProfileDebug struct {
+	FastPath     *int     `json:"fast_path,omitempty"`
+	StoredFields []string `json:"stored_fields,omitempty"`
+}
+
+type SearchFetchProfile struct {
+	Breakdown   SearchFetchProfileBreakdown `json:"breakdown"`
+	Children    []SearchFetchProfile        `json:"children,omitempty"`
+	Debug       *SearchFetchProfileDebug    `json:"debug,omitempty"`
+	Description string                      `json:"description"`
+
+	// Time unit for nanoseconds.
+	TimeInNanos int64 `json:"time_in_nanos"`
+
+	Type string `json:"type"`
+}
+
 type SearchCollector struct {
 	Children []SearchCollector `json:"children,omitempty"`
 	Name     string            `json:"name"`
@@ -959,6 +1055,17 @@ type SearchProfile struct {
 	Collector   []SearchCollector    `json:"collector"`
 	Query       []SearchQueryProfile `json:"query"`
 	RewriteTime int64                `json:"rewrite_time"`
+}
+
+type SearchShardProfile struct {
+	Aggregations []SearchAggregationProfile `json:"aggregations"`
+	Fetch        *SearchFetchProfile        `json:"fetch,omitempty"`
+	ID           string                     `json:"id"`
+	Searches     []SearchProfile            `json:"searches"`
+}
+
+type SearchProfileResult struct {
+	Shards []SearchShardProfile `json:"shards"`
 }
 
 type SearchSuggestBase struct {
@@ -1009,7 +1116,7 @@ type SearchResult struct {
 	// Available: >= 3.0.0.
 	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *SearchProfile                            `json:"profile,omitempty"`
+	Profile         *SearchProfileResult                      `json:"profile,omitempty"`
 	Suggest         map[string][]SearchResultSuggestValueItem `json:"suggest,omitempty"`
 	TerminatedEarly *bool                                     `json:"terminated_early,omitempty"`
 	TimedOut        bool                                      `json:"timed_out"`

@@ -484,7 +484,7 @@ type CatNodesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-nodes/
-func (c catClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, error) {
+func (c CatClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, error) {
 	if req == nil {
 		req = &CatNodesReq{}
 	}

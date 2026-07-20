@@ -221,7 +221,7 @@ type CatThreadPoolRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-thread-pool/
-func (c catClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatThreadPoolResp, error) {
+func (c CatClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatThreadPoolResp, error) {
 	if req == nil {
 		req = &CatThreadPoolReq{}
 	}

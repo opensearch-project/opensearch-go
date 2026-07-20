@@ -2087,7 +2087,7 @@ func (u NodesInfoNodeTotalIndexingBufferInBytes) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-info/
-func (c nodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoResp, error) {
+func (c NodesClient) Info(ctx context.Context, req *NodesInfoReq) (*NodesInfoResp, error) {
 	if req == nil {
 		req = &NodesInfoReq{}
 	}

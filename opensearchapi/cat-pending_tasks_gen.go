@@ -164,7 +164,7 @@ type CatPendingTasksRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-pending-tasks/
-func (c catClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*CatPendingTasksResp, error) {
+func (c CatClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*CatPendingTasksResp, error) {
 	if req == nil {
 		req = &CatPendingTasksReq{}
 	}

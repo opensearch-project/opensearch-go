@@ -163,7 +163,7 @@ func (r IndicesSimulateTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) SimulateTemplate(ctx context.Context, req IndicesSimulateTemplateReq) (*IndicesSimulateTemplateResp, error) {
+func (c IndicesClient) SimulateTemplate(ctx context.Context, req IndicesSimulateTemplateReq) (*IndicesSimulateTemplateResp, error) {
 	var (
 		data IndicesSimulateTemplateResp
 		err  error

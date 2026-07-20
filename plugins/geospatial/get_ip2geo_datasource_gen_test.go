@@ -11,33 +11,36 @@
 package geospatial_test
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/plugins/geospatial"
 )
 
-func TestGetIp2geoDatasourceReq_GetRequest(t *testing.T) {
+func TestGetIP2GeoDatasourceReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        geospatial.GetIp2geoDatasourceReq
+		req        geospatial.GetIP2GeoDatasourceReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        geospatial.GetIp2geoDatasourceReq{},
+			req:        geospatial.GetIP2GeoDatasourceReq{},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource",
 			wantErr:    false,
 		},
 		{
 			name:       "all path fields",
-			req:        geospatial.GetIp2geoDatasourceReq{Name: []string{"a", "b"}},
+			req:        geospatial.GetIP2GeoDatasourceReq{Name: []string{"a", "b"}},
 			wantMethod: http.MethodGet,
 			wantPath:   "/_plugins/geospatial/ip2geo/datasource/a,b",
 			wantErr:    false,
@@ -56,4 +59,43 @@ func TestGetIp2geoDatasourceReq_GetRequest(t *testing.T) {
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
 		})
 	}
+}
+
+func TestGetIP2GeoDatasource_Roundtrip(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		client := geospatial.NewClient(osClient)
+
+		resp, err := client.GetIP2GeoDatasource(t.Context(), nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Inspect().Response)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"status":400,"error":{"reason":"test error","type":"invalid_request"}}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		errClient := geospatial.NewClient(osClient)
+
+		resp, err := errClient.GetIP2GeoDatasource(t.Context(), nil)
+		require.Error(t, err)
+		require.NotNil(t, resp)
+	})
 }

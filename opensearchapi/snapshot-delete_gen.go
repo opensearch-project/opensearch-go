@@ -123,7 +123,7 @@ func (r SnapshotDeleteResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/delete-snapshot/
-func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, error) {
+func (c SnapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, error) {
 	var (
 		data SnapshotDeleteResp
 		err  error

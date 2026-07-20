@@ -156,57 +156,58 @@ func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
-	"api":   "API",
-	"bm25":  "BM25", // Best Matching 25 ranking function
-	"cjk":   "CJK",  // Chinese, Japanese, Korean
-	"cpu":   "CPU",
-	"csv":   "CSV",
-	"dfi":   "DFI", // Divergence From Independence
-	"dfr":   "DFR", // Divergence From Randomness
-	"dfs":   "DFS", // Distributed Frequency Search
-	"dsl":   "DSL",
-	"fs":    "FS",  // File System (store type)
-	"gc":    "GC",  // Garbage Collection
-	"hdr":   "HDR", // High Dynamic Range (percentiles)
-	"html":  "HTML",
-	"http":  "HTTP",
-	"https": "HTTPS",
-	"ib":    "IB",  // Information-Based similarity
-	"icu":   "ICU", // International Components for Unicode
-	"id":    "ID",
-	"ids":   "IDs",
-	"ip":    "IP",
-	"ism":   "ISM", // Index State Management
-	"json":  "JSON",
-	"jvm":   "JVM",
-	"knn":   "KNN",  // k-Nearest Neighbors
-	"lmd":   "LMD",  // Language Model Dirichlet similarity
-	"lmj":   "LMJ",  // Language Model Jelinek-Mercer similarity
-	"ltr":   "LTR",  // Learning to Rank
-	"ml":    "ML",   // Machine Learning
-	"mmap":  "MMap", // memory-mapped store type
-	"nio":   "NIO",  // New I/O (Java, store type)
-	"pit":   "PIT",  // Point In Time
-	"pits":  "PITs",
-	"ppl":   "PPL", // Piped Processing Language
-	"sm":    "SM",  // Snapshot Management
-	"smtp":  "SMTP",
-	"sns":   "SNS", // Simple Notification Service
-	"sql":   "SQL",
-	"ssl":   "SSL",
-	"tcp":   "TCP",
-	"tfidf": "TFIDF", // Term Frequency-Inverse Document Frequency
-	"tls":   "TLS",
-	"ttl":   "TTL",
-	"uax":   "UAX", // Unicode Annex (UAX #29 text segmentation)
-	"ubi":   "UBI", // User Behavior Insights
-	"uri":   "URI",
-	"url":   "URL",
-	"uuid":  "UUID",
-	"wkt":   "WKT", // Well-Known Text (geometry format)
-	"wlm":   "WLM", // Workload Management
-	"xml":   "XML",
-	"xy":    "XY", // Cartesian x/y coordinate types
+	"api":    "API",
+	"bm25":   "BM25", // Best Matching 25 ranking function
+	"cjk":    "CJK",  // Chinese, Japanese, Korean
+	"cpu":    "CPU",
+	"csv":    "CSV",
+	"dfi":    "DFI", // Divergence From Independence
+	"dfr":    "DFR", // Divergence From Randomness
+	"dfs":    "DFS", // Distributed Frequency Search
+	"dsl":    "DSL",
+	"fs":     "FS",  // File System (store type)
+	"gc":     "GC",  // Garbage Collection
+	"hdr":    "HDR", // High Dynamic Range (percentiles)
+	"html":   "HTML",
+	"http":   "HTTP",
+	"https":  "HTTPS",
+	"ib":     "IB",  // Information-Based similarity
+	"icu":    "ICU", // International Components for Unicode
+	"id":     "ID",
+	"ids":    "IDs",
+	"ip":     "IP",
+	"ip2geo": "IP2Geo", // IP-to-geolocation datasource (geospatial plugin)
+	"ism":    "ISM",    // Index State Management
+	"json":   "JSON",
+	"jvm":    "JVM",
+	"knn":    "KNN",  // k-Nearest Neighbors
+	"lmd":    "LMD",  // Language Model Dirichlet similarity
+	"lmj":    "LMJ",  // Language Model Jelinek-Mercer similarity
+	"ltr":    "LTR",  // Learning to Rank
+	"ml":     "ML",   // Machine Learning
+	"mmap":   "MMap", // memory-mapped store type
+	"nio":    "NIO",  // New I/O (Java, store type)
+	"pit":    "PIT",  // Point In Time
+	"pits":   "PITs",
+	"ppl":    "PPL", // Piped Processing Language
+	"sm":     "SM",  // Snapshot Management
+	"smtp":   "SMTP",
+	"sns":    "SNS", // Simple Notification Service
+	"sql":    "SQL",
+	"ssl":    "SSL",
+	"tcp":    "TCP",
+	"tfidf":  "TFIDF", // Term Frequency-Inverse Document Frequency
+	"tls":    "TLS",
+	"ttl":    "TTL",
+	"uax":    "UAX", // Unicode Annex (UAX #29 text segmentation)
+	"ubi":    "UBI", // User Behavior Insights
+	"uri":    "URI",
+	"url":    "URL",
+	"uuid":   "UUID",
+	"wkt":    "WKT", // Well-Known Text (geometry format)
+	"wlm":    "WLM", // Workload Management
+	"xml":    "XML",
+	"xy":     "XY", // Cartesian x/y coordinate types
 }
 
 // titleSegment capitalizes a segment with full acronym expansion.
@@ -385,6 +386,49 @@ func isPredeclaredIdent(s string) bool {
 // When isRespBody is true, the function returns the response body type name
 // (e.g. "ClusterHealthResp") regardless of the local schema name.
 func schemaTypeName(schemaKey string, isRespBody bool) string {
+	// An explicit override wins over the heuristics below. Overrides break name
+	// collisions the heuristics cannot resolve on their own; each entry documents
+	// the specific clash it resolves. A ref may be reached both as a response body
+	// and structurally (e.g. a response schema also used as a nested _source
+	// field), and isRespBody propagates transitively through nested walks, so the
+	// SAME ref can be visited with either value. Its overridden name must be
+	// identical on both paths or the emitted shared type and its references would
+	// disagree -- hence the lookup consults the merged table regardless of
+	// isRespBody, giving each overridden ref exactly one name everywhere.
+	if name, ok := allTypeNameOverrides[schemaKey]; ok {
+		return name
+	}
+
+	name := deriveSchemaTypeName(schemaKey, isRespBody)
+
+	// Completeness guard. A collision table is keyed by the colliding name and
+	// lists every ref that derives it -- so every legitimate participant returns
+	// early at the override lookup above. If the heuristic still produces a name
+	// that is a known collision key, this ref derives a colliding name but is not
+	// enumerated in that group (e.g. a new schema the heuristic maps onto an
+	// existing collision). Registering it would silently drop a type, so fail
+	// loudly: the collision group must list every candidate. Structural and
+	// response-body names collide independently, so the guard checks the table
+	// for the path actually taken.
+	collisions, table := typeNameCollisions, "typeNameCollisions"
+	if isRespBody {
+		collisions, table = respTypeNameCollisions, "respTypeNameCollisions"
+	}
+	if _, isCollision := collisions[name]; isCollision {
+		panic(fmt.Sprintf(
+			"schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group",
+			schemaKey, name, table, name,
+		))
+	}
+
+	return name
+}
+
+// deriveSchemaTypeName applies the group-prefix and de-stutter heuristics to a
+// schema key. It is the naming logic that typeNameCollisions overrides exist to
+// correct; schemaTypeName wraps it with the override lookup and completeness
+// guard.
+func deriveSchemaTypeName(schemaKey string, isRespBody bool) string {
 	groupPart, localPart, ok := strings.Cut(schemaKey, "___")
 	if !ok {
 		return pascalFromSegments(schemaKey)
@@ -458,6 +502,119 @@ func pascalFromSegments(s string) string {
 		sb.WriteString(titleSegment(p))
 	}
 	return applyIdiomaticAbbreviations(sb.String())
+}
+
+// typeNameCollisions groups schema refs whose heuristic-derived Go names
+// collide, keyed by the colliding name they all produce. Each group maps every
+// ref in the collision to its explicit Go name -- including the ref that keeps
+// the derived name (mapped to that same name) -- so the table is the
+// authoritative, self-documenting record of the clash: a reader never has to
+// know which side the heuristic happened to keep, and the surviving name is
+// pinned against a later heuristic change. Without disambiguation the type
+// registry silently drops all but one colliding ref, degrading those types to
+// json.RawMessage or mis-typing fields.
+//
+// buildTypeNameOverrides flattens this into the ref -> name lookup consulted by
+// schemaTypeName. Prefer generalizing the derivation when a rule can fix a whole
+// class; use this table only for genuine, spec-driven ambiguities. When a new
+// collision is reported at generation time, add its group here.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var typeNameCollisions = map[string]map[string]string{
+	// The search group has two distinct profile schemas whose derived names
+	// both resolve to "SearchProfile":
+	//   - _core.search___Profile ({shards: [...]}), the top-level container in a
+	//     search response's "profile" field, derives Search+Profile = SearchProfile.
+	//   - _core.search___SearchProfile ({collector, query, rewrite_time}), an item
+	//     of ShardProfile.searches, de-stutters SearchProfile -> Profile then
+	//     re-prepends the group prefix -> SearchProfile.
+	// Left to the heuristics, _core.search___Profile is dropped and the response's
+	// Profile field is mis-typed as the per-search item. Rename the container to
+	// SearchProfileResult; the per-search item keeps SearchProfile.
+	// Both schemas are defined in the upstream spec (Profile and SearchProfile):
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/_core.search.yaml
+	"SearchProfile": {
+		"_core.search___Profile":       "SearchProfileResult",
+		"_core.search___SearchProfile": "SearchProfile",
+	},
+}
+
+// respTypeNameCollisions is the response-body counterpart of typeNameCollisions,
+// consulted when isRespBody is true. Response-body names derive from the schema
+// group as "<Group>Resp" (e.g. ClusterHealthResp), which is correct for the
+// common case of one response body per group. A handful of groups define
+// multiple distinct response-body schemas, so every one collapses to the same
+// "<Group>Resp" name; the registry keeps one and drops the rest, degrading the
+// dropped operations' responses to raw json.RawMessage. Each group here maps
+// every colliding ref to a distinct name -- including the ref that keeps
+// "<Group>Resp" (pinned) -- following the package's shared-type convention of
+// "<Group><LocalSchemaName>" for the disambiguated ones. Keyed by the colliding
+// "<Group>Resp" name; see typeNameCollisions for the shape and guarantees.
+//
+//nolint:gochecknoglobals // const-ish read-only lookup table
+var respTypeNameCollisions = map[string]map[string]string{
+	// flow_framework.common defines four distinct response bodies, all deriving
+	// "FlowFrameworkCommonResp": WorkflowIDResponse ({workflow_id}, shared by
+	// create/provision/deprovision), FlowFrameworkGetResponse ({name, version,
+	// ...}, the get response), WorkflowSearchResponse ({took, timed_out, _shards,
+	// hits}, search), and WorkflowSearchStateResponse (same shape with StateHits,
+	// search_state). Left to the heuristic, search and search_state degrade to raw
+	// json.RawMessage. Keep WorkflowIDResponse as FlowFrameworkCommonResp and give
+	// the others their "<Group><LocalName>" structural names.
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/flow_framework.common.yaml
+	"FlowFrameworkCommonResp": {
+		"flow_framework.common___WorkflowIDResponse":          "FlowFrameworkCommonResp",
+		"flow_framework.common___FlowFrameworkGetResponse":    "FlowFrameworkCommonGetResp",
+		"flow_framework.common___WorkflowSearchResponse":      "FlowFrameworkCommonWorkflowSearchResp",
+		"flow_framework.common___WorkflowSearchStateResponse": "FlowFrameworkCommonWorkflowSearchStateResp",
+	},
+	// security_analytics.findings defines two distinct response bodies, both
+	// deriving "SecurityAnalyticsFindingsResp": GetFindingsResponse
+	// ({total_findings, findings}, the get findings response) and
+	// SearchFindingCorrelationsResponse ({findings: [FindingWithScore]}, the
+	// correlations search). Left to the heuristic, the correlations response
+	// degrades to raw json.RawMessage. Keep GetFindingsResponse as
+	// SecurityAnalyticsFindingsResp and give the other its structural name.
+	// https://github.com/opensearch-project/opensearch-api-specification/blob/main/spec/schemas/security_analytics.findings.yaml
+	"SecurityAnalyticsFindingsResp": {
+		"security_analytics.findings___GetFindingsResponse":               "SecurityAnalyticsFindingsResp",
+		"security_analytics.findings___SearchFindingCorrelationsResponse": "SecurityAnalyticsFindingsSearchCorrelationsResp",
+	},
+}
+
+// allTypeNameOverrides is the merged ref -> explicit Go name lookup consulted by
+// schemaTypeName on both the structural and response-body paths, flattened from
+// both collision tables. Merging is what guarantees a ref reached via either
+// path resolves to one name; see the schemaTypeName comment.
+//
+//nolint:gochecknoglobals // derived once from the collision tables at init
+var allTypeNameOverrides = buildTypeNameOverrides(typeNameCollisions, respTypeNameCollisions)
+
+// buildTypeNameOverrides flattens one or more collision tables into a single
+// ref -> name map. It panics on a malformed configuration (a ref mapped to two
+// different names, or two refs in one group resolving to the same name) since
+// that is a generator misconfiguration that would reintroduce the collision the
+// tables exist to prevent. A ref may appear in more than one table only if every
+// occurrence maps it to the same name (e.g. a dual-role response schema listed
+// in both the structural and response-body tables).
+func buildTypeNameOverrides(tables ...map[string]map[string]string) map[string]string {
+	overrides := make(map[string]string)
+	for _, collisions := range tables {
+		for collision, group := range collisions {
+			seenName := make(map[string]string, len(group))
+			for ref, name := range group {
+				if prev, dup := overrides[ref]; dup && prev != name {
+					panic(fmt.Sprintf("collision tables: ref %q mapped to two names (%q and %q)", ref, prev, name))
+				}
+				if prevRef, dup := seenName[name]; dup {
+					panic(fmt.Sprintf("collision group %q: refs %q and %q both resolve to %q", collision, prevRef, ref, name))
+				}
+				seenName[name] = ref
+				overrides[ref] = name
+			}
+		}
+	}
+	return overrides
 }
 
 // scalarAliases maps OpenAPI spec $ref suffixes to their Go primitive types.

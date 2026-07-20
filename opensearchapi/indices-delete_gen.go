@@ -151,7 +151,7 @@ func (r IndicesDeleteResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/delete-index/
-func (c indicesClient) Delete(ctx context.Context, req *IndicesDeleteReq) (*IndicesDeleteResp, error) {
+func (c IndicesClient) Delete(ctx context.Context, req *IndicesDeleteReq) (*IndicesDeleteResp, error) {
 	if req == nil {
 		req = &IndicesDeleteReq{}
 	}

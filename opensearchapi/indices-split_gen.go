@@ -197,7 +197,7 @@ type IndicesSplitBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/split/
-func (c indicesClient) Split(ctx context.Context, req IndicesSplitReq) (*IndicesSplitResp, error) {
+func (c IndicesClient) Split(ctx context.Context, req IndicesSplitReq) (*IndicesSplitResp, error) {
 	var (
 		data IndicesSplitResp
 		err  error

@@ -198,7 +198,7 @@ type CatSegmentsRecord struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/
-func (c catClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq) (*CatAllPITSegmentsResp, error) {
+func (c CatClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq) (*CatAllPITSegmentsResp, error) {
 	if req == nil {
 		req = &CatAllPITSegmentsReq{}
 	}

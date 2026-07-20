@@ -439,7 +439,7 @@ func (u IndicesPutMappingBodyDynamicTemplates) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
-func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
+func (c IndicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
 	if req == nil {
 		req = &IndicesPutMappingReq{}
 	}
@@ -460,7 +460,7 @@ func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq
 }
 
 // Deprecated: use IndicesPutMapping via the parent client instead.
-func (c mappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
+func (c MappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
 	if req == nil {
 		req = &IndicesPutMappingReq{}
 	}

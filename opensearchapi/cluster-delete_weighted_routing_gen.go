@@ -140,7 +140,7 @@ type ClusterDeleteWeightedRoutingBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-awareness/#example-deleting-weights
-func (c clusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDeleteWeightedRoutingReq) (*ClusterDeleteWeightedRoutingResp, error) {
+func (c ClusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDeleteWeightedRoutingReq) (*ClusterDeleteWeightedRoutingResp, error) {
 	if req == nil {
 		req = &ClusterDeleteWeightedRoutingReq{}
 	}

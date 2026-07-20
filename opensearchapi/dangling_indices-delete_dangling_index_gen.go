@@ -126,7 +126,7 @@ func (r DanglingIndicesDeleteDanglingIndexResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/dangling-index/
-func (c danglingClient) DeleteDanglingIndex(ctx context.Context, req DanglingIndicesDeleteDanglingIndexReq) (*DanglingIndicesDeleteDanglingIndexResp, error) {
+func (c DanglingClient) DeleteDanglingIndex(ctx context.Context, req DanglingIndicesDeleteDanglingIndexReq) (*DanglingIndicesDeleteDanglingIndexResp, error) {
 	var (
 		data DanglingIndicesDeleteDanglingIndexResp
 		err  error

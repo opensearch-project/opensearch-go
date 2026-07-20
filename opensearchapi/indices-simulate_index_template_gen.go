@@ -203,7 +203,7 @@ type IndicesSimulateIndexTemplateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) SimulateIndexTemplate(ctx context.Context, req IndicesSimulateIndexTemplateReq) (*IndicesSimulateIndexTemplateResp, error) {
+func (c IndicesClient) SimulateIndexTemplate(ctx context.Context, req IndicesSimulateIndexTemplateReq) (*IndicesSimulateIndexTemplateResp, error) {
 	var (
 		data IndicesSimulateIndexTemplateResp
 		err  error

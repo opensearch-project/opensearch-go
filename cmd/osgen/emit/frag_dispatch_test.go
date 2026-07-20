@@ -82,7 +82,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					PrimaryPath: "/_cluster/health",
 					Response:    newRespType("ClusterHealth"),
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "clusterClient", MethodName: "Health", TopLevel: false},
+						{ReceiverType: "ClusterClient", MethodName: "Health", TopLevel: false},
 					},
 				}
 			},
@@ -99,13 +99,13 @@ func TestDispatchFragment_Body(t *testing.T) {
 					PrimaryPath: "/_bulk",
 					Response:    newRespType("Bulk"),
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "documentClient", MethodName: "Bulk", FieldPath: "Doc"},
+						{ReceiverType: "DocumentClient", MethodName: "Bulk", FieldPath: "Doc"},
 						{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true, Forward: "Doc.Bulk"},
 					},
 				}
 			},
 			contains: []string{
-				"func (c documentClient) Bulk(",
+				"func (c DocumentClient) Bulk(",
 				"func (c Client) Bulk(",
 				"return c.Doc.Bulk(ctx, req)",
 			},
@@ -120,7 +120,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					PrimaryPath: "/_bulk",
 					Response:    newRespType("Bulk"),
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "documentClient", MethodName: "Bulk", FieldPath: "Doc"},
+						{ReceiverType: "DocumentClient", MethodName: "Bulk", FieldPath: "Doc"},
 						{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true, Forward: "Doc.Bulk", Deprecated: true},
 					},
 				}
@@ -183,7 +183,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					Response:      shardsFixtureResp("DocumentCreate"),
 					ErrorWrappers: []string{errwrap.WrapperWriteShards},
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "documentClient", MethodName: "Create", TopLevel: false},
+						{ReceiverType: "DocumentClient", MethodName: "Create", TopLevel: false},
 					},
 				}
 			},
@@ -247,7 +247,7 @@ func TestDispatchFragment_Body(t *testing.T) {
 					Response:      newRespType("TasksList"),
 					ErrorWrappers: []string{errwrap.WrapperTaskFailures},
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "tasksClient", MethodName: "List", TopLevel: false},
+						{ReceiverType: "TasksClient", MethodName: "List", TopLevel: false},
 					},
 				}
 			},
@@ -306,7 +306,7 @@ func TestDispatchFragment_Imports(t *testing.T) {
 				PrimaryPath: "/_cluster/health",
 				Response:    newRespType("ClusterHealth"),
 				DispatchRoutes: []ir.DispatchRoute{
-					{ReceiverType: "clusterClient", MethodName: "Health", TopLevel: false},
+					{ReceiverType: "ClusterClient", MethodName: "Health", TopLevel: false},
 				},
 			},
 			wantErrmaskImp: false,
@@ -558,7 +558,7 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 					Response:      shardsFixtureResp("DocumentCreate"),
 					ErrorWrappers: []string{errwrap.WrapperWriteShards},
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "documentClient", MethodName: "Create", TopLevel: false},
+						{ReceiverType: "DocumentClient", MethodName: "Create", TopLevel: false},
 					},
 				}
 			},
@@ -591,7 +591,7 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 					Response:      shardsFixtureResp("IndicesRefresh"),
 					ErrorWrappers: []string{errwrap.WrapperBroadcastShards},
 					DispatchRoutes: []ir.DispatchRoute{
-						{ReceiverType: "indicesClient", MethodName: "Refresh", TopLevel: false},
+						{ReceiverType: "IndicesClient", MethodName: "Refresh", TopLevel: false},
 					},
 				}
 			},

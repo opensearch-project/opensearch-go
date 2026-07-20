@@ -162,7 +162,7 @@ type CatTemplatesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-templates/
-func (c catClient) Templates(ctx context.Context, req CatTemplatesReq) (*CatTemplatesResp, error) {
+func (c CatClient) Templates(ctx context.Context, req CatTemplatesReq) (*CatTemplatesResp, error) {
 	var (
 		data CatTemplatesResp
 		err  error

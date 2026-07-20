@@ -303,7 +303,7 @@ func (u IndicesPutTemplateBodyIndexPatterns) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) PutTemplate(ctx context.Context, req IndicesPutTemplateReq) (*IndicesPutTemplateResp, error) {
+func (c IndicesClient) PutTemplate(ctx context.Context, req IndicesPutTemplateReq) (*IndicesPutTemplateResp, error) {
 	var (
 		data IndicesPutTemplateResp
 		err  error

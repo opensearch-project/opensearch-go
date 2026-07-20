@@ -187,7 +187,7 @@ func (r IndicesPutSettingsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-settings/
-func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
+func (c IndicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
 	if req == nil {
 		req = &IndicesPutSettingsReq{}
 	}
@@ -208,7 +208,7 @@ func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsR
 }
 
 // Deprecated: use IndicesPutSettings via the parent client instead.
-func (c settingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
+func (c SettingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
 	if req == nil {
 		req = &IndicesPutSettingsReq{}
 	}

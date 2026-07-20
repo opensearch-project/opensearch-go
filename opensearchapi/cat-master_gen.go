@@ -159,7 +159,7 @@ type CatMasterRecord struct {
 // Deprecated: since 2.0.0. Available >= 1.0.0. To promote inclusive language, use '/_cat/cluster_manager' instead.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-cluster_manager/
-func (c catClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterResp, error) {
+func (c CatClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterResp, error) {
 	if req == nil {
 		req = &CatMasterReq{}
 	}

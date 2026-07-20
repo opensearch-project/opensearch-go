@@ -134,7 +134,7 @@ type DanglingIndicesListDanglingIndicesDanglingIndex struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/dangling-index/
-func (c danglingClient) ListDanglingIndices(ctx context.Context, req *DanglingIndicesListDanglingIndicesReq) (*DanglingIndicesListDanglingIndicesResp, error) {
+func (c DanglingClient) ListDanglingIndices(ctx context.Context, req *DanglingIndicesListDanglingIndicesReq) (*DanglingIndicesListDanglingIndicesResp, error) {
 	if req == nil {
 		req = &DanglingIndicesListDanglingIndicesReq{}
 	}

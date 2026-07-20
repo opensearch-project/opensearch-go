@@ -447,7 +447,7 @@ type ClusterAllocationExplainBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-allocation/
-func (c clusterClient) AllocationExplain(ctx context.Context, req *ClusterAllocationExplainReq) (*ClusterAllocationExplainResp, error) {
+func (c ClusterClient) AllocationExplain(ctx context.Context, req *ClusterAllocationExplainReq) (*ClusterAllocationExplainResp, error) {
 	if req == nil {
 		req = &ClusterAllocationExplainReq{}
 	}

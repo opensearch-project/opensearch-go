@@ -126,7 +126,7 @@ type SnapshotCleanupRepositoryResults struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
+func (c SnapshotClient) CleanupRepository(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
 	var (
 		data SnapshotCleanupRepositoryResp
 		err  error
@@ -143,7 +143,7 @@ func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotClean
 }
 
 // Deprecated: use SnapshotCleanupRepository via the parent client instead.
-func (c repositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
+func (c RepositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
 	var (
 		data SnapshotCleanupRepositoryResp
 		err  error

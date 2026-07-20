@@ -374,7 +374,7 @@ type TermVectorsFilter struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c documentClient) MTermVectors(ctx context.Context, req MTermVectorsReq) (*MTermVectorsResp, error) {
+func (c DocumentClient) MTermVectors(ctx context.Context, req MTermVectorsReq) (*MTermVectorsResp, error) {
 	var (
 		data MTermVectorsResp
 		err  error

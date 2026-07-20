@@ -7,6 +7,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -384,12 +385,114 @@ func TestSchemaTypeName(t *testing.T) {
 			want:      "MSearchMultiSearchResultResponsesItem",
 		},
 		{name: "termvectors compound", schemaKey: "_common___TermvectorsTerm", want: "TermVectorsTerm"},
+
+		// typeNameOverrides: the search "profile" container is renamed to avoid
+		// colliding with the per-search SearchProfile item, which keeps its
+		// heuristic-derived name. The override applies on both paths so a ref
+		// reached as a response body and structurally resolves to one name.
+		{name: "override profile container", schemaKey: "_core.search___Profile", want: "SearchProfileResult"},
+		{name: "override sibling keeps derived name", schemaKey: "_core.search___SearchProfile", want: "SearchProfile"},
+		{name: "override applies on resp body path too", schemaKey: "_core.search___Profile", isRespBody: true, want: "SearchProfileResult"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Equal(t, tt.want, schemaTypeName(tt.schemaKey, tt.isRespBody))
+		})
+	}
+}
+
+// TestSchemaTypeName_UnenumeratedCollisionPanics verifies the completeness
+// guard for both collision tables: a ref that is not listed in a collision
+// group but whose heuristic derives a name that IS a collision key must panic,
+// rather than silently registering (and dropping) a type. The structural cases
+// lack the "_core." prefix of the real overridden refs, so they miss the
+// override lookup and fall through to the heuristic that derives "SearchProfile".
+// The response-body case is a synthetic flow_framework.common schema (not one of
+// the four enumerated refs) that derives the resp collision key.
+func TestSchemaTypeName_UnenumeratedCollisionPanics(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		schemaKey  string
+		isRespBody bool
+		collision  string
+		table      string
+	}{
+		{
+			name:      "structural local Profile re-prepends prefix",
+			schemaKey: "search___Profile",
+			collision: "SearchProfile",
+			table:     "typeNameCollisions",
+		},
+		{
+			name:      "structural local SearchProfile de-stutters then re-prepends",
+			schemaKey: "search___SearchProfile",
+			collision: "SearchProfile",
+			table:     "typeNameCollisions",
+		},
+		{
+			name:       "resp body unenumerated flow_framework.common schema",
+			schemaKey:  "flow_framework.common___SomeNewResponse",
+			isRespBody: true,
+			collision:  "FlowFrameworkCommonResp",
+			table:      "respTypeNameCollisions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			want := fmt.Sprintf(
+				"schemaTypeName: ref %q derives collision name %q but is not listed in %s[%q]; add it to that group",
+				tt.schemaKey, tt.collision, tt.table, tt.collision,
+			)
+			require.PanicsWithValue(t, want, func() { schemaTypeName(tt.schemaKey, tt.isRespBody) })
+		})
+	}
+}
+
+// TestSchemaTypeName_RespBodyOverrides verifies the response-body collision
+// table disambiguates each enumerated ref: the pinned ref keeps <Group>Resp and
+// the others get distinct names, so no response body is dropped.
+func TestSchemaTypeName_RespBodyOverrides(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		schemaKey string
+		want      string
+	}{
+		{name: "flow_framework pinned", schemaKey: "flow_framework.common___WorkflowIDResponse", want: "FlowFrameworkCommonResp"},
+		{name: "flow_framework get", schemaKey: "flow_framework.common___FlowFrameworkGetResponse", want: "FlowFrameworkCommonGetResp"},
+		{
+			name:      "flow_framework search",
+			schemaKey: "flow_framework.common___WorkflowSearchResponse",
+			want:      "FlowFrameworkCommonWorkflowSearchResp",
+		},
+		{
+			name:      "flow_framework search_state",
+			schemaKey: "flow_framework.common___WorkflowSearchStateResponse",
+			want:      "FlowFrameworkCommonWorkflowSearchStateResp",
+		},
+		{
+			name:      "security_analytics pinned",
+			schemaKey: "security_analytics.findings___GetFindingsResponse",
+			want:      "SecurityAnalyticsFindingsResp",
+		},
+		{
+			name:      "security_analytics correlations",
+			schemaKey: "security_analytics.findings___SearchFindingCorrelationsResponse",
+			want:      "SecurityAnalyticsFindingsSearchCorrelationsResp",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, schemaTypeName(tt.schemaKey, true))
 		})
 	}
 }

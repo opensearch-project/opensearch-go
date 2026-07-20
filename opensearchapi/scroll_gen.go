@@ -208,7 +208,7 @@ func (r *ScrollResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/scroll/#path-and-http-methods
-func (c scrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, error) {
+func (c ScrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, error) {
 	var (
 		data ScrollResp
 		err  error

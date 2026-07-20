@@ -137,7 +137,7 @@ func (r ClusterGetSettingsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-settings/
-func (c clusterClient) GetSettings(ctx context.Context, req *ClusterGetSettingsReq) (*ClusterGetSettingsResp, error) {
+func (c ClusterClient) GetSettings(ctx context.Context, req *ClusterGetSettingsReq) (*ClusterGetSettingsResp, error) {
 	if req == nil {
 		req = &ClusterGetSettingsReq{}
 	}

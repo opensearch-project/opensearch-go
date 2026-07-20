@@ -193,7 +193,7 @@ type CatAllocationRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-allocation/
-func (c catClient) Allocation(ctx context.Context, req *CatAllocationReq) (*CatAllocationResp, error) {
+func (c CatClient) Allocation(ctx context.Context, req *CatAllocationReq) (*CatAllocationResp, error) {
 	if req == nil {
 		req = &CatAllocationReq{}
 	}

@@ -1047,9 +1047,19 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		}
 	}
 
+	// Recalculate warmup parameters and partition the ready list under the pool
+	// write lock. recalculateWarmupParamsWithLock writes mu.activeListCap/warmupRounds/
+	// warmupSkipCount, getWarmupParamsWithLock reads them, and the final assignment sets
+	// mu.activeCount -- all mu-guarded fields that resurrectWithLock also touches
+	// under pool.mu. Holding the lock across the whole section serializes it
+	// against resurrection (c.mu, held by the caller, only serializes it against
+	// metrics.snapshot). Per-connection conn.mu is taken inside the loop, matching
+	// the pool.mu -> conn.mu ordering used by deferredStandbyPromotion.
+	allConnsPool.mu.Lock()
+
 	// Recalculate activeListCap and warmup parameters for the allConns pool before
 	// partitioning so startWarmup calls use the correctly-scaled values.
-	allConnsPool.recalculateWarmupParams(len(allReadyConns) + len(allDeadConns))
+	allConnsPool.recalculateWarmupParamsWithLock(len(allReadyConns) + len(allDeadConns))
 
 	// Partition ready connections by their current lifecycle state.
 	// Reused connections (unchanged in discovery) may already be in standby
@@ -1081,7 +1091,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 			conn.mu.Lock()
 			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
-			rounds, skip := allConnsPool.getWarmupParams()
+			rounds, skip := allConnsPool.getWarmupParamsWithLock()
 			conn.startWarmup(rounds, skip)
 			if i != activeCount {
 				allReadyConns[i], allReadyConns[activeCount] = allReadyConns[activeCount], allReadyConns[i]
@@ -1090,6 +1100,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		}
 	}
 	allConnsPool.mu.activeCount = activeCount
+	allConnsPool.mu.Unlock()
 
 	// NOTE: enforceActiveCapWithLock() is intentionally NOT called here.
 	// The allConns pool is a transport-level container for discovery bookkeeping.

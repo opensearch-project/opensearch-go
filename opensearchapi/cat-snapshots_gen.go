@@ -451,7 +451,7 @@ func (u CatSnapshotsRecordStartEpoch) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-snapshots/
-func (c catClient) Snapshots(ctx context.Context, req *CatSnapshotsReq) (*CatSnapshotsResp, error) {
+func (c CatClient) Snapshots(ctx context.Context, req *CatSnapshotsReq) (*CatSnapshotsResp, error) {
 	if req == nil {
 		req = &CatSnapshotsReq{}
 	}

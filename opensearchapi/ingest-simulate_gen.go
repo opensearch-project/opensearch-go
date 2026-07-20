@@ -335,7 +335,7 @@ type IngestSimulateDocument struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/ingest-apis/simulate-ingest/
-func (c ingestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*IngestSimulateResp, error) {
+func (c IngestClient) Simulate(ctx context.Context, req IngestSimulateReq) (*IngestSimulateResp, error) {
 	var (
 		data IngestSimulateResp
 		err  error

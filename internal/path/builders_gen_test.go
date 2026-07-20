@@ -2118,16 +2118,16 @@ func TestFlowFrameworkUpdatePath_Build(t *testing.T) {
 	}
 }
 
-func TestGeospatialDeleteIp2geoDatasourcePath_Build(t *testing.T) {
+func TestGeospatialDeleteIP2GeoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     GeospatialDeleteIp2geoDatasourcePath
+		path     GeospatialDeleteIP2GeoDatasourcePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: GeospatialDeleteIp2geoDatasourcePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: GeospatialDeleteIp2geoDatasourcePath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "required fields empty", path: GeospatialDeleteIP2GeoDatasourcePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialDeleteIP2GeoDatasourcePath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2194,17 +2194,17 @@ func TestGeospatialGeojsonUploadPutPath_Build(t *testing.T) {
 	}
 }
 
-func TestGeospatialGetIp2geoDatasourcePath_Build(t *testing.T) {
+func TestGeospatialGetIP2GeoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     GeospatialGetIp2geoDatasourcePath
+		path     GeospatialGetIP2GeoDatasourcePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "all empty", path: GeospatialGetIp2geoDatasourcePath{}, wantPath: "/_plugins/geospatial/ip2geo/datasource", wantErr: false},
-		{name: "all fields", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"test-name"}}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
-		{name: "Name multi-value", path: GeospatialGetIp2geoDatasourcePath{Name: []string{"a", "b", "c"}}, wantPath: "/_plugins/geospatial/ip2geo/datasource/a,b,c", wantErr: false},
+		{name: "all empty", path: GeospatialGetIP2GeoDatasourcePath{}, wantPath: "/_plugins/geospatial/ip2geo/datasource", wantErr: false},
+		{name: "all fields", path: GeospatialGetIP2GeoDatasourcePath{Name: []string{"test-name"}}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "Name multi-value", path: GeospatialGetIP2GeoDatasourcePath{Name: []string{"a", "b", "c"}}, wantPath: "/_plugins/geospatial/ip2geo/datasource/a,b,c", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2246,16 +2246,16 @@ func TestGeospatialGetUploadStatsPath_Build(t *testing.T) {
 	}
 }
 
-func TestGeospatialPutIp2geoDatasourcePath_Build(t *testing.T) {
+func TestGeospatialPutIP2GeoDatasourcePath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     GeospatialPutIp2geoDatasourcePath
+		path     GeospatialPutIP2GeoDatasourcePath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: GeospatialPutIp2geoDatasourcePath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: GeospatialPutIp2geoDatasourcePath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
+		{name: "required fields empty", path: GeospatialPutIP2GeoDatasourcePath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialPutIP2GeoDatasourcePath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -2272,16 +2272,16 @@ func TestGeospatialPutIp2geoDatasourcePath_Build(t *testing.T) {
 	}
 }
 
-func TestGeospatialPutIp2geoDatasourceSettingsPath_Build(t *testing.T) {
+func TestGeospatialPutIP2GeoDatasourceSettingsPath_Build(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		path     GeospatialPutIp2geoDatasourceSettingsPath
+		path     GeospatialPutIP2GeoDatasourceSettingsPath
 		wantPath string
 		wantErr  bool
 	}{
-		{name: "required fields empty", path: GeospatialPutIp2geoDatasourceSettingsPath{}, wantPath: "", wantErr: true},
-		{name: "all fields", path: GeospatialPutIp2geoDatasourceSettingsPath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name/_settings", wantErr: false},
+		{name: "required fields empty", path: GeospatialPutIP2GeoDatasourceSettingsPath{}, wantPath: "", wantErr: true},
+		{name: "all fields", path: GeospatialPutIP2GeoDatasourceSettingsPath{Name: "test-name"}, wantPath: "/_plugins/geospatial/ip2geo/datasource/test-name/_settings", wantErr: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

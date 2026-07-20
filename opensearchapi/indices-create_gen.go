@@ -160,7 +160,7 @@ type IndicesCreateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/create-index/
-func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*IndicesCreateResp, error) {
+func (c IndicesClient) Create(ctx context.Context, req IndicesCreateReq) (*IndicesCreateResp, error) {
 	var (
 		data IndicesCreateResp
 		err  error

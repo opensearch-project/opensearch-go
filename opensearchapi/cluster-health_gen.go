@@ -300,7 +300,7 @@ type ClusterHealthShardStats struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/
-func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq) (*ClusterHealthResp, error) {
+func (c ClusterClient) Health(ctx context.Context, req *ClusterHealthReq) (*ClusterHealthResp, error) {
 	if req == nil {
 		req = &ClusterHealthReq{}
 	}

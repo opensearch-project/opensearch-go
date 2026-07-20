@@ -78,11 +78,11 @@ func TestDispatchFragment(t *testing.T) {
 				TypePrefix:   "ClusterHealth",
 				IsPointerReq: true,
 				DispatchRoutes: []ir.DispatchRoute{
-					{ReceiverType: "clusterClient", MethodName: "Health", TopLevel: false},
+					{ReceiverType: "ClusterClient", MethodName: "Health", TopLevel: false},
 				},
 			},
 			wantContains: []string{
-				"func (c clusterClient) Health(ctx context.Context, req *ClusterHealthReq)",
+				"func (c ClusterClient) Health(ctx context.Context, req *ClusterHealthReq)",
 				"if req == nil",
 				"c.apiClient",
 			},
@@ -105,7 +105,7 @@ func TestDispatchFragment(t *testing.T) {
 				IsNoBody:     true,
 				IsPointerReq: true,
 				DispatchRoutes: []ir.DispatchRoute{
-					{ReceiverType: "indicesClient", MethodName: "Exists", TopLevel: false},
+					{ReceiverType: "IndicesClient", MethodName: "Exists", TopLevel: false},
 				},
 			},
 			wantContains: []string{"*opensearch.Response", "noBody"},

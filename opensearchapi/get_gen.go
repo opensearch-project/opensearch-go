@@ -225,7 +225,7 @@ type GetResultBase struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) Get(ctx context.Context, req GetReq) (*GetResp, error) {
+func (c DocumentClient) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var (
 		data GetResp
 		err  error

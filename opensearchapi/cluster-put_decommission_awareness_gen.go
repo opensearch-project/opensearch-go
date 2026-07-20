@@ -123,7 +123,7 @@ func (r ClusterPutDecommissionAwarenessResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-decommission/#example-decommissioning-and-recommissioning-a-zone
-func (c clusterClient) PutDecommissionAwareness(ctx context.Context, req ClusterPutDecommissionAwarenessReq) (*ClusterPutDecommissionAwarenessResp, error) {
+func (c ClusterClient) PutDecommissionAwareness(ctx context.Context, req ClusterPutDecommissionAwarenessReq) (*ClusterPutDecommissionAwarenessResp, error) {
 	var (
 		data ClusterPutDecommissionAwarenessResp
 		err  error

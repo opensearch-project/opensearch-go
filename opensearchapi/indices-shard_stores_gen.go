@@ -210,7 +210,7 @@ type IndicesShardStoresShardStoreException struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ShardStores(ctx context.Context, req *IndicesShardStoresReq) (*IndicesShardStoresResp, error) {
+func (c IndicesClient) ShardStores(ctx context.Context, req *IndicesShardStoresReq) (*IndicesShardStoresResp, error) {
 	if req == nil {
 		req = &IndicesShardStoresReq{}
 	}

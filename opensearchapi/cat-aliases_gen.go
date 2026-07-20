@@ -171,7 +171,7 @@ type CatAliasesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-aliases/
-func (c catClient) Aliases(ctx context.Context, req *CatAliasesReq) (*CatAliasesResp, error) {
+func (c CatClient) Aliases(ctx context.Context, req *CatAliasesReq) (*CatAliasesResp, error) {
 	if req == nil {
 		req = &CatAliasesReq{}
 	}

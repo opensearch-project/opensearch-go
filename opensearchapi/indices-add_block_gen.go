@@ -159,7 +159,7 @@ type IndicesAddBlockIndicesBlockStatus struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*IndicesAddBlockResp, error) {
+func (c IndicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*IndicesAddBlockResp, error) {
 	var (
 		data IndicesAddBlockResp
 		err  error

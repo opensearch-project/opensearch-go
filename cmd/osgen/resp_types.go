@@ -216,8 +216,16 @@ func (r *typeRegistry) forOperation(group string) []*goType {
 	return result
 }
 
-// reachableFrom returns all non-shared, non-Resp types transitively reachable
-// from the given schema ref by following field type references and embeds.
+// reachableFrom returns all non-shared types transitively reachable from the
+// given schema ref by following field type references and embeds.
+//
+// A response-body type (IsResp) is normally the operation's own Resp struct and
+// is not duplicated as a sibling. But when another type references it as a field
+// or branch -- e.g. a search hit's _source that $refs a get operation's response
+// schema -- that schema is genuinely reachable structurally and must be emitted,
+// or the field's type reference dangles. Such a type is only ever inlined into
+// its own operation's Resp (its schema type is not otherwise emitted), so
+// emitting it here as a referenced sibling is correct and non-duplicative.
 func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 	visited := make(map[string]bool)
 	var result []*goType
@@ -235,7 +243,7 @@ func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 				continue
 			}
 			visited[child.SchemaRef] = true
-			if !child.IsResp && !child.IsShared {
+			if !child.IsShared {
 				result = append(result, child)
 			}
 			walk(child.SchemaRef)
@@ -247,7 +255,7 @@ func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 				continue
 			}
 			visited[child.SchemaRef] = true
-			if !child.IsResp && !child.IsShared {
+			if !child.IsShared {
 				result = append(result, child)
 			}
 			walk(child.SchemaRef)

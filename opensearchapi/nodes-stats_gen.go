@@ -1651,7 +1651,7 @@ func (u NodesStatsIP) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-usage/
-func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, error) {
+func (c NodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, error) {
 	if req == nil {
 		req = &NodesStatsReq{}
 	}

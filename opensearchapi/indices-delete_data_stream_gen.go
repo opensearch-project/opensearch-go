@@ -119,7 +119,7 @@ func (r IndicesDeleteDataStreamResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteDataStreamReq) (*IndicesDeleteDataStreamResp, error) {
+func (c IndicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteDataStreamReq) (*IndicesDeleteDataStreamResp, error) {
 	if req == nil {
 		req = &IndicesDeleteDataStreamReq{}
 	}

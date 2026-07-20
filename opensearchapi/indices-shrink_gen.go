@@ -197,7 +197,7 @@ type IndicesShrinkBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/shrink-index/
-func (c indicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*IndicesShrinkResp, error) {
+func (c IndicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*IndicesShrinkResp, error) {
 	var (
 		data IndicesShrinkResp
 		err  error

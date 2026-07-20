@@ -101,33 +101,24 @@ func (r SearchParams) get() map[string]string {
 	return params
 }
 
-// SearchResp represents the response for the Search operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// SearchResp represents the response for the flow_framework.search operation.
 //
 // Search for workflows by using a query matching a field.
 //
+// Available: >= 2.12.0.
+//
 // See: https://opensearch.org/docs/latest/automating-configurations/api/provision-workflow/
 type SearchResp struct {
-	Body     json.RawMessage `json:"-"`
+	Shards *FlowFrameworkCommonShards `json:"_shards,omitempty"`
+	Hits   *FlowFrameworkCommonHits   `json:"hits,omitempty"`
+
+	// Whether the request timed out.
+	TimedOut *bool `json:"timed_out,omitempty"`
+
+	// The amount of time in milliseconds that the request took to complete.
+	Took *int `json:"took,omitempty"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *SearchResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r SearchResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
@@ -142,6 +133,91 @@ func (r SearchResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
+}
+
+// FlowFrameworkCommonShards is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonShards struct {
+	// The number of shards where the deletion failed.
+	Failed *int `json:"failed,omitempty"`
+
+	// The number of shards where the deletion was skipped.
+	Skipped *int `json:"skipped,omitempty"`
+
+	// The number of shards where the deletion was successful.
+	Successful *int `json:"successful,omitempty"`
+
+	// The total number of shards involved in the deletion.
+	Total *int `json:"total,omitempty"`
+}
+
+// FlowFrameworkCommonHits is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonHits struct {
+	Hits     []FlowFrameworkCommonItemsObject `json:"hits,omitempty"`
+	MaxScore *float32                         `json:"max_score"`
+	Total    *FlowFrameworkCommonTotal        `json:"total,omitempty"`
+}
+
+// FlowFrameworkCommonItemsObject is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonItemsObject struct {
+	// The document ID.
+	ID *string `json:"_id,omitempty"`
+
+	// The index name where the document resides.
+	Index *string `json:"_index,omitempty"`
+
+	// The primary term of the document.
+	PrimaryTerm *int `json:"_primary_term,omitempty"`
+
+	// The score of the search hit.
+	Score *float32 `json:"_score,omitempty"`
+
+	// The sequence number of the document.
+	SeqNo *int `json:"_seq_no,omitempty"`
+
+	Source *FlowFrameworkCommonGetResp `json:"_source,omitempty"`
+
+	// The version of the document.
+	Version *int `json:"_version,omitempty"`
+}
+
+// FlowFrameworkCommonGetResp is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonGetResp struct {
+	// When the workflow was created.
+	CreatedTime *int `json:"created_time,omitempty"`
+
+	// The description of the workflow.
+	Description *string `json:"description,omitempty"`
+
+	// When the workflow was last provisioned.
+	LastProvisionedTime *float64 `json:"last_provisioned_time,omitempty"`
+
+	// When the workflow was last updated.
+	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
+
+	// The name of the workflow.
+	Name *string `json:"name,omitempty"`
+
+	// A use case ID, which can be used with the Search Workflow API to find
+	// related workflows.
+	UseCase *string `json:"use_case,omitempty"`
+
+	User *FlowFrameworkCommonUser `json:"user,omitempty"`
+
+	// A key-value map with two fields, template, which identifies the template
+	// version, and compatibility, which identifies a list of minimum required
+	// OpenSearch versions.
+	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
+
+	Workflows json.RawMessage `json:"workflows"`
+}
+
+// FlowFrameworkCommonTotal is a typed component of the flow_framework.search operation.
+type FlowFrameworkCommonTotal struct {
+	// The relation of the total hits.
+	Relation *string `json:"relation,omitempty"`
+
+	// The total number of matching documents.
+	Value *int `json:"value,omitempty"`
 }
 
 // FlowFrameworkCommonSearchWorkflowRequest is a typed component of the flow_framework.search operation.

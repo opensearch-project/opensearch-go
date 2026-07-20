@@ -172,6 +172,6 @@ func (r ExistsParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) Exists(ctx context.Context, req ExistsReq) (*opensearch.Response, error) {
+func (c DocumentClient) Exists(ctx context.Context, req ExistsReq) (*opensearch.Response, error) {
 	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

@@ -103,7 +103,7 @@ type GetExperimentsResp struct {
 	// Available: >= 3.0.0.
 	ProcessorResults []opensearchapi.SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *opensearchapi.SearchProfile                            `json:"profile,omitempty"`
+	Profile         *opensearchapi.SearchProfileResult                      `json:"profile,omitempty"`
 	Suggest         map[string][]opensearchapi.SearchResultSuggestValueItem `json:"suggest,omitempty"`
 	TerminatedEarly *bool                                                   `json:"terminated_early,omitempty"`
 	TimedOut        bool                                                    `json:"timed_out"`

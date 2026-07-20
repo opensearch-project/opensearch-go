@@ -122,7 +122,7 @@ func (r IndicesCreateDataStreamResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) CreateDataStream(ctx context.Context, req IndicesCreateDataStreamReq) (*IndicesCreateDataStreamResp, error) {
+func (c IndicesClient) CreateDataStream(ctx context.Context, req IndicesCreateDataStreamReq) (*IndicesCreateDataStreamResp, error) {
 	var (
 		data IndicesCreateDataStreamResp
 		err  error

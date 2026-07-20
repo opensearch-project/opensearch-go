@@ -270,7 +270,7 @@ func (u ClusterRemoteInfoRespBodyValue) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/remote-info/
-func (c clusterClient) RemoteInfo(ctx context.Context, req *ClusterRemoteInfoReq) (*ClusterRemoteInfoResp, error) {
+func (c ClusterClient) RemoteInfo(ctx context.Context, req *ClusterRemoteInfoReq) (*ClusterRemoteInfoResp, error) {
 	if req == nil {
 		req = &ClusterRemoteInfoReq{}
 	}

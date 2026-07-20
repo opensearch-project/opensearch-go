@@ -257,7 +257,7 @@ func (u ClearScrollBodyScrollID) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/scroll/
-func (c scrollClient) Delete(ctx context.Context, req *ClearScrollReq) (*ClearScrollResp, error) {
+func (c ScrollClient) Delete(ctx context.Context, req *ClearScrollReq) (*ClearScrollResp, error) {
 	if req == nil {
 		req = &ClearScrollReq{}
 	}

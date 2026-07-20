@@ -161,7 +161,7 @@ func (r TasksCancelResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/#task-canceling
-func (c tasksClient) Cancel(ctx context.Context, req TasksCancelReq) (*TasksCancelResp, error) {
+func (c TasksClient) Cancel(ctx context.Context, req TasksCancelReq) (*TasksCancelResp, error) {
 	var (
 		data TasksCancelResp
 		err  error

@@ -302,7 +302,7 @@ func (r *IndicesValidateQueryResp) PartialFailures(mask errmask.ErrorMask) []err
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ValidateQuery(ctx context.Context, req *IndicesValidateQueryReq) (*IndicesValidateQueryResp, error) {
+func (c IndicesClient) ValidateQuery(ctx context.Context, req *IndicesValidateQueryReq) (*IndicesValidateQueryResp, error) {
 	if req == nil {
 		req = &IndicesValidateQueryReq{}
 	}

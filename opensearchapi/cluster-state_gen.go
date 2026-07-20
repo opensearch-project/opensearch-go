@@ -201,7 +201,7 @@ func (r ClusterStateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) State(ctx context.Context, req *ClusterStateReq) (*ClusterStateResp, error) {
+func (c ClusterClient) State(ctx context.Context, req *ClusterStateReq) (*ClusterStateResp, error) {
 	if req == nil {
 		req = &ClusterStateReq{}
 	}

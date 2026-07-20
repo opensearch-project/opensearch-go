@@ -58,7 +58,8 @@ func (c *Client) TopQueries(ctx context.Context, req *TopQueriesReq) (*TopQuerie
 		req = &TopQueriesReq{}
 	}
 	var resp TopQueriesResp
-	if _, err := request(ctx, c, http.MethodGet, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

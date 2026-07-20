@@ -2534,7 +2534,7 @@ func (u IndicesAnalyzeBodyTokenizer) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/analyze-apis/perform-text-analysis/
-func (c indicesClient) Analyze(ctx context.Context, req IndicesAnalyzeReq) (*IndicesAnalyzeResp, error) {
+func (c IndicesClient) Analyze(ctx context.Context, req IndicesAnalyzeReq) (*IndicesAnalyzeResp, error) {
 	var (
 		data IndicesAnalyzeResp
 		err  error

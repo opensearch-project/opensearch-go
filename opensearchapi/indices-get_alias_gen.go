@@ -176,7 +176,7 @@ type IndicesGetAliasIndexAliases struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/
-func (c indicesClient) GetAlias(ctx context.Context, req *IndicesGetAliasReq) (*IndicesGetAliasResp, error) {
+func (c IndicesClient) GetAlias(ctx context.Context, req *IndicesGetAliasReq) (*IndicesGetAliasResp, error) {
 	if req == nil {
 		req = &IndicesGetAliasReq{}
 	}
@@ -197,7 +197,7 @@ func (c indicesClient) GetAlias(ctx context.Context, req *IndicesGetAliasReq) (*
 }
 
 // Deprecated: use IndicesGetAlias via the parent client instead.
-func (c aliasClient) Get(ctx context.Context, req *IndicesGetAliasReq) (*IndicesGetAliasResp, error) {
+func (c AliasClient) Get(ctx context.Context, req *IndicesGetAliasReq) (*IndicesGetAliasResp, error) {
 	if req == nil {
 		req = &IndicesGetAliasReq{}
 	}

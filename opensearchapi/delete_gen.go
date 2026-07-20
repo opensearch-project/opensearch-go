@@ -226,7 +226,7 @@ func (r *DeleteResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/delete-document/
-func (c documentClient) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
+func (c DocumentClient) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var (
 		data DeleteResp
 		err  error

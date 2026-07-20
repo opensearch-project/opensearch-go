@@ -11,11 +11,14 @@
 package ism_test
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/plugins/ism"
 )
 
@@ -56,4 +59,43 @@ func TestRefreshSearchAnalyzersReq_GetRequest(t *testing.T) {
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
 		})
 	}
+}
+
+func TestRefreshSearchAnalyzers_Roundtrip(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		client := ism.NewClient(osClient)
+
+		resp, err := client.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{"test"}})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Inspect().Response)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"status":400,"error":{"reason":"test error","type":"invalid_request"}}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		errClient := ism.NewClient(osClient)
+
+		resp, err := errClient.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{"test"}})
+		require.Error(t, err)
+		require.NotNil(t, resp)
+	})
 }

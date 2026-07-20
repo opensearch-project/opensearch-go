@@ -107,6 +107,6 @@ func (r IndicesExistsIndexTemplateParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) ExistsIndexTemplate(ctx context.Context, req IndicesExistsIndexTemplateReq) (*opensearch.Response, error) {
+func (c IndicesClient) ExistsIndexTemplate(ctx context.Context, req IndicesExistsIndexTemplateReq) (*opensearch.Response, error) {
 	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

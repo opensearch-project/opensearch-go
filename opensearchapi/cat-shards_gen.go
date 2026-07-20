@@ -157,7 +157,7 @@ func (r CatShardsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-shards/
-func (c catClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsResp, error) {
+func (c CatClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsResp, error) {
 	if req == nil {
 		req = &CatShardsReq{}
 	}

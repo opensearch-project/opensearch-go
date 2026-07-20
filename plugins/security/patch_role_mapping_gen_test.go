@@ -11,11 +11,15 @@
 package security_test
 
 import (
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/plugins/security"
 )
 
@@ -56,4 +60,43 @@ func TestPatchRoleMappingReq_GetRequest(t *testing.T) {
 			require.Equal(t, tt.wantPath, httpReq.URL.Path)
 		})
 	}
+}
+
+func TestPatchRoleMapping_Roundtrip(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = io.WriteString(w, `{}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		client := security.NewClient(osClient)
+
+		resp, err := client.PatchRoleMapping(t.Context(), security.PatchRoleMappingReq{Role: "test", Body: strings.NewReader("{}")})
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, resp.Inspect().Response)
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = io.WriteString(w, `{"status":400,"error":{"reason":"test error","type":"invalid_request"}}`)
+		}))
+		t.Cleanup(ts.Close)
+
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		errClient := security.NewClient(osClient)
+
+		resp, err := errClient.PatchRoleMapping(t.Context(), security.PatchRoleMappingReq{Role: "test", Body: strings.NewReader("{}")})
+		require.Error(t, err)
+		require.NotNil(t, resp)
+	})
 }

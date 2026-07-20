@@ -268,7 +268,7 @@ type SnapshotRestoreBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/restore-snapshot/
-func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, error) {
+func (c SnapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, error) {
 	var (
 		data SnapshotRestoreResp
 		err  error

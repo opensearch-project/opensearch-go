@@ -1435,10 +1435,6 @@ func hasExistingHelper(dir string) bool {
 }
 
 func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, _ BuildConfig) *RoundtripTestFragment {
-	if op.IsPlugin {
-		return nil
-	}
-
 	route := primaryRouteIR(op)
 	callPrefix := "client."
 	if route.FieldPath != "" {
@@ -1496,6 +1492,7 @@ func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, _ BuildCon
 		TypePrefix:   op.TypePrefix,
 		RespFixture:  fixture,
 		IsNoBody:     op.IsNoBody,
+		IsPlugin:     op.IsPlugin,
 		CallExpr:     callExpr,
 		ErrCallExpr:  errCallExpr,
 		NeedsBody:    needsBody,

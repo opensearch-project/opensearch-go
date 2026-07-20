@@ -20,9 +20,9 @@ func TestClientsFragment_Body(t *testing.T) {
 	t.Parallel()
 
 	clients := []emit.SubClient{
-		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
-		{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
-		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
+		{TypeName: "CatClient", FieldName: "Cat", Parent: "Client"},
+		{TypeName: "IndicesClient", FieldName: "Indices", Parent: "Client"},
+		{TypeName: "AliasClient", FieldName: "Alias", Parent: "IndicesClient"},
 	}
 
 	frag := &emit.ClientsFragment{SubClients: clients}
@@ -38,17 +38,17 @@ func TestClientsFragment_Body(t *testing.T) {
 		{name: "Client struct", want: "type Client struct"},
 		{name: "Client field", want: "Client *opensearch.Client"},
 		{name: "errors mask field", want: "errors *errMaskWidth"},
-		{name: "top-level Cat", want: "Cat catClient"},
-		{name: "top-level Indices", want: "Indices indicesClient"},
+		{name: "top-level Cat", want: "Cat CatClient"},
+		{name: "top-level Indices", want: "Indices IndicesClient"},
 		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client"},
 		{name: "errors init", want: "errors: newErrMask(mask),"},
-		{name: "init Cat", want: "client.Cat = catClient{apiClient: client}"},
-		{name: "init Indices", want: "client.Indices = indicesClient{apiClient: client}"},
-		{name: "nested init Alias", want: "client.Indices.Alias = aliasClient{apiClient: client}"},
-		{name: "catClient struct", want: "type catClient struct"},
-		{name: "indicesClient struct", want: "type indicesClient struct"},
-		{name: "aliasClient struct", want: "type aliasClient struct"},
-		{name: "nested Alias field", want: "Alias aliasClient"},
+		{name: "init Cat", want: "client.Cat = CatClient{apiClient: client}"},
+		{name: "init Indices", want: "client.Indices = IndicesClient{apiClient: client}"},
+		{name: "nested init Alias", want: "client.Indices.Alias = AliasClient{apiClient: client}"},
+		{name: "CatClient struct", want: "type CatClient struct"},
+		{name: "IndicesClient struct", want: "type IndicesClient struct"},
+		{name: "AliasClient struct", want: "type AliasClient struct"},
+		{name: "nested Alias field", want: "Alias AliasClient"},
 		{name: "Inspect alias", want: "type Inspect = apiutil.Inspect"},
 		{name: "noBody sentinel", want: "var noBody *opensearch.NoBody"},
 	}
@@ -72,8 +72,8 @@ func TestClientsFragment_Body_Aliases(t *testing.T) {
 	t.Parallel()
 
 	clients := []emit.SubClient{
-		{TypeName: "documentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
-		{TypeName: "pointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
+		{TypeName: "DocumentClient", FieldName: "Doc", Parent: "Client", Aliases: []string{"Document"}},
+		{TypeName: "PointInTimeClient", FieldName: "PIT", Parent: "Client", Aliases: []string{"PointInTime"}},
 	}
 
 	frag := &emit.ClientsFragment{SubClients: clients}
@@ -81,20 +81,20 @@ func TestClientsFragment_Body_Aliases(t *testing.T) {
 	require.NoError(t, err)
 
 	// Canonical + alias fields, both typed as the same sub-client.
-	require.Contains(t, body, "Doc documentClient")
-	require.Contains(t, body, "Document documentClient")
-	require.Contains(t, body, "PIT pointInTimeClient")
-	require.Contains(t, body, "PointInTime pointInTimeClient")
+	require.Contains(t, body, "Doc DocumentClient")
+	require.Contains(t, body, "Document DocumentClient")
+	require.Contains(t, body, "PIT PointInTimeClient")
+	require.Contains(t, body, "PointInTime PointInTimeClient")
 
 	// Canonical init plus alias assignment to the canonical field.
-	require.Contains(t, body, "client.Doc = documentClient{apiClient: client}")
+	require.Contains(t, body, "client.Doc = DocumentClient{apiClient: client}")
 	require.Contains(t, body, "client.Document = client.Doc")
-	require.Contains(t, body, "client.PIT = pointInTimeClient{apiClient: client}")
+	require.Contains(t, body, "client.PIT = PointInTimeClient{apiClient: client}")
 	require.Contains(t, body, "client.PointInTime = client.PIT")
 
 	// The aliased type is declared exactly once (no duplicate struct decl).
-	require.Equal(t, 1, strings.Count(body, "type documentClient struct"))
-	require.Equal(t, 1, strings.Count(body, "type pointInTimeClient struct"))
+	require.Equal(t, 1, strings.Count(body, "type DocumentClient struct"))
+	require.Equal(t, 1, strings.Count(body, "type PointInTimeClient struct"))
 }
 
 // TestClientsFragment_Body_AliasInitOrder verifies that a top-level alias is
@@ -105,8 +105,8 @@ func TestClientsFragment_Body_AliasInitOrder(t *testing.T) {
 	t.Parallel()
 
 	clients := []emit.SubClient{
-		{TypeName: "indicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
-		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
+		{TypeName: "IndicesClient", FieldName: "Index", Parent: "Client", Aliases: []string{"Indices", "Indexes"}},
+		{TypeName: "AliasClient", FieldName: "Alias", Parent: "IndicesClient"},
 	}
 
 	frag := &emit.ClientsFragment{SubClients: clients}
@@ -114,14 +114,14 @@ func TestClientsFragment_Body_AliasInitOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	// Nested child is assigned onto the canonical field.
-	require.Contains(t, body, "client.Index.Alias = aliasClient{apiClient: client}")
+	require.Contains(t, body, "client.Index.Alias = AliasClient{apiClient: client}")
 	// Aliases copy the canonical field.
 	require.Contains(t, body, "client.Indices = client.Index")
 	require.Contains(t, body, "client.Indexes = client.Index")
 
 	// The nested-child assignment must come BEFORE the alias copies, otherwise
 	// client.Indices.Alias would be a zero value.
-	nestedIdx := strings.Index(body, "client.Index.Alias = aliasClient{apiClient: client}")
+	nestedIdx := strings.Index(body, "client.Index.Alias = AliasClient{apiClient: client}")
 	indicesAliasIdx := strings.Index(body, "client.Indices = client.Index")
 	indexesAliasIdx := strings.Index(body, "client.Indexes = client.Index")
 	require.Positive(t, nestedIdx)
@@ -133,7 +133,7 @@ func TestClientsFragment_Imports(t *testing.T) {
 	t.Parallel()
 
 	frag := &emit.ClientsFragment{SubClients: []emit.SubClient{
-		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
+		{TypeName: "CatClient", FieldName: "Cat", Parent: "Client"},
 	}}
 
 	imps := frag.Imports()
@@ -144,9 +144,9 @@ func TestNewClientsFile_Render(t *testing.T) {
 	t.Parallel()
 
 	clients := []emit.SubClient{
-		{TypeName: "catClient", FieldName: "Cat", Parent: "Client"},
-		{TypeName: "indicesClient", FieldName: "Indices", Parent: "Client"},
-		{TypeName: "aliasClient", FieldName: "Alias", Parent: "indicesClient"},
+		{TypeName: "CatClient", FieldName: "Cat", Parent: "Client"},
+		{TypeName: "IndicesClient", FieldName: "Indices", Parent: "Client"},
+		{TypeName: "AliasClient", FieldName: "Alias", Parent: "IndicesClient"},
 	}
 
 	target := emit.NewClientsFile("/tmp/test", ir.DefaultCorePkgName, clients)

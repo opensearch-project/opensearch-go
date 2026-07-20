@@ -457,7 +457,7 @@ func (u IndicesUpdateAliasesRemoveActionAliases) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/alias/
-func (c indicesClient) UpdateAliases(ctx context.Context, req *IndicesUpdateAliasesReq) (*IndicesUpdateAliasesResp, error) {
+func (c IndicesClient) UpdateAliases(ctx context.Context, req *IndicesUpdateAliasesReq) (*IndicesUpdateAliasesResp, error) {
 	if req == nil {
 		req = &IndicesUpdateAliasesReq{}
 	}

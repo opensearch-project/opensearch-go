@@ -155,7 +155,7 @@ type ClusterPutSettingsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-settings/
-func (c clusterClient) PutSettings(ctx context.Context, req *ClusterPutSettingsReq) (*ClusterPutSettingsResp, error) {
+func (c ClusterClient) PutSettings(ctx context.Context, req *ClusterPutSettingsReq) (*ClusterPutSettingsResp, error) {
 	if req == nil {
 		req = &ClusterPutSettingsReq{}
 	}

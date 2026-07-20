@@ -21,7 +21,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// PutIp2geoDatasourceSettingsReq represents the request for the geospatial.put_ip2geo_datasource_settings operation.
+// PutIP2GeoDatasourceSettingsReq represents the request for the geospatial.put_ip2geo_datasource_settings operation.
 //
 // Update a specific IP2Geo data source.
 //
@@ -30,7 +30,7 @@ import (
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#updating-an-ip2geo-data-source
-type PutIp2geoDatasourceSettingsReq struct {
+type PutIP2GeoDatasourceSettingsReq struct {
 	// Name specifies the path segment for the request URL.
 	Name string
 
@@ -46,12 +46,12 @@ type PutIp2geoDatasourceSettingsReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *PutIp2geoDatasourceSettingsParams
+	Params *PutIP2GeoDatasourceSettingsParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r PutIp2geoDatasourceSettingsReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.GeospatialPutIp2geoDatasourceSettingsPath{
+func (r PutIP2GeoDatasourceSettingsReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GeospatialPutIP2GeoDatasourceSettingsPath{
 		Name: r.Name,
 	}.Build()
 	if err != nil {
@@ -83,13 +83,13 @@ func (r PutIp2geoDatasourceSettingsReq) GetRequest(method string) (*http.Request
 	)
 }
 
-// PutIp2geoDatasourceSettingsParams represents query parameters for the PutIp2geoDatasourceSettingsReq.
-type PutIp2geoDatasourceSettingsParams struct {
+// PutIP2GeoDatasourceSettingsParams represents query parameters for the PutIP2GeoDatasourceSettingsReq.
+type PutIP2GeoDatasourceSettingsParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 }
 
-func (r PutIp2geoDatasourceSettingsParams) get() map[string]string {
+func (r PutIP2GeoDatasourceSettingsParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -103,14 +103,14 @@ func (r PutIp2geoDatasourceSettingsParams) get() map[string]string {
 	return params
 }
 
-// PutIp2geoDatasourceSettingsResp represents the response for the geospatial.put_ip2geo_datasource_settings operation.
+// PutIP2GeoDatasourceSettingsResp represents the response for the geospatial.put_ip2geo_datasource_settings operation.
 //
 // Update a specific IP2Geo data source.
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#updating-an-ip2geo-data-source
-type PutIp2geoDatasourceSettingsResp struct {
+type PutIP2GeoDatasourceSettingsResp struct {
 	// For a successful response, this value is always true. On failure, an
 	// exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
@@ -119,13 +119,13 @@ type PutIp2geoDatasourceSettingsResp struct {
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r PutIp2geoDatasourceSettingsResp) Inspect() Inspect {
+func (r PutIP2GeoDatasourceSettingsResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r PutIp2geoDatasourceSettingsResp) RawBody() io.Reader {
+func (r PutIP2GeoDatasourceSettingsResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}

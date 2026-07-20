@@ -20,18 +20,18 @@ import (
 	plugintest "github.com/opensearch-project/opensearch-go/v5/plugins/geospatial/internal/geospatialtest"
 )
 
-func TestDeleteIp2geoDatasource(t *testing.T) {
+func TestDeleteIP2GeoDatasource(t *testing.T) {
 	t.Skip("requires IP2Geo datasource or external network access") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 
 	osClient, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfVersion(t, osClient, "<", "2.11", "DeleteIp2geoDatasource")
-	name := testutil.MustUniqueString(t, "test-delete-ip2geo-datasource")
+	testutil.SkipIfVersion(t, osClient, "<", "2.11", "DeleteIP2GeoDatasource")
+	name := testutil.MustUniqueString(t, "test-delete-i-p2-geo-datasource")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Ip2geoDatasource.DeleteIp2geoDatasource(t.Context(), geospatial.DeleteIp2geoDatasourceReq{Name: name})
+		resp, err := client.IP2GeoDatasource.DeleteIP2GeoDatasource(t.Context(), geospatial.DeleteIP2GeoDatasourceReq{Name: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -41,7 +41,7 @@ func TestDeleteIp2geoDatasource(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Ip2geoDatasource.DeleteIp2geoDatasource(t.Context(), geospatial.DeleteIp2geoDatasourceReq{Name: name})
+		res, err := failingClient.IP2GeoDatasource.DeleteIP2GeoDatasource(t.Context(), geospatial.DeleteIP2GeoDatasourceReq{Name: name})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

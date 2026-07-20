@@ -119,7 +119,7 @@ func (r ClusterDeleteComponentTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) DeleteComponentTemplate(ctx context.Context, req ClusterDeleteComponentTemplateReq) (*ClusterDeleteComponentTemplateResp, error) {
+func (c ClusterClient) DeleteComponentTemplate(ctx context.Context, req ClusterDeleteComponentTemplateReq) (*ClusterDeleteComponentTemplateResp, error) {
 	var (
 		data ClusterDeleteComponentTemplateResp
 		err  error

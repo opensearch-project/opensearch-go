@@ -320,7 +320,7 @@ func (u IndicesOpenRespBody) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/open-index/
-func (c indicesClient) Open(ctx context.Context, req *IndicesOpenReq) (*IndicesOpenResp, error) {
+func (c IndicesClient) Open(ctx context.Context, req *IndicesOpenReq) (*IndicesOpenResp, error) {
 	if req == nil {
 		req = &IndicesOpenReq{}
 	}

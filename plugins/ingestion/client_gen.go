@@ -57,7 +57,8 @@ func request[T any](ctx context.Context, c *Client, method string, req opensearc
 // See: https://docs.opensearch.org/docs/latest/api-reference/document-apis/pull-based-ingestion-management/
 func (c *Client) GetState(ctx context.Context, req GetStateReq) (*GetStateResp, error) {
 	var resp GetStateResp
-	if _, err := request(ctx, c, http.MethodGet, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodGet, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -72,7 +73,8 @@ func (c *Client) GetState(ctx context.Context, req GetStateReq) (*GetStateResp, 
 // See: https://docs.opensearch.org/docs/latest/api-reference/document-apis/pull-based-ingestion-management/
 func (c *Client) Pause(ctx context.Context, req PauseReq) (*PauseResp, error) {
 	var resp PauseResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -87,7 +89,8 @@ func (c *Client) Pause(ctx context.Context, req PauseReq) (*PauseResp, error) {
 // See: https://docs.opensearch.org/docs/latest/api-reference/document-apis/pull-based-ingestion-management/
 func (c *Client) Resume(ctx context.Context, req ResumeReq) (*ResumeResp, error) {
 	var resp ResumeResp
-	if _, err := request(ctx, c, http.MethodPost, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, http.MethodPost, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil

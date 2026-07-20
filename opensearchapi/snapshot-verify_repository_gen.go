@@ -123,7 +123,7 @@ type SnapshotVerifyRepositoryCompactNodeInfo struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/verify-snapshot-repository/
-func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
+func (c SnapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
 	var (
 		data SnapshotVerifyRepositoryResp
 		err  error
@@ -140,7 +140,7 @@ func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerify
 }
 
 // Deprecated: use SnapshotVerifyRepository via the parent client instead.
-func (c repositoryClient) Verify(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
+func (c RepositoryClient) Verify(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
 	var (
 		data SnapshotVerifyRepositoryResp
 		err  error

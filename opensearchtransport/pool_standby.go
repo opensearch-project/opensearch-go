@@ -302,7 +302,7 @@ func (cp *multiServerPool) promoteStandbyWithLock(c *Connection) bool {
 	c.mu.Lock()
 	c.casLifecycle(c.loadConnState(), 0, lcActive, lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	c.mu.Unlock()
-	rounds, skip := cp.getWarmupParams()
+	rounds, skip := cp.getWarmupParamsWithLock()
 	c.startWarmup(rounds, skip)
 	cp.mu.activeCount++
 

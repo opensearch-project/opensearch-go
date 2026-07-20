@@ -231,7 +231,7 @@ func (r *IndicesForceMergeResp) PartialFailures(mask errmask.ErrorMask) []error 
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ForceMerge(ctx context.Context, req *IndicesForceMergeReq) (*IndicesForceMergeResp, error) {
+func (c IndicesClient) ForceMerge(ctx context.Context, req *IndicesForceMergeReq) (*IndicesForceMergeResp, error) {
 	if req == nil {
 		req = &IndicesForceMergeReq{}
 	}

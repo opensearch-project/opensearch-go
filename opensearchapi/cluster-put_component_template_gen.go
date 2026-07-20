@@ -172,7 +172,7 @@ type ClusterPutComponentTemplateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/#use-component-templates-to-create-an-index-template
-func (c clusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutComponentTemplateReq) (*ClusterPutComponentTemplateResp, error) {
+func (c ClusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutComponentTemplateReq) (*ClusterPutComponentTemplateResp, error) {
 	var (
 		data ClusterPutComponentTemplateResp
 		err  error

@@ -193,7 +193,7 @@ func (r *CreatePITResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
-func (c pointInTimeClient) Create(ctx context.Context, req *CreatePITReq) (*CreatePITResp, error) {
+func (c PointInTimeClient) Create(ctx context.Context, req *CreatePITReq) (*CreatePITResp, error) {
 	if req == nil {
 		req = &CreatePITReq{}
 	}
