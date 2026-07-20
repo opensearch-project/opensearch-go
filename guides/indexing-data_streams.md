@@ -1,5 +1,7 @@
 # Data Streams API
 
+> **Runnable example:** [`_samples/indexing-data_stream.go`](../_samples/indexing-data_stream.go)
+
 > **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](config-security.md#request-body-construction) for details.
 
 ## Setup

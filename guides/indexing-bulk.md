@@ -1,5 +1,7 @@
 # Bulk
 
+> **Runnable example:** [`_samples/indexing-bulk.go`](../_samples/indexing-bulk.go)
+
 In this guide, you'll learn how to use the OpenSearch Golang Client API to perform bulk operations. You'll learn how to index, update, and delete multiple documents in a single request.
 
 > **Surface note**: the `bulk` API returns `BulkResp.Items` as `[]BulkItem` -- a struct with named fields per operation (`Index`, `Create`, `Update`, `Delete`), each a `*BulkRespItem`. `BulkRespItem.ID` is a `*string`, so deref before formatting. Multi-index `Req` types use `Index []string` (e.g. `IndicesDeleteReq.Index`); `BulkReq.Index` (singular, the default per-request `_index`) is unchanged. See the [Handling errors](#handling-errors) section for an example.

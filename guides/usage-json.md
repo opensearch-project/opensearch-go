@@ -1,12 +1,14 @@
 - [Making Raw JSON REST Requests](#making-raw-json-rest-requests)
   - [Setup](#setup)
-  - [Using Do for Typed Responses](#using-do-for-typed-responses)
+  - [Using Execute for Typed Responses](#using-execute-for-typed-responses)
   - [GET](#get)
   - [PUT](#put)
   - [POST](#post)
   - [DELETE](#delete)
 
 # Making Raw JSON REST Requests
+
+> **Runnable example:** [`_samples/usage-json.go`](../_samples/usage-json.go)
 
 The OpenSearch client implements many high-level REST DSLs that invoke OpenSearch APIs. However you may find yourself in a situation that requires you to invoke an API that is not supported by the client. Use `client.Perform` to do so.
 
