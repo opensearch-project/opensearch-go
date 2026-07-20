@@ -325,7 +325,7 @@ func TestRecalculateWarmupParams(t *testing.T) {
 	t.Run("auto-scales activeListCap", func(t *testing.T) {
 		t.Parallel()
 		pool := &multiServerPool{}
-		pool.recalculateWarmupParams(5)
+		pool.recalculateWarmupParamsWithLock(5)
 
 		require.Equal(t, 5, pool.mu.activeListCap)
 		require.Positive(t, pool.mu.warmupRounds)
@@ -337,7 +337,7 @@ func TestRecalculateWarmupParams(t *testing.T) {
 		explicitCap := 2
 		pool := &multiServerPool{activeListCapConfig: &explicitCap}
 		pool.mu.activeListCap = 2
-		pool.recalculateWarmupParams(5)
+		pool.recalculateWarmupParamsWithLock(5)
 
 		// activeListCap should not change when explicit
 		require.Equal(t, 2, pool.mu.activeListCap)
