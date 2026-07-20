@@ -34,6 +34,7 @@ import (
 	"net/url"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -179,10 +180,10 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
 			jitterScale:                  defaultJitterScale,
-			// Health check that always fails to prevent automatic resurrection during test
-			healthCheck: func(context.Context, *Connection, *url.URL) (*http.Response, error) {
-				return nil, errors.New("health check disabled for test")
-			},
+		}
+		// Health check that always fails to prevent automatic resurrection during test
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			return nil, errors.New("health check disabled for test")
 		}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -251,10 +252,10 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
 			jitterScale:                  defaultJitterScale,
-			// Health check that always fails to prevent automatic resurrection during test
-			healthCheck: func(context.Context, *Connection, *url.URL) (*http.Response, error) {
-				return nil, errors.New("health check disabled for test")
-			},
+		}
+		// Health check that always fails to prevent automatic resurrection during test
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			return nil, errors.New("health check disabled for test")
 		}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -418,9 +419,9 @@ func TestPolicySnapshot_HealthCheckingCount(t *testing.T) {
 	conns[3].setLifecycleBit(lcDead | lcHealthChecking)
 
 	cp := &multiServerPool{
-		name:          "test",
-		activeListCap: 2,
+		name: "test",
 	}
+	cp.mu.activeListCap = 2
 	cp.mu.ready = conns[:2]
 	cp.mu.activeCount = 2
 	cp.mu.dead = conns[2:]
@@ -511,6 +512,32 @@ func TestWeightedPoolDuplicatePointers(t *testing.T) {
 
 		require.Equal(t, 1, pool.mu.activeCount)
 		require.Len(t, pool.mu.ready, 3) // 1 active + 2 standby
+	})
+
+	t.Run("appendToReadyStandbyWithLock schedules RTT probe when rtt unknown", func(t *testing.T) {
+		// A standby connection with an unknown RTT and a configured health check
+		// must trigger an async one-shot RTT probe (populating rttRing so the
+		// connection can be scored). Covers the RTT-probe branch in
+		// appendToReadyStandbyWithLock.
+		var probed atomic.Int32
+		pool := &multiServerPool{name: "test"}
+		pool.mu.ready = []*Connection{}
+		pool.mu.dead = []*Connection{}
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			probed.Add(1)
+			return nil, errors.New("probe stub")
+		}
+
+		c := makeWeightedConn("standby", 1)
+		c.rttRing = newRTTRing(4) // fresh ring: every slot is rttBucketUnknown
+
+		pool.mu.Lock()
+		pool.appendToReadyStandbyWithLock(c)
+		pool.mu.Unlock()
+
+		require.Eventually(t, func() bool {
+			return probed.Load() >= 1
+		}, 2*time.Second, 10*time.Millisecond, "expected an async RTT probe to be scheduled")
 	})
 
 	t.Run("weighted round-robin distribution", func(t *testing.T) {

@@ -276,6 +276,29 @@ func TestDeferredStandbyPromotion(t *testing.T) {
 
 		require.Equal(t, 2, pool.mu.activeCount, "should not change when no standby")
 	})
+
+	t.Run("grows cap so promoted connection stays active", func(t *testing.T) {
+		t.Parallel()
+		enableTestDebugLogger(t) // exercise the debug-log branch too
+		conns := make([]*Connection, 3)
+		for i := range conns {
+			u, _ := url.Parse("http://node:920" + string(rune('0'+i)))
+			conns[i] = &Connection{URL: u}
+		}
+		conns[0].setLifecycleBit(lcActive)
+		conns[1].setLifecycleBit(lcActive)
+		conns[2].setLifecycleBit(lcStandby | lcNeedsWarmup)
+
+		pool := makeTestPool(nextTestPoolName(), conns, 2, nil)
+		pool.mu.activeListCap = 2 // promotion pushes activeCount past the cap
+		pool.metrics = &metrics{}
+
+		pool.deferredStandbyPromotion()
+
+		require.Equal(t, 3, pool.mu.activeCount)
+		require.Equal(t, 3, pool.mu.activeListCap, "cap should grow to keep the promoted connection active")
+		require.Equal(t, int64(1), pool.metrics.standbyPromotions.Load())
+	})
 }
 
 // ---------------------------------------------------------------------------

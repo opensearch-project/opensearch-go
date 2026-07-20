@@ -41,7 +41,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 
 		// Check that health check function was assigned
 		if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
-			if pool.healthCheck == nil {
+			if pool.mu.healthCheck == nil {
 				t.Error("Expected health check function to be assigned when HealthCheck is nil")
 			}
 		}
@@ -64,13 +64,13 @@ func TestHealthCheckConfiguration(t *testing.T) {
 
 		// Check that NoOpHealthCheck was assigned
 		if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
-			if pool.healthCheck == nil {
+			if pool.mu.healthCheck == nil {
 				t.Error("Expected NoOpHealthCheck to be assigned")
 			}
 
 			// Test the NoOpHealthCheck function directly
 			ctx := context.Background()
-			resp, err := pool.healthCheck(ctx, nil, serverURL) //nolint:bodyclose // NoOpHealthCheck returns nil response
+			resp, err := pool.mu.healthCheck(ctx, nil, serverURL) //nolint:bodyclose // NoOpHealthCheck returns nil response
 			if err != nil {
 				t.Errorf("NoOpHealthCheck should never fail, got error: %v", err)
 			}
@@ -137,7 +137,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 		// Test the failing health check
 		if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
 			ctx := context.Background()
-			resp, err := pool.healthCheck(ctx, nil, serverURL)
+			resp, err := pool.mu.healthCheck(ctx, nil, serverURL)
 			if err == nil {
 				t.Error("Expected custom health check to fail")
 			}
@@ -159,13 +159,13 @@ func testCustomHealthCheckFunction(t *testing.T, client *Transport, serverURL *u
 		return
 	}
 
-	if pool.healthCheck == nil {
+	if pool.mu.healthCheck == nil {
 		t.Error("Expected custom health check to be assigned")
 		return
 	}
 
 	ctx := context.Background()
-	resp, err := pool.healthCheck(ctx, nil, serverURL)
+	resp, err := pool.mu.healthCheck(ctx, nil, serverURL)
 	if err != nil {
 		t.Errorf("Custom health check should succeed for localhost, got error: %v", err)
 	}

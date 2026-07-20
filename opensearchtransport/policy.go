@@ -142,11 +142,11 @@ func createPoolFromConfig(config policyConfig) *multiServerPool {
 		jitterScale:                  config.jitterScale,
 		serverMaxNewConnsPerSec:      config.serverMaxNewConnsPerSec,
 		clientsPerServer:             config.clientsPerServer,
-		healthCheck:                  config.healthCheck,
-		activeListCap:                effectiveCap,
 		activeListCapConfig:          config.activeListCap,
 		standbyPromotionChecks:       config.standbyPromotionChecks,
 	}
+	pool.mu.activeListCap = effectiveCap
+	pool.mu.healthCheck = config.healthCheck
 	pool.mu.members = make(map[*Connection]struct{}, defaultMembersCapacity)
 	if config.observer != nil {
 		pool.observer.Store(config.observer)

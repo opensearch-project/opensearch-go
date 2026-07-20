@@ -1091,10 +1091,10 @@ func New(cfg Config) (*Transport, error) {
 				jitterScale:                  jitterScale,
 				serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
 				clientsPerServer:             clientsPerServer,
-				activeListCap:                activeListCap,
 				activeListCapConfig:          activeListCapConfig,
 				standbyPromotionChecks:       standbyPromotionChecks,
 			}
+			pool.mu.activeListCap = activeListCap
 			// Initialize all connections as active with proper state.
 			for _, conn := range conns {
 				conn.mu.Lock()
@@ -1118,7 +1118,9 @@ func New(cfg Config) (*Transport, error) {
 
 	// Set up health check function for pools that support it
 	if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
-		pool.healthCheck = client.healthCheck
+		pool.mu.Lock()
+		pool.mu.healthCheck = client.healthCheck
+		pool.mu.Unlock()
 		if obs := client.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
 		}
@@ -1126,7 +1128,9 @@ func New(cfg Config) (*Transport, error) {
 
 	// Set health check on the seed fallback pool so resurrection works.
 	if client.seedFallbackPool != nil {
-		client.seedFallbackPool.healthCheck = client.healthCheck
+		client.seedFallbackPool.mu.Lock()
+		client.seedFallbackPool.mu.healthCheck = client.healthCheck
+		client.seedFallbackPool.mu.Unlock()
 	}
 
 	if cfg.EnableDebugLogger {
@@ -2622,12 +2626,12 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 		jitterScale:                  c.jitterScale,
 		serverMaxNewConnsPerSec:      c.serverMaxNewConnsPerSec,
 		clientsPerServer:             c.clientsPerServer,
-		healthCheck:                  c.healthCheck,
 		metrics:                      m,
-		activeListCap:                c.activeListCap,
 		activeListCapConfig:          c.activeListCapConfig,
 		standbyPromotionChecks:       c.standbyPromotionChecks,
 	}
+	pool.mu.activeListCap = c.activeListCap
+	pool.mu.healthCheck = c.healthCheck
 	if obs := c.observer.Load(); obs != nil {
 		pool.observer.Store(obs)
 	}
