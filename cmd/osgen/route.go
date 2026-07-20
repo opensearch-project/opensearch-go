@@ -572,7 +572,7 @@ func httpMethodConst(method string) string {
 
 // pluginSubClientInfo describes a sub-client within a plugin package.
 type pluginSubClientInfo struct {
-	TypeName  string // e.g. "actionGroupClient"
+	TypeName  string // e.g. "ActionGroupClient"
 	FieldName string // exported field on Client (e.g. "ActionGroup")
 }
 

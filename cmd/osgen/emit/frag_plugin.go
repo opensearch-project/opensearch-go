@@ -17,7 +17,7 @@ import (
 
 // PluginSubClient describes a sub-client within a plugin package.
 type PluginSubClient struct {
-	TypeName  string // unexported type name (e.g. "actionGroupClient")
+	TypeName  string // exported type name (e.g. "ActionGroupClient")
 	FieldName string // exported field on Client (e.g. "ActionGroup")
 }
 
