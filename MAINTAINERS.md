@@ -4,12 +4,11 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 
 ## Current Maintainers
 
-| Maintainer      | GitHub ID                                 | Affiliation         |
-| --------------- | ----------------------------------------- | ------------------- |
-| Jakob Hahn      | [Jakob3xD](https://github.com/Jakob3xD)   | Hetzner Online GmbH |
-| Vacha Shah      | [VachaShah](https://github.com/VachaShah) | Amazon              |
-| Sean Chittenden | [sean-](https://github.com/sean-)         | CrowdStrike         |
-| Ryan Yuan       | [ryanyuan](https://github.com/ryanyuan)   | CrowdStrike         |
+| Maintainer      | GitHub ID                               | Affiliation         |
+| --------------- | --------------------------------------- | ------------------- |
+| Jakob Hahn      | [Jakob3xD](https://github.com/Jakob3xD) | Hetzner Online GmbH |
+| Sean Chittenden | [sean-](https://github.com/sean-)       | CrowdStrike         |
+| Ryan Yuan       | [ryanyuan](https://github.com/ryanyuan) | CrowdStrike         |
 
 ## Emeritus
 
@@ -19,5 +18,6 @@ This document contains a list of maintainers in this repo. See [opensearch-proje
 | Jack Mazanec            | [jmazanec15](https://github.com/jmazanec15) | Amazon      |
 | Rob Cowart              | [robcowart](https://github.com/robcowart)   | ElastiFlow  |
 | Sven Cowart             | [svencowart](https://github.com/svencowart) |             |
+| Vacha Shah              | [VachaShah](https://github.com/VachaShah)   | Amazon      |
 | Vamshi Vijay Nakkirtha  | [vamshin](https://github.com/vamshin)       | Amazon      |
 | Vijayan Balasubramanian | [VijayanB](https://github.com/VijayanB)     | Amazon      |
