@@ -831,6 +831,126 @@ func (op OperationID) String() string {
 	case OpPing:
 		return "ping"
 
+	// Admin — cat operations
+	case OpCatAllocation:
+		return "cat_allocation"
+	case OpCatClusterMgr:
+		return "cat_cluster_manager"
+	case OpCatCount:
+		return "cat_count"
+	case OpCatFielddata:
+		return "cat_fielddata"
+	case OpCatHealth:
+		return "cat_health"
+	case OpCatIndices:
+		return "cat_indices"
+	case OpCatMaster:
+		return "cat_master"
+	case OpCatNodeAttrs:
+		return "cat_nodeattrs"
+	case OpCatNodes:
+		return "cat_nodes"
+	case OpCatPendingTask:
+		return "cat_pending_tasks"
+	case OpCatPlugins:
+		return "cat_plugins"
+	case OpCatRecovery:
+		return "cat_recovery"
+	case OpCatRepos:
+		return "cat_repositories"
+	case OpCatSegments:
+		return "cat_segments"
+	case OpCatShards:
+		return "cat_shards"
+	case OpCatSnapshots:
+		return "cat_snapshots"
+	case OpCatTasks:
+		return "cat_tasks"
+	case OpCatTemplates:
+		return "cat_templates"
+	case OpCatThreadPool:
+		return "cat_thread_pool"
+
+	// Admin — node operations
+	case OpNodesInfo:
+		return "nodes_info"
+	case OpNodesStats:
+		return "nodes_stats"
+	case OpNodesUsage:
+		return "nodes_usage"
+	case OpNodesHotThreads:
+		return "nodes_hot_threads"
+	case OpNodesReloadSecurity:
+		return "nodes_reload_secure_settings"
+
+	// Admin — task operations
+	case OpTasksList:
+		return "tasks_list"
+	case OpTasksGet:
+		return "tasks_get"
+	case OpTasksCancel:
+		return "tasks_cancel"
+
+	// Admin — snapshot operations
+	case OpSnapshotCreate:
+		return "snapshot_create"
+	case OpSnapshotGet:
+		return "snapshot_get"
+	case OpSnapshotDelete:
+		return "snapshot_delete"
+	case OpSnapshotClone:
+		return "snapshot_clone"
+	case OpSnapshotRestore:
+		return "snapshot_restore"
+	case OpSnapshotStatus:
+		return "snapshot_status"
+	case OpSnapshotRepoCreate:
+		return "snapshot_repo_create"
+	case OpSnapshotRepoGet:
+		return "snapshot_repo_get"
+	case OpSnapshotRepoDelete:
+		return "snapshot_repo_delete"
+	case OpSnapshotRepoVerify:
+		return "snapshot_repo_verify"
+	case OpSnapshotRepoClean:
+		return "snapshot_repo_cleanup"
+
+	// Admin — script operations
+	case OpScriptGet:
+		return "script_get"
+	case OpScriptPut:
+		return "script_put"
+	case OpScriptDelete:
+		return "script_delete"
+	case OpScriptContext:
+		return "script_context"
+	case OpScriptLanguage:
+		return "script_language"
+	case OpScriptPainlessExec:
+		return "script_painless_execute"
+
+	// Admin — dangling index operations
+	case OpDanglingGet:
+		return "dangling_get"
+	case OpDanglingDelete:
+		return "dangling_delete"
+	case OpDanglingImport:
+		return "dangling_import"
+
+	// Data stream operations
+	case OpDataStreamGet:
+		return "data_stream_get"
+	case OpDataStreamCreate:
+		return "data_stream_create"
+	case OpDataStreamDelete:
+		return "data_stream_delete"
+	case OpDataStreamStats:
+		return "data_stream_stats"
+
+	// Render search template
+	case OpRenderSearchTemplate:
+		return "render_search_template"
+
 	case OpOther:
 		return "other"
 	}
