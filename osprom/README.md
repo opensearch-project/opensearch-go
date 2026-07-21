@@ -14,8 +14,8 @@ go get github.com/opensearch-project/opensearch-go/v5/osprom
 
 ## Concepts
 
-- **`Registry`** is the single [`opensearchtransport.ConnectionObserver`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#ConnectionObserver) you wire into a client. It owns the async pipeline and fans each event out to the observers wired into it.
-- **`Observer`** is a metric bundle. `osprom` ships `RequestObserver` (duration and response-size histograms); you can add your own. A Registry can hold any number of them, so you compose whatever metric set you need.
+- **`Registry`** is the single [`opensearchtransport.ConnectionObserver`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#ConnectionObserver) you wire into a client. It owns the async pipeline and fans each event out to the sinks wired into it. Per-request events are buffered and dispatched by a pool of workers; low-frequency connection-lifecycle events are fanned out synchronously.
+- **`Observer`** is a metric sink: it receives the full transport event and routes it to whatever metrics it owns. `osprom` ships two, giving RED+USE coverage out of the box: `RequestObserver` (RED -- rate, errors, duration of requests) and `PoolObserver` (USE -- utilization, saturation, errors of the connection pool). A Registry can hold any number of sinks, so you compose whatever metric set you need.
 
 ## Usage
 
@@ -38,14 +38,15 @@ import (
 func main() {
 	promReg := prometheus.NewRegistry()
 
-	// Wire one or more Observer bundles into the registry. Buffer up to 1024
-	// events between the request hot path and the recorder.
-	reg, err := osprom.New(promReg, 1024, osprom.NewRequestObserver())
+	// Wire one or more sinks into the registry. RequestObserver (RED) and
+	// PoolObserver (USE) together give full RED+USE coverage. The event buffer
+	// scales with GOMAXPROCS; set it with WithBufferSize via NewWithOptions.
+	reg, err := osprom.New(promReg, osprom.NewRequestObserver(), osprom.NewPoolObserver())
 	if err != nil {
 		panic(err)
 	}
 
-	// Run the dispatch loop until ctx is cancelled or reg.Close is called.
+	// Run the dispatch workers until ctx is cancelled or reg.Close is called.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	go func() { _ = reg.Run(ctx) }()
@@ -79,14 +80,34 @@ apiClient, err := opensearchapi.NewClient(opensearchapi.Config{
 
 ## Shipped metrics
 
-`NewRequestObserver` records two histograms, labeled by `method`, status class (`2xx`, `4xx`, `error`, ...), and `mode` (`request` for a buffered full read, `stream` for time-to-first-byte):
+`osprom` ships two sinks that together cover the [RED](https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/) and [USE](https://www.brendangregg.com/usemethod.html) methods -- two complementary monitoring frameworks:
 
-| Metric                                       | Description                                                                               |
-| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `opensearch_client_request_duration_seconds` | Request duration.                                                                         |
-| `opensearch_client_response_size_bytes`      | Buffered response size (recorded for `request` mode only, where the exact size is known). |
+- **RED** (Rate, Errors, Duration) describes request-level service health: how many requests, how many failed, and how long they took. Best for the client's request workload.
+- **USE** (Utilization, Saturation, Errors) describes a resource's health: how busy it is, how much work is queued/shed, and its error count. Here the resource is the connection pool.
 
-The Registry also exports `opensearch_client_observer_dropped_total`, the count of events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
+### RED -- `NewRequestObserver`
+
+Request-level Rate, Errors, and Duration, labeled by `method`, status class (`2xx`/`3xx`/`4xx`/`5xx`, `error` for no response, `unknown` out of range), and `mode` (`request` for a buffered full read, `stream` for time-to-first-byte):
+
+| Metric                                       | Signal   | Description                                                                               |
+| -------------------------------------------- | -------- | ----------------------------------------------------------------------------------------- |
+| `opensearch_client_requests_total`           | Rate     | Total requests.                                                                           |
+| `opensearch_client_request_errors_total`     | Errors   | Requests that returned 4xx/5xx or a transport error.                                      |
+| `opensearch_client_request_duration_seconds` | Duration | Request latency histogram.                                                                |
+| `opensearch_client_response_size_bytes`      | --       | Buffered response size (recorded for `request` mode only, where the exact size is known). |
+
+### USE -- `NewPoolObserver`
+
+Connection-pool Utilization, Saturation, and Errors, labeled by `pool`, derived from connection-lifecycle events:
+
+| Metric                                               | Signal      | Description                                                       |
+| ---------------------------------------------------- | ----------- | ----------------------------------------------------------------- |
+| `opensearch_client_pool_connections`                 | Utilization | Gauge of connections by `state` (`active`/`dead`/`standby`).      |
+| `opensearch_client_pool_overloaded_total`            | Saturation  | Connections shed because node resource usage exceeded thresholds. |
+| `opensearch_client_pool_demotions_total`             | Errors      | Ready connections demoted to dead on request failure.             |
+| `opensearch_client_pool_health_check_failures_total` | Errors      | Connection health-check failures.                                 |
+
+The Registry also exports `opensearch_client_observer_dropped_total`, the count of request events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
 
 Tune the histogram buckets:
 
@@ -95,20 +116,22 @@ ro := osprom.NewRequestObserver(
 	osprom.WithDurationBuckets([]float64{0.005, 0.01, 0.05, 0.1, 0.5, 1, 5}),
 	osprom.WithSizeBuckets(prometheus.ExponentialBuckets(256, 4, 8)),
 )
-reg, err := osprom.New(promReg, 1024, ro)
+reg, err := osprom.New(promReg, ro)
 ```
 
 ## Custom observers
 
-Any type implementing `osprom.Observer` can be wired into a Registry alongside (or instead of) the shipped bundle. Embed `osprom.BaseObserver` for no-op defaults and override only what you need. `Register` is called once when you pass the observer to `New`; `OnRequest` is called on the dispatch goroutine for every request.
+Any type implementing `osprom.Observer` can be wired into a Registry alongside (or instead of) the shipped bundle. An observer is a _sink_: it receives the full transport event and routes it to whatever metrics it owns. Embed `osprom.BaseObserver` for no-op defaults and override only the hook you need. `Register` is called once when you pass the observer to `New`; `OnRequestResponse` / `OnStreamResponse` are called on a dispatch worker for every request, with the full `*opensearchtransport.RequestResponseEvent` / `*opensearchtransport.StreamResponseEvent` (valid only for the call -- do not retain).
 
-Because `OnRequest` runs once per request, keep it allocation-light. If a call needs scratch state, pool it -- osprom pools the event envelope, but a custom observer owns any allocations it makes. Here an error counter reuses a `prometheus.Labels` map (a map is pointer-shaped, so pooling it avoids a per-request map allocation without boxing):
+Because the event carries `RouteName`, `Index`, and `PoolName`, a custom sink is how you label metrics by those higher-cardinality dimensions -- the shipped `RequestObserver` deliberately stays coarse (method/status/mode) to avoid a cardinality explosion.
+
+The dispatch pool runs multiple workers by default (`GOMAXPROCS/2`), so a sink's hooks must be safe for concurrent use. Keep them allocation-light; if a call needs scratch state, pool it -- osprom pools the event envelope, but a custom observer owns any allocations it makes. Here an error counter labeled by route reuses a `prometheus.Labels` map from a pool (a map is pointer-shaped, so pooling avoids a per-request map allocation):
 
 ```go
 type errorCounter struct {
 	osprom.BaseObserver
 	errors *prometheus.CounterVec
-	labels sync.Pool // reused prometheus.Labels, one per goroutine touching OnRequest
+	labels sync.Pool // reused prometheus.Labels, one per concurrent worker
 }
 
 func newErrorCounter() *errorCounter {
@@ -116,8 +139,8 @@ func newErrorCounter() *errorCounter {
 		errors: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Namespace: "myapp",
 			Name:      "opensearch_errors_total",
-			Help:      "OpenSearch client error responses by method and status class.",
-		}, []string{"method", "status"}),
+			Help:      "OpenSearch client error responses by method and route.",
+		}, []string{"method", "route"}),
 	}
 	o.labels.New = func() any { return prometheus.Labels{} }
 	return o
@@ -127,15 +150,13 @@ func (o *errorCounter) Register(reg prometheus.Registerer) error {
 	return reg.Register(o.errors)
 }
 
-func (o *errorCounter) OnRequest(s osprom.RequestSample) {
-	switch s.StatusClass {
-	case "4xx", "5xx", "error":
-	default:
+func (o *errorCounter) OnRequestResponse(e *opensearchtransport.RequestResponseEvent) {
+	if e.StatusCode < 400 && e.Err == nil {
 		return
 	}
 	labels := o.labels.Get().(prometheus.Labels)
-	labels["method"] = s.Method
-	labels["status"] = s.StatusClass
+	labels["method"] = e.Request.Method
+	labels["route"] = e.Request.RouteName
 	o.errors.With(labels).Inc() // With reads the map; it does not retain it
 	clear(labels)
 	o.labels.Put(labels)
@@ -145,15 +166,30 @@ func (o *errorCounter) OnRequest(s osprom.RequestSample) {
 Wire it in together with the shipped bundle:
 
 ```go
-reg, err := osprom.New(promReg, 1024, osprom.NewRequestObserver(), newErrorCounter())
+reg, err := osprom.New(promReg, osprom.NewRequestObserver(), newErrorCounter())
 ```
 
-Each observer receives the same `RequestSample` per request, so you can build several independent metric bundles over one event stream.
+Each observer receives the same event per request, so you can build several independent metric sinks over one event stream.
+
+## Filtering
+
+To record only a subset of requests, pass a filter. It runs on the request goroutine _before_ the event is enqueued, so filtered events never cross the channel or reach any sink:
+
+```go
+reg, err := osprom.NewWithOptions(promReg, []osprom.Observer{osprom.NewRequestObserver()}, []osprom.Option{
+	// Record only failures.
+	osprom.WithRequestFilter(func(e *opensearchtransport.RequestResponseEvent) bool {
+		return e.StatusCode >= 400 || e.Err != nil
+	}),
+})
+```
+
+`WithStreamFilter` is the streaming counterpart.
 
 ## Lifecycle
 
-- `New(reg, bufferSize, observers...)` registers every observer's metrics (plus the dropped counter) with `reg` and returns the Registry.
-- `Run(ctx)` processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. Run it in its own goroutine.
-- `Close()` stops the dispatch loop. It is idempotent and safe to call concurrently.
+- `New(reg, observers...)` registers every observer's metrics (plus the dropped counter) with `reg` and returns the Registry.
+- `Run(ctx)` starts the dispatch workers (default `GOMAXPROCS/2`, override with `WithWorkers`) and processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. Run it in its own goroutine.
+- `Close()` stops the dispatch workers. It is idempotent and safe to call concurrently.
 
 See also the [Observer-Based Metrics guide](../guides/transport-observer_metrics.md) for the underlying event model.
