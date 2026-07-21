@@ -9,6 +9,8 @@
 //
 // Learn more:
 //   - Guide: https://github.com/opensearch-project/opensearch-go/blob/main/guides/indexing-document_lifecycle.md
+//   - Security (TLS, auth; this sample uses InsecureSkipVerify for local testing only):
+//     https://github.com/opensearch-project/opensearch-go/blob/main/guides/config-security.md
 //   - API reference: https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi
 package main
 
