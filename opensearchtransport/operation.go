@@ -612,6 +612,14 @@ const OpRenderSearchTemplate = CatSearch | minRenderSearchTemplate
 // OpPing identifies a cluster ping operation.
 const OpPing = CatPing | minPing
 
+// Operation name tokens shared between the [OperationID.String] labels and other
+// package sites that must spell the same wire token (e.g. discovery-flag names).
+// Extracting them keeps the spellings in lockstep and lets tooling trace every
+// use of a token back to one declaration.
+const (
+	clusterHealthName = "cluster_health"
+)
+
 // ---------------------------------------------------------------------------
 // String
 // ---------------------------------------------------------------------------
@@ -807,7 +815,7 @@ func (op OperationID) String() string {
 	case OpClusterInfo:
 		return "cluster_info"
 	case OpClusterHealth:
-		return "cluster_health"
+		return clusterHealthName
 	case OpClusterStats:
 		return "cluster_stats"
 	case OpClusterState:

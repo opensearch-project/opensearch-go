@@ -185,7 +185,7 @@ func TestRequestEventIdentityFields(t *testing.T) {
 			name:          "system endpoint has empty index",
 			method:        http.MethodGet,
 			path:          "/_cluster/health",
-			wantRouteName: "cluster_health",
+			wantRouteName: clusterHealthName,
 			wantIndex:     "",
 			wantPath:      "/_cluster/health",
 		},

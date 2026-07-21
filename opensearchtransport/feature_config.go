@@ -175,7 +175,7 @@ func (f discoveryFeatures) nodeStatsEnabled() bool {
 var discoveryFlagNames = map[string]discoveryFeatures{
 	"cat_shards":         discoverySkipCatShards,
 	"routing_num_shards": discoverySkipRoutingNumShards,
-	"cluster_health":     discoverySkipClusterHealth,
+	clusterHealthName:    discoverySkipClusterHealth,
 	"node_stats":         discoverySkipNodeStats,
 }
 
