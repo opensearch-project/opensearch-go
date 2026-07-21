@@ -72,17 +72,19 @@ func (c *OperationClassifier) Classify(method, path string) OperationID {
 // policies (which need live connections) for pure classification use.
 func buildClassifierRoutes(p Policy) []Route {
 	r := roleRoutes{
-		ingestWrite:    p,
-		ingestMgmt:     p,
-		searchRead:     p,
-		getRead:        p,
-		dataWrite:      p,
-		dataRefresh:    p,
-		dataFlush:      p,
-		dataForceMerge: p,
-		dataMgmt:       p,
-		searchMgmt:     p,
-		warmMgmt:       p,
+		ingestWrite:     p,
+		ingestMgmt:      p,
+		searchRead:      p,
+		getRead:         p,
+		dataWrite:       p,
+		dataRefresh:     p,
+		dataFlush:       p,
+		dataForceMerge:  p,
+		dataMgmt:        p,
+		searchMgmt:      p,
+		warmMgmt:        p,
+		clusterMgrRead:  p,
+		clusterMgrWrite: p,
 	}
 	return buildRoleRoutes(r)
 }
