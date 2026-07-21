@@ -121,6 +121,7 @@ func generateAPI(
 	registry := newTypeRegistry(corePkg)
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
+	typeQueryParamEnums(ops, spec, registry, vrange)
 	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })
@@ -171,7 +172,7 @@ func generateAPI(
 	// Render and write targets in parallel. Each target writes to a unique
 	// path, so workers can both render and write without coordination beyond
 	// the shared written-set, log slice, and first-error capture.
-	written := make(map[string]struct{}, len(targets))
+	written := make(set[string], len(targets))
 	var (
 		mu       sync.Mutex
 		writeLog []string
@@ -217,7 +218,7 @@ func generateAPI(
 					continue
 				}
 				mu.Lock()
-				written[absPath] = struct{}{}
+				written.add(absPath)
 				if changed {
 					writeLog = append(writeLog, repoRelPath(absPath))
 					wrote++
@@ -292,7 +293,7 @@ func buildPluginSubClients(spec *ir.Spec) map[string]map[string]*emit.PluginSubC
 // removeStaleGenFiles removes *_gen.go files under root that are not in
 // the written set. It resolves root, verifies it is inside the git working
 // tree, and uses os.OpenRoot to confine removal.
-func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) {
+func removeStaleGenFiles(root string, written set[string]) (int, error) {
 	abs, err := resolveGenRoot(root)
 	if err != nil {
 		return 0, err
@@ -319,7 +320,7 @@ func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) 
 			return nil
 		}
 		full := filepath.Join(abs, path)
-		if _, ok := written[full]; ok {
+		if written.has(full) {
 			return nil
 		}
 		if err := dir.Remove(path); err != nil {
@@ -428,7 +429,7 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 	w := &walker{
 		registry: registry,
 		spec:     spec,
-		inFlight: make(map[string]struct{}),
+		inFlight: make(set[string]),
 		vrange:   vrange,
 	}
 
@@ -545,7 +546,7 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 	w := &walker{
 		registry: registry,
 		spec:     spec,
-		inFlight: make(map[string]struct{}),
+		inFlight: make(set[string]),
 		vrange:   vrange,
 	}
 
@@ -612,6 +613,51 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 		}
 	}
 	return w.excludedFields
+}
+
+// typeQueryParamEnums types query parameters whose schema is an allowlisted
+// const-oneOf (e.g. cat's `time` -> TimeUnit, nodes.info's `metric` -> Metric).
+//
+// It runs after the response and request-body walks so the shared registry
+// already holds any enum that also appears in a body or response. For a
+// query-param-only enum (never reached by those walks) it registers the type
+// here via the same walker path, so emission is identical regardless of where
+// the enum first appears. A param is retyped only when its enum type is present
+// in the registry after this pass, so a generated Params struct can never name a
+// type that was not emitted.
+func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeRegistry, vrange VersionRange) {
+	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
+		return
+	}
+
+	w := &walker{
+		registry: registry,
+		spec:     spec,
+		inFlight: make(set[string]),
+		vrange:   vrange,
+	}
+
+	for i := range ops {
+		op := &ops[i]
+		for j := range op.QueryParams {
+			qp := &op.QueryParams[j]
+			// Only plain-string params backed by a component $ref are candidates;
+			// duration/bool/int/list params keep their existing handling.
+			if qp.SchemaRef == "" || qp.IsDuration || qp.IsBool || qp.IsInt || qp.IsList {
+				continue
+			}
+			schemaRef, ok := spec.Components.Schemas[qp.SchemaRef]
+			if !ok || schemaRef.Value == nil {
+				continue
+			}
+			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group)
+			if !ok {
+				continue
+			}
+			qp.GoType = name
+			qp.IsStringEnum = true
+		}
+	}
 }
 
 // classifyRespShape determines the response body shape for operations whose
@@ -709,8 +755,8 @@ func resolveElemType(ref *openapi3.SchemaRef, registry *typeRegistry) *goType {
 }
 
 type typeUsage struct {
-	groups map[string]struct{}
-	pkgs   map[string]struct{}
+	groups set[string]
+	pkgs   set[string]
 	pkg    string
 }
 
@@ -775,15 +821,15 @@ func collectTypeRefs(group, ref string, registry *typeRegistry, uses map[string]
 	}
 	u, exists := uses[ref]
 	if !exists {
-		u = &typeUsage{groups: make(map[string]struct{}), pkgs: make(map[string]struct{}), pkg: t.Pkg}
+		u = &typeUsage{groups: make(set[string]), pkgs: make(set[string]), pkg: t.Pkg}
 		uses[ref] = u
 	}
-	if _, seen := u.groups[group]; seen {
+	if u.groups.has(group) {
 		return
 	}
-	u.groups[group] = struct{}{}
+	u.groups.add(group)
 	if pkg, ok := groupPkgs[group]; ok {
-		u.pkgs[pkg] = struct{}{}
+		u.pkgs.add(pkg)
 	}
 
 	for _, f := range t.Fields {

@@ -44,7 +44,7 @@ func classifyUnions(spec *ir.Spec) {
 	// A union can appear as several ir.Type instances (shared registry copy +
 	// per-operation copies), so each is classified separately; warn at most
 	// once per union name to avoid duplicate diagnostics.
-	warned := map[string]struct{}{}
+	warned := set[string]{}
 
 	for _, t := range allTypes {
 		if t.Kind != ir.TypeLazyUnion { // first-byte switch unions are already cheap
@@ -55,10 +55,10 @@ func classifyUnions(spec *ir.Spec) {
 		}
 
 		warn := func(format string, args ...any) {
-			if _, ok := warned[t.Name]; ok {
+			if warned.has(t.Name) {
 				return
 			}
-			warned[t.Name] = struct{}{}
+			warned.add(t.Name)
 			log.Printf(format, args...)
 		}
 
