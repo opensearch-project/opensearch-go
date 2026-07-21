@@ -458,7 +458,7 @@ Each feature fails closed and independently, so a partial privilege set is safe:
 - **Missing `cluster:monitor/nodes/stats`**: discovery and shard routing still work; the congestion window stays at its default instead of adapting to node load.
 - **A privilege revoked at runtime**: a `401`/`403` on a monitoring call disables only that feature, retried later; in-flight requests are unaffected.
 
-To turn the background routing calls off entirely rather than grant privileges, set `OPENSEARCH_GO_ROUTER=false` (see [Default Router Injection](../opensearchapi/README.md#default-router-injection)).
+To turn the background routing calls off entirely rather than grant privileges, set `OPENSEARCH_GO_ROUTER=false` (see [Default router injection](config-envvars.md#default-router-injection)).
 
 ## Quick Reference
 

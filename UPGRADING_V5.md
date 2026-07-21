@@ -65,7 +65,7 @@ In v5 the Router and on-start discovery are on unless `OPENSEARCH_GO_ROUTER` is 
 
 v4's `opensearchapi.NewClient` did not auto-inject a Router, so v4 code keeps its original behavior; v5 flips the default so the Router is on unless `OPENSEARCH_GO_ROUTER=false`.
 
-For full usage and rationale see [`opensearchapi/README.md` Default Router Injection](opensearchapi/README.md#default-router-injection).
+For full usage and rationale see [`guides/config-envvars.md` Default router injection](guides/config-envvars.md#default-router-injection).
 
 ## `DiscoverNodes()` blocking semantics
 
