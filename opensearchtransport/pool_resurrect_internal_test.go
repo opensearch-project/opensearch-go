@@ -102,19 +102,19 @@ func TestMultiServerPoolResurrect(t *testing.T) {
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      0, // Allow immediate resurrection for test
 			jitterScale:                  defaultJitterScale,
-			// Mock health check function that always succeeds for tests
-			healthCheck: func(ctx context.Context, _ *Connection, u *url.URL) (*http.Response, error) {
-				close(healthCheckCalled)
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Status:     "200 OK",
-					Proto:      "HTTP/1.1",
-					ProtoMajor: 1,
-					ProtoMinor: 1,
-					Header:     make(http.Header),
-					Body:       http.NoBody,
-				}, nil
-			},
+		}
+		// Mock health check function that always succeeds for tests
+		pool.mu.healthCheck = func(ctx context.Context, _ *Connection, u *url.URL) (*http.Response, error) {
+			close(healthCheckCalled)
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Status:     "200 OK",
+				Proto:      "HTTP/1.1",
+				ProtoMajor: 1,
+				ProtoMinor: 1,
+				Header:     make(http.Header),
+				Body:       http.NoBody,
+			}, nil
 		}
 		pool.mu.ready = []*Connection{}
 		pool.mu.activeCount = len(pool.mu.ready)
@@ -165,12 +165,12 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 
 		pool := &multiServerPool{
 			name: "test",
-			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       http.NoBody,
-				}, nil
-			},
+		}
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       http.NoBody,
+			}, nil
 		}
 
 		ctx := context.Background()
@@ -204,9 +204,9 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 
 		pool := &multiServerPool{
 			name: "test",
-			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
-				return nil, context.DeadlineExceeded
-			},
+		}
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+			return nil, context.DeadlineExceeded
 		}
 
 		passed := pool.performHealthCheck(context.Background(), conn, false)
@@ -232,12 +232,12 @@ func TestPerformHealthCheckAdvancesWarmup(t *testing.T) {
 
 		pool := &multiServerPool{
 			name: "test",
-			healthCheck: func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Body:       http.NoBody,
-				}, nil
-			},
+		}
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       http.NoBody,
+			}, nil
 		}
 
 		passed := pool.performHealthCheck(context.Background(), conn, false)

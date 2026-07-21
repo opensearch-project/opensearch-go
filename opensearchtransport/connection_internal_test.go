@@ -178,10 +178,10 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
 			jitterScale:                  defaultJitterScale,
-			// Health check that always fails to prevent automatic resurrection during test
-			healthCheck: func(context.Context, *Connection, *url.URL) (*http.Response, error) {
-				return nil, errors.New("health check disabled for test")
-			},
+		}
+		// Health check that always fails to prevent automatic resurrection during test
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			return nil, errors.New("health check disabled for test")
 		}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -250,10 +250,10 @@ func TestMultiServerPoolOnFailure(t *testing.T) {
 			resurrectTimeoutFactorCutoff: defaultResurrectTimeoutFactorCutoff,
 			minimumResurrectTimeout:      defaultMinimumResurrectTimeout,
 			jitterScale:                  defaultJitterScale,
-			// Health check that always fails to prevent automatic resurrection during test
-			healthCheck: func(context.Context, *Connection, *url.URL) (*http.Response, error) {
-				return nil, errors.New("health check disabled for test")
-			},
+		}
+		// Health check that always fails to prevent automatic resurrection during test
+		pool.mu.healthCheck = func(context.Context, *Connection, *url.URL) (*http.Response, error) {
+			return nil, errors.New("health check disabled for test")
 		}
 		pool.mu.ready = []*Connection{
 			{URL: &url.URL{Scheme: "http", Host: "foo1"}},
@@ -354,9 +354,9 @@ func TestPolicySnapshot_HealthCheckingCount(t *testing.T) {
 	conns[3].setLifecycleBit(lcDead | lcHealthChecking)
 
 	cp := &multiServerPool{
-		name:          "test",
-		activeListCap: 2,
+		name: "test",
 	}
+	cp.mu.activeListCap = 2
 	cp.mu.ready = conns[:2]
 	cp.mu.activeCount = 2
 	cp.mu.dead = conns[2:]

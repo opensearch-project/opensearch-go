@@ -114,7 +114,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 	// Recalculate activeListCap and warmup parameters based on projected pool size.
 	// Done before adds/removes so startWarmup calls use the correctly-scaled values.
 	targetPoolSize := len(p.pool.mu.ready) + len(p.pool.mu.dead) + len(added) - len(removed)
-	p.pool.recalculateWarmupParams(targetPoolSize)
+	p.pool.recalculateWarmupParamsWithLock(targetPoolSize)
 
 	// Add new connections based on their health status
 	for _, conn := range added {
@@ -132,7 +132,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			conn.mu.Lock()
 			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
-			rounds, skip := p.pool.getWarmupParams()
+			rounds, skip := p.pool.getWarmupParamsWithLock()
 			conn.startWarmup(rounds, skip)
 			p.pool.appendToReadyActiveWithLock(conn)
 
