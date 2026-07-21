@@ -74,10 +74,7 @@ client.Search(ctx, nil) // searches all indices with default params
 
 ## Sub-Clients
 
-Operations are grouped into sub-clients that mirror the OpenSearch API namespaces. The table
-below is a quick-scan cheat sheet; the [package overview on pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Sub_clients)
-is the authoritative catalog, with the partition model, alias fields, and name-collision
-semantics.
+Operations are grouped into sub-clients that mirror the OpenSearch API namespaces. The table below is a quick-scan cheat sheet; the [package overview on pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Sub_clients) is the authoritative catalog, with the partition model, alias fields, and name-collision semantics.
 
 | Sub-Client                   | Example Call                                    |
 | ---------------------------- | ----------------------------------------------- |
