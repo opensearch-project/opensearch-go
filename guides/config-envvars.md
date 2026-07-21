@@ -54,20 +54,46 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_URL` | Comma-separated URL list (e.g. `https://a:9200,https://b:9200`) | unset | Seed addresses used by `NewClient` when no `Addresses` are set programmatically. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation); [Security: Credential Management](config-security.md#credential-management) |
-| `OPENSEARCH_GO_DNS_CACHE_REFRESH` | Duration or seconds | `60s` | Client-side DNS cache refresh interval. Resolved addresses are re-resolved on this cadence; if the resolver becomes briefly unreachable, the last-known-good address is served until it recovers, so a transient DNS outage does not fail requests to already-resolved hosts. `0` or unset = default (`60s`); negative = disable caching; positive = explicit interval. Installed only on the built-in transport; a caller-supplied `Transport` is never modified. Because Go's resolver does not expose record TTLs, this is a re-resolution cadence, not a per-record TTL. Overrides `Config.DNSCacheRefresh`. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
-| `OPENSEARCH_GO_DNS_DIAL_TIMEOUT` | Duration or seconds | `30s` | Dial timeout of the `net.Dialer` behind the DNS cache. `0` or unset = default (`30s`); negative = no dial timeout; positive = explicit timeout. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSDialTimeout`. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
-| `OPENSEARCH_GO_DNS_KEEP_ALIVE` | Duration or seconds | `30s` | Keep-alive interval of the `net.Dialer` behind the DNS cache. `0` or unset = default (`30s`); negative = disable keep-alive probes; positive = explicit interval. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSKeepAlive`. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
-| `OPENSEARCH_GO_DNS_TIMEOUT` | Duration or seconds | `10s` | Per-lookup timeout applied to each DNS cache refresh resolution. Refresh lookups run sequentially on a single goroutine, so this bounds how long one stuck resolution can stall a refresh tick. `0` or unset = default (`10s`); negative = no per-lookup timeout; positive = explicit timeout. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSTimeout`. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
+| `OPENSEARCH_URL` | Comma-separated URL list (e.g. `https://a:9200,https://b:9200`) | unset | Seed addresses used by `NewClient` when no `Addresses` are set programmatically. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation); [Security: Credential Management](config-security.md#credential-management) |
+| `OPENSEARCH_GO_DNS_CACHE_REFRESH` | Duration or seconds | `60s` | Client-side DNS cache refresh interval. Resolved addresses are re-resolved on this cadence; if the resolver becomes briefly unreachable, the last-known-good address is served until it recovers, so a transient DNS outage does not fail requests to already-resolved hosts. `0` or unset = default (`60s`); negative = disable caching; positive = explicit interval. Installed only on the built-in transport; a caller-supplied `Transport` is never modified. Because Go's resolver does not expose record TTLs, this is a re-resolution cadence, not a per-record TTL. Overrides `Config.DNSCacheRefresh`. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
+| `OPENSEARCH_GO_DNS_DIAL_TIMEOUT` | Duration or seconds | `30s` | Dial timeout of the `net.Dialer` behind the DNS cache. `0` or unset = default (`30s`); negative = no dial timeout; positive = explicit timeout. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSDialTimeout`. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
+| `OPENSEARCH_GO_DNS_KEEP_ALIVE` | Duration or seconds | `30s` | Keep-alive interval of the `net.Dialer` behind the DNS cache. `0` or unset = default (`30s`); negative = disable keep-alive probes; positive = explicit interval. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSKeepAlive`. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
+| `OPENSEARCH_GO_DNS_TIMEOUT` | Duration or seconds | `10s` | Per-lookup timeout applied to each DNS cache refresh resolution. Refresh lookups run sequentially on a single goroutine, so this bounds how long one stuck resolution can stall a refresh tick. `0` or unset = default (`10s`); negative = no per-lookup timeout; positive = explicit timeout. Only applies when the cache is installed (no custom `Transport`). Overrides `Config.DNSTimeout`. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
 
 ## Routing
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_ROUTER` | Bool | `true` (router auto-constructed) | Auto-construct `NewDefaultRouter()` when no programmatic `Config.Router` is set. Set `false` or `0` to suppress. A programmatic `Config.Router` always takes precedence. | [Routing: Quick Start](transport-routing.md#quick-start); [opensearchapi/README.md Default Router Injection](../opensearchapi/README.md#default-router-injection) |
+| `OPENSEARCH_GO_ROUTER` | Bool | `true` (router auto-constructed) | Auto-construct `NewDefaultRouter()` when no programmatic `Config.Router` is set. Set `false` or `0` to suppress. A programmatic `Config.Router` always takes precedence. | [Routing: Quick Start](transport-routing.md#quick-start); [Default router injection](#default-router-injection) |
 | `OPENSEARCH_GO_ROUTING_CONFIG` | Comma-separated flags/key=value | all enabled | Toggle shard-exact routing (`-shard_exact`) and adaptive MCSR (`-adaptive_mcsr`). | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
 | `OPENSEARCH_GO_SHARD_COST` | Key=value, comma-separated (or bare numeric for `r:base`) | compile-time defaults | Override shard cost multipliers used in connection scoring. Format: key=value pairs (`r:base=0.95`, `unknown=32.0`) or a bare number (sets `r:base`). | [Routing: Shard Cost Configuration](transport-routing.md#shard-cost-configuration) |
 | `OPENSEARCH_GO_SHARD_REQUESTS` | Bool or `min:max` | `true` (5:256) | Adaptive `max_concurrent_shard_requests` bounds. `true`/`false` enable/disable with defaults; `10:512`, `10:`, `:512`, or bare `10` set custom bounds. | [Routing: Configuration Reference](transport-routing.md#routing-and-discovery) |
+
+### Default router injection
+
+`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `Config.Client.Router` nil, so requests are routed by node role by default. `OPENSEARCH_GO_ROUTER` is the opt-out:
+
+| `OPENSEARCH_GO_ROUTER` | Behavior                                                |
+| ---------------------- | ------------------------------------------------------- |
+| unset                  | default Router injected, auto-discovery on              |
+| `true` / `1`           | default Router injected, auto-discovery on              |
+| `false` / `0`          | injection skipped (Router stays nil), no auto-discovery |
+| unparseable            | default Router injected, auto-discovery on              |
+
+```go
+// Default: NewDefaultRouter is injected.
+client, _ := opensearchapi.NewClient(opensearchapi.Config{
+    Client: opensearch.Config{Addresses: addrs}, // Router == nil
+})
+
+// Caller-provided Router is preserved.
+custom := opensearchtransport.NewMuxRouter()
+client, _ = opensearchapi.NewClient(opensearchapi.Config{
+    Client: opensearch.Config{Addresses: addrs, Router: custom},
+})
+```
+
+A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: &false` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`. For routing semantics (role awareness, AIMD, shard-cost weighting) see [Request Routing](transport-routing.md); for node discovery see [Node Discovery and Roles](transport-node_discovery_and_roles.md).
 
 ## Discovery
 
@@ -99,7 +125,7 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` | Duration or seconds | `16m` | Idle eviction window for the process-wide cache of implicitly-created default clients (`opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied). Accepts a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`). Identical default clients share one cached transport, keyed by config hash, until every holder is closed and the entry sits idle for a full window. `0` = never evict (entries live until process exit); a negative value (`-1`, `-1s`) disables caching, so every call builds a fresh client; positive = explicit window. The `16m` default is the 15m AWS Lambda max timeout plus a 1m buffer, so a default client is not evicted mid-invocation across the longest possible Lambda run. Has no `opensearch.Config` equivalent — user-built `opensearch.NewClient`/`opensearchapi.NewClient` clients never enter the cache. | [opensearchapi/README.md Client Creation](../opensearchapi/README.md#client-creation) |
+| `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` | Duration or seconds | `16m` | Idle eviction window for the process-wide cache of implicitly-created default clients (`opensearch.NewDefaultClient`, `opensearchapi.NewDefaultClient`, and the client `opensearchutil.NewBulkIndexer` builds when none is supplied). Accepts a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`). Identical default clients share one cached transport, keyed by config hash, until every holder is closed and the entry sits idle for a full window. `0` = never evict (entries live until process exit); a negative value (`-1`, `-1s`) disables caching, so every call builds a fresh client; positive = explicit window. The `16m` default is the 15m AWS Lambda max timeout plus a 1m buffer, so a default client is not evicted mid-invocation across the longest possible Lambda run. Has no `opensearch.Config` equivalent — user-built `opensearch.NewClient`/`opensearchapi.NewClient` clients never enter the cache. | [opensearchapi Client Creation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation) |
 
 ## Debug and diagnostics
 
@@ -111,7 +137,7 @@ Build, test, and code-generation variables (not read by the client at runtime) a
 
 | Variable | Accepted values | Default | Meaning | See also |
 | --- | --- | --- | --- | --- |
-| `OPENSEARCH_GO_ERROR_MASK` | Comma-separated `+`/`-` tokens | version-dependent (v5+: report all) | Mask (ignore) specific categories of partial-failure errors. Tokens applied left-to-right starting from `Config.Errors`. Unrecognized tokens are silently dropped and logged when `OPENSEARCH_GO_DEBUG=true`. | [opensearchapi/README.md Partial Failure Errors](../opensearchapi/README.md#partial-failure-errors); [Error Handling](usage-error_handling.md) |
+| `OPENSEARCH_GO_ERROR_MASK` | Comma-separated `+`/`-` tokens | version-dependent (v5+: report all) | Mask (ignore) specific categories of partial-failure errors. Tokens applied left-to-right starting from `Config.Errors`. Unrecognized tokens are silently dropped and logged when `OPENSEARCH_GO_DEBUG=true`. | [Error Handling](usage-error_handling.md); [Error Handling](usage-error_handling.md) |
 
 ### `OPENSEARCH_GO_ERROR_MASK` tokens
 

@@ -428,7 +428,7 @@ The `x-error-responses` extension on a spec operation declares the categories of
 
 Operations that declare two or more categories also get a per-op error container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`, used when more than one category fires on a single response.
 
-The user-facing partial-failure model and best-practices guidance live in [`opensearchapi/README.md`](opensearchapi/README.md#partial-failure-errors) and [`guides/usage-error_handling.md`](guides/usage-error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
+The user-facing partial-failure model and best-practices guidance live in [`opensearchapi/README.md`](opensearchapi/README.md) and [`guides/usage-error_handling.md`](guides/usage-error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
 
 To regenerate (downloads the spec automatically if not cached):
 

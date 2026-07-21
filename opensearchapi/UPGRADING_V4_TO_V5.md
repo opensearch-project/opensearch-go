@@ -119,7 +119,7 @@ Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.Tota
 
 `opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. v4 left Router nil.
 
-The `OPENSEARCH_GO_ROUTER` env var acts as an opt-out (`false` / `0` keeps Router nil). See [`README.md` Default Router Injection](README.md#default-router-injection) for the full truth table and rationale.
+The `OPENSEARCH_GO_ROUTER` env var acts as an opt-out (`false` / `0` keeps Router nil). See [`guides/config-envvars.md` Default router injection](../guides/config-envvars.md#default-router-injection) for the full truth table and rationale.
 
 ## Errmask default flips
 
@@ -134,7 +134,7 @@ Concretely: a v4 caller who never set `Config.Errors` does not see partial failu
 
 If you need v4-shaped silence on v5, set `Errors: errmask.New(errmask.All)` explicitly. If you want to opt v4 in to v5-style surfacing, set `Errors: errmask.New()`.
 
-The `OPENSEARCH_GO_ERROR_MASK` env var overrides whatever `Config.Errors` resolves to. See [`README.md` Partial Failure Errors](README.md#partial-failure-errors) for the full guide.
+The `OPENSEARCH_GO_ERROR_MASK` env var overrides whatever `Config.Errors` resolves to. See [`guides/usage-error_handling.md`](../guides/usage-error_handling.md) for the full guide.
 
 ## Client method grouping
 

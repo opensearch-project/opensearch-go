@@ -10,8 +10,6 @@ import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 
 ## Client Creation
 
-Two constructors cover the common scenarios:
-
 ```go
 // From explicit configuration
 client, err := opensearchapi.NewClient(opensearchapi.Config{
@@ -26,7 +24,7 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 client, err := opensearchapi.NewDefaultClient()
 ```
 
-To share transport configuration (e.g. with plugin clients), build one `opensearch.Config` and hand it to `NewClient`; the resulting client wraps a single underlying `opensearch.Client`.
+To share transport configuration (e.g. with plugin clients), build one `opensearch.Config` and hand it to `NewClient`; the resulting client wraps a single underlying `opensearch.Client`. For the full construction model see the [package overview on pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#hdr-Client_Creation), and for the environment-variable overrides see [`guides/config-envvars.md`](../guides/config-envvars.md).
 
 ## Making Requests
 
@@ -195,33 +193,9 @@ opensearchapi.OperationDelete  // "delete"
 
 ## Default Router Injection
 
-`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil, so requests are routed by node role by default. Set `Config.Client.Router` to supply your own, or `OPENSEARCH_GO_ROUTER=false` to opt out. See [`../guides/transport-routing.md`](../guides/transport-routing.md) for the routing model.
+`opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `Config.Client.Router` nil, so requests are routed by node role by default. Set `Config.Client.Router` to supply your own, or `OPENSEARCH_GO_ROUTER=false` to opt out.
 
-The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
-
-| `OPENSEARCH_GO_ROUTER` | Behavior                                                |
-| ---------------------- | ------------------------------------------------------- |
-| unset                  | default Router injected, auto-discovery on              |
-| `true` / `1`           | default Router injected, auto-discovery on              |
-| `false` / `0`          | injection skipped (Router stays nil), no auto-discovery |
-| unparseable            | default Router injected, auto-discovery on              |
-
-```go
-// Default: NewDefaultRouter is injected.
-client, _ := opensearchapi.NewClient(opensearchapi.Config{
-    Client: opensearch.Config{Addresses: addrs}, // Router == nil
-})
-
-// Caller-provided Router is preserved.
-custom := opensearchtransport.NewMuxRouter()
-client, _ = opensearchapi.NewClient(opensearchapi.Config{
-    Client: opensearch.Config{Addresses: addrs, Router: custom},
-})
-```
-
-A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: &false` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`.
-
-For routing semantics (role awareness, AIMD, shard-cost weighting) see [`../guides/transport-routing.md`](../guides/transport-routing.md). For node discovery see [`../guides/transport-node_discovery_and_roles.md`](../guides/transport-node_discovery_and_roles.md).
+See [`guides/config-envvars.md` Default router injection](../guides/config-envvars.md#default-router-injection) for the `OPENSEARCH_GO_ROUTER` behavior table and the `DiscoverNodesOnStart` interaction, and [`guides/transport-routing.md`](../guides/transport-routing.md) for the routing model (role awareness, AIMD, shard-cost weighting).
 
 ## Plugins
 
