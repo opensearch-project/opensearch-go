@@ -89,7 +89,7 @@ type NodesHotThreadsParams struct {
 	Threads int
 
 	// The type to sample.
-	Type string
+	Type NodesSampleType
 }
 
 func (r NodesHotThreadsParams) get() map[string]string {
@@ -120,7 +120,7 @@ func (r NodesHotThreadsParams) get() map[string]string {
 	}
 
 	if r.Type != "" {
-		set("type", r.Type)
+		set("type", string(r.Type))
 	}
 
 	return params

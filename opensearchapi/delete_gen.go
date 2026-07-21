@@ -95,7 +95,7 @@ type DeleteParams struct {
 	Version int
 
 	// The specific version type: `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
@@ -135,7 +135,7 @@ func (r DeleteParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	if r.WaitForActiveShards != "" {
@@ -171,7 +171,7 @@ type DeleteResp struct {
 
 	Version       int64  `json:"_version"`
 	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Result        Result `json:"result"`
 
 	response *opensearch.Response
 }

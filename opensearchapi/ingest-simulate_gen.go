@@ -148,7 +148,7 @@ type IngestSimulatePipelineSimulation struct {
 	Doc              *IngestSimulateDocumentSimulation  `json:"doc,omitempty"`
 	ProcessorResults []IngestSimulatePipelineSimulation `json:"processor_results,omitempty"`
 	ProcessorType    *string                            `json:"processor_type,omitempty"`
-	Status           *string                            `json:"status,omitempty"`
+	Status           *ActionStatusOptions               `json:"status,omitempty"`
 	Tag              *string                            `json:"tag,omitempty"`
 }
 
@@ -173,7 +173,7 @@ type IngestSimulateDocumentSimulation struct {
 	// parse strings to the target type.
 	Version *IngestSimulateDocumentSimulationVersion `json:"_version,omitempty"`
 
-	VersionType *string `json:"_version_type,omitempty"`
+	VersionType *VersionType `json:"_version_type,omitempty"`
 }
 
 // IngestSimulateIngest is a typed component of the ingest.simulate operation.

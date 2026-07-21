@@ -144,7 +144,7 @@ type MTermVectorsParams struct {
 	Version int
 
 	// The specific version type.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r MTermVectorsParams) get() map[string]string {
@@ -203,7 +203,7 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -333,8 +333,8 @@ type MTermVectorsOperation struct {
 	// frequency.
 	TermStatistics *bool `json:"term_statistics,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 // TermVectorsFilter is a typed component of the mtermvectors operation.

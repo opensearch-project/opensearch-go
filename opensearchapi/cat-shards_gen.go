@@ -83,7 +83,7 @@ type CatShardsParams struct {
 	// Default: false.
 	Local *bool
 
-	Time string
+	Time TimeUnit
 }
 
 func (r CatShardsParams) get() map[string]string {
@@ -109,7 +109,7 @@ func (r CatShardsParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params

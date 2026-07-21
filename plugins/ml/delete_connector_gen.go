@@ -99,9 +99,9 @@ type DeleteConnectorResp struct {
 	// The type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
-	Version       int64  `json:"_version"`
-	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Version       int64                `json:"_version"`
+	ForcedRefresh *bool                `json:"forced_refresh,omitempty"`
+	Result        opensearchapi.Result `json:"result"`
 
 	response *opensearch.Response
 }

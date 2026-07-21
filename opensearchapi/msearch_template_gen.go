@@ -103,7 +103,7 @@ type MSearchTemplateParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
-	SearchType string
+	SearchType SearchType
 
 	// If `true`, the response prefixes aggregation and suggester names with
 	// their respective types.
@@ -134,7 +134,7 @@ func (r MSearchTemplateParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.TypedKeys != nil {

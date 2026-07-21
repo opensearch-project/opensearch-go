@@ -156,7 +156,7 @@ type SearchTemplateParams struct {
 	SearchPipeline string
 
 	// The type of the search operation.
-	SearchType string
+	SearchType SearchType
 
 	// If `true`, the response prefixes aggregation and suggester names with
 	// their respective types.
@@ -227,7 +227,7 @@ func (r SearchTemplateParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.TypedKeys != nil {

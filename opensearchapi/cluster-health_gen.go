@@ -89,7 +89,7 @@ type ClusterHealthParams struct {
 	// Default: 0.
 	WaitForActiveShards string
 
-	WaitForEvents string
+	WaitForEvents WaitForEvents
 
 	// Whether to wait until there are no initializing shards in the cluster.
 	//
@@ -142,7 +142,7 @@ func (r ClusterHealthParams) get() map[string]string {
 	}
 
 	if r.WaitForEvents != "" {
-		set("wait_for_events", r.WaitForEvents)
+		set("wait_for_events", string(r.WaitForEvents))
 	}
 
 	if r.WaitForNoInitializingShards != nil {

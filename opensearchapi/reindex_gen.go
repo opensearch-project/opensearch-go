@@ -338,7 +338,7 @@ func (u ReindexRespBody) MarshalJSON() ([]byte, error) {
 //
 // The search definition using the Query DSL and the prototype for the index request.
 type ReindexBody struct {
-	Conflicts *string            `json:"conflicts,omitempty"`
+	Conflicts *Conflicts         `json:"conflicts,omitempty"`
 	Dest      ReindexDestination `json:"dest"`
 
 	// The maximum number of documents to reindex.
@@ -352,7 +352,7 @@ type ReindexBody struct {
 // ReindexDestination is a typed component of the reindex operation.
 type ReindexDestination struct {
 	Index  string  `json:"index"`
-	OpType *string `json:"op_type,omitempty"`
+	OpType *OpType `json:"op_type,omitempty"`
 
 	// The name of the pipeline to use.
 	Pipeline *string `json:"pipeline,omitempty"`
@@ -360,7 +360,7 @@ type ReindexDestination struct {
 	// The routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	VersionType *string `json:"version_type,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 // ReindexSource is a typed component of the reindex operation.

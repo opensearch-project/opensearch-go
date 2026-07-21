@@ -225,7 +225,7 @@ type NodesStatsStats struct {
 	ResourceUsageStats map[string]NodesStatsShardResourceUsageDetail `json:"resource_usage_stats,omitempty"`
 
 	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	Roles []NodeRole `json:"roles,omitempty"`
 
 	Script                         *NodesStatsScript                              `json:"script,omitempty"`
 	ScriptCache                    *NodesStatsScriptCache                         `json:"script_cache,omitempty"`

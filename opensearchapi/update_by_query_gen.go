@@ -119,7 +119,7 @@ type UpdateByQueryParams struct {
 
 	// What to do if update by query hits version conflicts: `abort` or
 	// `proceed`.
-	Conflicts string
+	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
 	DefaultOperator string
@@ -195,7 +195,7 @@ type UpdateByQueryParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
-	SearchType string
+	SearchType SearchType
 
 	// Deprecated: use `max_docs` instead.
 	Size int
@@ -268,7 +268,7 @@ func (r UpdateByQueryParams) get() map[string]string {
 	}
 
 	if r.Conflicts != "" {
-		set("conflicts", r.Conflicts)
+		set("conflicts", string(r.Conflicts))
 	}
 
 	if r.DefaultOperator != "" {
@@ -340,7 +340,7 @@ func (r UpdateByQueryParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.Size != 0 {
@@ -547,7 +547,7 @@ func (u UpdateByQueryRespBody) MarshalJSON() ([]byte, error) {
 //
 // The search definition using the Query DSL
 type UpdateByQueryBody struct {
-	Conflicts *string `json:"conflicts,omitempty"`
+	Conflicts *Conflicts `json:"conflicts,omitempty"`
 
 	// The maximum number of documents to update.
 	MaxDocs *int `json:"max_docs,omitempty"`
