@@ -552,6 +552,7 @@ func (c *Transport) createConnection(node nodeInfo) *Connection {
 	conn := &Connection{
 		URL:        node.url,
 		URLString:  node.url.String(),
+		hostPort:   hostPrefixOf(node.url),
 		ID:         node.ID,
 		Name:       node.Name,
 		Roles:      node.roleSet,

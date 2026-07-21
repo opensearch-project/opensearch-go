@@ -15,13 +15,26 @@ type RequestEvent struct {
 	// Method is the HTTP method (e.g. "GET", "POST").
 	Method string
 
-	// Path is the raw request path, before any label reduction. Consumers
-	// decide cardinality (e.g. templating "/logs/_doc/123" to "/logs/_doc/{id}").
+	// Path is the raw, URL-escaped request path exactly as the caller supplied
+	// it, captured before the transport rewrites the URL to the selected
+	// backend (so it carries no connection base-path prefix). It is not
+	// templated or otherwise reduced: "/logs/_doc/123" is reported verbatim, so
+	// it is high-cardinality. For a low-cardinality label use RouteName.
 	Path string
 
-	// Index is the target index as understood by the routing layer, when known.
-	// Empty when the request is not index-scoped or routing did not run.
+	// RouteName is the semantic operation the path maps to (e.g. "doc_index",
+	// "search", "bulk"), suitable as a low-cardinality metric label. It is
+	// "other" when the method+path does not match a known operation.
+	RouteName string
+
+	// Index is the target index extracted from the request path. Empty when the
+	// request is not index-scoped (system endpoints, root).
 	Index string
+
+	// PoolName identifies the pool that dispatched the final attempt (e.g.
+	// "search", "write"). Empty when routing did not run or used a non-scored
+	// route.
+	PoolName string
 
 	// Host is the node actually contacted (scheme and host of the selected
 	// backend, e.g. "http://node-1:9200").

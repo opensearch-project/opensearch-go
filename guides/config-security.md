@@ -329,7 +329,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 })
 ```
 
-On the response side, use the typed response fields for structured access. When you need the raw bytes (logging, proxying, custom deserialization), use `RawBody()`:
+On the response side, use the typed response fields for structured access. When you need the raw bytes (logging, debugging, custom deserialization), use `RawBody()`:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
@@ -345,7 +345,7 @@ for _, hit := range resp.Hits.Hits {
     fmt.Printf("score=%.2f index=%s id=%s\n", *hit.Score, hit.Index, hit.ID)
 }
 
-// Raw access (logging, proxying, debugging):
+// Raw access (logging, debugging, etc.):
 raw, err := io.ReadAll(resp.RawBody())
 if err != nil {
     return err

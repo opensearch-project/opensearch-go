@@ -6,7 +6,10 @@
 
 package opensearchtransport
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
 // recordingObserver captures all ConnectionObserver events for test assertions.
 // All methods are synchronous and safe for concurrent use.
@@ -81,13 +84,13 @@ func (o *recordingObserver) getRewriteEvents() []AddressRewriteEvent {
 	return append([]AddressRewriteEvent(nil), o.rewriteEvents...)
 }
 
-func (o *recordingObserver) OnRequestResponse(e RequestResponseEvent) {
+func (o *recordingObserver) OnRequestResponse(_ context.Context, e RequestResponseEvent) {
 	o.mu.Lock()
 	o.reqRespEvents = append(o.reqRespEvents, e)
 	o.mu.Unlock()
 }
 
-func (o *recordingObserver) OnStreamResponse(e StreamResponseEvent) {
+func (o *recordingObserver) OnStreamResponse(_ context.Context, e StreamResponseEvent) {
 	o.mu.Lock()
 	o.streamEvents = append(o.streamEvents, e)
 	o.mu.Unlock()
