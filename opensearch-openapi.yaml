@@ -40380,6 +40380,19 @@ components:
           const: cluster_manager
           description: The node can act as a cluster manager.
           x-version-added: '2.0'
+        - type: string
+          const: search
+          description: The node was dedicated to provide search capability for searchable snapshots. Renamed to `warm` in 3.0.
+          x-version-added: '2.4'
+          x-version-removed: '3.0'
+        - type: string
+          const: search
+          description: The node can host search replicas (search-only shards). This role must not be combined with any other role on a node. Introduced in 3.0; not to be confused with the pre-3.0 `search` role that was renamed to `warm`.
+          x-version-added: '3.0'
+        - type: string
+          const: warm
+          description: The node can hold warm indices for searchable snapshots. Before 3.0 this role was named `search`.
+          x-version-added: '3.0'
     _common___NodeRoles:
       description: The role assigned to the node.
       type: array
