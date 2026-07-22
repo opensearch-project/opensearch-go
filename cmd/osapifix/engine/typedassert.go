@@ -33,7 +33,7 @@ var testifyCompareFuncs = map[string][2]int{
 	"LessOrEqual":    {1, 2},
 }
 
-// TypedAssertAnalyzer reports testify comparison calls whose two operands have
+// typedAssertAnalyzer reports testify comparison calls whose two operands have
 // mismatched static types - the type-erasure hazard described in main's doc
 // comment. It is deliberately conservative: it only fires when both operand
 // types are statically known and genuinely incompatible for a testify
@@ -41,7 +41,7 @@ var testifyCompareFuncs = map[string][2]int{
 // type is unknowable) to avoid false positives.
 //
 //nolint:gochecknoglobals // analyzer definition, immutable after init
-var TypedAssertAnalyzer = &analysis.Analyzer{
+var typedAssertAnalyzer = &analysis.Analyzer{
 	Name:     "typedassert",
 	Doc:      "reports testify comparisons whose operands have mismatched static types (v4->v5 upgrade hazard)",
 	Requires: []*analysis.Analyzer{inspect.Analyzer},

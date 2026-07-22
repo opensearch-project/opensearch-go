@@ -31,7 +31,7 @@ var importMajorRe = regexp.MustCompile(`^` + regexp.QuoteMeta(openSearchGoBase) 
 // type-checking) and returns the opensearch-go major they import. When multiple
 // majors are present (a partially migrated module), the lowest is chosen as the
 // source and the others are reported for visibility.
-func detectSourceMajor(dir string) (Major, []string, error) {
+func detectSourceMajor(dir string) (major, []string, error) {
 	cfg := &packages.Config{
 		Dir:   dir,
 		Mode:  packages.NeedName | packages.NeedImports,
@@ -42,7 +42,7 @@ func detectSourceMajor(dir string) (Major, []string, error) {
 		return 0, nil, fmt.Errorf("load packages under %s: %w", dir, err)
 	}
 
-	found := map[Major]bool{}
+	found := map[major]bool{}
 	for _, pkg := range pkgs {
 		for importPath := range pkg.Imports {
 			if m, ok := majorOfImport(importPath); ok {
@@ -55,7 +55,7 @@ func detectSourceMajor(dir string) (Major, []string, error) {
 		return 0, nil, fmt.Errorf("no opensearch-go imports found under %s (nothing to migrate)", dir)
 	}
 
-	majors := make([]Major, 0, len(found))
+	majors := make([]major, 0, len(found))
 	for m := range found {
 		majors = append(majors, m)
 	}
@@ -72,7 +72,7 @@ func detectSourceMajor(dir string) (Major, []string, error) {
 
 // majorOfImport reports the opensearch-go major an import path belongs to, and
 // whether the path is an opensearch-go import at all.
-func majorOfImport(importPath string) (Major, bool) {
+func majorOfImport(importPath string) (major, bool) {
 	m := importMajorRe.FindStringSubmatch(importPath)
 	if m == nil {
 		return 0, false
@@ -84,11 +84,11 @@ func majorOfImport(importPath string) (Major, bool) {
 	if _, err := fmt.Sscanf(m[1], "%d", &n); err != nil {
 		return 0, false
 	}
-	return Major(n), true
+	return major(n), true
 }
 
 // majorList formats majors as v-prefixed labels for messages.
-func majorList(majors []Major) []string {
+func majorList(majors []major) []string {
 	out := make([]string, len(majors))
 	for i, m := range majors {
 		out[i] = fmt.Sprintf("v%d", m)

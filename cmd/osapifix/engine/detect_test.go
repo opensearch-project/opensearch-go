@@ -17,7 +17,7 @@ import (
 func TestParseMajor(t *testing.T) {
 	tests := []struct {
 		in      string
-		want    Major
+		want    major
 		wantErr bool
 	}{
 		{"v4", 4, false},
@@ -45,7 +45,7 @@ func TestParseMajor(t *testing.T) {
 func TestMajorOfImport(t *testing.T) {
 	tests := []struct {
 		path    string
-		wantMaj Major
+		wantMaj major
 		wantIs  bool
 	}{
 		{"github.com/opensearch-project/opensearch-go/v4/opensearchapi", 4, true},
@@ -68,7 +68,7 @@ func TestMajorOfImport(t *testing.T) {
 
 func TestModulePath(t *testing.T) {
 	tests := []struct {
-		m    Major
+		m    major
 		want string
 	}{
 		{1, "github.com/opensearch-project/opensearch-go"},

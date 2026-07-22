@@ -38,8 +38,8 @@ import (
 func TestRewriteCorpus(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
-		src     Major
-		dst     Major
+		src     major
+		dst     major
 		corpus  string   // dir under testdata/corpus holding go.mod + fixtures
 		stub    string   // replace-target dir under testdata/corpus
 		goldens []string // fixture files diffed against <file>.golden

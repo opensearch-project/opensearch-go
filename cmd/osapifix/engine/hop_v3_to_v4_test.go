@@ -81,8 +81,8 @@ func TestHopV3toV4_ChainsToV5(t *testing.T) {
 	plans, err := planChain(3, 5)
 	require.NoError(t, err)
 	require.Len(t, plans, 2, "v3->v5 chains v3->v4 then v4->v5")
-	require.Equal(t, [2]Major{3, 4}, [2]Major{plans[0].from, plans[0].to})
-	require.Equal(t, [2]Major{4, 5}, [2]Major{plans[1].from, plans[1].to})
+	require.Equal(t, [2]major{3, 4}, [2]major{plans[0].from, plans[0].to})
+	require.Equal(t, [2]major{4, 5}, [2]major{plans[1].from, plans[1].to})
 }
 
 // containsSubstr reports whether any element of s contains sub.

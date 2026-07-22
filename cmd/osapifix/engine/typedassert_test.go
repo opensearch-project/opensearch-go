@@ -17,5 +17,5 @@ import (
 // comment must NOT be flagged (false positives fail the test just as missed
 // diagnostics do).
 func TestTypedAssertAnalyzer(t *testing.T) {
-	analysistest.Run(t, analysistest.TestData(), TypedAssertAnalyzer, "v4")
+	analysistest.Run(t, analysistest.TestData(), typedAssertAnalyzer, "v4")
 }

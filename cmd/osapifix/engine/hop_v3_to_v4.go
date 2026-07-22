@@ -8,7 +8,7 @@ package engine
 
 // hop_v3_to_v4.go is the hand-authored v3 -> v4 migration data. It follows the
 // shape of hop_v4_to_v5.go (the fully worked example); see that file for the
-// rationale behind each field of Hop.
+// rationale behind each field of hop.
 //
 // The v3 -> v4 boundary is far quieter than v4 -> v5. The generated opensearchapi
 // Client and its sub-clients are byte-identical across the two versions, so there
@@ -32,7 +32,7 @@ const (
 // the error-model followup.
 //
 //nolint:gochecknoglobals // immutable data table; mirrors hopV4toV5
-var hopV3toV4 = Hop{
+var hopV3toV4 = hop{
 	From: 3,
 	To:   4,
 

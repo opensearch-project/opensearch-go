@@ -104,7 +104,7 @@ func rootClientDispositionsV2toV3() []apirev.FieldDisposition {
 // changes are reported as followups.
 //
 //nolint:gochecknoglobals // immutable data table; mirrors hopV3toV4/hopV4toV5
-var hopV2toV3 = Hop{
+var hopV2toV3 = hop{
 	From: 2,
 	To:   3,
 

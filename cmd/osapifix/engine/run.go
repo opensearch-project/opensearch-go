@@ -8,6 +8,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -24,7 +25,7 @@ import (
 //
 //nolint:gochecknoglobals // const-ish analyzer registry, immutable after init
 var analyzers = []*analysis.Analyzer{
-	TypedAssertAnalyzer,
+	typedAssertAnalyzer,
 }
 
 // Analyzers returns the semantic analyzers run by the `vet` subcommand.
@@ -42,6 +43,11 @@ func Rewrite(args []string) error {
 	srcFlag := fs.String("src", "auto", "source major version (e.g. v4) or 'auto' to detect from the consumer's imports")
 	dstFlag := fs.String("dst", "", "target major version (e.g. v5); default: newest known")
 	if err := fs.Parse(args); err != nil {
+		// flag already printed usage (to os.Stderr, set above); -h/-help is
+		// not an operational error, so exit cleanly rather than as a failure.
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
 		return err
 	}
 
@@ -63,7 +69,7 @@ func Rewrite(args []string) error {
 		dst = m
 	}
 
-	var src Major
+	var src major
 	if *srcFlag == "auto" {
 		m, warnings, err := detectSourceMajor(dir)
 		if err != nil {
@@ -148,7 +154,7 @@ func Rewrite(args []string) error {
 // bumpAndBuild points the consumer module at the given opensearch-go major and
 // builds it, so a subsequent type-aware hop can load and resolve types against
 // the intermediate version. Runs in the consumer module directory.
-func bumpAndBuild(ctx context.Context, dir string, to Major) error {
+func bumpAndBuild(ctx context.Context, dir string, to major) error {
 	// #nosec G204 -- the command and its arguments are internally constructed
 	// (a fixed "go get" of a version-derived module path), not user input.
 	get := exec.CommandContext(ctx, "go", "get", modulePath(to)+"@latest")
@@ -178,14 +184,14 @@ func dedupe(s []string) []string {
 	return out
 }
 
-// parseMajor parses a version label like "v4", "V4", or "4" into a Major.
-func parseMajor(s string) (Major, error) {
+// parseMajor parses a version label like "v4", "V4", or "4" into a major.
+func parseMajor(s string) (major, error) {
 	t := strings.TrimPrefix(strings.TrimPrefix(s, "v"), "V")
 	n, err := strconv.Atoi(t)
 	if err != nil || n < 1 {
 		return 0, fmt.Errorf("invalid version %q (want e.g. v4)", s)
 	}
-	return Major(n), nil
+	return major(n), nil
 }
 
 // dirFromArg resolves the positional argument to a module directory and

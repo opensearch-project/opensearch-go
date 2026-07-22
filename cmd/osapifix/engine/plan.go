@@ -34,7 +34,7 @@ const openSearchGoBase = "github.com/opensearch-project/opensearch-go"
 // its own tables) plus the call-site rules, import prefix, and operator
 // followups. Entirely self-contained - nothing is threaded from adjacent hops.
 type hopPlan struct {
-	from, to       Major
+	from, to       major
 	delta          apirev.Delta
 	renames        []apirev.TypeRename
 	regroups       []methodRegroup
@@ -46,7 +46,7 @@ type hopPlan struct {
 // planChain builds the ordered per-hop plans for migrating src->dst. It requires
 // a registered hop and an embedded surface for every adjacent step in [src, dst).
 // The plans are meant to be applied in order, rebuilding between them.
-func planChain(src, dst Major) ([]hopPlan, error) {
+func planChain(src, dst major) ([]hopPlan, error) {
 	if src >= dst {
 		return nil, fmt.Errorf("source v%d is not older than target v%d", src, dst)
 	}
@@ -83,7 +83,7 @@ func planChain(src, dst Major) ([]hopPlan, error) {
 }
 
 // decodeSurface decodes the embedded exported-struct surface for a version.
-func decodeSurface(m Major) (*apirev.Snapshot, error) {
+func decodeSurface(m major) (*apirev.Snapshot, error) {
 	data, ok := surfaces[m]
 	if !ok {
 		return nil, fmt.Errorf("no embedded surface for v%d (regenerate with cmd/gensurface and register it in surfaces)", m)
@@ -97,8 +97,8 @@ func decodeSurface(m Major) (*apirev.Snapshot, error) {
 
 // newestKnownTarget is the highest target version reachable in the registry,
 // used as the default -dst.
-func newestKnownTarget() Major {
-	var newest Major
+func newestKnownTarget() major {
+	var newest major
 	for _, h := range hops {
 		if h.To > newest {
 			newest = h.To
@@ -109,7 +109,7 @@ func newestKnownTarget() Major {
 
 // modulePath returns the opensearch-go module import path for a major version.
 // v1 has no "/vN" suffix (Go module major-version rules); v2+ do.
-func modulePath(m Major) string {
+func modulePath(m major) string {
 	if m <= 1 {
 		return openSearchGoBase
 	}

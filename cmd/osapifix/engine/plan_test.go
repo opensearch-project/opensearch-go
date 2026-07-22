@@ -33,7 +33,7 @@ func pkgN(major int) string {
 }
 
 // installSynthetic swaps hops+surfaces for a test and restores them on cleanup.
-func installSynthetic(t *testing.T, synthHops map[Major]Hop, synthSurfaces map[Major][]byte) {
+func installSynthetic(t *testing.T, synthHops map[major]hop, synthSurfaces map[major][]byte) {
 	t.Helper()
 	origHops, origSurfaces := hops, surfaces
 	hops, surfaces = synthHops, synthSurfaces
@@ -58,8 +58,8 @@ func TestPlanChain_Errors(t *testing.T) {
 
 	t.Run("missing hop in chain", func(t *testing.T) {
 		installSynthetic(t,
-			map[Major]Hop{7: {From: 7, To: 8}}, // no 8->9
-			map[Major][]byte{7: mkSurface(t, "v7"), 8: mkSurface(t, "v8"), 9: mkSurface(t, "v9")},
+			map[major]hop{7: {From: 7, To: 8}}, // no 8->9
+			map[major][]byte{7: mkSurface(t, "v7"), 8: mkSurface(t, "v8"), 9: mkSurface(t, "v9")},
 		)
 		_, err := planChain(7, 9)
 		require.Error(t, err, "missing v8->v9 hop must error")
@@ -80,7 +80,7 @@ func TestPlanChain_SerialHops(t *testing.T) {
 		{Name: "Extra", Type: "string"},
 	}})
 
-	synthHops := map[Major]Hop{
+	synthHops := map[major]hop{
 		7: {From: 7, To: 8, FieldDispositions: []apirev.FieldDisposition{
 			{
 				FromPkgPath: pkgN(7), FromType: "Req", FromField: "DocID",
@@ -89,15 +89,15 @@ func TestPlanChain_SerialHops(t *testing.T) {
 		}},
 		8: {From: 8, To: 9}, // no field changes v8->v9 for Req
 	}
-	installSynthetic(t, synthHops, map[Major][]byte{7: sv7, 8: sv8, 9: sv9})
+	installSynthetic(t, synthHops, map[major][]byte{7: sv7, 8: sv8, 9: sv9})
 
 	plans, err := planChain(7, 9)
 	require.NoError(t, err)
 	require.Len(t, plans, 2, "v7->v9 is two hops")
 
 	// Hop 1 (v7->v8) renames DocID->ID; its import prefix is v7->v8.
-	require.Equal(t, Major(7), plans[0].from)
-	require.Equal(t, Major(8), plans[0].to)
+	require.Equal(t, major(7), plans[0].from)
+	require.Equal(t, major(8), plans[0].to)
 	assertChange(t, plans[0].delta.Structs[pkgN(7)+".Req"].Changes,
 		apirev.FieldChange{Kind: "rename", From: "DocID", To: "ID", NewType: "string"})
 	require.Equal(t, [][2]string{{
@@ -106,8 +106,8 @@ func TestPlanChain_SerialHops(t *testing.T) {
 	}}, plans[0].importPrefixes)
 
 	// Hop 2 (v8->v9): Req gained Extra, no change to existing fields.
-	require.Equal(t, Major(8), plans[1].from)
-	require.Equal(t, Major(9), plans[1].to)
+	require.Equal(t, major(8), plans[1].from)
+	require.Equal(t, major(9), plans[1].to)
 	require.NotContains(t, plans[1].delta.Structs, pkgN(8)+".Req",
 		"v8->v9 adds a field only; no change entry expected")
 }

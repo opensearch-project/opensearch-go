@@ -11,23 +11,23 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osapifix/internal/api
 // transitions.go is the generic transition registry: the version-neutral types
 // and the map of hand-authored, per-adjacent-hop migration data. The engine
 // (applydelta.go), composition (compose.go), and CLI (run.go) are all
-// version-agnostic; everything migration-specific lives in a Hop, registered
+// version-agnostic; everything migration-specific lives in a hop, registered
 // here.
 //
 // Adding a new transition (e.g. v3 -> v4) is purely additive: run cmd/gensurface
 // for the new version, embed its surface in surfaces, author a hop_vX_to_vY.go
-// with a Hop value, and register it in hops. No engine change is required - see
+// with a hop value, and register it in hops. No engine change is required - see
 // README.md "Adding a new hop".
 
-// Major is an opensearch-go module major version (the N in .../opensearch-go/vN).
-type Major int
+// major is an opensearch-go module major version (the N in .../opensearch-go/vN).
+type major int
 
 // surfaces holds the embedded exported-struct surface for each known version,
 // keyed by major. gensurface produces these JSON files; they are embedded in
 // embed.go and referenced here so composition can diff any src/dst pair.
 //
 //nolint:gochecknoglobals // const-ish surface registry, immutable after init
-var surfaces = map[Major][]byte{
+var surfaces = map[major][]byte{
 	2: surfaceV2JSON,
 	3: surfaceV3JSON,
 	4: surfaceV4JSON,
@@ -45,7 +45,7 @@ type methodRegroup struct {
 	PtrArg   bool     // target method takes *Req: wrap the sole request argument in &
 }
 
-// Hop is one adjacent transition (From -> From+1): the hand-authored data that
+// hop is one adjacent transition (From -> From+1): the hand-authored data that
 // cannot be auto-derived from the surfaces alone.
 //
 //   - TypeRenames:       types whose NAME changed across the hop (surface diffing
@@ -59,8 +59,8 @@ type methodRegroup struct {
 //     hop, mapped to an engine action ("addressOf" or "manual").
 //   - SemanticFollowups: behavioral changes that cannot be mechanically
 //     rewritten, reported to the operator after a rewrite.
-type Hop struct {
-	From, To          Major
+type hop struct {
+	From, To          major
 	TypeRenames       []apirev.TypeRename
 	FieldDispositions []apirev.FieldDisposition
 	MethodRegroups    []methodRegroup
@@ -73,7 +73,7 @@ type Hop struct {
 // (and their surfaces above); the composition engine chains whatever is present.
 //
 //nolint:gochecknoglobals // const-ish transition registry, immutable after init
-var hops = map[Major]Hop{
+var hops = map[major]hop{
 	2: hopV2toV3,
 	3: hopV3toV4,
 	4: hopV4toV5,

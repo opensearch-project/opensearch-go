@@ -114,7 +114,7 @@ func TestHopV2toV3_ChainsToV5(t *testing.T) {
 	plans, err := planChain(2, 5)
 	require.NoError(t, err)
 	require.Len(t, plans, 3, "v2->v5 chains v2->v3, v3->v4, v4->v5")
-	require.Equal(t, [2]Major{2, 3}, [2]Major{plans[0].from, plans[0].to})
-	require.Equal(t, [2]Major{3, 4}, [2]Major{plans[1].from, plans[1].to})
-	require.Equal(t, [2]Major{4, 5}, [2]Major{plans[2].from, plans[2].to})
+	require.Equal(t, [2]major{2, 3}, [2]major{plans[0].from, plans[0].to})
+	require.Equal(t, [2]major{3, 4}, [2]major{plans[1].from, plans[1].to})
+	require.Equal(t, [2]major{4, 5}, [2]major{plans[2].from, plans[2].to})
 }
