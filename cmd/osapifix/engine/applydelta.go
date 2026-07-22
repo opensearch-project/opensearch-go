@@ -844,6 +844,17 @@ func writeFormatted(root *os.Root, dir, path string, fset *token.FileSet, file *
 	if err != nil {
 		return err
 	}
+	// go/packages reports file paths symlink-resolved, but dir is the caller's
+	// logical path (e.g. filepath.Abs(".") via os.Getwd). Under a symlinked
+	// working directory (macOS /tmp -> /private/tmp), relativizing the resolved
+	// path against the logical dir yields a spurious ../.. escape that the sandbox
+	// root rejects. Resolve both endpoints so rel stays inside the module.
+	if resolved, rerr := filepath.EvalSymlinks(absDir); rerr == nil {
+		absDir = resolved
+	}
+	if resolved, rerr := filepath.EvalSymlinks(path); rerr == nil {
+		path = resolved
+	}
 	rel, err := filepath.Rel(absDir, path)
 	if err != nil {
 		return fmt.Errorf("relativize %q against module dir: %w", path, err)
