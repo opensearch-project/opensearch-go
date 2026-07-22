@@ -14,8 +14,8 @@ go get github.com/opensearch-project/opensearch-go/v5/osotel
 
 ## Concepts
 
-- **`Registry`** is the single [`opensearchtransport.ConnectionObserver`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#ConnectionObserver) you wire into a client. It owns the async pipeline and fans each event out to the observers wired into it.
-- **`Observer`** is a metric bundle. `osotel` ships `RequestObserver` (duration and response-size histograms); you can add your own. A Registry can hold any number of them, so you compose whatever metric set you need.
+- **`Registry`** is the single [`opensearchtransport.ConnectionObserver`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#ConnectionObserver) you wire into a client. It owns the async pipeline and fans each event out to the sinks wired into it. Per-request events are buffered and dispatched by a pool of workers; low-frequency connection-lifecycle events are fanned out synchronously.
+- **`Observer`** is a metric sink: it receives the full transport event and routes it to whatever instruments it owns. `osotel` ships two, giving RED+USE coverage out of the box: `RequestObserver` (RED -- rate, errors, duration of requests) and `PoolObserver` (USE -- utilization, saturation, errors of the connection pool). A Registry can hold any number of sinks, so you compose whatever metric set you need.
 
 ## Usage
 
@@ -48,14 +48,15 @@ func main() {
 
 	meter := provider.Meter("github.com/opensearch-project/opensearch-go/v5/osotel")
 
-	// Wire one or more Observer bundles into the registry. Buffer up to 1024
-	// events between the request hot path and the recorder.
-	reg, err := osotel.New(meter, 1024, osotel.NewRequestObserver())
+	// Wire one or more sinks into the registry. RequestObserver (RED) and
+	// PoolObserver (USE) together give full RED+USE coverage. The event buffer
+	// scales with GOMAXPROCS; set it with WithBufferSize via NewWithOptions.
+	reg, err := osotel.New(meter, osotel.NewRequestObserver(), osotel.NewPoolObserver())
 	if err != nil {
 		panic(err)
 	}
 
-	// Run the dispatch loop until ctx is cancelled or reg.Close is called.
+	// Run the dispatch workers until ctx is cancelled or reg.Close is called.
 	runCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() { _ = reg.Run(runCtx) }()
@@ -85,18 +86,40 @@ apiClient, err := opensearchapi.NewClient(opensearchapi.Config{
 
 ## Shipped metrics
 
-`NewRequestObserver` records two histograms, attributed by `method`, status class (`2xx`, `4xx`, `error`, ...), and `mode` (`request` for a buffered full read, `stream` for time-to-first-byte):
+`osotel` ships two sinks that together cover the [RED](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/) and [USE](https://www.brendangregg.com/usemethod.html) methods -- two complementary monitoring frameworks:
 
-| Instrument                           | Unit | Description                                                                               |
-| ------------------------------------ | ---- | ----------------------------------------------------------------------------------------- |
-| `opensearch.client.request.duration` | `s`  | Request duration.                                                                         |
-| `opensearch.client.response.size`    | `By` | Buffered response size (recorded for `request` mode only, where the exact size is known). |
+- **RED** (Rate, Errors, Duration) describes request-level service health: how many requests, how many failed, and how long they took. Best for the client's request workload.
+- **USE** (Utilization, Saturation, Errors) describes a resource's health: how busy it is, how much work is queued/shed, and its error count. Here the resource is the connection pool.
 
-The Registry also records `opensearch.client.observer.dropped`, the count of events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
+### RED -- `NewRequestObserver`
+
+Request-level Rate, Errors, and Duration, attributed by `method`, status class (`2xx`/`3xx`/`4xx`/`5xx`, `error` for no response, `unknown` out of range), and `mode` (`request` for a buffered full read, `stream` for time-to-first-byte):
+
+| Instrument                           | Unit        | Signal   | Description                                                                               |
+| ------------------------------------ | ----------- | -------- | ----------------------------------------------------------------------------------------- |
+| `opensearch.client.requests`         | `{request}` | Rate     | Total requests.                                                                           |
+| `opensearch.client.request.errors`   | `{request}` | Errors   | Requests that returned 4xx/5xx or a transport error.                                      |
+| `opensearch.client.request.duration` | `s`         | Duration | Request latency histogram.                                                                |
+| `opensearch.client.response.size`    | `By`        | --       | Buffered response size (recorded for `request` mode only, where the exact size is known). |
+
+### USE -- `NewPoolObserver`
+
+Connection-pool Utilization, Saturation, and Errors, attributed by `pool`, derived from connection-lifecycle events:
+
+| Instrument                                     | Unit           | Signal      | Description                                                        |
+| ---------------------------------------------- | -------------- | ----------- | ------------------------------------------------------------------ |
+| `opensearch.client.pool.connections`           | `{connection}` | Utilization | Async gauge of connections by `state` (`active`/`dead`/`standby`). |
+| `opensearch.client.pool.overloaded`            | `{connection}` | Saturation  | Connections shed because node resource usage exceeded thresholds.  |
+| `opensearch.client.pool.demotions`             | `{connection}` | Errors      | Ready connections demoted to dead on request failure.              |
+| `opensearch.client.pool.health_check_failures` | `{failure}`    | Errors      | Connection health-check failures.                                  |
+
+The Registry also records `opensearch.client.observer.dropped`, the count of request events dropped because the buffer was full -- watch it to tell whether the buffer size is adequate for your throughput.
 
 ## Custom observers
 
-Any type implementing `osotel.Observer` can be wired into a Registry alongside (or instead of) the shipped bundle. Embed `osotel.BaseObserver` for no-op defaults and override only what you need. `Register` is called once with the meter when you pass the observer to `New`; `OnRequest` is called on the dispatch goroutine (with the dispatch context) for every request.
+Any type implementing `osotel.Observer` can be wired into a Registry alongside (or instead of) the shipped sinks. An observer is a _sink_: it receives the full transport event and routes it to whatever instruments it owns. Embed `osotel.BaseObserver` for no-op defaults and override only the hook you need. `Register` is called once with the meter when you pass the observer to `New`; `OnRequestResponse` / `OnStreamResponse` are called on a dispatch worker (with the dispatch context) for every request, with the full `*opensearchtransport.RequestResponseEvent` / `*opensearchtransport.StreamResponseEvent` (valid only for the call -- do not retain).
+
+Because the event carries `RouteName`, `Index`, and `PoolName`, a custom sink is how you attribute metrics by those higher-cardinality dimensions -- the shipped `RequestObserver` deliberately stays coarse (method/status/mode) to avoid a cardinality explosion. The dispatch pool runs multiple workers by default (`GOMAXPROCS/2`), so a sink's hooks must be safe for concurrent use.
 
 ```go
 type errorCounter struct {
@@ -110,34 +133,49 @@ func (o *errorCounter) Register(meter metric.Meter) error {
 	var err error
 	o.errors, err = meter.Int64Counter(
 		"myapp.opensearch.errors",
-		metric.WithDescription("OpenSearch client error responses by method and status class."),
+		metric.WithDescription("OpenSearch client error responses by method and route."),
 	)
 	return err
 }
 
-func (o *errorCounter) OnRequest(ctx context.Context, s osotel.RequestSample) {
-	switch s.StatusClass {
-	case "4xx", "5xx", "error":
-		o.errors.Add(ctx, 1, metric.WithAttributes(
-			attribute.String("method", s.Method),
-			attribute.String("status", s.StatusClass),
-		))
+func (o *errorCounter) OnRequestResponse(ctx context.Context, e *opensearchtransport.RequestResponseEvent) {
+	if e.StatusCode < 400 && e.Err == nil {
+		return
 	}
+	o.errors.Add(ctx, 1, metric.WithAttributes(
+		attribute.String("method", e.Request.Method),
+		attribute.String("route", e.Request.RouteName),
+	))
 }
 ```
 
-Wire it in together with the shipped bundle:
+Wire it in together with the shipped sinks:
 
 ```go
-reg, err := osotel.New(meter, 1024, osotel.NewRequestObserver(), newErrorCounter())
+reg, err := osotel.New(meter, osotel.NewRequestObserver(), newErrorCounter())
 ```
 
-Each observer receives the same `RequestSample` per request, so you can build several independent metric bundles over one event stream.
+Each observer receives the same event per request, so you can build several independent metric sinks over one event stream.
+
+## Filtering
+
+To record only a subset of requests, pass a filter. It runs on the request goroutine _before_ the event is enqueued, so filtered events never cross the channel or reach any sink:
+
+```go
+reg, err := osotel.NewWithOptions(meter, []osotel.Observer{osotel.NewRequestObserver()}, []osotel.Option{
+	// Record only failures.
+	osotel.WithRequestFilter(func(e *opensearchtransport.RequestResponseEvent) bool {
+		return e.StatusCode >= 400 || e.Err != nil
+	}),
+})
+```
+
+`WithStreamFilter` is the streaming counterpart.
 
 ## Lifecycle
 
-- `New(meter, bufferSize, observers...)` creates every observer's instruments (plus the dropped counter) from `meter` and returns the Registry.
-- `Run(ctx)` processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. The context is passed to each observer's `OnRequest`, so recordings carry its cancellation and baggage. Run it in its own goroutine.
-- `Close()` stops the dispatch loop. It is idempotent and safe to call concurrently.
+- `New(meter, observers...)` creates every observer's instruments (plus the dropped counter) from `meter` and returns the Registry.
+- `Run(ctx)` starts the dispatch workers (default `GOMAXPROCS/2`, override with `WithWorkers`) and processes events until `ctx` is cancelled or `Close` is called, draining already-buffered events before returning. The context is passed to each observer's request hooks, so recordings carry its cancellation and baggage. Run it in its own goroutine.
+- `Close()` stops the dispatch workers. It is idempotent and safe to call concurrently.
 
 See also the [Observer-Based Metrics guide](../guides/transport-observer_metrics.md) for the underlying event model.

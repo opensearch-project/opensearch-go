@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/opensearch-project/opensearch-go.svg)](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5) [![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml) [![Unit](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml) [![Integration](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml) [![codecov](https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg?token=MI9g3KYHVx)](https://codecov.io/gh/opensearch-project/opensearch-go) [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://discuss.opendistrocommunity.dev/c/clients/) ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
+[![Go Reference](https://pkg.go.dev/badge/github.com/opensearch-project/opensearch-go.svg)](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5) [![Build](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/lint.yml) [![Unit](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-unit.yml) [![Integration](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml/badge.svg)](https://github.com/opensearch-project/opensearch-go/actions/workflows/test-integration.yml) [![codecov](https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg?token=MI9g3KYHVx)](https://app.codecov.io/gh/opensearch-project/opensearch-go) [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://forum.opensearch.org/c/clients/60) ![PRs welcome!](https://img.shields.io/badge/PRs-welcome!-success)
 
 ![OpenSearch logo](OpenSearch.svg)
 
@@ -129,12 +129,14 @@ Next steps:
 ## Project Resources
 
 - [Project Website](https://opensearch.org/)
+- [TEMPORARY link-checker regression (RED, broken link) -- REVERT before merge](https://opensearch-go-regression.invalid/nope)
+- [TEMPORARY link-checker regression (YELLOW, 308 redirect) -- REVERT before merge](https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/)
 - [Developer Guide](DEVELOPER_GUIDE.md)
 - [User Guide](USER_GUIDE.md)
 - [Upgrade Tool (`osapifix`)](cmd/osapifix/README.md)
-- [Documentation](https://opensearch.org/docs/latest/clients/go/)
+- [Documentation](https://docs.opensearch.org/latest/clients/go/)
 - [API Documentation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5)
-- Need help? Try [Forums](https://discuss.opendistrocommunity.dev/c/clients/)
+- Need help? Try [Forums](https://forum.opensearch.org/c/clients/60)
 - [Project Principles](https://opensearch.org/#principles)
 - [Contributing to OpenSearch](CONTRIBUTING.md)
 - [Maintainer Responsibilities](MAINTAINERS.md)

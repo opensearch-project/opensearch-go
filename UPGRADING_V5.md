@@ -198,7 +198,7 @@ func (t *MyTransport) Request(req *http.Request) (*http.Response, error) {
 
 **Callers of `(*opensearch.Client).Perform`** should switch to the appropriate alternative:
 
-- Use `client.Stream(req)` for raw byte forwarding (proxy/streaming use cases). You are responsible for closing `resp.Body`.
+- Use `client.Stream(req)` for raw byte forwarding (incremental/streaming use cases). You are responsible for closing `resp.Body`.
 - Use `opensearch.Execute[T](ctx, client, method, req, &result)` for typed, decoded responses.
 
 The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.

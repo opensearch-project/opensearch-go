@@ -246,6 +246,14 @@ type Config struct {
 	Router    opensearchtransport.Router             // Optional router for request-aware routing.
 	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
 
+	// OperationClassifier maps each request's method and path to the
+	// [opensearchtransport.RequestEvent.RouteName] label reported to observers.
+	// When nil, a process-wide classifier built from the standard OpenSearch REST
+	// layout is used. Override it only when you route non-standard paths and need
+	// RouteName to reflect them; it affects the observability label only, never
+	// routing. See [opensearchtransport.Config.OperationClassifier].
+	OperationClassifier *opensearchtransport.OperationClassifier
+
 	// ShardCostConfig overrides shard cost multipliers for connection scoring.
 	// See [opensearchtransport.Config.ShardCostConfig] for format details.
 	ShardCostConfig string
@@ -488,6 +496,7 @@ func NewClient(cfg Config) (*Client, error) {
 		Selector:              cfg.Selector,
 		Router:                cfg.Router,
 		Observer:              cfg.Observer,
+		OperationClassifier:   cfg.OperationClassifier,
 		ShardCostConfig:       cfg.ShardCostConfig,
 		ConnectionPoolFunc:    cfg.ConnectionPoolFunc,
 		AddressResolver:       cfg.AddressResolver,
@@ -577,6 +586,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	// two lists stay together.
 	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
 		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
+		cfg.OperationClassifier != nil ||
 		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
 		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
 		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
@@ -680,8 +690,8 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 
 // Stream delegates to Transport.Stream, returning the raw [http.Response] from
 // the underlying [http.RoundTripper]. The caller owns the response body and
-// must close it. Use Stream for proxy and streaming use cases where bytes are
-// forwarded incrementally; use [Execute] when you want a decoded Go value.
+// must close it. Use Stream when bytes are forwarded incrementally without
+// decoding; use [Execute] when you want a decoded Go value.
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 	c.ensureReqHeader(req)
 	return c.Transport.Stream(req)

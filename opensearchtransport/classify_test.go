@@ -106,6 +106,43 @@ func TestOperationClassifier(t *testing.T) {
 		{"root GET", http.MethodGet, "/", opensearchtransport.OpClusterInfo},
 		{"root HEAD", http.MethodHead, "/", opensearchtransport.OpClusterInfo},
 
+		// Cluster state
+		{"cluster health", http.MethodGet, "/_cluster/health", opensearchtransport.OpClusterHealth},
+		{"cluster health with index", http.MethodGet, "/_cluster/health/events", opensearchtransport.OpClusterHealth},
+		{"cluster state", http.MethodGet, "/_cluster/state", opensearchtransport.OpClusterState},
+		{"cluster settings get", http.MethodGet, "/_cluster/settings", opensearchtransport.OpClusterSettingsGet},
+		{"cluster settings put", http.MethodPut, "/_cluster/settings", opensearchtransport.OpClusterSettingsPut},
+		{"cluster reroute", http.MethodPost, "/_cluster/reroute", opensearchtransport.OpClusterReroute},
+
+		// Cat
+		{"cat indices", http.MethodGet, "/_cat/indices", opensearchtransport.OpCatIndices},
+		{"cat indices with index", http.MethodGet, "/_cat/indices/events", opensearchtransport.OpCatIndices},
+		{"cat nodes", http.MethodGet, "/_cat/nodes", opensearchtransport.OpCatNodes},
+		{"cat shards", http.MethodGet, "/_cat/shards", opensearchtransport.OpCatShards},
+		{"cat thread_pool", http.MethodGet, "/_cat/thread_pool", opensearchtransport.OpCatThreadPool},
+
+		// Nodes / tasks
+		{"nodes info", http.MethodGet, "/_nodes", opensearchtransport.OpNodesInfo},
+		{"nodes stats", http.MethodGet, "/_nodes/stats", opensearchtransport.OpNodesStats},
+		{"tasks list", http.MethodGet, "/_tasks", opensearchtransport.OpTasksList},
+
+		// Snapshot
+		{"snapshot repo get", http.MethodGet, "/_snapshot/myrepo", opensearchtransport.OpSnapshotRepoGet},
+		{"snapshot create", http.MethodPut, "/_snapshot/myrepo/snap1", opensearchtransport.OpSnapshotCreate},
+
+		// Index management
+		{"index get", http.MethodGet, "/events", opensearchtransport.OpIndexGet},
+		{"index create", http.MethodPut, "/events", opensearchtransport.OpIndexCreate},
+		{"index delete", http.MethodDelete, "/events", opensearchtransport.OpIndexDelete},
+		{"index open", http.MethodPost, "/events/_open", opensearchtransport.OpIndexOpen},
+		{"mapping get", http.MethodGet, "/events/_mapping", opensearchtransport.OpMappingGet},
+		{"mapping put", http.MethodPut, "/events/_mapping", opensearchtransport.OpMappingPut},
+		{"alias get", http.MethodGet, "/events/_alias/now", opensearchtransport.OpAliasGet},
+		{"alias put", http.MethodPut, "/events/_alias/now", opensearchtransport.OpAliasPut},
+		{"index template put", http.MethodPut, "/_index_template/t1", opensearchtransport.OpIndexTemplateCreate},
+		{"component template get", http.MethodGet, "/_component_template/c1", opensearchtransport.OpComponentTemplateGet},
+		{"legacy template put", http.MethodPut, "/_template/t1", opensearchtransport.OpLegacyTemplateCreate},
+
 		// Unknown
 		{"unrecognized path", http.MethodGet, "/_unknown/endpoint", opensearchtransport.OpOther},
 		{"unrecognized method", "DESTROY", "/_search", opensearchtransport.OpOther},

@@ -113,3 +113,44 @@ func BenchmarkTransport(b *testing.B) {
 		}
 	})
 }
+
+// BenchmarkTransportObserverOverhead measures the allocation cost the observer
+// hooks add to the request path. "NoObserver" is the baseline; "BaseObserver"
+// wires a no-op observer, exercising OnRequestStart, the per-attempt
+// OnAttemptStart/OnAttemptEnd, and OnRequestResponse.
+//
+// Both cases must report the same allocations/op: BaseConnectionObserver returns
+// the context unchanged (so no per-request or per-attempt context is derived),
+// the RequestEvent passed to the hooks stays on the stack, and RequestEvent.Host
+// is copied from the connection's cached hostPort rather than rebuilt per
+// request. See BenchmarkResponseEventFire for the isolated, zero-allocation
+// proof of the hook-fire path.
+func BenchmarkTransportObserverOverhead(b *testing.B) {
+	run := func(b *testing.B, cfg opensearchtransport.Config) {
+		b.Helper()
+		cfg.URLs = []*url.URL{{Scheme: "http", Host: "foo"}}
+		cfg.Transport = newFakeTransport(b)
+		cfg.NodeStatsInterval = -1
+		tp, err := opensearchtransport.New(cfg)
+		if err != nil {
+			b.Fatalf("Unexpected error: %q", err)
+		}
+		b.Cleanup(func() { _ = tp.Close() })
+
+		b.ReportAllocs()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			req, _ := http.NewRequest(http.MethodGet, "/idx/_search", nil)
+			res, err := tp.Request(req)
+			if err != nil {
+				b.Fatalf("Unexpected error: %q", err)
+			}
+			res.Body.Close()
+		}
+	}
+
+	b.Run("NoObserver", func(b *testing.B) { run(b, opensearchtransport.Config{}) })
+	b.Run("BaseObserver", func(b *testing.B) {
+		run(b, opensearchtransport.Config{Observer: &opensearchtransport.BaseConnectionObserver{}})
+	})
+}

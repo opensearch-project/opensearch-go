@@ -383,6 +383,15 @@ type Config struct {
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
 
+	// OperationClassifier maps each request's method and path to the
+	// [RequestEvent.RouteName] label reported to observers. When nil, a
+	// process-wide classifier built from the standard OpenSearch REST layout is
+	// used. Override it only when you route non-standard paths (e.g. a custom
+	// Router with its own patterns) and need RouteName to reflect them; the
+	// classifier is used for the observability label only and never affects
+	// routing. A supplied classifier must be safe for concurrent use.
+	OperationClassifier *OperationClassifier
+
 	// ShardCostConfig configures shard cost multipliers for the router's
 	// connection scoring. Consumed only when a router is being constructed:
 	//
@@ -514,12 +523,13 @@ type Transport struct {
 
 	metrics *metrics
 
-	transport http.RoundTripper
-	logger    Logger
-	selector  Selector
-	router    Router // Optional router for cluster-aware routing
-	observer  atomic.Pointer[ConnectionObserver]
-	poolFunc  func([]*Connection, Selector) ConnectionPool
+	transport  http.RoundTripper
+	logger     Logger
+	selector   Selector
+	router     Router               // Optional router for cluster-aware routing
+	classifier *OperationClassifier // Maps requests to RouteName; defaults to the shared global
+	observer   atomic.Pointer[ConnectionObserver]
+	poolFunc   func([]*Connection, Selector) ConnectionPool
 
 	// Address resolver
 	addressResolver       AddressResolverFunc
@@ -864,7 +874,7 @@ func New(cfg Config) (*Transport, error) {
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conn := &Connection{URL: u, URLString: u.String(), seed: true}
+		conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
 		// Seeds are user-asserted and always a viable routing/zombie candidate.
@@ -982,11 +992,12 @@ func New(cfg Config) (*Transport, error) {
 
 		compressRequestBody: cfg.CompressRequestBody,
 
-		transport: cfg.Transport,
-		logger:    cfg.Logger,
-		router:    router,
-		selector:  cfg.Selector,
-		poolFunc:  cfg.ConnectionPoolFunc,
+		transport:  cfg.Transport,
+		logger:     cfg.Logger,
+		router:     router,
+		classifier: cfg.OperationClassifier,
+		selector:   cfg.Selector,
+		poolFunc:   cfg.ConnectionPoolFunc,
 
 		addressResolver:       cfg.AddressResolver,
 		maxAddressResolvers:   cfg.MaxAddressResolvers,
@@ -1019,7 +1030,7 @@ func New(cfg Config) (*Transport, error) {
 	if !client.seedFallbackDisabled && len(cfg.URLs) > 0 {
 		seedConns := make([]*Connection, len(cfg.URLs))
 		for i, u := range cfg.URLs {
-			conn := &Connection{URL: u, URLString: u.String(), seed: true}
+			conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 			conn.estLoad.clock = realClock{}
 			conn.weight.Store(1)
 			conn.mu.Lock()
@@ -1281,15 +1292,26 @@ func (c *Transport) Close() error {
 // the core needing to know which event to fire. All fields describe the last
 // attempt; they are zero when no round trip occurred (hard transport failure).
 type streamResult struct {
-	attempt   int           // zero-based index of the final attempt
-	ttfb      time.Duration // time-to-first-byte: send until RoundTrip returned
-	sendStart time.Time     // when the final attempt was sent
+	attempt     int           // zero-based index of the final attempt
+	ttfb        time.Duration // time-to-first-byte: send until RoundTrip returned
+	sendStart   time.Time     // when the final attempt was sent
+	poolName    string        // pool that dispatched the final attempt (from hop.PoolName)
+	hostPort    string        // "scheme://host[:port]" of the node contacted (from conn.hostPort)
+	routeName   string        // classified operation name (captured pre-rewrite)
+	index       string        // target index extracted from the path (captured pre-rewrite)
+	escapedPath string        // URL-escaped request path as supplied (captured pre-rewrite)
+
+	// ctx is the request context after OnRequestStart runs, handed back to the
+	// caller's response-hook fire site so a tracer's span-carrying context
+	// reaches OnRequestResponse/OnStreamResponse. It is not retained past the
+	// request.
+	ctx context.Context //nolint:containedctx // request-scoped, handed back to the caller, not stored
 }
 
 // Stream executes the request and returns the raw [http.Response] unread. The
 // caller owns the body and must close it; Stream neither reads nor closes it.
-// Use Stream to forward bytes downstream without interpreting them, such as a
-// reverse proxy relaying a response to its own client.
+// Use Stream to forward bytes downstream without interpreting them, relaying a
+// response to another client.
 //
 // Stream rewrites req.URL to the selected backend so signing, retry, and routing
 // operate on the resolved address, and applies retry, signing, header injection,
@@ -1314,9 +1336,9 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 			statusCode = res.StatusCode
 			contentLength = res.ContentLength
 		}
-		obs.OnStreamResponse(StreamResponseEvent{
+		obs.OnStreamResponse(sr.ctx, StreamResponseEvent{
 			ResponseEvent: ResponseEvent{
-				Request:    newRequestEvent(req, sr.attempt),
+				Request:    newRequestEvent(req, sr),
 				StatusCode: statusCode,
 				Err:        err,
 			},
@@ -1337,7 +1359,7 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 //
 // Unlike [net/http.Client.Do], Request buffers the body rather than returning a
 // live stream. Use [Transport.Stream] when you need the raw, unread body for
-// proxy or streaming forwarding.
+// incremental forwarding.
 //
 // A hard transport failure returns a nil response and an error. A partial
 // failure returns the buffered response together with an error, such as
@@ -1372,9 +1394,9 @@ func (c *Transport) Request(req *http.Request) (*http.Response, error) {
 		if !sr.sendStart.IsZero() {
 			dur = time.Since(sr.sendStart)
 		}
-		obs.OnRequestResponse(RequestResponseEvent{
+		obs.OnRequestResponse(sr.ctx, RequestResponseEvent{
 			ResponseEvent: ResponseEvent{
-				Request:    newRequestEvent(req, sr.attempt),
+				Request:    newRequestEvent(req, sr),
 				StatusCode: statusCode,
 				Err:        err,
 			},
@@ -1405,6 +1427,34 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 	// Update request
 	c.setReqUserAgent(req)
 	c.setReqGlobalHeader(req)
+
+	// Capture request identity while req.URL is still the pristine caller input
+	// (before setReqURL rewrites it to the selected backend and prepends any
+	// connection base path). Done once per request, only when an observer is
+	// wired, so the no-observer path stays allocation-free.
+	sr.ctx = req.Context()
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		sr.escapedPath = req.URL.EscapedPath()
+		sr.routeName = c.operationClassifier().Classify(req.Method, req.URL.Path).String()
+		sr.index = extractIndexFromPath(req.URL.Path)
+
+		// Give the observer a chance to open a per-request span (or otherwise
+		// derive request-scoped context) before the first round trip. The
+		// returned context flows into every attempt and back to the response
+		// hooks via sr.ctx. Base returns ctx unchanged, so a non-tracing observer
+		// allocates nothing here.
+		startEvent := RequestEvent{
+			Method:       req.Method,
+			Path:         sr.escapedPath,
+			RouteName:    sr.routeName,
+			Index:        sr.index,
+			RequestBytes: req.ContentLength,
+		}
+		if ctx := obs.OnRequestStart(req.Context(), startEvent); ctx != req.Context() {
+			req = req.WithContext(ctx)
+			sr.ctx = ctx
+		}
+	}
 
 	if req.Body != nil && req.Body != http.NoBody {
 		if c.compressRequestBody {
@@ -1488,6 +1538,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		// Update request
 		c.setReqURL(conn.URL, req)
 		c.setReqAuth(conn.URL, req)
+		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
 
 		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
 			body, err := req.GetBody()
@@ -1512,13 +1563,28 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		// indefinite hangs on stalled TCP connections.
 		attemptReq := req
 		var attemptCancel context.CancelFunc
+		attemptCtx := req.Context()
 		if c.requestTimeout > 0 {
-			var attemptCtx context.Context
-			attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
+			attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
+		}
+		// Let an observer open a per-attempt span. Base returns ctx unchanged, so
+		// a non-tracing observer adds no context derivation here.
+		if obs := observerFromAtomic(&c.observer); obs != nil {
+			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
+		}
+		if attemptCtx != req.Context() {
 			attemptReq = req.WithContext(attemptCtx)
 		}
 
 		res, err = c.transport.RoundTrip(attemptReq)
+
+		if obs := observerFromAtomic(&c.observer); obs != nil {
+			statusCode := 0
+			if res != nil {
+				statusCode = res.StatusCode
+			}
+			obs.OnAttemptEnd(attemptCtx, i, statusCode, err)
+		}
 
 		if attemptCancel != nil {
 			// If the response body is non-nil, the caller is responsible for
@@ -1540,6 +1606,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		sr.attempt = i
 		sr.ttfb = dur
 		sr.sendStart = start
+		sr.poolName = poolName
 		if poolName != "" {
 			conn.releaseInFlight(poolName)
 		}
@@ -1730,26 +1797,54 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 	// Seed URL fallback: absolute last resort when the entire retry loop
 	// failed to obtain a connection from any router policy or pool.
 	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
-		res, err = c.performSeedFallback(req.Context(), req)
+		res, err = c.performSeedFallback(req.Context(), req, &sr)
 	}
 
 	// TODO: Consider wrapping the error with request context.
 	return res, sr, err
 }
 
-// newRequestEvent builds a RequestEvent snapshot from the outgoing request. By
-// the time a response event fires, req.URL has been rewritten to the selected
-// backend, so Host reflects the node actually contacted.
-func newRequestEvent(req *http.Request, attempt int) RequestEvent {
-	var host string
-	if req.URL != nil {
-		host = req.URL.Scheme + "://" + req.URL.Host
+// defaultOperationClassifier lazily builds a single [OperationClassifier] shared
+// across all transports. NewOperationClassifier builds a route trie (moderately
+// expensive) and is safe for concurrent use, so it is built once on first use
+// and reused. Classify is a zero-allocation trie match on the hot path.
+//
+//nolint:gochecknoglobals // process-wide immutable classifier, built once
+var defaultOperationClassifier = sync.OnceValue(NewOperationClassifier)
+
+// operationClassifier returns the transport's route-name classifier: the
+// caller-supplied [Config.OperationClassifier] when set, otherwise the shared
+// process-wide default. Used only to derive the observability RouteName label.
+func (c *Transport) operationClassifier() *OperationClassifier {
+	if c.classifier != nil {
+		return c.classifier
 	}
+	return defaultOperationClassifier()
+}
+
+// hostPrefixOf returns the "scheme://host[:port]" prefix of u (Host includes the
+// port when present), or "" for a nil URL. Cached on each [Connection] at
+// construction so the observer path does not rebuild it per request.
+func hostPrefixOf(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+// newRequestEvent builds a RequestEvent snapshot from the outgoing request and
+// the captured stream result. Host comes from sr.hostPort (the node contacted,
+// cached on the connection); Path/RouteName/Index also come from sr, captured
+// before req.URL was rewritten to the backend.
+func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 	return RequestEvent{
 		Method:       req.Method,
-		Path:         req.URL.Path,
-		Host:         host,
-		Attempt:      attempt,
+		Path:         sr.escapedPath,
+		RouteName:    sr.routeName,
+		Index:        sr.index,
+		PoolName:     sr.poolName,
+		Host:         sr.hostPort,
+		Attempt:      sr.attempt,
 		RequestBytes: req.ContentLength,
 	}
 }
@@ -1762,7 +1857,7 @@ func newRequestEvent(req *http.Request, attempt int) RequestEvent {
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -1778,6 +1873,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) 
 
 	c.setReqURL(conn.URL, req)
 	c.setReqAuth(conn.URL, req)
+	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
 
 	// Reset body for the fallback attempt.
 	if req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {

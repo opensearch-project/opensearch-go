@@ -612,6 +612,159 @@ const OpRenderSearchTemplate = CatSearch | minRenderSearchTemplate
 // OpPing identifies a cluster ping operation.
 const OpPing = CatPing | minPing
 
+// Operation name tokens: the wire label for every [OperationID], returned by
+// [OperationID.String]. Naming them as constants keeps each token declared once,
+// so sites that must spell the same token (e.g. discovery-flag names in
+// feature_config.go, or tests asserting a label) reference the constant instead
+// of re-typing the string, and tooling can trace every use back here.
+const (
+	opNameSearch                     = "search"
+	opNameMSearch                    = "msearch"
+	opNameCount                      = "count"
+	opNameSearchTemplate             = "search_template"
+	opNameMSearchTmpl                = "msearch_template"
+	opNameValidate                   = "validate"
+	opNameRankEval                   = "rank_eval"
+	opNameExplain                    = "explain"
+	opNameSearchShards               = "search_shards"
+	opNameFieldCaps                  = "field_caps"
+	opNameScrollGet                  = "scroll_get"
+	opNameScrollDelete               = "scroll_delete"
+	opNamePITList                    = "pit_list"
+	opNamePITCreate                  = "pit_create"
+	opNamePITDelete                  = "pit_delete"
+	opNameDocGet                     = "doc_get"
+	opNameDocExists                  = "doc_exists"
+	opNameDocSourceGet               = "doc_source_get"
+	opNameDocSourceExist             = "doc_source_exists"
+	opNameMGet                       = "mget"
+	opNameTermVectors                = "termvectors"
+	opNameMTermVectors               = "mtermvectors"
+	opNameDocIndex                   = "doc_index"
+	opNameDocCreate                  = "doc_create"
+	opNameDocUpdate                  = "doc_update"
+	opNameDocDelete                  = "doc_delete"
+	opNameBulk                       = "bulk"
+	opNameBulkStream                 = "bulk_stream"
+	opNameReindex                    = "reindex"
+	opNameDeleteByQuery              = "delete_by_query"
+	opNameUpdateByQuery              = "update_by_query"
+	opNameReindexRethrottle          = "reindex_rethrottle"
+	opNameDBQRethrottle              = "dbq_rethrottle"
+	opNameUBQRethrottle              = "ubq_rethrottle"
+	opNameIndexGet                   = "index_get"
+	opNameIndexExists                = "index_exists"
+	opNameIndexCreate                = "index_create"
+	opNameIndexDelete                = "index_delete"
+	opNameIndexOpen                  = "index_open"
+	opNameIndexClose                 = "index_close"
+	opNameIndexClone                 = "index_clone"
+	opNameIndexShrink                = "index_shrink"
+	opNameIndexSplit                 = "index_split"
+	opNameIndexRollover              = "index_rollover"
+	opNameIndexBlock                 = "index_block"
+	opNameIndexResolve               = "index_resolve"
+	opNameIndexAnalyze               = "index_analyze"
+	opNameMappingGet                 = "mapping_get"
+	opNameMappingPut                 = "mapping_put"
+	opNameAliasGet                   = "alias_get"
+	opNameAliasPut                   = "alias_put"
+	opNameAliasDelete                = "alias_delete"
+	opNameCatAliases                 = "cat_aliases"
+	opNameIndexTemplateGet           = "index_template_get"
+	opNameIndexTemplateCreate        = "index_template_create"
+	opNameIndexTemplateDelete        = "index_template_delete"
+	opNameIndexTemplateExists        = "index_template_exists"
+	opNameIndexTemplateSimulate      = "index_template_simulate"
+	opNameIndexTemplateSimulateIndex = "index_template_simulate_index"
+	opNameComponentTemplateGet       = "component_template_get"
+	opNameComponentTemplateCreate    = "component_template_create"
+	opNameComponentTemplateDelete    = "component_template_delete"
+	opNameComponentTemplateExists    = "component_template_exists"
+	opNameLegacyTemplateGet          = "legacy_template_get"
+	opNameLegacyTemplateCreate       = "legacy_template_create"
+	opNameLegacyTemplateDelete       = "legacy_template_delete"
+	opNameLegacyTemplateExists       = "legacy_template_exists"
+	opNameRefresh                    = "refresh"
+	opNameFlush                      = "flush"
+	opNameForceMerge                 = "forcemerge"
+	opNameCacheClear                 = "cache_clear"
+	opNameSegments                   = "segments"
+	opNameRecovery                   = "recovery"
+	opNameShardStores                = "shard_stores"
+	opNameStats                      = "stats"
+	opNameIngestGet                  = "ingest_get"
+	opNameIngestCreate               = "ingest_create"
+	opNameIngestDelete               = "ingest_delete"
+	opNameIngestSimulate             = "ingest_simulate"
+	opNameIngestGrok                 = "ingest_grok"
+	opNameClusterInfo                = "cluster_info"
+	opNameClusterHealth              = "cluster_health"
+	opNameClusterStats               = "cluster_stats"
+	opNameClusterState               = "cluster_state"
+	opNameClusterSettingsGet         = "cluster_settings_get"
+	opNameClusterSettingsPut         = "cluster_settings_put"
+	opNameClusterReroute             = "cluster_reroute"
+	opNameClusterPendingTasks        = "cluster_pending_tasks"
+	opNameClusterAllocExplain        = "cluster_alloc_explain"
+	opNameClusterRemoteInfo          = "cluster_remote_info"
+	opNameClusterVotingConfigEx      = "cluster_voting_config"
+	opNamePing                       = "ping"
+	opNameCatAllocation              = "cat_allocation"
+	opNameCatClusterMgr              = "cat_cluster_manager"
+	opNameCatCount                   = "cat_count"
+	opNameCatFielddata               = "cat_fielddata"
+	opNameCatHealth                  = "cat_health"
+	opNameCatIndices                 = "cat_indices"
+	opNameCatMaster                  = "cat_master"
+	opNameCatNodeAttrs               = "cat_nodeattrs"
+	opNameCatNodes                   = "cat_nodes"
+	opNameCatPendingTask             = "cat_pending_tasks"
+	opNameCatPlugins                 = "cat_plugins"
+	opNameCatRecovery                = "cat_recovery"
+	opNameCatRepos                   = "cat_repositories"
+	opNameCatSegments                = "cat_segments"
+	opNameCatShards                  = "cat_shards"
+	opNameCatSnapshots               = "cat_snapshots"
+	opNameCatTasks                   = "cat_tasks"
+	opNameCatTemplates               = "cat_templates"
+	opNameCatThreadPool              = "cat_thread_pool"
+	opNameNodesInfo                  = "nodes_info"
+	opNameNodesStats                 = "nodes_stats"
+	opNameNodesUsage                 = "nodes_usage"
+	opNameNodesHotThreads            = "nodes_hot_threads"
+	opNameNodesReloadSecurity        = "nodes_reload_secure_settings"
+	opNameTasksList                  = "tasks_list"
+	opNameTasksGet                   = "tasks_get"
+	opNameTasksCancel                = "tasks_cancel"
+	opNameSnapshotCreate             = "snapshot_create"
+	opNameSnapshotGet                = "snapshot_get"
+	opNameSnapshotDelete             = "snapshot_delete"
+	opNameSnapshotClone              = "snapshot_clone"
+	opNameSnapshotRestore            = "snapshot_restore"
+	opNameSnapshotStatus             = "snapshot_status"
+	opNameSnapshotRepoCreate         = "snapshot_repo_create"
+	opNameSnapshotRepoGet            = "snapshot_repo_get"
+	opNameSnapshotRepoDelete         = "snapshot_repo_delete"
+	opNameSnapshotRepoVerify         = "snapshot_repo_verify"
+	opNameSnapshotRepoClean          = "snapshot_repo_cleanup"
+	opNameScriptGet                  = "script_get"
+	opNameScriptPut                  = "script_put"
+	opNameScriptDelete               = "script_delete"
+	opNameScriptContext              = "script_context"
+	opNameScriptLanguage             = "script_language"
+	opNameScriptPainlessExec         = "script_painless_execute"
+	opNameDanglingGet                = "dangling_get"
+	opNameDanglingDelete             = "dangling_delete"
+	opNameDanglingImport             = "dangling_import"
+	opNameDataStreamGet              = "data_stream_get"
+	opNameDataStreamCreate           = "data_stream_create"
+	opNameDataStreamDelete           = "data_stream_delete"
+	opNameDataStreamStats            = "data_stream_stats"
+	opNameRenderSearchTemplate       = "render_search_template"
+	opNameOther                      = "other"
+)
+
 // ---------------------------------------------------------------------------
 // String
 // ---------------------------------------------------------------------------
@@ -619,220 +772,296 @@ const OpPing = CatPing | minPing
 //nolint:cyclop,gocyclo,exhaustive,goconst // intentional large switch with default fallback
 func (op OperationID) String() string {
 	switch op {
-	// Search
 	case OpSearch:
-		return "search"
+		return opNameSearch
 	case OpMSearch:
-		return "msearch"
+		return opNameMSearch
 	case OpCount:
-		return "count"
+		return opNameCount
 	case OpSearchTemplate:
-		return "search_template"
+		return opNameSearchTemplate
 	case OpMSearchTmpl:
-		return "msearch_template"
+		return opNameMSearchTmpl
 	case OpValidate:
-		return "validate"
+		return opNameValidate
 	case OpRankEval:
-		return "rank_eval"
+		return opNameRankEval
 	case OpExplain:
-		return "explain"
+		return opNameExplain
 	case OpSearchShards:
-		return "search_shards"
+		return opNameSearchShards
 	case OpFieldCaps:
-		return "field_caps"
-
-	// Scroll
+		return opNameFieldCaps
 	case OpScrollGet:
-		return "scroll_get"
+		return opNameScrollGet
 	case OpScrollDelete:
-		return "scroll_delete"
-
-	// PIT
+		return opNameScrollDelete
 	case OpPITList:
-		return "pit_list"
+		return opNamePITList
 	case OpPITCreate:
-		return "pit_create"
+		return opNamePITCreate
 	case OpPITDelete:
-		return "pit_delete"
-
-	// Document read
+		return opNamePITDelete
 	case OpDocGet:
-		return "doc_get"
+		return opNameDocGet
 	case OpDocExists:
-		return "doc_exists"
+		return opNameDocExists
 	case OpDocSourceGet:
-		return "doc_source_get"
+		return opNameDocSourceGet
 	case OpDocSourceExist:
-		return "doc_source_exists"
+		return opNameDocSourceExist
 	case OpMGet:
-		return "mget"
+		return opNameMGet
 	case OpTermVectors:
-		return "termvectors"
+		return opNameTermVectors
 	case OpMTermVectors:
-		return "mtermvectors"
-
-	// Document write
+		return opNameMTermVectors
 	case OpDocIndex:
-		return "doc_index"
+		return opNameDocIndex
 	case OpDocCreate:
-		return "doc_create"
+		return opNameDocCreate
 	case OpDocUpdate:
-		return "doc_update"
+		return opNameDocUpdate
 	case OpDocDelete:
-		return "doc_delete"
-
-	// Bulk
+		return opNameDocDelete
 	case OpBulk:
-		return "bulk"
+		return opNameBulk
 	case OpBulkStream:
-		return "bulk_stream"
+		return opNameBulkStream
 	case OpReindex:
-		return "reindex"
+		return opNameReindex
 	case OpDeleteByQuery:
-		return "delete_by_query"
+		return opNameDeleteByQuery
 	case OpUpdateByQuery:
-		return "update_by_query"
+		return opNameUpdateByQuery
 	case OpReindexRethrottle:
-		return "reindex_rethrottle"
+		return opNameReindexRethrottle
 	case OpDBQRethrottle:
-		return "dbq_rethrottle"
+		return opNameDBQRethrottle
 	case OpUBQRethrottle:
-		return "ubq_rethrottle"
-
-	// Index management
+		return opNameUBQRethrottle
 	case OpIndexGet:
-		return "index_get"
+		return opNameIndexGet
 	case OpIndexExists:
-		return "index_exists"
+		return opNameIndexExists
 	case OpIndexCreate:
-		return "index_create"
+		return opNameIndexCreate
 	case OpIndexDelete:
-		return "index_delete"
+		return opNameIndexDelete
 	case OpIndexOpen:
-		return "index_open"
+		return opNameIndexOpen
 	case OpIndexClose:
-		return "index_close"
+		return opNameIndexClose
 	case OpIndexClone:
-		return "index_clone"
+		return opNameIndexClone
 	case OpIndexShrink:
-		return "index_shrink"
+		return opNameIndexShrink
 	case OpIndexSplit:
-		return "index_split"
+		return opNameIndexSplit
 	case OpIndexRollover:
-		return "index_rollover"
+		return opNameIndexRollover
 	case OpIndexBlock:
-		return "index_block"
+		return opNameIndexBlock
 	case OpIndexResolve:
-		return "index_resolve"
+		return opNameIndexResolve
 	case OpIndexAnalyze:
-		return "index_analyze"
-
-	// Mapping
+		return opNameIndexAnalyze
 	case OpMappingGet:
-		return "mapping_get"
+		return opNameMappingGet
 	case OpMappingPut:
-		return "mapping_put"
-
-	// Alias
+		return opNameMappingPut
 	case OpAliasGet:
-		return "alias_get"
+		return opNameAliasGet
 	case OpAliasPut:
-		return "alias_put"
+		return opNameAliasPut
 	case OpAliasDelete:
-		return "alias_delete"
+		return opNameAliasDelete
 	case OpCatAliases:
-		return "cat_aliases"
-
-	// Template
+		return opNameCatAliases
 	case OpIndexTemplateGet:
-		return "index_template_get"
+		return opNameIndexTemplateGet
 	case OpIndexTemplateCreate:
-		return "index_template_create"
+		return opNameIndexTemplateCreate
 	case OpIndexTemplateDelete:
-		return "index_template_delete"
+		return opNameIndexTemplateDelete
 	case OpIndexTemplateExists:
-		return "index_template_exists"
+		return opNameIndexTemplateExists
 	case OpIndexTemplateSimulate:
-		return "index_template_simulate"
+		return opNameIndexTemplateSimulate
 	case OpIndexTemplateSimulateIndex:
-		return "index_template_simulate_index"
+		return opNameIndexTemplateSimulateIndex
 	case OpComponentTemplateGet:
-		return "component_template_get"
+		return opNameComponentTemplateGet
 	case OpComponentTemplateCreate:
-		return "component_template_create"
+		return opNameComponentTemplateCreate
 	case OpComponentTemplateDelete:
-		return "component_template_delete"
+		return opNameComponentTemplateDelete
 	case OpComponentTemplateExists:
-		return "component_template_exists"
+		return opNameComponentTemplateExists
 	case OpLegacyTemplateGet:
-		return "legacy_template_get"
+		return opNameLegacyTemplateGet
 	case OpLegacyTemplateCreate:
-		return "legacy_template_create"
+		return opNameLegacyTemplateCreate
 	case OpLegacyTemplateDelete:
-		return "legacy_template_delete"
+		return opNameLegacyTemplateDelete
 	case OpLegacyTemplateExists:
-		return "legacy_template_exists"
-
-	// Maintenance
+		return opNameLegacyTemplateExists
 	case OpRefresh:
-		return "refresh"
+		return opNameRefresh
 	case OpFlush:
-		return "flush"
+		return opNameFlush
 	case OpForceMerge:
-		return "forcemerge"
+		return opNameForceMerge
 	case OpCacheClear:
-		return "cache_clear"
+		return opNameCacheClear
 	case OpSegments:
-		return "segments"
+		return opNameSegments
 	case OpRecovery:
-		return "recovery"
+		return opNameRecovery
 	case OpShardStores:
-		return "shard_stores"
+		return opNameShardStores
 	case OpStats:
-		return "stats"
-
-	// Ingest
+		return opNameStats
 	case OpIngestGet:
-		return "ingest_get"
+		return opNameIngestGet
 	case OpIngestCreate:
-		return "ingest_create"
+		return opNameIngestCreate
 	case OpIngestDelete:
-		return "ingest_delete"
+		return opNameIngestDelete
 	case OpIngestSimulate:
-		return "ingest_simulate"
+		return opNameIngestSimulate
 	case OpIngestGrok:
-		return "ingest_grok"
-
-	// Cluster
+		return opNameIngestGrok
 	case OpClusterInfo:
-		return "cluster_info"
+		return opNameClusterInfo
 	case OpClusterHealth:
-		return "cluster_health"
+		return opNameClusterHealth
 	case OpClusterStats:
-		return "cluster_stats"
+		return opNameClusterStats
 	case OpClusterState:
-		return "cluster_state"
+		return opNameClusterState
 	case OpClusterSettingsGet:
-		return "cluster_settings_get"
+		return opNameClusterSettingsGet
 	case OpClusterSettingsPut:
-		return "cluster_settings_put"
+		return opNameClusterSettingsPut
 	case OpClusterReroute:
-		return "cluster_reroute"
+		return opNameClusterReroute
 	case OpClusterPendingTasks:
-		return "cluster_pending_tasks"
+		return opNameClusterPendingTasks
 	case OpClusterAllocExplain:
-		return "cluster_alloc_explain"
+		return opNameClusterAllocExplain
 	case OpClusterRemoteInfo:
-		return "cluster_remote_info"
+		return opNameClusterRemoteInfo
 	case OpClusterVotingConfigEx:
-		return "cluster_voting_config"
-
-	// Ping
+		return opNameClusterVotingConfigEx
 	case OpPing:
-		return "ping"
-
+		return opNamePing
+	case OpCatAllocation:
+		return opNameCatAllocation
+	case OpCatClusterMgr:
+		return opNameCatClusterMgr
+	case OpCatCount:
+		return opNameCatCount
+	case OpCatFielddata:
+		return opNameCatFielddata
+	case OpCatHealth:
+		return opNameCatHealth
+	case OpCatIndices:
+		return opNameCatIndices
+	case OpCatMaster:
+		return opNameCatMaster
+	case OpCatNodeAttrs:
+		return opNameCatNodeAttrs
+	case OpCatNodes:
+		return opNameCatNodes
+	case OpCatPendingTask:
+		return opNameCatPendingTask
+	case OpCatPlugins:
+		return opNameCatPlugins
+	case OpCatRecovery:
+		return opNameCatRecovery
+	case OpCatRepos:
+		return opNameCatRepos
+	case OpCatSegments:
+		return opNameCatSegments
+	case OpCatShards:
+		return opNameCatShards
+	case OpCatSnapshots:
+		return opNameCatSnapshots
+	case OpCatTasks:
+		return opNameCatTasks
+	case OpCatTemplates:
+		return opNameCatTemplates
+	case OpCatThreadPool:
+		return opNameCatThreadPool
+	case OpNodesInfo:
+		return opNameNodesInfo
+	case OpNodesStats:
+		return opNameNodesStats
+	case OpNodesUsage:
+		return opNameNodesUsage
+	case OpNodesHotThreads:
+		return opNameNodesHotThreads
+	case OpNodesReloadSecurity:
+		return opNameNodesReloadSecurity
+	case OpTasksList:
+		return opNameTasksList
+	case OpTasksGet:
+		return opNameTasksGet
+	case OpTasksCancel:
+		return opNameTasksCancel
+	case OpSnapshotCreate:
+		return opNameSnapshotCreate
+	case OpSnapshotGet:
+		return opNameSnapshotGet
+	case OpSnapshotDelete:
+		return opNameSnapshotDelete
+	case OpSnapshotClone:
+		return opNameSnapshotClone
+	case OpSnapshotRestore:
+		return opNameSnapshotRestore
+	case OpSnapshotStatus:
+		return opNameSnapshotStatus
+	case OpSnapshotRepoCreate:
+		return opNameSnapshotRepoCreate
+	case OpSnapshotRepoGet:
+		return opNameSnapshotRepoGet
+	case OpSnapshotRepoDelete:
+		return opNameSnapshotRepoDelete
+	case OpSnapshotRepoVerify:
+		return opNameSnapshotRepoVerify
+	case OpSnapshotRepoClean:
+		return opNameSnapshotRepoClean
+	case OpScriptGet:
+		return opNameScriptGet
+	case OpScriptPut:
+		return opNameScriptPut
+	case OpScriptDelete:
+		return opNameScriptDelete
+	case OpScriptContext:
+		return opNameScriptContext
+	case OpScriptLanguage:
+		return opNameScriptLanguage
+	case OpScriptPainlessExec:
+		return opNameScriptPainlessExec
+	case OpDanglingGet:
+		return opNameDanglingGet
+	case OpDanglingDelete:
+		return opNameDanglingDelete
+	case OpDanglingImport:
+		return opNameDanglingImport
+	case OpDataStreamGet:
+		return opNameDataStreamGet
+	case OpDataStreamCreate:
+		return opNameDataStreamCreate
+	case OpDataStreamDelete:
+		return opNameDataStreamDelete
+	case OpDataStreamStats:
+		return opNameDataStreamStats
+	case OpRenderSearchTemplate:
+		return opNameRenderSearchTemplate
 	case OpOther:
-		return "other"
+		return opNameOther
 	}
 
 	// Fallback: category name + numeric minor

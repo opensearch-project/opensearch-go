@@ -110,7 +110,7 @@ The three levels of the client API, from lowest to highest:
 
 | Level | Function                                                           | Response handling                                         | When to use                                                |
 | ----- | ------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
-| Low   | `client.Stream(req)`                                               | Raw `*http.Response`; caller reads and closes body        | Proxying, streaming, full control needed                   |
+| Low   | `client.Stream(req)`                                               | Raw `*http.Response`; caller reads and closes body        | Streaming, incremental forwarding, full control needed     |
 | Mid   | `opensearch.Execute(ctx, client, method, req, &resp)`              | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
 | High  | `client.Search(ctx, req)` / `client.Indices.Create(ctx, req)` etc. | Fully typed request and response                          | Standard OpenSearch APIs                                   |
 
