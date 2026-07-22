@@ -129,6 +129,8 @@ Next steps:
 ## Project Resources
 
 - [Project Website](https://opensearch.org/)
+- [TEMPORARY link-checker regression (RED, broken link) -- REVERT before merge](https://opensearch-go-regression.invalid/nope)
+- [TEMPORARY link-checker regression (YELLOW, 308 redirect) -- REVERT before merge](https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/)
 - [Developer Guide](DEVELOPER_GUIDE.md)
 - [User Guide](USER_GUIDE.md)
 - [Upgrade Tool (`osapifix`)](cmd/osapifix/README.md)
