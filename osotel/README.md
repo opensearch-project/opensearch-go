@@ -86,7 +86,7 @@ apiClient, err := opensearchapi.NewClient(opensearchapi.Config{
 
 ## Shipped metrics
 
-`osotel` ships two sinks that together cover the [RED](https://grafana.com/blog/2018/08/02/the-red-method-how-to-instrument-your-services/) and [USE](https://www.brendangregg.com/usemethod.html) methods -- two complementary monitoring frameworks:
+`osotel` ships two sinks that together cover the [RED](https://grafana.com/blog/the-red-method-how-to-instrument-your-services/) and [USE](https://www.brendangregg.com/usemethod.html) methods -- two complementary monitoring frameworks:
 
 - **RED** (Rate, Errors, Duration) describes request-level service health: how many requests, how many failed, and how long they took. Best for the client's request workload.
 - **USE** (Utilization, Saturation, Errors) describes a resource's health: how busy it is, how much work is queued/shed, and its error count. Here the resource is the connection pool.

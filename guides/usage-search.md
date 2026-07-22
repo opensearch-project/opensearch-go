@@ -165,7 +165,7 @@ You can also search for documents that match a specific query. The following exa
 	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
-OpenSearch query DSL allows you to specify complex queries. Check out the [OpenSearch query DSL documentation](https://opensearch.org/docs/latest/query-dsl/) for more information.
+OpenSearch query DSL allows you to specify complex queries. Check out the [OpenSearch query DSL documentation](https://docs.opensearch.org/latest/query-dsl/) for more information.
 
 ### Basic Pagination
 

@@ -9,12 +9,58 @@ jobs:
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
-      - name: lychee Link Checker
-        id: lychee
+
+      # Blocking: fail the build only on genuinely broken links (4xx/5xx,
+      # DNS failures, timeouts). Redirects are accepted here so a moved link
+      # does not break CI on its own -- the pass below surfaces those.
+      - name: Check for broken links
+        id: lychee-broken
         uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
         with:
-          args: --accept=200,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          args: --accept=200,206,301,302,307,308,403,429 --max-retries=3 --retry-wait-time=10 "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          fail: true
+          jobSummary: true
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      - name: Fail if there were link errors
-        run: exit ${{ steps.lychee.outputs.exit_code }}
+
+      # Non-blocking: surface permanent redirects (301/308) so their links can
+      # be updated to point at the final destination. --max-redirects=0 makes
+      # lychee report the redirect status instead of following it; 302/307 stay
+      # accepted because temporary redirects are not a signal to rewrite a link.
+      # LICENSE.txt/NOTICE.txt are excluded here: their URLs are canonical
+      # license text and standard attribution wording, not links to rewrite.
+      # fail:false + if:always() so this always reports without breaking CI.
+      - name: Check for permanently-redirecting links
+        id: lychee-redirects
+        if: always()
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: --accept=200,206,302,307,403,429 --max-redirects=0 --max-retries=3 --retry-wait-time=10 --exclude-path LICENSE.txt --exclude-path NOTICE.txt "**/*.html" "**/*.md" "**/*.txt" "**/*.json" --exclude "https://opensearch-domain.region.com/" --exclude "https://github.com/\[your*" --exclude "https://localhost:9200" --exclude "https://codecov.io/gh/opensearch-project/opensearch-go/branch/main/graph/badge.svg"
+          fail: false
+          jobSummary: true
+          output: lychee/redirects.md
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+      # Turn each redirect the pass above found into a PR annotation, so a moved
+      # link shows up inline on the PR (Files changed + checks summary) instead
+      # of only in the run's job summary. Never fails the build.
+      - name: Annotate redirecting links
+        if: always()
+        run: |
+          report="lychee/redirects.md"
+          [ -f "$report" ] || { echo "no redirect report found; nothing to annotate"; exit 0; }
+          awk '
+            /^### Errors in / { file=$0; sub(/^### Errors in /, "", file); next }
+            /^\* \[30[0-9]\]/ {
+              url=$0; sub(/^[^<]*</, "", url); sub(/>.*/, "", url)
+              code=$0; sub(/^\* \[/, "", code); sub(/\].*/, "", code)
+              line=""; col=""; tmp=$0
+              if (sub(/^.*\(at /, "", tmp) && match(tmp, /^[0-9]+:[0-9]+/)) {
+                pos=substr(tmp, 1, RLENGTH); split(pos, a, ":"); line=a[1]; col=a[2]
+              }
+              printf "::warning file=%s,line=%s,col=%s,title=Redirecting link::%s redirects (%s) -- update to its final destination\n", file, line, col, url, code
+            }
+          ' "$report"
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
