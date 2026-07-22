@@ -39,7 +39,7 @@ var hopV3toV4 = Hop{
 	// TypeRenames: none. The four error types (Error, Err, RootCause, StringError)
 	// change PACKAGE (opensearchapi -> root opensearch), not just name. The engine's
 	// rewriteTypeRef rewrites only the type name, never the package qualifier, and
-	// rewriteImports only version-bumps an import prefix - so a cross-package rename
+	// RewriteImports only version-bumps an import prefix - so a cross-package rename
 	// would pass the drift guard yet emit non-compiling code. They are handled as
 	// SemanticFollowups instead. Every other type keeps its name and package.
 	TypeRenames: nil,

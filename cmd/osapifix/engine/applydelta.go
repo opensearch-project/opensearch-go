@@ -181,7 +181,7 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// isV2Hop gates the v2->v3 idiom-2 pass: the source module prefix being the v2
 	// root module is the cheap, explicit hop marker (see plan.go importPrefixes).
 	isV2Hop := len(rules.importPrefixes) > 0 && rules.importPrefixes[0][0] == v2root
-	// Root import bookkeeping, captured before rewriteImports bumps the path: the
+	// Root import bookkeeping, captured before RewriteImports bumps the path: the
 	// idiom-2 pass repoints *opensearch.Client (root) -> *opensearchapi.Client, so
 	// a file whose ONLY use of the root package was that type ends up with the
 	// bumped root import unreferenced. rootSpecName is the spec's literal name (""
@@ -240,23 +240,23 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// import spec, but scoped to the known opensearch-go module paths so
 	// unrelated imports are untouched. Done after the AST walk so type resolution
 	// above still saw the source paths.
-	res.edits = append(res.edits, rewriteImports(file, rules.importPrefixes)...)
+	res.edits = append(res.edits, RewriteImports(file, rules.importPrefixes)...)
 
 	// Inject imports the idiom-2 pass introduced (v3 opensearchapi for the reshaped
 	// Config/Req, fmt+net/http for the raw-response Status rewrite). Done after the
-	// walk and rewriteImports, like the import bump, so type resolution saw the
+	// walk and RewriteImports, like the import bump, so type resolution saw the
 	// original source.
 	//
 	// Guard on the resolved import PATH, not astutil's own dedup: astutil matches
 	// on (name, path), so AddImport injecting an unnamed spec for a path the file
-	// already imports under an alias (osapi ".../opensearchapi", which rewriteImports
+	// already imports under an alias (osapi ".../opensearchapi", which RewriteImports
 	// just bumped to v3 in place) would NOT dedupe - it would add a second, unnamed,
 	// unused import and the output would fail with "imported and not used". The
 	// synthetic nodes reference the file's existing alias (apiName, resolved by
 	// idiom2ImportNames from that same spec), so a path already imported under any
 	// name needs no injection at all; only a genuinely new path is added.
 	for _, p := range dedupe(needImports) {
-		if fileImportsPath(file, p) {
+		if FileImportsPath(file, p) {
 			continue
 		}
 		astutil.AddImport(pkg.Fset, file, p)
@@ -264,7 +264,7 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 
 	// Prune the root import if the idiom-2 pass rendered it dead. When a file's
 	// only use of the root package was the *opensearch.Client type, that reference
-	// was repointed to *opensearchapi.Client, and rewriteImports still bumped the
+	// was repointed to *opensearchapi.Client, and RewriteImports still bumped the
 	// root spec v2->v3 in place - leaving a bumped-but-unreferenced import that
 	// fails to compile with "imported and not used". Delete it once no
 	// <rootName>.X reference survives in the file. Uses the spec's literal name so
@@ -283,7 +283,7 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 // is the identifier references actually use - the spec name, or the package's
 // real name (from pkg.Imports) when the spec is unnamed. Both are "" when the
 // file does not import the root package. The pkg.Imports lookup keys on the
-// pre-bump v2root path, so it must run before rewriteImports mutates the spec.
+// pre-bump v2root path, so it must run before RewriteImports mutates the spec.
 func rootImportName(file *ast.File, pkg *packages.Package) (string, string) {
 	for _, imp := range file.Imports {
 		if imp.Path == nil || strings.Trim(imp.Path.Value, `"`) != v2root {
@@ -300,11 +300,11 @@ func rootImportName(file *ast.File, pkg *packages.Package) (string, string) {
 	return "", ""
 }
 
-// fileImportsPath reports whether file already imports path, regardless of the
+// FileImportsPath reports whether file already imports path, regardless of the
 // spec's local name (alias or unnamed). This is the by-path presence check the
 // idiom-2 import injection needs, since astutil's own dedup keys on (name, path)
 // and so misses an aliased spec bumped to the same path.
-func fileImportsPath(file *ast.File, path string) bool {
+func FileImportsPath(file *ast.File, path string) bool {
 	for _, imp := range file.Imports {
 		if imp.Path != nil && strings.Trim(imp.Path.Value, `"`) == path {
 			return true
@@ -368,7 +368,7 @@ func rewriteIdiom2Node(
 				}
 				return []string{fmt.Sprintf("rewrite resp.%s() -> fmt.Sprintf/http.StatusText (idiom2)", sel.Sel.Name)}, imports, true
 			} else if marker != "" {
-				c.Replace(markerExpr(marker))
+				c.Replace(MarkerExpr(marker))
 				return []string{fmt.Sprintf("MANUAL resp.%s() - %s", sel.Sel.Name, marker)}, nil, true
 			}
 			return nil, nil, false
@@ -459,10 +459,10 @@ func idiom2ImportNames(file *ast.File) string {
 	return apiName
 }
 
-// rewriteImports rewrites source opensearch-go import paths to their target
+// RewriteImports rewrites source opensearch-go import paths to their target
 // prefix in-place. A prefix match covers every sub-package (opensearchapi,
 // opensearchtransport, plugins/*, ...) without enumerating each.
-func rewriteImports(file *ast.File, importPrefixes [][2]string) []string {
+func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 	var edits []string
 	for _, imp := range file.Imports {
 		if imp.Path == nil {
@@ -514,7 +514,7 @@ func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta
 	//
 	// Try the declaring type first (the established wrapper case), then the receiver
 	// type. They never both carry a rule for the same field, so first-match is safe.
-	for _, qual := range []string{declaringType(selection), qualifiedType(selection.Recv())} {
+	for _, qual := range []string{declaringType(selection), QualifiedType(selection.Recv())} {
 		if qual == "" {
 			continue
 		}
@@ -569,7 +569,7 @@ func declaringType(sel *types.Selection) string {
 		return ""
 	}
 	// t is now the struct that declares the field; recover its named type name.
-	named := namedOf(t)
+	named := NamedOf(t)
 	if named == nil || named.Obj().Pkg() == nil {
 		return ""
 	}
@@ -586,7 +586,8 @@ func underlyingStruct(t types.Type) *types.Struct {
 	return nil
 }
 
-func namedOf(t types.Type) *types.Named {
+// NamedOf returns the *types.Named for t, dereferencing one pointer level if needed.
+func NamedOf(t types.Type) *types.Named {
 	if p, ok := t.(*types.Pointer); ok {
 		t = p.Elem()
 	}
@@ -603,7 +604,7 @@ func namedOf(t types.Type) *types.Named {
 func rewriteCompositeLit(
 	lit *ast.CompositeLit, info *types.Info, delta apirev.Delta, renameByFrom map[string]apirev.TypeRename,
 ) ([]string, []string) {
-	qual := qualifiedType(info.TypeOf(lit))
+	qual := QualifiedType(info.TypeOf(lit))
 	if qual == "" {
 		return nil, nil
 	}
@@ -881,9 +882,9 @@ func flagRemovedTypeRef(sel *ast.SelectorExpr, info *types.Info, removed map[str
 		"migrate this reference by hand (see the hop's follow-ups)", key)
 }
 
-// qualifiedType returns "<pkgPath>.<Name>" for a named struct type (dereferencing
+// QualifiedType returns "<pkgPath>.<Name>" for a named struct type (dereferencing
 // a pointer), or "" if t is not a named type from a package.
-func qualifiedType(t types.Type) string {
+func QualifiedType(t types.Type) string {
 	if t == nil {
 		return ""
 	}

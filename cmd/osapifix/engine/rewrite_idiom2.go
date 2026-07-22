@@ -41,11 +41,11 @@ const markerHint = "migrate by hand: call client.<Endpoint>(ctx, &opensearchapi.
 	"with the option values moved onto the Req/Params fields, and inspect the returned error " +
 	"instead of the raw *Response; see the v2->v3 hop notes in cmd/osapifix/README.md"
 
-// markerExpr builds the compile-breaking sentinel for a call the transform
+// MarkerExpr builds the compile-breaking sentinel for a call the transform
 // cannot complete mechanically. The salvage text (what could not be placed) and
 // the hand-migration hint ride in the ident Name as an embedded block comment,
 // which survives go/format without a CommentMap.
-func markerExpr(salvage string) ast.Expr {
+func MarkerExpr(salvage string) ast.Expr {
 	return &ast.Ident{Name: markerPrefix + " /* OSAPIFIX v2->v3 MANUAL: " + salvage + " -- " + markerHint + " */"}
 }
 
@@ -188,11 +188,11 @@ func rewriteIdiom2Call(
 
 	if len(salvage) > 0 {
 		if ctxArg == nil {
-			ctxArg = markerExpr("missing WithContext; v2 default was context.Background()")
+			ctxArg = MarkerExpr("missing WithContext; v2 default was context.Background()")
 		}
 		return &ast.CallExpr{
 			Fun:  fun,
-			Args: []ast.Expr{ctxArg, markerExpr(strings.Join(salvage, "; "))},
+			Args: []ast.Expr{ctxArg, MarkerExpr(strings.Join(salvage, "; "))},
 		}, edits
 	}
 
@@ -274,7 +274,7 @@ func rewriteIdiom2Response(sel *ast.SelectorExpr) (ast.Node, bool, string) {
 }
 
 // reshapeConfigLiteral wraps a v2 root Config literal in the v3 opensearchapi
-// Config struct. The inner literal is reused verbatim; after rewriteImports
+// Config struct. The inner literal is reused verbatim; after RewriteImports
 // bumps the import path, the wrapped literal resolves to the v3 type and compiles.
 func reshapeConfigLiteral(lit *ast.CompositeLit, apiName string) *ast.CompositeLit {
 	return &ast.CompositeLit{
@@ -325,7 +325,7 @@ const (
 // v2 root module package - NOT the v2/opensearchapi sub-client. Mirrors
 // isOpenSearchAPIClient but pins the exact root package path.
 func isV2RootClient(t types.Type) bool {
-	named := namedOf(t)
+	named := NamedOf(t)
 	if named == nil || named.Obj().Pkg() == nil {
 		return false
 	}
@@ -336,7 +336,7 @@ func isV2RootClient(t types.Type) bool {
 // type (named "Config" in the v2 root package). Used to recognize both the
 // Config literal to wrap and the cfg receiver whose fields hop under .Client.
 func isV2RootConfig(t types.Type) bool {
-	named := namedOf(t)
+	named := NamedOf(t)
 	if named == nil || named.Obj().Pkg() == nil {
 		return false
 	}
@@ -347,7 +347,7 @@ func isV2RootConfig(t types.Type) bool {
 // response type read via .Status()/.Warnings() in v2). The source is still typed
 // against v2 during the walk, so this is the trigger for rewriteIdiom2Response.
 func isV2Response(t types.Type) bool {
-	named := namedOf(t)
+	named := NamedOf(t)
 	if named == nil || named.Obj().Pkg() == nil {
 		return false
 	}
