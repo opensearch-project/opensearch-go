@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package main
+package engine
 
 // hop_v3_to_v4.go is the hand-authored v3 -> v4 migration data. It follows the
 // shape of hop_v4_to_v5.go (the fully worked example); see that file for the

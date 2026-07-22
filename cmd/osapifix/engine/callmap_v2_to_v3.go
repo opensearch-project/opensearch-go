@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package main
+package engine
 
 // callmap_v2_to_v3.go is the hand-authored v2 -> v3 API call map: the per-op
 // correspondence between a v2 root/sub-client call path and its v3 typed

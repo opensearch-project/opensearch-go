@@ -4,13 +4,13 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package main
+package engine
 
 import "github.com/opensearch-project/opensearch-go/v5/cmd/osapifix/internal/apirev"
 
 // transitions.go is the generic transition registry: the version-neutral types
 // and the map of hand-authored, per-adjacent-hop migration data. The engine
-// (applydelta.go), composition (compose.go), and CLI (main.go) are all
+// (applydelta.go), composition (compose.go), and CLI (run.go) are all
 // version-agnostic; everything migration-specific lives in a Hop, registered
 // here.
 //
@@ -24,7 +24,7 @@ type Major int
 
 // surfaces holds the embedded exported-struct surface for each known version,
 // keyed by major. gensurface produces these JSON files; they are embedded in
-// main.go and referenced here so composition can diff any src/dst pair.
+// embed.go and referenced here so composition can diff any src/dst pair.
 //
 //nolint:gochecknoglobals // const-ish surface registry, immutable after init
 var surfaces = map[Major][]byte{

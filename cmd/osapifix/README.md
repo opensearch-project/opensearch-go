@@ -89,7 +89,7 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
        -patterns ./opensearchapi,.,./opensearchtransport -out surface_v3.json
    ```
 
-2. Embed each surface (`//go:embed`) in `main.go` and register it in the `surfaces` map (`transitions.go`).
+2. Embed each surface (`//go:embed`) in `engine/embed.go` and register it in the `surfaces` map (`engine/transitions.go`).
 
 3. Author `hop_v3_to_v4.go`: diff the surfaces and rule on every changed type, field, and method. Follow `hop_v4_to_v5.go`.
 

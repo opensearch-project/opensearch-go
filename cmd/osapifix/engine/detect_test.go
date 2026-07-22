@@ -4,7 +4,7 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
-package main
+package engine
 
 import (
 	"os"
