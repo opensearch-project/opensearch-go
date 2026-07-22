@@ -69,24 +69,11 @@ type rewriteRules struct {
 	importPrefixes [][2]string
 }
 
-// runTypeAwareRewrite loads the consumer packages against their current (source)
-// deps, rewrites each file, and returns the results.
+// runTypeAwareRewrite composes the public-hop rewrite rules and drives Walk with
+// an internal visitor backed by rewriteFileTyped. Walk owns the load gate,
+// dedupe, unclassified-abort, and write sandbox.
 func runTypeAwareRewrite(cfg rewriteConfig) ([]rewriteResult, error) {
-	loadCfg := &packages.Config{
-		Dir: cfg.dir,
-		Mode: packages.NeedName | packages.NeedFiles | packages.NeedSyntax |
-			packages.NeedTypes | packages.NeedTypesInfo | packages.NeedDeps | packages.NeedImports,
-		Tests: true,
-	}
-	pkgs, err := packages.Load(loadCfg, cfg.patterns...)
-	if err != nil {
-		return nil, err
-	}
-	if packages.PrintErrors(pkgs) > 0 {
-		return nil, fmt.Errorf("consumer must compile against the source version before rewriting; load reported errors")
-	}
-
-	// Build quick lookups from the type map: qualified source type -> target
+	// Build quick lookups from the rename table: qualified source type -> target
 	// name, so a type reference (opensearchapi.DocumentGetReq) can be renamed to
 	// its target spelling.
 	renameByFrom := map[string]apirev.TypeRename{}
@@ -101,76 +88,22 @@ func runTypeAwareRewrite(cfg rewriteConfig) ([]rewriteResult, error) {
 		importPrefixes: cfg.importPrefixes,
 	}
 
-	seen := map[string]bool{} // dedupe files shared across test/non-test package variants
-	var results []rewriteResult
-
-	// pending holds files whose AST was mutated, to be flushed only after the
-	// whole module is checked: an unclassified-field reference anywhere aborts the
-	// run before any file is written, so a bug in the field table can never leave
-	// the module half-rewritten.
-	type pendingWrite struct {
-		path string
-		fset *token.FileSet
-		file *ast.File
-	}
-	var pending []pendingWrite
-	var unclassified []string
-
-	for _, pkg := range pkgs {
-		for _, file := range pkg.Syntax {
-			// Resolve the file's path from the token position, not by indexing a
-			// parallel slice - Syntax and CompiledGoFiles are not guaranteed to
-			// be the same length across test/non-test package variants.
-			path := pkg.Fset.Position(file.Pos()).Filename
-			if path == "" || seen[path] {
-				continue
-			}
-			seen[path] = true
-
-			r := rewriteFileTyped(pkg, file, rules)
-			unclassified = append(unclassified, r.unclassified...)
-			if len(r.edits) == 0 {
-				continue
-			}
-			r.path = path
-			results = append(results, r)
-			pending = append(pending, pendingWrite{path: path, fset: pkg.Fset, file: file})
-		}
+	visit := func(f File) ([]string, []string) {
+		r := rewriteFileTyped(f.Pkg, f.Syntax, rules)
+		return r.edits, r.unclassified
 	}
 
-	// A referenced unclassified field is an osapifix bug - the field-disposition
-	// table is incomplete. Fail loudly and write nothing rather than guess or
-	// silently drop a caller's value.
-	if len(unclassified) > 0 {
-		return results, fmt.Errorf("osapifix bug: %d field(s) vanished on the target with no disposition "+
-			"(cannot know rename vs remove); classify each in the hop's FieldDispositions table:\n  %s",
-			len(unclassified), strings.Join(unclassified, "\n  "))
-	}
+	walkResults, err := Walk(WalkConfig{
+		Dir:      cfg.dir,
+		Patterns: cfg.patterns,
+		Write:    cfg.write,
+	}, visit)
 
-	if !cfg.write {
-		return results, nil
+	results := make([]rewriteResult, len(walkResults))
+	for i, wr := range walkResults {
+		results[i] = rewriteResult{path: wr.Path, edits: wr.Edits}
 	}
-
-	// Sandbox all writes to the consumer module directory: os.Root refuses any
-	// path that escapes root (via .., absolute paths, or symlinks), so a
-	// misresolved file position can never overwrite something outside the module
-	// being migrated.
-	abs, err := filepath.Abs(cfg.dir)
-	if err != nil {
-		return results, fmt.Errorf("resolve module dir: %w", err)
-	}
-	root, err := os.OpenRoot(abs)
-	if err != nil {
-		return results, fmt.Errorf("open module dir as sandbox root: %w", err)
-	}
-	defer root.Close()
-
-	for _, w := range pending {
-		if err := writeFormatted(root, cfg.dir, w.path, w.fset, w.file); err != nil {
-			return results, err
-		}
-	}
-	return results, nil
+	return results, err
 }
 
 // rewriteFileTyped rewrites a single file's AST using resolved type information.

@@ -96,7 +96,7 @@ func Rewrite(args []string) error {
 	for i, p := range plans {
 		results, err := runTypeAwareRewrite(rewriteConfig{
 			dir:            dir,
-			patterns:       []string{"./..."},
+			patterns:       []string{patternAll},
 			delta:          p.delta,
 			renames:        p.renames,
 			regroups:       p.regroups,

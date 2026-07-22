@@ -18,9 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// patternAll is the go/packages load pattern for a whole module.
-const patternAll = "./..."
-
 // TestRewriteCorpus runs the real type-aware rewrite over a fixture module and
 // checks three things per hop: each golden-backed fixture matches its committed
 // .golden sibling, the emitted report lines cover the expected rewrites and
