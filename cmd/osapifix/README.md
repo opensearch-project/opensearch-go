@@ -38,7 +38,7 @@ Writes are sandboxed to the target module directory via `os.Root`.
 
 ### `vet` - runtime-hazard cleanup (post-compile)
 
-The target's precise types (`*int64`, `*string`, ...) flow into `any` sinks such as testify's `Equal`/`Greater`, compiling cleanly but failing at run time with "Elements should be the same type". `vet` runs go/analysis analyzers (`typedassert.go`) that catch these; `-fix` applies the safe rewrites. Run it after `rewrite` and a successful build.
+The target's precise types (`*int64`, `*string`, ...) flow into `any` sinks such as testify's `Equal`/`Greater`, compiling cleanly but failing at run time with "Elements should be the same type". `vet` runs go/analysis analyzers (`engine/typedassert.go`) that catch these; `-fix` applies the safe rewrites. Run it after `rewrite` and a successful build.
 
 ```sh
 osapifix vet [-fix] ./...
@@ -54,17 +54,17 @@ osapifix vet -fix ./...
 
 ## How it works
 
-Each adjacent transition (vN -> vN+1) is a `Hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
+Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
 
-| File               | Responsibility                                                                |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `transitions.go`   | Version-neutral types (`Major`, `Hop`) and the `surfaces` / `hops` registries |
-| `hop_vN_to_vN1.go` | Hand-authored migration data for one hop                                      |
-| `plan.go`          | `planChain(src, dst)` -> the ordered per-hop plans                            |
-| `detect.go`        | Source major from the module's imports                                        |
-| `applydelta.go`    | Type-aware AST rewriter                                                       |
-| `internal/surface` | Surface model and `DeriveDelta` between two surfaces                          |
-| `cmd/gensurface`   | Generates a version's committed surface JSON                                  |
+| File                      | Responsibility                                                                |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `engine/transitions.go`   | Version-neutral types (`major`, `hop`) and the `surfaces` / `hops` registries |
+| `engine/hop_vN_to_vN1.go` | Hand-authored migration data for one hop                                      |
+| `engine/plan.go`          | `planChain(src, dst)` -> the ordered per-hop plans                            |
+| `engine/detect.go`        | Source major from the module's imports                                        |
+| `engine/applydelta.go`    | Type-aware AST rewriter                                                       |
+| `internal/apirev`         | Surface model and `DeriveDelta` between two surfaces                          |
+| `cmd/gensurface`          | Generates a version's committed surface JSON                                  |
 
 ### Field dispositions
 
@@ -91,11 +91,11 @@ The major version is read from import paths (`.../opensearch-go/v4/...`), not `g
 
 2. Embed each surface (`//go:embed`) in `engine/embed.go` and register it in the `surfaces` map (`engine/transitions.go`).
 
-3. Author `hop_v3_to_v4.go`: diff the surfaces and rule on every changed type, field, and method. Follow `hop_v4_to_v5.go`.
+3. Author `engine/hop_v3_to_v4.go`: diff the surfaces and rule on every changed type, field, and method. Follow `engine/hop_v4_to_v5.go`.
 
-4. Register the hop in the `hops` map (`transitions.go`).
+4. Register the hop in the `hops` map (`engine/transitions.go`).
 
-5. Add `hop_v3_to_v4_test.go` for version-specific facts. The drift guards validate the tables against the surfaces automatically; a `rewrite` against real v3 code fails loudly on any unruled field.
+5. Add `engine/hop_v3_to_v4_test.go` for version-specific facts. The drift guards validate the tables against the surfaces automatically; a `rewrite` against real v3 code fails loudly on any unruled field.
 
 ## The v2 -> v3 hop
 
@@ -143,20 +143,20 @@ After `osapifix rewrite -w`, `go build` fails at each marker, and `grep -r _OSAP
 go test ./...
 ```
 
-| File                                      | Covers                                                                              |
-| ----------------------------------------- | ----------------------------------------------------------------------------------- |
-| `plan_test.go`                            | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces   |
-| `delta_test.go`                           | Drift guards over every hop's type renames and field dispositions                   |
-| `rewrite_corpus_test.go`                  | End-to-end rewrite over fixture modules (`testdata/corpus`), diffed against goldens |
-| `hop_v3_to_v4_test.go`                    | v3 -> v4 version-specific facts                                                     |
-| `hop_v4_to_v5_test.go`                    | v4 -> v5 version-specific facts                                                     |
-| `hop_v2_to_v3_test.go`                    | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings      |
-| `detect_test.go`                          | Source detection, version parsing, directory resolution                             |
-| `internal/surface/delta_internal_test.go` | Surface diffing internals                                                           |
+| File                                     | Covers                                                                              |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `engine/plan_test.go`                    | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces   |
+| `engine/delta_test.go`                   | Drift guards over every hop's type renames and field dispositions                   |
+| `engine/rewrite_corpus_test.go`          | End-to-end rewrite over fixture modules (`testdata/corpus`), diffed against goldens |
+| `engine/hop_v3_to_v4_test.go`            | v3 -> v4 version-specific facts                                                     |
+| `engine/hop_v4_to_v5_test.go`            | v4 -> v5 version-specific facts                                                     |
+| `engine/hop_v2_to_v3_test.go`            | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings      |
+| `engine/detect_test.go`                  | Source detection, version parsing, directory resolution                             |
+| `internal/apirev/delta_internal_test.go` | Surface diffing internals                                                           |
 
 ### Rewrite corpus
 
-`rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test . -run TestRewriteCorpus`.
+`engine/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `engine/testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`engine/testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./engine -run TestRewriteCorpus`.
 
 ## Limitations
 
@@ -208,6 +208,6 @@ Because an idiom-1 module won't compile against v3 until its response blocks are
 ### Other limits
 
 - The removed-type diagnostic runs on every hop, not only v2 -> v3. Any reference to a type deleted across a transition (for example the many `opensearchapi` types dropped in v5) is reported as a `MANUAL` worklist line rather than silently dropped, and only when a consumer actually references it. It reports; it does not rewrite, since a removed type has no mechanical counterpart.
-- `vet` analyzers are v5-specific (`TypedAssertAnalyzer`) and target a single version; they do not chain across hops.
+- `vet` analyzers are v5-specific (`typedAssertAnalyzer`) and target a single version; they do not chain across hops.
 - A module importing multiple majors migrates from the lowest; per-import-site source selection is not implemented.
 - Files behind custom build tags (`//go:build <tag>`) are loaded under the default build constraints, so they are not rewritten and are skipped without warning. Migrate those files by hand.
