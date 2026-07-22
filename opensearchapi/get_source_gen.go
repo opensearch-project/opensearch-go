@@ -108,7 +108,7 @@ type GetSourceParams struct {
 
 	// The specific version type. One of `internal`, `external`,
 	// `external_gte`.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r GetSourceParams) get() map[string]string {
@@ -155,7 +155,7 @@ func (r GetSourceParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params

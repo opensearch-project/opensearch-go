@@ -757,8 +757,8 @@ type SearchHitsMetadataHitsItem struct {
 }
 
 type SearchTotalHits struct {
-	Relation string `json:"relation"`
-	Value    int64  `json:"value"`
+	Relation SearchTotalHitsRelation `json:"relation"`
+	Value    int64                   `json:"value"`
 }
 
 type SearchHitsMetadata struct {
@@ -2268,8 +2268,8 @@ type CommonQueryDSLGeoBoundingBoxQuery struct {
 
 type CommonQueryDSLGeoDistanceQuery struct {
 	CommonQueryDSLQueryBase
-	Distance     string  `json:"distance"`
-	DistanceType *string `json:"distance_type,omitempty"`
+	Distance     string           `json:"distance"`
+	DistanceType *GeoDistanceType `json:"distance_type,omitempty"`
 
 	// Set to `true` to ignore an unmapped field and not match any documents
 	// for this query. Set to `false` to throw an exception if the field is not
@@ -2277,7 +2277,7 @@ type CommonQueryDSLGeoDistanceQuery struct {
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	// The unit of distance measurement.
-	Unit *string `json:"unit,omitempty"`
+	Unit *DistanceUnit `json:"unit,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
 }
@@ -2417,8 +2417,8 @@ type SearchHighlightBase struct {
 	// to `false` to highlight all fields.
 	RequireFieldMatch *bool `json:"require_field_match,omitempty"`
 
-	TagsSchema *string `json:"tags_schema,omitempty"`
-	Type       *string `json:"type,omitempty"`
+	TagsSchema *string                       `json:"tags_schema,omitempty"`
+	Type       *SearchBuiltinHighlighterType `json:"type,omitempty"`
 }
 
 type SearchHighlightField struct {
@@ -2465,13 +2465,13 @@ type FieldSort struct {
 	Missing *FieldSortMissing `json:"missing"`
 
 	// The mode for sorting on array fields.
-	Mode *string `json:"mode,omitempty"`
+	Mode *SortMode `json:"mode,omitempty"`
 
 	// The nested path sort options.
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
 	// The numeric type to use for sorting.
-	NumericType *string `json:"numeric_type,omitempty"`
+	NumericType *FieldSortNumericType `json:"numeric_type,omitempty"`
 
 	// The sort order direction.
 	Order *string `json:"order,omitempty"`
@@ -2483,13 +2483,13 @@ type FieldSort struct {
 // The options for sorting by geo distance.
 type GeoDistanceSort struct {
 	// The algorithm to use for distance calculation.
-	DistanceType *string `json:"distance_type,omitempty"`
+	DistanceType *GeoDistanceType `json:"distance_type,omitempty"`
 
 	// Whether to ignore unmapped fields and not sort based on them.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	// The mode for sorting on array or multi-valued fields.
-	Mode *string `json:"mode,omitempty"`
+	Mode *SortMode `json:"mode,omitempty"`
 
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
@@ -2497,7 +2497,7 @@ type GeoDistanceSort struct {
 	Order *string `json:"order,omitempty"`
 
 	// The unit of distance measurement.
-	Unit *string `json:"unit,omitempty"`
+	Unit *DistanceUnit `json:"unit,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
 }
@@ -2509,7 +2509,7 @@ type ScoreSort struct {
 
 type ScriptSort struct {
 	// The mode for sorting on array or multi-valued fields.
-	Mode *string `json:"mode,omitempty"`
+	Mode *SortMode `json:"mode,omitempty"`
 
 	// The nested path and filter for nested sorting.
 	Nested *NestedSortValue `json:"nested,omitempty"`
@@ -2521,7 +2521,7 @@ type ScriptSort struct {
 	Script ScriptSortScript `json:"script"`
 
 	// The type of the script sort value.
-	Type *string `json:"type,omitempty"`
+	Type *ScriptSortType `json:"type,omitempty"`
 }
 
 type SortOptions struct {
@@ -2809,8 +2809,8 @@ type CommonQueryDSLLikeDocument struct {
 	// The routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 type CommonQueryDSLMoreLikeThisQuery struct {
@@ -2885,8 +2885,8 @@ type CommonQueryDSLMoreLikeThisQuery struct {
 	// terms.
 	Unlike *CommonQueryDSLMoreLikeThisQueryUnlike `json:"unlike,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 type CommonQueryDSLMultiMatchQuery struct {
@@ -3494,7 +3494,7 @@ type CommonMappingAllField struct {
 // The configuration for numeric field data.
 type IndicesNumericFielddata struct {
 	// The format for numeric field data.
-	Format string `json:"format"`
+	Format IndicesNumericFielddataFormat `json:"format"`
 }
 
 type CommonMappingBooleanProperty struct {
@@ -5465,7 +5465,7 @@ type IndicesIndexRoutingAllocation struct {
 	Disk *IndicesIndexRoutingAllocationDisk `json:"disk,omitempty"`
 
 	// The options for shard allocation control.
-	Enable *string `json:"enable,omitempty"`
+	Enable *IndicesIndexRoutingAllocationOptions `json:"enable,omitempty"`
 
 	// The inclusion rules for shard allocation.
 	Include *IndicesIndexRoutingAllocationInclude `json:"include,omitempty"`
@@ -5491,7 +5491,7 @@ type IndicesIndexRoutingAllocation struct {
 // The configuration for shard rebalancing.
 type IndicesIndexRoutingRebalance struct {
 	// The options for shard rebalancing control.
-	Enable string `json:"enable"`
+	Enable IndicesIndexRoutingRebalanceOptions `json:"enable"`
 }
 
 // The routing configuration for index operations.
@@ -5608,24 +5608,24 @@ type IndicesIndexSettingsSimilarityBM25 struct {
 
 // The divergence from independence (DFI) similarity algorithm configuration.
 type IndicesIndexSettingsSimilarityDFI struct {
-	IndependenceMeasure string `json:"independence_measure"`
-	Type                string `json:"type"`
+	IndependenceMeasure DFIIndependenceMeasure `json:"independence_measure"`
+	Type                string                 `json:"type"`
 }
 
 // The divergence from randomness (DFR) similarity algorithm configuration.
 type IndicesIndexSettingsSimilarityDFR struct {
-	AfterEffect   string `json:"after_effect"`
-	BasicModel    string `json:"basic_model"`
-	Normalization string `json:"normalization"`
-	Type          string `json:"type"`
+	AfterEffect   DFRAfterEffect             `json:"after_effect"`
+	BasicModel    DFRBasicModel              `json:"basic_model"`
+	Normalization TermFrequencyNormalization `json:"normalization"`
+	Type          string                     `json:"type"`
 }
 
 // The information-based similarity algorithm configuration.
 type IndicesIndexSettingsSimilarityIB struct {
-	Distribution  string `json:"distribution"`
-	Lambda        string `json:"lambda"`
-	Normalization string `json:"normalization"`
-	Type          string `json:"type"`
+	Distribution  IBDistribution             `json:"distribution"`
+	Lambda        IBLambda                   `json:"lambda"`
+	Normalization TermFrequencyNormalization `json:"normalization"`
+	Type          string                     `json:"type"`
 }
 
 // The LM Dirichlet similarity algorithm configuration.
@@ -5716,7 +5716,7 @@ type IndicesIndexSegmentSort struct {
 // The filesystem storage configuration.
 type IndicesIndexSettingsStoreFS struct {
 	// The type of file system lock.
-	FSLock *string `json:"fs_lock,omitempty"`
+	FSLock *IndicesIndexSettingsStoreFSLock `json:"fs_lock,omitempty"`
 }
 
 // The memory-mapped storage configuration.
@@ -5762,7 +5762,7 @@ type IndicesIndexSettingsStore struct {
 	// without a unit and `-1` to indicate an unspecified value.
 	StatsRefreshInterval *string `json:"stats_refresh_interval,omitempty"`
 
-	Type string `json:"type"`
+	Type IndicesBuiltinStorageType `json:"type"`
 }
 
 // The retention configuration for the translog.
@@ -5779,7 +5779,7 @@ type IndicesTranslogRetention struct {
 // The translog configuration.
 type IndicesTranslog struct {
 	// The durability settings for the translog.
-	Durability *string `json:"durability,omitempty"`
+	Durability *IndicesTranslogDurability `json:"durability,omitempty"`
 
 	// The unique identifier of a node.
 	FlushThresholdSize *string `json:"flush_threshold_size,omitempty"`
@@ -6148,7 +6148,7 @@ type IndicesIndexSettings struct {
 	Translog *IndicesTranslog `json:"translog,omitempty"`
 
 	// The durability settings for the translog.
-	TranslogDurability *string `json:"translog.durability,omitempty"`
+	TranslogDurability *IndicesTranslogDurability `json:"translog.durability,omitempty"`
 
 	// The unique identifier of a node.
 	TranslogFlushThresholdSize *string `json:"translog.flush_threshold_size,omitempty"`
@@ -6596,7 +6596,7 @@ type WriteRespBase struct {
 
 	Version       int64  `json:"_version"`
 	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Result        Result `json:"result"`
 }
 
 // The retry statistics for bulk and search operations.
@@ -6707,7 +6707,7 @@ type BaseNode struct {
 	Name string `json:"name"`
 
 	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	Roles []NodeRole `json:"roles,omitempty"`
 
 	// The transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`
@@ -11688,7 +11688,7 @@ type NodeAttributes struct {
 	Name string `json:"name"`
 
 	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	Roles []NodeRole `json:"roles,omitempty"`
 
 	// The transport address of a node.
 	TransportAddress string `json:"transport_address"`
@@ -12465,7 +12465,7 @@ type SnapshotShardsStatus struct {
 	Reason *string `json:"reason,omitempty"`
 
 	// The current stage of the shard snapshot.
-	Stage string `json:"stage"`
+	Stage SnapshotShardsStatsStage `json:"stage"`
 
 	// The statistical summary of the shard snapshot.
 	Stats SnapshotShardsStatsSummary `json:"stats"`

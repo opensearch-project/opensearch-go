@@ -210,3 +210,544 @@ type UnknownRestStatusError struct {
 func (e *UnknownRestStatusError) Error() string {
 	return fmt.Sprintf("unknown RestStatus %q", e.Value)
 }
+
+type SearchTotalHitsRelation string
+
+const (
+	// Accurate.
+	SearchTotalHitsRelationEq SearchTotalHitsRelation = "eq"
+
+	// Lower bound, including returned events or sequences.
+	SearchTotalHitsRelationGte SearchTotalHitsRelation = "gte"
+)
+
+type GeoDistanceType string
+
+const (
+	// The arc calculation method uses great circle distance.
+	GeoDistanceTypeArc GeoDistanceType = "arc"
+
+	// The plane calculation method uses faster but less accurate flat-earth
+	// distance.
+	GeoDistanceTypePlane GeoDistanceType = "plane"
+)
+
+// The unit of distance measurement.
+type DistanceUnit string
+
+const (
+	DistanceUnitCm DistanceUnit = "cm"
+
+	DistanceUnitFt DistanceUnit = "ft"
+
+	DistanceUnitIn DistanceUnit = "in"
+
+	DistanceUnitKm DistanceUnit = "km"
+
+	DistanceUnitM DistanceUnit = "m"
+
+	DistanceUnitMi DistanceUnit = "mi"
+
+	DistanceUnitMm DistanceUnit = "mm"
+
+	DistanceUnitNmi DistanceUnit = "nmi"
+
+	DistanceUnitYd DistanceUnit = "yd"
+)
+
+type SearchBuiltinHighlighterType string
+
+const (
+	SearchBuiltinHighlighterTypePlain SearchBuiltinHighlighterType = "plain"
+
+	SearchBuiltinHighlighterTypeFvh SearchBuiltinHighlighterType = "fvh"
+
+	SearchBuiltinHighlighterTypeUnified SearchBuiltinHighlighterType = "unified"
+)
+
+// The mode for sorting on array fields.
+type SortMode string
+
+const (
+	// Use the average of all values.
+	SortModeAvg SortMode = "avg"
+
+	// Use the maximum value.
+	SortModeMax SortMode = "max"
+
+	// Use the median value.
+	SortModeMedian SortMode = "median"
+
+	// Use the minimum value.
+	SortModeMin SortMode = "min"
+
+	// Use the sum of all values.
+	SortModeSum SortMode = "sum"
+)
+
+// The numeric type to use for sorting.
+type FieldSortNumericType string
+
+const (
+	// The field contains date values.
+	FieldSortNumericTypeDate FieldSortNumericType = "date"
+
+	// The field contains date values with nanosecond precision.
+	FieldSortNumericTypeDateNanos FieldSortNumericType = "date_nanos"
+
+	// The field contains double-precision floating-point values.
+	FieldSortNumericTypeDouble FieldSortNumericType = "double"
+
+	// The field contains long integer values.
+	FieldSortNumericTypeLong FieldSortNumericType = "long"
+)
+
+// The type of the script sort value.
+type ScriptSortType string
+
+const (
+	// The script returns a numeric value.
+	ScriptSortTypeNumber ScriptSortType = "number"
+
+	// The script returns a string value.
+	ScriptSortTypeString ScriptSortType = "string"
+
+	// The script returns a version value.
+	ScriptSortTypeVersion ScriptSortType = "version"
+)
+
+type VersionType string
+
+const (
+	// The version number must be greater than the current version.
+	VersionTypeExternal VersionType = "external"
+
+	// The version number must be greater than or equal to the current version.
+	VersionTypeExternalGte VersionType = "external_gte"
+
+	// The version number is managed internally by OpenSearch.
+	VersionTypeInternal VersionType = "internal"
+)
+
+// The format for numeric field data.
+type IndicesNumericFielddataFormat string
+
+const (
+	// Uses array format for field data.
+	IndicesNumericFielddataFormatArray IndicesNumericFielddataFormat = "array"
+
+	// Disables field data.
+	IndicesNumericFielddataFormatDisabled IndicesNumericFielddataFormat = "disabled"
+)
+
+// The options for shard allocation control.
+type IndicesIndexRoutingAllocationOptions string
+
+const (
+	// Allows shard allocation for all shards.
+	IndicesIndexRoutingAllocationOptionsAll IndicesIndexRoutingAllocationOptions = "all"
+
+	// Allows shard allocation only for new primary shards.
+	IndicesIndexRoutingAllocationOptionsNewPrimaries IndicesIndexRoutingAllocationOptions = "new_primaries"
+
+	// Prevents shard allocation.
+	IndicesIndexRoutingAllocationOptionsNone IndicesIndexRoutingAllocationOptions = "none"
+
+	// Allows shard allocation only for primary shards.
+	IndicesIndexRoutingAllocationOptionsPrimaries IndicesIndexRoutingAllocationOptions = "primaries"
+)
+
+// The options for shard rebalancing control.
+type IndicesIndexRoutingRebalanceOptions string
+
+const (
+	// Allows rebalancing of all shards.
+	IndicesIndexRoutingRebalanceOptionsAll IndicesIndexRoutingRebalanceOptions = "all"
+
+	// Prevents shard rebalancing.
+	IndicesIndexRoutingRebalanceOptionsNone IndicesIndexRoutingRebalanceOptions = "none"
+
+	// Allows rebalancing of primary shards only.
+	IndicesIndexRoutingRebalanceOptionsPrimaries IndicesIndexRoutingRebalanceOptions = "primaries"
+
+	// Allows rebalancing of replica shards only.
+	IndicesIndexRoutingRebalanceOptionsReplicas IndicesIndexRoutingRebalanceOptions = "replicas"
+)
+
+type DFIIndependenceMeasure string
+
+const (
+	// The chi-squared measure of independence.
+	DFIIndependenceMeasureChisquared DFIIndependenceMeasure = "chisquared"
+
+	// The saturated measure of independence.
+	DFIIndependenceMeasureSaturated DFIIndependenceMeasure = "saturated"
+
+	// The standardized measure of independence.
+	DFIIndependenceMeasureStandardized DFIIndependenceMeasure = "standardized"
+)
+
+type DFRAfterEffect string
+
+const (
+	// The basic after effect.
+	DFRAfterEffectB DFRAfterEffect = "b"
+
+	// The Laplace after effect.
+	DFRAfterEffectL DFRAfterEffect = "l"
+
+	// No after effect.
+	DFRAfterEffectNo DFRAfterEffect = "no"
+)
+
+type DFRBasicModel string
+
+const (
+	// The Bose-Einstein model.
+	DFRBasicModelBe DFRBasicModel = "be"
+
+	// The divergence from independence model.
+	DFRBasicModelD DFRBasicModel = "d"
+
+	// The geometric model.
+	DFRBasicModelG DFRBasicModel = "g"
+
+	// The inverse frequency model.
+	DFRBasicModelIf DFRBasicModel = "if"
+
+	// The inverse document frequency model.
+	DFRBasicModelIn DFRBasicModel = "in"
+
+	// The inverse expected document frequency model.
+	DFRBasicModelIne DFRBasicModel = "ine"
+
+	// The Poisson model.
+	DFRBasicModelP DFRBasicModel = "p"
+)
+
+type TermFrequencyNormalization string
+
+const (
+	// The first normalization of Hazm.
+	TermFrequencyNormalizationH1 TermFrequencyNormalization = "h1"
+
+	// The second normalization of Hazm.
+	TermFrequencyNormalizationH2 TermFrequencyNormalization = "h2"
+
+	// The third normalization of Hazm.
+	TermFrequencyNormalizationH3 TermFrequencyNormalization = "h3"
+
+	// No normalization.
+	TermFrequencyNormalizationNo TermFrequencyNormalization = "no"
+
+	// The Zipfian normalization.
+	TermFrequencyNormalizationZ TermFrequencyNormalization = "z"
+)
+
+type IBDistribution string
+
+const (
+	// The log-logistic distribution.
+	IBDistributionLl IBDistribution = "ll"
+
+	// The smoothed power-law distribution.
+	IBDistributionSpl IBDistribution = "spl"
+)
+
+type IBLambda string
+
+const (
+	// The document frequency Lambda.
+	IBLambdaDf IBLambda = "df"
+
+	// The total term frequency Lambda.
+	IBLambdaTtf IBLambda = "ttf"
+)
+
+// The type of file system lock.
+type IndicesIndexSettingsStoreFSLock string
+
+const (
+	// Uses native file system locks.
+	IndicesIndexSettingsStoreFSLockNative IndicesIndexSettingsStoreFSLock = "native"
+
+	// Uses simple file system locks.
+	IndicesIndexSettingsStoreFSLockSimple IndicesIndexSettingsStoreFSLock = "simple"
+)
+
+// The type of storage implementation.
+type IndicesBuiltinStorageType string
+
+const (
+	// Uses the default file system implementation.
+	IndicesBuiltinStorageTypeFS IndicesBuiltinStorageType = "fs"
+
+	// Uses a hybrid of memory-mapped and regular file system implementation.
+	IndicesBuiltinStorageTypeHybridfs IndicesBuiltinStorageType = "hybridfs"
+
+	// Uses memory-mapped file system implementation.
+	IndicesBuiltinStorageTypeMmapfs IndicesBuiltinStorageType = "mmapfs"
+
+	// Uses NIO file system implementation.
+	IndicesBuiltinStorageTypeNiofs IndicesBuiltinStorageType = "niofs"
+)
+
+// The durability settings for the translog.
+type IndicesTranslogDurability string
+
+const (
+	// Asynchronous durability - acknowledges write operations after they are
+	// written to memory.
+	IndicesTranslogDurabilityAsync IndicesTranslogDurability = "ASYNC"
+
+	// Request durability - acknowledges write operations after they are
+	// written to disk.
+	IndicesTranslogDurabilityRequest IndicesTranslogDurability = "REQUEST"
+)
+
+// An enumeration of the states during decommissioning.
+type ClusterDecommissionAwarenessDecommissionStatus string
+
+const (
+	// Decommission process is initiated, and to-be-decommissioned leader is
+	// excluded from voting config.
+	ClusterDecommissionAwarenessDecommissionStatusInit ClusterDecommissionAwarenessDecommissionStatus = "INIT"
+
+	// Decommission process is initiated, and the zone is being drained.
+	ClusterDecommissionAwarenessDecommissionStatusDraining ClusterDecommissionAwarenessDecommissionStatus = "DRAINING"
+
+	// Decommission process has started, decommissioned nodes should be
+	// removed.
+	ClusterDecommissionAwarenessDecommissionStatusInProgress ClusterDecommissionAwarenessDecommissionStatus = "IN_PROGRESS"
+
+	// Decommission action completed.
+	ClusterDecommissionAwarenessDecommissionStatusSuccessful ClusterDecommissionAwarenessDecommissionStatus = "SUCCESSFUL"
+
+	// Decommission request failed.
+	ClusterDecommissionAwarenessDecommissionStatusFailed ClusterDecommissionAwarenessDecommissionStatus = "FAILED"
+)
+
+type Result string
+
+const (
+	// The document was created.
+	ResultCreated Result = "created"
+
+	// The document was deleted.
+	ResultDeleted Result = "deleted"
+
+	// The update operation didn't change anything.
+	ResultNoop Result = "noop"
+
+	// The document was not found.
+	ResultNotFound Result = "not_found"
+
+	// The document was updated.
+	ResultUpdated Result = "updated"
+)
+
+type NodeRole string
+
+const (
+	// The node can act as a client node.
+	NodeRoleClient NodeRole = "client"
+
+	// The node only performs coordination tasks.
+	NodeRoleCoordinatingOnly NodeRole = "coordinating_only"
+
+	// The node can store data.
+	NodeRoleData NodeRole = "data"
+
+	// The node can store cold data.
+	NodeRoleDataCold NodeRole = "data_cold"
+
+	// The node can store content data.
+	NodeRoleDataContent NodeRole = "data_content"
+
+	// The node can store frozen data.
+	NodeRoleDataFrozen NodeRole = "data_frozen"
+
+	// The node can store hot data.
+	NodeRoleDataHot NodeRole = "data_hot"
+
+	// The node can store warm data.
+	NodeRoleDataWarm NodeRole = "data_warm"
+
+	// The node can perform ingest operations.
+	NodeRoleIngest NodeRole = "ingest"
+
+	// The node can perform machine learning operations.
+	NodeRoleML NodeRole = "ml"
+
+	// The node can act as a remote cluster client.
+	NodeRoleRemoteClusterClient NodeRole = "remote_cluster_client"
+
+	// The node can perform transform operations.
+	NodeRoleTransform NodeRole = "transform"
+
+	// The node can only vote in cluster decisions.
+	NodeRoleVotingOnly NodeRole = "voting_only"
+
+	// Deprecated: since 2.0.0. Use `cluster_manager` instead.
+	NodeRoleMaster NodeRole = "master"
+
+	// The node can act as a cluster manager.
+	//
+	// Available: >= 2.0.0.
+	NodeRoleClusterManager NodeRole = "cluster_manager"
+
+	// The node was dedicated to provide search capability for searchable
+	// snapshots. Renamed to `warm` in 3.0.
+	//
+	// Available: >= 2.4.0.
+	NodeRoleSearch NodeRole = "search"
+
+	// The node can hold warm indices for searchable snapshots. Before 3.0 this
+	// role was named `search`.
+	//
+	// Available: >= 3.0.0.
+	NodeRoleWarm NodeRole = "warm"
+)
+
+// The allocation type of the shard store.
+type IndicesShardStoresShardStoreAllocation string
+
+const (
+	// The store is for a primary shard.
+	IndicesShardStoresShardStoreAllocationPrimary IndicesShardStoresShardStoreAllocation = "primary"
+
+	// The store is for a replica shard.
+	IndicesShardStoresShardStoreAllocationReplica IndicesShardStoresShardStoreAllocation = "replica"
+
+	// The store is not currently in use.
+	IndicesShardStoresShardStoreAllocationUnused IndicesShardStoresShardStoreAllocation = "unused"
+)
+
+type ActionStatusOptions string
+
+const (
+	// The action failed.
+	ActionStatusOptionsFailure ActionStatusOptions = "failure"
+
+	// The action was simulated.
+	ActionStatusOptionsSimulated ActionStatusOptions = "simulated"
+
+	// The action succeeded.
+	ActionStatusOptionsSuccess ActionStatusOptions = "success"
+
+	// The action was throttled.
+	ActionStatusOptionsThrottled ActionStatusOptions = "throttled"
+)
+
+// The current stage of the shard snapshot.
+type SnapshotShardsStatsStage string
+
+const (
+	// The number of shards in the snapshot that were successfully stored in
+	// the repository.
+	SnapshotShardsStatsStageDone SnapshotShardsStatsStage = "DONE"
+
+	// The number of shards in the snapshot that were not successfully stored
+	// in the repository.
+	SnapshotShardsStatsStageFailure SnapshotShardsStatsStage = "FAILURE"
+
+	// The number of shards in the snapshot that are in the finalizing stage of
+	// being stored in the repository.
+	SnapshotShardsStatsStageFinalize SnapshotShardsStatsStage = "FINALIZE"
+
+	// The number of shards in the snapshot that are in the initializing stage
+	// of being stored in the repository.
+	SnapshotShardsStatsStageInit SnapshotShardsStatsStage = "INIT"
+
+	// The number of shards in the snapshot that are in the started stage of
+	// being stored in the repository.
+	SnapshotShardsStatsStageStarted SnapshotShardsStatsStage = "STARTED"
+)
+
+type Conflicts string
+
+const (
+	// Abort the operation on version conflicts.
+	ConflictsAbort Conflicts = "abort"
+
+	// Proceed with the operation on version conflicts.
+	ConflictsProceed Conflicts = "proceed"
+)
+
+type OpType string
+
+const (
+	// Create a new document.
+	OpTypeCreate OpType = "create"
+
+	// Create a new document or replace an existing one.
+	OpTypeIndex OpType = "index"
+)
+
+// Specifies the time units, for example, `5d` or `7h`. For more information, see [Supported units](https://opensearch.org/docs/latest/api-reference/units/).
+type TimeUnit string
+
+const (
+	TimeUnitNanos TimeUnit = "nanos"
+
+	TimeUnitMicros TimeUnit = "micros"
+
+	TimeUnitMs TimeUnit = "ms"
+
+	TimeUnitS TimeUnit = "s"
+
+	TimeUnitM TimeUnit = "m"
+
+	TimeUnitH TimeUnit = "h"
+
+	TimeUnitD TimeUnit = "d"
+)
+
+// Waits until all currently queued events with the given priority are processed.
+type WaitForEvents string
+
+const (
+	// Highest priority, processed as soon as possible.
+	WaitForEventsImmediate WaitForEvents = "immediate"
+
+	// Very high priority, processed after immediate events.
+	WaitForEventsUrgent WaitForEvents = "urgent"
+
+	// High priority, processed after urgent events.
+	WaitForEventsHigh WaitForEvents = "high"
+
+	// Default priority, processed after high priority events.
+	WaitForEventsNormal WaitForEvents = "normal"
+
+	// Low priority, processed after normal events.
+	WaitForEventsLow WaitForEvents = "low"
+
+	// Lowest priority, processed after all other events.
+	WaitForEventsLanguid WaitForEvents = "languid"
+)
+
+type SearchType string
+
+const (
+	// Documents are scored using global term and document frequencies across
+	// all shards. This is usually slower but more accurate.
+	SearchTypeDFSQueryThenFetch SearchType = "dfs_query_then_fetch"
+
+	// Documents are scored using local term and document frequencies for the
+	// shard. This is usually faster but less accurate.
+	SearchTypeQueryThenFetch SearchType = "query_then_fetch"
+)
+
+// The type of resource to sample.
+type NodesSampleType string
+
+const (
+	// Samples block I/O operations.
+	NodesSampleTypeBlock NodesSampleType = "block"
+
+	// Samples CPU utilization.
+	NodesSampleTypeCPU NodesSampleType = "cpu"
+
+	// Samples process wait times.
+	NodesSampleTypeWait NodesSampleType = "wait"
+)

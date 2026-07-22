@@ -134,6 +134,20 @@ func TestClassifyParamKind(t *testing.T) {
 	}
 }
 
+// valuesToConsts wraps bare wire values as constEnumValue entries (value only,
+// no doc/version metadata) for convertEnumMembers, mirroring how the int-backed
+// enum path supplies them.
+func valuesToConsts(values []string) []constEnumValue {
+	if values == nil {
+		return nil
+	}
+	consts := make([]constEnumValue, len(values))
+	for i, v := range values {
+		consts[i] = constEnumValue{Value: v}
+	}
+	return consts
+}
+
 func TestConvertEnumMembers(t *testing.T) {
 	t.Parallel()
 
@@ -170,7 +184,7 @@ func TestConvertEnumMembers(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := convertEnumMembers(tt.typeName, tt.values)
+			got := convertEnumMembers(tt.typeName, valuesToConsts(tt.values), newSet(tt.typeName+"Unknown"))
 			if tt.wantNames == nil {
 				require.Nil(t, got)
 				return
@@ -222,7 +236,7 @@ func TestConvertEnumMembers_Panics(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			require.Panics(t, func() {
-				convertEnumMembers(tt.typeName, tt.values)
+				convertEnumMembers(tt.typeName, valuesToConsts(tt.values), newSet(tt.typeName+"Unknown"))
 			})
 		})
 	}

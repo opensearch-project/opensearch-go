@@ -117,7 +117,7 @@ type DeleteByQueryParams struct {
 
 	// What to do if delete by query hits version conflicts: `abort` or
 	// `proceed`.
-	Conflicts string
+	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
 	DefaultOperator string
@@ -187,7 +187,7 @@ type DeleteByQueryParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
-	SearchType string
+	SearchType SearchType
 
 	// Deprecated: use `max_docs` instead.
 	Size int
@@ -260,7 +260,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Conflicts != "" {
-		set("conflicts", r.Conflicts)
+		set("conflicts", string(r.Conflicts))
 	}
 
 	if r.DefaultOperator != "" {
@@ -328,7 +328,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.Size != 0 {

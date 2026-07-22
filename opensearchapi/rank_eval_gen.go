@@ -106,7 +106,7 @@ type RankEvalParams struct {
 	IgnoreUnavailable *bool
 
 	// Search operation type
-	SearchType string
+	SearchType SearchType
 }
 
 func (r RankEvalParams) get() map[string]string {
@@ -133,7 +133,7 @@ func (r RankEvalParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	return params

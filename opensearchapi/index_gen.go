@@ -90,7 +90,7 @@ type IndexParams struct {
 	// the indexing operation will fail. Same as using the `<index>/_create`
 	// endpoint. Valid values: `index`, `create`. If document id is specified,
 	// it defaults to `index`. Otherwise, it defaults to `create`.
-	OpType string
+	OpType OpType
 
 	// ID of the pipeline to use to preprocess incoming documents. If the index
 	// has a default ingest pipeline specified, then setting the value to
@@ -119,7 +119,7 @@ type IndexParams struct {
 	Version int
 
 	// The specific version type: `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to all or any positive integer up to the total number
@@ -147,7 +147,7 @@ func (r IndexParams) get() map[string]string {
 	}
 
 	if r.OpType != "" {
-		set("op_type", r.OpType)
+		set("op_type", string(r.OpType))
 	}
 
 	if r.Pipeline != "" {
@@ -171,7 +171,7 @@ func (r IndexParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	if r.WaitForActiveShards != "" {
@@ -207,7 +207,7 @@ type IndexResp struct {
 
 	Version       int64  `json:"_version"`
 	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Result        Result `json:"result"`
 
 	response *opensearch.Response
 }

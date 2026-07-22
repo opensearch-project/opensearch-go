@@ -141,14 +141,14 @@ const (
 // whole-response map/array/raw shapes that are synthesized in convertOperation
 // and never registered in spec.Types.
 func collectRawMessageUses(spec *ir.Spec) []rawUse {
-	seen := make(map[string]struct{})
+	seen := make(set[string])
 	var uses []rawUse
 
 	add := func(u rawUse) {
-		if _, ok := seen[u.key()]; ok {
+		if seen.has(u.key()) {
 			return
 		}
-		seen[u.key()] = struct{}{}
+		seen.add(u.key())
 		uses = append(uses, u)
 	}
 
@@ -224,7 +224,7 @@ func sortRawUses(uses []rawUse) {
 // loadRawMessageAllowlist reads the allowlist file into a set of keys. Lines are
 // trimmed, '#' comments (whole-line or trailing) are stripped, and blank lines
 // are ignored. The key is the first whitespace-delimited token on each line.
-func loadRawMessageAllowlist(path string) (map[string]struct{}, error) {
+func loadRawMessageAllowlist(path string) (set[string], error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -233,7 +233,7 @@ func loadRawMessageAllowlist(path string) (map[string]struct{}, error) {
 		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
 	}
 
-	allowed := make(map[string]struct{})
+	allowed := make(set[string])
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -245,7 +245,7 @@ func loadRawMessageAllowlist(path string) (map[string]struct{}, error) {
 			continue
 		}
 		key := strings.Fields(line)[0]
-		allowed[key] = struct{}{}
+		allowed.add(key)
 	}
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
@@ -316,7 +316,7 @@ func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 		// fatal: treat the allowlist as empty and let every use fall through to
 		// the warning path below.
 		if cfg.AllowUnlisted && errors.Is(err, fs.ErrNotExist) {
-			allowed = map[string]struct{}{}
+			allowed = set[string]{}
 		} else {
 			return err
 		}
@@ -324,18 +324,18 @@ func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 
 	var offenders []rawUse
 	for _, u := range uses {
-		if _, ok := allowed[u.key()]; !ok {
+		if !allowed.has(u.key()) {
 			offenders = append(offenders, u)
 		}
 	}
 
-	used := make(map[string]struct{}, len(uses))
+	used := make(set[string], len(uses))
 	for _, u := range uses {
-		used[u.key()] = struct{}{}
+		used.add(u.key())
 	}
 	var stale []string
 	for k := range allowed {
-		if _, ok := used[k]; !ok {
+		if !used.has(k) {
 			stale = append(stale, k)
 		}
 	}

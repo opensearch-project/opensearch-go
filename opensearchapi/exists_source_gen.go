@@ -103,7 +103,7 @@ type ExistsSourceParams struct {
 	Version int
 
 	// The specific version type: `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r ExistsSourceParams) get() map[string]string {
@@ -150,7 +150,7 @@ func (r ExistsSourceParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params

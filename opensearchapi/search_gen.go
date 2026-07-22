@@ -287,7 +287,7 @@ type SearchParams struct {
 	SearchPipeline string
 
 	// How distributed term frequencies are calculated for relevance scoring.
-	SearchType string
+	SearchType SearchType
 
 	// If `true`, returns sequence number and primary term of the last
 	// modification of each hit.
@@ -506,7 +506,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.SeqNoPrimaryTerm != nil {

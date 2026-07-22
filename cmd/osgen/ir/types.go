@@ -131,6 +131,7 @@ type QueryParam struct {
 	Group             ParamGroup
 	Required          bool
 	Deprecated        bool
+	IsStringEnum      bool // GoType is a named string-enum type; serialize with a string() cast
 	VersionAdded      string
 	VersionDeprecated string
 	DeprecationMsg    string
@@ -212,17 +213,25 @@ type Type struct {
 	// the concrete type the caller requested, on demand.
 	LazyAccessors bool
 
-	// EnumMembers holds the members of a TypeEnum (int-backed iota enum): each
-	// pairs the Go const identifier with its wire value. Empty for all other
-	// kinds.
+	// EnumMembers holds the members of a TypeEnum (int-backed iota enum) or
+	// TypeStringEnum (string-backed enum): each pairs the Go const identifier
+	// with its wire value. Empty for all other kinds.
 	EnumMembers []EnumMember
 }
 
-// EnumMember is one member of an int-backed iota enum: a generated const of the
-// enum's named int type bound to its wire value.
+// EnumMember is one member of an enum: a generated const bound to its wire
+// value. For int-backed iota enums (TypeEnum) the const is of the enum's named
+// int type; for string-backed enums (TypeStringEnum) it is of the named string
+// type. Comment, when non-empty, is the member's doc comment (from the spec
+// branch description). The version fields drive an availability/deprecation note
+// rendered after the comment (string-enum path; empty for int enums).
 type EnumMember struct {
-	ConstName string // Go const identifier, e.g. "RestStatusNotFound"
-	Value     string // wire value, e.g. "NOT_FOUND"
+	ConstName         string // Go const identifier, e.g. "RestStatusNotFound"
+	Value             string // wire value, e.g. "NOT_FOUND"
+	Comment           string // optional per-member doc comment
+	VersionAdded      string // x-version-added, if any
+	VersionDeprecated string // x-version-deprecated, if any
+	DeprecationMsg    string // x-deprecation-message, if any
 }
 
 // UnionMerge describes how to decode a "success | error(s)" union in one pass.
@@ -270,10 +279,11 @@ type TypeKind int
 
 // TypeKind values: shape category for a generated Go type.
 const (
-	TypeStruct    TypeKind = iota // plain struct with fields
-	TypeUnion                     // byte-prefix discriminated union (token class dispatch)
-	TypeLazyUnion                 // lazy-decode union (stores raw JSON, decodes on accessor)
-	TypeEnum                      // int-backed iota enum (named int type + const block)
+	TypeStruct     TypeKind = iota // plain struct with fields
+	TypeUnion                      // byte-prefix discriminated union (token class dispatch)
+	TypeLazyUnion                  // lazy-decode union (stores raw JSON, decodes on accessor)
+	TypeEnum                       // int-backed iota enum (named int type + const block)
+	TypeStringEnum                 // string-backed enum (named string type + const block; permissive, unknown values round-trip)
 )
 
 // TypeScope determines where a type is emitted.

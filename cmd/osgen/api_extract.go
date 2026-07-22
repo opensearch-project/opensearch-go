@@ -122,12 +122,14 @@ type apiQueryParam struct {
 	GoName            string // exported Go field name
 	ParamName         string // wire name used in the query string (e.g. "wait_for_active_shards")
 	GoType            string // Go type for the field (e.g. "string", "bool", "time.Duration")
+	SchemaRef         string // component schema key when the param schema is a $ref (e.g. "_common___TimeUnit"); "" for inline schemas
 	Description       string // human-readable description from the spec
 	Default           string // server default value (e.g. "true", "30s")
 	IsDuration        bool   // true if the value encodes as an OpenSearch duration string
 	IsBool            bool
 	IsList            bool // true if the value is comma-joined ([]string)
 	IsInt             bool
+	IsStringEnum      bool // true when GoType is a named string-enum type (needs a string() cast on serialize)
 	Required          bool
 	Deprecated        bool
 	VersionAdded      string // semver when this param was introduced
@@ -303,9 +305,9 @@ func buildAPIOperation(group string, ops []struct {
 	// Collect all distinct HTTP methods across variants of this operation,
 	// with the primary method first and the rest sorted.
 	primaryMeth := strings.ToUpper(primary.method)
-	methodSet := make(map[string]struct{})
+	methodSet := make(set[string])
 	for _, o := range ops {
-		methodSet[strings.ToUpper(o.method)] = struct{}{}
+		methodSet.add(strings.ToUpper(o.method))
 	}
 	methods := make([]string, 0, len(methodSet))
 	methods = append(methods, primaryMeth)
@@ -378,13 +380,13 @@ func buildAPIOperation(group string, ops []struct {
 		params      []string
 		arrayParams map[string]bool
 		deprecated  bool
-		methods     map[string]struct{}
+		methods     set[string]
 	}
 	variantsByURL := make(map[string]*variantData)
 	variantOrder := make([]string, 0, len(ops))
 	for _, o := range ops {
 		if vd, ok := variantsByURL[o.url]; ok {
-			vd.methods[strings.ToUpper(o.method)] = struct{}{}
+			vd.methods.add(strings.ToUpper(o.method))
 			if !o.op.Deprecated {
 				vd.deprecated = false
 			}
@@ -403,7 +405,7 @@ func buildAPIOperation(group string, ops []struct {
 			params:      paramNames,
 			arrayParams: arrayParams,
 			deprecated:  o.op.Deprecated,
-			methods:     map[string]struct{}{strings.ToUpper(o.method): {}},
+			methods:     newSet(strings.ToUpper(o.method)),
 		}
 		variantOrder = append(variantOrder, o.url)
 	}
@@ -608,9 +610,10 @@ func extractQueryParamsUnion(group string, ops []struct {
 				if p.Schema != nil && p.Schema.Value != nil {
 					s := p.Schema.Value
 					qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
+					qp.SchemaRef = refToSchemaKey(p.Schema.Ref)
 					// Promote int -> *int for params whose 0 is a meaningful wire
 					// value, so it survives the != 0 emission guard.
-					if _, ok := zeroMeaningfulIntParams[opParam{group, p.Name}]; ok && qp.IsInt {
+					if zeroMeaningfulIntParams.has(opParam{group, p.Name}) && qp.IsInt {
 						qp.GoType = "*int"
 					}
 					if s.Default != nil {
@@ -716,7 +719,7 @@ type opParam struct {
 //     aggregations while returning no hits -- distinct from omitting size.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
-var zeroMeaningfulIntParams = map[opParam]struct{}{
+var zeroMeaningfulIntParams = set[opParam]{
 	{"delete", "if_primary_term"}:           {},
 	{"delete", "if_seq_no"}:                 {},
 	{"index", "if_primary_term"}:            {},

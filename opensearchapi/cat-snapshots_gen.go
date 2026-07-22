@@ -90,7 +90,7 @@ type CatSnapshotsParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
-	Time string
+	Time TimeUnit
 }
 
 func (r CatSnapshotsParams) get() map[string]string {
@@ -116,7 +116,7 @@ func (r CatSnapshotsParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params

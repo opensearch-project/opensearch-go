@@ -143,7 +143,7 @@ type TermVectorsParams struct {
 	Version int
 
 	// The specific version type.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r TermVectorsParams) get() map[string]string {
@@ -198,7 +198,7 @@ func (r TermVectorsParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params

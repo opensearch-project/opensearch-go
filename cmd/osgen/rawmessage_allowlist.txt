@@ -56,9 +56,6 @@ AsynchronousSearchSearch/ext # map
 ClusterComponentTemplateNode/_meta # map
 ClusterComponentTemplateSummary/_meta # map
 
-# --- cluster.get_decommission_awareness ---
-ClusterGetDecommissionAwarenessResp/[entries] # map
-
 # --- cluster.get_settings ---
 ClusterGetSettingsResp/defaults # map
 ClusterGetSettingsResp/persistent # map
@@ -88,9 +85,6 @@ DeleteByQueryResp/- # bare
 # --- explain ---
 ExplainRespBodyGet/_source # bare
 
-# --- flow_framework.common ---
-FlowFrameworkCommonGetResp/workflows # bare
-
 # --- flow_framework.create ---
 FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
 
@@ -99,6 +93,9 @@ GetResp/workflows # bare
 
 # --- flow_framework.get_status ---
 GetStatusResp/- # bare
+
+# --- flow_framework.search ---
+FlowFrameworkCommonGetResp/workflows # bare
 
 # --- flow_framework.update ---
 FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare

@@ -267,3 +267,101 @@ func TestNewEnumTypesFile_MultipleEnums(t *testing.T) {
 	// Declaration order is preserved (RestStatus before SortOrder).
 	require.Less(t, strings.Index(output, "type RestStatus int"), strings.Index(output, "type SortOrder int"))
 }
+
+// TestStringEnumFragment_Body asserts the string-backed enum renders a named
+// string type with one exported const per value, per-member doc comments, and
+// NO custom marshaling (the type is permissive: unknown values round-trip).
+func TestStringEnumFragment_Body(t *testing.T) {
+	t.Parallel()
+
+	frag := &emit.StringEnumFragment{
+		Types: []*ir.Type{
+			{
+				Name:    "NodeRole",
+				Kind:    ir.TypeStringEnum,
+				Scope:   ir.ScopeShared,
+				Comment: "The role assigned to the node.",
+				EnumMembers: []ir.EnumMember{
+					{ConstName: "NodeRoleDataHot", Value: "data_hot", Comment: "The node can store hot data."},
+					{ConstName: "NodeRoleML", Value: "ml"},
+				},
+			},
+		},
+	}
+
+	body, err := frag.Body()
+	require.NoError(t, err)
+
+	for _, want := range []string{
+		"// The role assigned to the node.",
+		"type NodeRole string",
+		"// The node can store hot data.",
+		`NodeRoleDataHot NodeRole = "data_hot"`,
+		`NodeRoleML NodeRole = "ml"`,
+	} {
+		require.Contains(t, body, want)
+	}
+
+	// Permissive: no closed-set marshaling or error type is generated.
+	require.NotContains(t, body, "MarshalJSON")
+	require.NotContains(t, body, "UnmarshalJSON")
+	require.NotContains(t, body, "Unknown")
+	// String-backed enums need no imports.
+	require.Empty(t, frag.Imports())
+}
+
+// TestStringEnumFragment_Empty renders nothing and needs no imports.
+func TestStringEnumFragment_Empty(t *testing.T) {
+	t.Parallel()
+
+	frag := &emit.StringEnumFragment{}
+	body, err := frag.Body()
+	require.NoError(t, err)
+	require.Empty(t, body)
+	require.Empty(t, frag.Imports())
+}
+
+// TestNewEnumTypesFile_IntAndStringEnums confirms both enum kinds land in the
+// single enums_gen.go file.
+func TestNewEnumTypesFile_IntAndStringEnums(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{Name: "RestStatus", Kind: ir.TypeEnum, Scope: ir.ScopeShared, EnumMembers: []ir.EnumMember{{ConstName: "RestStatusOk", Value: "OK"}}},
+		{
+			Name: "NodeRole", Kind: ir.TypeStringEnum, Scope: ir.ScopeShared,
+			EnumMembers: []ir.EnumMember{{ConstName: "NodeRoleData", Value: "data"}},
+		},
+	}
+
+	target := emit.NewEnumTypesFile("/tmp/test", ir.DefaultCorePkgName, types)
+	require.NotNil(t, target)
+
+	src, err := target.Render()
+	require.NoError(t, err)
+	output := string(src)
+
+	require.Contains(t, output, "type RestStatus int")
+	require.Contains(t, output, "type NodeRole string")
+	require.Contains(t, output, `NodeRoleData NodeRole = "data"`)
+}
+
+// TestNewEnumTypesFile_StringEnumOnly confirms a file of only string enums is
+// still produced (no int enum required).
+func TestNewEnumTypesFile_StringEnumOnly(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{
+			Name: "NodeRole", Kind: ir.TypeStringEnum, Scope: ir.ScopeShared,
+			EnumMembers: []ir.EnumMember{{ConstName: "NodeRoleData", Value: "data"}},
+		},
+	}
+
+	target := emit.NewEnumTypesFile("/tmp/test", ir.DefaultCorePkgName, types)
+	require.NotNil(t, target)
+
+	src, err := target.Render()
+	require.NoError(t, err)
+	require.Contains(t, string(src), "type NodeRole string")
+}

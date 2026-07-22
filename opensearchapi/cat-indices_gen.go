@@ -101,7 +101,7 @@ type CatIndicesParams struct {
 	Pri *bool
 
 	// Specifies the time units.
-	Time string
+	Time TimeUnit
 }
 
 func (r CatIndicesParams) get() map[string]string {
@@ -143,7 +143,7 @@ func (r CatIndicesParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
