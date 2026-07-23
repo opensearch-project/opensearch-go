@@ -147,7 +147,7 @@ if errors.As(err, &opensearchError) {
 }
 ```
 
-The [`osapifix`](cmd/osapifix/README.md) tool automates the v3 -> v4 import bump and reports the error-model move (which it cannot rewrite mechanically) as a follow-up; see the deep-dive at [`opensearchapi/UPGRADING_V3_TO_V4.md`](opensearchapi/UPGRADING_V3_TO_V4.md).
+The [`osapilint`](cmd/osapilint/README.md) tool automates the v3 -> v4 import bump and reports the error-model move (which it cannot rewrite mechanically) as a follow-up; see the deep-dive at [`opensearchapi/UPGRADING_V3_TO_V4.md`](opensearchapi/UPGRADING_V3_TO_V4.md).
 
 ### StringError for Unknown JSON Responses
 

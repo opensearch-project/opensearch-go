@@ -13,11 +13,15 @@ This is the version-history index for the OpenSearch Go client. Each entry below
 
 Upgrading from the hand-written v4 `opensearchapi/` package to the code-generated v5 surface is the largest single change in v5. [`UPGRADING_V5.md`](UPGRADING_V5.md) summarizes it; for the field-level delta (every rename, the `*Params` change, embedded `TimeoutParams`/`DebugParams`, `BulkResp.Items` becoming `[]BulkItem`) and the optional forward-compatible `replace` directive, see the deep-dive at [`opensearchapi/UPGRADING_V4_TO_V5.md`](opensearchapi/UPGRADING_V4_TO_V5.md).
 
-The [`osapifix`](cmd/osapifix/README.md) tool automates most of this delta (import bump, type/method/field renames, value-to-pointer adjustments); see the [Automated migration](opensearchapi/UPGRADING_V4_TO_V5.md#automated-migration) section.
+The [`osapilint`](cmd/osapilint/README.md) tool automates most of this delta (import bump, type/method/field renames, value-to-pointer adjustments); see the [Automated migration](opensearchapi/UPGRADING_V4_TO_V5.md#automated-migration) section.
 
 ## v3 to v4 `opensearchapi/` surface delta
 
 The v4 `opensearchapi/` package keeps the v3 client and its sub-clients unchanged, so most call sites only need the new import path. The one change needing a human hand is the error model, which moved out of `opensearchapi` into the root `opensearch` package ([`UPGRADING_V4.md`](UPGRADING_V4.md) covers it). For the tool-assisted delta - the import bump, the error-model follow-ups, and the response/transport fields the tool reports rather than rewrites - see the deep-dive at [`opensearchapi/UPGRADING_V3_TO_V4.md`](opensearchapi/UPGRADING_V3_TO_V4.md) and its [Automated migration](opensearchapi/UPGRADING_V3_TO_V4.md#automated-migration) section.
+
+## v2 to v3 `opensearchapi/` surface delta
+
+v3.0.0 is the project's largest structural boundary: the function-based request API (`opensearchapi.<X>Request{...}.Do(ctx, client)`) became a typed sub-client API (`client.<Group>.<Op>(ctx, <X>Req{...})`), and the root client lost its API method fields. [`UPGRADING_V3.md`](UPGRADING_V3.md) walks the client-creation, request, response, and error-handling changes with before/after examples. [`osapilint`](cmd/osapilint/README.md) assists but does not fully automate this hop - it bumps the import path, rewrites the two seed root-client ops best-effort, and reports the rest as manual worklist items; see the [Automated migration](UPGRADING_V3.md#automated-migration) section.
 
 ## Related references
 

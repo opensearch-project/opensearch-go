@@ -2,7 +2,7 @@ go 1.25.9
 
 use (
 	.
-	./cmd/osapifix
+	./cmd/osapilint
 	./cmd/osgen
 	./osotel
 	./osprom

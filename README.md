@@ -17,7 +17,7 @@ OpenSearch Go Client
 
 The client supports automatic node discovery, request-based connection routing, and role-aware node selection. See the [User Guide](USER_GUIDE.md) and [guides](guides/) for usage examples and configuration options.
 
-Upgrading across a major version? The [`osapifix`](cmd/osapifix/README.md) tool automates most of the API-shape changes (type, method, and field renames) - see [UPGRADING_V4_TO_V5.md](opensearchapi/UPGRADING_V4_TO_V5.md).
+Upgrading across a major version? The [`osapilint`](cmd/osapilint/README.md) tool automates most of the API-shape changes (type, method, and field renames) across the v2 -> v5 hops - see [`cmd/osapilint/README.md`](cmd/osapilint/README.md) and the per-version deep-dives ([v3 -> v4](opensearchapi/UPGRADING_V3_TO_V4.md), [v4 -> v5](opensearchapi/UPGRADING_V4_TO_V5.md)).
 
 ## Quickstart
 
@@ -131,7 +131,7 @@ Next steps:
 - [Project Website](https://opensearch.org/)
 - [Developer Guide](DEVELOPER_GUIDE.md)
 - [User Guide](USER_GUIDE.md)
-- [Upgrade Tool (`osapifix`)](cmd/osapifix/README.md)
+- [Upgrade Tool (`osapilint`)](cmd/osapilint/README.md)
 - [Documentation](https://docs.opensearch.org/latest/clients/go/)
 - [API Documentation](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5)
 - Need help? Try [Forums](https://forum.opensearch.org/c/clients/60)
