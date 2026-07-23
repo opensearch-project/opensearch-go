@@ -21,7 +21,7 @@ import (
 // dispatch goroutine drains concurrently, so the pool amortizes to zero
 // steady-state allocations.
 func BenchmarkOnRequestResponse(b *testing.B) {
-	reg, err := New(prometheus.NewRegistry(), 1024, NewRequestObserver())
+	reg, err := New(prometheus.NewRegistry(), NewRequestObserver())
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -45,7 +45,8 @@ func BenchmarkOnRequestResponse(b *testing.B) {
 	}
 
 	b.ReportAllocs()
+	ctx := b.Context()
 	for b.Loop() {
-		reg.OnRequestResponse(ev)
+		reg.OnRequestResponse(ctx, ev)
 	}
 }

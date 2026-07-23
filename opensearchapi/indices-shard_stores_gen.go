@@ -172,7 +172,7 @@ type IndicesShardStoresShardStoreWrapper struct {
 // The store information for a shard.
 type IndicesShardStoresShardStore struct {
 	// The allocation type of the shard store.
-	Allocation string `json:"allocation"`
+	Allocation IndicesShardStoresShardStoreAllocation `json:"allocation"`
 
 	// The unique identifier for a resource.
 	AllocationID *string `json:"allocation_id,omitempty"`

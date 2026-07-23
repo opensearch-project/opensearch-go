@@ -180,7 +180,7 @@ type NodesInfoNode struct {
 	Process *NodesInfoNodeProcess `json:"process,omitempty"`
 
 	// The role assigned to the node.
-	Roles []string `json:"roles"`
+	Roles []NodeRole `json:"roles"`
 
 	// The search pipeline configuration.
 	SearchPipelines *NodesInfoNodeSearchPipelines `json:"search_pipelines,omitempty"`

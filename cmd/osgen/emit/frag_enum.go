@@ -128,3 +128,67 @@ func (e *Unknown{{$t.Name}}Error) Error() string {
 	return fmt.Sprintf("unknown {{$t.Name}} %q", e.Value)
 }
 {{end}}`))
+
+// StringEnumFragment renders string-backed enum types: a named string type plus
+// one exported const per known wire value. The type is PERMISSIVE -- because it
+// is backed by string, encoding/json round-trips any value (including ones not
+// in the const set, e.g. a role a newer server introduces), so no custom
+// (Un)MarshalJSON is generated. The consts provide discoverability, typo
+// protection, and drift detection: they are derived from the spec, so a value
+// removed upstream drops its const and any reference fails to compile.
+//
+// This is distinct from EnumFragment's closed int-backed enum, which rejects
+// unknown wire values on decode.
+type StringEnumFragment struct {
+	Types []*ir.Type
+}
+
+// Imports returns the imports the string-enum fragment needs: none. The type is
+// a plain string with const declarations and no methods.
+func (f *StringEnumFragment) Imports() []Import {
+	return nil
+}
+
+// Body renders the string-enum type definitions. Const identifiers are
+// precomputed in the IR bridge (acronym-aware), so the template only substitutes
+// prepared names, values, and per-member doc comments.
+func (f *StringEnumFragment) Body() (string, error) {
+	if len(f.Types) == 0 {
+		return "", nil
+	}
+
+	var sb strings.Builder
+	if err := stringEnumFragTmpl.Execute(&sb, f.Types); err != nil {
+		return "", fmt.Errorf("rendering StringEnumFragment: %w", err)
+	}
+	return sb.String(), nil
+}
+
+//nolint:gochecknoglobals // const-ish read-only template
+var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template.FuncMap{
+	"comment":          CommentWrap,
+	"wrapField":        WrapField,
+	"availabilityNote": AvailabilityNote,
+}).Parse(`{{range $t := .}}
+{{- if $t.Comment}}
+{{comment $t.Comment}}
+{{- end}}
+type {{$t.Name}} string
+
+const (
+{{- range $i, $m := $t.EnumMembers}}
+{{- if $i}}
+{{end}}
+{{- if $m.Comment}}
+	{{wrapField $m.Comment}}
+{{- end}}
+{{- with availabilityNote $m.VersionAdded $m.VersionDeprecated $m.DeprecationMsg}}
+{{- if $m.Comment}}
+	//
+{{- end}}
+	{{wrapField .}}
+{{- end}}
+	{{$m.ConstName}} {{$t.Name}} = "{{$m.Value}}"
+{{- end}}
+)
+{{end}}`))

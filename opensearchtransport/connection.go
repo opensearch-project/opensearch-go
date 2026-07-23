@@ -142,6 +142,7 @@ type rwLocker interface {
 type Connection struct {
 	URL        *url.URL
 	URLString  string // Cached URL.String() -- set once at construction, never changes
+	hostPort   string // Cached "scheme://host[:port]" -- set once at construction, never changes
 	ID         string
 	Name       string
 	Roles      roleSet

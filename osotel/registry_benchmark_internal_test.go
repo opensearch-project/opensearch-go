@@ -22,7 +22,7 @@ import (
 // steady-state allocations.
 func BenchmarkOnRequestResponse(b *testing.B) {
 	mp := sdkmetric.NewMeterProvider(sdkmetric.WithReader(sdkmetric.NewManualReader()))
-	reg, err := New(mp.Meter("bench"), 1024, NewRequestObserver())
+	reg, err := New(mp.Meter("bench"), NewRequestObserver())
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -46,7 +46,8 @@ func BenchmarkOnRequestResponse(b *testing.B) {
 	}
 
 	b.ReportAllocs()
+	ctx := b.Context()
 	for b.Loop() {
-		reg.OnRequestResponse(ev)
+		reg.OnRequestResponse(ctx, ev)
 	}
 }

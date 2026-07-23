@@ -6,7 +6,10 @@
 
 package opensearchtransport
 
-import "sync/atomic"
+import (
+	"context"
+	"sync/atomic"
+)
 
 // ConnectionObserver receives notifications about connection lifecycle events
 // and routing decisions.
@@ -97,16 +100,41 @@ type ConnectionObserver interface { //nolint:interfacebloat // lifecycle + routi
 	// rewritten URLs.
 	OnAddressRewrite(event AddressRewriteEvent)
 
+	// OnRequestStart is called once per logical request, before the first round
+	// trip, with the request's context and a snapshot of the identity known up
+	// front (Method, Path, RouteName, Index; Host/Attempt are not yet known and
+	// are zero). It returns the context used for the remainder of the request and
+	// passed back to the attempt and response hooks, so a tracer can open a span
+	// here, carry it in the returned context, and close it when the response
+	// event fires. Return ctx unchanged to opt out; the returned context must be
+	// derived from ctx (or be ctx itself). It is only called when an observer is
+	// registered.
+	OnRequestStart(ctx context.Context, event RequestEvent) context.Context
+
+	// OnAttemptStart is called before each round-trip attempt (attempt is
+	// zero-based) with the current request context. The returned context scopes
+	// that single attempt, letting a tracer open a child span per attempt. Return
+	// ctx unchanged to opt out.
+	OnAttemptStart(ctx context.Context, attempt int) context.Context
+
+	// OnAttemptEnd is called after each round-trip attempt returns, with the
+	// attempt's context, its zero-based index, the HTTP status code (0 on
+	// transport error), and the attempt error (nil on success). It closes any
+	// per-attempt span opened by OnAttemptStart.
+	OnAttemptEnd(ctx context.Context, attempt int, statusCode int, err error)
+
 	// OnRequestResponse is called once per logical request by
 	// [Transport.Request] after the response body has been read and buffered.
-	// The event carries the full-read Duration and the exact ResponseBytes.
-	OnRequestResponse(event RequestResponseEvent)
+	// The event carries the full-read Duration and the exact ResponseBytes. ctx
+	// is the request context returned by OnRequestStart.
+	OnRequestResponse(ctx context.Context, event RequestResponseEvent)
 
 	// OnStreamResponse is called once per logical request by [Transport.Stream]
 	// at round-trip return, before the caller reads the body. The event carries
 	// the time-to-first-byte Duration and the Content-Length header
-	// (ContentLength), not a measured byte count.
-	OnStreamResponse(event StreamResponseEvent)
+	// (ContentLength), not a measured byte count. ctx is the request context
+	// returned by OnRequestStart.
+	OnStreamResponse(ctx context.Context, event StreamResponseEvent)
 }
 
 // BaseConnectionObserver is an embeddable no-op implementation of
@@ -167,11 +195,33 @@ func (BaseConnectionObserver) OnShardMapInvalidation(ShardMapInvalidationEvent) 
 // OnAddressRewrite implements ConnectionObserver (no-op).
 func (BaseConnectionObserver) OnAddressRewrite(AddressRewriteEvent) {}
 
+// OnRequestStart implements ConnectionObserver (no-op; returns ctx unchanged).
+func (BaseConnectionObserver) OnRequestStart(ctx context.Context, event RequestEvent) context.Context {
+	_ = event
+	return ctx
+}
+
+// OnAttemptStart implements ConnectionObserver (no-op; returns ctx unchanged).
+func (BaseConnectionObserver) OnAttemptStart(ctx context.Context, attempt int) context.Context {
+	_ = attempt
+	return ctx
+}
+
+// OnAttemptEnd implements ConnectionObserver (no-op).
+func (BaseConnectionObserver) OnAttemptEnd(ctx context.Context, attempt int, statusCode int, err error) {
+	//nolint:dogsled // names document the no-op signature for future overriders
+	_, _, _, _ = ctx, attempt, statusCode, err
+}
+
 // OnRequestResponse implements ConnectionObserver (no-op).
-func (BaseConnectionObserver) OnRequestResponse(RequestResponseEvent) {}
+func (BaseConnectionObserver) OnRequestResponse(ctx context.Context, event RequestResponseEvent) {
+	_, _ = ctx, event
+}
 
 // OnStreamResponse implements ConnectionObserver (no-op).
-func (BaseConnectionObserver) OnStreamResponse(StreamResponseEvent) {}
+func (BaseConnectionObserver) OnStreamResponse(ctx context.Context, event StreamResponseEvent) {
+	_, _ = ctx, event
+}
 
 // Compile-time check that BaseConnectionObserver implements ConnectionObserver.
 var _ ConnectionObserver = (*BaseConnectionObserver)(nil)

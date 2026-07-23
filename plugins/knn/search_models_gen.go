@@ -192,7 +192,7 @@ type SearchModelsParams struct {
 	Scroll time.Duration
 
 	// Search operation type.
-	SearchType string
+	SearchType opensearchapi.SearchType
 
 	// Specify whether to return sequence number and primary term of the last
 	// modification of each hit.
@@ -360,7 +360,7 @@ func (r SearchModelsParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.SeqNoPrimaryTerm != nil {

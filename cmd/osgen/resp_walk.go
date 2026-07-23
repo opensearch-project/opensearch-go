@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"go/token"
+	"os"
 	"slices"
 	"sort"
 	"strconv"
@@ -22,7 +23,7 @@ import (
 type walker struct {
 	registry *typeRegistry
 	spec     *openapi3.T
-	inFlight map[string]struct{} // cycle detection
+	inFlight set[string] // cycle detection
 	vrange   VersionRange
 
 	// excludedFields collects properties dropped by the version-range
@@ -62,8 +63,12 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 	if existing, ok := w.registry.lookup(key); ok {
 		return existing.Name
 	}
-	if _, cycling := w.inFlight[key]; cycling {
+	if w.inFlight.has(key) {
 		return schemaTypeName(key, false)
+	}
+
+	if name, ok := w.resolveStringEnumConst(key, ref.Value, group); ok {
+		return name
 	}
 
 	if resolved, ok := w.resolveParentScopedUnion(ref, schemaKey, group); ok {
@@ -143,7 +148,7 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 		IsShared:  shared,
 	}
 
-	w.inFlight[key] = struct{}{}
+	w.inFlight.add(key)
 	defer delete(w.inFlight, key)
 
 	if schema != nil {
@@ -266,7 +271,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 		Comment:   schema.Description,
 	}
 
-	w.inFlight[schemaKey] = struct{}{}
+	w.inFlight.add(schemaKey)
 	defer delete(w.inFlight, schemaKey)
 
 	seen := make(map[string]bool)
@@ -333,12 +338,12 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 	for _, name := range names {
 		goNames[name] = baseGoName(name)
 	}
-	taken := make(map[string]struct{}, len(names))
+	taken := make(set[string], len(names))
 	assign := func(name string) {
 		base := goNames[name]
 		candidate := base
 		for suffix := 0; ; suffix++ {
-			if _, dup := taken[candidate]; !dup {
+			if !taken.has(candidate) {
 				break
 			}
 			candidate = base + "Raw"
@@ -346,7 +351,7 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 				candidate += strconv.Itoa(suffix + 1)
 			}
 		}
-		taken[candidate] = struct{}{}
+		taken.add(candidate)
 		goNames[name] = candidate
 	}
 	// Non-underscore properties claim the bare name first; underscore-prefixed
@@ -458,12 +463,12 @@ func resolveSchemaAlias(key string, spec *openapi3.T) string {
 	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
 		return key
 	}
-	seen := make(map[string]struct{})
+	seen := make(set[string])
 	for {
-		if _, cycling := seen[key]; cycling {
+		if seen.has(key) {
 			return key
 		}
-		seen[key] = struct{}{}
+		seen.add(key)
 		sr, ok := spec.Components.Schemas[key]
 		if !ok || sr.Ref == "" {
 			return key
@@ -550,6 +555,46 @@ func (w *walker) resolveStringEnum(schema *openapi3.Schema, group string) (strin
 	}
 	// Name collided with an existing type; fall back to plain string rather
 	// than dropping to json.RawMessage.
+	return "", false
+}
+
+// resolveStringEnumConst handles a schema whose oneOf/anyOf branches are all
+// {type: string, const: X} entries (e.g. _common___NodeRole). It registers a
+// shared, string-backed enum type named after the schema key and returns its Go
+// name. Returns ("", false) when the schema is not a const-oneOf (or is denied /
+// version-filtered to nothing), so the caller falls back to its normal handling.
+//
+// The generated type is PERMISSIVE: backed by string, it round-trips unknown
+// values (a newer server's role, a not-yet-listed value) rather than erroring,
+// while its consts give discoverability and compile-time typo/drift detection.
+// This differs from resolveStringEnum's closed int-backed enum, which rejects
+// unknown wire values. Detection is default-on via parseConstOneOf; see
+// string_enum.go.
+func (w *walker) resolveStringEnumConst(key string, schema *openapi3.Schema, group string) (string, bool) {
+	name := schemaTypeName(key, false)
+	members, ok := parseConstOneOf(name, key, schema, w.vrange, stringEnumDenyList, os.Stderr)
+	if !ok {
+		return "", false
+	}
+
+	if existing, exists := w.registry.lookup(key); exists {
+		return existing.Name, true
+	}
+
+	t := &goType{
+		Name:         name,
+		Pkg:          typePkg(true, group, w.registry),
+		SchemaRef:    key,
+		IsShared:     true,
+		IsStringEnum: true,
+		EnumConsts:   members,
+		Comment:      schema.Description,
+	}
+	if registered, registeredOK := w.registry.register(t); registeredOK {
+		return registered.Name, true
+	}
+	// Name collided with an existing type; fall back to plain string rather than
+	// dropping to json.RawMessage.
 	return "", false
 }
 

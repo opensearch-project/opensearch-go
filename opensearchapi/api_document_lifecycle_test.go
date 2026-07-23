@@ -193,7 +193,7 @@ func TestManual_DocumentUpdate(t *testing.T) {
 				BodyReader: strings.NewReader(tt.body),
 			})
 			require.NoError(t, err)
-			require.Equal(t, "updated", resp.Result)
+			require.Equal(t, opensearchapi.ResultUpdated, resp.Result)
 			require.Equal(t, index, resp.Index)
 			require.Equal(t, tt.id, resp.ID)
 			testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

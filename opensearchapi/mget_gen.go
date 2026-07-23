@@ -363,8 +363,8 @@ type MGetOperation struct {
 	// parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 // MGetOperationSourceExcludesIncludes is a typed component of the mget operation.

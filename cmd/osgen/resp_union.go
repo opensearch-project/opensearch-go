@@ -74,6 +74,17 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		return classified[0].GoType
 	}
 
+	// A permissive string-enum branch (type X string, from a const-oneOf) and a
+	// plain-string branch are both decoded from a JSON string and the enum
+	// accepts any string, so the plain-string branch is a dead superset duplicate
+	// (e.g. HighlighterType = builtin-enum | custom-string). Drop it, keeping the
+	// enum, which collapses the union to the enum type -- a single named type the
+	// exhaustive linter can check at switch sites.
+	classified = w.collapseStringEnumWithString(classified)
+	if len(classified) < 2 {
+		return classified[0].GoType
+	}
+
 	// Disambiguate branches that share the same accessor Name.
 	deduplicateAccessorNames(classified)
 
@@ -350,7 +361,7 @@ func flattenRequired(s *openapi3.Schema) []string {
 	if s == nil {
 		return nil
 	}
-	seen := make(map[string]struct{})
+	seen := make(set[string])
 	var out []string
 	var walk func(*openapi3.Schema)
 	walk = func(sch *openapi3.Schema) {
@@ -358,8 +369,8 @@ func flattenRequired(s *openapi3.Schema) []string {
 			return
 		}
 		for _, k := range sch.Required {
-			if _, ok := seen[k]; !ok {
-				seen[k] = struct{}{}
+			if !seen.has(k) {
+				seen.add(k)
 				out = append(out, k)
 			}
 		}
@@ -547,7 +558,7 @@ var decodeEquivalentGroups = [][]string{
 // widest member in its original position. Collapsing can reduce a union back to
 // a single branch.
 func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
-	drop := make(map[int]struct{})
+	drop := make(set[int])
 	for _, group := range decodeEquivalentGroups {
 		best, bestRank := -1, len(group)
 		for i := range branches {
@@ -561,7 +572,7 @@ func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
 		}
 		for i := range branches {
 			if i != best && slices.Index(group, branches[i].GoType) >= 0 {
-				drop[i] = struct{}{}
+				drop.add(i)
 			}
 		}
 	}
@@ -570,9 +581,44 @@ func collapseEquivalentBranches(branches []unionBranch) []unionBranch {
 	}
 	result := make([]unionBranch, 0, len(branches)-len(drop))
 	for i := range branches {
-		if _, dropped := drop[i]; !dropped {
+		if !drop.has(i) {
 			result = append(result, branches[i])
 		}
+	}
+	return result
+}
+
+// collapseStringEnumWithString drops plain-string branches from a union that
+// also has a permissive string-enum branch (a type X string generated from a
+// const-oneOf). Such an enum decodes from a JSON string and accepts ANY string,
+// so a sibling plain-string branch is a dead superset duplicate that a
+// value-agnostic decoder could never distinguish (e.g. HighlighterType =
+// builtin-enum | custom-string). Keeping only the enum collapses the union to
+// that single named type, which the exhaustive linter can check at switch sites.
+//
+// Invariant for the caller's classified[0] access: this only ever DROPS
+// plain-string branches, and only when at least one string-enum branch exists to
+// keep. So a non-empty input yields a non-empty output (the enum branch always
+// survives); it never empties the slice. When there is no string-enum branch, or
+// no plain-string branch to drop, the input is returned unchanged.
+func (w *walker) collapseStringEnumWithString(branches []unionBranch) []unionBranch {
+	hasStringEnum := false
+	for _, b := range branches {
+		if t, ok := w.registry.lookupByName(b.GoType); ok && t.IsStringEnum {
+			hasStringEnum = true
+			break
+		}
+	}
+	if !hasStringEnum {
+		return branches
+	}
+
+	result := make([]unionBranch, 0, len(branches))
+	for _, b := range branches {
+		if b.GoType == "string" {
+			continue // dead: the string-enum branch already accepts any string
+		}
+		result = append(result, b)
 	}
 	return result
 }

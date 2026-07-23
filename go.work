@@ -1,0 +1,9 @@
+go 1.25.9
+
+use (
+	.
+	./cmd/osapilint
+	./cmd/osgen
+	./osotel
+	./osprom
+)

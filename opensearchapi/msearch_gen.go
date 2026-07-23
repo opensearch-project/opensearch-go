@@ -125,7 +125,7 @@ type MSearchParams struct {
 
 	// Indicates whether global term and document frequencies should be used
 	// when scoring returned documents.
-	SearchType string
+	SearchType SearchType
 
 	// Specifies whether aggregation and suggester names should be prefixed by
 	// their respective types in the response.
@@ -168,7 +168,7 @@ func (r MSearchParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.TypedKeys != nil {

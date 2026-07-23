@@ -137,6 +137,13 @@ func (t *routeTrie) match(method, path string) (trieMatch, bool) {
 	// resolve dot segments. No-op (zero alloc) for already-clean paths.
 	path = stdpath.Clean(path)
 
+	// A valid request target is absolute. Clean("") returns ".", and other
+	// relative inputs stay relative; reject them so a bare "/{index}" route does
+	// not match an empty or relative path.
+	if path == "" || path[0] != '/' {
+		return trieMatch{}, false
+	}
+
 	var result trieMatch
 	result.isSystem = len(path) >= 2 && path[0] == '/' && path[1] == '_'
 	node := &t.root

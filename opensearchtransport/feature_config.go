@@ -173,9 +173,9 @@ func (f discoveryFeatures) nodeStatsEnabled() bool {
 //
 //nolint:gochecknoglobals // Package-level constant map for config parsing.
 var discoveryFlagNames = map[string]discoveryFeatures{
-	"cat_shards":         discoverySkipCatShards,
+	opNameCatShards:      discoverySkipCatShards,
 	"routing_num_shards": discoverySkipRoutingNumShards,
-	"cluster_health":     discoverySkipClusterHealth,
+	opNameClusterHealth:  discoverySkipClusterHealth,
 	"node_stats":         discoverySkipNodeStats,
 }
 

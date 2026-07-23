@@ -231,7 +231,7 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 
 Import the request signer from `signer/awsv2`. It signs each request with AWS Signature Version 4 (SigV4) using AWS SDK for Go v2 and automatically discovers AWS credentials from the `~/.aws` folder or environment variables.
 
-To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv.html)
 
 The signer caches credentials so SigV4 signing does not call `Credentials.Retrieve` on every request, which matters most for STS-backed providers (assume-role, web identity, IRSA).
 

@@ -1882,19 +1882,22 @@ Overloaded nodes are demoted from the active partition to the standby partition 
 
 ### Observability
 
-The `ConnectionObserver` interface provides 15 callbacks:
+The `ConnectionObserver` interface provides 18 callbacks:
 
-| Category           | Methods                                                       |
-| ------------------ | ------------------------------------------------------------- |
-| Pool transitions   | `OnPromote`, `OnDemote`                                       |
-| Overload           | `OnOverloadDetected`, `OnOverloadCleared`                     |
-| Discovery          | `OnDiscoveryAdd`, `OnDiscoveryRemove`, `OnDiscoveryUnchanged` |
-| Health             | `OnHealthCheckPass`, `OnHealthCheckFail`                      |
-| Standby            | `OnStandbyPromote`, `OnStandbyDemote`                         |
-| Warmup             | `OnWarmupRequest`                                             |
-| Address resolution | `OnAddressRewrite`                                            |
-| Routing            | `OnRoute`                                                     |
-| Shard invalidation | `OnShardMapInvalidation`                                      |
+| Category           | Methods                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------- |
+| Pool transitions   | `OnPromote`, `OnDemote`                                                                     |
+| Overload           | `OnOverloadDetected`, `OnOverloadCleared`                                                   |
+| Discovery          | `OnDiscoveryAdd`, `OnDiscoveryRemove`, `OnDiscoveryUnchanged`                               |
+| Health             | `OnHealthCheckPass`, `OnHealthCheckFail`                                                    |
+| Standby            | `OnStandbyPromote`, `OnStandbyDemote`                                                       |
+| Warmup             | `OnWarmupRequest`                                                                           |
+| Address resolution | `OnAddressRewrite`                                                                          |
+| Routing            | `OnRoute`                                                                                   |
+| Shard invalidation | `OnShardMapInvalidation`                                                                    |
+| Request execution  | `OnRequestStart`, `OnAttemptStart`, `OnAttemptEnd`, `OnRequestResponse`, `OnStreamResponse` |
+
+The request-execution hooks thread a `context.Context` (see the [observer metrics guide](transport-observer_metrics.md) for the tracing model); the rest take a value event.
 
 ```go
 type myObserver struct {
@@ -1902,8 +1905,8 @@ type myObserver struct {
 }
 
 func (o *myObserver) OnRoute(event opensearchtransport.RouteEvent) {
-    log.Printf("routed %s %s to %s (score=%.2f)",
-        event.Method, event.Path, event.WinnerURL, event.WinnerScore)
+    log.Printf("routed index=%q to %s (score=%.2f)",
+        event.IndexName, event.Selected.URL, event.Selected.Score)
 }
 ```
 

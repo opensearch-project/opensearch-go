@@ -91,7 +91,7 @@ func (r ClusterGetDecommissionAwarenessParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-decommission/#example-getting-zone-decommission-status
 type ClusterGetDecommissionAwarenessResp struct {
-	Entries  map[string]json.RawMessage `json:"-"`
+	Entries  map[string]ClusterDecommissionAwarenessDecommissionStatus `json:"-"`
 	response *opensearch.Response
 }
 

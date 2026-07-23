@@ -72,7 +72,7 @@ type CatHealthParams struct {
 	TimeoutParams
 	DebugParams
 	// The unit used to display time values.
-	Time string
+	Time TimeUnit
 
 	// When `true`, returns `HH:MM:SS` and Unix epoch timestamps.
 	//
@@ -95,7 +95,7 @@ func (r CatHealthParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	if r.Ts != nil {

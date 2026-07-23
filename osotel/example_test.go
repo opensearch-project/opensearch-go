@@ -16,15 +16,16 @@ import (
 )
 
 // Example wires an osotel.Registry into an opensearch client: an OpenTelemetry
-// meter plus one or more Observer bundles. The Registry is the single
-// ConnectionObserver the transport holds, and its Run loop records metrics off
-// the request hot path. Swap the ManualReader for an OTLP exporter's reader in
-// production.
+// meter plus one or more Observer sinks. The Registry is the single
+// ConnectionObserver the transport holds, and its dispatch workers record
+// metrics off the request hot path. RequestObserver (RED) and PoolObserver (USE)
+// together give full RED+USE coverage. Swap the ManualReader for an OTLP
+// exporter's reader in production.
 func Example() {
 	provider := metric.NewMeterProvider(metric.WithReader(metric.NewManualReader()))
 	meter := provider.Meter("github.com/opensearch-project/opensearch-go/v5/osotel")
 
-	reg, err := osotel.New(meter, 1024, osotel.NewRequestObserver())
+	reg, err := osotel.New(meter, osotel.NewRequestObserver(), osotel.NewPoolObserver())
 	if err != nil {
 		panic(err)
 	}

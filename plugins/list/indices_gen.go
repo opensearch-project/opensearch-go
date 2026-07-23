@@ -113,7 +113,7 @@ type IndicesParams struct {
 	Sort string
 
 	// The unit used to display time values.
-	Time string
+	Time opensearchapi.TimeUnit
 }
 
 func (r IndicesParams) get() map[string]string {
@@ -167,7 +167,7 @@ func (r IndicesParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params

@@ -18,17 +18,33 @@ import (
 // types passed by value, so they do not escape to the heap on the fire path.
 func BenchmarkResponseEventFire(b *testing.B) {
 	var obs BaseConnectionObserver
+	ctx := b.Context()
 	req := &http.Request{
 		Method: http.MethodGet,
 		URL:    &url.URL{Scheme: "http", Host: "node-1:9200", Path: "/idx/_search"},
 	}
+	sr := streamResult{
+		escapedPath: "/idx/_search",
+		routeName:   "search",
+		index:       "idx",
+		poolName:    "search",
+		hostPort:    "http://node-1:9200",
+	}
+
+	b.Run("start", func(b *testing.B) {
+		b.ReportAllocs()
+		ev := RequestEvent{Method: http.MethodGet, Path: "/idx/_search", RouteName: "search", Index: "idx"}
+		for b.Loop() {
+			_ = obs.OnRequestStart(ctx, ev)
+		}
+	})
 
 	b.Run("stream", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			obs.OnStreamResponse(StreamResponseEvent{
+			obs.OnStreamResponse(ctx, StreamResponseEvent{
 				ResponseEvent: ResponseEvent{
-					Request:    newRequestEvent(req, 0),
+					Request:    newRequestEvent(req, sr),
 					StatusCode: http.StatusOK,
 				},
 				Duration:      2 * time.Millisecond,
@@ -40,9 +56,9 @@ func BenchmarkResponseEventFire(b *testing.B) {
 	b.Run("request", func(b *testing.B) {
 		b.ReportAllocs()
 		for b.Loop() {
-			obs.OnRequestResponse(RequestResponseEvent{
+			obs.OnRequestResponse(ctx, RequestResponseEvent{
 				ResponseEvent: ResponseEvent{
-					Request:    newRequestEvent(req, 0),
+					Request:    newRequestEvent(req, sr),
 					StatusCode: http.StatusOK,
 				},
 				Duration:      2 * time.Millisecond,
