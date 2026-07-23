@@ -7,7 +7,7 @@
 // Command osapilint migrates a Go module across opensearch-go major versions.
 //
 // It is a generic frontend over a registry of per-adjacent-hop migration tables
-// (v4->v5 today; v3->v4, v2->v3 to follow). The source major is auto-detected
+// (v2->v3, v3->v4, v4->v5). The source major is auto-detected
 // from the consumer's imports and the target defaults to the newest known
 // version, so the common invocation is simply `osapilint rewrite`.
 //
