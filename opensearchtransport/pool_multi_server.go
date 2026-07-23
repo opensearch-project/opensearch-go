@@ -26,6 +26,12 @@ import (
 type multiServerPool struct {
 	name string // Pool identity for metrics/debug (e.g. "roundrobin", "role:data")
 
+	// excludeDCM skips dedicated cluster managers during selection. Set only on
+	// the allConns inventory pool, which serves requests as a last resort when no
+	// router is configured; the inventory holds dedicated cluster managers for
+	// discovery reuse, but they must not receive request traffic by default.
+	excludeDCM bool
+
 	// ctx is the lifecycle context for async pool operations (health checks,
 	// resurrection, RTT probes). Derived from Client.ctx during pool construction
 	// so that Client.Close() cancels all background goroutines. cancel is the

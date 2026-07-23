@@ -59,6 +59,11 @@ type policyConfig struct {
 	activeListCap          *int  // nil = auto-scale; non-nil = user-specified cap value
 	standbyPromotionChecks int64 // consecutive health checks before standby->ready
 
+	// includeDedicatedClusterManagers admits dedicated cluster managers into the
+	// round-robin routing pool. Honored only by RoundRobinPolicy, the sole policy
+	// that admits nodes irrespective of role.
+	includeDedicatedClusterManagers bool
+
 	// Metrics is always non-nil for a New()-constructed transport. Detailed
 	// callback registration below is gated by metrics.detailedEnabled()
 	// (EnableMetrics), not by nil-ness. Policies may register metric callbacks

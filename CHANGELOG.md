@@ -2,7 +2,11 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [4.7.2]
+## [4.7.3]
+
+### Fixed
+
+- Fix an unbounded connection/heap leak in node discovery when the cluster has a dedicated cluster manager (`cluster_manager` role with no work roles). The node was filtered out of the `allConns` inventory while the router received the unfiltered added/removed diffs, so `findConnectionByURL` never matched it: a new `*Connection` was created every discovery cycle and the stale one was never evicted, accumulating without bound in the round-robin fallback pool whose `checkDead` health checks repopulated a per-connection `poolRegistry` `sync.Map` each cycle (leak rate scaled with discovery frequency). `allConns` is now the full connection inventory so discovery reuses and evicts symmetrically, and dedicated cluster managers are excluded at request-routing selection instead: `RoundRobinPolicy` skips them in its `DiscoveryUpdate` add path and `multiServerPool.Next()` skips them during selection (including the no-router fallback), both gated on `IncludeDedicatedClusterManagers`. Discovery still bootstraps against a dedicated cluster manager seed via the seed-fallback pool ([#1003](https://github.com/opensearch-project/opensearch-go/pull/1003))
 
 ## [4.7.0]
 
@@ -656,6 +660,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
+[4.7.3]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.1...v4.7.2
 [4.7.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...v4.7.0
 [4.6.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.5.0...v4.6.0
