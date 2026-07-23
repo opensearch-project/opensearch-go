@@ -31,7 +31,7 @@ func TestWriteFormattedThroughSymlinkedDir(t *testing.T) {
 
 	const src = "package p\n\nfunc F() {}\n"
 	realFile := filepath.Join(realDir, "a.go")
-	require.NoError(t, os.WriteFile(realFile, []byte(src), 0o644))
+	require.NoError(t, os.WriteFile(realFile, []byte(src), 0o600))
 
 	// The path the linter derives from a token position is symlink-resolved.
 	resolvedFile, err := filepath.EvalSymlinks(realFile)
