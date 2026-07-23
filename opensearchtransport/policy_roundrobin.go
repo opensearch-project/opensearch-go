@@ -44,13 +44,6 @@ var (
 type RoundRobinPolicy struct {
 	pool        *multiServerPool // Embedded connection pool for round-robin selection
 	policyState atomic.Int32     // Bitfield: psEnabled|psDisabled|psEnvEnabled|psEnvDisabled
-
-	// includeDCM admits dedicated cluster managers into the round-robin pool.
-	// When false (default), dedicated cluster managers are not routed to. This
-	// is the only routing policy that admits nodes irrespective of role, so it
-	// is the only one that honors this setting; role-scoped policies exclude
-	// dedicated cluster managers by their role criteria.
-	includeDCM bool
 }
 
 func (p *RoundRobinPolicy) policyTypeName() string      { return policyTypeNameRoundRobin }
@@ -65,7 +58,6 @@ func NewRoundRobinPolicy() Policy {
 
 // configurePolicySettings configures pool settings for this policy (leaf policy - no sub-policies).
 func (p *RoundRobinPolicy) configurePolicySettings(config policyConfig) error {
-	p.includeDCM = config.includeDedicatedClusterManagers
 	// Create pool with proper settings if we don't have one yet
 	if p.pool == nil {
 		config.name = policyTypeNameRoundRobin
@@ -126,10 +118,10 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 
 	// Add new connections based on their health status
 	for _, conn := range added {
-		// Dedicated cluster managers do not serve request traffic unless
-		// explicitly included; they remain in the connection inventory for
-		// discovery but are not admitted to the round-robin pool.
-		if !p.includeDCM && conn.Roles.isDedicatedClusterManager() {
+		// Dedicated cluster managers remain in the connection inventory for
+		// discovery but are not admitted to the round-robin pool, so they do
+		// not serve request traffic.
+		if conn.Roles.isDedicatedClusterManager() {
 			continue
 		}
 		// Guard: skip if already a member of this pool.

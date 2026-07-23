@@ -444,12 +444,12 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 	}
 }
 
-// TestIncludeDedicatedClusterManagersConfiguration verifies the configurable behavior
-func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
+// TestDedicatedClusterManagersExcludedFromRouting verifies that dedicated
+// cluster managers are held in the connection inventory but never routed to.
+func TestDedicatedClusterManagersExcludedFromRouting(t *testing.T) {
 	tests := []struct {
-		name                            string
-		includeDedicatedClusterManagers bool
-		nodes                           map[string][]string // nodeName -> roles
+		name  string
+		nodes map[string][]string // nodeName -> roles
 		// expectedInInventory lists nodes that must appear in the allConns pool,
 		// which holds every discovered node regardless of role.
 		expectedInInventory []string
@@ -458,18 +458,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 		expectedNotRoutable []string
 	}{
 		{
-			name:                            "IncludeDedicatedClusterManagers enabled - all nodes routable",
-			includeDedicatedClusterManagers: true,
-			nodes: map[string][]string{
-				"cm-only":   {RoleClusterManager},
-				"data-node": {RoleData},
-			},
-			expectedInInventory: []string{"cm-only", "data-node"},
-			expectedNotRoutable: []string{},
-		},
-		{
-			name:                            "IncludeDedicatedClusterManagers disabled (default) - dedicated CM in inventory but not routable",
-			includeDedicatedClusterManagers: false,
+			name: "dedicated cluster manager in inventory but not routable",
 			nodes: map[string][]string{
 				"cm-only":   {RoleClusterManager},
 				"data-node": {RoleData},
@@ -479,8 +468,7 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			expectedNotRoutable: []string{"cm-only"},
 		},
 		{
-			name:                            "Mixed roles with CM always routable regardless of setting",
-			includeDedicatedClusterManagers: false,
+			name: "mixed cluster_manager and data role is routable",
 			nodes: map[string][]string{
 				"cm-data": {RoleClusterManager, RoleData},
 				"dummy":   {RoleData}, // Add second node to avoid single connection pool
@@ -497,9 +485,8 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 
 			u := mockhttp.GetOpenSearchURL(t)
 			c, err := New(Config{
-				URLs:                            []*url.URL{u},
-				Transport:                       transport,
-				IncludeDedicatedClusterManagers: tt.includeDedicatedClusterManagers,
+				URLs:      []*url.URL{u},
+				Transport: transport,
 			})
 			require.NoError(t, err)
 

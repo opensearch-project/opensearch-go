@@ -199,13 +199,6 @@ type Config struct {
 
 	DiscoverNodesInterval time.Duration
 
-	// IncludeDedicatedClusterManagers includes dedicated cluster manager nodes in request routing.
-	// When false (default), dedicated cluster manager nodes are excluded from client requests,
-	// following best practices and matching the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS behavior.
-	// When true, all nodes including dedicated cluster managers can receive client requests.
-	// Default: false (excludes dedicated cluster managers for better performance)
-	IncludeDedicatedClusterManagers bool
-
 	// DiscoveryHealthCheckRetries sets the number of health check retries during node discovery.
 	// During cold start, health checks are performed asynchronously without blocking.
 	// During running cluster discovery, health checks are performed with retries before adding nodes.
@@ -470,11 +463,10 @@ type Transport struct {
 	discoverNodesInterval time.Duration
 	verifyDeadAfter       time.Duration
 
-	includeDedicatedClusterManagers bool
-	discoveryHealthCheckRetries     int
-	healthCheckTimeout              time.Duration
-	healthCheckMaxRetries           int
-	healthCheckJitter               float64
+	discoveryHealthCheckRetries int
+	healthCheckTimeout          time.Duration
+	healthCheckMaxRetries       int
+	healthCheckJitter           float64
 
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutMax          time.Duration
@@ -955,11 +947,10 @@ func New(cfg Config) (*Transport, error) {
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
 		verifyDeadAfter:       verifyDeadAfter,
 
-		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
-		discoveryHealthCheckRetries:     cfg.DiscoveryHealthCheckRetries,
-		healthCheckTimeout:              healthCheckTimeout,
-		healthCheckMaxRetries:           healthCheckMaxRetries,
-		healthCheckJitter:               healthCheckJitter,
+		discoveryHealthCheckRetries: cfg.DiscoveryHealthCheckRetries,
+		healthCheckTimeout:          healthCheckTimeout,
+		healthCheckMaxRetries:       healthCheckMaxRetries,
+		healthCheckJitter:           healthCheckJitter,
 
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutMax:          resurrectTimeoutMax,
@@ -1179,22 +1170,21 @@ func New(cfg Config) (*Transport, error) {
 	// Configure policy settings for all policies in the router
 	if client.router != nil {
 		config := policyConfig{
-			ctx:                             client.ctx,
-			resurrectTimeoutInitial:         client.resurrectTimeoutInitial,
-			resurrectTimeoutMax:             client.resurrectTimeoutMax,
-			resurrectTimeoutFactorCutoff:    client.resurrectTimeoutFactorCutoff,
-			minimumResurrectTimeout:         client.minimumResurrectTimeout,
-			jitterScale:                     client.jitterScale,
-			serverMaxNewConnsPerSec:         client.serverMaxNewConnsPerSec,
-			clientsPerServer:                client.clientsPerServer,
-			healthCheck:                     client.healthCheck,
-			observer:                        client.observer.Load(),
-			poolInfoReady:                   &client.poolInfoReady,
-			clusterSearchCwnd:               &client.clusterSearch.cwnd,
-			activeListCap:                   client.activeListCapConfig,
-			standbyPromotionChecks:          client.standbyPromotionChecks,
-			includeDedicatedClusterManagers: client.includeDedicatedClusterManagers,
-			metrics:                         client.metrics,
+			ctx:                          client.ctx,
+			resurrectTimeoutInitial:      client.resurrectTimeoutInitial,
+			resurrectTimeoutMax:          client.resurrectTimeoutMax,
+			resurrectTimeoutFactorCutoff: client.resurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:      client.minimumResurrectTimeout,
+			jitterScale:                  client.jitterScale,
+			serverMaxNewConnsPerSec:      client.serverMaxNewConnsPerSec,
+			clientsPerServer:             client.clientsPerServer,
+			healthCheck:                  client.healthCheck,
+			observer:                     client.observer.Load(),
+			poolInfoReady:                &client.poolInfoReady,
+			clusterSearchCwnd:            &client.clusterSearch.cwnd,
+			activeListCap:                client.activeListCapConfig,
+			standbyPromotionChecks:       client.standbyPromotionChecks,
+			metrics:                      client.metrics,
 		}
 		// Use type assertion to check if the router (which is a Policy) implements policyConfigurable
 		if configurablePolicy, ok := client.router.(policyConfigurable); ok {
@@ -2726,7 +2716,6 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 		metrics:                      m,
 		activeListCapConfig:          c.activeListCapConfig,
 		standbyPromotionChecks:       c.standbyPromotionChecks,
-		excludeDCM:                   !c.includeDedicatedClusterManagers,
 	}
 	pool.mu.activeListCap = c.activeListCap
 	pool.mu.healthCheck = c.healthCheck

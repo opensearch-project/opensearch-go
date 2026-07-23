@@ -1567,29 +1567,23 @@ func TestConnectionPoolPromotion(t *testing.T) {
 
 		tests := []struct {
 			name            string
-			includeDCM      bool
 			ready           []*Connection
 			wantReadyLen    int      // connections held in the inventory ready list
 			wantInInventory []string // names that must be present in the inventory
-			wantExcludeDCM  bool     // pool skips dedicated cluster managers on selection
 			wantNotRoutable []string // dedicated cluster managers Next() must never return
 		}{
 			{
-				name:            "default keeps dedicated cluster manager in inventory but not routable",
-				includeDCM:      false,
+				name:            "dedicated cluster manager kept in inventory but not routable",
 				ready:           []*Connection{dataConn(), cmConn(), mixedConn()},
 				wantReadyLen:    3,
 				wantInInventory: []string{"data-node", "cm-node", "mixed-node"},
-				wantExcludeDCM:  true,
 				wantNotRoutable: []string{"cm-node"},
 			},
 			{
-				name:            "includes dedicated cluster manager when configured",
-				includeDCM:      true,
-				ready:           []*Connection{dataConn(), cmConn()},
+				name:            "mixed cluster_manager and data role is routable",
+				ready:           []*Connection{dataConn(), mixedConn()},
 				wantReadyLen:    2,
-				wantInInventory: []string{"data-node", "cm-node"},
-				wantExcludeDCM:  false,
+				wantInInventory: []string{"data-node", "mixed-node"},
 				wantNotRoutable: nil,
 			},
 		}
@@ -1599,8 +1593,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 				t.Parallel()
 				u, _ := url.Parse("http://localhost:9200")
 				client, err := New(Config{
-					URLs:                            []*url.URL{u},
-					IncludeDedicatedClusterManagers: tt.includeDCM,
+					URLs: []*url.URL{u},
 				})
 				require.NoError(t, err)
 
@@ -1619,10 +1612,8 @@ func TestConnectionPoolPromotion(t *testing.T) {
 					require.Contains(t, names, want, "inventory must contain %q", want)
 				}
 
-				require.Equal(t, tt.wantExcludeDCM, statusPool.excludeDCM, "excludeDCM")
-
 				// Dedicated cluster managers stay in the inventory but must not be
-				// handed out by Next() when excludeDCM is set.
+				// handed out by Next().
 				for _, dcm := range tt.wantNotRoutable {
 					for range len(tt.ready) * 4 {
 						conn, nextErr := statusPool.Next()
@@ -2015,8 +2006,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: false, // This will trigger debug logging
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
 
@@ -2037,10 +2027,6 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		}
 		require.True(t, names["data-node"], "Inventory should include data node")
 		require.True(t, names["cm-node"], "Inventory should include dedicated cluster manager")
-
-		// With IncludeDedicatedClusterManagers disabled the pool excludes
-		// dedicated cluster managers from routing selection.
-		require.True(t, statusPool.excludeDCM, "Pool should exclude dedicated cluster managers from routing")
 
 		// The dedicated cluster manager must never be handed out for routing.
 		for i := 0; i < len(statusPool.mu.ready)*4; i++ {
