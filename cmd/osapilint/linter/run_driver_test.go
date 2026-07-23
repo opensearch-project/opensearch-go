@@ -7,6 +7,7 @@
 package linter
 
 import (
+	"context"
 	"io"
 	"os"
 	"path/filepath"
@@ -128,6 +129,72 @@ func TestUsageWritesText(t *testing.T) {
 	require.NoError(t, err)
 	require.Contains(t, string(out), "osapilint rewrite")
 	require.Contains(t, string(out), "osapilint vet")
+}
+
+// TestRewriteHelpFlag covers the -h clean exit: flag parsing returns
+// flag.ErrHelp, which Rewrite treats as success (usage was already printed), not
+// an operational failure.
+func TestRewriteHelpFlag(t *testing.T) {
+	silenceOutput(t) // flag prints usage to stderr
+	require.NoError(t, Rewrite([]string{"-h"}))
+}
+
+// TestRewriteAutoDetectWarnings covers the auto-detect success path through the
+// driver: a two-major consumer detects the lowest source, prints the multi-major
+// warning, and proceeds through a multi-hop dry run.
+func TestRewriteAutoDetectWarnings(t *testing.T) {
+	silenceOutput(t)
+	dir := stageTwoMajor(t)
+	require.NoError(t, Rewrite([]string{dir})) // -src defaults to auto
+}
+
+// TestRewriteAutoDetectError covers the driver's handling of a failed
+// auto-detection: a module with no opensearch-go import has nothing to migrate,
+// and Rewrite surfaces the detection error.
+func TestRewriteAutoDetectError(t *testing.T) {
+	silenceOutput(t)
+	dir := t.TempDir()
+	writeModule(t, dir, map[string]string{
+		"go.mod": "module example.com/none\n\ngo 1.24\n",
+		"p.go":   "package none\n\nvar X = 1\n",
+	})
+	err := Rewrite([]string{dir})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no opensearch-go imports")
+}
+
+// TestRewritePlanChainError covers the driver's handling of an unreachable
+// target: a -dst beyond the newest registered hop has no migration path, so
+// planChain fails.
+func TestRewritePlanChainError(t *testing.T) {
+	silenceOutput(t)
+	err := Rewrite([]string{"-src=v2", "-dst=v99", t.TempDir()})
+	require.Error(t, err)
+}
+
+// TestRewriteHopLoadError covers the per-hop apply-error wrap: a module that does
+// not compile trips Walk's load gate inside runTypeAwareRewrite, and Rewrite
+// annotates it with the hop being applied.
+func TestRewriteHopLoadError(t *testing.T) {
+	silenceOutput(t)
+	dir := t.TempDir()
+	writeModule(t, dir, map[string]string{
+		"go.mod": "module example.com/broken\n\ngo 1.24\n",
+		"bad.go": "package broken\n\nfunc F() int { return undefinedSymbol }\n",
+	})
+	err := Rewrite([]string{"-src=v2", "-dst=v3", dir})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "v2 -> v3")
+}
+
+// TestBumpAndBuildError covers bumpAndBuild's command-failure path without a
+// network: an already-cancelled context makes the `go get` exec fail immediately,
+// so the error is surfaced rather than the success/build path taken.
+func TestBumpAndBuildError(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	err := bumpAndBuild(ctx, t.TempDir(), 5)
+	require.Error(t, err)
 }
 
 // writeModule writes the given files (relative path -> content) under dir,
