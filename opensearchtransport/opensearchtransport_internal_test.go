@@ -1601,86 +1601,88 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
 	})
 
-	t.Run("promoteConnectionPoolWithLock filters dedicated cluster managers", func(t *testing.T) {
-		// Create connections with different roles
-		dataConn := &Connection{
-			URL:   &url.URL{Host: "data:9200"},
-			Name:  "data-node",
-			Roles: newRoleSet([]string{"data"}),
+	t.Run("promoteConnectionPoolWithLock dedicated cluster manager handling", func(t *testing.T) {
+		t.Parallel()
+
+		dataConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "data:9200"}, Name: "data-node", Roles: newRoleSet([]string{"data"})}
 		}
-		clusterManagerConn := &Connection{
-			URL:   &url.URL{Host: "cm:9200"},
-			Name:  "cm-node",
-			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		cmConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "cm:9200"}, Name: "cm-node", Roles: newRoleSet([]string{"cluster_manager"})}
 		}
-		mixedConn := &Connection{
-			URL:   &url.URL{Host: "mixed:9200"},
-			Name:  "mixed-node",
-			Roles: newRoleSet([]string{"cluster_manager", "data"}), // Not dedicated
+		mixedConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "mixed:9200"}, Name: "mixed-node", Roles: newRoleSet([]string{"cluster_manager", "data"})}
 		}
 
-		u, _ := url.Parse("http://localhost:9200")
-		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: false, // Default: exclude dedicated CMs
-		})
-		require.NoError(t, err)
-
-		client.mu.Lock()
-		statusPool := client.promoteConnectionPoolWithLock(
-			[]*Connection{dataConn, clusterManagerConn, mixedConn},
-			[]*Connection{},
-		)
-		client.mu.Unlock()
-
-		// Should exclude dedicated cluster manager but include mixed role node
-		require.Len(t, statusPool.mu.ready, 2, "Should exclude dedicated cluster manager")
-
-		names := make([]string, len(statusPool.mu.ready))
-		for i, conn := range statusPool.mu.ready {
-			names[i] = conn.Name
-		}
-		require.Contains(t, names, "data-node", "Should include data node")
-		require.Contains(t, names, "mixed-node", "Should include mixed role node")
-		require.NotContains(t, names, "cm-node", "Should exclude dedicated cluster manager")
-	})
-
-	t.Run("promoteConnectionPoolWithLock includes dedicated cluster managers when configured", func(t *testing.T) {
-		// Create connections with different roles
-		dataConn := &Connection{
-			URL:   &url.URL{Host: "data:9200"},
-			Name:  "data-node",
-			Roles: newRoleSet([]string{"data"}),
-		}
-		clusterManagerConn := &Connection{
-			URL:   &url.URL{Host: "cm:9200"},
-			Name:  "cm-node",
-			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		tests := []struct {
+			name            string
+			includeDCM      bool
+			ready           []*Connection
+			wantReadyLen    int      // connections held in the inventory ready list
+			wantInInventory []string // names that must be present in the inventory
+			wantExcludeDCM  bool     // pool skips dedicated cluster managers on selection
+			wantNotRoutable []string // dedicated cluster managers Next() must never return
+		}{
+			{
+				name:            "default keeps dedicated cluster manager in inventory but not routable",
+				includeDCM:      false,
+				ready:           []*Connection{dataConn(), cmConn(), mixedConn()},
+				wantReadyLen:    3,
+				wantInInventory: []string{"data-node", "cm-node", "mixed-node"},
+				wantExcludeDCM:  true,
+				wantNotRoutable: []string{"cm-node"},
+			},
+			{
+				name:            "includes dedicated cluster manager when configured",
+				includeDCM:      true,
+				ready:           []*Connection{dataConn(), cmConn()},
+				wantReadyLen:    2,
+				wantInInventory: []string{"data-node", "cm-node"},
+				wantExcludeDCM:  false,
+				wantNotRoutable: nil,
+			},
 		}
 
-		u, _ := url.Parse("http://localhost:9200")
-		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: true, // Include dedicated CMs
-		})
-		require.NoError(t, err)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				u, _ := url.Parse("http://localhost:9200")
+				client, err := New(Config{
+					URLs:                            []*url.URL{u},
+					IncludeDedicatedClusterManagers: tt.includeDCM,
+				})
+				require.NoError(t, err)
 
-		client.mu.Lock()
-		statusPool := client.promoteConnectionPoolWithLock(
-			[]*Connection{dataConn, clusterManagerConn},
-			[]*Connection{},
-		)
-		client.mu.Unlock()
+				client.mu.Lock()
+				statusPool := client.promoteConnectionPoolWithLock(tt.ready, []*Connection{})
+				client.mu.Unlock()
 
-		// Should include all connections including dedicated cluster manager
-		require.Len(t, statusPool.mu.ready, 2, "Should include all connections")
+				require.Len(t, statusPool.mu.ready, tt.wantReadyLen, "inventory ready-list length")
+				require.Empty(t, statusPool.mu.dead, "no connections expected in the dead list")
 
-		names := make([]string, len(statusPool.mu.ready))
-		for i, conn := range statusPool.mu.ready {
-			names[i] = conn.Name
+				names := make([]string, len(statusPool.mu.ready))
+				for i, conn := range statusPool.mu.ready {
+					names[i] = conn.Name
+				}
+				for _, want := range tt.wantInInventory {
+					require.Contains(t, names, want, "inventory must contain %q", want)
+				}
+
+				require.Equal(t, tt.wantExcludeDCM, statusPool.excludeDCM, "excludeDCM")
+
+				// Dedicated cluster managers stay in the inventory but must not be
+				// handed out by Next() when excludeDCM is set.
+				for _, dcm := range tt.wantNotRoutable {
+					for range len(tt.ready) * 4 {
+						conn, nextErr := statusPool.Next()
+						if nextErr != nil {
+							break
+						}
+						require.NotEqual(t, dcm, conn.Name, "dedicated cluster manager %q must not be selected", dcm)
+					}
+				}
+			})
 		}
-		require.Contains(t, names, "data-node", "Should include data node")
-		require.Contains(t, names, "cm-node", "Should include dedicated cluster manager")
 	})
 }
 
@@ -2081,9 +2083,29 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		)
 		client.mu.Unlock()
 
-		// Should exclude dedicated cluster manager and debug log it
-		require.Len(t, statusPool.mu.ready, 1, "Should exclude dedicated cluster manager")
-		require.Equal(t, "data-node", statusPool.mu.ready[0].Name, "Should include data node")
+		// The inventory holds every connection regardless of role, so the
+		// dedicated cluster manager remains present alongside the data node.
+		require.Len(t, statusPool.mu.ready, 2, "Inventory should hold all connections including the dedicated cluster manager")
+
+		names := map[string]bool{}
+		for _, conn := range statusPool.mu.ready {
+			names[conn.Name] = true
+		}
+		require.True(t, names["data-node"], "Inventory should include data node")
+		require.True(t, names["cm-node"], "Inventory should include dedicated cluster manager")
+
+		// With IncludeDedicatedClusterManagers disabled the pool excludes
+		// dedicated cluster managers from routing selection.
+		require.True(t, statusPool.excludeDCM, "Pool should exclude dedicated cluster managers from routing")
+
+		// The dedicated cluster manager must never be handed out for routing.
+		for i := 0; i < len(statusPool.mu.ready)*4; i++ {
+			conn, err := statusPool.Next()
+			if err != nil {
+				break
+			}
+			require.Equal(t, "data-node", conn.Name, "Only the data node should be selected for routing")
+		}
 	})
 
 	t.Run("promoteConnectionPoolWithLock preserves multiServerPool settings", func(t *testing.T) {
