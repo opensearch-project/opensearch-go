@@ -31,11 +31,27 @@ var analyzers = []*analysis.Analyzer{
 // Analyzers returns the semantic analyzers run by the `vet` subcommand.
 func Analyzers() []*analysis.Analyzer { return analyzers }
 
+// UsageError is an invocation error - a bad flag or a bad -src/-dst value - as
+// distinct from an operational failure. The CLI maps it to exit code 2 (the flag
+// convention for a malformed command line) and reserves exit 1 for migration
+// failures. Msg is the text the caller should print; it is empty when the flag
+// package has already written the error and usage itself (parse failures), so the
+// caller must not print it a second time.
+type UsageError struct{ Msg string }
+
+func (e *UsageError) Error() string {
+	if e.Msg != "" {
+		return e.Msg
+	}
+	return "invalid command line"
+}
+
 // Rewrite plans the source->target migration (auto-detecting the source from the
 // consumer's imports unless -src is given) and applies each hop in series with
 // full source-version type resolution. Without -w it performs a dry run,
-// printing intended edits for review before committing. All operational failures
-// are returned; the caller owns the process exit code.
+// printing intended edits for review before committing. Failures are returned as
+// errors: invocation errors carry a *UsageError (exit 2), operational failures
+// map to exit 1. The caller owns the process exit code.
 func Rewrite(args []string) error {
 	fs := flag.NewFlagSet("rewrite", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
@@ -43,12 +59,13 @@ func Rewrite(args []string) error {
 	srcFlag := fs.String("src", "auto", "source major version (e.g. v4) or 'auto' to detect from the consumer's imports")
 	dstFlag := fs.String("dst", "", "target major version (e.g. v5); default: newest known")
 	if err := fs.Parse(args); err != nil {
-		// flag already printed usage (to os.Stderr, set above); -h/-help is
-		// not an operational error, so exit cleanly rather than as a failure.
+		// -h/-help is not an error; exit cleanly. For any other parse failure the
+		// flag package already wrote the message and usage to os.Stderr (set
+		// above), so return a message-less UsageError: exit 2, do not reprint.
 		if errors.Is(err, flag.ErrHelp) {
 			return nil
 		}
-		return err
+		return &UsageError{}
 	}
 
 	dir := "."
@@ -64,7 +81,7 @@ func Rewrite(args []string) error {
 	if *dstFlag != "" {
 		m, err := parseMajor(*dstFlag)
 		if err != nil {
-			return fmt.Errorf("-dst: %w", err)
+			return &UsageError{Msg: "-dst: " + err.Error()}
 		}
 		dst = m
 	}
@@ -83,7 +100,7 @@ func Rewrite(args []string) error {
 	} else {
 		m, err := parseMajor(*srcFlag)
 		if err != nil {
-			return fmt.Errorf("-src: %w", err)
+			return &UsageError{Msg: "-src: " + err.Error()}
 		}
 		src = m
 	}

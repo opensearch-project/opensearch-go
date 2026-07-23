@@ -59,6 +59,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -76,6 +77,16 @@ func main() {
 	switch os.Args[1] {
 	case "rewrite":
 		if err := linter.Rewrite(os.Args[2:]); err != nil {
+			// A UsageError is a malformed command line: exit 2 by flag
+			// convention. When it carries no message the flag package already
+			// wrote the error and usage, so print nothing more.
+			var ue *linter.UsageError
+			if errors.As(err, &ue) {
+				if ue.Msg != "" {
+					fmt.Fprintln(os.Stderr, "rewrite:", ue.Msg)
+				}
+				os.Exit(2)
+			}
 			fmt.Fprintln(os.Stderr, "rewrite:", err)
 			os.Exit(1)
 		}
