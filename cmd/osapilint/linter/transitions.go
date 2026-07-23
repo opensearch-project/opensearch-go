@@ -22,6 +22,11 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/ap
 // major is an opensearch-go module major version (the N in .../opensearch-go/vN).
 type major int
 
+// Major is the exported alias of major. It lets the library entrypoint
+// MigrateSDK name versions in its public surface without changing any of the
+// package's internal signatures (which keep using major).
+type Major = major
+
 // surfaces holds the embedded exported-struct surface for each known version,
 // keyed by major. gensurface produces these JSON files; they are embedded in
 // embed.go and referenced here so composition can diff any src/dst pair.

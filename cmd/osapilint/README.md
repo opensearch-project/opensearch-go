@@ -52,6 +52,25 @@ go get github.com/opensearch-project/opensearch-go/v5 && go build ./...
 osapilint vet -fix ./...
 ```
 
+## Using it as a library
+
+`cmd/osapilint/linter` is importable: a downstream tool can run the migration against a directory without the CLI, its flags, or its stdout. Two entrypoints:
+
+- `MigrateSDK(ctx, SDKConfig{...})` runs the opensearch-go SDK migration - the same planning and hops as `osapilint rewrite`, returning one `SDKResult` per hop (each with the per-file `Result` edits and any manual followups) instead of printing. `Src`/`Dst` of `0` mean auto-detect / newest-known; `Write` false is a dry run; `src >= dst` returns no hops and no error. Source-detection notes ride the first hop's `Warnings`, and the `context` cancels the between-hop rebuilds.
+- `Walk(WalkConfig{...}, visit)` drives a caller-supplied `Visitor` over the module's loaded files, for a migration this package does not ship (e.g. an opensearchtools overlay). It keeps the same load gate, cross-variant dedupe, and abort-before-write-on-unclassified safety net.
+
+```go
+import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/linter"
+
+// opensearch-go SDK migration: auto-detect source, dry run to the newest version.
+hops, err := linter.MigrateSDK(ctx, linter.SDKConfig{Dir: dir})
+for _, h := range hops {
+    fmt.Printf("v%d -> v%d: %d file(s)\n", h.From, h.To, len(h.Files))
+}
+```
+
+`Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over `MigrateSDK`, so the command and the library apply identical edits.
+
 ## How it works
 
 Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.

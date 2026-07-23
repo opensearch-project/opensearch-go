@@ -54,3 +54,21 @@ func TestExportedHelpersReachable(t *testing.T) {
 	require.Empty(t, linter.RewriteImports(&ast.File{}, nil))
 	require.NotNil(t, linter.MarkerExpr("migrate by hand"))
 }
+
+// TestMigrateSDKReachable proves the opensearch-go SDK migration seam is exported
+// and callable from an external module, alongside the Walk seam above. It locks
+// linter.MigrateSDK/SDKConfig/Major as the surface an overlay dispatches to; the
+// migration itself is exercised by the in-package migratesdk_test.go.
+func TestMigrateSDKReachable(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "go.mod"),
+		[]byte("module example.com/ext\n\ngo 1.25\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "p.go"),
+		[]byte("package ext\n\nvar X = 1\n"), 0o600))
+
+	// No opensearch-go import, so auto-detection fails: the value here is proving
+	// the exported call reaches the engine from outside the package.
+	_, err := linter.MigrateSDK(t.Context(), linter.SDKConfig{Dir: dir})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "no opensearch-go imports")
+}

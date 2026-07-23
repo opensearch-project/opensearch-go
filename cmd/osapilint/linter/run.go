@@ -110,49 +110,31 @@ func Rewrite(args []string) error {
 		return nil
 	}
 
-	plans, err := planChain(src, dst)
+	// The engine (planning, per-hop type-aware rewrite, between-hop rebuild) lives
+	// in MigrateSDK; Rewrite is the CLI shell over it. src/dst are already resolved
+	// above, so pass them explicitly rather than letting MigrateSDK re-detect.
+	results, err := MigrateSDK(context.Background(), SDKConfig{Dir: dir, Src: src, Dst: dst, Write: *write})
 	if err != nil {
 		return err
 	}
 
 	var followups []string
-	for i, p := range plans {
-		results, err := runTypeAwareRewrite(rewriteConfig{
-			dir:            dir,
-			patterns:       []string{patternAll},
-			delta:          p.delta,
-			renames:        p.renames,
-			regroups:       p.regroups,
-			removedHelpers: p.removedHelpers,
-			importPrefixes: p.importPrefixes,
-			write:          *write,
-		})
-		if err != nil {
-			return fmt.Errorf("v%d -> v%d: %w", p.from, p.to, err)
+	for _, r := range results {
+		if len(results) > 1 {
+			fmt.Printf("== v%d -> v%d ==\n", r.From, r.To)
 		}
-
-		if len(plans) > 1 {
-			fmt.Printf("== v%d -> v%d ==\n", p.from, p.to)
-		}
-		for _, r := range results {
-			fmt.Printf("%s\n", r.path)
-			for _, e := range r.edits {
+		for _, f := range r.Files {
+			fmt.Printf("%s\n", f.Path)
+			for _, e := range f.Edits {
 				fmt.Printf("  - %s\n", e)
 			}
 		}
 		if !*write {
-			fmt.Printf("[dry run] %d file(s) would change.\n", len(results))
+			fmt.Printf("[dry run] %d file(s) would change.\n", len(r.Files))
 		} else {
-			fmt.Printf("rewrote %d file(s).\n", len(results))
+			fmt.Printf("rewrote %d file(s).\n", len(r.Files))
 		}
-		followups = append(followups, p.followups...)
-
-		isLast := i == len(plans)-1
-		if *write && !isLast {
-			if err := bumpAndBuild(context.Background(), dir, p.to); err != nil {
-				return fmt.Errorf("preparing v%d before the next hop: %w", p.to, err)
-			}
-		}
+		followups = append(followups, r.Followups...)
 	}
 
 	if !*write {
