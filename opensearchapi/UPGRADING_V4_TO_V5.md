@@ -14,7 +14,8 @@ git clone https://github.com/opensearch-project/opensearch-go
 (cd opensearch-go/cmd/osapilint && go build -o "$(go env GOPATH)/bin/osapilint" .)
 
 # From your module root. Source (v4) is auto-detected from imports; target defaults to v5.
-osapilint rewrite -w ./...
+osapilint rewrite ./...              # dry run: review the intended edits first
+osapilint rewrite -w ./...           # then apply
 
 # Bump the dependency and build.
 go get github.com/opensearch-project/opensearch-go/v5 && go build ./...

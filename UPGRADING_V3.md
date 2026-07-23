@@ -2,6 +2,10 @@
 
 Version 3.0.0 is a major refactor of the client.
 
+## Automated migration
+
+The [`osapilint`](cmd/osapilint/README.md) tool assists with this upgrade but does not fully automate it. v2 -> v3 is the project's one structural boundary - the function-based request API (`opensearchapi.<X>Request{...}.Do(ctx, client)`) became the typed sub-client API described below - so the tool bumps the import path, rewrites the two seed root-client ops (`Ping`, `Indices.Exists`) best-effort, and reports every other call and response-handling change as a `MANUAL` worklist item rather than guess a rewrite it cannot prove. Treat its dry-run output as a migration checklist for the sections below, not a finished rewrite. See [the v2 -> v3 hop](cmd/osapilint/README.md#the-v2---v3-hop) in the tool README for exactly what it does and does not touch.
+
 ## Client Creation
 
 You now create the client from the opensearchapi package instead of opensearch. This was done to make the different APIs independent from each other. Plugin APIs like Security get their own folder and therefore their own sub-lib.
