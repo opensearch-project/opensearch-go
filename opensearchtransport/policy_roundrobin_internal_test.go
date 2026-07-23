@@ -198,3 +198,46 @@ func TestRoundRobinPolicy(t *testing.T) {
 		require.Same(t, pool1, pool2, "Pool should not be recreated")
 	})
 }
+
+// TestRoundRobinPolicyExcludesDedicatedClusterManagers verifies that
+// DiscoveryUpdate never admits a dedicated cluster manager into the round-robin
+// pool, while every other role (including cluster_manager combined with a work
+// role) is admitted.
+func TestRoundRobinPolicyExcludesDedicatedClusterManagers(t *testing.T) {
+	tests := []struct {
+		name        string
+		roles       []string
+		wantAdmited bool
+	}{
+		{"dedicated cluster_manager excluded", []string{RoleClusterManager}, false},
+		{"deprecated master excluded", []string{RoleMaster}, false},
+		{"cluster_manager with data admitted", []string{RoleClusterManager, RoleData}, true},
+		{"data node admitted", []string{RoleData}, true},
+		{"coordinating-only admitted", []string{}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			policy := NewRoundRobinPolicy().(*RoundRobinPolicy)
+			require.NoError(t, policy.configurePolicySettings(createTestConfig()))
+
+			// Build via newRoleSet so the deprecated master->cluster_manager
+			// alias is applied, matching how discovery constructs connections.
+			conn := &Connection{URL: &url.URL{Scheme: "http", Host: "node:9200"}, Roles: newRoleSet(tt.roles)}
+			require.NoError(t, policy.DiscoveryUpdate([]*Connection{conn}, nil, nil))
+
+			policy.pool.mu.RLock()
+			_, admitted := policy.pool.mu.members[conn]
+			memberCount := len(policy.pool.mu.members)
+			policy.pool.mu.RUnlock()
+
+			require.Equal(t, tt.wantAdmited, admitted,
+				"membership of a %v node", tt.roles)
+			if tt.wantAdmited {
+				require.Equal(t, 1, memberCount, "admitted node must be the sole member")
+			} else {
+				require.Zero(t, memberCount, "dedicated cluster manager must not be admitted")
+			}
+		})
+	}
+}

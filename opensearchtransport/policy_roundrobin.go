@@ -118,6 +118,12 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 
 	// Add new connections based on their health status
 	for _, conn := range added {
+		// Dedicated cluster managers remain in the connection inventory for
+		// discovery but are not admitted to the round-robin pool, so they do
+		// not serve request traffic.
+		if conn.Roles.isDedicatedClusterManager() {
+			continue
+		}
 		// Guard: skip if already a member of this pool.
 		if _, exists := p.pool.mu.members[conn]; exists {
 			continue

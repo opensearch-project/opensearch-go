@@ -199,13 +199,6 @@ type Config struct {
 
 	DiscoverNodesInterval time.Duration
 
-	// IncludeDedicatedClusterManagers includes dedicated cluster manager nodes in request routing.
-	// When false (default), dedicated cluster manager nodes are excluded from client requests,
-	// following best practices and matching the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS behavior.
-	// When true, all nodes including dedicated cluster managers can receive client requests.
-	// Default: false (excludes dedicated cluster managers for better performance)
-	IncludeDedicatedClusterManagers bool
-
 	// DiscoveryHealthCheckRetries sets the number of health check retries during node discovery.
 	// During cold start, health checks are performed asynchronously without blocking.
 	// During running cluster discovery, health checks are performed with retries before adding nodes.
@@ -470,11 +463,10 @@ type Transport struct {
 	discoverNodesInterval time.Duration
 	verifyDeadAfter       time.Duration
 
-	includeDedicatedClusterManagers bool
-	discoveryHealthCheckRetries     int
-	healthCheckTimeout              time.Duration
-	healthCheckMaxRetries           int
-	healthCheckJitter               float64
+	discoveryHealthCheckRetries int
+	healthCheckTimeout          time.Duration
+	healthCheckMaxRetries       int
+	healthCheckJitter           float64
 
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutMax          time.Duration
@@ -955,11 +947,10 @@ func New(cfg Config) (*Transport, error) {
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
 		verifyDeadAfter:       verifyDeadAfter,
 
-		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
-		discoveryHealthCheckRetries:     cfg.DiscoveryHealthCheckRetries,
-		healthCheckTimeout:              healthCheckTimeout,
-		healthCheckMaxRetries:           healthCheckMaxRetries,
-		healthCheckJitter:               healthCheckJitter,
+		discoveryHealthCheckRetries: cfg.DiscoveryHealthCheckRetries,
+		healthCheckTimeout:          healthCheckTimeout,
+		healthCheckMaxRetries:       healthCheckMaxRetries,
+		healthCheckJitter:           healthCheckJitter,
 
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutMax:          resurrectTimeoutMax,
@@ -2740,10 +2731,13 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *singleServerPool:
-		// Promote from single to multi-node pool using client-configured timeouts
+		// Promote from single to multi-node pool using client-configured timeouts.
+		// allConns is the full connection inventory; routing policies keep query
+		// traffic off dedicated cluster managers (see RoundRobinPolicy).
 		filteredReady := make([]*Connection, 0, len(readyConnections))
 		filteredDead := make([]*Connection, 0, len(deadConnections))
-		c.applyConnectionFiltering(readyConnections, deadConnections, &filteredReady, &filteredDead)
+		filteredReady = append(filteredReady, readyConnections...)
+		filteredDead = append(filteredDead, deadConnections...)
 
 		// Shuffle connections for load distribution unless disabled
 		if !c.skipConnectionShuffle && len(filteredReady) > 1 {
@@ -2834,26 +2828,6 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 
 	default:
 		panic(fmt.Sprintf("unsupported connection pool type for demotion: %T", currentPool))
-	}
-}
-
-// applyConnectionFiltering applies client-level filtering for dedicated cluster managers
-func (c *Transport) applyConnectionFiltering(readyConnections, deadConnections []*Connection, filteredReady, filteredDead *[]*Connection) {
-	for _, conn := range readyConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
-			}
-			continue
-		}
-		*filteredReady = append(*filteredReady, conn)
-	}
-
-	for _, conn := range deadConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			continue
-		}
-		*filteredDead = append(*filteredDead, conn)
 	}
 }
 

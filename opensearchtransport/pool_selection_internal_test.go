@@ -537,3 +537,74 @@ func TestTryZombieWithLock(t *testing.T) {
 		require.Equal(t, "seed:9200", c.URL.Host, "only the viable connection is an eligible zombie")
 	})
 }
+
+// TestMultiServerPoolNextSkipsDedicatedClusterManagers exercises the
+// dedicated-cluster-manager skip on every selection path: the active
+// round-robin loop (Next), the eviction-retry loop (nextWithEviction), and the
+// double-check fallback (nextFallback). A dedicated cluster manager stays in the
+// pool but is never handed out, unless it is a user-supplied seed.
+func TestMultiServerPoolNextSkipsDedicatedClusterManagers(t *testing.T) {
+	newConn := func(host string, roles []string, seed bool) *Connection {
+		return &Connection{URL: &url.URL{Scheme: "http", Host: host}, Roles: newRoleSet(roles), seed: seed}
+	}
+
+	// selectors names each entry point that must honor the skip, so every case
+	// is verified against all of them.
+	selectors := []struct {
+		name   string
+		invoke func(*multiServerPool) (*Connection, error)
+	}{
+		{"Next", (*multiServerPool).Next},
+		{"nextWithEviction", (*multiServerPool).nextWithEviction},
+		{"nextFallback", (*multiServerPool).nextFallback},
+	}
+
+	tests := []struct {
+		name     string
+		conns    []*Connection
+		wantHost string // host that must be returned; empty means expect ErrNoConnections
+	}{
+		{
+			name:     "skips dedicated cluster manager, selects data node",
+			conns:    []*Connection{newConn("cm", []string{RoleClusterManager}, false), newConn("data", []string{RoleData}, false)},
+			wantHost: "data",
+		},
+		{
+			name:     "only dedicated cluster managers yields no connection",
+			conns:    []*Connection{newConn("cm1", []string{RoleClusterManager}, false), newConn("cm2", []string{RoleMaster}, false)},
+			wantHost: "",
+		},
+		{
+			name:     "dedicated cluster manager seed is selectable",
+			conns:    []*Connection{newConn("cm-seed", []string{RoleClusterManager}, true)},
+			wantHost: "cm-seed",
+		},
+	}
+
+	for _, tt := range tests {
+		for _, sel := range selectors {
+			t.Run(tt.name+"/"+sel.name, func(t *testing.T) {
+				pool := &multiServerPool{}
+				pool.mu.ready = tt.conns
+				for _, conn := range pool.mu.ready {
+					conn.setLifecycleBit(lcActive)
+				}
+				pool.mu.activeCount = len(pool.mu.ready)
+
+				// Select repeatedly so the round-robin cursor visits every slot,
+				// ensuring a dedicated cluster manager is never returned on any turn.
+				for range len(tt.conns) * 3 {
+					c, err := sel.invoke(pool)
+					if tt.wantHost == "" {
+						require.ErrorIs(t, err, ErrNoConnections,
+							"a pool of only dedicated cluster managers selects nothing")
+						continue
+					}
+					require.NoError(t, err)
+					require.Equal(t, tt.wantHost, c.URL.Host,
+						"dedicated cluster manager must not be selected")
+				}
+			})
+		}
+	}
+}
