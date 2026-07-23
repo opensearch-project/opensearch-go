@@ -18,7 +18,7 @@ import (
 // TestResolveErrorMask verifies the v4->v5 error-handling toggle end to end:
 // how Config.Errors and the OPENSEARCH_GO_ERROR_MASK env var resolve to the
 // effective mask. The v5 default flip (nil => Empty, report every category)
-// is the behavioral change the osapifix v4->v5 hop flags as a semantic
+// is the behavioral change the osapilint v4->v5 hop flags as a semantic
 // followup; this exercises the actual resolver those callers must migrate to.
 func TestResolveErrorMask(t *testing.T) {
 	tests := []struct {
