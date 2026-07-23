@@ -1179,21 +1179,22 @@ func New(cfg Config) (*Transport, error) {
 	// Configure policy settings for all policies in the router
 	if client.router != nil {
 		config := policyConfig{
-			ctx:                          client.ctx,
-			resurrectTimeoutInitial:      client.resurrectTimeoutInitial,
-			resurrectTimeoutMax:          client.resurrectTimeoutMax,
-			resurrectTimeoutFactorCutoff: client.resurrectTimeoutFactorCutoff,
-			minimumResurrectTimeout:      client.minimumResurrectTimeout,
-			jitterScale:                  client.jitterScale,
-			serverMaxNewConnsPerSec:      client.serverMaxNewConnsPerSec,
-			clientsPerServer:             client.clientsPerServer,
-			healthCheck:                  client.healthCheck,
-			observer:                     client.observer.Load(),
-			poolInfoReady:                &client.poolInfoReady,
-			clusterSearchCwnd:            &client.clusterSearch.cwnd,
-			activeListCap:                client.activeListCapConfig,
-			standbyPromotionChecks:       client.standbyPromotionChecks,
-			metrics:                      client.metrics,
+			ctx:                             client.ctx,
+			resurrectTimeoutInitial:         client.resurrectTimeoutInitial,
+			resurrectTimeoutMax:             client.resurrectTimeoutMax,
+			resurrectTimeoutFactorCutoff:    client.resurrectTimeoutFactorCutoff,
+			minimumResurrectTimeout:         client.minimumResurrectTimeout,
+			jitterScale:                     client.jitterScale,
+			serverMaxNewConnsPerSec:         client.serverMaxNewConnsPerSec,
+			clientsPerServer:                client.clientsPerServer,
+			healthCheck:                     client.healthCheck,
+			observer:                        client.observer.Load(),
+			poolInfoReady:                   &client.poolInfoReady,
+			clusterSearchCwnd:               &client.clusterSearch.cwnd,
+			activeListCap:                   client.activeListCapConfig,
+			standbyPromotionChecks:          client.standbyPromotionChecks,
+			includeDedicatedClusterManagers: client.includeDedicatedClusterManagers,
+			metrics:                         client.metrics,
 		}
 		// Use type assertion to check if the router (which is a Policy) implements policyConfigurable
 		if configurablePolicy, ok := client.router.(policyConfigurable); ok {
@@ -2725,6 +2726,7 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 		metrics:                      m,
 		activeListCapConfig:          c.activeListCapConfig,
 		standbyPromotionChecks:       c.standbyPromotionChecks,
+		excludeDCM:                   !c.includeDedicatedClusterManagers,
 	}
 	pool.mu.activeListCap = c.activeListCap
 	pool.mu.healthCheck = c.healthCheck
@@ -2740,10 +2742,13 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *singleServerPool:
-		// Promote from single to multi-node pool using client-configured timeouts
+		// Promote from single to multi-node pool using client-configured timeouts.
+		// allConns is the full connection inventory; routing policies keep query
+		// traffic off dedicated cluster managers (see RoundRobinPolicy).
 		filteredReady := make([]*Connection, 0, len(readyConnections))
 		filteredDead := make([]*Connection, 0, len(deadConnections))
-		c.applyConnectionFiltering(readyConnections, deadConnections, &filteredReady, &filteredDead)
+		filteredReady = append(filteredReady, readyConnections...)
+		filteredDead = append(filteredDead, deadConnections...)
 
 		// Shuffle connections for load distribution unless disabled
 		if !c.skipConnectionShuffle && len(filteredReady) > 1 {
@@ -2834,26 +2839,6 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 
 	default:
 		panic(fmt.Sprintf("unsupported connection pool type for demotion: %T", currentPool))
-	}
-}
-
-// applyConnectionFiltering applies client-level filtering for dedicated cluster managers
-func (c *Transport) applyConnectionFiltering(readyConnections, deadConnections []*Connection, filteredReady, filteredDead *[]*Connection) {
-	for _, conn := range readyConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
-			}
-			continue
-		}
-		*filteredReady = append(*filteredReady, conn)
-	}
-
-	for _, conn := range deadConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			continue
-		}
-		*filteredDead = append(*filteredDead, conn)
 	}
 }
 

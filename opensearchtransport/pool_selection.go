@@ -58,6 +58,14 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 			if conn == nil {
 				continue // selector error
 			}
+
+			// Dedicated cluster managers stay in the inventory for discovery but
+			// do not serve request traffic. Skipping here means a pool of only
+			// dedicated cluster managers exhausts its attempts and falls through
+			// to the no-connection path below.
+			if cp.excludeDCM && conn.Roles.isDedicatedClusterManager() {
+				continue
+			}
 			state := conn.loadConnState()
 
 			if state.lifecycle()&(lcActive|lcStandby) == 0 {
@@ -183,6 +191,9 @@ func (cp *multiServerPool) nextWithEviction() (*Connection, error) {
 		if conn == nil {
 			continue
 		}
+		if cp.excludeDCM && conn.Roles.isDedicatedClusterManager() {
+			continue // dedicated cluster managers do not serve request traffic
+		}
 		state := conn.loadConnState()
 
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
@@ -222,6 +233,9 @@ func (cp *multiServerPool) nextFallback() (*Connection, error) {
 		if conn == nil {
 			continue
 		}
+		if cp.excludeDCM && conn.Roles.isDedicatedClusterManager() {
+			continue // dedicated cluster managers do not serve request traffic
+		}
 		state := conn.loadConnState()
 
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
@@ -244,7 +258,7 @@ func (cp *multiServerPool) nextFallback() (*Connection, error) {
 //   - Caller must hold pool write lock
 func (cp *multiServerPool) nextFallbackWithLock() (*Connection, error) {
 	// Try standby before zombie -- standby connections are healthy but idle
-	if c := cp.tryStandbyWithLock(); c != nil {
+	if c := cp.tryStandbyWithLock(); c != nil && !(cp.excludeDCM && c.Roles.isDedicatedClusterManager()) {
 		cp.poolRequests.Add(1)
 		return c, nil
 	}
@@ -253,7 +267,7 @@ func (cp *multiServerPool) nextFallbackWithLock() (*Connection, error) {
 	// availableForRouting (see that method for why). An all-unavailable dead
 	// list yields nil, so Next reports ErrNoConnections and the request
 	// cascades to the seed-URL fallback rather than dialing a dead zombie.
-	if c := cp.tryZombieWithLock(); c != nil {
+	if c := cp.tryZombieWithLock(); c != nil && !(cp.excludeDCM && c.Roles.isDedicatedClusterManager()) {
 		cp.poolRequests.Add(1)
 		return c, nil
 	}

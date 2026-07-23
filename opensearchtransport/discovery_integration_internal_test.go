@@ -335,44 +335,48 @@ func TestShouldSkipDedicatedClusterManagers(t *testing.T) {
 // TestDiscoverNodesWithNewRoleValidation verifies the enhanced discovery behavior
 func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 	tests := []struct {
-		name            string
-		nodes           map[string][]string // nodeName -> roles
-		expectedNodes   []string            // nodes that should be included
-		expectedSkipped []string            // nodes that should be skipped
+		name  string
+		nodes map[string][]string // nodeName -> roles
+		// expectedInInventory lists nodes that must appear in the allConns pool,
+		// which holds every discovered node regardless of role.
+		expectedInInventory []string
+		// expectedNotRoutable lists dedicated cluster managers that must not be
+		// selected for request routing.
+		expectedNotRoutable []string
 	}{
 		{
 			"mixed node types with validation",
 			map[string][]string{
-				"cm-only":     {RoleClusterManager},           // should be skipped
-				"master-only": {RoleMaster},                   // should be skipped
-				"data-node":   {RoleData},                     // should be included
-				"mixed-good":  {RoleClusterManager, RoleData}, // should be included
-				"search-only": {RoleSearch},                   // should be included
+				"cm-only":     {RoleClusterManager},           // dedicated CM: not routable
+				"master-only": {RoleMaster},                   // dedicated CM: not routable
+				"data-node":   {RoleData},                     // routable
+				"mixed-good":  {RoleClusterManager, RoleData}, // routable
+				"search-only": {RoleSearch},                   // routable
 			},
-			[]string{"data-node", "mixed-good", "search-only"},
+			[]string{"cm-only", "master-only", "data-node", "mixed-good", "search-only"},
 			[]string{"cm-only", "master-only"},
 		},
 		{
 			"OpenSearch 3.X compliant setup",
 			map[string][]string{
-				"dedicated-cm": {RoleClusterManager},   // should be skipped
-				"data-hot":     {RoleData, RoleIngest}, // should be included
-				"data-warm":    {RoleWarm, RoleData},   // should be included
-				"search-node":  {RoleSearch},           // should be included
-				"coordinating": {RoleCoordinatingOnly}, // should be included
+				"dedicated-cm": {RoleClusterManager},   // dedicated CM: not routable
+				"data-hot":     {RoleData, RoleIngest}, // routable
+				"data-warm":    {RoleWarm, RoleData},   // routable
+				"search-node":  {RoleSearch},           // routable
+				"coordinating": {RoleCoordinatingOnly}, // routable
 			},
-			[]string{"data-hot", "data-warm", "search-node", "coordinating"},
+			[]string{"dedicated-cm", "data-hot", "data-warm", "search-node", "coordinating"},
 			[]string{"dedicated-cm"},
 		},
 		{
 			"cluster manager and remote cluster client filtering",
 			map[string][]string{
-				"cm-rcc":    {RoleClusterManager, RoleRemoteClusterClient}, // should be skipped
-				"cm-data":   {RoleClusterManager, RoleData},                // should be included
-				"rcc-only":  {RoleRemoteClusterClient},                     // should be included
-				"data-node": {RoleData},                                    // should be included
+				"cm-rcc":    {RoleClusterManager, RoleRemoteClusterClient}, // dedicated CM: not routable
+				"cm-data":   {RoleClusterManager, RoleData},                // routable
+				"rcc-only":  {RoleRemoteClusterClient},                     // routable
+				"data-node": {RoleData},                                    // routable
 			},
-			[]string{"cm-data", "rcc-only", "data-node"},
+			[]string{"cm-rcc", "cm-data", "rcc-only", "data-node"},
 			[]string{"cm-rcc"},
 		},
 	}
@@ -398,29 +402,43 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
 				c.mu.connectionPool, c.mu.connectionPool.URLs())
 
-			// Check that expected nodes are included (in either ready or dead lists,
-			// since newly discovered nodes start in dead state pending health checks)
-			actualNodes := make(map[string]struct{})
+			// allConns holds every discovered node regardless of role (in either the
+			// ready or dead list, since newly discovered nodes start dead pending
+			// health checks). Dedicated cluster managers stay in the inventory so
+			// discovery can reuse and evict them symmetrically; they are excluded at
+			// selection time instead.
+			pool.mu.RLock()
+			inventory := make(map[string]struct{}, len(pool.mu.ready)+len(pool.mu.dead))
 			for _, conn := range pool.mu.ready {
-				actualNodes[conn.Name] = struct{}{}
+				inventory[conn.Name] = struct{}{}
 			}
 			for _, conn := range pool.mu.dead {
-				actualNodes[conn.Name] = struct{}{}
+				inventory[conn.Name] = struct{}{}
 			}
+			pool.mu.RUnlock()
 
-			require.Len(t, actualNodes, len(tt.expectedNodes),
-				"Expected %d nodes but got %d: %v", len(tt.expectedNodes), len(actualNodes), actualNodes)
+			require.Len(t, inventory, len(tt.expectedInInventory),
+				"Expected %d nodes in inventory but got %d: %v",
+				len(tt.expectedInInventory), len(inventory), inventory)
 
-			for _, expectedNode := range tt.expectedNodes {
-				_, ok := actualNodes[expectedNode]
+			for _, expectedNode := range tt.expectedInInventory {
+				_, ok := inventory[expectedNode]
 				require.True(t, ok,
-					"Expected node %q to be included but it wasn't", expectedNode)
+					"Expected node %q in the connection inventory but it wasn't", expectedNode)
 			}
 
-			for _, skippedNode := range tt.expectedSkipped {
-				_, ok := actualNodes[skippedNode]
-				require.False(t, ok,
-					"Expected node %q to be skipped but it was included", skippedNode)
+			// Dedicated cluster managers stay in the inventory but must not be handed
+			// out for routing. With no router, routing uses the inventory pool's
+			// Next(), which skips them.
+			for _, dcm := range tt.expectedNotRoutable {
+				for i := 0; i < len(tt.nodes)*4; i++ {
+					conn, nextErr := pool.Next()
+					if nextErr != nil {
+						break
+					}
+					require.NotEqual(t, dcm, conn.Name,
+						"Dedicated cluster manager %q must not be selected for routing", dcm)
+				}
 			}
 		})
 	}
@@ -432,39 +450,43 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 		name                            string
 		includeDedicatedClusterManagers bool
 		nodes                           map[string][]string // nodeName -> roles
-		expectedIncluded                []string            // nodes that should be included
-		expectedExcluded                []string            // nodes that should be excluded
+		// expectedInInventory lists nodes that must appear in the allConns pool,
+		// which holds every discovered node regardless of role.
+		expectedInInventory []string
+		// expectedNotRoutable lists dedicated cluster managers that must not be
+		// selected for request routing.
+		expectedNotRoutable []string
 	}{
 		{
-			name:                            "IncludeDedicatedClusterManagers enabled - includes all nodes",
+			name:                            "IncludeDedicatedClusterManagers enabled - all nodes routable",
 			includeDedicatedClusterManagers: true,
 			nodes: map[string][]string{
 				"cm-only":   {RoleClusterManager},
 				"data-node": {RoleData},
 			},
-			expectedIncluded: []string{"cm-only", "data-node"},
-			expectedExcluded: []string{},
+			expectedInInventory: []string{"cm-only", "data-node"},
+			expectedNotRoutable: []string{},
 		},
 		{
-			name:                            "IncludeDedicatedClusterManagers disabled (default) - excludes dedicated CM nodes",
+			name:                            "IncludeDedicatedClusterManagers disabled (default) - dedicated CM in inventory but not routable",
 			includeDedicatedClusterManagers: false,
 			nodes: map[string][]string{
 				"cm-only":   {RoleClusterManager},
 				"data-node": {RoleData},
 				"dummy":     {RoleData}, // Add second node to avoid single connection pool
 			},
-			expectedIncluded: []string{"data-node", "dummy"},
-			expectedExcluded: []string{"cm-only"},
+			expectedInInventory: []string{"cm-only", "data-node", "dummy"},
+			expectedNotRoutable: []string{"cm-only"},
 		},
 		{
-			name:                            "Mixed roles with CM always included regardless of setting",
+			name:                            "Mixed roles with CM always routable regardless of setting",
 			includeDedicatedClusterManagers: false,
 			nodes: map[string][]string{
 				"cm-data": {RoleClusterManager, RoleData},
 				"dummy":   {RoleData}, // Add second node to avoid single connection pool
 			},
-			expectedIncluded: []string{"cm-data", "dummy"},
-			expectedExcluded: []string{},
+			expectedInInventory: []string{"cm-data", "dummy"},
+			expectedNotRoutable: []string{},
 		},
 	}
 
@@ -481,41 +503,60 @@ func TestIncludeDedicatedClusterManagersConfiguration(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// Perform discovery
-			err = c.DiscoverNodes(t.Context())
-			require.NoError(t, err)
+			// Run discovery repeatedly. The inventory must converge to exactly one
+			// connection per node and stay there: an unbounded pool that re-created
+			// connections each cycle (the dedicated-cluster-manager leak) would grow
+			// with every iteration. Asserting the exact length on every cycle is the
+			// regression guard.
+			const cycles = 5
+			var pool *multiServerPool
+			for cycle := 1; cycle <= cycles; cycle++ {
+				require.NoErrorf(t, c.DiscoverNodes(t.Context()), "discovery cycle %d", cycle)
 
-			// Verify results
-			pool, ok := c.mu.connectionPool.(*multiServerPool)
-			require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
-				c.mu.connectionPool, c.mu.connectionPool.URLs())
+				var ok bool
+				pool, ok = c.mu.connectionPool.(*multiServerPool)
+				require.Truef(t, ok, "Expected multiServerPool but got %T with URLs: %v",
+					c.mu.connectionPool, c.mu.connectionPool.URLs())
 
-			// Check included nodes (in either ready or dead lists,
-			// since newly discovered nodes start in dead state pending health checks)
-			actualNodes := make(map[string]struct{})
-			for _, conn := range pool.mu.ready {
-				actualNodes[conn.Name] = struct{}{}
+				pool.mu.RLock()
+				readyLen := len(pool.mu.ready)
+				deadLen := len(pool.mu.dead)
+				membersLen := len(pool.mu.members)
+				inventory := make(map[string]struct{}, readyLen+deadLen)
+				for _, conn := range pool.mu.ready {
+					inventory[conn.Name] = struct{}{}
+				}
+				for _, conn := range pool.mu.dead {
+					inventory[conn.Name] = struct{}{}
+				}
+				pool.mu.RUnlock()
+
+				require.Equalf(t, len(tt.nodes), readyLen+deadLen,
+					"cycle %d: inventory connection count (ready=%d dead=%d)", cycle, readyLen, deadLen)
+				require.Equalf(t, readyLen+deadLen, membersLen,
+					"cycle %d: members map must match ready+dead", cycle)
+				require.Lenf(t, inventory, len(tt.nodes),
+					"cycle %d: one connection per node (no duplicates)", cycle)
+				for _, expectedNode := range tt.expectedInInventory {
+					_, present := inventory[expectedNode]
+					require.Truef(t, present,
+						"cycle %d: expected node %q in the connection inventory", cycle, expectedNode)
+				}
 			}
-			for _, conn := range pool.mu.dead {
-				actualNodes[conn.Name] = struct{}{}
-			}
 
-			for _, expectedNode := range tt.expectedIncluded {
-				_, ok := actualNodes[expectedNode]
-				require.True(t, ok,
-					"Expected node %q to be included but it wasn't", expectedNode)
+			// Dedicated cluster managers stay in the inventory but must not be
+			// handed out for routing. With no router, routing uses the inventory
+			// pool's Next(), which skips them.
+			for _, dcm := range tt.expectedNotRoutable {
+				for i := 0; i < len(tt.nodes)*4; i++ {
+					conn, nextErr := pool.Next()
+					if nextErr != nil {
+						break
+					}
+					require.NotEqual(t, dcm, conn.Name,
+						"Dedicated cluster manager %q must not be selected for routing", dcm)
+				}
 			}
-
-			for _, excludedNode := range tt.expectedExcluded {
-				_, ok := actualNodes[excludedNode]
-				require.False(t, ok,
-					"Expected node %q to be excluded but it was included", excludedNode)
-			}
-
-			// Verify total count
-			expectedTotal := len(tt.expectedIncluded)
-			require.Len(t, actualNodes, expectedTotal,
-				"Expected %d nodes but got %d", expectedTotal, len(actualNodes))
 		})
 	}
 }
