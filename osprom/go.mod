@@ -4,7 +4,7 @@ go 1.25.9
 
 require (
 	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc3
-	github.com/prometheus/client_golang v1.24.0
+	github.com/prometheus/client_golang v1.24.1
 	github.com/stretchr/testify v1.11.1
 )
 
