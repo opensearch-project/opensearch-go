@@ -1108,10 +1108,14 @@ func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
 func TestBulkIndexer_ConsistentRouting(t *testing.T) {
 	numWorkers := 5
 
+	docRouter, err := opensearchtransport.NewDocRouter()
+	require.NoError(t, err, "Unexpected error creating DocRouter")
+
 	bi := &bulkIndexer{
-		config: BulkIndexerConfig{NumWorkers: numWorkers},
-		queues: make([]chan BulkIndexerItem, numWorkers),
-		stats:  &bulkIndexerStats{},
+		config:    BulkIndexerConfig{NumWorkers: numWorkers},
+		queues:    make([]chan BulkIndexerItem, numWorkers),
+		stats:     &bulkIndexerStats{},
+		docRouter: docRouter,
 	}
 
 	for i := range numWorkers {

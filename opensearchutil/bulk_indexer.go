@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
@@ -169,6 +170,7 @@ type BulkIndexerDebugLogger interface {
 type bulkIndexer struct {
 	wg        sync.WaitGroup
 	queues    []chan BulkIndexerItem
+	docRouter *opensearchtransport.DocRouter
 	rrCounter atomic.Uint64 // added for round-robin fallback
 	workers   []*worker
 	ticker    *time.Ticker
@@ -237,10 +239,15 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	if cfg.MetaBufferPoolMaxBytes == 0 {
 		cfg.MetaBufferPoolMaxBytes = defaultMetaBufferPoolMaxBytes
 	}
+	docRouter, err := opensearchtransport.NewDocRouter()
+	if err != nil {
+		return nil, err
+	}
 
 	bi := bulkIndexer{
 		config:           cfg,
 		stats:            &bulkIndexerStats{},
+		docRouter:        docRouter,
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
 		implicitClient:   implicitClient,
 		metaPool: sync.Pool{
@@ -256,21 +263,37 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	return &bi, nil
 }
 
-// Add adds an item to the indexer.
+// Add adds an item to the indexer and routes it to the correct worker queue.
 //
 // Adding an item after a call to Close() will panic.
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 	var targetQueue chan BulkIndexerItem
 
+	//nolint:nestif // keep routing logic inline for simplicity
 	if item.DocumentID != "" {
-		// Route by murmur3 hash to ensure all actions for the same DocumentID go to the same worker
-		hashValue := shardhash.Hash(item.DocumentID)
+		idx := item.Index
+		if idx == "" {
+			idx = bi.config.Index
+		}
+
+		hashInput := item.DocumentID
+		path := fmt.Sprintf("/%s/_doc/%s", idx, item.DocumentID)
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, path, nil)
+
+		if err == nil {
+			hop, evalErr := bi.docRouter.Eval(ctx, req)
+			if evalErr == nil && hop.Conn != nil {
+				hashInput = fmt.Sprintf("%p", hop.Conn)
+			}
+		}
+
 		//nolint:gosec // intentional conversion from signed to unsigned for modulo
-		workerIndex := uint32(hashValue) % uint32(bi.config.NumWorkers)
+		workerIndex := uint32(shardhash.Hash(hashInput)) % uint32(bi.config.NumWorkers)
 		targetQueue = bi.queues[workerIndex]
 	} else {
 		// Round-robin distribution for items without a DocumentID
-		workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers) //nolint:gosec // NumWorkers is strictly positive
+		//nolint:gosec // NumWorkers is strictly positive
+		workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
 		targetQueue = bi.queues[workerIndex]
 	}
 
