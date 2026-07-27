@@ -337,7 +337,7 @@ func TestTransportAPIKeyAuth(t *testing.T) {
 		t.Fatalf("GET / with API key failed: %s", err)
 	}
 	defer infoRes.Body.Close()
-	io.ReadAll(infoRes.Body) //nolint:errcheck
+	io.ReadAll(infoRes.Body) //nolint:errcheck // We dont need values here, just run this as side effect.
 
 	if infoRes.StatusCode != http.StatusOK {
 		t.Errorf("expected 200 from GET / with API key, got %d", infoRes.StatusCode)
