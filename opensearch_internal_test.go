@@ -170,6 +170,27 @@ func TestClientConfiguration(t *testing.T) {
 		require.Equal(t, "http://admin:admin@localhost:8080", u)
 	})
 
+	t.Run("With APIKey sends correct Authorization header", func(t *testing.T) {
+		const key = "dGVzdGlkOnRlc3RrZXk="
+		var gotAuth string
+		c, err := NewClient(Config{
+			Addresses: []string{"http://localhost:9200"},
+			APIKey:    key,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				gotAuth = req.Header.Get("Authorization")
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader("")),
+				}, nil
+			}),
+		})
+		require.NoError(t, err)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		_, _ = c.Stream(req)
+		require.Equal(t, "ApiKey "+key, gotAuth)
+	})
+
 	t.Run("With DiscoverNodes on start", func(t *testing.T) {
 		c, err := NewClient(
 			Config{
@@ -765,6 +786,9 @@ func TestConfigKey(t *testing.T) {
 				Config{Header: http.Header{"a": {"b", "c", "d"}}},
 				false,
 			},
+			{"diff api key", Config{APIKey: "key-a"}, Config{APIKey: "key-b"}, false},
+			{"same api key", Config{APIKey: "key-a"}, Config{APIKey: "key-a"}, true},
+			{"api key vs empty", Config{APIKey: "key-a"}, Config{}, false},
 			{"diff retry-on-status", Config{RetryOnStatus: []int{502}}, Config{RetryOnStatus: []int{503}}, false},
 			{"same retry-on-status", Config{RetryOnStatus: []int{502, 503}}, Config{RetryOnStatus: []int{502, 503}}, true},
 			{
