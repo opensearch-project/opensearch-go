@@ -569,6 +569,7 @@ func (w *worker) flush(ctx context.Context) error {
 	)
 
 	defer func() {
+		clear(w.items)
 		w.items = w.items[:0]
 		w.buf.Reset()
 	}()
