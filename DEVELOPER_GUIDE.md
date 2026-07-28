@@ -5,6 +5,7 @@
       - [Go 1.24](#go-124)
       - [Docker](#docker)
       - [Windows](#windows)
+    - [Go Workspace and Nested Modules](#go-workspace-and-nested-modules)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
@@ -72,6 +73,28 @@ Install `make`
 ```
 sudo apt install make
 ```
+
+### Go Workspace and Nested Modules
+
+The repository is a Go workspace. Alongside the root client module there are four nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
+
+| Module          | Purpose                    | Keeps out of the core graph                                  |
+| --------------- | -------------------------- | ------------------------------------------------------------ |
+| `osprom`        | Prometheus metrics sink    | `github.com/prometheus/client_golang`                        |
+| `osotel`        | OpenTelemetry metrics sink | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric` |
+| `cmd/osgen`     | API code generator         | `github.com/getkin/kin-openapi`                              |
+| `cmd/osapilint` | API migration linter       | `golang.org/x/tools`                                         |
+
+`go.work` and `go.work.sum` are committed, so a fresh clone builds across every module with no setup step. From the repository root, `go build ./...` and `go test ./...` span all of them, and `make test-unit` and `make lint.local` additionally run each nested module on its own. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
+
+The workspace is load-bearing rather than a convenience. `osprom` and `osotel` import `opensearchtransport` from the root module while declaring `require github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc3`, and that tag predates the observer API they are written against. The workspace is what resolves them against the local root instead of the published version, so disabling it fails to compile their tests:
+
+```
+GOWORK=off go -C osprom test ./...
+# *Registry does not implement opensearchtransport.ConnectionObserver
+```
+
+This clears once a root tag carrying the current observer API is published and the two `require` lines are bumped to it. Until then, leave `go.work` in place and do not run the suite with `GOWORK=off`. Reach for the workspace rather than a `replace` directive when a nested module needs local root changes: a `replace` in a committed `go.mod` would follow the module to consumers.
 
 ### Unit Testing
 
