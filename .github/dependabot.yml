@@ -1,11 +1,26 @@
 version: 2
+
+# Nested Go modules need an explicit directories entry. Dependabot has no
+# equivalent of the Makefile's SUBMODULES discovery or the discover-submodules
+# job in lint.yml, so a module absent from the lists below is never scanned. A
+# new nested module has to be added here as well as to the Makefile and CI. The
+# paths are enumerated rather than globbed so the linter testdata corpus
+# fixtures, which pin old dependency versions on purpose, stay out of scope.
 updates:
   # --- v5 (default branch: main) ---
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/"
+      - "/cmd/osapilint"
+      - "/cmd/osgen"
+      - "/osotel"
+      - "/osprom"
     target-branch: "main"
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
@@ -15,17 +30,25 @@ updates:
     target-branch: "main"
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
       - "v5"
 
-  # --- v4 maintenance branch ---
+  # --- v4 maintenance branch: only the root module and cmd/osgen exist there ---
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/"
+      - "/cmd/osgen"
     target-branch: "v4"
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
@@ -35,6 +58,9 @@ updates:
     target-branch: "v4"
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
