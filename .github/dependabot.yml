@@ -1,7 +1,15 @@
 version: 2
 updates:
+  # Every nested module needs its own entry here. Dependabot only reads the
+  # manifests it is pointed at, so a module missing from this list goes
+  # unwatched: cmd/osgen sat on kin-openapi 0.142.0 that way until the stale
+  # transitive golang.org/x/text picked up CVE-2026-56852. Listed explicitly
+  # rather than globbed so linter testdata fixtures, which pin old versions on
+  # purpose, are never picked up.
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/"
+      - "/cmd/osgen"
     schedule:
       interval: "weekly"
     labels:

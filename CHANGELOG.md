@@ -4,6 +4,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [4.7.3]
 
+### Changed
+
+- Point Dependabot at the `cmd/osgen` module as well as the repository root. The `gomod` entry in `.github/dependabot.yml` used the singular `directory: "/"` key and so only ever read the root manifest, leaving the nested generator module unwatched since it was introduced. It now uses `directories` with both paths listed explicitly, which is what the singular key cannot express. Modules are listed one by one rather than globbed so that linter testdata fixtures, which pin old dependency versions deliberately, stay out of scope. Any nested module added later needs its own entry ([#1019](https://github.com/opensearch-project/opensearch-go/pull/1019))
+
 ### Fixed
 
 - Fix `opensearchutil.BulkIndexer` retaining a worker's peak batch memory after a traffic burst subsides. `(*worker).flush` released a completed batch with `w.items = w.items[:0]`, which keeps the slice's backing array -- and every `BulkIndexerItem` it holds, including each item's `Body` (an `io.ReadSeeker` over the caller's document bytes) and its `OnSuccess`/`OnFailure` closures -- reachable until a later batch of equal or greater size overwrites the slots. A worker that peaked at N items during a backlog replay stayed pinned at ~N items' worth of document bodies and closures indefinitely, even after traffic dropped. `flush` now `clear`s the item slice before truncating, dropping those references so the GC can reclaim them ([#912](https://github.com/opensearch-project/opensearch-go/issues/912))
