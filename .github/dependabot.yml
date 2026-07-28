@@ -10,15 +10,27 @@ updates:
     directories:
       - "/"
       - "/cmd/osgen"
+    # The weekly batch lands Tuesday afternoon in Seattle, which is Wednesday
+    # morning in Melbourne, so it arrives in work hours on both sides. Keep the
+    # time at or after 07:00 Pacific: any earlier and the Melbourne side slips
+    # back to Tuesday for the half of the year when the gap is 17 hours rather
+    # than 19. A timezone is required, or `time` would be read as UTC.
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
   - package-ecosystem: "github-actions"
     directory: "/"
+    # Same window as the gomod entry above.
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
