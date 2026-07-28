@@ -4,10 +4,18 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [4.7.3]
 
+### Changed
+
+- Point Dependabot at the `cmd/osgen` module as well as the repository root. The `gomod` entry in `.github/dependabot.yml` used the singular `directory: "/"` key and so only ever read the root manifest, leaving the nested generator module unwatched since it was introduced. It now uses `directories` with both paths listed explicitly, which is what the singular key cannot express. Modules are listed one by one rather than globbed so that linter testdata fixtures, which pin old dependency versions deliberately, stay out of scope. Any nested module added later needs its own entry ([#1019](https://github.com/opensearch-project/opensearch-go/pull/1019))
+
 ### Fixed
 
 - Fix `opensearchutil.BulkIndexer` retaining a worker's peak batch memory after a traffic burst subsides. `(*worker).flush` released a completed batch with `w.items = w.items[:0]`, which keeps the slice's backing array -- and every `BulkIndexerItem` it holds, including each item's `Body` (an `io.ReadSeeker` over the caller's document bytes) and its `OnSuccess`/`OnFailure` closures -- reachable until a later batch of equal or greater size overwrites the slots. A worker that peaked at N items during a backlog replay stayed pinned at ~N items' worth of document bodies and closures indefinitely, even after traffic dropped. `flush` now `clear`s the item slice before truncating, dropping those references so the GC can reclaim them ([#912](https://github.com/opensearch-project/opensearch-go/issues/912))
 - Fix an unbounded connection/heap leak in node discovery when the cluster has a dedicated cluster manager (`cluster_manager` role with no work roles). The node was filtered out of the `allConns` inventory while the router received the unfiltered added/removed diffs, so `findConnectionByURL` never matched it: a new `*Connection` was created every discovery cycle and the stale one was never evicted, accumulating without bound in the round-robin fallback pool whose `checkDead` health checks repopulated a per-connection `poolRegistry` `sync.Map` each cycle (leak rate scaled with discovery frequency). `allConns` is now the full connection inventory so discovery reuses and evicts symmetrically, and dedicated cluster managers are excluded at request-routing selection instead: `RoundRobinPolicy` skips them in its `DiscoveryUpdate` add path and `multiServerPool.Next()` skips them during selection (including the no-router fallback), both gated on `IncludeDedicatedClusterManagers`. Discovery still bootstraps against a dedicated cluster manager seed via the seed-fallback pool ([#1003](https://github.com/opensearch-project/opensearch-go/pull/1003))
+
+### Dependencies
+
+- Bump `github.com/getkin/kin-openapi` from 0.142.0 to 0.144.0 and `golang.org/x/text` from 0.14.0 to 0.40.0 in `cmd/osgen` in order to resolve CVE-2026-56852. Details in the Pull Request ([#1019](https://github.com/opensearch-project/opensearch-go/pull/1019))
 
 ## [4.7.2]
 

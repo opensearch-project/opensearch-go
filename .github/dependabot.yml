@@ -1,16 +1,36 @@
 version: 2
 updates:
+  # Every nested module needs its own entry here. Dependabot only reads the
+  # manifests it is pointed at, so a module missing from this list goes
+  # unwatched: cmd/osgen sat on kin-openapi 0.142.0 that way until the stale
+  # transitive golang.org/x/text picked up CVE-2026-56852. Listed explicitly
+  # rather than globbed so linter testdata fixtures, which pin old versions on
+  # purpose, are never picked up.
   - package-ecosystem: "gomod"
-    directory: "/"
+    directories:
+      - "/"
+      - "/cmd/osgen"
+    # The weekly batch lands Tuesday afternoon in Seattle, which is Wednesday
+    # morning in Melbourne, so it arrives in work hours on both sides. Keep the
+    # time at or after 07:00 Pacific: any earlier and the Melbourne side slips
+    # back to Tuesday for the half of the year when the gap is 17 hours rather
+    # than 19. A timezone is required, or `time` would be read as UTC.
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
   - package-ecosystem: "github-actions"
     directory: "/"
+    # Same window as the gomod entry above.
     schedule:
       interval: "weekly"
+      day: "tuesday"
+      time: "14:00"
+      timezone: "America/Los_Angeles"
     labels:
       - "dependabot"
       - "dependencies"
