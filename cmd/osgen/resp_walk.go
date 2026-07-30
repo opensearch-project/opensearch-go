@@ -44,9 +44,6 @@ type walker struct {
 	// warnOut receives generator diagnostics. Nil discards them, which keeps
 	// tests quiet unless they assert on the output.
 	warnOut io.Writer
-
-	// depthWarned dedupes maxOverrideDepth reports, keyed "<schemaKey>/<json>".
-	depthWarned set[string]
 }
 
 // walkSchema resolves a SchemaRef and returns the Go type expression.
@@ -307,7 +304,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 	defer delete(w.inFlight, schemaKey)
 
 	seen := make(map[string]bool)
-	redundant := w.redundantOverrideTags(schema, schemaKey)
+	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			goTypeName := w.walkSchema(sub, schemaKey, group, false)
@@ -809,7 +806,7 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 
 	var fields []goField
 	seen := make(map[string]bool)
-	redundant := w.redundantOverrideTags(schema, key)
+	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != goTypeRawMessage {

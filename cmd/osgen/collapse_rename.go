@@ -134,7 +134,7 @@ func refCount(spec *openapi3.T, key, skip string) int {
 		if name == key || name == skip {
 			continue
 		}
-		n += countRefsTo(sch, key, 0)
+		n += countRefsTo(sch, key)
 	}
 	for _, body := range spec.Components.RequestBodies {
 		if body == nil || body.Value == nil {
@@ -142,7 +142,7 @@ func refCount(spec *openapi3.T, key, skip string) int {
 		}
 		for _, media := range body.Value.Content {
 			if media != nil {
-				n += countRefsTo(media.Schema, key, 0)
+				n += countRefsTo(media.Schema, key)
 			}
 		}
 	}
@@ -152,7 +152,7 @@ func refCount(spec *openapi3.T, key, skip string) int {
 		}
 		for _, media := range resp.Value.Content {
 			if media != nil {
-				n += countRefsTo(media.Schema, key, 0)
+				n += countRefsTo(media.Schema, key)
 			}
 		}
 	}
@@ -161,8 +161,11 @@ func refCount(spec *openapi3.T, key, skip string) int {
 
 // countRefsTo counts $ref occurrences of key within ref, descending through
 // composition, containers, and properties but never through a $ref itself.
-func countRefsTo(ref *openapi3.SchemaRef, key string, depth int) int {
-	if ref == nil || depth > maxOverrideDepth {
+//
+// Needs no cycle guard or depth bound: the descent stops at every $ref, so it
+// only ever walks the inline subschemas of one schema, which form a finite tree.
+func countRefsTo(ref *openapi3.SchemaRef, key string) int {
+	if ref == nil {
 		return 0
 	}
 	if ref.Ref != "" {
@@ -178,13 +181,13 @@ func countRefsTo(ref *openapi3.SchemaRef, key string, depth int) int {
 	n := 0
 	for _, group := range [][]*openapi3.SchemaRef{s.AllOf, s.OneOf, s.AnyOf} {
 		for _, sub := range group {
-			n += countRefsTo(sub, key, depth+1)
+			n += countRefsTo(sub, key)
 		}
 	}
-	n += countRefsTo(s.Items, key, depth+1)
-	n += countRefsTo(s.AdditionalProperties.Schema, key, depth+1)
+	n += countRefsTo(s.Items, key)
+	n += countRefsTo(s.AdditionalProperties.Schema, key)
 	for _, p := range s.Properties {
-		n += countRefsTo(p, key, depth+1)
+		n += countRefsTo(p, key)
 	}
 	return n
 }

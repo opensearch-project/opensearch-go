@@ -7,9 +7,6 @@
 package main
 
 import (
-	"fmt"
-	"io"
-
 	"github.com/getkin/kin-openapi/openapi3"
 )
 
@@ -40,14 +37,6 @@ import (
 // spec rather than the emitted Go, because both kinds emit the same duplicate
 // tag; for unions they differ only in a branch's payload type.
 
-// maxOverrideDepth bounds the descent through a property's containers. Only
-// containers and non-concrete $refs are traversed, so real substitutions resolve
-// within a few levels; the one spec path that reaches this bound is a completion
-// suggester nested seven deep. Exceeding it is reported (see warnOverrideDepth) and the
-// property is treated as conveying a concrete type, which preserves the current
-// field rather than silently dropping one.
-const maxOverrideDepth = 7
-
 // conveysNoConcreteType reports whether prop substitutes nothing a Go type can
 // express: a generic type parameter, an empty schema, or a container of those.
 //
@@ -55,12 +44,14 @@ const maxOverrideDepth = 7
 // schema's own fields. A concrete type is concrete regardless of what its fields
 // eventually reference, and descending would follow the aggregation graph into
 // cycles and reach an erased leaf from almost anywhere.
-func (w *walker) conveysNoConcreteType(prop *openapi3.SchemaRef, depth int, onDepthExceeded func()) bool {
+//
+// visited carries the $ref keys already on the current path. Inline subschemas
+// form a finite tree, so only a $ref can revisit a schema; recording the ones in
+// flight makes the traversal terminate on a cyclic spec. A repeat resolves as
+// concrete, which keeps the field, matching the treatment of a $ref that cannot
+// be resolved at all.
+func (w *walker) conveysNoConcreteType(prop *openapi3.SchemaRef, visited set[string]) bool {
 	if prop == nil {
-		return false
-	}
-	if depth > maxOverrideDepth {
-		onDepthExceeded()
 		return false
 	}
 
@@ -78,7 +69,12 @@ func (w *walker) conveysNoConcreteType(prop *openapi3.SchemaRef, depth int, onDe
 		if namesConcreteSchema(target.Value) {
 			return false
 		}
-		return w.conveysNoConcreteType(target, depth+1, onDepthExceeded)
+		if visited.has(key) {
+			return false
+		}
+		visited.add(key)
+		defer delete(visited, key)
+		return w.conveysNoConcreteType(target, visited)
 	}
 
 	s := prop.Value
@@ -93,7 +89,7 @@ func (w *walker) conveysNoConcreteType(prop *openapi3.SchemaRef, depth int, onDe
 			continue
 		}
 		for _, sub := range group {
-			if !w.conveysNoConcreteType(sub, depth+1, onDepthExceeded) {
+			if !w.conveysNoConcreteType(sub, visited) {
 				return false
 			}
 		}
@@ -102,14 +98,14 @@ func (w *walker) conveysNoConcreteType(prop *openapi3.SchemaRef, depth int, onDe
 
 	// Containers delegate to their element type.
 	if s.Items != nil {
-		return w.conveysNoConcreteType(s.Items, depth+1, onDepthExceeded)
+		return w.conveysNoConcreteType(s.Items, visited)
 	}
 	if s.AdditionalProperties.Schema != nil {
-		return w.conveysNoConcreteType(s.AdditionalProperties.Schema, depth+1, onDepthExceeded)
+		return w.conveysNoConcreteType(s.AdditionalProperties.Schema, visited)
 	}
 	if len(s.Properties) > 0 {
 		for _, p := range s.Properties {
-			if !w.conveysNoConcreteType(p, depth+1, onDepthExceeded) {
+			if !w.conveysNoConcreteType(p, visited) {
 				return false
 			}
 		}
@@ -142,17 +138,27 @@ func namesConcreteSchema(s *openapi3.Schema) bool {
 // declaresProperty reports whether the allOf chain rooted at ref declares
 // jsonName. Only $ref members and inline properties are followed, mirroring how
 // resolveAllOf and collectFields build the embedded field set.
-func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, depth int) bool {
-	if ref == nil || depth > maxOverrideDepth {
+//
+// visited carries the $ref keys already on the current path. Without it a
+// mutually recursive allOf pair overflows the stack, since this walk has no
+// namesConcreteSchema-style stopping rule to halt the descent.
+func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, visited set[string]) bool {
+	if ref == nil {
 		return false
 	}
 
 	s := ref.Value
 	if ref.Ref != "" {
-		target, ok := w.spec.Components.Schemas[refToSchemaKey(ref.Ref)]
+		key := refToSchemaKey(ref.Ref)
+		target, ok := w.spec.Components.Schemas[key]
 		if !ok {
 			return false
 		}
+		if visited.has(key) {
+			return false
+		}
+		visited.add(key)
+		defer delete(visited, key)
 		s = target.Value
 	}
 	if s == nil {
@@ -163,7 +169,7 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, dept
 		return true
 	}
 	for _, sub := range s.AllOf {
-		if w.declaresProperty(sub, jsonName, depth+1) {
+		if w.declaresProperty(sub, jsonName, visited) {
 			return true
 		}
 	}
@@ -239,7 +245,7 @@ func narrowedUnionMember(schema *openapi3.Schema) (*openapi3.Schema, bool) {
 // is not assignable to the base.
 //
 // Returns the base's schema key and true when the collapse applies.
-func (w *walker) collapsesToBase(schema *openapi3.Schema, schemaKey string) (string, bool) {
+func (w *walker) collapsesToBase(schema *openapi3.Schema) (string, bool) {
 	if len(schema.AllOf) == 0 || len(schema.Properties) > 0 {
 		return "", false
 	}
@@ -260,7 +266,7 @@ func (w *walker) collapsesToBase(schema *openapi3.Schema, schemaKey string) (str
 		if member.Value == nil {
 			continue
 		}
-		if !onlyRedundantProperties(member.Value, w.redundantOverrideTags(schema, schemaKey)) {
+		if !onlyRedundantProperties(member.Value, w.redundantOverrideTags(schema)) {
 			return "", false
 		}
 	}
@@ -309,7 +315,7 @@ func (w *walker) resolveCollapsedBase(schema *openapi3.Schema, schemaKey, group 
 	if schema == nil || isRespBody {
 		return "", false
 	}
-	baseKey, ok := w.collapsesToBase(schema, schemaKey)
+	baseKey, ok := w.collapsesToBase(schema)
 	if !ok || w.inFlight.has(baseKey) {
 		return "", false
 	}
@@ -343,9 +349,7 @@ func (w *walker) resolveCollapsedBase(schema *openapi3.Schema, schemaKey, group 
 // redeclares without narrowing: the property conveys no concrete type and another
 // member's chain already declares it. Callers skip these so the base declaration
 // is reached by Go field promotion.
-//
-// schemaKey names the schema under inspection, for depth-bound diagnostics.
-func (w *walker) redundantOverrideTags(schema *openapi3.Schema, schemaKey string) map[string]bool {
+func (w *walker) redundantOverrideTags(schema *openapi3.Schema) map[string]bool {
 	if len(schema.AllOf) < 2 {
 		return nil
 	}
@@ -356,21 +360,22 @@ func (w *walker) redundantOverrideTags(schema *openapi3.Schema, schemaKey string
 			continue
 		}
 		for name, prop := range member.Value.Properties {
-			onDepthExceeded := func() {
-				w.warnOverrideDepth(schemaKey, name)
-			}
-			if !w.conveysNoConcreteType(prop, 0, onDepthExceeded) {
+			if !w.conveysNoConcreteType(prop, make(set[string])) {
 				continue
 			}
 			// Only a redeclaration is redundant. The same property on a member
 			// that introduces it is the field's only declaration; dropping it
 			// would remove the field entirely.
+			//
+			// Each sibling gets a fresh visited set: the probes are independent
+			// paths, and sharing one would let a schema reached through member A
+			// suppress the answer for member B.
 			shadowsBase := false
 			for _, other := range schema.AllOf {
 				if other == member {
 					continue
 				}
-				if w.declaresProperty(other, name, 0) {
+				if w.declaresProperty(other, name, make(set[string])) {
 					shadowsBase = true
 					break
 				}
@@ -385,27 +390,4 @@ func (w *walker) redundantOverrideTags(schema *openapi3.Schema, schemaKey string
 		}
 	}
 	return redundant
-}
-
-// warnOverrideDepth reports a property whose type-argument descent hit
-// maxOverrideDepth, deduped per schema and property. Reaching the bound means the
-// property was treated as concrete without a definite answer, so the field is
-// preserved; that is the safe direction, but a spec change could make the
-// undecided branch the one that matters.
-func (w *walker) warnOverrideDepth(schemaKey, jsonName string) {
-	if w.depthWarned == nil {
-		w.depthWarned = make(set[string])
-	}
-	key := schemaKey + "/" + jsonName
-	if w.depthWarned.has(key) {
-		return
-	}
-	w.depthWarned.add(key)
-
-	out := w.warnOut
-	if out == nil {
-		out = io.Discard
-	}
-	fmt.Fprintf(out, "osgen: %s: property %q exceeded generic-substitution depth %d; "+
-		"treating as concrete and keeping the field\n", schemaKey, jsonName, maxOverrideDepth)
 }
