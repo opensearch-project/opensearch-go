@@ -376,9 +376,13 @@ type ClusterStatsClusterFileSystem struct {
 	AvailableInBytes int64 `json:"available_in_bytes"`
 
 	// Total size, of all cache reserved across all selected nodes.
+	//
+	// Available: >= 2.7.0.
 	CacheReserved *string `json:"cache_reserved,omitempty"`
 
 	// Total size, in bytes, of all cache reserved across all selected nodes.
+	//
+	// Available: >= 2.7.0.
 	CacheReservedInBytes *int64 `json:"cache_reserved_in_bytes,omitempty"`
 
 	// Total number of unallocated bytes in file stores across all selected

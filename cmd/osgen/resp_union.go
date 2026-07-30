@@ -320,12 +320,10 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 		return unionBranch{}
 	}
 
-	// The x-version-added extension lives on the resolved (referenced) schema.
-	// Without it, sortBranchesNewestFirst orders $ref branches as if unversioned.
-	var versionAdded string
-	if ref.Value != nil {
-		versionAdded = extensionString(ref.Value.Extensions, extVersionAdded)
-	}
+	// Without a version, sortBranchesNewestFirst orders $ref branches as if
+	// unversioned. The annotation may sit beside the $ref or on the schema it
+	// resolves to; refExtensionString prefers the former.
+	versionAdded := refExtensionString(ref, extVersionAdded)
 
 	if isPrimitiveType(goTypeName) {
 		return unionBranch{

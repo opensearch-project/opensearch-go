@@ -95,6 +95,8 @@ type GetSearchConfigurationsResp struct {
 	NumReducePhases *int                                                   `json:"num_reduce_phases,omitempty"`
 
 	// The time taken by different phases of the search.
+	//
+	// Available: >= 2.12.0.
 	PhaseTook *opensearchapi.PhaseTook `json:"phase_took,omitempty"`
 
 	// The unique identifier for a resource.

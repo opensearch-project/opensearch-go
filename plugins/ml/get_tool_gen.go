@@ -87,6 +87,7 @@ func (r GetToolParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetToolResp struct {
+	// Available: >= 3.0.0.
 	Attributes *opensearchapi.MLToolAttributes `json:"attributes,omitempty"`
 
 	// The tool description.

@@ -282,3 +282,103 @@ func TestErrorResponseWrappers(t *testing.T) {
 		})
 	}
 }
+
+func TestRefExtensionStringPrefersSibling(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		ref  *openapi3.SchemaRef
+		want string
+	}{
+		{name: "nil ref", ref: nil, want: ""},
+		{
+			name: "sibling only",
+			ref: &openapi3.SchemaRef{
+				Extensions: map[string]any{extVersionAdded: "2.12"},
+				Value:      &openapi3.Schema{},
+			},
+			want: "2.12",
+		},
+		{
+			name: "resolved schema only",
+			ref: &openapi3.SchemaRef{
+				Value: &openapi3.Schema{
+					Extensions: map[string]any{extVersionAdded: "2.10"},
+				},
+			},
+			want: "2.10",
+		},
+		{
+			name: "sibling wins over resolved schema",
+			ref: &openapi3.SchemaRef{
+				Extensions: map[string]any{extVersionAdded: "2.19"},
+				Value: &openapi3.Schema{
+					Extensions: map[string]any{extVersionAdded: "2.10"},
+				},
+			},
+			want: "2.19",
+		},
+		{
+			name: "sibling with nil value",
+			ref: &openapi3.SchemaRef{
+				Extensions: map[string]any{extVersionAdded: "3.0"},
+			},
+			want: "3.0",
+		},
+		{
+			name: "neither carries the key",
+			ref: &openapi3.SchemaRef{
+				Extensions: map[string]any{"x-other": "val"},
+				Value:      &openapi3.Schema{},
+			},
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, refExtensionString(tt.ref, extVersionAdded))
+		})
+	}
+}
+
+// TestRefExtensionStringReadsLoadedSiblings pins the loader behavior the helper
+// exists to work around: kin-openapi overlays a $ref's standard siblings onto the
+// resolved schema, so Value.Description sees them, but leaves x-* keys on the
+// SchemaRef. Reading only Value.Extensions drops every version annotation the
+// spec writes beside a $ref.
+func TestRefExtensionStringReadsLoadedSiblings(t *testing.T) {
+	t.Parallel()
+
+	const doc = `
+openapi: 3.0.0
+info: {title: t, version: "1"}
+paths: {}
+components:
+  schemas:
+    Target:
+      type: object
+      description: target description
+    Holder:
+      type: object
+      properties:
+        phase_took:
+          x-version-added: '2.12'
+          $ref: '#/components/schemas/Target'
+`
+
+	spec, err := openapi3.NewLoader().LoadFromData([]byte(doc))
+	require.NoError(t, err)
+
+	prop := spec.Components.Schemas["Holder"].Value.Properties["phase_took"]
+	require.NotNil(t, prop)
+
+	// The sibling is unreachable from the resolved schema, which is the bug.
+	require.Empty(t, extensionString(prop.Value.Extensions, extVersionAdded))
+	require.Equal(t, "2.12", refExtensionString(prop, extVersionAdded))
+
+	// The description is overlaid, which is why descriptions never regressed.
+	require.Equal(t, "target description", prop.Value.Description)
+}

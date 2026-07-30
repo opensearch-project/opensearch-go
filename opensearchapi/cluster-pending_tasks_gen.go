@@ -139,9 +139,13 @@ type ClusterPendingTasksPendingTask struct {
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
 	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
 	// without a unit and `-1` to indicate an unspecified value.
+	//
+	// Available: >= 3.1.0.
 	TimeInExecution *string `json:"time_in_execution,omitempty"`
 
 	// The time unit for milliseconds.
+	//
+	// Available: >= 3.1.0.
 	TimeInExecutionMillis *int64 `json:"time_in_execution_millis,omitempty"`
 
 	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`

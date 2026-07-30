@@ -217,7 +217,9 @@ type NodesStatsStats struct {
 	// The name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	NativeMemory       *NodesStatsNativeMemory                       `json:"native_memory,omitempty"`
+	// Available: >= 3.7.0.
+	NativeMemory *NodesStatsNativeMemory `json:"native_memory,omitempty"`
+
 	Os                 *NodesStatsOperatingSystem                    `json:"os,omitempty"`
 	Process            *NodesStatsProcess                            `json:"process,omitempty"`
 	RemoteStore        *NodesStatsRemoteStore                        `json:"remote_store,omitempty"`
@@ -285,8 +287,10 @@ type NodesStatsAdaptiveSelection struct {
 
 // NodesStatsShardAdmissionControl is a typed component of the nodes.stats operation.
 type NodesStatsShardAdmissionControl struct {
-	GlobalCPUUsage          *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
-	GlobalIoUsage           *NodesStatsUsage `json:"global_io_usage,omitempty"`
+	GlobalCPUUsage *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
+	GlobalIoUsage  *NodesStatsUsage `json:"global_io_usage,omitempty"`
+
+	// Available: >= 3.7.0.
 	GlobalNativeMemoryUsage *NodesStatsUsage `json:"global_native_memory_usage,omitempty"`
 }
 
@@ -428,10 +432,14 @@ type NodesStatsDataPath struct {
 
 	// Total number of cache bytes reserved available to this Java virtual
 	// machine on this file store.
+	//
+	// Available: >= 2.7.0.
 	CacheReserved *string `json:"cache_reserved,omitempty"`
 
 	// Total number of cache bytes reserved available to this Java virtual
 	// machine on this file store.
+	//
+	// Available: >= 2.7.0.
 	CacheReservedInBytes *int64 `json:"cache_reserved_in_bytes,omitempty"`
 
 	// Total amount of unallocated disk space in the file store.
@@ -516,9 +524,13 @@ type NodesStatsFileSystemTotal struct {
 	AvailableInBytes *int64 `json:"available_in_bytes,omitempty"`
 
 	// Total size of cache bytes reserved in all file stores.
+	//
+	// Available: >= 2.7.0.
 	CacheReserved *string `json:"cache_reserved,omitempty"`
 
 	// Total size of cache bytes reserved in all file stores.
+	//
+	// Available: >= 2.7.0.
 	CacheReservedInBytes *int64 `json:"cache_reserved_in_bytes,omitempty"`
 
 	// Total unallocated disk space in all file stores.
@@ -1087,6 +1099,8 @@ type NodesStatsShardResourceUsageDetail struct {
 	MemoryUtilizationPercent *string `json:"memory_utilization_percent,omitempty"`
 
 	// The percentage value as a string.
+	//
+	// Available: >= 3.7.0.
 	NativeMemoryUtilizationPercent *string `json:"native_memory_utilization_percent,omitempty"`
 
 	// The time unit for milliseconds.
@@ -1154,9 +1168,11 @@ type NodesStatsShardSearchBackpressureTaskCancellation struct {
 
 // NodesStatsShardSearchBackpressureTaskResourceTracker is a typed component of the nodes.stats operation.
 type NodesStatsShardSearchBackpressureTaskResourceTracker struct {
-	CPUUsageTracker          *NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker          `json:"cpu_usage_tracker,omitempty"`
-	ElapsedTimeTracker       *NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker       `json:"elapsed_time_tracker,omitempty"`
-	HeapUsageTracker         *NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker         `json:"heap_usage_tracker,omitempty"`
+	CPUUsageTracker    *NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker    `json:"cpu_usage_tracker,omitempty"`
+	ElapsedTimeTracker *NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker `json:"elapsed_time_tracker,omitempty"`
+	HeapUsageTracker   *NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker   `json:"heap_usage_tracker,omitempty"`
+
+	// Available: >= 3.7.0.
 	NativeMemoryUsageTracker *NodesStatsShardSearchBackpressureTaskResourceTrackerNativeMemoryUsageTracker `json:"native_memory_usage_tracker,omitempty"`
 }
 

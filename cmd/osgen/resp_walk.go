@@ -429,15 +429,12 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 		var comment, versionAdded, versionDeprecated, deprecMsg string
 		if propRef != nil && propRef.Value != nil {
 			comment = propRef.Value.Description
-			versionAdded = extensionString(propRef.Value.Extensions, extVersionAdded)
-			versionDeprecated = extensionString(propRef.Value.Extensions, extVersionDeprecated)
-			deprecMsg = extensionString(propRef.Value.Extensions, extDeprecationMessage)
 		}
+		versionAdded = refExtensionString(propRef, extVersionAdded)
+		versionDeprecated = refExtensionString(propRef, extVersionDeprecated)
+		deprecMsg = refExtensionString(propRef, extDeprecationMessage)
 
-		vRemoved := ""
-		if propRef != nil && propRef.Value != nil {
-			vRemoved = extensionString(propRef.Value.Extensions, extVersionRemoved)
-		}
+		vRemoved := refExtensionString(propRef, extVersionRemoved)
 		if !w.vrange.Includes(versionAdded, vRemoved, versionDeprecated) { //nolint:nestif // version-filter branching is intentional
 			side := "(resp)"
 			if !isRespBody {
