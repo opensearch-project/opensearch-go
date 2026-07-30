@@ -162,6 +162,21 @@ func (r *typeRegistry) aliasRef(ref string, target *goType) {
 	r.byRef[ref] = target
 }
 
+// rename changes a registered type's Go name, keeping the byName index in sync.
+// Callers must rewrite references separately (see rewriteTypeRefs): type
+// references are plain strings, not pointers to this entry.
+func (r *typeRegistry) rename(t *goType, name string) {
+	if t == nil || name == "" || name == t.Name {
+		return
+	}
+	if _, taken := r.byName[name]; taken {
+		return
+	}
+	delete(r.byName, t.Name)
+	t.Name = name
+	r.byName[name] = t
+}
+
 // lookupByName returns a previously registered type by its Go name.
 func (r *typeRegistry) lookupByName(name string) (*goType, bool) {
 	t, ok := r.byName[name]

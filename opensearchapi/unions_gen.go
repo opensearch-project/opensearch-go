@@ -278,31 +278,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseBuckets) MarshalJSON() ([]byte
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets is a discriminated union type.
+// CommonAggregationsAdjacencyMatrixAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType
+type CommonAggregationsAdjacencyMatrixAggregateBuckets struct {
+	typ   CommonAggregationsAdjacencyMatrixAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType int
+// CommonAggregationsAdjacencyMatrixAggregateBucketsType discriminates the branches of CommonAggregationsAdjacencyMatrixAggregateBuckets.
+type CommonAggregationsAdjacencyMatrixAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType
+	CommonAggregationsAdjacencyMatrixAggregateBucketsUnknownType CommonAggregationsAdjacencyMatrixAggregateBucketsType = iota
+	CommonAggregationsAdjacencyMatrixAggregateBucketsMapType
+	CommonAggregationsAdjacencyMatrixAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType) String() string {
+func (t CommonAggregationsAdjacencyMatrixAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType:
+	case CommonAggregationsAdjacencyMatrixAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType:
+	case CommonAggregationsAdjacencyMatrixAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -310,45 +310,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsTy
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType {
+// Returns CommonAggregationsAdjacencyMatrixAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) Type() CommonAggregationsAdjacencyMatrixAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsAdjacencyMatrixAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType
+	u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsAdjacencyMatrixAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
+// NewCommonAggregationsAdjacencyMatrixAggregateBucketsFromMap returns a CommonAggregationsAdjacencyMatrixAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType,
+func NewCommonAggregationsAdjacencyMatrixAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsAdjacencyMatrixAggregateBuckets {
+	return CommonAggregationsAdjacencyMatrixAggregateBuckets{
+		typ:   CommonAggregationsAdjacencyMatrixAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -357,27 +355,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFr
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsAdjacencyMatrixBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Array() ([]CommonAggregationsAdjacencyMatrixBucket, error) {
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) Array() ([]CommonAggregationsAdjacencyMatrixBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsAdjacencyMatrixBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsAdjacencyMatrixBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsAdjacencyMatrixAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
+// NewCommonAggregationsAdjacencyMatrixAggregateBucketsFromArray returns a CommonAggregationsAdjacencyMatrixAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromArray(v []CommonAggregationsAdjacencyMatrixBucket) CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType,
+func NewCommonAggregationsAdjacencyMatrixAggregateBucketsFromArray(v []CommonAggregationsAdjacencyMatrixBucket) CommonAggregationsAdjacencyMatrixAggregateBuckets {
+	return CommonAggregationsAdjacencyMatrixAggregateBuckets{
+		typ:   CommonAggregationsAdjacencyMatrixAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsAdjacencyMatrixAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType
+	u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -387,22 +385,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets)
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType
+		u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsAdjacencyMatrixBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType
+		u.typ = CommonAggregationsAdjacencyMatrixAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsAdjacencyMatrixAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -412,31 +410,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) 
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets is a discriminated union type.
+// CommonAggregationsDateHistogramAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType
+type CommonAggregationsDateHistogramAggregateBuckets struct {
+	typ   CommonAggregationsDateHistogramAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType int
+// CommonAggregationsDateHistogramAggregateBucketsType discriminates the branches of CommonAggregationsDateHistogramAggregateBuckets.
+type CommonAggregationsDateHistogramAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType
+	CommonAggregationsDateHistogramAggregateBucketsUnknownType CommonAggregationsDateHistogramAggregateBucketsType = iota
+	CommonAggregationsDateHistogramAggregateBucketsMapType
+	CommonAggregationsDateHistogramAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType) String() string {
+func (t CommonAggregationsDateHistogramAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType:
+	case CommonAggregationsDateHistogramAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType:
+	case CommonAggregationsDateHistogramAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -444,45 +442,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType {
+// Returns CommonAggregationsDateHistogramAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsDateHistogramAggregateBuckets) Type() CommonAggregationsDateHistogramAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsDateHistogramAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsDateHistogramAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsDateHistogramAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsDateHistogramAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsDateHistogramAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsDateHistogramAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
+// NewCommonAggregationsDateHistogramAggregateBucketsFromMap returns a CommonAggregationsDateHistogramAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType,
+func NewCommonAggregationsDateHistogramAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsDateHistogramAggregateBuckets {
+	return CommonAggregationsDateHistogramAggregateBuckets{
+		typ:   CommonAggregationsDateHistogramAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -491,27 +487,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFrom
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsDateHistogramBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Array() ([]CommonAggregationsDateHistogramBucket, error) {
+func (u *CommonAggregationsDateHistogramAggregateBuckets) Array() ([]CommonAggregationsDateHistogramBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsDateHistogramBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsDateHistogramBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsDateHistogramAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
+// NewCommonAggregationsDateHistogramAggregateBucketsFromArray returns a CommonAggregationsDateHistogramAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromArray(v []CommonAggregationsDateHistogramBucket) CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType,
+func NewCommonAggregationsDateHistogramAggregateBucketsFromArray(v []CommonAggregationsDateHistogramBucket) CommonAggregationsDateHistogramAggregateBuckets {
+	return CommonAggregationsDateHistogramAggregateBuckets{
+		typ:   CommonAggregationsDateHistogramAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsDateHistogramAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsDateHistogramAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -521,22 +517,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) U
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType
+		u.typ = CommonAggregationsDateHistogramAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsDateHistogramBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType
+		u.typ = CommonAggregationsDateHistogramAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsDateHistogramAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -977,31 +973,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSO
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets is a discriminated union type.
+// CommonAggregationsFiltersAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType
+type CommonAggregationsFiltersAggregateBuckets struct {
+	typ   CommonAggregationsFiltersAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType int
+// CommonAggregationsFiltersAggregateBucketsType discriminates the branches of CommonAggregationsFiltersAggregateBuckets.
+type CommonAggregationsFiltersAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType
+	CommonAggregationsFiltersAggregateBucketsUnknownType CommonAggregationsFiltersAggregateBucketsType = iota
+	CommonAggregationsFiltersAggregateBucketsMapType
+	CommonAggregationsFiltersAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType) String() string {
+func (t CommonAggregationsFiltersAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType:
+	case CommonAggregationsFiltersAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType:
+	case CommonAggregationsFiltersAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -1009,45 +1005,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType) Stri
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType {
+// Returns CommonAggregationsFiltersAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsFiltersAggregateBuckets) Type() CommonAggregationsFiltersAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsFiltersAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsFiltersAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsFiltersAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType
+	u.typ = CommonAggregationsFiltersAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsFiltersAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsFiltersAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
+// NewCommonAggregationsFiltersAggregateBucketsFromMap returns a CommonAggregationsFiltersAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType,
+func NewCommonAggregationsFiltersAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsFiltersAggregateBuckets {
+	return CommonAggregationsFiltersAggregateBuckets{
+		typ:   CommonAggregationsFiltersAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -1056,27 +1050,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap(v 
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsMultiBucketBase in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Array() ([]CommonAggregationsMultiBucketBase, error) {
+func (u *CommonAggregationsFiltersAggregateBuckets) Array() ([]CommonAggregationsMultiBucketBase, error) {
 	if v, ok := u.value.(*[]CommonAggregationsMultiBucketBase); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsMultiBucketBase
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsFiltersAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
+// NewCommonAggregationsFiltersAggregateBucketsFromArray returns a CommonAggregationsFiltersAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromArray(v []CommonAggregationsMultiBucketBase) CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType,
+func NewCommonAggregationsFiltersAggregateBucketsFromArray(v []CommonAggregationsMultiBucketBase) CommonAggregationsFiltersAggregateBuckets {
+	return CommonAggregationsFiltersAggregateBuckets{
+		typ:   CommonAggregationsFiltersAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsFiltersAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType
+	u.typ = CommonAggregationsFiltersAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -1086,22 +1080,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Unmarsh
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType
+		u.typ = CommonAggregationsFiltersAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsMultiBucketBase
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType
+		u.typ = CommonAggregationsFiltersAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsFiltersAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsFiltersAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -2325,31 +2319,31 @@ func (u CommonAggregationsGeoCentroidAggregateLocation) MarshalJSON() ([]byte, e
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets is a discriminated union type.
+// CommonAggregationsGeoHashGridAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType
+type CommonAggregationsGeoHashGridAggregateBuckets struct {
+	typ   CommonAggregationsGeoHashGridAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType int
+// CommonAggregationsGeoHashGridAggregateBucketsType discriminates the branches of CommonAggregationsGeoHashGridAggregateBuckets.
+type CommonAggregationsGeoHashGridAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType
+	CommonAggregationsGeoHashGridAggregateBucketsUnknownType CommonAggregationsGeoHashGridAggregateBucketsType = iota
+	CommonAggregationsGeoHashGridAggregateBucketsMapType
+	CommonAggregationsGeoHashGridAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType) String() string {
+func (t CommonAggregationsGeoHashGridAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType:
+	case CommonAggregationsGeoHashGridAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType:
+	case CommonAggregationsGeoHashGridAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -2357,45 +2351,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType) 
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType {
+// Returns CommonAggregationsGeoHashGridAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) Type() CommonAggregationsGeoHashGridAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsGeoHashGridAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType
+	u.typ = CommonAggregationsGeoHashGridAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsGeoHashGridAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
+// NewCommonAggregationsGeoHashGridAggregateBucketsFromMap returns a CommonAggregationsGeoHashGridAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType,
+func NewCommonAggregationsGeoHashGridAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsGeoHashGridAggregateBuckets {
+	return CommonAggregationsGeoHashGridAggregateBuckets{
+		typ:   CommonAggregationsGeoHashGridAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -2404,27 +2396,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMa
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsGeoHashGridBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Array() ([]CommonAggregationsGeoHashGridBucket, error) {
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) Array() ([]CommonAggregationsGeoHashGridBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsGeoHashGridBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsGeoHashGridBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsGeoHashGridAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
+// NewCommonAggregationsGeoHashGridAggregateBucketsFromArray returns a CommonAggregationsGeoHashGridAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromArray(v []CommonAggregationsGeoHashGridBucket) CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType,
+func NewCommonAggregationsGeoHashGridAggregateBucketsFromArray(v []CommonAggregationsGeoHashGridBucket) CommonAggregationsGeoHashGridAggregateBuckets {
+	return CommonAggregationsGeoHashGridAggregateBuckets{
+		typ:   CommonAggregationsGeoHashGridAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsGeoHashGridAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType
+	u.typ = CommonAggregationsGeoHashGridAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -2434,22 +2426,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Unm
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType
+		u.typ = CommonAggregationsGeoHashGridAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsGeoHashGridBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType
+		u.typ = CommonAggregationsGeoHashGridAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsGeoHashGridAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsGeoHashGridAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -2459,31 +2451,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Mars
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets is a discriminated union type.
+// CommonAggregationsGeoTileGridAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType
+type CommonAggregationsGeoTileGridAggregateBuckets struct {
+	typ   CommonAggregationsGeoTileGridAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType int
+// CommonAggregationsGeoTileGridAggregateBucketsType discriminates the branches of CommonAggregationsGeoTileGridAggregateBuckets.
+type CommonAggregationsGeoTileGridAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType
+	CommonAggregationsGeoTileGridAggregateBucketsUnknownType CommonAggregationsGeoTileGridAggregateBucketsType = iota
+	CommonAggregationsGeoTileGridAggregateBucketsMapType
+	CommonAggregationsGeoTileGridAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType) String() string {
+func (t CommonAggregationsGeoTileGridAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType:
+	case CommonAggregationsGeoTileGridAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType:
+	case CommonAggregationsGeoTileGridAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -2491,45 +2483,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType) 
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType {
+// Returns CommonAggregationsGeoTileGridAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) Type() CommonAggregationsGeoTileGridAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsGeoTileGridAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType
+	u.typ = CommonAggregationsGeoTileGridAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsGeoTileGridAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
+// NewCommonAggregationsGeoTileGridAggregateBucketsFromMap returns a CommonAggregationsGeoTileGridAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType,
+func NewCommonAggregationsGeoTileGridAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsGeoTileGridAggregateBuckets {
+	return CommonAggregationsGeoTileGridAggregateBuckets{
+		typ:   CommonAggregationsGeoTileGridAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -2538,27 +2528,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMa
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsGeoTileGridBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Array() ([]CommonAggregationsGeoTileGridBucket, error) {
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) Array() ([]CommonAggregationsGeoTileGridBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsGeoTileGridBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsGeoTileGridBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsGeoTileGridAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
+// NewCommonAggregationsGeoTileGridAggregateBucketsFromArray returns a CommonAggregationsGeoTileGridAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromArray(v []CommonAggregationsGeoTileGridBucket) CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType,
+func NewCommonAggregationsGeoTileGridAggregateBucketsFromArray(v []CommonAggregationsGeoTileGridBucket) CommonAggregationsGeoTileGridAggregateBuckets {
+	return CommonAggregationsGeoTileGridAggregateBuckets{
+		typ:   CommonAggregationsGeoTileGridAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsGeoTileGridAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType
+	u.typ = CommonAggregationsGeoTileGridAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -2568,22 +2558,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Unm
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType
+		u.typ = CommonAggregationsGeoTileGridAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsGeoTileGridBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType
+		u.typ = CommonAggregationsGeoTileGridAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsGeoTileGridAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -2857,31 +2847,31 @@ func (u CommonAggregationsPercentilesAggregateBaseValues) MarshalJSON() ([]byte,
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets is a discriminated union type.
+// CommonAggregationsHistogramAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType
+type CommonAggregationsHistogramAggregateBuckets struct {
+	typ   CommonAggregationsHistogramAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType int
+// CommonAggregationsHistogramAggregateBucketsType discriminates the branches of CommonAggregationsHistogramAggregateBuckets.
+type CommonAggregationsHistogramAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType
+	CommonAggregationsHistogramAggregateBucketsUnknownType CommonAggregationsHistogramAggregateBucketsType = iota
+	CommonAggregationsHistogramAggregateBucketsMapType
+	CommonAggregationsHistogramAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType) String() string {
+func (t CommonAggregationsHistogramAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType:
+	case CommonAggregationsHistogramAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType:
+	case CommonAggregationsHistogramAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -2889,45 +2879,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType) St
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType {
+// Returns CommonAggregationsHistogramAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsHistogramAggregateBuckets) Type() CommonAggregationsHistogramAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsHistogramAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsHistogramAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsHistogramAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsHistogramAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsHistogramAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsHistogramAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
+// NewCommonAggregationsHistogramAggregateBucketsFromMap returns a CommonAggregationsHistogramAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType,
+func NewCommonAggregationsHistogramAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsHistogramAggregateBuckets {
+	return CommonAggregationsHistogramAggregateBuckets{
+		typ:   CommonAggregationsHistogramAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -2936,27 +2924,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap(
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsHistogramBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Array() ([]CommonAggregationsHistogramBucket, error) {
+func (u *CommonAggregationsHistogramAggregateBuckets) Array() ([]CommonAggregationsHistogramBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsHistogramBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsHistogramBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsHistogramAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
+// NewCommonAggregationsHistogramAggregateBucketsFromArray returns a CommonAggregationsHistogramAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromArray(v []CommonAggregationsHistogramBucket) CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType,
+func NewCommonAggregationsHistogramAggregateBucketsFromArray(v []CommonAggregationsHistogramBucket) CommonAggregationsHistogramAggregateBuckets {
+	return CommonAggregationsHistogramAggregateBuckets{
+		typ:   CommonAggregationsHistogramAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsHistogramAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsHistogramAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -2966,22 +2954,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Unmar
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType
+		u.typ = CommonAggregationsHistogramAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsHistogramBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType
+		u.typ = CommonAggregationsHistogramAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsHistogramAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -2991,31 +2979,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Marsha
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets is a discriminated union type.
+// CommonAggregationsIPRangeAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType
+type CommonAggregationsIPRangeAggregateBuckets struct {
+	typ   CommonAggregationsIPRangeAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType int
+// CommonAggregationsIPRangeAggregateBucketsType discriminates the branches of CommonAggregationsIPRangeAggregateBuckets.
+type CommonAggregationsIPRangeAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType
+	CommonAggregationsIPRangeAggregateBucketsUnknownType CommonAggregationsIPRangeAggregateBucketsType = iota
+	CommonAggregationsIPRangeAggregateBucketsMapType
+	CommonAggregationsIPRangeAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType) String() string {
+func (t CommonAggregationsIPRangeAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType:
+	case CommonAggregationsIPRangeAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType:
+	case CommonAggregationsIPRangeAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3023,45 +3011,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType) Stri
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType {
+// Returns CommonAggregationsIPRangeAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsIPRangeAggregateBuckets) Type() CommonAggregationsIPRangeAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsIPRangeAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsIPRangeAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsIPRangeAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType
+	u.typ = CommonAggregationsIPRangeAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsIPRangeAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsIPRangeAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
+// NewCommonAggregationsIPRangeAggregateBucketsFromMap returns a CommonAggregationsIPRangeAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType,
+func NewCommonAggregationsIPRangeAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsIPRangeAggregateBuckets {
+	return CommonAggregationsIPRangeAggregateBuckets{
+		typ:   CommonAggregationsIPRangeAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -3070,27 +3056,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap(v 
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsIPRangeBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Array() ([]CommonAggregationsIPRangeBucket, error) {
+func (u *CommonAggregationsIPRangeAggregateBuckets) Array() ([]CommonAggregationsIPRangeBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsIPRangeBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsIPRangeBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsIPRangeAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
+// NewCommonAggregationsIPRangeAggregateBucketsFromArray returns a CommonAggregationsIPRangeAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromArray(v []CommonAggregationsIPRangeBucket) CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType,
+func NewCommonAggregationsIPRangeAggregateBucketsFromArray(v []CommonAggregationsIPRangeBucket) CommonAggregationsIPRangeAggregateBuckets {
+	return CommonAggregationsIPRangeAggregateBuckets{
+		typ:   CommonAggregationsIPRangeAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsIPRangeAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType
+	u.typ = CommonAggregationsIPRangeAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -3100,22 +3086,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Unmarsh
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType
+		u.typ = CommonAggregationsIPRangeAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsIPRangeBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType
+		u.typ = CommonAggregationsIPRangeAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsIPRangeAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsIPRangeAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -3125,31 +3111,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) MarshalJ
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets is a discriminated union type.
+// CommonAggregationsLongRareTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType
+type CommonAggregationsLongRareTermsAggregateBuckets struct {
+	typ   CommonAggregationsLongRareTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType int
+// CommonAggregationsLongRareTermsAggregateBucketsType discriminates the branches of CommonAggregationsLongRareTermsAggregateBuckets.
+type CommonAggregationsLongRareTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType
+	CommonAggregationsLongRareTermsAggregateBucketsUnknownType CommonAggregationsLongRareTermsAggregateBucketsType = iota
+	CommonAggregationsLongRareTermsAggregateBucketsMapType
+	CommonAggregationsLongRareTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType) String() string {
+func (t CommonAggregationsLongRareTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType:
+	case CommonAggregationsLongRareTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType:
+	case CommonAggregationsLongRareTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3157,45 +3143,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType {
+// Returns CommonAggregationsLongRareTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) Type() CommonAggregationsLongRareTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsLongRareTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsLongRareTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsLongRareTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
+// NewCommonAggregationsLongRareTermsAggregateBucketsFromMap returns a CommonAggregationsLongRareTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType,
+func NewCommonAggregationsLongRareTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsLongRareTermsAggregateBuckets {
+	return CommonAggregationsLongRareTermsAggregateBuckets{
+		typ:   CommonAggregationsLongRareTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -3204,27 +3188,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFrom
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsLongRareTermsBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Array() ([]CommonAggregationsLongRareTermsBucket, error) {
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) Array() ([]CommonAggregationsLongRareTermsBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsLongRareTermsBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsLongRareTermsBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsLongRareTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
+// NewCommonAggregationsLongRareTermsAggregateBucketsFromArray returns a CommonAggregationsLongRareTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromArray(v []CommonAggregationsLongRareTermsBucket) CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType,
+func NewCommonAggregationsLongRareTermsAggregateBucketsFromArray(v []CommonAggregationsLongRareTermsBucket) CommonAggregationsLongRareTermsAggregateBuckets {
+	return CommonAggregationsLongRareTermsAggregateBuckets{
+		typ:   CommonAggregationsLongRareTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsLongRareTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsLongRareTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -3234,22 +3218,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) U
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType
+		u.typ = CommonAggregationsLongRareTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsLongRareTermsBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType
+		u.typ = CommonAggregationsLongRareTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsLongRareTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -3554,31 +3538,31 @@ func (u CommonAggregationsMultiTermsBucketKeyItem) MarshalJSON() ([]byte, error)
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets is a discriminated union type.
+// CommonAggregationsMultiTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets struct {
-	typ   CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType
+type CommonAggregationsMultiTermsAggregateBuckets struct {
+	typ   CommonAggregationsMultiTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType discriminates the branches of CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets.
-type CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType int
+// CommonAggregationsMultiTermsAggregateBucketsType discriminates the branches of CommonAggregationsMultiTermsAggregateBuckets.
+type CommonAggregationsMultiTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType = iota
-	CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType
-	CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType
+	CommonAggregationsMultiTermsAggregateBucketsUnknownType CommonAggregationsMultiTermsAggregateBucketsType = iota
+	CommonAggregationsMultiTermsAggregateBucketsMapType
+	CommonAggregationsMultiTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType) String() string {
+func (t CommonAggregationsMultiTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType:
+	case CommonAggregationsMultiTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType:
+	case CommonAggregationsMultiTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3586,45 +3570,43 @@ func (t CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType) String(
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Type() CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType {
+// Returns CommonAggregationsMultiTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsMultiTermsAggregateBuckets) Type() CommonAggregationsMultiTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsMultiTermsAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsMultiTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsMultiTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsMultiTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsMultiTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
+// NewCommonAggregationsMultiTermsAggregateBucketsFromMap returns a CommonAggregationsMultiTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets {
-	return CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets{
-		typ:   CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType,
+func NewCommonAggregationsMultiTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiTermsAggregateBuckets {
+	return CommonAggregationsMultiTermsAggregateBuckets{
+		typ:   CommonAggregationsMultiTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -3633,27 +3615,27 @@ func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap(v map
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsMultiTermsBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Array() ([]CommonAggregationsMultiTermsBucket, error) {
+func (u *CommonAggregationsMultiTermsAggregateBuckets) Array() ([]CommonAggregationsMultiTermsBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsMultiTermsBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsMultiTermsBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsMultiTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromArray returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
+// NewCommonAggregationsMultiTermsAggregateBucketsFromArray returns a CommonAggregationsMultiTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromArray(v []CommonAggregationsMultiTermsBucket) CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets {
-	return CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets{
-		typ:   CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType,
+func NewCommonAggregationsMultiTermsAggregateBucketsFromArray(v []CommonAggregationsMultiTermsBucket) CommonAggregationsMultiTermsAggregateBuckets {
+	return CommonAggregationsMultiTermsAggregateBuckets{
+		typ:   CommonAggregationsMultiTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsMultiTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsMultiTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -3663,22 +3645,22 @@ func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) UnmarshalJ
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType
+		u.typ = CommonAggregationsMultiTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsMultiTermsBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType
+		u.typ = CommonAggregationsMultiTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsMultiTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsMultiTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -3688,31 +3670,31 @@ func (u CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) MarshalJSON
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets is a discriminated union type.
+// CommonAggregationsSignificantLongTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets struct {
-	typ   CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType
+type CommonAggregationsSignificantLongTermsAggregateBuckets struct {
+	typ   CommonAggregationsSignificantLongTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType discriminates the branches of CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets.
-type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType int
+// CommonAggregationsSignificantLongTermsAggregateBucketsType discriminates the branches of CommonAggregationsSignificantLongTermsAggregateBuckets.
+type CommonAggregationsSignificantLongTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType = iota
-	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType
-	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType
+	CommonAggregationsSignificantLongTermsAggregateBucketsUnknownType CommonAggregationsSignificantLongTermsAggregateBucketsType = iota
+	CommonAggregationsSignificantLongTermsAggregateBucketsMapType
+	CommonAggregationsSignificantLongTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType) String() string {
+func (t CommonAggregationsSignificantLongTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType:
+	case CommonAggregationsSignificantLongTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType:
+	case CommonAggregationsSignificantLongTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3720,45 +3702,45 @@ func (t CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucke
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType {
+// Returns CommonAggregationsSignificantLongTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) Type() CommonAggregationsSignificantLongTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) RawJSON() json.RawMessage {
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) RawJSON() json.RawMessage {
 	return u.raw
 }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantLongTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantLongTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
+// NewCommonAggregationsSignificantLongTermsAggregateBucketsFromMap returns a CommonAggregationsSignificantLongTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType,
+func NewCommonAggregationsSignificantLongTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantLongTermsAggregateBuckets {
+	return CommonAggregationsSignificantLongTermsAggregateBuckets{
+		typ:   CommonAggregationsSignificantLongTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -3767,27 +3749,27 @@ func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucke
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsSignificantLongTermsBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Array() ([]CommonAggregationsSignificantLongTermsBucket, error) {
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) Array() ([]CommonAggregationsSignificantLongTermsBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsSignificantLongTermsBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsSignificantLongTermsBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantLongTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
+// NewCommonAggregationsSignificantLongTermsAggregateBucketsFromArray returns a CommonAggregationsSignificantLongTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromArray(v []CommonAggregationsSignificantLongTermsBucket) CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType,
+func NewCommonAggregationsSignificantLongTermsAggregateBucketsFromArray(v []CommonAggregationsSignificantLongTermsBucket) CommonAggregationsSignificantLongTermsAggregateBuckets {
+	return CommonAggregationsSignificantLongTermsAggregateBuckets{
+		typ:   CommonAggregationsSignificantLongTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsSignificantLongTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -3797,22 +3779,22 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBuck
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType
+		u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsSignificantLongTermsBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType
+		u.typ = CommonAggregationsSignificantLongTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsSignificantLongTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -3822,31 +3804,31 @@ func (u CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucke
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets is a discriminated union type.
+// CommonAggregationsSignificantStringTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets struct {
-	typ   CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType
+type CommonAggregationsSignificantStringTermsAggregateBuckets struct {
+	typ   CommonAggregationsSignificantStringTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType discriminates the branches of CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets.
-type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType int
+// CommonAggregationsSignificantStringTermsAggregateBucketsType discriminates the branches of CommonAggregationsSignificantStringTermsAggregateBuckets.
+type CommonAggregationsSignificantStringTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType = iota
-	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType
-	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType
+	CommonAggregationsSignificantStringTermsAggregateBucketsUnknownType CommonAggregationsSignificantStringTermsAggregateBucketsType = iota
+	CommonAggregationsSignificantStringTermsAggregateBucketsMapType
+	CommonAggregationsSignificantStringTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType) String() string {
+func (t CommonAggregationsSignificantStringTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType:
+	case CommonAggregationsSignificantStringTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType:
+	case CommonAggregationsSignificantStringTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3854,45 +3836,45 @@ func (t CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBuc
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType {
+// Returns CommonAggregationsSignificantStringTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) Type() CommonAggregationsSignificantStringTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) RawJSON() json.RawMessage {
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) RawJSON() json.RawMessage {
 	return u.raw
 }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantStringTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantStringTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
+// NewCommonAggregationsSignificantStringTermsAggregateBucketsFromMap returns a CommonAggregationsSignificantStringTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType,
+func NewCommonAggregationsSignificantStringTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantStringTermsAggregateBuckets {
+	return CommonAggregationsSignificantStringTermsAggregateBuckets{
+		typ:   CommonAggregationsSignificantStringTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -3901,27 +3883,27 @@ func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBuc
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsSignificantStringTermsBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Array() ([]CommonAggregationsSignificantStringTermsBucket, error) {
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) Array() ([]CommonAggregationsSignificantStringTermsBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsSignificantStringTermsBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsSignificantStringTermsBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantStringTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
+// NewCommonAggregationsSignificantStringTermsAggregateBucketsFromArray returns a CommonAggregationsSignificantStringTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromArray(v []CommonAggregationsSignificantStringTermsBucket) CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType,
+func NewCommonAggregationsSignificantStringTermsAggregateBucketsFromArray(v []CommonAggregationsSignificantStringTermsBucket) CommonAggregationsSignificantStringTermsAggregateBuckets {
+	return CommonAggregationsSignificantStringTermsAggregateBuckets{
+		typ:   CommonAggregationsSignificantStringTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsSignificantStringTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -3931,22 +3913,22 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBu
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType
+		u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsSignificantStringTermsBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType
+		u.typ = CommonAggregationsSignificantStringTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsSignificantStringTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsSignificantStringTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -3956,31 +3938,31 @@ func (u CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBuc
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets is a discriminated union type.
+// CommonAggregationsStringRareTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType
+type CommonAggregationsStringRareTermsAggregateBuckets struct {
+	typ   CommonAggregationsStringRareTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType int
+// CommonAggregationsStringRareTermsAggregateBucketsType discriminates the branches of CommonAggregationsStringRareTermsAggregateBuckets.
+type CommonAggregationsStringRareTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType
+	CommonAggregationsStringRareTermsAggregateBucketsUnknownType CommonAggregationsStringRareTermsAggregateBucketsType = iota
+	CommonAggregationsStringRareTermsAggregateBucketsMapType
+	CommonAggregationsStringRareTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType) String() string {
+func (t CommonAggregationsStringRareTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType:
+	case CommonAggregationsStringRareTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType:
+	case CommonAggregationsStringRareTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -3988,45 +3970,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsTy
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType {
+// Returns CommonAggregationsStringRareTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) Type() CommonAggregationsStringRareTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsStringRareTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsStringRareTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsStringRareTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
+// NewCommonAggregationsStringRareTermsAggregateBucketsFromMap returns a CommonAggregationsStringRareTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType,
+func NewCommonAggregationsStringRareTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsStringRareTermsAggregateBuckets {
+	return CommonAggregationsStringRareTermsAggregateBuckets{
+		typ:   CommonAggregationsStringRareTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -4035,27 +4015,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFr
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsStringRareTermsBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Array() ([]CommonAggregationsStringRareTermsBucket, error) {
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) Array() ([]CommonAggregationsStringRareTermsBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsStringRareTermsBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsStringRareTermsBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsStringRareTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
+// NewCommonAggregationsStringRareTermsAggregateBucketsFromArray returns a CommonAggregationsStringRareTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromArray(v []CommonAggregationsStringRareTermsBucket) CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType,
+func NewCommonAggregationsStringRareTermsAggregateBucketsFromArray(v []CommonAggregationsStringRareTermsBucket) CommonAggregationsStringRareTermsAggregateBuckets {
+	return CommonAggregationsStringRareTermsAggregateBuckets{
+		typ:   CommonAggregationsStringRareTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsStringRareTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType
+	u.typ = CommonAggregationsStringRareTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -4065,22 +4045,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets)
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType
+		u.typ = CommonAggregationsStringRareTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsStringRareTermsBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType
+		u.typ = CommonAggregationsStringRareTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsStringRareTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -4511,31 +4491,31 @@ func (u SearchHitsMetadataTotal) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseVoidBuckets is a discriminated union type.
+// CommonAggregationsUnmappedRareTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseVoidBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseVoidBucketsType
+type CommonAggregationsUnmappedRareTermsAggregateBuckets struct {
+	typ   CommonAggregationsUnmappedRareTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseVoidBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseVoidBuckets.
-type CommonAggregationsMultiBucketAggregateBaseVoidBucketsType int
+// CommonAggregationsUnmappedRareTermsAggregateBucketsType discriminates the branches of CommonAggregationsUnmappedRareTermsAggregateBuckets.
+type CommonAggregationsUnmappedRareTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseVoidBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType
+	CommonAggregationsUnmappedRareTermsAggregateBucketsUnknownType CommonAggregationsUnmappedRareTermsAggregateBucketsType = iota
+	CommonAggregationsUnmappedRareTermsAggregateBucketsMapType
+	CommonAggregationsUnmappedRareTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseVoidBucketsType) String() string {
+func (t CommonAggregationsUnmappedRareTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType:
+	case CommonAggregationsUnmappedRareTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType:
+	case CommonAggregationsUnmappedRareTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -4543,45 +4523,43 @@ func (t CommonAggregationsMultiBucketAggregateBaseVoidBucketsType) String() stri
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Type() CommonAggregationsMultiBucketAggregateBaseVoidBucketsType {
+// Returns CommonAggregationsUnmappedRareTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) Type() CommonAggregationsUnmappedRareTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) RawJSON() json.RawMessage {
-	return u.raw
-}
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsUnmappedRareTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType
+	u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseVoidBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsUnmappedRareTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
+// NewCommonAggregationsUnmappedRareTermsAggregateBucketsFromMap returns a CommonAggregationsUnmappedRareTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVoidBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseVoidBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType,
+func NewCommonAggregationsUnmappedRareTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsUnmappedRareTermsAggregateBuckets {
+	return CommonAggregationsUnmappedRareTermsAggregateBuckets{
+		typ:   CommonAggregationsUnmappedRareTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -4590,27 +4568,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap(v map[strin
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []Void in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Array() ([]Void, error) {
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) Array() ([]Void, error) {
 	if v, ok := u.value.(*[]Void); ok {
 		return *v, nil
 	}
 	var zero []Void
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseVoidBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsUnmappedRareTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
+// NewCommonAggregationsUnmappedRareTermsAggregateBucketsFromArray returns a CommonAggregationsUnmappedRareTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromArray(v []Void) CommonAggregationsMultiBucketAggregateBaseVoidBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseVoidBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType,
+func NewCommonAggregationsUnmappedRareTermsAggregateBucketsFromArray(v []Void) CommonAggregationsUnmappedRareTermsAggregateBuckets {
+	return CommonAggregationsUnmappedRareTermsAggregateBuckets{
+		typ:   CommonAggregationsUnmappedRareTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsUnmappedRareTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType
+	u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -4620,22 +4598,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) UnmarshalJSON(da
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType
+		u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []Void
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType
+		u.typ = CommonAggregationsUnmappedRareTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseVoidBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsUnmappedRareTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseVoidBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsUnmappedRareTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -4645,31 +4623,31 @@ func (u CommonAggregationsMultiBucketAggregateBaseVoidBuckets) MarshalJSON() ([]
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseVoidBuckets is a discriminated union type.
+// CommonAggregationsUnmappedSignificantTermsAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsSignificantTermsAggregateBaseVoidBuckets struct {
-	typ   CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType
+type CommonAggregationsUnmappedSignificantTermsAggregateBuckets struct {
+	typ   CommonAggregationsUnmappedSignificantTermsAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType discriminates the branches of CommonAggregationsSignificantTermsAggregateBaseVoidBuckets.
-type CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType int
+// CommonAggregationsUnmappedSignificantTermsAggregateBucketsType discriminates the branches of CommonAggregationsUnmappedSignificantTermsAggregateBuckets.
+type CommonAggregationsUnmappedSignificantTermsAggregateBucketsType int
 
 const (
-	CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType = iota
-	CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType
-	CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType
+	CommonAggregationsUnmappedSignificantTermsAggregateBucketsUnknownType CommonAggregationsUnmappedSignificantTermsAggregateBucketsType = iota
+	CommonAggregationsUnmappedSignificantTermsAggregateBucketsMapType
+	CommonAggregationsUnmappedSignificantTermsAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType) String() string {
+func (t CommonAggregationsUnmappedSignificantTermsAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType:
+	case CommonAggregationsUnmappedSignificantTermsAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType:
+	case CommonAggregationsUnmappedSignificantTermsAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -4677,45 +4655,45 @@ func (t CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType) String()
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType {
+// Returns CommonAggregationsUnmappedSignificantTermsAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) Type() CommonAggregationsUnmappedSignificantTermsAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) RawJSON() json.RawMessage {
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) RawJSON() json.RawMessage {
 	return u.raw
 }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsUnmappedSignificantTermsAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType
+	u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseVoidBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsUnmappedSignificantTermsAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
+// NewCommonAggregationsUnmappedSignificantTermsAggregateBucketsFromMap returns a CommonAggregationsUnmappedSignificantTermsAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsSignificantTermsAggregateBaseVoidBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseVoidBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType,
+func NewCommonAggregationsUnmappedSignificantTermsAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsUnmappedSignificantTermsAggregateBuckets {
+	return CommonAggregationsUnmappedSignificantTermsAggregateBuckets{
+		typ:   CommonAggregationsUnmappedSignificantTermsAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -4724,27 +4702,27 @@ func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap(v map[
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []Void in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Array() ([]Void, error) {
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) Array() ([]Void, error) {
 	if v, ok := u.value.(*[]Void); ok {
 		return *v, nil
 	}
 	var zero []Void
-	return zero, &UnionBranchError{Union: "CommonAggregationsSignificantTermsAggregateBaseVoidBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsUnmappedSignificantTermsAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
+// NewCommonAggregationsUnmappedSignificantTermsAggregateBucketsFromArray returns a CommonAggregationsUnmappedSignificantTermsAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromArray(v []Void) CommonAggregationsSignificantTermsAggregateBaseVoidBuckets {
-	return CommonAggregationsSignificantTermsAggregateBaseVoidBuckets{
-		typ:   CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType,
+func NewCommonAggregationsUnmappedSignificantTermsAggregateBucketsFromArray(v []Void) CommonAggregationsUnmappedSignificantTermsAggregateBuckets {
+	return CommonAggregationsUnmappedSignificantTermsAggregateBuckets{
+		typ:   CommonAggregationsUnmappedSignificantTermsAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsUnmappedSignificantTermsAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType
+	u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -4754,22 +4732,22 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) UnmarshalJS
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType
+		u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []Void
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType
+		u.typ = CommonAggregationsUnmappedSignificantTermsAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsSignificantTermsAggregateBaseVoidBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsUnmappedSignificantTermsAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -4779,31 +4757,31 @@ func (u CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) MarshalJSON(
 	return build.NullJSON, nil
 }
 
-// CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets is a discriminated union type.
+// CommonAggregationsVariableWidthHistogramAggregateBuckets is a discriminated union type.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets struct {
-	typ   CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType
+type CommonAggregationsVariableWidthHistogramAggregateBuckets struct {
+	typ   CommonAggregationsVariableWidthHistogramAggregateBucketsType
 	raw   json.RawMessage
 	value any
 }
 
-// CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType discriminates the branches of CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets.
-type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType int
+// CommonAggregationsVariableWidthHistogramAggregateBucketsType discriminates the branches of CommonAggregationsVariableWidthHistogramAggregateBuckets.
+type CommonAggregationsVariableWidthHistogramAggregateBucketsType int
 
 const (
-	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType = iota
-	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType
-	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType
+	CommonAggregationsVariableWidthHistogramAggregateBucketsUnknownType CommonAggregationsVariableWidthHistogramAggregateBucketsType = iota
+	CommonAggregationsVariableWidthHistogramAggregateBucketsMapType
+	CommonAggregationsVariableWidthHistogramAggregateBucketsArrayType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType) String() string {
+func (t CommonAggregationsVariableWidthHistogramAggregateBucketsType) String() string {
 	switch t {
-	case CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType:
+	case CommonAggregationsVariableWidthHistogramAggregateBucketsMapType:
 		return "Map"
-	case CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType:
+	case CommonAggregationsVariableWidthHistogramAggregateBucketsArrayType:
 		return "Array"
 	default:
 		return "unknown"
@@ -4811,45 +4789,45 @@ func (t CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBu
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType if the value has not been decoded.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType {
+// Returns CommonAggregationsVariableWidthHistogramAggregateBucketsUnknownType if the value has not been decoded.
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) Type() CommonAggregationsVariableWidthHistogramAggregateBucketsType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) RawJSON() json.RawMessage {
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) RawJSON() json.RawMessage {
 	return u.raw
 }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFrom*
+// verbatim when no typed branch is set. Use the NewCommonAggregationsVariableWidthHistogramAggregateBucketsFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) SetRaw(raw json.RawMessage) {
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsUnknownType
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsVariableWidthHistogramAggregateBuckets", Want: "Map", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
+// NewCommonAggregationsVariableWidthHistogramAggregateBucketsFromMap returns a CommonAggregationsVariableWidthHistogramAggregateBuckets populated with v
 // on the Map branch.
-func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType,
+func NewCommonAggregationsVariableWidthHistogramAggregateBucketsFromMap(v map[string]json.RawMessage) CommonAggregationsVariableWidthHistogramAggregateBuckets {
+	return CommonAggregationsVariableWidthHistogramAggregateBuckets{
+		typ:   CommonAggregationsVariableWidthHistogramAggregateBucketsMapType,
 		value: &v,
 	}
 }
@@ -4858,27 +4836,27 @@ func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBu
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero []CommonAggregationsVariableWidthHistogramBucket in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Array() ([]CommonAggregationsVariableWidthHistogramBucket, error) {
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) Array() ([]CommonAggregationsVariableWidthHistogramBucket, error) {
 	if v, ok := u.value.(*[]CommonAggregationsVariableWidthHistogramBucket); ok {
 		return *v, nil
 	}
 	var zero []CommonAggregationsVariableWidthHistogramBucket
-	return zero, &UnionBranchError{Union: "CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets", Want: "Array", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "CommonAggregationsVariableWidthHistogramAggregateBuckets", Want: "Array", Got: u.typ.String()}
 }
 
-// NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
+// NewCommonAggregationsVariableWidthHistogramAggregateBucketsFromArray returns a CommonAggregationsVariableWidthHistogramAggregateBuckets populated with v
 // on the Array branch.
-func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromArray(v []CommonAggregationsVariableWidthHistogramBucket) CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets {
-	return CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets{
-		typ:   CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType,
+func NewCommonAggregationsVariableWidthHistogramAggregateBucketsFromArray(v []CommonAggregationsVariableWidthHistogramBucket) CommonAggregationsVariableWidthHistogramAggregateBuckets {
+	return CommonAggregationsVariableWidthHistogramAggregateBuckets{
+		typ:   CommonAggregationsVariableWidthHistogramAggregateBucketsArrayType,
 		value: &v,
 	}
 }
 
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) UnmarshalJSON(data []byte) error {
+func (u *CommonAggregationsVariableWidthHistogramAggregateBuckets) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType
+	u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -4888,22 +4866,22 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketB
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType
+		u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsMapType
 		u.value = &v
 	case data[0] == '[':
 		var v []CommonAggregationsVariableWidthHistogramBucket
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType
+		u.typ = CommonAggregationsVariableWidthHistogramAggregateBucketsArrayType
 		u.value = &v
 	default:
-		return fmt.Errorf("CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets: unexpected JSON token: %s", data[:1])
+		return fmt.Errorf("CommonAggregationsVariableWidthHistogramAggregateBuckets: unexpected JSON token: %s", data[:1])
 	}
 	return nil
 }
 
-func (u CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) MarshalJSON() ([]byte, error) {
+func (u CommonAggregationsVariableWidthHistogramAggregateBuckets) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -4934,13 +4912,13 @@ func (u *SearchResultAggregationsValue) SetRaw(raw json.RawMessage) {
 	u.value = nil
 }
 
-// AsAdjacencyMatrix decodes the union as CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket. The caller selects the
+// AsAdjacencyMatrix decodes the union as CommonAggregationsAdjacencyMatrixAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket); ok {
+func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsAdjacencyMatrixAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsAdjacencyMatrixAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket
+	var v CommonAggregationsAdjacencyMatrixAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -4950,7 +4928,7 @@ func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsM
 
 // NewSearchResultAggregationsValueFromAdjacencyMatrix returns a SearchResultAggregationsValue populated with v
 // on the AdjacencyMatrix branch.
-func NewSearchResultAggregationsValueFromAdjacencyMatrix(v CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromAdjacencyMatrix(v CommonAggregationsAdjacencyMatrixAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5110,13 +5088,13 @@ func NewSearchResultAggregationsValueFromComposite(v CommonAggregationsComposite
 	}
 }
 
-// AsDateHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket. The caller selects the
+// AsDateHistogram decodes the union as CommonAggregationsDateHistogramAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket); ok {
+func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsDateHistogramAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsDateHistogramAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
+	var v CommonAggregationsDateHistogramAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5126,7 +5104,7 @@ func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsMul
 
 // NewSearchResultAggregationsValueFromDateHistogram returns a SearchResultAggregationsValue populated with v
 // on the DateHistogram branch.
-func NewSearchResultAggregationsValueFromDateHistogram(v CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromDateHistogram(v CommonAggregationsDateHistogramAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5176,13 +5154,13 @@ func NewSearchResultAggregationsValueFromDerivative(v CommonAggregationsDerivati
 	}
 }
 
-// AsDTerms decodes the union as CommonAggregationsTermsAggregateBaseDoubleTermsBucket. The caller selects the
+// AsDTerms decodes the union as CommonAggregationsDoubleTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsDTerms() (CommonAggregationsTermsAggregateBaseDoubleTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseDoubleTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsDTerms() (CommonAggregationsDoubleTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsDoubleTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseDoubleTermsBucket
+	var v CommonAggregationsDoubleTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5192,7 +5170,7 @@ func (u *SearchResultAggregationsValue) AsDTerms() (CommonAggregationsTermsAggre
 
 // NewSearchResultAggregationsValueFromDTerms returns a SearchResultAggregationsValue populated with v
 // on the DTerms branch.
-func NewSearchResultAggregationsValueFromDTerms(v CommonAggregationsTermsAggregateBaseDoubleTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromDTerms(v CommonAggregationsDoubleTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5264,13 +5242,13 @@ func NewSearchResultAggregationsValueFromFilter(v CommonAggregationsSingleBucket
 	}
 }
 
-// AsFilters decodes the union as CommonAggregationsMultiBucketAggregateBaseFiltersBucket. The caller selects the
+// AsFilters decodes the union as CommonAggregationsFiltersAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsMultiBucketAggregateBaseFiltersBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseFiltersBucket); ok {
+func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsFiltersAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsFiltersAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseFiltersBucket
+	var v CommonAggregationsFiltersAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5280,7 +5258,7 @@ func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsMultiBuck
 
 // NewSearchResultAggregationsValueFromFilters returns a SearchResultAggregationsValue populated with v
 // on the Filters branch.
-func NewSearchResultAggregationsValueFromFilters(v CommonAggregationsMultiBucketAggregateBaseFiltersBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromFilters(v CommonAggregationsFiltersAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5352,13 +5330,13 @@ func NewSearchResultAggregationsValueFromGeoDistance(v CommonAggregationsMultiBu
 	}
 }
 
-// AsGeohashGrid decodes the union as CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket. The caller selects the
+// AsGeohashGrid decodes the union as CommonAggregationsGeoHashGridAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket); ok {
+func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsGeoHashGridAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsGeoHashGridAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket
+	var v CommonAggregationsGeoHashGridAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5368,19 +5346,19 @@ func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsMulti
 
 // NewSearchResultAggregationsValueFromGeohashGrid returns a SearchResultAggregationsValue populated with v
 // on the GeohashGrid branch.
-func NewSearchResultAggregationsValueFromGeohashGrid(v CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromGeohashGrid(v CommonAggregationsGeoHashGridAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsGeotileGrid decodes the union as CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket. The caller selects the
+// AsGeotileGrid decodes the union as CommonAggregationsGeoTileGridAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket); ok {
+func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsGeoTileGridAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsGeoTileGridAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket
+	var v CommonAggregationsGeoTileGridAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5390,7 +5368,7 @@ func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsMulti
 
 // NewSearchResultAggregationsValueFromGeotileGrid returns a SearchResultAggregationsValue populated with v
 // on the GeotileGrid branch.
-func NewSearchResultAggregationsValueFromGeotileGrid(v CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromGeotileGrid(v CommonAggregationsGeoTileGridAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5462,13 +5440,13 @@ func NewSearchResultAggregationsValueFromHDRPercentileRanks(v CommonAggregations
 	}
 }
 
-// AsHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseHistogramBucket. The caller selects the
+// AsHistogram decodes the union as CommonAggregationsHistogramAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsMultiBucketAggregateBaseHistogramBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseHistogramBucket); ok {
+func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsHistogramAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsHistogramAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseHistogramBucket
+	var v CommonAggregationsHistogramAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5478,19 +5456,19 @@ func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsMultiBu
 
 // NewSearchResultAggregationsValueFromHistogram returns a SearchResultAggregationsValue populated with v
 // on the Histogram branch.
-func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsMultiBucketAggregateBaseHistogramBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsHistogramAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsIPRange decodes the union as CommonAggregationsMultiBucketAggregateBaseIPRangeBucket. The caller selects the
+// AsIPRange decodes the union as CommonAggregationsIPRangeAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsMultiBucketAggregateBaseIPRangeBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseIPRangeBucket); ok {
+func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIPRangeAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsIPRangeAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseIPRangeBucket
+	var v CommonAggregationsIPRangeAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5500,19 +5478,19 @@ func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsMultiBuck
 
 // NewSearchResultAggregationsValueFromIPRange returns a SearchResultAggregationsValue populated with v
 // on the IPRange branch.
-func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsMultiBucketAggregateBaseIPRangeBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIPRangeAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsLRareTerms decodes the union as CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket. The caller selects the
+// AsLRareTerms decodes the union as CommonAggregationsLongRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsLRareTerms() (CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsLRareTerms() (CommonAggregationsLongRareTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsLongRareTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket
+	var v CommonAggregationsLongRareTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5522,19 +5500,19 @@ func (u *SearchResultAggregationsValue) AsLRareTerms() (CommonAggregationsMultiB
 
 // NewSearchResultAggregationsValueFromLRareTerms returns a SearchResultAggregationsValue populated with v
 // on the LRareTerms branch.
-func NewSearchResultAggregationsValueFromLRareTerms(v CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromLRareTerms(v CommonAggregationsLongRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsLTerms decodes the union as CommonAggregationsTermsAggregateBaseLongTermsBucket. The caller selects the
+// AsLTerms decodes the union as CommonAggregationsLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsLTerms() (CommonAggregationsTermsAggregateBaseLongTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseLongTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsLTerms() (CommonAggregationsLongTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsLongTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseLongTermsBucket
+	var v CommonAggregationsLongTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5544,7 +5522,7 @@ func (u *SearchResultAggregationsValue) AsLTerms() (CommonAggregationsTermsAggre
 
 // NewSearchResultAggregationsValueFromLTerms returns a SearchResultAggregationsValue populated with v
 // on the LTerms branch.
-func NewSearchResultAggregationsValueFromLTerms(v CommonAggregationsTermsAggregateBaseLongTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromLTerms(v CommonAggregationsLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5660,13 +5638,13 @@ func NewSearchResultAggregationsValueFromMissing(v CommonAggregationsSingleBucke
 	}
 }
 
-// AsMultiTerms decodes the union as CommonAggregationsTermsAggregateBaseMultiTermsBucket. The caller selects the
+// AsMultiTerms decodes the union as CommonAggregationsMultiTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsTermsAggregateBaseMultiTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseMultiTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsMultiTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseMultiTermsBucket
+	var v CommonAggregationsMultiTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5676,7 +5654,7 @@ func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsTermsA
 
 // NewSearchResultAggregationsValueFromMultiTerms returns a SearchResultAggregationsValue populated with v
 // on the MultiTerms branch.
-func NewSearchResultAggregationsValueFromMultiTerms(v CommonAggregationsTermsAggregateBaseMultiTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromMultiTerms(v CommonAggregationsMultiTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5858,13 +5836,13 @@ func NewSearchResultAggregationsValueFromScriptedMetric(v CommonAggregationsScri
 	}
 }
 
-// AsSigLTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket. The caller selects the
+// AsSigLTerms decodes the union as CommonAggregationsSignificantLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignificantLongTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsSignificantLongTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket
+	var v CommonAggregationsSignificantLongTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5874,19 +5852,19 @@ func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignifi
 
 // NewSearchResultAggregationsValueFromSigLTerms returns a SearchResultAggregationsValue populated with v
 // on the SigLTerms branch.
-func NewSearchResultAggregationsValueFromSigLTerms(v CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSigLTerms(v CommonAggregationsSignificantLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsSigSTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket. The caller selects the
+// AsSigSTerms decodes the union as CommonAggregationsSignificantStringTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignificantStringTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsSignificantStringTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket
+	var v CommonAggregationsSignificantStringTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5896,7 +5874,7 @@ func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignifi
 
 // NewSearchResultAggregationsValueFromSigSTerms returns a SearchResultAggregationsValue populated with v
 // on the SigSTerms branch.
-func NewSearchResultAggregationsValueFromSigSTerms(v CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSigSTerms(v CommonAggregationsSignificantStringTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5990,13 +5968,13 @@ func NewSearchResultAggregationsValueFromStatsBucket(v CommonAggregationsStatsAg
 	}
 }
 
-// AsSRareTerms decodes the union as CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket. The caller selects the
+// AsSRareTerms decodes the union as CommonAggregationsStringRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSRareTerms() (CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsSRareTerms() (CommonAggregationsStringRareTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsStringRareTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket
+	var v CommonAggregationsStringRareTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6006,19 +5984,19 @@ func (u *SearchResultAggregationsValue) AsSRareTerms() (CommonAggregationsMultiB
 
 // NewSearchResultAggregationsValueFromSRareTerms returns a SearchResultAggregationsValue populated with v
 // on the SRareTerms branch.
-func NewSearchResultAggregationsValueFromSRareTerms(v CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSRareTerms(v CommonAggregationsStringRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsSTerms decodes the union as CommonAggregationsTermsAggregateBaseStringTermsBucket. The caller selects the
+// AsSTerms decodes the union as CommonAggregationsStringTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSTerms() (CommonAggregationsTermsAggregateBaseStringTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseStringTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsSTerms() (CommonAggregationsStringTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsStringTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseStringTermsBucket
+	var v CommonAggregationsStringTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6028,7 +6006,7 @@ func (u *SearchResultAggregationsValue) AsSTerms() (CommonAggregationsTermsAggre
 
 // NewSearchResultAggregationsValueFromSTerms returns a SearchResultAggregationsValue populated with v
 // on the STerms branch.
-func NewSearchResultAggregationsValueFromSTerms(v CommonAggregationsTermsAggregateBaseStringTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSTerms(v CommonAggregationsStringTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6144,13 +6122,13 @@ func NewSearchResultAggregationsValueFromTopHits(v CommonAggregationsTopHitsAggr
 	}
 }
 
-// AsULTerms decodes the union as CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket. The caller selects the
+// AsULTerms decodes the union as CommonAggregationsUnsignedLongTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsULTerms() (CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket); ok {
+func (u *SearchResultAggregationsValue) AsULTerms() (CommonAggregationsUnsignedLongTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsUnsignedLongTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket
+	var v CommonAggregationsUnsignedLongTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6160,19 +6138,19 @@ func (u *SearchResultAggregationsValue) AsULTerms() (CommonAggregationsTermsAggr
 
 // NewSearchResultAggregationsValueFromULTerms returns a SearchResultAggregationsValue populated with v
 // on the ULTerms branch.
-func NewSearchResultAggregationsValueFromULTerms(v CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromULTerms(v CommonAggregationsUnsignedLongTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUMRareTerms decodes the union as CommonAggregationsMultiBucketAggregateBaseVoid. The caller selects the
+// AsUMRareTerms decodes the union as CommonAggregationsUnmappedRareTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUMRareTerms() (CommonAggregationsMultiBucketAggregateBaseVoid, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseVoid); ok {
+func (u *SearchResultAggregationsValue) AsUMRareTerms() (CommonAggregationsUnmappedRareTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsUnmappedRareTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseVoid
+	var v CommonAggregationsUnmappedRareTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6182,19 +6160,19 @@ func (u *SearchResultAggregationsValue) AsUMRareTerms() (CommonAggregationsMulti
 
 // NewSearchResultAggregationsValueFromUMRareTerms returns a SearchResultAggregationsValue populated with v
 // on the UMRareTerms branch.
-func NewSearchResultAggregationsValueFromUMRareTerms(v CommonAggregationsMultiBucketAggregateBaseVoid) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromUMRareTerms(v CommonAggregationsUnmappedRareTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUMSigTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseVoid. The caller selects the
+// AsUMSigTerms decodes the union as CommonAggregationsUnmappedSignificantTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsSignificantTermsAggregateBaseVoid, error) {
-	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseVoid); ok {
+func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsUnmappedSignificantTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsUnmappedSignificantTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSignificantTermsAggregateBaseVoid
+	var v CommonAggregationsUnmappedSignificantTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6204,19 +6182,19 @@ func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsSignif
 
 // NewSearchResultAggregationsValueFromUMSigTerms returns a SearchResultAggregationsValue populated with v
 // on the UMSigTerms branch.
-func NewSearchResultAggregationsValueFromUMSigTerms(v CommonAggregationsSignificantTermsAggregateBaseVoid) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromUMSigTerms(v CommonAggregationsUnmappedSignificantTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsUMTerms decodes the union as CommonAggregationsTermsAggregateBaseVoid. The caller selects the
+// AsUMTerms decodes the union as CommonAggregationsUnmappedTermsAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUMTerms() (CommonAggregationsTermsAggregateBaseVoid, error) {
-	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseVoid); ok {
+func (u *SearchResultAggregationsValue) AsUMTerms() (CommonAggregationsUnmappedTermsAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsUnmappedTermsAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTermsAggregateBaseVoid
+	var v CommonAggregationsUnmappedTermsAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6226,7 +6204,7 @@ func (u *SearchResultAggregationsValue) AsUMTerms() (CommonAggregationsTermsAggr
 
 // NewSearchResultAggregationsValueFromUMTerms returns a SearchResultAggregationsValue populated with v
 // on the UMTerms branch.
-func NewSearchResultAggregationsValueFromUMTerms(v CommonAggregationsTermsAggregateBaseVoid) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromUMTerms(v CommonAggregationsUnmappedTermsAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6254,13 +6232,13 @@ func NewSearchResultAggregationsValueFromValueCount(v CommonAggregationsSingleMe
 	}
 }
 
-// AsVariableWidthHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket. The caller selects the
+// AsVariableWidthHistogram decodes the union as CommonAggregationsVariableWidthHistogramAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket); ok {
+func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggregationsVariableWidthHistogramAggregate, error) {
+	if v, ok := u.value.(*CommonAggregationsVariableWidthHistogramAggregate); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket
+	var v CommonAggregationsVariableWidthHistogramAggregate
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6270,7 +6248,7 @@ func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggreg
 
 // NewSearchResultAggregationsValueFromVariableWidthHistogram returns a SearchResultAggregationsValue populated with v
 // on the VariableWidthHistogram branch.
-func NewSearchResultAggregationsValueFromVariableWidthHistogram(v CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromVariableWidthHistogram(v CommonAggregationsVariableWidthHistogramAggregate) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -22236,34 +22214,34 @@ func (u BulkByScrollRespBaseFailuresItem) MarshalJSON() ([]byte, error) {
 // Task status information can vary wildly from task to task.
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type TasksTaskInfoBaseStatus struct {
-	typ   TasksTaskInfoBaseStatusType
+type TasksTaskInfoStatus struct {
+	typ   TasksTaskInfoStatusType
 	raw   json.RawMessage
 	value any
 }
 
-// TasksTaskInfoBaseStatusType discriminates the branches of TasksTaskInfoBaseStatus.
-type TasksTaskInfoBaseStatusType int
+// TasksTaskInfoStatusType discriminates the branches of TasksTaskInfoStatus.
+type TasksTaskInfoStatusType int
 
 const (
-	TasksTaskInfoBaseStatusUnknownType TasksTaskInfoBaseStatusType = iota
-	TasksTaskInfoBaseStatusTasksReplicationTaskStatusType
-	TasksTaskInfoBaseStatusBulkByScrollTaskStatusType
-	TasksTaskInfoBaseStatusTasksPersistentTaskStatusType
-	TasksTaskInfoBaseStatusMapType
+	TasksTaskInfoStatusUnknownType TasksTaskInfoStatusType = iota
+	TasksTaskInfoStatusTasksReplicationTaskStatusType
+	TasksTaskInfoStatusBulkByScrollTaskStatusType
+	TasksTaskInfoStatusTasksPersistentTaskStatusType
+	TasksTaskInfoStatusMapType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t TasksTaskInfoBaseStatusType) String() string {
+func (t TasksTaskInfoStatusType) String() string {
 	switch t {
-	case TasksTaskInfoBaseStatusTasksReplicationTaskStatusType:
+	case TasksTaskInfoStatusTasksReplicationTaskStatusType:
 		return "TasksReplicationTaskStatus"
-	case TasksTaskInfoBaseStatusBulkByScrollTaskStatusType:
+	case TasksTaskInfoStatusBulkByScrollTaskStatusType:
 		return "BulkByScrollTaskStatus"
-	case TasksTaskInfoBaseStatusTasksPersistentTaskStatusType:
+	case TasksTaskInfoStatusTasksPersistentTaskStatusType:
 		return "TasksPersistentTaskStatus"
-	case TasksTaskInfoBaseStatusMapType:
+	case TasksTaskInfoStatusMapType:
 		return "Map"
 	default:
 		return "unknown"
@@ -22271,41 +22249,41 @@ func (t TasksTaskInfoBaseStatusType) String() string {
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns TasksTaskInfoBaseStatusUnknownType if the value has not been decoded.
-func (u *TasksTaskInfoBaseStatus) Type() TasksTaskInfoBaseStatusType { return u.typ }
+// Returns TasksTaskInfoStatusUnknownType if the value has not been decoded.
+func (u *TasksTaskInfoStatus) Type() TasksTaskInfoStatusType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *TasksTaskInfoBaseStatus) RawJSON() json.RawMessage { return u.raw }
+func (u *TasksTaskInfoStatus) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewTasksTaskInfoBaseStatusFrom*
+// verbatim when no typed branch is set. Use the NewTasksTaskInfoStatusFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *TasksTaskInfoBaseStatus) SetRaw(raw json.RawMessage) {
+func (u *TasksTaskInfoStatus) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = TasksTaskInfoBaseStatusUnknownType
+	u.typ = TasksTaskInfoStatusUnknownType
 }
 
 // TasksReplicationTaskStatus returns the TasksReplicationTaskStatus branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero TasksReplicationTaskStatus in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *TasksTaskInfoBaseStatus) TasksReplicationTaskStatus() (TasksReplicationTaskStatus, error) {
+func (u *TasksTaskInfoStatus) TasksReplicationTaskStatus() (TasksReplicationTaskStatus, error) {
 	if v, ok := u.value.(*TasksReplicationTaskStatus); ok {
 		return *v, nil
 	}
 	var zero TasksReplicationTaskStatus
-	return zero, &UnionBranchError{Union: "TasksTaskInfoBaseStatus", Want: "TasksReplicationTaskStatus", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "TasksTaskInfoStatus", Want: "TasksReplicationTaskStatus", Got: u.typ.String()}
 }
 
-// NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// NewTasksTaskInfoStatusFromTasksReplicationTaskStatus returns a TasksTaskInfoStatus populated with v
 // on the TasksReplicationTaskStatus branch.
-func NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus(v TasksReplicationTaskStatus) TasksTaskInfoBaseStatus {
-	return TasksTaskInfoBaseStatus{
-		typ:   TasksTaskInfoBaseStatusTasksReplicationTaskStatusType,
+func NewTasksTaskInfoStatusFromTasksReplicationTaskStatus(v TasksReplicationTaskStatus) TasksTaskInfoStatus {
+	return TasksTaskInfoStatus{
+		typ:   TasksTaskInfoStatusTasksReplicationTaskStatusType,
 		value: &v,
 	}
 }
@@ -22314,19 +22292,19 @@ func NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus(v TasksReplication
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero BulkByScrollTaskStatus in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *TasksTaskInfoBaseStatus) BulkByScrollTaskStatus() (BulkByScrollTaskStatus, error) {
+func (u *TasksTaskInfoStatus) BulkByScrollTaskStatus() (BulkByScrollTaskStatus, error) {
 	if v, ok := u.value.(*BulkByScrollTaskStatus); ok {
 		return *v, nil
 	}
 	var zero BulkByScrollTaskStatus
-	return zero, &UnionBranchError{Union: "TasksTaskInfoBaseStatus", Want: "BulkByScrollTaskStatus", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "TasksTaskInfoStatus", Want: "BulkByScrollTaskStatus", Got: u.typ.String()}
 }
 
-// NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// NewTasksTaskInfoStatusFromBulkByScrollTaskStatus returns a TasksTaskInfoStatus populated with v
 // on the BulkByScrollTaskStatus branch.
-func NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus(v BulkByScrollTaskStatus) TasksTaskInfoBaseStatus {
-	return TasksTaskInfoBaseStatus{
-		typ:   TasksTaskInfoBaseStatusBulkByScrollTaskStatusType,
+func NewTasksTaskInfoStatusFromBulkByScrollTaskStatus(v BulkByScrollTaskStatus) TasksTaskInfoStatus {
+	return TasksTaskInfoStatus{
+		typ:   TasksTaskInfoStatusBulkByScrollTaskStatusType,
 		value: &v,
 	}
 }
@@ -22335,19 +22313,19 @@ func NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus(v BulkByScrollTaskStat
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero TasksPersistentTaskStatus in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *TasksTaskInfoBaseStatus) TasksPersistentTaskStatus() (TasksPersistentTaskStatus, error) {
+func (u *TasksTaskInfoStatus) TasksPersistentTaskStatus() (TasksPersistentTaskStatus, error) {
 	if v, ok := u.value.(*TasksPersistentTaskStatus); ok {
 		return *v, nil
 	}
 	var zero TasksPersistentTaskStatus
-	return zero, &UnionBranchError{Union: "TasksTaskInfoBaseStatus", Want: "TasksPersistentTaskStatus", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "TasksTaskInfoStatus", Want: "TasksPersistentTaskStatus", Got: u.typ.String()}
 }
 
-// NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus returns a TasksTaskInfoBaseStatus populated with v
+// NewTasksTaskInfoStatusFromTasksPersistentTaskStatus returns a TasksTaskInfoStatus populated with v
 // on the TasksPersistentTaskStatus branch.
-func NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus(v TasksPersistentTaskStatus) TasksTaskInfoBaseStatus {
-	return TasksTaskInfoBaseStatus{
-		typ:   TasksTaskInfoBaseStatusTasksPersistentTaskStatusType,
+func NewTasksTaskInfoStatusFromTasksPersistentTaskStatus(v TasksPersistentTaskStatus) TasksTaskInfoStatus {
+	return TasksTaskInfoStatus{
+		typ:   TasksTaskInfoStatusTasksPersistentTaskStatusType,
 		value: &v,
 	}
 }
@@ -22356,27 +22334,27 @@ func NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus(v TasksPersistentTa
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero map[string]json.RawMessage in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *TasksTaskInfoBaseStatus) Map() (map[string]json.RawMessage, error) {
+func (u *TasksTaskInfoStatus) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &UnionBranchError{Union: "TasksTaskInfoBaseStatus", Want: "Map", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "TasksTaskInfoStatus", Want: "Map", Got: u.typ.String()}
 }
 
-// NewTasksTaskInfoBaseStatusFromMap returns a TasksTaskInfoBaseStatus populated with v
+// NewTasksTaskInfoStatusFromMap returns a TasksTaskInfoStatus populated with v
 // on the Map branch.
-func NewTasksTaskInfoBaseStatusFromMap(v map[string]json.RawMessage) TasksTaskInfoBaseStatus {
-	return TasksTaskInfoBaseStatus{
-		typ:   TasksTaskInfoBaseStatusMapType,
+func NewTasksTaskInfoStatusFromMap(v map[string]json.RawMessage) TasksTaskInfoStatus {
+	return TasksTaskInfoStatus{
+		typ:   TasksTaskInfoStatusMapType,
 		value: &v,
 	}
 }
 
-func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
+func (u *TasksTaskInfoStatus) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = TasksTaskInfoBaseStatusUnknownType
+	u.typ = TasksTaskInfoStatusUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
@@ -22388,7 +22366,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 	if build.HasJSONKeys(data, "phase") {
 		var v TasksReplicationTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = TasksTaskInfoBaseStatusTasksReplicationTaskStatusType
+			u.typ = TasksTaskInfoStatusTasksReplicationTaskStatusType
 			u.value = &v
 			return nil
 		}
@@ -22396,7 +22374,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 	if build.HasJSONKeys(data, "batches", "deleted", "noops", "requests_per_second", "retries", "throttled_millis", "throttled_until_millis", "total", "version_conflicts") {
 		var v BulkByScrollTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = TasksTaskInfoBaseStatusBulkByScrollTaskStatusType
+			u.typ = TasksTaskInfoStatusBulkByScrollTaskStatusType
 			u.value = &v
 			return nil
 		}
@@ -22404,7 +22382,7 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 	if build.HasJSONKeys(data, "state") {
 		var v TasksPersistentTaskStatus
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = TasksTaskInfoBaseStatusTasksPersistentTaskStatusType
+			u.typ = TasksTaskInfoStatusTasksPersistentTaskStatusType
 			u.value = &v
 			return nil
 		}
@@ -22413,15 +22391,15 @@ func (u *TasksTaskInfoBaseStatus) UnmarshalJSON(data []byte) error {
 	{
 		var v map[string]json.RawMessage
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = TasksTaskInfoBaseStatusMapType
+			u.typ = TasksTaskInfoStatusMapType
 			u.value = &v
 			return nil
 		}
 	}
-	return fmt.Errorf("TasksTaskInfoBaseStatus: no branch matched JSON: %s", data[:min(len(data), 64)])
+	return fmt.Errorf("TasksTaskInfoStatus: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
-func (u TasksTaskInfoBaseStatus) MarshalJSON() ([]byte, error) {
+func (u TasksTaskInfoStatus) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -22481,21 +22459,21 @@ func (u *TasksTaskInfos) SetRaw(raw json.RawMessage) {
 	u.typ = TasksTaskInfosUnknownType
 }
 
-// Array returns the []TasksTaskInfoBase branch value. It returns a
+// Array returns the []TasksTaskInfo branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []TasksTaskInfoBase in that case,
+// that is set; the returned value is the zero []TasksTaskInfo in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *TasksTaskInfos) Array() ([]TasksTaskInfoBase, error) {
-	if v, ok := u.value.(*[]TasksTaskInfoBase); ok {
+func (u *TasksTaskInfos) Array() ([]TasksTaskInfo, error) {
+	if v, ok := u.value.(*[]TasksTaskInfo); ok {
 		return *v, nil
 	}
-	var zero []TasksTaskInfoBase
+	var zero []TasksTaskInfo
 	return zero, &UnionBranchError{Union: "TasksTaskInfos", Want: "Array", Got: u.typ.String()}
 }
 
 // NewTasksTaskInfosFromArray returns a TasksTaskInfos populated with v
 // on the Array branch.
-func NewTasksTaskInfosFromArray(v []TasksTaskInfoBase) TasksTaskInfos {
+func NewTasksTaskInfosFromArray(v []TasksTaskInfo) TasksTaskInfos {
 	return TasksTaskInfos{
 		typ:   TasksTaskInfosArrayType,
 		value: &v,
@@ -22532,7 +22510,7 @@ func (u *TasksTaskInfos) UnmarshalJSON(data []byte) error {
 	}
 	switch {
 	case data[0] == '[':
-		var v []TasksTaskInfoBase
+		var v []TasksTaskInfo
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

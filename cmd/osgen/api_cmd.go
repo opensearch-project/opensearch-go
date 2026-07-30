@@ -122,6 +122,13 @@ func generateAPI(
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
 	typeQueryParamEnums(ops, spec, registry, vrange)
+
+	// Every type is registered, so a collapsed type can take its alias's friendlier
+	// name and have all references rewritten together. Must run after the walks:
+	// type references are plain strings, so a mid-walk rename dangles the ones
+	// already emitted.
+	renameCollapsedAliases(spec, registry)
+
 	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })

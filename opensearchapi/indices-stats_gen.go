@@ -203,14 +203,14 @@ func (r IndicesStatsResp) RawBody() io.Reader {
 //
 // The statistics for all indexes.
 type IndicesStatsAllIndices struct {
-	Primaries IndicesStatsIndexBase `json:"primaries"`
-	Total     IndicesStatsIndexBase `json:"total"`
+	Primaries IndicesStatsIndex `json:"primaries"`
+	Total     IndicesStatsIndex `json:"total"`
 }
 
-// IndicesStatsIndexBase is a typed component of the indices.stats operation.
+// IndicesStatsIndex is a typed component of the indices.stats operation.
 //
 // The base statistics for an index.
-type IndicesStatsIndexBase struct {
+type IndicesStatsIndex struct {
 	Completion *CompletionStats `json:"completion,omitempty"`
 
 	// The document-level statistics.
@@ -262,12 +262,12 @@ type IndicesStatsIndexBase struct {
 //
 // The statistics for specific indexes.
 type IndicesStatsIndices struct {
-	Primaries IndicesStatsIndexBase `json:"primaries"`
+	Primaries IndicesStatsIndex `json:"primaries"`
 
 	// The statistics for individual shards.
 	Shards map[string][]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 
-	Total IndicesStatsIndexBase `json:"total"`
+	Total IndicesStatsIndex `json:"total"`
 
 	// The universally unique identifier.
 	UUID string `json:"uuid"`
@@ -275,7 +275,7 @@ type IndicesStatsIndices struct {
 
 // IndicesStatsIndexShardBase is a typed component of the indices.stats operation.
 type IndicesStatsIndexShardBase struct {
-	IndicesStatsIndexBase
+	IndicesStatsIndex
 
 	// The commit information for a shard.
 	Commit *IndicesStatsShardCommit `json:"commit,omitempty"`

@@ -227,7 +227,7 @@ type NodesStatsStats struct {
 	// The role assigned to the node.
 	Roles []NodeRole `json:"roles,omitempty"`
 
-	Script                         *NodesStatsScriptBase                          `json:"script,omitempty"`
+	Script                         *NodesStatsScript                              `json:"script,omitempty"`
 	ScriptCache                    *NodesStatsScriptCache                         `json:"script_cache,omitempty"`
 	SearchBackpressure             *NodesStatsShardSearchBackpressure             `json:"search_backpressure,omitempty"`
 	SearchPipeline                 *NodesStatsShardSearchPipeline                 `json:"search_pipeline,omitempty"`
@@ -611,8 +611,8 @@ type NodesStatsPressureMemory struct {
 
 // NodesStatsNodeIndices is a typed component of the nodes.stats operation.
 type NodesStatsNodeIndices struct {
-	IndicesStatsIndexBase
-	Indices map[string]IndicesStatsIndexBase                   `json:"indices,omitempty"`
+	IndicesStatsIndex
+	Indices map[string]IndicesStatsIndex                       `json:"indices,omitempty"`
 	Shards  map[string][]map[string]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 }
 
@@ -882,7 +882,7 @@ type NodesStatsOperatingSystem struct {
 	Cgroup *NodesStatsCgroup             `json:"cgroup,omitempty"`
 	CPU    *NodesStatsOperatingSystemCPU `json:"cpu,omitempty"`
 	Mem    *NodesStatsExtendedMemory     `json:"mem,omitempty"`
-	Swap   *NodesStatsMemoryBase         `json:"swap,omitempty"`
+	Swap   *NodesStatsMemory             `json:"swap,omitempty"`
 
 	// The time unit for milliseconds.
 	Timestamp *int64 `json:"timestamp,omitempty"`
@@ -965,7 +965,7 @@ type NodesStatsOperatingSystemCPU struct {
 
 // NodesStatsExtendedMemory is a typed component of the nodes.stats operation.
 type NodesStatsExtendedMemory struct {
-	NodesStatsMemoryBase
+	NodesStatsMemory
 
 	// Percentage of free memory.
 	FreePercent *float64 `json:"free_percent,omitempty"`
@@ -974,8 +974,8 @@ type NodesStatsExtendedMemory struct {
 	UsedPercent *float64 `json:"used_percent,omitempty"`
 }
 
-// NodesStatsMemoryBase is a typed component of the nodes.stats operation.
-type NodesStatsMemoryBase struct {
+// NodesStatsMemory is a typed component of the nodes.stats operation.
+type NodesStatsMemory struct {
 	// Amount of free physical memory.
 	Free *string `json:"free,omitempty"`
 
@@ -1099,8 +1099,8 @@ type NodesStatsShardResourceUsageIoUsageStats struct {
 	MaxIoUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
 }
 
-// NodesStatsScriptBase is a typed component of the nodes.stats operation.
-type NodesStatsScriptBase struct {
+// NodesStatsScript is a typed component of the nodes.stats operation.
+type NodesStatsScript struct {
 	// Total number of times the script cache has evicted old data.
 	CacheEvictions int64 `json:"cache_evictions"`
 
@@ -1115,12 +1115,12 @@ type NodesStatsScriptBase struct {
 // NodesStatsScriptCache is a typed component of the nodes.stats operation.
 type NodesStatsScriptCache struct {
 	Contexts []NodesStatsScriptContext `json:"contexts,omitempty"`
-	Sum      NodesStatsScriptBase      `json:"sum"`
+	Sum      NodesStatsScript          `json:"sum"`
 }
 
 // NodesStatsScriptContext is a typed component of the nodes.stats operation.
 type NodesStatsScriptContext struct {
-	NodesStatsScriptBase
+	NodesStatsScript
 	Context string `json:"context"`
 }
 

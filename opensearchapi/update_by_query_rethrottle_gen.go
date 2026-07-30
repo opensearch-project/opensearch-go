@@ -121,7 +121,7 @@ func (r UpdateByQueryRethrottleResp) RawBody() io.Reader {
 // UpdateByQueryRethrottleNode is a typed component of the update_by_query_rethrottle operation.
 type UpdateByQueryRethrottleNode struct {
 	BaseNode
-	Tasks map[string]TasksTaskInfoBase `json:"tasks"`
+	Tasks map[string]TasksTaskInfo `json:"tasks"`
 }
 
 // UpdateByQueryRethrottle changes the number of requests per second for a particular Update By Query operation.

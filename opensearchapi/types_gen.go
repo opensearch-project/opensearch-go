@@ -161,9 +161,9 @@ type CommonAggregationsAdjacencyMatrixBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket struct {
+type CommonAggregationsAdjacencyMatrixAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsAdjacencyMatrixAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsDateHistogramBucket struct {
@@ -175,13 +175,13 @@ type CommonAggregationsDateHistogramBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket struct {
+type CommonAggregationsDateHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsDateHistogramAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsAutoDateHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
+	CommonAggregationsDateHistogramAggregate
 
 	// A date histogram interval, similar to `Duration`, with support for
 	// additional units: `w` (week), `M` (month), `q` (quarter), and `y`
@@ -290,7 +290,7 @@ type CommonAggregationsDoubleTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseDoubleTermsBucket struct {
+type CommonAggregationsDoubleTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsDoubleTermsBucket `json:"buckets"`
 }
@@ -344,9 +344,9 @@ type CommonAggregationsExtendedStatsAggregateBase struct {
 	VarianceSamplingAsString   *string                                            `json:"variance_sampling_as_string,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseFiltersBucket struct {
+type CommonAggregationsFiltersAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsFiltersAggregateBuckets `json:"buckets"`
 }
 
 // The bounds specified using coordinate values.
@@ -431,9 +431,9 @@ type CommonAggregationsGeoHashGridBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket struct {
+type CommonAggregationsGeoHashGridAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsGeoHashGridAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsGeoTileGridBucket struct {
@@ -443,9 +443,9 @@ type CommonAggregationsGeoTileGridBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket struct {
+type CommonAggregationsGeoTileGridAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsGeoTileGridAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsArrayPercentilesItem struct {
@@ -465,9 +465,9 @@ type CommonAggregationsHistogramBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseHistogramBucket struct {
+type CommonAggregationsHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsHistogramAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsIPRangeBucket struct {
@@ -477,9 +477,9 @@ type CommonAggregationsIPRangeBucket struct {
 	To   *string `json:"to,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseIPRangeBucket struct {
+type CommonAggregationsIPRangeAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsIPRangeAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsLongRareTermsBucket struct {
@@ -488,9 +488,9 @@ type CommonAggregationsLongRareTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
+type CommonAggregationsLongRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsLongRareTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsLongTermsBucket struct {
@@ -499,7 +499,7 @@ type CommonAggregationsLongTermsBucket struct {
 	KeyAsString *string                              `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseLongTermsBucket struct {
+type CommonAggregationsLongTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsLongTermsBucket `json:"buckets"`
 }
@@ -532,9 +532,9 @@ type CommonAggregationsMultiTermsBucket struct {
 	KeyAsString             *string                                     `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseMultiTermsBucket struct {
+type CommonAggregationsMultiTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
-	Buckets *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsMultiTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsRateAggregate struct {
@@ -566,9 +566,9 @@ type CommonAggregationsSignificantLongTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket struct {
+type CommonAggregationsSignificantLongTermsAggregate struct {
 	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsSignificantLongTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsSignificantStringTermsBucket struct {
@@ -576,9 +576,9 @@ type CommonAggregationsSignificantStringTermsBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket struct {
+type CommonAggregationsSignificantStringTermsAggregate struct {
 	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsSignificantStringTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsCumulativeCardinalityAggregate struct {
@@ -592,9 +592,9 @@ type CommonAggregationsStringRareTermsBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket struct {
+type CommonAggregationsStringRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsStringRareTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsStringTermsBucket struct {
@@ -602,7 +602,7 @@ type CommonAggregationsStringTermsBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsTermsAggregateBaseStringTermsBucket struct {
+type CommonAggregationsStringTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsStringTermsBucket `json:"buckets"`
 }
@@ -710,7 +710,7 @@ type CommonAggregationsUnsignedLongTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket struct {
+type CommonAggregationsUnsignedLongTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsUnsignedLongTermsBucket `json:"buckets"`
 }
@@ -724,17 +724,17 @@ type CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket struct {
 type Void struct {
 }
 
-type CommonAggregationsMultiBucketAggregateBaseVoid struct {
+type CommonAggregationsUnmappedRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseVoidBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsUnmappedRareTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
-type CommonAggregationsSignificantTermsAggregateBaseVoid struct {
+type CommonAggregationsUnmappedSignificantTermsAggregate struct {
 	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets `json:"buckets,omitempty"`
+	Buckets *CommonAggregationsUnmappedSignificantTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseVoid struct {
+type CommonAggregationsUnmappedTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 }
 
@@ -748,9 +748,9 @@ type CommonAggregationsVariableWidthHistogramBucket struct {
 	MinAsString *string `json:"min_as_string,omitempty"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket struct {
+type CommonAggregationsVariableWidthHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsVariableWidthHistogramAggregateBuckets `json:"buckets"`
 }
 
 // The time taken by different phases of the search.
@@ -6611,7 +6611,7 @@ type TasksPersistentTaskStatus struct {
 	State string `json:"state"`
 }
 
-type TasksTaskInfoBase struct {
+type TasksTaskInfo struct {
 	Action      string `json:"action"`
 	Cancellable bool   `json:"cancellable"`
 
@@ -6644,14 +6644,14 @@ type TasksTaskInfoBase struct {
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
 	// Task status information can vary wildly from task to task.
-	Status *TasksTaskInfoBaseStatus `json:"status,omitempty"`
+	Status *TasksTaskInfoStatus `json:"status,omitempty"`
 
 	Type string `json:"type"`
 }
 
 type TasksTaskExecutingNode struct {
 	BaseNode
-	Tasks map[string]TasksTaskInfoBase `json:"tasks"`
+	Tasks map[string]TasksTaskInfo `json:"tasks"`
 }
 
 // The details of a task failure.
