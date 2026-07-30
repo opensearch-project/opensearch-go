@@ -165,9 +165,10 @@ func applyBulkItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
 }
 
 // applyMultiSearchItems checks that the response carries a Responses
-// slice whose element type itself has a Shards field. The current
-// emission still uses the per-shard aggregation path; richer
-// union-aware detection lives in [TODO].
+// slice whose element type itself has a Shards field. Union-aware
+// emission is handled separately by [resolveUnionShape], which detects
+// the error branch and drives the union-discriminator dispatch template;
+// this predicate only gates the per-shard aggregation path.
 func applyMultiSearchItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
 	f, ok := lookupResponseField(resp, respFieldResponses, reg)
 	if !ok {

@@ -20,7 +20,7 @@ import (
 //
 // Go has no generics here, so the substituting property renders as a struct field
 // alongside the embedded base, carrying the same JSON tag as the base's field.
-// encoding/json resolves a duplicate tag at differing depths in favour of the
+// encoding/json resolves a duplicate tag at differing depths in favor of the
 // shallower one, so the redeclaration always wins and the embedded base's field
 // is never populated.
 //

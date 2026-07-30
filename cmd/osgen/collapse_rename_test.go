@@ -51,7 +51,7 @@ func collapsedRegistry(t *testing.T, target string, aliases ...string) (*typeReg
 // single better name, and renaming one anyway dangles the siblings' references --
 // that is what broke the build when this was attempted mid-walk. A target the spec
 // leans on more heavily than its alias keeps its own name, or SearchResult would be
-// retired in favour of SearchResponse.
+// retired in favor of SearchResponse.
 func TestRenameCollapsedAliases(t *testing.T) {
 	t.Parallel()
 

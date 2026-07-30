@@ -78,19 +78,31 @@ func classifyUnions(spec *ir.Spec) {
 		}
 
 		// Warn only for the shape that looks single-pass decodable but isn't:
-		// one permissive branch plus discriminated branch(es) we couldn't tell
-		// apart (a discriminator is missing or undeclared -- e.g. a free-form
-		// status). Other non-merging shapes are legitimate and stay silent:
+		// one EMBEDDABLE permissive branch plus discriminated branch(es) we could
+		// not tell apart. Other non-merging shapes are legitimate and stay silent:
 		// "type"-value-discriminated DSL unions (analyzers, mappings) have no
-		// permissive branch, and fully permissive bodies (reindex) can't be told
+		// permissive branch, and fully permissive bodies (reindex) cannot be told
 		// apart at all.
-		permissiveCount := 0
+		//
+		// Embeddability is part of the test because a merge embeds the primary in
+		// a struct. A permissive branch that is a map or slice can never be the
+		// primary no matter how well the other branches discriminate, so the
+		// refusal is structural and the try-each decoder is the right answer --
+		// TasksTaskInfoStatus reaches here with a map[string]json.RawMessage
+		// permissive branch and discriminators (phase, state, the bulk-by-scroll
+		// key set) that the emitted decoder does probe correctly.
+		permissive := 0
+		embeddablePermissive := 0
 		for _, b := range t.Branches {
-			if len(b.Required) == 0 {
-				permissiveCount++
+			if len(b.Required) > 0 {
+				continue
+			}
+			permissive++
+			if embeddableStruct(b.GoType, reg) {
+				embeddablePermissive++
 			}
 		}
-		if permissiveCount == 1 {
+		if permissive == 1 && embeddablePermissive == 1 {
 			warn("osgen: union %q left on try-each: one permissive branch plus discriminated "+
 				"branch(es), but no required key distinguishes them by presence", t.Name)
 		}
