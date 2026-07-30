@@ -7,8 +7,7 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +25,20 @@ import (
 // spawning many at once. The guard pins the permitted set in a checked-in
 // allowlist and fails generation when an unlisted use appears, so a regression
 // is caught at gen time rather than shipped. See [guardRawMessages].
+
+// rawMessageAllowlistFile is the checked-in allowlist's filename: the default
+// -update write target, and the name reported in messages. The //go:embed
+// directive below repeats the literal because a directive cannot reference a
+// const.
+const rawMessageAllowlistFile = "rawmessage_allowlist.txt"
+
+// embeddedRawMessageAllowlist is the checked-in allowlist compiled into the
+// binary, so the check enforces the same set regardless of the process working
+// directory. Disk reads happen only for an explicit override (see
+// RawMessageConfig.AllowlistPath).
+//
+//go:embed rawmessage_allowlist.txt
+var embeddedRawMessageAllowlist []byte
 
 // rawForm classifies the three json.RawMessage spellings the generator emits.
 type rawForm int
@@ -82,12 +95,24 @@ func (u rawUse) key() string { return u.GoType + "/" + u.JSONName }
 
 // RawMessageConfig controls the json.RawMessage guard.
 type RawMessageConfig struct {
-	// AllowlistPath is the checked-in allowlist file (relative to cwd).
+	// AllowlistPath overrides the embedded allowlist with a file, relative to
+	// cwd. Empty (the default) checks against embeddedRawMessageAllowlist. Under
+	// Update it is the write target, defaulting to rawMessageAllowlistFile in
+	// cwd when empty.
 	AllowlistPath string
-	// Update rewrites AllowlistPath from the current output instead of checking.
+	// Update rewrites the allowlist file from the current output instead of
+	// checking against it.
 	Update bool
 	// AllowUnlisted downgrades the fatal check to a warning.
 	AllowUnlisted bool
+}
+
+// allowlistSource names the allowlist the check consulted, for messages.
+func (c RawMessageConfig) allowlistSource() string {
+	if c.AllowlistPath == "" {
+		return "embedded " + rawMessageAllowlistFile
+	}
+	return fmt.Sprintf("%q", c.AllowlistPath)
 }
 
 // classifyRawForm reports the rawForm of a Go type expression, and false if the
@@ -221,9 +246,27 @@ func sortRawUses(uses []rawUse) {
 	})
 }
 
-// loadRawMessageAllowlist reads the allowlist file into a set of keys. Lines are
+// parseRawMessageAllowlist parses allowlist bytes into a set of keys. Lines are
 // trimmed, '#' comments (whole-line or trailing) are stripped, and blank lines
 // are ignored. The key is the first whitespace-delimited token on each line.
+func parseRawMessageAllowlist(data []byte) set[string] {
+	allowed := make(set[string])
+	for line := range strings.SplitSeq(string(data), "\n") {
+		if i := strings.IndexByte(line, '#'); i >= 0 {
+			line = line[:i]
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		allowed.add(strings.Fields(line)[0])
+	}
+	return allowed
+}
+
+// loadRawMessageAllowlist reads an allowlist file and parses it. Used only for an
+// explicit AllowlistPath override; the default check parses
+// embeddedRawMessageAllowlist and cannot fail.
 func loadRawMessageAllowlist(path string) (set[string], error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -232,25 +275,7 @@ func loadRawMessageAllowlist(path string) (set[string], error) {
 		}
 		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
 	}
-
-	allowed := make(set[string])
-	scanner := bufio.NewScanner(bytes.NewReader(data))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if i := strings.IndexByte(line, '#'); i >= 0 {
-			line = line[:i]
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		key := strings.Fields(line)[0]
-		allowed.add(key)
-	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
-	}
-	return allowed, nil
+	return parseRawMessageAllowlist(data), nil
 }
 
 // writeRawMessageAllowlist rewrites the allowlist file from uses, grouped by
@@ -291,34 +316,45 @@ func writeRawMessageAllowlist(path string, uses []rawUse) (bool, error) {
 //
 // With cfg.Update it rewrites the allowlist from the current output and returns
 // nil (generation continues, refreshing both code and allowlist in one pass).
-// Otherwise it loads the allowlist, reports any unlisted uses to w, and returns
-// a non-nil error (aborting generation) unless cfg.AllowUnlisted is set, in
-// which case the offenders are a warning only. Stale entries (listed but no
-// longer emitted) are always a non-fatal warning, since they permit nothing and
-// failing on them would break unrelated spec edits.
+// Otherwise it checks against the embedded allowlist - or the file named by
+// cfg.AllowlistPath, when set - reports any unlisted uses to w, and returns a
+// non-nil error (aborting generation) unless cfg.AllowUnlisted is set, in which
+// case the offenders are a warning only. Stale entries (listed but no longer
+// emitted) are always a non-fatal warning, since they permit nothing and failing
+// on them would break unrelated spec edits.
 func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 	uses := collectRawMessageUses(spec)
 
 	if cfg.Update {
-		changed, err := writeRawMessageAllowlist(cfg.AllowlistPath, uses)
+		path := cfg.AllowlistPath
+		if path == "" {
+			path = rawMessageAllowlistFile
+		}
+		changed, err := writeRawMessageAllowlist(path, uses)
 		if err != nil {
 			return err
 		}
 		if changed {
-			fmt.Fprintf(w, "osgen: wrote json.RawMessage allowlist %q (%d entries)\n", cfg.AllowlistPath, len(uses))
+			fmt.Fprintf(w, "osgen: wrote json.RawMessage allowlist %q (%d entries)\n", path, len(uses))
 		}
 		return nil
 	}
 
-	allowed, err := loadRawMessageAllowlist(cfg.AllowlistPath)
-	if err != nil {
+	var allowed set[string]
+	if cfg.AllowlistPath == "" {
+		allowed = parseRawMessageAllowlist(embeddedRawMessageAllowlist)
+	} else {
+		loaded, err := loadRawMessageAllowlist(cfg.AllowlistPath)
+		switch {
 		// Under AllowUnlisted the check is advisory, so a missing file is not
 		// fatal: treat the allowlist as empty and let every use fall through to
 		// the warning path below.
-		if cfg.AllowUnlisted && errors.Is(err, fs.ErrNotExist) {
+		case cfg.AllowUnlisted && errors.Is(err, fs.ErrNotExist):
 			allowed = set[string]{}
-		} else {
+		case err != nil:
 			return err
+		default:
+			allowed = loaded
 		}
 	}
 
@@ -352,7 +388,7 @@ func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 		return nil
 	}
 
-	fmt.Fprintf(w, "WARNING: osgen emitted %d json.RawMessage use(s) not in the allowlist %q.\n", len(offenders), cfg.AllowlistPath)
+	fmt.Fprintf(w, "WARNING: osgen emitted %d json.RawMessage use(s) not in the allowlist %s.\n", len(offenders), cfg.allowlistSource())
 	fmt.Fprintln(w, "Each is a response/request field that degraded to raw JSON instead of a typed struct.")
 	for _, u := range offenders {
 		fmt.Fprintf(w, "  - %s (%s, %s)\n", u.key(), u.Form, u.kindLabel())
@@ -363,8 +399,10 @@ func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 		fmt.Fprintf(w, "osgen: continuing despite %d unlisted json.RawMessage use(s) (-allow-unlisted-raw-message)\n", len(offenders))
 		return nil
 	}
-	return fmt.Errorf("%d unlisted json.RawMessage use(s); add them with -update-raw-message-allowlist or pass -allow-unlisted-raw-message",
-		len(offenders))
+	return fmt.Errorf(
+		"%d unlisted json.RawMessage use(s) against %s; add them with -update-raw-message-allowlist "+
+			"or pass -allow-unlisted-raw-message",
+		len(offenders), cfg.allowlistSource())
 }
 
 // kindLabel returns a human-readable description of the raw use's source.

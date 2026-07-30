@@ -341,6 +341,37 @@ func TestGuardRawMessages_UpdateRoundTrip(t *testing.T) {
 	require.Contains(t, allowed, "SearchResp/_source")
 }
 
+// TestGuardRawMessages_EmbeddedDefault exercises the default check path: with no
+// AllowlistPath the guard consults the allowlist compiled into the binary, from
+// any working directory. Chdir'ing into an empty dir first is the point - a
+// cwd-relative read of rawmessage_allowlist.txt fails there, so this test breaks
+// if the embed is not wired.
+func TestGuardRawMessages_EmbeddedDefault(t *testing.T) {
+	t.Chdir(t.TempDir()) // t.Chdir forbids t.Parallel
+
+	// InlineGet/_source is a real entry in rawmessage_allowlist.txt.
+	spec := &ir.Spec{Types: []*ir.Type{{
+		Name:   "InlineGet",
+		Fields: []ir.Field{{GoName: "Source", JSONName: "_source", GoType: "json.RawMessage"}},
+	}}}
+
+	var out bytes.Buffer
+	require.NoError(t, guardRawMessages(&out, spec, RawMessageConfig{}))
+	require.NotContains(t, out.String(), "WARNING")
+
+	// The inverse: a use absent from the embedded allowlist is fatal, and both the
+	// error and the warning name the embedded list as what was enforced.
+	unlisted := &ir.Spec{Types: []*ir.Type{{
+		Name:   "NotARealGeneratedType",
+		Fields: []ir.Field{{GoName: "Body", JSONName: "body", GoType: "json.RawMessage"}},
+	}}}
+
+	out.Reset()
+	err := guardRawMessages(&out, unlisted, RawMessageConfig{})
+	require.ErrorContains(t, err, "embedded "+rawMessageAllowlistFile)
+	require.Contains(t, out.String(), "embedded "+rawMessageAllowlistFile)
+}
+
 func TestWriteRawMessageAllowlist_StableSorted(t *testing.T) {
 	t.Parallel()
 
