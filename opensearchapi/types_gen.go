@@ -157,10 +157,6 @@ type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket struct {
 	Buckets CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets `json:"buckets"`
 }
 
-type CommonAggregationsAdjacencyMatrixAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets `json:"buckets"`
@@ -183,10 +179,6 @@ type CommonAggregationsSingleMetricAggregateBase struct {
 	Value *float64 `json:"value"`
 
 	ValueAsString *string `json:"value_as_string,omitempty"`
-}
-
-type CommonAggregationsAvgAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
 }
 
 type CommonAggregationsBoxPlotAggregate struct {
@@ -232,17 +224,9 @@ type CommonAggregationsCompositeAggregate struct {
 	AfterKey map[string]CommonAggregationsCompositeAggregateKeyValue `json:"after_key,omitempty"`
 }
 
-type CommonAggregationsDateHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseRangeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsDateRangeAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseRangeBucket
 }
 
 type CommonAggregationsDerivativeAggregate struct {
@@ -329,17 +313,9 @@ type CommonAggregationsExtendedStatsAggregateBase struct {
 	VarianceSamplingAsString   *string                                            `json:"variance_sampling_as_string,omitempty"`
 }
 
-type CommonAggregationsExtendedStatsBucketAggregate struct {
-	CommonAggregationsExtendedStatsAggregateBase
-}
-
 type CommonAggregationsMultiBucketAggregateBaseFiltersBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsFiltersAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseFiltersBucket
 }
 
 // The bounds specified using coordinate values.
@@ -417,26 +393,14 @@ type CommonAggregationsGeoCentroidAggregate struct {
 	Location *CommonAggregationsGeoCentroidAggregateLocation `json:"location,omitempty"`
 }
 
-type CommonAggregationsGeoDistanceAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseRangeBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets `json:"buckets"`
 }
 
-type CommonAggregationsGeoHashGridAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsGeoTileGridAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket
 }
 
 type CommonAggregationsArrayPercentilesItem struct {
@@ -450,30 +414,14 @@ type CommonAggregationsPercentilesAggregateBase struct {
 	Values CommonAggregationsPercentilesAggregateBaseValues `json:"values"`
 }
 
-type CommonAggregationsHDRPercentilesAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsHDRPercentileRanksAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
 type CommonAggregationsMultiBucketAggregateBaseHistogramBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets `json:"buckets"`
 }
 
-type CommonAggregationsHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseHistogramBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseIPRangeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsIPRangeAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseIPRangeBucket
 }
 
 type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
@@ -513,33 +461,9 @@ type CommonAggregationsMatrixStatsAggregate struct {
 	Fields   []CommonAggregationsMatrixStatsFields `json:"fields,omitempty"`
 }
 
-type CommonAggregationsMaxAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMedianAbsoluteDeviationAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMinAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
 type CommonAggregationsTermsAggregateBaseMultiTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets `json:"buckets,omitempty"`
-}
-
-type CommonAggregationsMultiTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseMultiTermsBucket
-}
-
-type CommonAggregationsPercentilesBucketAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsRangeAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseRangeBucket
 }
 
 type CommonAggregationsRateAggregate struct {
@@ -564,31 +488,15 @@ type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket s
 	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets `json:"buckets,omitempty"`
 }
 
-type CommonAggregationsSignificantLongTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket
-}
-
 type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket struct {
 	CommonAggregationsSignificantTermsAggregateBase
 	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets `json:"buckets,omitempty"`
-}
-
-type CommonAggregationsSignificantStringTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket
 }
 
 type CommonAggregationsCumulativeCardinalityAggregate struct {
 	CommonAggregationsAggregateBase
 	Value         int64   `json:"value"`
 	ValueAsString *string `json:"value_as_string,omitempty"`
-}
-
-type CommonAggregationsSimpleValueAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsStatsBucketAggregate struct {
-	CommonAggregationsStatsAggregateBase
 }
 
 type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket struct {
@@ -604,18 +512,6 @@ type CommonAggregationsStringTermsBucket struct {
 type CommonAggregationsTermsAggregateBaseStringTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsStringTermsBucket `json:"buckets"`
-}
-
-type CommonAggregationsSumAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsTDigestPercentilesAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsTDigestPercentileRanksAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
 }
 
 type CommonAggregationsTTestAggregate struct {
@@ -736,10 +632,6 @@ type CommonAggregationsSignificantTermsAggregateBaseVoid struct {
 	Buckets *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets `json:"buckets,omitempty"`
 }
 
-type CommonAggregationsUnmappedSignificantTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseVoid
-}
-
 // The absence of any type. This is commonly used in APIs that don't return a body.
 //
 // Although "void" is generally used for a unit type that has only one value, this is interpreted as
@@ -753,21 +645,9 @@ type CommonAggregationsTermsAggregateBaseVoid struct {
 	CommonAggregationsTermsAggregateBase
 }
 
-type CommonAggregationsValueCountAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
 type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsVariableWidthHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket
-}
-
-type CommonAggregationsWeightedAvgAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
 }
 
 // The time taken by different phases of the search.

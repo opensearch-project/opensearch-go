@@ -243,9 +243,14 @@ func TestResolveUnionTypeNullableSingleBranch(t *testing.T) {
 	require.False(t, ok, "single non-null branch should not register a union")
 }
 
-func TestResolveUnionTypeDeduplicates(t *testing.T) {
+func TestResolveUnionTypeKeepsDuplicateGoTypes(t *testing.T) {
 	t.Parallel()
 
+	// The Parse phase keeps same-Go-type branches. Whether a duplicate is
+	// reachable depends on the union's decode state, which is not assigned until
+	// the IR phase, so dropUnreachableBranches makes that call later. Dropping
+	// here would delete the distinct As<Branch>() accessors a caller-keyed lazy
+	// union legitimately exposes over one Go type.
 	reg := newTypeRegistry(opensearchAPIPkgName)
 	w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
 
@@ -262,7 +267,7 @@ func TestResolveUnionTypeDeduplicates(t *testing.T) {
 
 	registered, ok := reg.lookup("test___Dedup")
 	require.True(t, ok)
-	require.Len(t, registered.Branches, 2, "duplicate string branches should be deduplicated")
+	require.Len(t, registered.Branches, 3, "Parse phase must not judge branch reachability")
 }
 
 func TestResolveUnionTypeCollapsesToSingle(t *testing.T) {
@@ -391,22 +396,6 @@ func TestTokenClassForPrimitive(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestDeduplicateBranches(t *testing.T) {
-	t.Parallel()
-
-	branches := []unionBranch{
-		{Name: "String", GoType: "string"},
-		{Name: "String", GoType: "string"},
-		{Name: "Int", GoType: "int"},
-		{Name: "Int", GoType: "int"},
-	}
-
-	result := deduplicateBranches(branches)
-	require.Len(t, result, 2)
-	require.Equal(t, "string", result[0].GoType)
-	require.Equal(t, "int", result[1].GoType)
 }
 
 func TestDeduplicateAccessorNames(t *testing.T) {

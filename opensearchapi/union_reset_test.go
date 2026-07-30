@@ -37,9 +37,7 @@ func TestUnionUnmarshalResetsStaleState(t *testing.T) {
 			check: func(t *testing.T) {
 				t.Helper()
 				u := opensearchapi.NewSearchResultAggregationsValueFromAvg(
-					opensearchapi.CommonAggregationsAvgAggregate{
-						CommonAggregationsSingleMetricAggregateBase: opensearchapi.CommonAggregationsSingleMetricAggregateBase{Value: &staleAvg},
-					},
+					opensearchapi.CommonAggregationsSingleMetricAggregateBase{Value: &staleAvg},
 				)
 				require.NoError(t, json.Unmarshal([]byte(`{"value":2.5}`), &u))
 				got, err := u.AsAvg()

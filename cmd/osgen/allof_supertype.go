@@ -175,17 +175,24 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, dept
 //
 // That holds when the allOf has exactly one $ref member and every other member
 // contributes nothing: no properties beyond redundant overrides, no type or value
-// constraints of its own. The spec writes this shape when it instantiates a
-// generic type without substituting anything a Go type can carry
-// (GetResult[TDocument] over GetResultBase, HitsMetadataJsonValue over
-// HitsMetadata), and also as a bare `allOf: [$ref, {type: object, properties: {}}]`
-// re-export. Emitting a distinct Go type for either produces a struct whose only
+// constraints of its own. Three spec shapes reach it:
+//
+//   - a generic instantiation that substitutes nothing a Go type can carry
+//     (GetResult[TDocument] over GetResultBase, HitsMetadataJsonValue over
+//     HitsMetadata);
+//   - a re-export with an empty override,
+//     `allOf: [$ref, {type: object, properties: {}}]`;
+//   - a bare rename, `allOf: [$ref]` with no second member at all, which the
+//     spec uses to give a generic instantiation a friendly name
+//     (AdjacencyMatrixAggregate over MultiBucketAggregateBaseAdjacencyMatrixBucket).
+//
+// Emitting a distinct Go type for any of them produces a struct whose only
 // content is the embedded base: a separate nominal type that conveys nothing and
 // is not assignable to the base.
 //
 // Returns the base's schema key and true when the collapse applies.
 func (w *walker) collapsesToBase(schema *openapi3.Schema, schemaKey string) (string, bool) {
-	if len(schema.AllOf) < 2 || len(schema.Properties) > 0 {
+	if len(schema.AllOf) == 0 || len(schema.Properties) > 0 {
 		return "", false
 	}
 

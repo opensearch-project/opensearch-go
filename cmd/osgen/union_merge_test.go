@@ -263,3 +263,79 @@ func TestClassifyUnions(t *testing.T) {
 		})
 	}
 }
+
+// TestDropUnreachableBranches pins the phase-ordering rule that a branch's
+// reachability is only decidable once a union has reached its terminal decode
+// state.
+//
+// A wire-decoded union walks its branches and stops at the first that decodes, so
+// a second branch of the same Go type can never be the one Type() reports. A
+// caller-keyed lazy union is the opposite: UnmarshalJSON keeps only the raw
+// bytes and the caller names the branch, so every As<Branch>() accessor is
+// reachable even when several decode the same Go type. The spec relies on that --
+// AvgAggregate, SumAggregate, MinAggregate and five siblings are separate schemas
+// that all erase to SingleMetricAggregateBase, and dropping the duplicates would
+// delete AsSum/AsMin/... entirely.
+func TestDropUnreachableBranches(t *testing.T) {
+	// Eight spec schemas erasing to one Go type, as the aggregation families do.
+	metricBranches := func() []ir.UnionBranch {
+		names := []string{"Avg", "Sum", "Min", "Max", "ValueCount", "WeightedAvg", "SimpleValue", "MedianAbsoluteDeviation"}
+		branches := make([]ir.UnionBranch, len(names))
+		for i, n := range names {
+			branches[i] = ir.UnionBranch{Name: n, GoType: "SingleMetricAggregateBase", TokenClass: ir.TokenObject}
+		}
+		return branches
+	}
+
+	tests := []struct {
+		name       string
+		union      *ir.Type
+		wantBranch []string // expected branch Names after the drop
+	}{
+		{
+			name: "lazy union keeps every accessor over one Go type",
+			union: &ir.Type{
+				Name:          "AggValue",
+				Kind:          ir.TypeLazyUnion,
+				LazyAccessors: true,
+				Branches:      metricBranches(),
+			},
+			wantBranch: []string{"Avg", "Sum", "Min", "Max", "ValueCount", "WeightedAvg", "SimpleValue", "MedianAbsoluteDeviation"},
+		},
+		{
+			name: "wire-decoded union drops the unreachable duplicates",
+			union: &ir.Type{
+				Name:     "TryEachValue",
+				Kind:     ir.TypeLazyUnion,
+				Branches: metricBranches(),
+			},
+			wantBranch: []string{"Avg"},
+		},
+		{
+			name: "distinct Go types are never dropped",
+			union: &ir.Type{
+				Name: "Mixed",
+				Kind: ir.TypeUnion,
+				Branches: []ir.UnionBranch{
+					{Name: "Str", GoType: "string", TokenClass: ir.TokenString},
+					{Name: "Num", GoType: "float64", TokenClass: ir.TokenNumber},
+				},
+			},
+			wantBranch: []string{"Str", "Num"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dropUnreachableBranches([]*ir.Type{tt.union})
+
+			got := make([]string, len(tt.union.Branches))
+			for i, b := range tt.union.Branches {
+				got[i] = b.Name
+			}
+			if !slices.Equal(got, tt.wantBranch) {
+				t.Errorf("branch names = %v, want %v", got, tt.wantBranch)
+			}
+		})
+	}
+}

@@ -61,11 +61,14 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		return goTypeRawMessage
 	}
 
-	// Deduplicate branches by GoType (some specs list the same type twice).
-	classified = deduplicateBranches(classified)
-	if len(classified) < 2 {
-		return classified[0].GoType
-	}
+	// Branches that share a GoType are kept here. Reachability depends on which
+	// decode state the union ends up in, and that state is not assigned until the
+	// IR phase (classifyUnions): a wire-decoded union can only ever reach the
+	// first branch of a given type, while a caller-keyed lazy union is selected
+	// by the caller, so As<Branch>() accessors over one Go type are all reachable
+	// and distinct (AsAvg/AsSum/AsMin over SingleMetricAggregateBase). The Parse
+	// phase cannot decide it; dropUnreachableBranches does, once the state is
+	// known.
 
 	// Collapse branches that are indistinguishable when decoded from the same
 	// JSON token (e.g. int/int32/int64, or float32/float64): a try-each decoder
@@ -536,21 +539,6 @@ func isPrimitiveType(goType string) bool {
 	return false
 }
 
-// deduplicateBranches removes branches with duplicate GoType values,
-// keeping the first occurrence.
-func deduplicateBranches(branches []unionBranch) []unionBranch {
-	seen := make(map[string]bool, len(branches))
-	result := make([]unionBranch, 0, len(branches))
-	for _, b := range branches {
-		if seen[b.GoType] {
-			continue
-		}
-		seen[b.GoType] = true
-		result = append(result, b)
-	}
-	return result
-}
-
 // decodeEquivalentGroups lists Go primitive types that decode from the same
 // JSON token and are therefore indistinguishable in a try-each union: only the
 // first such branch attempted is ever reachable. Each group is ordered widest-
@@ -559,8 +547,9 @@ func deduplicateBranches(branches []unionBranch) []unionBranch {
 // the dropped branches could have held. Integer and float groups stay separate
 // because a float branch accepts integers but an int branch rejects decimals,
 // so the two classes remain mutually reachable. string and bool need no group:
-// each has a single Go type, and exact GoType duplicates are already removed by
-// deduplicateBranches.
+// each has a single Go type; exact GoType duplicates are left for
+// dropUnreachableBranches, which runs once the decode state is known and can
+// tell a dead duplicate from a distinct lazy accessor.
 //
 //nolint:gochecknoglobals // static lookup table; package-level so it's visible next to its doc comment and the funcs that consult it
 var decodeEquivalentGroups = [][]string{

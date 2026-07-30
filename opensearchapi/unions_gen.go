@@ -5205,13 +5205,13 @@ func (u *SearchResultAggregationsValue) SetRaw(raw json.RawMessage) {
 	u.value = nil
 }
 
-// AsAdjacencyMatrix decodes the union as CommonAggregationsAdjacencyMatrixAggregate. The caller selects the
+// AsAdjacencyMatrix decodes the union as CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsAdjacencyMatrixAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsAdjacencyMatrixAggregate); ok {
+func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsAdjacencyMatrixAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5221,7 +5221,7 @@ func (u *SearchResultAggregationsValue) AsAdjacencyMatrix() (CommonAggregationsA
 
 // NewSearchResultAggregationsValueFromAdjacencyMatrix returns a SearchResultAggregationsValue populated with v
 // on the AdjacencyMatrix branch.
-func NewSearchResultAggregationsValueFromAdjacencyMatrix(v CommonAggregationsAdjacencyMatrixAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromAdjacencyMatrix(v CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5249,13 +5249,13 @@ func NewSearchResultAggregationsValueFromAutoDateHistogram(v CommonAggregationsA
 	}
 }
 
-// AsAvg decodes the union as CommonAggregationsAvgAggregate. The caller selects the
+// AsAvg decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsAvg() (CommonAggregationsAvgAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsAvgAggregate); ok {
+func (u *SearchResultAggregationsValue) AsAvg() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsAvgAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5265,7 +5265,7 @@ func (u *SearchResultAggregationsValue) AsAvg() (CommonAggregationsAvgAggregate,
 
 // NewSearchResultAggregationsValueFromAvg returns a SearchResultAggregationsValue populated with v
 // on the Avg branch.
-func NewSearchResultAggregationsValueFromAvg(v CommonAggregationsAvgAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromAvg(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5381,13 +5381,13 @@ func NewSearchResultAggregationsValueFromComposite(v CommonAggregationsComposite
 	}
 }
 
-// AsDateHistogram decodes the union as CommonAggregationsDateHistogramAggregate. The caller selects the
+// AsDateHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsDateHistogramAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsDateHistogramAggregate); ok {
+func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsDateHistogramAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5397,19 +5397,19 @@ func (u *SearchResultAggregationsValue) AsDateHistogram() (CommonAggregationsDat
 
 // NewSearchResultAggregationsValueFromDateHistogram returns a SearchResultAggregationsValue populated with v
 // on the DateHistogram branch.
-func NewSearchResultAggregationsValueFromDateHistogram(v CommonAggregationsDateHistogramAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromDateHistogram(v CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsDateRange decodes the union as CommonAggregationsDateRangeAggregate. The caller selects the
+// AsDateRange decodes the union as CommonAggregationsMultiBucketAggregateBaseRangeBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsDateRange() (CommonAggregationsDateRangeAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsDateRangeAggregate); ok {
+func (u *SearchResultAggregationsValue) AsDateRange() (CommonAggregationsMultiBucketAggregateBaseRangeBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseRangeBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsDateRangeAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseRangeBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5419,7 +5419,7 @@ func (u *SearchResultAggregationsValue) AsDateRange() (CommonAggregationsDateRan
 
 // NewSearchResultAggregationsValueFromDateRange returns a SearchResultAggregationsValue populated with v
 // on the DateRange branch.
-func NewSearchResultAggregationsValueFromDateRange(v CommonAggregationsDateRangeAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromDateRange(v CommonAggregationsMultiBucketAggregateBaseRangeBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5491,13 +5491,13 @@ func NewSearchResultAggregationsValueFromExtendedStats(v CommonAggregationsExten
 	}
 }
 
-// AsExtendedStatsBucket decodes the union as CommonAggregationsExtendedStatsBucketAggregate. The caller selects the
+// AsExtendedStatsBucket decodes the union as CommonAggregationsExtendedStatsAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsExtendedStatsBucket() (CommonAggregationsExtendedStatsBucketAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsExtendedStatsBucketAggregate); ok {
+func (u *SearchResultAggregationsValue) AsExtendedStatsBucket() (CommonAggregationsExtendedStatsAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsExtendedStatsAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsExtendedStatsBucketAggregate
+	var v CommonAggregationsExtendedStatsAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5507,19 +5507,41 @@ func (u *SearchResultAggregationsValue) AsExtendedStatsBucket() (CommonAggregati
 
 // NewSearchResultAggregationsValueFromExtendedStatsBucket returns a SearchResultAggregationsValue populated with v
 // on the ExtendedStatsBucket branch.
-func NewSearchResultAggregationsValueFromExtendedStatsBucket(v CommonAggregationsExtendedStatsBucketAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromExtendedStatsBucket(v CommonAggregationsExtendedStatsAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsFilters decodes the union as CommonAggregationsFiltersAggregate. The caller selects the
+// AsFilter decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsFiltersAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsFiltersAggregate); ok {
+func (u *SearchResultAggregationsValue) AsFilter() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsFiltersAggregate
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromFilter returns a SearchResultAggregationsValue populated with v
+// on the Filter branch.
+func NewSearchResultAggregationsValueFromFilter(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsFilters decodes the union as CommonAggregationsMultiBucketAggregateBaseFiltersBucket. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsMultiBucketAggregateBaseFiltersBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseFiltersBucket); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsMultiBucketAggregateBaseFiltersBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5529,7 +5551,7 @@ func (u *SearchResultAggregationsValue) AsFilters() (CommonAggregationsFiltersAg
 
 // NewSearchResultAggregationsValueFromFilters returns a SearchResultAggregationsValue populated with v
 // on the Filters branch.
-func NewSearchResultAggregationsValueFromFilters(v CommonAggregationsFiltersAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromFilters(v CommonAggregationsMultiBucketAggregateBaseFiltersBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5579,13 +5601,13 @@ func NewSearchResultAggregationsValueFromGeoCentroid(v CommonAggregationsGeoCent
 	}
 }
 
-// AsGeoDistance decodes the union as CommonAggregationsGeoDistanceAggregate. The caller selects the
+// AsGeoDistance decodes the union as CommonAggregationsMultiBucketAggregateBaseRangeBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsGeoDistance() (CommonAggregationsGeoDistanceAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsGeoDistanceAggregate); ok {
+func (u *SearchResultAggregationsValue) AsGeoDistance() (CommonAggregationsMultiBucketAggregateBaseRangeBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseRangeBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsGeoDistanceAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseRangeBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5595,19 +5617,19 @@ func (u *SearchResultAggregationsValue) AsGeoDistance() (CommonAggregationsGeoDi
 
 // NewSearchResultAggregationsValueFromGeoDistance returns a SearchResultAggregationsValue populated with v
 // on the GeoDistance branch.
-func NewSearchResultAggregationsValueFromGeoDistance(v CommonAggregationsGeoDistanceAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromGeoDistance(v CommonAggregationsMultiBucketAggregateBaseRangeBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsGeohashGrid decodes the union as CommonAggregationsGeoHashGridAggregate. The caller selects the
+// AsGeohashGrid decodes the union as CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsGeoHashGridAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsGeoHashGridAggregate); ok {
+func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsGeoHashGridAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5617,19 +5639,19 @@ func (u *SearchResultAggregationsValue) AsGeohashGrid() (CommonAggregationsGeoHa
 
 // NewSearchResultAggregationsValueFromGeohashGrid returns a SearchResultAggregationsValue populated with v
 // on the GeohashGrid branch.
-func NewSearchResultAggregationsValueFromGeohashGrid(v CommonAggregationsGeoHashGridAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromGeohashGrid(v CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsGeotileGrid decodes the union as CommonAggregationsGeoTileGridAggregate. The caller selects the
+// AsGeotileGrid decodes the union as CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsGeoTileGridAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsGeoTileGridAggregate); ok {
+func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsGeoTileGridAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5639,19 +5661,41 @@ func (u *SearchResultAggregationsValue) AsGeotileGrid() (CommonAggregationsGeoTi
 
 // NewSearchResultAggregationsValueFromGeotileGrid returns a SearchResultAggregationsValue populated with v
 // on the GeotileGrid branch.
-func NewSearchResultAggregationsValueFromGeotileGrid(v CommonAggregationsGeoTileGridAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromGeotileGrid(v CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsHDRPercentiles decodes the union as CommonAggregationsHDRPercentilesAggregate. The caller selects the
+// AsGlobal decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHDRPercentiles() (CommonAggregationsHDRPercentilesAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsHDRPercentilesAggregate); ok {
+func (u *SearchResultAggregationsValue) AsGlobal() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsHDRPercentilesAggregate
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromGlobal returns a SearchResultAggregationsValue populated with v
+// on the Global branch.
+func NewSearchResultAggregationsValueFromGlobal(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsHDRPercentiles decodes the union as CommonAggregationsPercentilesAggregateBase. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsHDRPercentiles() (CommonAggregationsPercentilesAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsPercentilesAggregateBase); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsPercentilesAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5661,19 +5705,19 @@ func (u *SearchResultAggregationsValue) AsHDRPercentiles() (CommonAggregationsHD
 
 // NewSearchResultAggregationsValueFromHDRPercentiles returns a SearchResultAggregationsValue populated with v
 // on the HDRPercentiles branch.
-func NewSearchResultAggregationsValueFromHDRPercentiles(v CommonAggregationsHDRPercentilesAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromHDRPercentiles(v CommonAggregationsPercentilesAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsHDRPercentileRanks decodes the union as CommonAggregationsHDRPercentileRanksAggregate. The caller selects the
+// AsHDRPercentileRanks decodes the union as CommonAggregationsPercentilesAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHDRPercentileRanks() (CommonAggregationsHDRPercentileRanksAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsHDRPercentileRanksAggregate); ok {
+func (u *SearchResultAggregationsValue) AsHDRPercentileRanks() (CommonAggregationsPercentilesAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsPercentilesAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsHDRPercentileRanksAggregate
+	var v CommonAggregationsPercentilesAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5683,19 +5727,19 @@ func (u *SearchResultAggregationsValue) AsHDRPercentileRanks() (CommonAggregatio
 
 // NewSearchResultAggregationsValueFromHDRPercentileRanks returns a SearchResultAggregationsValue populated with v
 // on the HDRPercentileRanks branch.
-func NewSearchResultAggregationsValueFromHDRPercentileRanks(v CommonAggregationsHDRPercentileRanksAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromHDRPercentileRanks(v CommonAggregationsPercentilesAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsHistogram decodes the union as CommonAggregationsHistogramAggregate. The caller selects the
+// AsHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseHistogramBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsHistogramAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsHistogramAggregate); ok {
+func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsMultiBucketAggregateBaseHistogramBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseHistogramBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsHistogramAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseHistogramBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5705,19 +5749,19 @@ func (u *SearchResultAggregationsValue) AsHistogram() (CommonAggregationsHistogr
 
 // NewSearchResultAggregationsValueFromHistogram returns a SearchResultAggregationsValue populated with v
 // on the Histogram branch.
-func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsHistogramAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromHistogram(v CommonAggregationsMultiBucketAggregateBaseHistogramBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsIPRange decodes the union as CommonAggregationsIPRangeAggregate. The caller selects the
+// AsIPRange decodes the union as CommonAggregationsMultiBucketAggregateBaseIPRangeBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIPRangeAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsIPRangeAggregate); ok {
+func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsMultiBucketAggregateBaseIPRangeBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseIPRangeBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsIPRangeAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseIPRangeBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5727,7 +5771,7 @@ func (u *SearchResultAggregationsValue) AsIPRange() (CommonAggregationsIPRangeAg
 
 // NewSearchResultAggregationsValueFromIPRange returns a SearchResultAggregationsValue populated with v
 // on the IPRange branch.
-func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsIPRangeAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromIPRange(v CommonAggregationsMultiBucketAggregateBaseIPRangeBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5799,13 +5843,13 @@ func NewSearchResultAggregationsValueFromMatrixStats(v CommonAggregationsMatrixS
 	}
 }
 
-// AsMax decodes the union as CommonAggregationsMaxAggregate. The caller selects the
+// AsMax decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsMax() (CommonAggregationsMaxAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsMaxAggregate); ok {
+func (u *SearchResultAggregationsValue) AsMax() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMaxAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5815,19 +5859,19 @@ func (u *SearchResultAggregationsValue) AsMax() (CommonAggregationsMaxAggregate,
 
 // NewSearchResultAggregationsValueFromMax returns a SearchResultAggregationsValue populated with v
 // on the Max branch.
-func NewSearchResultAggregationsValueFromMax(v CommonAggregationsMaxAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromMax(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsMedianAbsoluteDeviation decodes the union as CommonAggregationsMedianAbsoluteDeviationAggregate. The caller selects the
+// AsMedianAbsoluteDeviation decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsMedianAbsoluteDeviation() (CommonAggregationsMedianAbsoluteDeviationAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsMedianAbsoluteDeviationAggregate); ok {
+func (u *SearchResultAggregationsValue) AsMedianAbsoluteDeviation() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMedianAbsoluteDeviationAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5837,19 +5881,19 @@ func (u *SearchResultAggregationsValue) AsMedianAbsoluteDeviation() (CommonAggre
 
 // NewSearchResultAggregationsValueFromMedianAbsoluteDeviation returns a SearchResultAggregationsValue populated with v
 // on the MedianAbsoluteDeviation branch.
-func NewSearchResultAggregationsValueFromMedianAbsoluteDeviation(v CommonAggregationsMedianAbsoluteDeviationAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromMedianAbsoluteDeviation(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsMin decodes the union as CommonAggregationsMinAggregate. The caller selects the
+// AsMin decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsMin() (CommonAggregationsMinAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsMinAggregate); ok {
+func (u *SearchResultAggregationsValue) AsMin() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMinAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5859,19 +5903,41 @@ func (u *SearchResultAggregationsValue) AsMin() (CommonAggregationsMinAggregate,
 
 // NewSearchResultAggregationsValueFromMin returns a SearchResultAggregationsValue populated with v
 // on the Min branch.
-func NewSearchResultAggregationsValueFromMin(v CommonAggregationsMinAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromMin(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsMultiTerms decodes the union as CommonAggregationsMultiTermsAggregate. The caller selects the
+// AsMissing decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsMultiTermsAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsMultiTermsAggregate); ok {
+func (u *SearchResultAggregationsValue) AsMissing() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsMultiTermsAggregate
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromMissing returns a SearchResultAggregationsValue populated with v
+// on the Missing branch.
+func NewSearchResultAggregationsValueFromMissing(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsMultiTerms decodes the union as CommonAggregationsTermsAggregateBaseMultiTermsBucket. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsTermsAggregateBaseMultiTermsBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsTermsAggregateBaseMultiTermsBucket); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsTermsAggregateBaseMultiTermsBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5881,19 +5947,63 @@ func (u *SearchResultAggregationsValue) AsMultiTerms() (CommonAggregationsMultiT
 
 // NewSearchResultAggregationsValueFromMultiTerms returns a SearchResultAggregationsValue populated with v
 // on the MultiTerms branch.
-func NewSearchResultAggregationsValueFromMultiTerms(v CommonAggregationsMultiTermsAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromMultiTerms(v CommonAggregationsTermsAggregateBaseMultiTermsBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsPercentilesBucket decodes the union as CommonAggregationsPercentilesBucketAggregate. The caller selects the
+// AsNested decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsPercentilesBucket() (CommonAggregationsPercentilesBucketAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsPercentilesBucketAggregate); ok {
+func (u *SearchResultAggregationsValue) AsNested() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsPercentilesBucketAggregate
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromNested returns a SearchResultAggregationsValue populated with v
+// on the Nested branch.
+func NewSearchResultAggregationsValueFromNested(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsParent decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsParent() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromParent returns a SearchResultAggregationsValue populated with v
+// on the Parent branch.
+func NewSearchResultAggregationsValueFromParent(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsPercentilesBucket decodes the union as CommonAggregationsPercentilesAggregateBase. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsPercentilesBucket() (CommonAggregationsPercentilesAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsPercentilesAggregateBase); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsPercentilesAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5903,19 +6013,19 @@ func (u *SearchResultAggregationsValue) AsPercentilesBucket() (CommonAggregation
 
 // NewSearchResultAggregationsValueFromPercentilesBucket returns a SearchResultAggregationsValue populated with v
 // on the PercentilesBucket branch.
-func NewSearchResultAggregationsValueFromPercentilesBucket(v CommonAggregationsPercentilesBucketAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromPercentilesBucket(v CommonAggregationsPercentilesAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsRange decodes the union as CommonAggregationsRangeAggregate. The caller selects the
+// AsRange decodes the union as CommonAggregationsMultiBucketAggregateBaseRangeBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsRange() (CommonAggregationsRangeAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsRangeAggregate); ok {
+func (u *SearchResultAggregationsValue) AsRange() (CommonAggregationsMultiBucketAggregateBaseRangeBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseRangeBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsRangeAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseRangeBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5925,7 +6035,7 @@ func (u *SearchResultAggregationsValue) AsRange() (CommonAggregationsRangeAggreg
 
 // NewSearchResultAggregationsValueFromRange returns a SearchResultAggregationsValue populated with v
 // on the Range branch.
-func NewSearchResultAggregationsValueFromRange(v CommonAggregationsRangeAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromRange(v CommonAggregationsMultiBucketAggregateBaseRangeBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -5953,6 +6063,50 @@ func NewSearchResultAggregationsValueFromRate(v CommonAggregationsRateAggregate)
 	}
 }
 
+// AsReverseNested decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsReverseNested() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromReverseNested returns a SearchResultAggregationsValue populated with v
+// on the ReverseNested branch.
+func NewSearchResultAggregationsValueFromReverseNested(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
+// AsSampler decodes the union as CommonAggregationsSingleBucketAggregateBase. The caller selects the
+// type it requested; an empty value and nil error mean the union is empty.
+func (u *SearchResultAggregationsValue) AsSampler() (CommonAggregationsSingleBucketAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleBucketAggregateBase); ok {
+		return *v, nil
+	}
+	var v CommonAggregationsSingleBucketAggregateBase
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	err := json.Unmarshal(u.raw, &v)
+	return v, err
+}
+
+// NewSearchResultAggregationsValueFromSampler returns a SearchResultAggregationsValue populated with v
+// on the Sampler branch.
+func NewSearchResultAggregationsValueFromSampler(v CommonAggregationsSingleBucketAggregateBase) SearchResultAggregationsValue {
+	return SearchResultAggregationsValue{
+		value: &v,
+	}
+}
+
 // AsScriptedMetric decodes the union as CommonAggregationsScriptedMetricAggregate. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
 func (u *SearchResultAggregationsValue) AsScriptedMetric() (CommonAggregationsScriptedMetricAggregate, error) {
@@ -5975,13 +6129,13 @@ func NewSearchResultAggregationsValueFromScriptedMetric(v CommonAggregationsScri
 	}
 }
 
-// AsSigLTerms decodes the union as CommonAggregationsSignificantLongTermsAggregate. The caller selects the
+// AsSigLTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignificantLongTermsAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsSignificantLongTermsAggregate); ok {
+func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSignificantLongTermsAggregate
+	var v CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -5991,19 +6145,19 @@ func (u *SearchResultAggregationsValue) AsSigLTerms() (CommonAggregationsSignifi
 
 // NewSearchResultAggregationsValueFromSigLTerms returns a SearchResultAggregationsValue populated with v
 // on the SigLTerms branch.
-func NewSearchResultAggregationsValueFromSigLTerms(v CommonAggregationsSignificantLongTermsAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSigLTerms(v CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsSigSTerms decodes the union as CommonAggregationsSignificantStringTermsAggregate. The caller selects the
+// AsSigSTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignificantStringTermsAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsSignificantStringTermsAggregate); ok {
+func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSignificantStringTermsAggregate
+	var v CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6013,7 +6167,7 @@ func (u *SearchResultAggregationsValue) AsSigSTerms() (CommonAggregationsSignifi
 
 // NewSearchResultAggregationsValueFromSigSTerms returns a SearchResultAggregationsValue populated with v
 // on the SigSTerms branch.
-func NewSearchResultAggregationsValueFromSigSTerms(v CommonAggregationsSignificantStringTermsAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSigSTerms(v CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6041,13 +6195,13 @@ func NewSearchResultAggregationsValueFromSimpleLongValue(v CommonAggregationsCum
 	}
 }
 
-// AsSimpleValue decodes the union as CommonAggregationsSimpleValueAggregate. The caller selects the
+// AsSimpleValue decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSimpleValue() (CommonAggregationsSimpleValueAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsSimpleValueAggregate); ok {
+func (u *SearchResultAggregationsValue) AsSimpleValue() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSimpleValueAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6057,7 +6211,7 @@ func (u *SearchResultAggregationsValue) AsSimpleValue() (CommonAggregationsSimpl
 
 // NewSearchResultAggregationsValueFromSimpleValue returns a SearchResultAggregationsValue populated with v
 // on the SimpleValue branch.
-func NewSearchResultAggregationsValueFromSimpleValue(v CommonAggregationsSimpleValueAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSimpleValue(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6085,13 +6239,13 @@ func NewSearchResultAggregationsValueFromStats(v CommonAggregationsStatsAggregat
 	}
 }
 
-// AsStatsBucket decodes the union as CommonAggregationsStatsBucketAggregate. The caller selects the
+// AsStatsBucket decodes the union as CommonAggregationsStatsAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsStatsBucket() (CommonAggregationsStatsBucketAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsStatsBucketAggregate); ok {
+func (u *SearchResultAggregationsValue) AsStatsBucket() (CommonAggregationsStatsAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsStatsAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsStatsBucketAggregate
+	var v CommonAggregationsStatsAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6101,7 +6255,7 @@ func (u *SearchResultAggregationsValue) AsStatsBucket() (CommonAggregationsStats
 
 // NewSearchResultAggregationsValueFromStatsBucket returns a SearchResultAggregationsValue populated with v
 // on the StatsBucket branch.
-func NewSearchResultAggregationsValueFromStatsBucket(v CommonAggregationsStatsBucketAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromStatsBucket(v CommonAggregationsStatsAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6151,13 +6305,13 @@ func NewSearchResultAggregationsValueFromSTerms(v CommonAggregationsTermsAggrega
 	}
 }
 
-// AsSum decodes the union as CommonAggregationsSumAggregate. The caller selects the
+// AsSum decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsSum() (CommonAggregationsSumAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsSumAggregate); ok {
+func (u *SearchResultAggregationsValue) AsSum() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsSumAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6167,19 +6321,19 @@ func (u *SearchResultAggregationsValue) AsSum() (CommonAggregationsSumAggregate,
 
 // NewSearchResultAggregationsValueFromSum returns a SearchResultAggregationsValue populated with v
 // on the Sum branch.
-func NewSearchResultAggregationsValueFromSum(v CommonAggregationsSumAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromSum(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsTDigestPercentiles decodes the union as CommonAggregationsTDigestPercentilesAggregate. The caller selects the
+// AsTDigestPercentiles decodes the union as CommonAggregationsPercentilesAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsTDigestPercentiles() (CommonAggregationsTDigestPercentilesAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsTDigestPercentilesAggregate); ok {
+func (u *SearchResultAggregationsValue) AsTDigestPercentiles() (CommonAggregationsPercentilesAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsPercentilesAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTDigestPercentilesAggregate
+	var v CommonAggregationsPercentilesAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6189,19 +6343,19 @@ func (u *SearchResultAggregationsValue) AsTDigestPercentiles() (CommonAggregatio
 
 // NewSearchResultAggregationsValueFromTDigestPercentiles returns a SearchResultAggregationsValue populated with v
 // on the TDigestPercentiles branch.
-func NewSearchResultAggregationsValueFromTDigestPercentiles(v CommonAggregationsTDigestPercentilesAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromTDigestPercentiles(v CommonAggregationsPercentilesAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsTDigestPercentileRanks decodes the union as CommonAggregationsTDigestPercentileRanksAggregate. The caller selects the
+// AsTDigestPercentileRanks decodes the union as CommonAggregationsPercentilesAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsTDigestPercentileRanks() (CommonAggregationsTDigestPercentileRanksAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsTDigestPercentileRanksAggregate); ok {
+func (u *SearchResultAggregationsValue) AsTDigestPercentileRanks() (CommonAggregationsPercentilesAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsPercentilesAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsTDigestPercentileRanksAggregate
+	var v CommonAggregationsPercentilesAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6211,7 +6365,7 @@ func (u *SearchResultAggregationsValue) AsTDigestPercentileRanks() (CommonAggreg
 
 // NewSearchResultAggregationsValueFromTDigestPercentileRanks returns a SearchResultAggregationsValue populated with v
 // on the TDigestPercentileRanks branch.
-func NewSearchResultAggregationsValueFromTDigestPercentileRanks(v CommonAggregationsTDigestPercentileRanksAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromTDigestPercentileRanks(v CommonAggregationsPercentilesAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6305,13 +6459,13 @@ func NewSearchResultAggregationsValueFromUMRareTerms(v CommonAggregationsMultiBu
 	}
 }
 
-// AsUMSigTerms decodes the union as CommonAggregationsUnmappedSignificantTermsAggregate. The caller selects the
+// AsUMSigTerms decodes the union as CommonAggregationsSignificantTermsAggregateBaseVoid. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsUnmappedSignificantTermsAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsUnmappedSignificantTermsAggregate); ok {
+func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsSignificantTermsAggregateBaseVoid, error) {
+	if v, ok := u.value.(*CommonAggregationsSignificantTermsAggregateBaseVoid); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsUnmappedSignificantTermsAggregate
+	var v CommonAggregationsSignificantTermsAggregateBaseVoid
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6321,7 +6475,7 @@ func (u *SearchResultAggregationsValue) AsUMSigTerms() (CommonAggregationsUnmapp
 
 // NewSearchResultAggregationsValueFromUMSigTerms returns a SearchResultAggregationsValue populated with v
 // on the UMSigTerms branch.
-func NewSearchResultAggregationsValueFromUMSigTerms(v CommonAggregationsUnmappedSignificantTermsAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromUMSigTerms(v CommonAggregationsSignificantTermsAggregateBaseVoid) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
@@ -6349,13 +6503,13 @@ func NewSearchResultAggregationsValueFromUMTerms(v CommonAggregationsTermsAggreg
 	}
 }
 
-// AsValueCount decodes the union as CommonAggregationsValueCountAggregate. The caller selects the
+// AsValueCount decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsValueCount() (CommonAggregationsValueCountAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsValueCountAggregate); ok {
+func (u *SearchResultAggregationsValue) AsValueCount() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsValueCountAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6365,19 +6519,19 @@ func (u *SearchResultAggregationsValue) AsValueCount() (CommonAggregationsValueC
 
 // NewSearchResultAggregationsValueFromValueCount returns a SearchResultAggregationsValue populated with v
 // on the ValueCount branch.
-func NewSearchResultAggregationsValueFromValueCount(v CommonAggregationsValueCountAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromValueCount(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsVariableWidthHistogram decodes the union as CommonAggregationsVariableWidthHistogramAggregate. The caller selects the
+// AsVariableWidthHistogram decodes the union as CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggregationsVariableWidthHistogramAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsVariableWidthHistogramAggregate); ok {
+func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket, error) {
+	if v, ok := u.value.(*CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsVariableWidthHistogramAggregate
+	var v CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6387,19 +6541,19 @@ func (u *SearchResultAggregationsValue) AsVariableWidthHistogram() (CommonAggreg
 
 // NewSearchResultAggregationsValueFromVariableWidthHistogram returns a SearchResultAggregationsValue populated with v
 // on the VariableWidthHistogram branch.
-func NewSearchResultAggregationsValueFromVariableWidthHistogram(v CommonAggregationsVariableWidthHistogramAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromVariableWidthHistogram(v CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}
 }
 
-// AsWeightedAvg decodes the union as CommonAggregationsWeightedAvgAggregate. The caller selects the
+// AsWeightedAvg decodes the union as CommonAggregationsSingleMetricAggregateBase. The caller selects the
 // type it requested; an empty value and nil error mean the union is empty.
-func (u *SearchResultAggregationsValue) AsWeightedAvg() (CommonAggregationsWeightedAvgAggregate, error) {
-	if v, ok := u.value.(*CommonAggregationsWeightedAvgAggregate); ok {
+func (u *SearchResultAggregationsValue) AsWeightedAvg() (CommonAggregationsSingleMetricAggregateBase, error) {
+	if v, ok := u.value.(*CommonAggregationsSingleMetricAggregateBase); ok {
 		return *v, nil
 	}
-	var v CommonAggregationsWeightedAvgAggregate
+	var v CommonAggregationsSingleMetricAggregateBase
 	if len(u.raw) == 0 {
 		return v, nil
 	}
@@ -6409,7 +6563,7 @@ func (u *SearchResultAggregationsValue) AsWeightedAvg() (CommonAggregationsWeigh
 
 // NewSearchResultAggregationsValueFromWeightedAvg returns a SearchResultAggregationsValue populated with v
 // on the WeightedAvg branch.
-func NewSearchResultAggregationsValueFromWeightedAvg(v CommonAggregationsWeightedAvgAggregate) SearchResultAggregationsValue {
+func NewSearchResultAggregationsValueFromWeightedAvg(v CommonAggregationsSingleMetricAggregateBase) SearchResultAggregationsValue {
 	return SearchResultAggregationsValue{
 		value: &v,
 	}

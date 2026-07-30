@@ -95,6 +95,46 @@ func classifyUnions(spec *ir.Spec) {
 				"branch(es), but no required key distinguishes them by presence", t.Name)
 		}
 	}
+
+	// Every union has now reached its terminal decode state, so branch
+	// reachability is decidable.
+	dropUnreachableBranches(allTypes)
+}
+
+// dropUnreachableBranches removes branches whose Go type duplicates an earlier
+// branch's, for every union except the caller-keyed lazy ones.
+//
+// This is the last state transition a union goes through: by the time it runs,
+// every union has reached its terminal decode state (merge, lazy-accessor, or
+// try-each), and only then is "is this branch reachable?" answerable.
+//
+// A union in a wire-decoded state (first-byte switch, try-each, or merge) walks
+// its branches in order and stops at the first that decodes, so a second branch
+// of the same Go type is unreachable: its accessor could never be the one Type()
+// reports. A union in the lazy-accessor state is the exception -- UnmarshalJSON
+// only retains raw bytes and the caller names the branch, so several
+// As<Branch>() accessors over one Go type are all reachable and each carries
+// distinct intent (AsAvg/AsSum/AsMin over SingleMetricAggregateBase, which the
+// spec models as separate schemas that erase to one shape).
+//
+// The Parse phase deliberately keeps the duplicates: it cannot make this call,
+// because the decode state is not assigned until this phase.
+func dropUnreachableBranches(types []*ir.Type) {
+	for _, t := range types {
+		if t.LazyAccessors || len(t.Branches) < 2 {
+			continue
+		}
+		seen := make(map[string]bool, len(t.Branches))
+		kept := make([]ir.UnionBranch, 0, len(t.Branches))
+		for _, b := range t.Branches {
+			if seen[b.GoType] {
+				continue
+			}
+			seen[b.GoType] = true
+			kept = append(kept, b)
+		}
+		t.Branches = kept
+	}
 }
 
 // collectTypes returns every ir.Type instance the emit phase may render,
