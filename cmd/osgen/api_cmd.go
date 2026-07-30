@@ -53,8 +53,9 @@ func runAPI() error {
 		"emit backward-compatibility forwarder methods (e.g. top-level Client.Bulk forwarding to Doc.Bulk)")
 	emitV4Deprecation := fs.Bool("emit-v4-deprecation", false,
 		"mark the v4 compatibility forwarders with a Deprecated doc comment (requires -emit-v4-compat)")
-	rawAllowlist := fs.String("raw-message-allowlist", "rawmessage_allowlist.txt",
-		"path to the checked-in json.RawMessage allowlist (relative to cwd)")
+	rawAllowlist := fs.String("raw-message-allowlist", "",
+		"check against this json.RawMessage allowlist file (relative to cwd) instead of the one embedded in osgen; "+
+			"with -update-raw-message-allowlist, the file to write (default: "+rawMessageAllowlistFile+" in cwd)")
 	updateRawAllowlist := fs.Bool("update-raw-message-allowlist", false,
 		"rewrite the json.RawMessage allowlist from current output instead of checking it")
 	allowUnlistedRaw := fs.Bool("allow-unlisted-raw-message", false,
