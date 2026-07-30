@@ -236,6 +236,32 @@ const (
 	CatSnapshotsRecordEndEpochStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CatSnapshotsRecordEndEpochType) String() string {
+	switch t {
+	case CatSnapshotsRecordEndEpochInt64Type:
+		return "Int64"
+	case CatSnapshotsRecordEndEpochStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CatSnapshotsRecordEndEpochBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CatSnapshotsRecordEndEpochBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CatSnapshotsRecordEndEpochType
+}
+
+func (e *CatSnapshotsRecordEndEpochBranchError) Error() string {
+	return fmt.Sprintf("CatSnapshotsRecordEndEpoch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CatSnapshotsRecordEndEpochUnknownType if the value has not been decoded.
 func (u *CatSnapshotsRecordEndEpoch) Type() CatSnapshotsRecordEndEpochType { return u.typ }
@@ -255,13 +281,16 @@ func (u *CatSnapshotsRecordEndEpoch) SetRaw(raw json.RawMessage) {
 	u.typ = CatSnapshotsRecordEndEpochUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *CatSnapshotsRecordEndEpoch) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *CatSnapshotsRecordEndEpochBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CatSnapshotsRecordEndEpoch) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &CatSnapshotsRecordEndEpochBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewCatSnapshotsRecordEndEpochFromInt64 returns a CatSnapshotsRecordEndEpoch populated with v
@@ -273,13 +302,16 @@ func NewCatSnapshotsRecordEndEpochFromInt64(v int64) CatSnapshotsRecordEndEpoch 
 	}
 }
 
-// String returns the string branch value.
-func (u *CatSnapshotsRecordEndEpoch) String() string {
+// String returns the string branch value. It returns a
+// *CatSnapshotsRecordEndEpochBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CatSnapshotsRecordEndEpoch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CatSnapshotsRecordEndEpochBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCatSnapshotsRecordEndEpochFromString returns a CatSnapshotsRecordEndEpoch populated with v
@@ -351,6 +383,32 @@ const (
 	CatSnapshotsRecordStartEpochStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CatSnapshotsRecordStartEpochType) String() string {
+	switch t {
+	case CatSnapshotsRecordStartEpochInt64Type:
+		return "Int64"
+	case CatSnapshotsRecordStartEpochStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CatSnapshotsRecordStartEpochBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CatSnapshotsRecordStartEpochBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CatSnapshotsRecordStartEpochType
+}
+
+func (e *CatSnapshotsRecordStartEpochBranchError) Error() string {
+	return fmt.Sprintf("CatSnapshotsRecordStartEpoch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CatSnapshotsRecordStartEpochUnknownType if the value has not been decoded.
 func (u *CatSnapshotsRecordStartEpoch) Type() CatSnapshotsRecordStartEpochType { return u.typ }
@@ -370,13 +428,16 @@ func (u *CatSnapshotsRecordStartEpoch) SetRaw(raw json.RawMessage) {
 	u.typ = CatSnapshotsRecordStartEpochUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *CatSnapshotsRecordStartEpoch) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *CatSnapshotsRecordStartEpochBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CatSnapshotsRecordStartEpoch) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &CatSnapshotsRecordStartEpochBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewCatSnapshotsRecordStartEpochFromInt64 returns a CatSnapshotsRecordStartEpoch populated with v
@@ -388,13 +449,16 @@ func NewCatSnapshotsRecordStartEpochFromInt64(v int64) CatSnapshotsRecordStartEp
 	}
 }
 
-// String returns the string branch value.
-func (u *CatSnapshotsRecordStartEpoch) String() string {
+// String returns the string branch value. It returns a
+// *CatSnapshotsRecordStartEpochBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CatSnapshotsRecordStartEpoch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CatSnapshotsRecordStartEpochBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCatSnapshotsRecordStartEpochFromString returns a CatSnapshotsRecordStartEpoch populated with v

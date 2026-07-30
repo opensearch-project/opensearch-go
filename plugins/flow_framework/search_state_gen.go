@@ -223,6 +223,32 @@ const (
 	FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t FlowFrameworkCommonSearchStateRespResourcesCreatedType) String() string {
+	switch t {
+	case FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType:
+		return "FlowFrameworkCommonResourcesCreated"
+	case FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got FlowFrameworkCommonSearchStateRespResourcesCreatedType
+}
+
+func (e *FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError) Error() string {
+	return fmt.Sprintf("FlowFrameworkCommonSearchStateRespResourcesCreated: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType if the value has not been decoded.
 func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Type() FlowFrameworkCommonSearchStateRespResourcesCreatedType {
@@ -244,13 +270,16 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) SetRaw(raw json.Raw
 	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
 }
 
-// FlowFrameworkCommonResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value.
-func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) FlowFrameworkCommonResourcesCreated() FlowFrameworkCommonResourcesCreated {
+// FlowFrameworkCommonResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value. It returns a
+// *FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero FlowFrameworkCommonResourcesCreated in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) FlowFrameworkCommonResourcesCreated() (FlowFrameworkCommonResourcesCreated, error) {
 	if v, ok := u.value.(*FlowFrameworkCommonResourcesCreated); ok {
-		return *v
+		return *v, nil
 	}
 	var zero FlowFrameworkCommonResourcesCreated
-	return zero
+	return zero, &FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError{Want: "FlowFrameworkCommonResourcesCreated", Got: u.typ}
 }
 
 // NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
@@ -262,13 +291,16 @@ func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommo
 	}
 }
 
-// Array returns the []FlowFrameworkCommonResourcesCreated branch value.
-func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Array() []FlowFrameworkCommonResourcesCreated {
+// Array returns the []FlowFrameworkCommonResourcesCreated branch value. It returns a
+// *FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []FlowFrameworkCommonResourcesCreated in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Array() ([]FlowFrameworkCommonResourcesCreated, error) {
 	if v, ok := u.value.(*[]FlowFrameworkCommonResourcesCreated); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []FlowFrameworkCommonResourcesCreated
-	return zero
+	return zero, &FlowFrameworkCommonSearchStateRespResourcesCreatedBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromArray returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v

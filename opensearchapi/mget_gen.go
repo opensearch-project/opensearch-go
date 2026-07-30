@@ -229,6 +229,32 @@ const (
 	MGetRespBodyDocsItemMGetMultiGetErrorType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MGetRespBodyDocsItemType) String() string {
+	switch t {
+	case MGetRespBodyDocsItemGetResultType:
+		return "GetResult"
+	case MGetRespBodyDocsItemMGetMultiGetErrorType:
+		return "MGetMultiGetError"
+	default:
+		return "unknown"
+	}
+}
+
+// MGetRespBodyDocsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MGetRespBodyDocsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MGetRespBodyDocsItemType
+}
+
+func (e *MGetRespBodyDocsItemBranchError) Error() string {
+	return fmt.Sprintf("MGetRespBodyDocsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MGetRespBodyDocsItemUnknownType if the value has not been decoded.
 func (u *MGetRespBodyDocsItem) Type() MGetRespBodyDocsItemType { return u.typ }
@@ -248,13 +274,16 @@ func (u *MGetRespBodyDocsItem) SetRaw(raw json.RawMessage) {
 	u.typ = MGetRespBodyDocsItemUnknownType
 }
 
-// GetResult returns the GetResultBase branch value.
-func (u *MGetRespBodyDocsItem) GetResult() GetResultBase {
+// GetResult returns the GetResultBase branch value. It returns a
+// *MGetRespBodyDocsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GetResultBase in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MGetRespBodyDocsItem) GetResult() (GetResultBase, error) {
 	if v, ok := u.value.(*GetResultBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GetResultBase
-	return zero
+	return zero, &MGetRespBodyDocsItemBranchError{Want: "GetResult", Got: u.typ}
 }
 
 // NewMGetRespBodyDocsItemFromGetResult returns a MGetRespBodyDocsItem populated with v
@@ -266,13 +295,16 @@ func NewMGetRespBodyDocsItemFromGetResult(v GetResultBase) MGetRespBodyDocsItem 
 	}
 }
 
-// MGetMultiGetError returns the MGetMultiGetError branch value.
-func (u *MGetRespBodyDocsItem) MGetMultiGetError() MGetMultiGetError {
+// MGetMultiGetError returns the MGetMultiGetError branch value. It returns a
+// *MGetRespBodyDocsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero MGetMultiGetError in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MGetRespBodyDocsItem) MGetMultiGetError() (MGetMultiGetError, error) {
 	if v, ok := u.value.(*MGetMultiGetError); ok {
-		return *v
+		return *v, nil
 	}
 	var zero MGetMultiGetError
-	return zero
+	return zero, &MGetRespBodyDocsItemBranchError{Want: "MGetMultiGetError", Got: u.typ}
 }
 
 // NewMGetRespBodyDocsItemFromMGetMultiGetError returns a MGetRespBodyDocsItem populated with v
@@ -394,6 +426,32 @@ const (
 	MGetOperationSourceExcludesIncludesType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MGetOperationSourceType) String() string {
+	switch t {
+	case MGetOperationSourceStringType:
+		return "String"
+	case MGetOperationSourceExcludesIncludesType:
+		return "ExcludesIncludes"
+	default:
+		return "unknown"
+	}
+}
+
+// MGetOperationSourceBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MGetOperationSourceBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MGetOperationSourceType
+}
+
+func (e *MGetOperationSourceBranchError) Error() string {
+	return fmt.Sprintf("MGetOperationSource: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MGetOperationSourceUnknownType if the value has not been decoded.
 func (u *MGetOperationSource) Type() MGetOperationSourceType { return u.typ }
@@ -413,13 +471,16 @@ func (u *MGetOperationSource) SetRaw(raw json.RawMessage) {
 	u.typ = MGetOperationSourceUnknownType
 }
 
-// String returns the string branch value.
-func (u *MGetOperationSource) String() string {
+// String returns the string branch value. It returns a
+// *MGetOperationSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MGetOperationSource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MGetOperationSourceBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMGetOperationSourceFromString returns a MGetOperationSource populated with v
@@ -431,13 +492,16 @@ func NewMGetOperationSourceFromString(v string) MGetOperationSource {
 	}
 }
 
-// ExcludesIncludes returns the MGetOperationSourceExcludesIncludes branch value.
-func (u *MGetOperationSource) ExcludesIncludes() MGetOperationSourceExcludesIncludes {
+// ExcludesIncludes returns the MGetOperationSourceExcludesIncludes branch value. It returns a
+// *MGetOperationSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero MGetOperationSourceExcludesIncludes in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MGetOperationSource) ExcludesIncludes() (MGetOperationSourceExcludesIncludes, error) {
 	if v, ok := u.value.(*MGetOperationSourceExcludesIncludes); ok {
-		return *v
+		return *v, nil
 	}
 	var zero MGetOperationSourceExcludesIncludes
-	return zero
+	return zero, &MGetOperationSourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
 }
 
 // NewMGetOperationSourceFromExcludesIncludes returns a MGetOperationSource populated with v

@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -165,6 +166,32 @@ const (
 	NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesReloadSecureSettingsRespBodyNodesValueType) String() string {
+	switch t {
+	case NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadResponseType:
+		return "NodesReloadSecureSettingsNodeReloadResponse"
+	case NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType:
+		return "NodesReloadSecureSettingsNodeReloadError"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesReloadSecureSettingsRespBodyNodesValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesReloadSecureSettingsRespBodyNodesValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesReloadSecureSettingsRespBodyNodesValueType
+}
+
+func (e *NodesReloadSecureSettingsRespBodyNodesValueBranchError) Error() string {
+	return fmt.Sprintf("NodesReloadSecureSettingsRespBodyNodesValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesReloadSecureSettingsRespBodyNodesValueUnknownType if the value has not been decoded.
 func (u *NodesReloadSecureSettingsRespBodyNodesValue) Type() NodesReloadSecureSettingsRespBodyNodesValueType {
@@ -186,13 +213,16 @@ func (u *NodesReloadSecureSettingsRespBodyNodesValue) SetRaw(raw json.RawMessage
 	u.typ = NodesReloadSecureSettingsRespBodyNodesValueUnknownType
 }
 
-// NodesReloadSecureSettingsNodeReloadResponse returns the NodesReloadSecureSettingsNodeReloadResponse branch value.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadResponse() NodesReloadSecureSettingsNodeReloadResponse {
+// NodesReloadSecureSettingsNodeReloadResponse returns the NodesReloadSecureSettingsNodeReloadResponse branch value. It returns a
+// *NodesReloadSecureSettingsRespBodyNodesValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NodesReloadSecureSettingsNodeReloadResponse in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadResponse() (NodesReloadSecureSettingsNodeReloadResponse, error) {
 	if v, ok := u.value.(*NodesReloadSecureSettingsNodeReloadResponse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesReloadSecureSettingsNodeReloadResponse
-	return zero
+	return zero, &NodesReloadSecureSettingsRespBodyNodesValueBranchError{Want: "NodesReloadSecureSettingsNodeReloadResponse", Got: u.typ}
 }
 
 // NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadResponse returns a NodesReloadSecureSettingsRespBodyNodesValue populated with v
@@ -204,13 +234,16 @@ func NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettings
 	}
 }
 
-// NodesReloadSecureSettingsNodeReloadError returns the NodesReloadSecureSettingsNodeReloadError branch value.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadError() NodesReloadSecureSettingsNodeReloadError {
+// NodesReloadSecureSettingsNodeReloadError returns the NodesReloadSecureSettingsNodeReloadError branch value. It returns a
+// *NodesReloadSecureSettingsRespBodyNodesValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NodesReloadSecureSettingsNodeReloadError in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadError() (NodesReloadSecureSettingsNodeReloadError, error) {
 	if v, ok := u.value.(*NodesReloadSecureSettingsNodeReloadError); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesReloadSecureSettingsNodeReloadError
-	return zero
+	return zero, &NodesReloadSecureSettingsRespBodyNodesValueBranchError{Want: "NodesReloadSecureSettingsNodeReloadError", Got: u.typ}
 }
 
 // NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadError returns a NodesReloadSecureSettingsRespBodyNodesValue populated with v

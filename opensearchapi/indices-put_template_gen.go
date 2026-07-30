@@ -199,6 +199,32 @@ const (
 	IndicesPutTemplateBodyIndexPatternsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesPutTemplateBodyIndexPatternsType) String() string {
+	switch t {
+	case IndicesPutTemplateBodyIndexPatternsStringType:
+		return "String"
+	case IndicesPutTemplateBodyIndexPatternsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesPutTemplateBodyIndexPatternsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesPutTemplateBodyIndexPatternsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesPutTemplateBodyIndexPatternsType
+}
+
+func (e *IndicesPutTemplateBodyIndexPatternsBranchError) Error() string {
+	return fmt.Sprintf("IndicesPutTemplateBodyIndexPatterns: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesPutTemplateBodyIndexPatternsUnknownType if the value has not been decoded.
 func (u *IndicesPutTemplateBodyIndexPatterns) Type() IndicesPutTemplateBodyIndexPatternsType {
@@ -220,13 +246,16 @@ func (u *IndicesPutTemplateBodyIndexPatterns) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesPutTemplateBodyIndexPatternsUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesPutTemplateBodyIndexPatterns) String() string {
+// String returns the string branch value. It returns a
+// *IndicesPutTemplateBodyIndexPatternsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesPutTemplateBodyIndexPatterns) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesPutTemplateBodyIndexPatternsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesPutTemplateBodyIndexPatternsFromString returns a IndicesPutTemplateBodyIndexPatterns populated with v
@@ -238,13 +267,16 @@ func NewIndicesPutTemplateBodyIndexPatternsFromString(v string) IndicesPutTempla
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesPutTemplateBodyIndexPatterns) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesPutTemplateBodyIndexPatternsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesPutTemplateBodyIndexPatterns) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesPutTemplateBodyIndexPatternsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesPutTemplateBodyIndexPatternsFromArray returns a IndicesPutTemplateBodyIndexPatterns populated with v

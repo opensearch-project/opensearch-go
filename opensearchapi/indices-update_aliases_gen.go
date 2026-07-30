@@ -242,6 +242,32 @@ const (
 	IndicesUpdateAliasesAddActionAliasesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesUpdateAliasesAddActionAliasesType) String() string {
+	switch t {
+	case IndicesUpdateAliasesAddActionAliasesStringType:
+		return "String"
+	case IndicesUpdateAliasesAddActionAliasesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesUpdateAliasesAddActionAliasesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesUpdateAliasesAddActionAliasesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesUpdateAliasesAddActionAliasesType
+}
+
+func (e *IndicesUpdateAliasesAddActionAliasesBranchError) Error() string {
+	return fmt.Sprintf("IndicesUpdateAliasesAddActionAliases: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesUpdateAliasesAddActionAliasesUnknownType if the value has not been decoded.
 func (u *IndicesUpdateAliasesAddActionAliases) Type() IndicesUpdateAliasesAddActionAliasesType {
@@ -263,13 +289,16 @@ func (u *IndicesUpdateAliasesAddActionAliases) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesUpdateAliasesAddActionAliasesUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesUpdateAliasesAddActionAliases) String() string {
+// String returns the string branch value. It returns a
+// *IndicesUpdateAliasesAddActionAliasesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesAddActionAliases) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesUpdateAliasesAddActionAliasesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesUpdateAliasesAddActionAliasesFromString returns a IndicesUpdateAliasesAddActionAliases populated with v
@@ -281,13 +310,16 @@ func NewIndicesUpdateAliasesAddActionAliasesFromString(v string) IndicesUpdateAl
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesUpdateAliasesAddActionAliases) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesUpdateAliasesAddActionAliasesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesAddActionAliases) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesUpdateAliasesAddActionAliasesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesUpdateAliasesAddActionAliasesFromArray returns a IndicesUpdateAliasesAddActionAliases populated with v
@@ -355,6 +387,32 @@ const (
 	IndicesUpdateAliasesRemoveActionAliasesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesUpdateAliasesRemoveActionAliasesType) String() string {
+	switch t {
+	case IndicesUpdateAliasesRemoveActionAliasesStringType:
+		return "String"
+	case IndicesUpdateAliasesRemoveActionAliasesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesUpdateAliasesRemoveActionAliasesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesUpdateAliasesRemoveActionAliasesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesUpdateAliasesRemoveActionAliasesType
+}
+
+func (e *IndicesUpdateAliasesRemoveActionAliasesBranchError) Error() string {
+	return fmt.Sprintf("IndicesUpdateAliasesRemoveActionAliases: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesUpdateAliasesRemoveActionAliasesUnknownType if the value has not been decoded.
 func (u *IndicesUpdateAliasesRemoveActionAliases) Type() IndicesUpdateAliasesRemoveActionAliasesType {
@@ -376,13 +434,16 @@ func (u *IndicesUpdateAliasesRemoveActionAliases) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesUpdateAliasesRemoveActionAliasesUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesUpdateAliasesRemoveActionAliases) String() string {
+// String returns the string branch value. It returns a
+// *IndicesUpdateAliasesRemoveActionAliasesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesRemoveActionAliases) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesUpdateAliasesRemoveActionAliasesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesUpdateAliasesRemoveActionAliasesFromString returns a IndicesUpdateAliasesRemoveActionAliases populated with v
@@ -394,13 +455,16 @@ func NewIndicesUpdateAliasesRemoveActionAliasesFromString(v string) IndicesUpdat
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesUpdateAliasesRemoveActionAliases) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesUpdateAliasesRemoveActionAliasesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesRemoveActionAliases) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesUpdateAliasesRemoveActionAliasesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesUpdateAliasesRemoveActionAliasesFromArray returns a IndicesUpdateAliasesRemoveActionAliases populated with v

@@ -127,6 +127,34 @@ const (
 	SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchRelevancePutExperimentsBodyType) String() string {
+	switch t {
+	case SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType:
+		return "SearchRelevancePutHybridOptimizerExperimentRequest"
+	case SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType:
+		return "SearchRelevancePutPointwiseExperimentRequest"
+	case SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType:
+		return "SearchRelevancePutPairwiseExperimentRequest"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchRelevancePutExperimentsBodyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchRelevancePutExperimentsBodyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchRelevancePutExperimentsBodyType
+}
+
+func (e *SearchRelevancePutExperimentsBodyBranchError) Error() string {
+	return fmt.Sprintf("SearchRelevancePutExperimentsBody: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchRelevancePutExperimentsBodyUnknownType if the value has not been decoded.
 func (u *SearchRelevancePutExperimentsBody) Type() SearchRelevancePutExperimentsBodyType {
@@ -148,13 +176,16 @@ func (u *SearchRelevancePutExperimentsBody) SetRaw(raw json.RawMessage) {
 	u.typ = SearchRelevancePutExperimentsBodyUnknownType
 }
 
-// SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest {
+// SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value. It returns a
+// *SearchRelevancePutExperimentsBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() (opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
-	return zero
+	return zero, &SearchRelevancePutExperimentsBodyBranchError{Want: "SearchRelevancePutHybridOptimizerExperimentRequest", Got: u.typ}
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
@@ -166,13 +197,16 @@ func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerEx
 	}
 }
 
-// SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() opensearchapi.SearchRelevancePutPointwiseExperimentRequest {
+// SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value. It returns a
+// *SearchRelevancePutExperimentsBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() (opensearchapi.SearchRelevancePutPointwiseExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPointwiseExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest
-	return zero
+	return zero, &SearchRelevancePutExperimentsBodyBranchError{Want: "SearchRelevancePutPointwiseExperimentRequest", Got: u.typ}
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
@@ -184,13 +218,16 @@ func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperime
 	}
 }
 
-// SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() opensearchapi.SearchRelevancePutPairwiseExperimentRequest {
+// SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value. It returns a
+// *SearchRelevancePutExperimentsBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() (opensearchapi.SearchRelevancePutPairwiseExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPairwiseExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest
-	return zero
+	return zero, &SearchRelevancePutExperimentsBodyBranchError{Want: "SearchRelevancePutPairwiseExperimentRequest", Got: u.typ}
 }
 
 // NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v

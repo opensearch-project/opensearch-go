@@ -63,8 +63,12 @@ func TestSearchHitEnvelopeIsDecoded(t *testing.T) {
 
 	require.Len(t, hit.Sort, 2, "sort must be reachable for search_after pagination")
 	require.Equal(t, opensearchapi.SortResultsItemFloat64Type, hit.Sort[0].Type())
-	require.InDelta(t, float64(1), hit.Sort[0].Float64(), 1e-9)
-	require.InDelta(t, float64(2), hit.Sort[1].Float64(), 1e-9)
+	sort0, err := hit.Sort[0].Float64()
+	require.NoError(t, err)
+	require.InDelta(t, float64(1), sort0, 1e-9)
+	sort1, err := hit.Sort[1].Float64()
+	require.NoError(t, err)
+	require.InDelta(t, float64(2), sort1, 1e-9)
 
 	require.JSONEq(t, `{"a":1}`, string(hit.Source))
 }
@@ -84,5 +88,7 @@ func TestSearchHitEnvelopeSiblingsAreDecoded(t *testing.T) {
 	require.InDelta(t, float32(1.5), *resp.Hits.MaxScore, 1e-6)
 
 	require.NotNil(t, resp.Hits.Total)
-	require.Equal(t, int64(1), resp.Hits.Total.SearchTotalHits().Value)
+	total, err := resp.Hits.Total.SearchTotalHits()
+	require.NoError(t, err)
+	require.Equal(t, int64(1), total.Value)
 }

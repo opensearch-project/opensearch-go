@@ -199,6 +199,32 @@ const (
 	FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t FlowFrameworkGetStatusRespBodyType) String() string {
+	switch t {
+	case FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusFullResponseType:
+		return "FlowFrameworkCommonWorkFlowStatusFullResponse"
+	case FlowFrameworkGetStatusRespBodyFlowFrameworkCommonWorkFlowStatusDefaultResponseType:
+		return "FlowFrameworkCommonWorkFlowStatusDefaultResponse"
+	default:
+		return "unknown"
+	}
+}
+
+// FlowFrameworkGetStatusRespBodyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type FlowFrameworkGetStatusRespBodyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got FlowFrameworkGetStatusRespBodyType
+}
+
+func (e *FlowFrameworkGetStatusRespBodyBranchError) Error() string {
+	return fmt.Sprintf("FlowFrameworkGetStatusRespBody: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns FlowFrameworkGetStatusRespBodyUnknownType if the value has not been decoded.
 func (u *FlowFrameworkGetStatusRespBody) Type() FlowFrameworkGetStatusRespBodyType { return u.typ }
@@ -218,13 +244,16 @@ func (u *FlowFrameworkGetStatusRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = FlowFrameworkGetStatusRespBodyUnknownType
 }
 
-// FlowFrameworkCommonWorkFlowStatusFullResponse returns the FlowFrameworkCommonWorkFlowStatusFullResponse branch value.
-func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusFullResponse() FlowFrameworkCommonWorkFlowStatusFullResponse {
+// FlowFrameworkCommonWorkFlowStatusFullResponse returns the FlowFrameworkCommonWorkFlowStatusFullResponse branch value. It returns a
+// *FlowFrameworkGetStatusRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero FlowFrameworkCommonWorkFlowStatusFullResponse in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusFullResponse() (FlowFrameworkCommonWorkFlowStatusFullResponse, error) {
 	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusFullResponse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero FlowFrameworkCommonWorkFlowStatusFullResponse
-	return zero
+	return zero, &FlowFrameworkGetStatusRespBodyBranchError{Want: "FlowFrameworkCommonWorkFlowStatusFullResponse", Got: u.typ}
 }
 
 // NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullResponse returns a FlowFrameworkGetStatusRespBody populated with v
@@ -236,13 +265,16 @@ func NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusFullR
 	}
 }
 
-// FlowFrameworkCommonWorkFlowStatusDefaultResponse returns the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch value.
-func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() FlowFrameworkCommonWorkFlowStatusDefaultResponse {
+// FlowFrameworkCommonWorkFlowStatusDefaultResponse returns the FlowFrameworkCommonWorkFlowStatusDefaultResponse branch value. It returns a
+// *FlowFrameworkGetStatusRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero FlowFrameworkCommonWorkFlowStatusDefaultResponse in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkGetStatusRespBody) FlowFrameworkCommonWorkFlowStatusDefaultResponse() (FlowFrameworkCommonWorkFlowStatusDefaultResponse, error) {
 	if v, ok := u.value.(*FlowFrameworkCommonWorkFlowStatusDefaultResponse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero FlowFrameworkCommonWorkFlowStatusDefaultResponse
-	return zero
+	return zero, &FlowFrameworkGetStatusRespBodyBranchError{Want: "FlowFrameworkCommonWorkFlowStatusDefaultResponse", Got: u.typ}
 }
 
 // NewFlowFrameworkGetStatusRespBodyFromFlowFrameworkCommonWorkFlowStatusDefaultResponse returns a FlowFrameworkGetStatusRespBody populated with v

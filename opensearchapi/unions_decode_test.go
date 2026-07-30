@@ -29,7 +29,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.ErrorCauseHeaderValue
 		require.NoError(t, json.Unmarshal([]byte(`"boom"`), &u))
 		require.Equal(t, opensearchapi.ErrorCauseHeaderValueStringType, u.Type())
-		require.Equal(t, "boom", u.String())
+		s, err := u.String()
+		require.NoError(t, err)
+		require.Equal(t, "boom", s)
 		require.JSONEq(t, `"boom"`, string(u.RawJSON()))
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
@@ -41,7 +43,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.ErrorCauseHeaderValue
 		require.NoError(t, json.Unmarshal([]byte(`["a","b"]`), &u))
 		require.Equal(t, opensearchapi.ErrorCauseHeaderValueArrayType, u.Type())
-		require.Equal(t, []string{"a", "b"}, u.Array())
+		arr, err := u.Array()
+		require.NoError(t, err)
+		require.Equal(t, []string{"a", "b"}, arr)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `["a","b"]`, string(out))
@@ -52,7 +56,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
 		require.NoError(t, json.Unmarshal([]byte(`true`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueBoolType, u.Type())
-		require.True(t, u.Bool())
+		b, err := u.Bool()
+		require.NoError(t, err)
+		require.True(t, b)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `true`, string(out))
@@ -63,7 +69,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
 		require.NoError(t, json.Unmarshal([]byte(`42.5`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueFloat64Type, u.Type())
-		require.InEpsilon(t, 42.5, u.Float64(), 1e-9)
+		f, err := u.Float64()
+		require.NoError(t, err)
+		require.InEpsilon(t, 42.5, f, 1e-9)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `42.5`, string(out))
@@ -74,7 +82,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
 		require.NoError(t, json.Unmarshal([]byte(`"k"`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueStringType, u.Type())
-		require.Equal(t, "k", u.String())
+		k, err := u.String()
+		require.NoError(t, err)
+		require.Equal(t, "k", k)
 	})
 
 	t.Run("bucket union map branch", func(t *testing.T) {
@@ -82,7 +92,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsMultiBucketAggregateBaseBuckets
 		require.NoError(t, json.Unmarshal([]byte(`{"a":{"doc_count":1}}`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsMultiBucketAggregateBaseBucketsMapType, u.Type())
-		require.Contains(t, u.Map(), "a")
+		m, err := u.Map()
+		require.NoError(t, err)
+		require.Contains(t, m, "a")
 	})
 
 	t.Run("bucket union array branch", func(t *testing.T) {
@@ -90,7 +102,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsMultiBucketAggregateBaseBuckets
 		require.NoError(t, json.Unmarshal([]byte(`[{"doc_count":1}]`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsMultiBucketAggregateBaseBucketsArrayType, u.Type())
-		require.Len(t, u.Array(), 1)
+		buckets, err := u.Array()
+		require.NoError(t, err)
+		require.Len(t, buckets, 1)
 	})
 }
 

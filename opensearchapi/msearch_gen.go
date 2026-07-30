@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -230,6 +231,32 @@ const (
 	MSearchMultiSearchResultResponsesItemErrorRespBaseType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MSearchMultiSearchResultResponsesItemType) String() string {
+	switch t {
+	case MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType:
+		return "MSearchMultiSearchItem"
+	case MSearchMultiSearchResultResponsesItemErrorRespBaseType:
+		return "ErrorRespBase"
+	default:
+		return "unknown"
+	}
+}
+
+// MSearchMultiSearchResultResponsesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MSearchMultiSearchResultResponsesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MSearchMultiSearchResultResponsesItemType
+}
+
+func (e *MSearchMultiSearchResultResponsesItemBranchError) Error() string {
+	return fmt.Sprintf("MSearchMultiSearchResultResponsesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MSearchMultiSearchResultResponsesItemUnknownType if the value has not been decoded.
 func (u *MSearchMultiSearchResultResponsesItem) Type() MSearchMultiSearchResultResponsesItemType {
@@ -251,13 +278,16 @@ func (u *MSearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
 	u.typ = MSearchMultiSearchResultResponsesItemUnknownType
 }
 
-// MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value.
-func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() MSearchMultiSearchItem {
+// MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value. It returns a
+// *MSearchMultiSearchResultResponsesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero MSearchMultiSearchItem in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() (MSearchMultiSearchItem, error) {
 	if v, ok := u.value.(*MSearchMultiSearchItem); ok {
-		return *v
+		return *v, nil
 	}
 	var zero MSearchMultiSearchItem
-	return zero
+	return zero, &MSearchMultiSearchResultResponsesItemBranchError{Want: "MSearchMultiSearchItem", Got: u.typ}
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem returns a MSearchMultiSearchResultResponsesItem populated with v
@@ -269,13 +299,16 @@ func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearc
 	}
 }
 
-// ErrorRespBase returns the ErrorRespBase branch value.
-func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() ErrorRespBase {
+// ErrorRespBase returns the ErrorRespBase branch value. It returns a
+// *MSearchMultiSearchResultResponsesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ErrorRespBase in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() (ErrorRespBase, error) {
 	if v, ok := u.value.(*ErrorRespBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ErrorRespBase
-	return zero
+	return zero, &MSearchMultiSearchResultResponsesItemBranchError{Want: "ErrorRespBase", Got: u.typ}
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromErrorRespBase returns a MSearchMultiSearchResultResponsesItem populated with v
@@ -339,7 +372,8 @@ func (r *MSearchResp) SearchShardFailures() *PartialSearchError {
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
 		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
-			item := resp.MSearchMultiSearchItem()
+			// Guarded by the Type() check above, so the branch error cannot fire.
+			item, _ := resp.MSearchMultiSearchItem()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -366,9 +400,11 @@ func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError {
 	succeeded := 0
 	for i, resp := range r.Responses {
 		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
+			// Guarded by the Type() check, so the branch error cannot fire.
+			errBranch, _ := resp.ErrorRespBase()
 			failed = append(failed, MultiSearchItemFailure{
 				Index:         i,
-				ErrorRespBase: resp.ErrorRespBase(),
+				ErrorRespBase: errBranch,
 			})
 		} else {
 			succeeded++

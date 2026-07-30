@@ -60,7 +60,9 @@ func TestUnionUnmarshalResetsStaleState(t *testing.T) {
 				require.NoError(t, json.Unmarshal(
 					[]byte(`{"_index":"i","_id":"1","found":true}`), &u))
 				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, u.Type())
-				require.True(t, u.GetResult().Found)
+				gr, err := u.GetResult()
+				require.NoError(t, err)
+				require.True(t, gr.Found)
 			},
 		},
 		{

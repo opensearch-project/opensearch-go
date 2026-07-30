@@ -974,6 +974,32 @@ const (
 	NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsClusterInitialClusterManagerNodesType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType:
+		return "String"
+	case NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsClusterInitialClusterManagerNodesType
+}
+
+func (e *NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsClusterInitialClusterManagerNodes: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Type() NodesInfoNodeSettingsClusterInitialClusterManagerNodesType {
@@ -997,13 +1023,16 @@ func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) SetRaw(raw json
 	u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
@@ -1015,13 +1044,16 @@ func NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString(v strin
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsClusterInitialClusterManagerNodesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromArray returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
@@ -1089,6 +1121,32 @@ const (
 	NodesInfoNodeSettingsClusterInitialMasterNodesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsClusterInitialMasterNodesType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsClusterInitialMasterNodesStringType:
+		return "String"
+	case NodesInfoNodeSettingsClusterInitialMasterNodesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsClusterInitialMasterNodesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsClusterInitialMasterNodesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsClusterInitialMasterNodesType
+}
+
+func (e *NodesInfoNodeSettingsClusterInitialMasterNodesBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsClusterInitialMasterNodes: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Type() NodesInfoNodeSettingsClusterInitialMasterNodesType {
@@ -1110,13 +1168,16 @@ func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) SetRaw(raw json.RawMess
 	u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsClusterInitialMasterNodesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsClusterInitialMasterNodesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
@@ -1128,13 +1189,16 @@ func NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString(v string) Nodes
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsClusterInitialMasterNodesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsClusterInitialMasterNodesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsClusterInitialMasterNodesFromArray returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
@@ -1202,6 +1266,32 @@ const (
 	NodesInfoNodeSettingsHTTPHostArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsHTTPHostType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsHTTPHostStringType:
+		return "String"
+	case NodesInfoNodeSettingsHTTPHostArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsHTTPHostBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsHTTPHostBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsHTTPHostType
+}
+
+func (e *NodesInfoNodeSettingsHTTPHostBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsHTTPHost: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsHTTPHostUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsHTTPHost) Type() NodesInfoNodeSettingsHTTPHostType { return u.typ }
@@ -1221,13 +1311,16 @@ func (u *NodesInfoNodeSettingsHTTPHost) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsHTTPHostUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsHTTPHost) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsHTTPHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPHost) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPHostBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPHostFromString returns a NodesInfoNodeSettingsHTTPHost populated with v
@@ -1239,13 +1332,16 @@ func NewNodesInfoNodeSettingsHTTPHostFromString(v string) NodesInfoNodeSettingsH
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsHTTPHost) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsHTTPHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPHost) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPHostBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPHostFromArray returns a NodesInfoNodeSettingsHTTPHost populated with v
@@ -1313,6 +1409,32 @@ const (
 	NodesInfoNodeSettingsHTTPPublishHostArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsHTTPPublishHostType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsHTTPPublishHostStringType:
+		return "String"
+	case NodesInfoNodeSettingsHTTPPublishHostArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsHTTPPublishHostBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsHTTPPublishHostBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsHTTPPublishHostType
+}
+
+func (e *NodesInfoNodeSettingsHTTPPublishHostBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsHTTPPublishHost: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsHTTPPublishHostUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsHTTPPublishHost) Type() NodesInfoNodeSettingsHTTPPublishHostType {
@@ -1334,13 +1456,16 @@ func (u *NodesInfoNodeSettingsHTTPPublishHost) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsHTTPPublishHostUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsHTTPPublishHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPPublishHost) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPPublishHostBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPPublishHostFromString returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
@@ -1352,13 +1477,16 @@ func NewNodesInfoNodeSettingsHTTPPublishHostFromString(v string) NodesInfoNodeSe
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsHTTPPublishHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPPublishHost) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPPublishHostBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPPublishHostFromArray returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
@@ -1426,6 +1554,32 @@ const (
 	NodesInfoNodeSettingsHTTPTypeConfigType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsHTTPTypeType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsHTTPTypeStringType:
+		return "String"
+	case NodesInfoNodeSettingsHTTPTypeConfigType:
+		return "Config"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsHTTPTypeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsHTTPTypeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsHTTPTypeType
+}
+
+func (e *NodesInfoNodeSettingsHTTPTypeBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsHTTPType: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsHTTPTypeUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsHTTPType) Type() NodesInfoNodeSettingsHTTPTypeType { return u.typ }
@@ -1445,13 +1599,16 @@ func (u *NodesInfoNodeSettingsHTTPType) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsHTTPTypeUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsHTTPType) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsHTTPTypeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPType) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPTypeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPTypeFromString returns a NodesInfoNodeSettingsHTTPType populated with v
@@ -1463,13 +1620,16 @@ func NewNodesInfoNodeSettingsHTTPTypeFromString(v string) NodesInfoNodeSettingsH
 	}
 }
 
-// Config returns the NodesInfoNodeSettingsHTTPTypeConfig branch value.
-func (u *NodesInfoNodeSettingsHTTPType) Config() NodesInfoNodeSettingsHTTPTypeConfig {
+// Config returns the NodesInfoNodeSettingsHTTPTypeConfig branch value. It returns a
+// *NodesInfoNodeSettingsHTTPTypeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NodesInfoNodeSettingsHTTPTypeConfig in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsHTTPType) Config() (NodesInfoNodeSettingsHTTPTypeConfig, error) {
 	if v, ok := u.value.(*NodesInfoNodeSettingsHTTPTypeConfig); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesInfoNodeSettingsHTTPTypeConfig
-	return zero
+	return zero, &NodesInfoNodeSettingsHTTPTypeBranchError{Want: "Config", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsHTTPTypeFromConfig returns a NodesInfoNodeSettingsHTTPType populated with v
@@ -1537,6 +1697,32 @@ const (
 	NodesInfoNodeSettingsNodeRolesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsNodeRolesType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsNodeRolesStringType:
+		return "String"
+	case NodesInfoNodeSettingsNodeRolesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsNodeRolesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsNodeRolesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsNodeRolesType
+}
+
+func (e *NodesInfoNodeSettingsNodeRolesBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsNodeRoles: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsNodeRolesUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsNodeRoles) Type() NodesInfoNodeSettingsNodeRolesType { return u.typ }
@@ -1556,13 +1742,16 @@ func (u *NodesInfoNodeSettingsNodeRoles) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsNodeRolesUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsNodeRoles) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsNodeRolesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsNodeRoles) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsNodeRolesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsNodeRolesFromString returns a NodesInfoNodeSettingsNodeRoles populated with v
@@ -1574,13 +1763,16 @@ func NewNodesInfoNodeSettingsNodeRolesFromString(v string) NodesInfoNodeSettings
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsNodeRoles) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsNodeRolesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsNodeRoles) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsNodeRolesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsNodeRolesFromArray returns a NodesInfoNodeSettingsNodeRoles populated with v
@@ -1648,6 +1840,32 @@ const (
 	NodesInfoNodeSettingsTransportHostArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsTransportHostType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsTransportHostStringType:
+		return "String"
+	case NodesInfoNodeSettingsTransportHostArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsTransportHostBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsTransportHostBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsTransportHostType
+}
+
+func (e *NodesInfoNodeSettingsTransportHostBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsTransportHost: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsTransportHostUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsTransportHost) Type() NodesInfoNodeSettingsTransportHostType {
@@ -1669,13 +1887,16 @@ func (u *NodesInfoNodeSettingsTransportHost) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsTransportHostUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsTransportHost) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsTransportHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsTransportHost) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsTransportHostBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsTransportHostFromString returns a NodesInfoNodeSettingsTransportHost populated with v
@@ -1687,13 +1908,16 @@ func NewNodesInfoNodeSettingsTransportHostFromString(v string) NodesInfoNodeSett
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesInfoNodeSettingsTransportHost) Array() []string {
+// Array returns the []string branch value. It returns a
+// *NodesInfoNodeSettingsTransportHostBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsTransportHost) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &NodesInfoNodeSettingsTransportHostBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsTransportHostFromArray returns a NodesInfoNodeSettingsTransportHost populated with v
@@ -1761,6 +1985,32 @@ const (
 	NodesInfoNodeSettingsTransportTypeConfigType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeSettingsTransportTypeType) String() string {
+	switch t {
+	case NodesInfoNodeSettingsTransportTypeStringType:
+		return "String"
+	case NodesInfoNodeSettingsTransportTypeConfigType:
+		return "Config"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeSettingsTransportTypeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeSettingsTransportTypeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeSettingsTransportTypeType
+}
+
+func (e *NodesInfoNodeSettingsTransportTypeBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeSettingsTransportType: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeSettingsTransportTypeUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeSettingsTransportType) Type() NodesInfoNodeSettingsTransportTypeType {
@@ -1782,13 +2032,16 @@ func (u *NodesInfoNodeSettingsTransportType) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeSettingsTransportTypeUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeSettingsTransportType) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeSettingsTransportTypeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsTransportType) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeSettingsTransportTypeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsTransportTypeFromString returns a NodesInfoNodeSettingsTransportType populated with v
@@ -1800,13 +2053,16 @@ func NewNodesInfoNodeSettingsTransportTypeFromString(v string) NodesInfoNodeSett
 	}
 }
 
-// Config returns the NodesInfoNodeSettingsTransportTypeConfig branch value.
-func (u *NodesInfoNodeSettingsTransportType) Config() NodesInfoNodeSettingsTransportTypeConfig {
+// Config returns the NodesInfoNodeSettingsTransportTypeConfig branch value. It returns a
+// *NodesInfoNodeSettingsTransportTypeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NodesInfoNodeSettingsTransportTypeConfig in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeSettingsTransportType) Config() (NodesInfoNodeSettingsTransportTypeConfig, error) {
 	if v, ok := u.value.(*NodesInfoNodeSettingsTransportTypeConfig); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesInfoNodeSettingsTransportTypeConfig
-	return zero
+	return zero, &NodesInfoNodeSettingsTransportTypeBranchError{Want: "Config", Got: u.typ}
 }
 
 // NewNodesInfoNodeSettingsTransportTypeFromConfig returns a NodesInfoNodeSettingsTransportType populated with v
@@ -1874,6 +2130,32 @@ const (
 	NodesInfoNodeTotalIndexingBufferStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeTotalIndexingBufferType) String() string {
+	switch t {
+	case NodesInfoNodeTotalIndexingBufferInt64Type:
+		return "Int64"
+	case NodesInfoNodeTotalIndexingBufferStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeTotalIndexingBufferBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeTotalIndexingBufferBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeTotalIndexingBufferType
+}
+
+func (e *NodesInfoNodeTotalIndexingBufferBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeTotalIndexingBuffer: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeTotalIndexingBufferUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeTotalIndexingBuffer) Type() NodesInfoNodeTotalIndexingBufferType { return u.typ }
@@ -1893,13 +2175,16 @@ func (u *NodesInfoNodeTotalIndexingBuffer) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeTotalIndexingBufferUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *NodesInfoNodeTotalIndexingBuffer) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *NodesInfoNodeTotalIndexingBufferBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeTotalIndexingBuffer) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &NodesInfoNodeTotalIndexingBufferBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewNodesInfoNodeTotalIndexingBufferFromInt64 returns a NodesInfoNodeTotalIndexingBuffer populated with v
@@ -1911,13 +2196,16 @@ func NewNodesInfoNodeTotalIndexingBufferFromInt64(v int64) NodesInfoNodeTotalInd
 	}
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeTotalIndexingBuffer) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeTotalIndexingBufferBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeTotalIndexingBuffer) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeTotalIndexingBufferBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeTotalIndexingBufferFromString returns a NodesInfoNodeTotalIndexingBuffer populated with v
@@ -1985,6 +2273,32 @@ const (
 	NodesInfoNodeTotalIndexingBufferInBytesInt64Type
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesInfoNodeTotalIndexingBufferInBytesType) String() string {
+	switch t {
+	case NodesInfoNodeTotalIndexingBufferInBytesStringType:
+		return "String"
+	case NodesInfoNodeTotalIndexingBufferInBytesInt64Type:
+		return "Int64"
+	default:
+		return "unknown"
+	}
+}
+
+// NodesInfoNodeTotalIndexingBufferInBytesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NodesInfoNodeTotalIndexingBufferInBytesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NodesInfoNodeTotalIndexingBufferInBytesType
+}
+
+func (e *NodesInfoNodeTotalIndexingBufferInBytesBranchError) Error() string {
+	return fmt.Sprintf("NodesInfoNodeTotalIndexingBufferInBytes: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NodesInfoNodeTotalIndexingBufferInBytesUnknownType if the value has not been decoded.
 func (u *NodesInfoNodeTotalIndexingBufferInBytes) Type() NodesInfoNodeTotalIndexingBufferInBytesType {
@@ -2006,13 +2320,16 @@ func (u *NodesInfoNodeTotalIndexingBufferInBytes) SetRaw(raw json.RawMessage) {
 	u.typ = NodesInfoNodeTotalIndexingBufferInBytesUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesInfoNodeTotalIndexingBufferInBytes) String() string {
+// String returns the string branch value. It returns a
+// *NodesInfoNodeTotalIndexingBufferInBytesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeTotalIndexingBufferInBytes) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &NodesInfoNodeTotalIndexingBufferInBytesBranchError{Want: "String", Got: u.typ}
 }
 
 // NewNodesInfoNodeTotalIndexingBufferInBytesFromString returns a NodesInfoNodeTotalIndexingBufferInBytes populated with v
@@ -2024,13 +2341,16 @@ func NewNodesInfoNodeTotalIndexingBufferInBytesFromString(v string) NodesInfoNod
 	}
 }
 
-// Int64 returns the int64 branch value.
-func (u *NodesInfoNodeTotalIndexingBufferInBytes) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *NodesInfoNodeTotalIndexingBufferInBytesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NodesInfoNodeTotalIndexingBufferInBytes) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &NodesInfoNodeTotalIndexingBufferInBytesBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewNodesInfoNodeTotalIndexingBufferInBytesFromInt64 returns a NodesInfoNodeTotalIndexingBufferInBytes populated with v

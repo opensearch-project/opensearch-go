@@ -157,6 +157,32 @@ const (
 	ClearScrollBodyScrollIDArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ClearScrollBodyScrollIDType) String() string {
+	switch t {
+	case ClearScrollBodyScrollIDStringType:
+		return "String"
+	case ClearScrollBodyScrollIDArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// ClearScrollBodyScrollIDBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ClearScrollBodyScrollIDBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ClearScrollBodyScrollIDType
+}
+
+func (e *ClearScrollBodyScrollIDBranchError) Error() string {
+	return fmt.Sprintf("ClearScrollBodyScrollID: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ClearScrollBodyScrollIDUnknownType if the value has not been decoded.
 func (u *ClearScrollBodyScrollID) Type() ClearScrollBodyScrollIDType { return u.typ }
@@ -176,13 +202,16 @@ func (u *ClearScrollBodyScrollID) SetRaw(raw json.RawMessage) {
 	u.typ = ClearScrollBodyScrollIDUnknownType
 }
 
-// String returns the string branch value.
-func (u *ClearScrollBodyScrollID) String() string {
+// String returns the string branch value. It returns a
+// *ClearScrollBodyScrollIDBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ClearScrollBodyScrollID) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ClearScrollBodyScrollIDBranchError{Want: "String", Got: u.typ}
 }
 
 // NewClearScrollBodyScrollIDFromString returns a ClearScrollBodyScrollID populated with v
@@ -194,13 +223,16 @@ func NewClearScrollBodyScrollIDFromString(v string) ClearScrollBodyScrollID {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *ClearScrollBodyScrollID) Array() []string {
+// Array returns the []string branch value. It returns a
+// *ClearScrollBodyScrollIDBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ClearScrollBodyScrollID) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &ClearScrollBodyScrollIDBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewClearScrollBodyScrollIDFromArray returns a ClearScrollBodyScrollID populated with v

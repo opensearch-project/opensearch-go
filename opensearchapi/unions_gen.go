@@ -34,6 +34,32 @@ const (
 	ErrorCauseHeaderValueArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ErrorCauseHeaderValueType) String() string {
+	switch t {
+	case ErrorCauseHeaderValueStringType:
+		return "String"
+	case ErrorCauseHeaderValueArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// ErrorCauseHeaderValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ErrorCauseHeaderValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ErrorCauseHeaderValueType
+}
+
+func (e *ErrorCauseHeaderValueBranchError) Error() string {
+	return fmt.Sprintf("ErrorCauseHeaderValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ErrorCauseHeaderValueUnknownType if the value has not been decoded.
 func (u *ErrorCauseHeaderValue) Type() ErrorCauseHeaderValueType { return u.typ }
@@ -53,13 +79,16 @@ func (u *ErrorCauseHeaderValue) SetRaw(raw json.RawMessage) {
 	u.typ = ErrorCauseHeaderValueUnknownType
 }
 
-// String returns the string branch value.
-func (u *ErrorCauseHeaderValue) String() string {
+// String returns the string branch value. It returns a
+// *ErrorCauseHeaderValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ErrorCauseHeaderValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ErrorCauseHeaderValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewErrorCauseHeaderValueFromString returns a ErrorCauseHeaderValue populated with v
@@ -71,13 +100,16 @@ func NewErrorCauseHeaderValueFromString(v string) ErrorCauseHeaderValue {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *ErrorCauseHeaderValue) Array() []string {
+// Array returns the []string branch value. It returns a
+// *ErrorCauseHeaderValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ErrorCauseHeaderValue) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &ErrorCauseHeaderValueBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewErrorCauseHeaderValueFromArray returns a ErrorCauseHeaderValue populated with v
@@ -146,6 +178,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Type() CommonAggregationsMultiBucketAggregateBaseBucketsType {
@@ -167,13 +225,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) SetRaw(raw json.RawM
 	u.typ = CommonAggregationsMultiBucketAggregateBaseBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseBuckets populated with v
@@ -185,13 +246,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseBucketsFromMap(v map[string]js
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseBuckets populated with v
@@ -260,6 +324,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsType {
@@ -283,13 +373,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets)
 	u.typ = CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
@@ -301,13 +394,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFr
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets populated with v
@@ -376,6 +472,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsType {
@@ -399,13 +521,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) S
 	u.typ = CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
@@ -417,13 +542,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFrom
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets populated with v
@@ -492,6 +620,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsType {
@@ -515,13 +669,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) SetRa
 	u.typ = CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets populated with v
@@ -533,13 +690,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromMap(
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets populated with v
@@ -608,6 +768,34 @@ const (
 	CommonAggregationsCompositeAggregateKeyValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsCompositeAggregateKeyValueType) String() string {
+	switch t {
+	case CommonAggregationsCompositeAggregateKeyValueBoolType:
+		return "Bool"
+	case CommonAggregationsCompositeAggregateKeyValueFloat64Type:
+		return "Float64"
+	case CommonAggregationsCompositeAggregateKeyValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsCompositeAggregateKeyValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsCompositeAggregateKeyValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsCompositeAggregateKeyValueType
+}
+
+func (e *CommonAggregationsCompositeAggregateKeyValueBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsCompositeAggregateKeyValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsCompositeAggregateKeyValueUnknownType if the value has not been decoded.
 func (u *CommonAggregationsCompositeAggregateKeyValue) Type() CommonAggregationsCompositeAggregateKeyValueType {
@@ -629,13 +817,16 @@ func (u *CommonAggregationsCompositeAggregateKeyValue) SetRaw(raw json.RawMessag
 	u.typ = CommonAggregationsCompositeAggregateKeyValueUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonAggregationsCompositeAggregateKeyValue) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonAggregationsCompositeAggregateKeyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsCompositeAggregateKeyValue) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonAggregationsCompositeAggregateKeyValueBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonAggregationsCompositeAggregateKeyValueFromBool returns a CommonAggregationsCompositeAggregateKeyValue populated with v
@@ -647,13 +838,16 @@ func NewCommonAggregationsCompositeAggregateKeyValueFromBool(v bool) CommonAggre
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonAggregationsCompositeAggregateKeyValue) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonAggregationsCompositeAggregateKeyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsCompositeAggregateKeyValue) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonAggregationsCompositeAggregateKeyValueBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonAggregationsCompositeAggregateKeyValueFromFloat64 returns a CommonAggregationsCompositeAggregateKeyValue populated with v
@@ -665,13 +859,16 @@ func NewCommonAggregationsCompositeAggregateKeyValueFromFloat64(v float64) Commo
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonAggregationsCompositeAggregateKeyValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonAggregationsCompositeAggregateKeyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsCompositeAggregateKeyValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAggregationsCompositeAggregateKeyValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAggregationsCompositeAggregateKeyValueFromString returns a CommonAggregationsCompositeAggregateKeyValue populated with v
@@ -747,6 +944,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsType {
@@ -770,13 +993,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) SetRaw(ra
 	u.typ = CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets populated with v
@@ -788,13 +1014,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromMap(v ma
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets populated with v
@@ -863,6 +1092,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsType {
@@ -886,13 +1141,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) SetRaw(
 	u.typ = CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
@@ -904,13 +1162,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromMap(v 
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseFiltersBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets populated with v
@@ -980,6 +1241,36 @@ const (
 	TopLeftBottomRightGeoBoundsBottomRightStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TopLeftBottomRightGeoBoundsBottomRightType) String() string {
+	switch t {
+	case TopLeftBottomRightGeoBoundsBottomRightLatlonType:
+		return "Latlon"
+	case TopLeftBottomRightGeoBoundsBottomRightGeohashType:
+		return "Geohash"
+	case TopLeftBottomRightGeoBoundsBottomRightArrayType:
+		return "Array"
+	case TopLeftBottomRightGeoBoundsBottomRightStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// TopLeftBottomRightGeoBoundsBottomRightBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TopLeftBottomRightGeoBoundsBottomRightBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TopLeftBottomRightGeoBoundsBottomRightType
+}
+
+func (e *TopLeftBottomRightGeoBoundsBottomRightBranchError) Error() string {
+	return fmt.Sprintf("TopLeftBottomRightGeoBoundsBottomRight: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TopLeftBottomRightGeoBoundsBottomRightUnknownType if the value has not been decoded.
 func (u *TopLeftBottomRightGeoBoundsBottomRight) Type() TopLeftBottomRightGeoBoundsBottomRightType {
@@ -1001,13 +1292,16 @@ func (u *TopLeftBottomRightGeoBoundsBottomRight) SetRaw(raw json.RawMessage) {
 	u.typ = TopLeftBottomRightGeoBoundsBottomRightUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *TopLeftBottomRightGeoBoundsBottomRight) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *TopLeftBottomRightGeoBoundsBottomRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsBottomRight) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsBottomRightBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsBottomRightFromLatlon returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
@@ -1019,13 +1313,16 @@ func NewTopLeftBottomRightGeoBoundsBottomRightFromLatlon(v LatLonGeoLocation) To
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *TopLeftBottomRightGeoBoundsBottomRight) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *TopLeftBottomRightGeoBoundsBottomRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsBottomRight) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsBottomRightBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsBottomRightFromGeohash returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
@@ -1037,13 +1334,16 @@ func NewTopLeftBottomRightGeoBoundsBottomRightFromGeohash(v GeoHashLocation) Top
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *TopLeftBottomRightGeoBoundsBottomRight) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *TopLeftBottomRightGeoBoundsBottomRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsBottomRight) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsBottomRightBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsBottomRightFromArray returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
@@ -1055,13 +1355,16 @@ func NewTopLeftBottomRightGeoBoundsBottomRightFromArray(v []float64) TopLeftBott
 	}
 }
 
-// String returns the string branch value.
-func (u *TopLeftBottomRightGeoBoundsBottomRight) String() string {
+// String returns the string branch value. It returns a
+// *TopLeftBottomRightGeoBoundsBottomRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsBottomRight) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsBottomRightBranchError{Want: "String", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsBottomRightFromString returns a TopLeftBottomRightGeoBoundsBottomRight populated with v
@@ -1151,6 +1454,36 @@ const (
 	TopLeftBottomRightGeoBoundsTopLeftStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TopLeftBottomRightGeoBoundsTopLeftType) String() string {
+	switch t {
+	case TopLeftBottomRightGeoBoundsTopLeftLatlonType:
+		return "Latlon"
+	case TopLeftBottomRightGeoBoundsTopLeftGeohashType:
+		return "Geohash"
+	case TopLeftBottomRightGeoBoundsTopLeftArrayType:
+		return "Array"
+	case TopLeftBottomRightGeoBoundsTopLeftStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// TopLeftBottomRightGeoBoundsTopLeftBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TopLeftBottomRightGeoBoundsTopLeftBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TopLeftBottomRightGeoBoundsTopLeftType
+}
+
+func (e *TopLeftBottomRightGeoBoundsTopLeftBranchError) Error() string {
+	return fmt.Sprintf("TopLeftBottomRightGeoBoundsTopLeft: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TopLeftBottomRightGeoBoundsTopLeftUnknownType if the value has not been decoded.
 func (u *TopLeftBottomRightGeoBoundsTopLeft) Type() TopLeftBottomRightGeoBoundsTopLeftType {
@@ -1172,13 +1505,16 @@ func (u *TopLeftBottomRightGeoBoundsTopLeft) SetRaw(raw json.RawMessage) {
 	u.typ = TopLeftBottomRightGeoBoundsTopLeftUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *TopLeftBottomRightGeoBoundsTopLeft) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *TopLeftBottomRightGeoBoundsTopLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsTopLeft) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsTopLeftBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsTopLeftFromLatlon returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
@@ -1190,13 +1526,16 @@ func NewTopLeftBottomRightGeoBoundsTopLeftFromLatlon(v LatLonGeoLocation) TopLef
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *TopLeftBottomRightGeoBoundsTopLeft) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *TopLeftBottomRightGeoBoundsTopLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsTopLeft) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsTopLeftBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsTopLeftFromGeohash returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
@@ -1208,13 +1547,16 @@ func NewTopLeftBottomRightGeoBoundsTopLeftFromGeohash(v GeoHashLocation) TopLeft
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *TopLeftBottomRightGeoBoundsTopLeft) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *TopLeftBottomRightGeoBoundsTopLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsTopLeft) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsTopLeftBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsTopLeftFromArray returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
@@ -1226,13 +1568,16 @@ func NewTopLeftBottomRightGeoBoundsTopLeftFromArray(v []float64) TopLeftBottomRi
 	}
 }
 
-// String returns the string branch value.
-func (u *TopLeftBottomRightGeoBoundsTopLeft) String() string {
+// String returns the string branch value. It returns a
+// *TopLeftBottomRightGeoBoundsTopLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopLeftBottomRightGeoBoundsTopLeft) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &TopLeftBottomRightGeoBoundsTopLeftBranchError{Want: "String", Got: u.typ}
 }
 
 // NewTopLeftBottomRightGeoBoundsTopLeftFromString returns a TopLeftBottomRightGeoBoundsTopLeft populated with v
@@ -1322,6 +1667,36 @@ const (
 	TopRightBottomLeftGeoBoundsBottomLeftStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TopRightBottomLeftGeoBoundsBottomLeftType) String() string {
+	switch t {
+	case TopRightBottomLeftGeoBoundsBottomLeftLatlonType:
+		return "Latlon"
+	case TopRightBottomLeftGeoBoundsBottomLeftGeohashType:
+		return "Geohash"
+	case TopRightBottomLeftGeoBoundsBottomLeftArrayType:
+		return "Array"
+	case TopRightBottomLeftGeoBoundsBottomLeftStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// TopRightBottomLeftGeoBoundsBottomLeftBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TopRightBottomLeftGeoBoundsBottomLeftBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TopRightBottomLeftGeoBoundsBottomLeftType
+}
+
+func (e *TopRightBottomLeftGeoBoundsBottomLeftBranchError) Error() string {
+	return fmt.Sprintf("TopRightBottomLeftGeoBoundsBottomLeft: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TopRightBottomLeftGeoBoundsBottomLeftUnknownType if the value has not been decoded.
 func (u *TopRightBottomLeftGeoBoundsBottomLeft) Type() TopRightBottomLeftGeoBoundsBottomLeftType {
@@ -1343,13 +1718,16 @@ func (u *TopRightBottomLeftGeoBoundsBottomLeft) SetRaw(raw json.RawMessage) {
 	u.typ = TopRightBottomLeftGeoBoundsBottomLeftUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *TopRightBottomLeftGeoBoundsBottomLeft) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *TopRightBottomLeftGeoBoundsBottomLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsBottomLeft) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsBottomLeftBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsBottomLeftFromLatlon returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
@@ -1361,13 +1739,16 @@ func NewTopRightBottomLeftGeoBoundsBottomLeftFromLatlon(v LatLonGeoLocation) Top
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *TopRightBottomLeftGeoBoundsBottomLeft) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *TopRightBottomLeftGeoBoundsBottomLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsBottomLeft) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsBottomLeftBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsBottomLeftFromGeohash returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
@@ -1379,13 +1760,16 @@ func NewTopRightBottomLeftGeoBoundsBottomLeftFromGeohash(v GeoHashLocation) TopR
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *TopRightBottomLeftGeoBoundsBottomLeft) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *TopRightBottomLeftGeoBoundsBottomLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsBottomLeft) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsBottomLeftBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsBottomLeftFromArray returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
@@ -1397,13 +1781,16 @@ func NewTopRightBottomLeftGeoBoundsBottomLeftFromArray(v []float64) TopRightBott
 	}
 }
 
-// String returns the string branch value.
-func (u *TopRightBottomLeftGeoBoundsBottomLeft) String() string {
+// String returns the string branch value. It returns a
+// *TopRightBottomLeftGeoBoundsBottomLeftBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsBottomLeft) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsBottomLeftBranchError{Want: "String", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsBottomLeftFromString returns a TopRightBottomLeftGeoBoundsBottomLeft populated with v
@@ -1493,6 +1880,36 @@ const (
 	TopRightBottomLeftGeoBoundsTopRightStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TopRightBottomLeftGeoBoundsTopRightType) String() string {
+	switch t {
+	case TopRightBottomLeftGeoBoundsTopRightLatlonType:
+		return "Latlon"
+	case TopRightBottomLeftGeoBoundsTopRightGeohashType:
+		return "Geohash"
+	case TopRightBottomLeftGeoBoundsTopRightArrayType:
+		return "Array"
+	case TopRightBottomLeftGeoBoundsTopRightStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// TopRightBottomLeftGeoBoundsTopRightBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TopRightBottomLeftGeoBoundsTopRightBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TopRightBottomLeftGeoBoundsTopRightType
+}
+
+func (e *TopRightBottomLeftGeoBoundsTopRightBranchError) Error() string {
+	return fmt.Sprintf("TopRightBottomLeftGeoBoundsTopRight: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TopRightBottomLeftGeoBoundsTopRightUnknownType if the value has not been decoded.
 func (u *TopRightBottomLeftGeoBoundsTopRight) Type() TopRightBottomLeftGeoBoundsTopRightType {
@@ -1514,13 +1931,16 @@ func (u *TopRightBottomLeftGeoBoundsTopRight) SetRaw(raw json.RawMessage) {
 	u.typ = TopRightBottomLeftGeoBoundsTopRightUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *TopRightBottomLeftGeoBoundsTopRight) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *TopRightBottomLeftGeoBoundsTopRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsTopRight) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsTopRightBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsTopRightFromLatlon returns a TopRightBottomLeftGeoBoundsTopRight populated with v
@@ -1532,13 +1952,16 @@ func NewTopRightBottomLeftGeoBoundsTopRightFromLatlon(v LatLonGeoLocation) TopRi
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *TopRightBottomLeftGeoBoundsTopRight) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *TopRightBottomLeftGeoBoundsTopRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsTopRight) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsTopRightBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsTopRightFromGeohash returns a TopRightBottomLeftGeoBoundsTopRight populated with v
@@ -1550,13 +1973,16 @@ func NewTopRightBottomLeftGeoBoundsTopRightFromGeohash(v GeoHashLocation) TopRig
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *TopRightBottomLeftGeoBoundsTopRight) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *TopRightBottomLeftGeoBoundsTopRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsTopRight) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsTopRightBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsTopRightFromArray returns a TopRightBottomLeftGeoBoundsTopRight populated with v
@@ -1568,13 +1994,16 @@ func NewTopRightBottomLeftGeoBoundsTopRightFromArray(v []float64) TopRightBottom
 	}
 }
 
-// String returns the string branch value.
-func (u *TopRightBottomLeftGeoBoundsTopRight) String() string {
+// String returns the string branch value. It returns a
+// *TopRightBottomLeftGeoBoundsTopRightBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TopRightBottomLeftGeoBoundsTopRight) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &TopRightBottomLeftGeoBoundsTopRightBranchError{Want: "String", Got: u.typ}
 }
 
 // NewTopRightBottomLeftGeoBoundsTopRightFromString returns a TopRightBottomLeftGeoBoundsTopRight populated with v
@@ -1669,6 +2098,36 @@ const (
 	CommonAggregationsGeoBoundsAggregateBoundsWKTType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsGeoBoundsAggregateBoundsType) String() string {
+	switch t {
+	case CommonAggregationsGeoBoundsAggregateBoundsCoordsType:
+		return "Coords"
+	case CommonAggregationsGeoBoundsAggregateBoundsTlbrType:
+		return "Tlbr"
+	case CommonAggregationsGeoBoundsAggregateBoundsTrblType:
+		return "Trbl"
+	case CommonAggregationsGeoBoundsAggregateBoundsWKTType:
+		return "WKT"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsGeoBoundsAggregateBoundsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsGeoBoundsAggregateBoundsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsGeoBoundsAggregateBoundsType
+}
+
+func (e *CommonAggregationsGeoBoundsAggregateBoundsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsGeoBoundsAggregateBounds: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsGeoBoundsAggregateBoundsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsGeoBoundsAggregateBounds) Type() CommonAggregationsGeoBoundsAggregateBoundsType {
@@ -1690,13 +2149,16 @@ func (u *CommonAggregationsGeoBoundsAggregateBounds) SetRaw(raw json.RawMessage)
 	u.typ = CommonAggregationsGeoBoundsAggregateBoundsUnknownType
 }
 
-// Coords returns the CoordsGeoBounds branch value.
-func (u *CommonAggregationsGeoBoundsAggregateBounds) Coords() CoordsGeoBounds {
+// Coords returns the CoordsGeoBounds branch value. It returns a
+// *CommonAggregationsGeoBoundsAggregateBoundsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CoordsGeoBounds in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) Coords() (CoordsGeoBounds, error) {
 	if v, ok := u.value.(*CoordsGeoBounds); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CoordsGeoBounds
-	return zero
+	return zero, &CommonAggregationsGeoBoundsAggregateBoundsBranchError{Want: "Coords", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoBoundsAggregateBoundsFromCoords returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
@@ -1708,13 +2170,16 @@ func NewCommonAggregationsGeoBoundsAggregateBoundsFromCoords(v CoordsGeoBounds) 
 	}
 }
 
-// Tlbr returns the TopLeftBottomRightGeoBounds branch value.
-func (u *CommonAggregationsGeoBoundsAggregateBounds) Tlbr() TopLeftBottomRightGeoBounds {
+// Tlbr returns the TopLeftBottomRightGeoBounds branch value. It returns a
+// *CommonAggregationsGeoBoundsAggregateBoundsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero TopLeftBottomRightGeoBounds in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) Tlbr() (TopLeftBottomRightGeoBounds, error) {
 	if v, ok := u.value.(*TopLeftBottomRightGeoBounds); ok {
-		return *v
+		return *v, nil
 	}
 	var zero TopLeftBottomRightGeoBounds
-	return zero
+	return zero, &CommonAggregationsGeoBoundsAggregateBoundsBranchError{Want: "Tlbr", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoBoundsAggregateBoundsFromTlbr returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
@@ -1726,13 +2191,16 @@ func NewCommonAggregationsGeoBoundsAggregateBoundsFromTlbr(v TopLeftBottomRightG
 	}
 }
 
-// Trbl returns the TopRightBottomLeftGeoBounds branch value.
-func (u *CommonAggregationsGeoBoundsAggregateBounds) Trbl() TopRightBottomLeftGeoBounds {
+// Trbl returns the TopRightBottomLeftGeoBounds branch value. It returns a
+// *CommonAggregationsGeoBoundsAggregateBoundsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero TopRightBottomLeftGeoBounds in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) Trbl() (TopRightBottomLeftGeoBounds, error) {
 	if v, ok := u.value.(*TopRightBottomLeftGeoBounds); ok {
-		return *v
+		return *v, nil
 	}
 	var zero TopRightBottomLeftGeoBounds
-	return zero
+	return zero, &CommonAggregationsGeoBoundsAggregateBoundsBranchError{Want: "Trbl", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoBoundsAggregateBoundsFromTrbl returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
@@ -1744,13 +2212,16 @@ func NewCommonAggregationsGeoBoundsAggregateBoundsFromTrbl(v TopRightBottomLeftG
 	}
 }
 
-// WKT returns the WKTGeoBounds branch value.
-func (u *CommonAggregationsGeoBoundsAggregateBounds) WKT() WKTGeoBounds {
+// WKT returns the WKTGeoBounds branch value. It returns a
+// *CommonAggregationsGeoBoundsAggregateBoundsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero WKTGeoBounds in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoBoundsAggregateBounds) WKT() (WKTGeoBounds, error) {
 	if v, ok := u.value.(*WKTGeoBounds); ok {
-		return *v
+		return *v, nil
 	}
 	var zero WKTGeoBounds
-	return zero
+	return zero, &CommonAggregationsGeoBoundsAggregateBoundsBranchError{Want: "WKT", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoBoundsAggregateBoundsFromWKT returns a CommonAggregationsGeoBoundsAggregateBounds populated with v
@@ -1849,6 +2320,36 @@ const (
 	CommonAggregationsGeoCentroidAggregateLocationStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsGeoCentroidAggregateLocationType) String() string {
+	switch t {
+	case CommonAggregationsGeoCentroidAggregateLocationLatlonType:
+		return "Latlon"
+	case CommonAggregationsGeoCentroidAggregateLocationGeohashType:
+		return "Geohash"
+	case CommonAggregationsGeoCentroidAggregateLocationArrayType:
+		return "Array"
+	case CommonAggregationsGeoCentroidAggregateLocationStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsGeoCentroidAggregateLocationBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsGeoCentroidAggregateLocationBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsGeoCentroidAggregateLocationType
+}
+
+func (e *CommonAggregationsGeoCentroidAggregateLocationBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsGeoCentroidAggregateLocation: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsGeoCentroidAggregateLocationUnknownType if the value has not been decoded.
 func (u *CommonAggregationsGeoCentroidAggregateLocation) Type() CommonAggregationsGeoCentroidAggregateLocationType {
@@ -1870,13 +2371,16 @@ func (u *CommonAggregationsGeoCentroidAggregateLocation) SetRaw(raw json.RawMess
 	u.typ = CommonAggregationsGeoCentroidAggregateLocationUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *CommonAggregationsGeoCentroidAggregateLocation) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *CommonAggregationsGeoCentroidAggregateLocationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoCentroidAggregateLocation) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &CommonAggregationsGeoCentroidAggregateLocationBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoCentroidAggregateLocationFromLatlon returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
@@ -1888,13 +2392,16 @@ func NewCommonAggregationsGeoCentroidAggregateLocationFromLatlon(v LatLonGeoLoca
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *CommonAggregationsGeoCentroidAggregateLocation) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *CommonAggregationsGeoCentroidAggregateLocationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoCentroidAggregateLocation) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &CommonAggregationsGeoCentroidAggregateLocationBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoCentroidAggregateLocationFromGeohash returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
@@ -1906,13 +2413,16 @@ func NewCommonAggregationsGeoCentroidAggregateLocationFromGeohash(v GeoHashLocat
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *CommonAggregationsGeoCentroidAggregateLocation) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *CommonAggregationsGeoCentroidAggregateLocationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoCentroidAggregateLocation) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &CommonAggregationsGeoCentroidAggregateLocationBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoCentroidAggregateLocationFromArray returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
@@ -1924,13 +2434,16 @@ func NewCommonAggregationsGeoCentroidAggregateLocationFromArray(v []float64) Com
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonAggregationsGeoCentroidAggregateLocation) String() string {
+// String returns the string branch value. It returns a
+// *CommonAggregationsGeoCentroidAggregateLocationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsGeoCentroidAggregateLocation) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAggregationsGeoCentroidAggregateLocationBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAggregationsGeoCentroidAggregateLocationFromString returns a CommonAggregationsGeoCentroidAggregateLocation populated with v
@@ -2019,6 +2532,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsType {
@@ -2042,13 +2581,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Set
 	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
@@ -2060,13 +2602,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromMa
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets populated with v
@@ -2135,6 +2680,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsType {
@@ -2158,13 +2729,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Set
 	u.typ = CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
@@ -2176,13 +2750,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromMa
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets populated with v
@@ -2250,6 +2827,32 @@ const (
 	CommonAggregationsKeyedPercentilesValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsKeyedPercentilesValueType) String() string {
+	switch t {
+	case CommonAggregationsKeyedPercentilesValueFloat64Type:
+		return "Float64"
+	case CommonAggregationsKeyedPercentilesValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsKeyedPercentilesValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsKeyedPercentilesValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsKeyedPercentilesValueType
+}
+
+func (e *CommonAggregationsKeyedPercentilesValueBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsKeyedPercentilesValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsKeyedPercentilesValueUnknownType if the value has not been decoded.
 func (u *CommonAggregationsKeyedPercentilesValue) Type() CommonAggregationsKeyedPercentilesValueType {
@@ -2271,13 +2874,16 @@ func (u *CommonAggregationsKeyedPercentilesValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAggregationsKeyedPercentilesValueUnknownType
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonAggregationsKeyedPercentilesValue) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonAggregationsKeyedPercentilesValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsKeyedPercentilesValue) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonAggregationsKeyedPercentilesValueBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonAggregationsKeyedPercentilesValueFromFloat64 returns a CommonAggregationsKeyedPercentilesValue populated with v
@@ -2289,13 +2895,16 @@ func NewCommonAggregationsKeyedPercentilesValueFromFloat64(v float64) CommonAggr
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonAggregationsKeyedPercentilesValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonAggregationsKeyedPercentilesValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsKeyedPercentilesValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAggregationsKeyedPercentilesValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAggregationsKeyedPercentilesValueFromString returns a CommonAggregationsKeyedPercentilesValue populated with v
@@ -2363,6 +2972,32 @@ const (
 	CommonAggregationsPercentilesAggregateBaseValuesArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsPercentilesAggregateBaseValuesType) String() string {
+	switch t {
+	case CommonAggregationsPercentilesAggregateBaseValuesMapType:
+		return "Map"
+	case CommonAggregationsPercentilesAggregateBaseValuesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsPercentilesAggregateBaseValuesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsPercentilesAggregateBaseValuesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsPercentilesAggregateBaseValuesType
+}
+
+func (e *CommonAggregationsPercentilesAggregateBaseValuesBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsPercentilesAggregateBaseValues: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsPercentilesAggregateBaseValuesUnknownType if the value has not been decoded.
 func (u *CommonAggregationsPercentilesAggregateBaseValues) Type() CommonAggregationsPercentilesAggregateBaseValuesType {
@@ -2384,13 +3019,16 @@ func (u *CommonAggregationsPercentilesAggregateBaseValues) SetRaw(raw json.RawMe
 	u.typ = CommonAggregationsPercentilesAggregateBaseValuesUnknownType
 }
 
-// Map returns the map[string]CommonAggregationsKeyedPercentilesValue branch value.
-func (u *CommonAggregationsPercentilesAggregateBaseValues) Map() map[string]CommonAggregationsKeyedPercentilesValue {
+// Map returns the map[string]CommonAggregationsKeyedPercentilesValue branch value. It returns a
+// *CommonAggregationsPercentilesAggregateBaseValuesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]CommonAggregationsKeyedPercentilesValue in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsPercentilesAggregateBaseValues) Map() (map[string]CommonAggregationsKeyedPercentilesValue, error) {
 	if v, ok := u.value.(*map[string]CommonAggregationsKeyedPercentilesValue); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]CommonAggregationsKeyedPercentilesValue
-	return zero
+	return zero, &CommonAggregationsPercentilesAggregateBaseValuesBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsPercentilesAggregateBaseValuesFromMap returns a CommonAggregationsPercentilesAggregateBaseValues populated with v
@@ -2402,13 +3040,16 @@ func NewCommonAggregationsPercentilesAggregateBaseValuesFromMap(v map[string]Com
 	}
 }
 
-// Array returns the []CommonAggregationsArrayPercentilesItem branch value.
-func (u *CommonAggregationsPercentilesAggregateBaseValues) Array() []CommonAggregationsArrayPercentilesItem {
+// Array returns the []CommonAggregationsArrayPercentilesItem branch value. It returns a
+// *CommonAggregationsPercentilesAggregateBaseValuesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonAggregationsArrayPercentilesItem in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsPercentilesAggregateBaseValues) Array() ([]CommonAggregationsArrayPercentilesItem, error) {
 	if v, ok := u.value.(*[]CommonAggregationsArrayPercentilesItem); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonAggregationsArrayPercentilesItem
-	return zero
+	return zero, &CommonAggregationsPercentilesAggregateBaseValuesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsPercentilesAggregateBaseValuesFromArray returns a CommonAggregationsPercentilesAggregateBaseValues populated with v
@@ -2477,6 +3118,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsType {
@@ -2500,13 +3167,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) SetRa
 	u.typ = CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
@@ -2518,13 +3188,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromMap(
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets populated with v
@@ -2593,6 +3266,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsType {
@@ -2616,13 +3315,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) SetRaw(
 	u.typ = CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
@@ -2634,13 +3336,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromMap(v 
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseIPRangeBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets populated with v
@@ -2709,6 +3414,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsType {
@@ -2732,13 +3463,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) S
 	u.typ = CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
@@ -2750,13 +3484,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFrom
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets populated with v
@@ -2824,6 +3561,32 @@ const (
 	CommonAggregationsLongTermsBucketKeyStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsLongTermsBucketKeyType) String() string {
+	switch t {
+	case CommonAggregationsLongTermsBucketKeyInt64Type:
+		return "Int64"
+	case CommonAggregationsLongTermsBucketKeyStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsLongTermsBucketKeyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsLongTermsBucketKeyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsLongTermsBucketKeyType
+}
+
+func (e *CommonAggregationsLongTermsBucketKeyBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsLongTermsBucketKey: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsLongTermsBucketKeyUnknownType if the value has not been decoded.
 func (u *CommonAggregationsLongTermsBucketKey) Type() CommonAggregationsLongTermsBucketKeyType {
@@ -2845,13 +3608,16 @@ func (u *CommonAggregationsLongTermsBucketKey) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAggregationsLongTermsBucketKeyUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *CommonAggregationsLongTermsBucketKey) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *CommonAggregationsLongTermsBucketKeyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsLongTermsBucketKey) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &CommonAggregationsLongTermsBucketKeyBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewCommonAggregationsLongTermsBucketKeyFromInt64 returns a CommonAggregationsLongTermsBucketKey populated with v
@@ -2863,13 +3629,16 @@ func NewCommonAggregationsLongTermsBucketKeyFromInt64(v int64) CommonAggregation
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonAggregationsLongTermsBucketKey) String() string {
+// String returns the string branch value. It returns a
+// *CommonAggregationsLongTermsBucketKeyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsLongTermsBucketKey) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAggregationsLongTermsBucketKeyBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAggregationsLongTermsBucketKeyFromString returns a CommonAggregationsLongTermsBucketKey populated with v
@@ -2938,6 +3707,32 @@ const (
 	CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType
+}
+
+func (e *CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Type() CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsType {
@@ -2961,13 +3756,16 @@ func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) SetRaw(raw
 	u.typ = CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
@@ -2979,13 +3777,16 @@ func NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromMap(v map
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsTermsAggregateBaseMultiTermsBucketBucketsFromArray returns a CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets populated with v
@@ -3054,6 +3855,32 @@ const (
 	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType
+}
+
+func (e *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsType {
@@ -3077,13 +3904,16 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBuck
 	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
@@ -3095,13 +3925,16 @@ func NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucke
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets populated with v
@@ -3170,6 +4003,32 @@ const (
 	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType
+}
+
+func (e *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsType {
@@ -3193,13 +4052,16 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBu
 	u.typ = CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
@@ -3211,13 +4073,16 @@ func NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBuc
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets populated with v
@@ -3286,6 +4151,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsType {
@@ -3309,13 +4200,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets)
 	u.typ = CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
@@ -3327,13 +4221,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFr
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets populated with v
@@ -3401,6 +4298,32 @@ const (
 	SearchHitMatchedQueriesMapType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchHitMatchedQueriesType) String() string {
+	switch t {
+	case SearchHitMatchedQueriesArrayType:
+		return "Array"
+	case SearchHitMatchedQueriesMapType:
+		return "Map"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchHitMatchedQueriesBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchHitMatchedQueriesBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchHitMatchedQueriesType
+}
+
+func (e *SearchHitMatchedQueriesBranchError) Error() string {
+	return fmt.Sprintf("SearchHitMatchedQueries: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchHitMatchedQueriesUnknownType if the value has not been decoded.
 func (u *SearchHitMatchedQueries) Type() SearchHitMatchedQueriesType { return u.typ }
@@ -3420,13 +4343,16 @@ func (u *SearchHitMatchedQueries) SetRaw(raw json.RawMessage) {
 	u.typ = SearchHitMatchedQueriesUnknownType
 }
 
-// Array returns the []string branch value.
-func (u *SearchHitMatchedQueries) Array() []string {
+// Array returns the []string branch value. It returns a
+// *SearchHitMatchedQueriesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHitMatchedQueries) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &SearchHitMatchedQueriesBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchHitMatchedQueriesFromArray returns a SearchHitMatchedQueries populated with v
@@ -3438,13 +4364,16 @@ func NewSearchHitMatchedQueriesFromArray(v []string) SearchHitMatchedQueries {
 	}
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *SearchHitMatchedQueries) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *SearchHitMatchedQueriesBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHitMatchedQueries) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &SearchHitMatchedQueriesBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewSearchHitMatchedQueriesFromMap returns a SearchHitMatchedQueries populated with v
@@ -3513,6 +4442,34 @@ const (
 	SortResultsItemStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SortResultsItemType) String() string {
+	switch t {
+	case SortResultsItemBoolType:
+		return "Bool"
+	case SortResultsItemFloat64Type:
+		return "Float64"
+	case SortResultsItemStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// SortResultsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SortResultsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SortResultsItemType
+}
+
+func (e *SortResultsItemBranchError) Error() string {
+	return fmt.Sprintf("SortResultsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SortResultsItemUnknownType if the value has not been decoded.
 func (u *SortResultsItem) Type() SortResultsItemType { return u.typ }
@@ -3532,13 +4489,16 @@ func (u *SortResultsItem) SetRaw(raw json.RawMessage) {
 	u.typ = SortResultsItemUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *SortResultsItem) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *SortResultsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SortResultsItem) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &SortResultsItemBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewSortResultsItemFromBool returns a SortResultsItem populated with v
@@ -3550,13 +4510,16 @@ func NewSortResultsItemFromBool(v bool) SortResultsItem {
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *SortResultsItem) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *SortResultsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SortResultsItem) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &SortResultsItemBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewSortResultsItemFromFloat64 returns a SortResultsItem populated with v
@@ -3568,13 +4531,16 @@ func NewSortResultsItemFromFloat64(v float64) SortResultsItem {
 	}
 }
 
-// String returns the string branch value.
-func (u *SortResultsItem) String() string {
+// String returns the string branch value. It returns a
+// *SortResultsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SortResultsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SortResultsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSortResultsItemFromString returns a SortResultsItem populated with v
@@ -3649,6 +4615,32 @@ const (
 	SearchHitsMetadataTotalInt64Type
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchHitsMetadataTotalType) String() string {
+	switch t {
+	case SearchHitsMetadataTotalSearchTotalHitsType:
+		return "SearchTotalHits"
+	case SearchHitsMetadataTotalInt64Type:
+		return "Int64"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchHitsMetadataTotalBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchHitsMetadataTotalBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchHitsMetadataTotalType
+}
+
+func (e *SearchHitsMetadataTotalBranchError) Error() string {
+	return fmt.Sprintf("SearchHitsMetadataTotal: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchHitsMetadataTotalUnknownType if the value has not been decoded.
 func (u *SearchHitsMetadataTotal) Type() SearchHitsMetadataTotalType { return u.typ }
@@ -3668,13 +4660,16 @@ func (u *SearchHitsMetadataTotal) SetRaw(raw json.RawMessage) {
 	u.typ = SearchHitsMetadataTotalUnknownType
 }
 
-// SearchTotalHits returns the SearchTotalHits branch value.
-func (u *SearchHitsMetadataTotal) SearchTotalHits() SearchTotalHits {
+// SearchTotalHits returns the SearchTotalHits branch value. It returns a
+// *SearchHitsMetadataTotalBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchTotalHits in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHitsMetadataTotal) SearchTotalHits() (SearchTotalHits, error) {
 	if v, ok := u.value.(*SearchTotalHits); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchTotalHits
-	return zero
+	return zero, &SearchHitsMetadataTotalBranchError{Want: "SearchTotalHits", Got: u.typ}
 }
 
 // NewSearchHitsMetadataTotalFromSearchTotalHits returns a SearchHitsMetadataTotal populated with v
@@ -3686,13 +4681,16 @@ func NewSearchHitsMetadataTotalFromSearchTotalHits(v SearchTotalHits) SearchHits
 	}
 }
 
-// Int64 returns the int64 branch value.
-func (u *SearchHitsMetadataTotal) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *SearchHitsMetadataTotalBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHitsMetadataTotal) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &SearchHitsMetadataTotalBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewSearchHitsMetadataTotalFromInt64 returns a SearchHitsMetadataTotal populated with v
@@ -3761,6 +4759,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseVoidBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseVoidBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseVoidBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseVoidBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseVoidBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Type() CommonAggregationsMultiBucketAggregateBaseVoidBucketsType {
@@ -3784,13 +4808,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) SetRaw(raw json.
 	u.typ = CommonAggregationsMultiBucketAggregateBaseVoidBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
@@ -3802,13 +4829,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromMap(v map[strin
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseVoidBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseVoidBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseVoidBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVoidBuckets populated with v
@@ -3877,6 +4907,32 @@ const (
 	CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType) String() string {
+	switch t {
+	case CommonAggregationsSignificantTermsAggregateBaseVoidBucketsMapType:
+		return "Map"
+	case CommonAggregationsSignificantTermsAggregateBaseVoidBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType
+}
+
+func (e *CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsSignificantTermsAggregateBaseVoidBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Type() CommonAggregationsSignificantTermsAggregateBaseVoidBucketsType {
@@ -3900,13 +4956,16 @@ func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) SetRaw(raw 
 	u.typ = CommonAggregationsSignificantTermsAggregateBaseVoidBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
@@ -3918,13 +4977,16 @@ func NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromMap(v map[
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsSignificantTermsAggregateBaseVoidBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsSignificantTermsAggregateBaseVoidBucketsFromArray returns a CommonAggregationsSignificantTermsAggregateBaseVoidBuckets populated with v
@@ -3993,6 +5055,32 @@ const (
 	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType) String() string {
+	switch t {
+	case CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsMapType:
+		return "Map"
+	case CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType
+}
+
+func (e *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError) Error() string {
+	return fmt.Sprintf("CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType if the value has not been decoded.
 func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Type() CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsType {
@@ -4016,13 +5104,16 @@ func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketB
 	u.typ = CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromMap returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
@@ -4034,13 +5125,16 @@ func NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBu
 	}
 }
 
-// Array returns the []json.RawMessage branch value.
-func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Array() []json.RawMessage {
+// Array returns the []json.RawMessage branch value. It returns a
+// *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets) Array() ([]json.RawMessage, error) {
 	if v, ok := u.value.(*[]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []json.RawMessage
-	return zero
+	return zero, &CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBucketsFromArray returns a CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets populated with v
@@ -5355,6 +6449,32 @@ const (
 	SearchPhraseSuggestOptionsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchPhraseSuggestOptionsType) String() string {
+	switch t {
+	case SearchPhraseSuggestOptionsSearchPhraseSuggestOptionType:
+		return "SearchPhraseSuggestOption"
+	case SearchPhraseSuggestOptionsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchPhraseSuggestOptionsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchPhraseSuggestOptionsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchPhraseSuggestOptionsType
+}
+
+func (e *SearchPhraseSuggestOptionsBranchError) Error() string {
+	return fmt.Sprintf("SearchPhraseSuggestOptions: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchPhraseSuggestOptionsUnknownType if the value has not been decoded.
 func (u *SearchPhraseSuggestOptions) Type() SearchPhraseSuggestOptionsType { return u.typ }
@@ -5374,13 +6494,16 @@ func (u *SearchPhraseSuggestOptions) SetRaw(raw json.RawMessage) {
 	u.typ = SearchPhraseSuggestOptionsUnknownType
 }
 
-// SearchPhraseSuggestOption returns the SearchPhraseSuggestOption branch value.
-func (u *SearchPhraseSuggestOptions) SearchPhraseSuggestOption() SearchPhraseSuggestOption {
+// SearchPhraseSuggestOption returns the SearchPhraseSuggestOption branch value. It returns a
+// *SearchPhraseSuggestOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPhraseSuggestOption in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPhraseSuggestOptions) SearchPhraseSuggestOption() (SearchPhraseSuggestOption, error) {
 	if v, ok := u.value.(*SearchPhraseSuggestOption); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPhraseSuggestOption
-	return zero
+	return zero, &SearchPhraseSuggestOptionsBranchError{Want: "SearchPhraseSuggestOption", Got: u.typ}
 }
 
 // NewSearchPhraseSuggestOptionsFromSearchPhraseSuggestOption returns a SearchPhraseSuggestOptions populated with v
@@ -5392,13 +6515,16 @@ func NewSearchPhraseSuggestOptionsFromSearchPhraseSuggestOption(v SearchPhraseSu
 	}
 }
 
-// Array returns the []SearchPhraseSuggestOption branch value.
-func (u *SearchPhraseSuggestOptions) Array() []SearchPhraseSuggestOption {
+// Array returns the []SearchPhraseSuggestOption branch value. It returns a
+// *SearchPhraseSuggestOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []SearchPhraseSuggestOption in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPhraseSuggestOptions) Array() ([]SearchPhraseSuggestOption, error) {
 	if v, ok := u.value.(*[]SearchPhraseSuggestOption); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []SearchPhraseSuggestOption
-	return zero
+	return zero, &SearchPhraseSuggestOptionsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchPhraseSuggestOptionsFromArray returns a SearchPhraseSuggestOptions populated with v
@@ -5466,6 +6592,32 @@ const (
 	SearchTermSuggestOptionsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchTermSuggestOptionsType) String() string {
+	switch t {
+	case SearchTermSuggestOptionsSearchTermSuggestOptionType:
+		return "SearchTermSuggestOption"
+	case SearchTermSuggestOptionsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchTermSuggestOptionsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchTermSuggestOptionsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchTermSuggestOptionsType
+}
+
+func (e *SearchTermSuggestOptionsBranchError) Error() string {
+	return fmt.Sprintf("SearchTermSuggestOptions: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchTermSuggestOptionsUnknownType if the value has not been decoded.
 func (u *SearchTermSuggestOptions) Type() SearchTermSuggestOptionsType { return u.typ }
@@ -5485,13 +6637,16 @@ func (u *SearchTermSuggestOptions) SetRaw(raw json.RawMessage) {
 	u.typ = SearchTermSuggestOptionsUnknownType
 }
 
-// SearchTermSuggestOption returns the SearchTermSuggestOption branch value.
-func (u *SearchTermSuggestOptions) SearchTermSuggestOption() SearchTermSuggestOption {
+// SearchTermSuggestOption returns the SearchTermSuggestOption branch value. It returns a
+// *SearchTermSuggestOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchTermSuggestOption in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchTermSuggestOptions) SearchTermSuggestOption() (SearchTermSuggestOption, error) {
 	if v, ok := u.value.(*SearchTermSuggestOption); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchTermSuggestOption
-	return zero
+	return zero, &SearchTermSuggestOptionsBranchError{Want: "SearchTermSuggestOption", Got: u.typ}
 }
 
 // NewSearchTermSuggestOptionsFromSearchTermSuggestOption returns a SearchTermSuggestOptions populated with v
@@ -5503,13 +6658,16 @@ func NewSearchTermSuggestOptionsFromSearchTermSuggestOption(v SearchTermSuggestO
 	}
 }
 
-// Array returns the []SearchTermSuggestOption branch value.
-func (u *SearchTermSuggestOptions) Array() []SearchTermSuggestOption {
+// Array returns the []SearchTermSuggestOption branch value. It returns a
+// *SearchTermSuggestOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []SearchTermSuggestOption in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchTermSuggestOptions) Array() ([]SearchTermSuggestOption, error) {
 	if v, ok := u.value.(*[]SearchTermSuggestOption); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []SearchTermSuggestOption
-	return zero
+	return zero, &SearchTermSuggestOptionsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchTermSuggestOptionsFromArray returns a SearchTermSuggestOptions populated with v
@@ -5659,6 +6817,32 @@ const (
 	CommonQueryDSLBoolQueryFilterArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLBoolQueryFilterType) String() string {
+	switch t {
+	case CommonQueryDSLBoolQueryFilterCommonQueryDSLQueryContainerType:
+		return "CommonQueryDSLQueryContainer"
+	case CommonQueryDSLBoolQueryFilterArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLBoolQueryFilterBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLBoolQueryFilterBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLBoolQueryFilterType
+}
+
+func (e *CommonQueryDSLBoolQueryFilterBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLBoolQueryFilter: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLBoolQueryFilterUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLBoolQueryFilter) Type() CommonQueryDSLBoolQueryFilterType { return u.typ }
@@ -5678,13 +6862,16 @@ func (u *CommonQueryDSLBoolQueryFilter) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLBoolQueryFilterUnknownType
 }
 
-// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryFilter) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
+// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryFilterBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryFilter) CommonQueryDSLQueryContainer() (CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryFilterBranchError{Want: "CommonQueryDSLQueryContainer", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryFilter populated with v
@@ -5696,13 +6883,16 @@ func NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer(v CommonQu
 	}
 }
 
-// Array returns the []CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryFilter) Array() []CommonQueryDSLQueryContainer {
+// Array returns the []CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryFilterBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryFilter) Array() ([]CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*[]CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryFilterBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryFilterFromArray returns a CommonQueryDSLBoolQueryFilter populated with v
@@ -5770,6 +6960,32 @@ const (
 	CommonQueryDSLBoolQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLBoolQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLBoolQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLBoolQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLBoolQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLBoolQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLBoolQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLBoolQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLBoolQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLBoolQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) Type() CommonQueryDSLBoolQueryMinimumShouldMatchType {
@@ -5791,13 +7007,16 @@ func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) SetRaw(raw json.RawMessage) 
 	u.typ = CommonQueryDSLBoolQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLBoolQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMinimumShouldMatchFromInt returns a CommonQueryDSLBoolQueryMinimumShouldMatch populated with v
@@ -5809,13 +7028,16 @@ func NewCommonQueryDSLBoolQueryMinimumShouldMatchFromInt(v int) CommonQueryDSLBo
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLBoolQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMinimumShouldMatchFromString returns a CommonQueryDSLBoolQueryMinimumShouldMatch populated with v
@@ -5883,6 +7105,32 @@ const (
 	CommonQueryDSLBoolQueryMustArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLBoolQueryMustType) String() string {
+	switch t {
+	case CommonQueryDSLBoolQueryMustCommonQueryDSLQueryContainerType:
+		return "CommonQueryDSLQueryContainer"
+	case CommonQueryDSLBoolQueryMustArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLBoolQueryMustBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLBoolQueryMustBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLBoolQueryMustType
+}
+
+func (e *CommonQueryDSLBoolQueryMustBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLBoolQueryMust: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLBoolQueryMustUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLBoolQueryMust) Type() CommonQueryDSLBoolQueryMustType { return u.typ }
@@ -5902,13 +7150,16 @@ func (u *CommonQueryDSLBoolQueryMust) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLBoolQueryMustUnknownType
 }
 
-// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryMust) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
+// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryMustBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMust) CommonQueryDSLQueryContainer() (CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMustBranchError{Want: "CommonQueryDSLQueryContainer", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMustFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryMust populated with v
@@ -5920,13 +7171,16 @@ func NewCommonQueryDSLBoolQueryMustFromCommonQueryDSLQueryContainer(v CommonQuer
 	}
 }
 
-// Array returns the []CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryMust) Array() []CommonQueryDSLQueryContainer {
+// Array returns the []CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryMustBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMust) Array() ([]CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*[]CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMustBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMustFromArray returns a CommonQueryDSLBoolQueryMust populated with v
@@ -5995,6 +7249,32 @@ const (
 	CommonQueryDSLBoolQueryMustNotArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLBoolQueryMustNotType) String() string {
+	switch t {
+	case CommonQueryDSLBoolQueryMustNotCommonQueryDSLQueryContainerType:
+		return "CommonQueryDSLQueryContainer"
+	case CommonQueryDSLBoolQueryMustNotArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLBoolQueryMustNotBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLBoolQueryMustNotBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLBoolQueryMustNotType
+}
+
+func (e *CommonQueryDSLBoolQueryMustNotBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLBoolQueryMustNot: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLBoolQueryMustNotUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLBoolQueryMustNot) Type() CommonQueryDSLBoolQueryMustNotType { return u.typ }
@@ -6014,13 +7294,16 @@ func (u *CommonQueryDSLBoolQueryMustNot) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLBoolQueryMustNotUnknownType
 }
 
-// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryMustNot) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
+// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryMustNotBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMustNot) CommonQueryDSLQueryContainer() (CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMustNotBranchError{Want: "CommonQueryDSLQueryContainer", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMustNotFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryMustNot populated with v
@@ -6032,13 +7315,16 @@ func NewCommonQueryDSLBoolQueryMustNotFromCommonQueryDSLQueryContainer(v CommonQ
 	}
 }
 
-// Array returns the []CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryMustNot) Array() []CommonQueryDSLQueryContainer {
+// Array returns the []CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryMustNotBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryMustNot) Array() ([]CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*[]CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryMustNotBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryMustNotFromArray returns a CommonQueryDSLBoolQueryMustNot populated with v
@@ -6106,6 +7392,32 @@ const (
 	CommonQueryDSLBoolQueryShouldArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLBoolQueryShouldType) String() string {
+	switch t {
+	case CommonQueryDSLBoolQueryShouldCommonQueryDSLQueryContainerType:
+		return "CommonQueryDSLQueryContainer"
+	case CommonQueryDSLBoolQueryShouldArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLBoolQueryShouldBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLBoolQueryShouldBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLBoolQueryShouldType
+}
+
+func (e *CommonQueryDSLBoolQueryShouldBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLBoolQueryShould: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLBoolQueryShouldUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLBoolQueryShould) Type() CommonQueryDSLBoolQueryShouldType { return u.typ }
@@ -6125,13 +7437,16 @@ func (u *CommonQueryDSLBoolQueryShould) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLBoolQueryShouldUnknownType
 }
 
-// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryShould) CommonQueryDSLQueryContainer() CommonQueryDSLQueryContainer {
+// CommonQueryDSLQueryContainer returns the CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryShouldBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryShould) CommonQueryDSLQueryContainer() (CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryShouldBranchError{Want: "CommonQueryDSLQueryContainer", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryShouldFromCommonQueryDSLQueryContainer returns a CommonQueryDSLBoolQueryShould populated with v
@@ -6143,13 +7458,16 @@ func NewCommonQueryDSLBoolQueryShouldFromCommonQueryDSLQueryContainer(v CommonQu
 	}
 }
 
-// Array returns the []CommonQueryDSLQueryContainer branch value.
-func (u *CommonQueryDSLBoolQueryShould) Array() []CommonQueryDSLQueryContainer {
+// Array returns the []CommonQueryDSLQueryContainer branch value. It returns a
+// *CommonQueryDSLBoolQueryShouldBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonQueryDSLQueryContainer in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLBoolQueryShould) Array() ([]CommonQueryDSLQueryContainer, error) {
 	if v, ok := u.value.(*[]CommonQueryDSLQueryContainer); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonQueryDSLQueryContainer
-	return zero
+	return zero, &CommonQueryDSLBoolQueryShouldBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonQueryDSLBoolQueryShouldFromArray returns a CommonQueryDSLBoolQueryShould populated with v
@@ -6217,6 +7535,32 @@ const (
 	CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) Type() CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchType {
@@ -6238,13 +7582,16 @@ func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) SetRaw(raw json.Ra
 	u.typ = CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromInt returns a CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch populated with v
@@ -6256,13 +7603,16 @@ func NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromInt(v int) Common
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLCombinedFieldsQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLCombinedFieldsQueryMinimumShouldMatchFromString returns a CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch populated with v
@@ -6330,6 +7680,32 @@ const (
 	CommonQueryDSLRandomScoreFunctionSeedStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLRandomScoreFunctionSeedType) String() string {
+	switch t {
+	case CommonQueryDSLRandomScoreFunctionSeedInt64Type:
+		return "Int64"
+	case CommonQueryDSLRandomScoreFunctionSeedStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLRandomScoreFunctionSeedBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLRandomScoreFunctionSeedBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLRandomScoreFunctionSeedType
+}
+
+func (e *CommonQueryDSLRandomScoreFunctionSeedBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLRandomScoreFunctionSeed: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLRandomScoreFunctionSeedUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLRandomScoreFunctionSeed) Type() CommonQueryDSLRandomScoreFunctionSeedType {
@@ -6351,13 +7727,16 @@ func (u *CommonQueryDSLRandomScoreFunctionSeed) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLRandomScoreFunctionSeedUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *CommonQueryDSLRandomScoreFunctionSeed) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *CommonQueryDSLRandomScoreFunctionSeedBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLRandomScoreFunctionSeed) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &CommonQueryDSLRandomScoreFunctionSeedBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewCommonQueryDSLRandomScoreFunctionSeedFromInt64 returns a CommonQueryDSLRandomScoreFunctionSeed populated with v
@@ -6369,13 +7748,16 @@ func NewCommonQueryDSLRandomScoreFunctionSeedFromInt64(v int64) CommonQueryDSLRa
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLRandomScoreFunctionSeed) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLRandomScoreFunctionSeedBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLRandomScoreFunctionSeed) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLRandomScoreFunctionSeedBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLRandomScoreFunctionSeedFromString returns a CommonQueryDSLRandomScoreFunctionSeed populated with v
@@ -6443,6 +7825,32 @@ const (
 	CommonQueryDSLScriptScoreFunctionScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLScriptScoreFunctionScriptType) String() string {
+	switch t {
+	case CommonQueryDSLScriptScoreFunctionScriptStringType:
+		return "String"
+	case CommonQueryDSLScriptScoreFunctionScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLScriptScoreFunctionScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLScriptScoreFunctionScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLScriptScoreFunctionScriptType
+}
+
+func (e *CommonQueryDSLScriptScoreFunctionScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLScriptScoreFunctionScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLScriptScoreFunctionScriptUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLScriptScoreFunctionScript) Type() CommonQueryDSLScriptScoreFunctionScriptType {
@@ -6464,13 +7872,16 @@ func (u *CommonQueryDSLScriptScoreFunctionScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLScriptScoreFunctionScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLScriptScoreFunctionScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLScriptScoreFunctionScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptScoreFunctionScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLScriptScoreFunctionScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptScoreFunctionScriptFromString returns a CommonQueryDSLScriptScoreFunctionScript populated with v
@@ -6482,13 +7893,16 @@ func NewCommonQueryDSLScriptScoreFunctionScriptFromString(v string) CommonQueryD
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonQueryDSLScriptScoreFunctionScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonQueryDSLScriptScoreFunctionScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptScoreFunctionScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonQueryDSLScriptScoreFunctionScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptScoreFunctionScriptFromStored returns a CommonQueryDSLScriptScoreFunctionScript populated with v
@@ -6557,6 +7971,34 @@ const (
 	CommonQueryDSLQueryContainerFuzzyValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLQueryContainerFuzzyValueType) String() string {
+	switch t {
+	case CommonQueryDSLQueryContainerFuzzyValueBoolType:
+		return "Bool"
+	case CommonQueryDSLQueryContainerFuzzyValueFloat64Type:
+		return "Float64"
+	case CommonQueryDSLQueryContainerFuzzyValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLQueryContainerFuzzyValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLQueryContainerFuzzyValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLQueryContainerFuzzyValueType
+}
+
+func (e *CommonQueryDSLQueryContainerFuzzyValueBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLQueryContainerFuzzyValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLQueryContainerFuzzyValueUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLQueryContainerFuzzyValue) Type() CommonQueryDSLQueryContainerFuzzyValueType {
@@ -6578,13 +8020,16 @@ func (u *CommonQueryDSLQueryContainerFuzzyValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLQueryContainerFuzzyValueUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonQueryDSLQueryContainerFuzzyValue) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonQueryDSLQueryContainerFuzzyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerFuzzyValue) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonQueryDSLQueryContainerFuzzyValueBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerFuzzyValueFromBool returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
@@ -6596,13 +8041,16 @@ func NewCommonQueryDSLQueryContainerFuzzyValueFromBool(v bool) CommonQueryDSLQue
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonQueryDSLQueryContainerFuzzyValue) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonQueryDSLQueryContainerFuzzyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerFuzzyValue) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonQueryDSLQueryContainerFuzzyValueBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerFuzzyValueFromFloat64 returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
@@ -6614,13 +8062,16 @@ func NewCommonQueryDSLQueryContainerFuzzyValueFromFloat64(v float64) CommonQuery
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLQueryContainerFuzzyValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLQueryContainerFuzzyValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerFuzzyValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLQueryContainerFuzzyValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerFuzzyValueFromString returns a CommonQueryDSLQueryContainerFuzzyValue populated with v
@@ -6695,6 +8146,32 @@ const (
 	SearchInnerHitsSourceExcludesIncludesType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchInnerHitsSourceType) String() string {
+	switch t {
+	case SearchInnerHitsSourceStringType:
+		return "String"
+	case SearchInnerHitsSourceExcludesIncludesType:
+		return "ExcludesIncludes"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchInnerHitsSourceBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchInnerHitsSourceBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchInnerHitsSourceType
+}
+
+func (e *SearchInnerHitsSourceBranchError) Error() string {
+	return fmt.Sprintf("SearchInnerHitsSource: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchInnerHitsSourceUnknownType if the value has not been decoded.
 func (u *SearchInnerHitsSource) Type() SearchInnerHitsSourceType { return u.typ }
@@ -6714,13 +8191,16 @@ func (u *SearchInnerHitsSource) SetRaw(raw json.RawMessage) {
 	u.typ = SearchInnerHitsSourceUnknownType
 }
 
-// String returns the string branch value.
-func (u *SearchInnerHitsSource) String() string {
+// String returns the string branch value. It returns a
+// *SearchInnerHitsSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SearchInnerHitsSourceBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSearchInnerHitsSourceFromString returns a SearchInnerHitsSource populated with v
@@ -6732,13 +8212,16 @@ func NewSearchInnerHitsSourceFromString(v string) SearchInnerHitsSource {
 	}
 }
 
-// ExcludesIncludes returns the SearchInnerHitsSourceExcludesIncludes branch value.
-func (u *SearchInnerHitsSource) ExcludesIncludes() SearchInnerHitsSourceExcludesIncludes {
+// ExcludesIncludes returns the SearchInnerHitsSourceExcludesIncludes branch value. It returns a
+// *SearchInnerHitsSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchInnerHitsSourceExcludesIncludes in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSource) ExcludesIncludes() (SearchInnerHitsSourceExcludesIncludes, error) {
 	if v, ok := u.value.(*SearchInnerHitsSourceExcludesIncludes); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchInnerHitsSourceExcludesIncludes
-	return zero
+	return zero, &SearchInnerHitsSourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
 }
 
 // NewSearchInnerHitsSourceFromExcludesIncludes returns a SearchInnerHitsSource populated with v
@@ -6806,6 +8289,32 @@ const (
 	SearchFieldCollapseInnerHitsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchFieldCollapseInnerHitsType) String() string {
+	switch t {
+	case SearchFieldCollapseInnerHitsSearchInnerHitsType:
+		return "SearchInnerHits"
+	case SearchFieldCollapseInnerHitsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchFieldCollapseInnerHitsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchFieldCollapseInnerHitsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchFieldCollapseInnerHitsType
+}
+
+func (e *SearchFieldCollapseInnerHitsBranchError) Error() string {
+	return fmt.Sprintf("SearchFieldCollapseInnerHits: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchFieldCollapseInnerHitsUnknownType if the value has not been decoded.
 func (u *SearchFieldCollapseInnerHits) Type() SearchFieldCollapseInnerHitsType { return u.typ }
@@ -6825,13 +8334,16 @@ func (u *SearchFieldCollapseInnerHits) SetRaw(raw json.RawMessage) {
 	u.typ = SearchFieldCollapseInnerHitsUnknownType
 }
 
-// SearchInnerHits returns the SearchInnerHits branch value.
-func (u *SearchFieldCollapseInnerHits) SearchInnerHits() SearchInnerHits {
+// SearchInnerHits returns the SearchInnerHits branch value. It returns a
+// *SearchFieldCollapseInnerHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchInnerHits in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchFieldCollapseInnerHits) SearchInnerHits() (SearchInnerHits, error) {
 	if v, ok := u.value.(*SearchInnerHits); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchInnerHits
-	return zero
+	return zero, &SearchFieldCollapseInnerHitsBranchError{Want: "SearchInnerHits", Got: u.typ}
 }
 
 // NewSearchFieldCollapseInnerHitsFromSearchInnerHits returns a SearchFieldCollapseInnerHits populated with v
@@ -6843,13 +8355,16 @@ func NewSearchFieldCollapseInnerHitsFromSearchInnerHits(v SearchInnerHits) Searc
 	}
 }
 
-// Array returns the []SearchInnerHits branch value.
-func (u *SearchFieldCollapseInnerHits) Array() []SearchInnerHits {
+// Array returns the []SearchInnerHits branch value. It returns a
+// *SearchFieldCollapseInnerHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []SearchInnerHits in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchFieldCollapseInnerHits) Array() ([]SearchInnerHits, error) {
 	if v, ok := u.value.(*[]SearchInnerHits); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []SearchInnerHits
-	return zero
+	return zero, &SearchFieldCollapseInnerHitsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchFieldCollapseInnerHitsFromArray returns a SearchFieldCollapseInnerHits populated with v
@@ -6917,6 +8432,32 @@ const (
 	SearchInnerHitsDocvalueFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchInnerHitsDocvalueFieldsItemType) String() string {
+	switch t {
+	case SearchInnerHitsDocvalueFieldsItemStringType:
+		return "String"
+	case SearchInnerHitsDocvalueFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchInnerHitsDocvalueFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchInnerHitsDocvalueFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchInnerHitsDocvalueFieldsItemType
+}
+
+func (e *SearchInnerHitsDocvalueFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("SearchInnerHitsDocvalueFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchInnerHitsDocvalueFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchInnerHitsDocvalueFieldsItem) Type() SearchInnerHitsDocvalueFieldsItemType {
@@ -6938,13 +8479,16 @@ func (u *SearchInnerHitsDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
 	u.typ = SearchInnerHitsDocvalueFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *SearchInnerHitsDocvalueFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *SearchInnerHitsDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsDocvalueFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SearchInnerHitsDocvalueFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSearchInnerHitsDocvalueFieldsItemFromString returns a SearchInnerHitsDocvalueFieldsItem populated with v
@@ -6956,13 +8500,16 @@ func NewSearchInnerHitsDocvalueFieldsItemFromString(v string) SearchInnerHitsDoc
 	}
 }
 
-// Field returns the SearchInnerHitsDocvalueFieldsItemField branch value.
-func (u *SearchInnerHitsDocvalueFieldsItem) Field() SearchInnerHitsDocvalueFieldsItemField {
+// Field returns the SearchInnerHitsDocvalueFieldsItemField branch value. It returns a
+// *SearchInnerHitsDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchInnerHitsDocvalueFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsDocvalueFieldsItem) Field() (SearchInnerHitsDocvalueFieldsItemField, error) {
 	if v, ok := u.value.(*SearchInnerHitsDocvalueFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchInnerHitsDocvalueFieldsItemField
-	return zero
+	return zero, &SearchInnerHitsDocvalueFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewSearchInnerHitsDocvalueFieldsItemFromField returns a SearchInnerHitsDocvalueFieldsItem populated with v
@@ -7030,6 +8577,32 @@ const (
 	SearchInnerHitsFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchInnerHitsFieldsItemType) String() string {
+	switch t {
+	case SearchInnerHitsFieldsItemStringType:
+		return "String"
+	case SearchInnerHitsFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchInnerHitsFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchInnerHitsFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchInnerHitsFieldsItemType
+}
+
+func (e *SearchInnerHitsFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("SearchInnerHitsFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchInnerHitsFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchInnerHitsFieldsItem) Type() SearchInnerHitsFieldsItemType { return u.typ }
@@ -7049,13 +8622,16 @@ func (u *SearchInnerHitsFieldsItem) SetRaw(raw json.RawMessage) {
 	u.typ = SearchInnerHitsFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *SearchInnerHitsFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *SearchInnerHitsFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SearchInnerHitsFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSearchInnerHitsFieldsItemFromString returns a SearchInnerHitsFieldsItem populated with v
@@ -7067,13 +8643,16 @@ func NewSearchInnerHitsFieldsItemFromString(v string) SearchInnerHitsFieldsItem 
 	}
 }
 
-// Field returns the SearchInnerHitsFieldsItemField branch value.
-func (u *SearchInnerHitsFieldsItem) Field() SearchInnerHitsFieldsItemField {
+// Field returns the SearchInnerHitsFieldsItemField branch value. It returns a
+// *SearchInnerHitsFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchInnerHitsFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsFieldsItem) Field() (SearchInnerHitsFieldsItemField, error) {
 	if v, ok := u.value.(*SearchInnerHitsFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchInnerHitsFieldsItemField
-	return zero
+	return zero, &SearchInnerHitsFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewSearchInnerHitsFieldsItemFromField returns a SearchInnerHitsFieldsItem populated with v
@@ -7141,6 +8720,32 @@ const (
 	SearchHighlightFieldsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchHighlightFieldsType) String() string {
+	switch t {
+	case SearchHighlightFieldsMapType:
+		return "Map"
+	case SearchHighlightFieldsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchHighlightFieldsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchHighlightFieldsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchHighlightFieldsType
+}
+
+func (e *SearchHighlightFieldsBranchError) Error() string {
+	return fmt.Sprintf("SearchHighlightFields: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchHighlightFieldsUnknownType if the value has not been decoded.
 func (u *SearchHighlightFields) Type() SearchHighlightFieldsType { return u.typ }
@@ -7160,13 +8765,16 @@ func (u *SearchHighlightFields) SetRaw(raw json.RawMessage) {
 	u.typ = SearchHighlightFieldsUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *SearchHighlightFields) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *SearchHighlightFieldsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHighlightFields) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &SearchHighlightFieldsBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewSearchHighlightFieldsFromMap returns a SearchHighlightFields populated with v
@@ -7178,13 +8786,16 @@ func NewSearchHighlightFieldsFromMap(v map[string]json.RawMessage) SearchHighlig
 	}
 }
 
-// Array returns the []map[string]SearchHighlightField branch value.
-func (u *SearchHighlightFields) Array() []map[string]SearchHighlightField {
+// Array returns the []map[string]SearchHighlightField branch value. It returns a
+// *SearchHighlightFieldsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []map[string]SearchHighlightField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchHighlightFields) Array() ([]map[string]SearchHighlightField, error) {
 	if v, ok := u.value.(*[]map[string]SearchHighlightField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []map[string]SearchHighlightField
-	return zero
+	return zero, &SearchHighlightFieldsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchHighlightFieldsFromArray returns a SearchHighlightFields populated with v
@@ -7252,6 +8863,32 @@ const (
 	ScriptFieldScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ScriptFieldScriptType) String() string {
+	switch t {
+	case ScriptFieldScriptStringType:
+		return "String"
+	case ScriptFieldScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// ScriptFieldScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ScriptFieldScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ScriptFieldScriptType
+}
+
+func (e *ScriptFieldScriptBranchError) Error() string {
+	return fmt.Sprintf("ScriptFieldScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ScriptFieldScriptUnknownType if the value has not been decoded.
 func (u *ScriptFieldScript) Type() ScriptFieldScriptType { return u.typ }
@@ -7271,13 +8908,16 @@ func (u *ScriptFieldScript) SetRaw(raw json.RawMessage) {
 	u.typ = ScriptFieldScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *ScriptFieldScript) String() string {
+// String returns the string branch value. It returns a
+// *ScriptFieldScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ScriptFieldScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ScriptFieldScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewScriptFieldScriptFromString returns a ScriptFieldScript populated with v
@@ -7289,13 +8929,16 @@ func NewScriptFieldScriptFromString(v string) ScriptFieldScript {
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *ScriptFieldScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *ScriptFieldScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ScriptFieldScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &ScriptFieldScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewScriptFieldScriptFromStored returns a ScriptFieldScript populated with v
@@ -7364,6 +9007,34 @@ const (
 	FieldSortMissingStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t FieldSortMissingType) String() string {
+	switch t {
+	case FieldSortMissingBoolType:
+		return "Bool"
+	case FieldSortMissingFloat64Type:
+		return "Float64"
+	case FieldSortMissingStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// FieldSortMissingBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type FieldSortMissingBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got FieldSortMissingType
+}
+
+func (e *FieldSortMissingBranchError) Error() string {
+	return fmt.Sprintf("FieldSortMissing: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns FieldSortMissingUnknownType if the value has not been decoded.
 func (u *FieldSortMissing) Type() FieldSortMissingType { return u.typ }
@@ -7383,13 +9054,16 @@ func (u *FieldSortMissing) SetRaw(raw json.RawMessage) {
 	u.typ = FieldSortMissingUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *FieldSortMissing) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *FieldSortMissingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FieldSortMissing) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &FieldSortMissingBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewFieldSortMissingFromBool returns a FieldSortMissing populated with v
@@ -7401,13 +9075,16 @@ func NewFieldSortMissingFromBool(v bool) FieldSortMissing {
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *FieldSortMissing) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *FieldSortMissingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FieldSortMissing) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &FieldSortMissingBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewFieldSortMissingFromFloat64 returns a FieldSortMissing populated with v
@@ -7419,13 +9096,16 @@ func NewFieldSortMissingFromFloat64(v float64) FieldSortMissing {
 	}
 }
 
-// String returns the string branch value.
-func (u *FieldSortMissing) String() string {
+// String returns the string branch value. It returns a
+// *FieldSortMissingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *FieldSortMissing) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &FieldSortMissingBranchError{Want: "String", Got: u.typ}
 }
 
 // NewFieldSortMissingFromString returns a FieldSortMissing populated with v
@@ -7500,6 +9180,32 @@ const (
 	ScriptSortScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ScriptSortScriptType) String() string {
+	switch t {
+	case ScriptSortScriptStringType:
+		return "String"
+	case ScriptSortScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// ScriptSortScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ScriptSortScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ScriptSortScriptType
+}
+
+func (e *ScriptSortScriptBranchError) Error() string {
+	return fmt.Sprintf("ScriptSortScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ScriptSortScriptUnknownType if the value has not been decoded.
 func (u *ScriptSortScript) Type() ScriptSortScriptType { return u.typ }
@@ -7519,13 +9225,16 @@ func (u *ScriptSortScript) SetRaw(raw json.RawMessage) {
 	u.typ = ScriptSortScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *ScriptSortScript) String() string {
+// String returns the string branch value. It returns a
+// *ScriptSortScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ScriptSortScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ScriptSortScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewScriptSortScriptFromString returns a ScriptSortScript populated with v
@@ -7537,13 +9246,16 @@ func NewScriptSortScriptFromString(v string) ScriptSortScript {
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *ScriptSortScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *ScriptSortScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ScriptSortScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &ScriptSortScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewScriptSortScriptFromStored returns a ScriptSortScript populated with v
@@ -7613,6 +9325,36 @@ const (
 	SearchInnerHitsSortOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchInnerHitsSortType) String() string {
+	switch t {
+	case SearchInnerHitsSortStringType:
+		return "String"
+	case SearchInnerHitsSortStringMapType:
+		return "StringMap"
+	case SearchInnerHitsSortFieldSortMapType:
+		return "FieldSortMap"
+	case SearchInnerHitsSortOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchInnerHitsSortBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchInnerHitsSortBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchInnerHitsSortType
+}
+
+func (e *SearchInnerHitsSortBranchError) Error() string {
+	return fmt.Sprintf("SearchInnerHitsSort: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchInnerHitsSortUnknownType if the value has not been decoded.
 func (u *SearchInnerHitsSort) Type() SearchInnerHitsSortType { return u.typ }
@@ -7632,13 +9374,16 @@ func (u *SearchInnerHitsSort) SetRaw(raw json.RawMessage) {
 	u.typ = SearchInnerHitsSortUnknownType
 }
 
-// String returns the string branch value.
-func (u *SearchInnerHitsSort) String() string {
+// String returns the string branch value. It returns a
+// *SearchInnerHitsSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SearchInnerHitsSortBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSearchInnerHitsSortFromString returns a SearchInnerHitsSort populated with v
@@ -7650,13 +9395,16 @@ func NewSearchInnerHitsSortFromString(v string) SearchInnerHitsSort {
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *SearchInnerHitsSort) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *SearchInnerHitsSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &SearchInnerHitsSortBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewSearchInnerHitsSortFromStringMap returns a SearchInnerHitsSort populated with v
@@ -7668,13 +9416,16 @@ func NewSearchInnerHitsSortFromStringMap(v map[string]string) SearchInnerHitsSor
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *SearchInnerHitsSort) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *SearchInnerHitsSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &SearchInnerHitsSortBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewSearchInnerHitsSortFromFieldSortMap returns a SearchInnerHitsSort populated with v
@@ -7686,13 +9437,16 @@ func NewSearchInnerHitsSortFromFieldSortMap(v map[string]FieldSort) SearchInnerH
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *SearchInnerHitsSort) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *SearchInnerHitsSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchInnerHitsSort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &SearchInnerHitsSortBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewSearchInnerHitsSortFromOptions returns a SearchInnerHitsSort populated with v
@@ -7780,6 +9534,32 @@ const (
 	CommonQueryDSLIntervalsFilterScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLIntervalsFilterScriptType) String() string {
+	switch t {
+	case CommonQueryDSLIntervalsFilterScriptStringType:
+		return "String"
+	case CommonQueryDSLIntervalsFilterScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLIntervalsFilterScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLIntervalsFilterScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLIntervalsFilterScriptType
+}
+
+func (e *CommonQueryDSLIntervalsFilterScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLIntervalsFilterScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLIntervalsFilterScriptUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLIntervalsFilterScript) Type() CommonQueryDSLIntervalsFilterScriptType {
@@ -7801,13 +9581,16 @@ func (u *CommonQueryDSLIntervalsFilterScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLIntervalsFilterScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLIntervalsFilterScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLIntervalsFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLIntervalsFilterScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLIntervalsFilterScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLIntervalsFilterScriptFromString returns a CommonQueryDSLIntervalsFilterScript populated with v
@@ -7819,13 +9602,16 @@ func NewCommonQueryDSLIntervalsFilterScriptFromString(v string) CommonQueryDSLIn
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonQueryDSLIntervalsFilterScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonQueryDSLIntervalsFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLIntervalsFilterScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonQueryDSLIntervalsFilterScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonQueryDSLIntervalsFilterScriptFromStored returns a CommonQueryDSLIntervalsFilterScript populated with v
@@ -7893,6 +9679,32 @@ const (
 	CommonQueryDSLKNNQueryRescoreContextType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLKNNQueryRescoreType) String() string {
+	switch t {
+	case CommonQueryDSLKNNQueryRescoreBoolType:
+		return "Bool"
+	case CommonQueryDSLKNNQueryRescoreContextType:
+		return "Context"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLKNNQueryRescoreBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLKNNQueryRescoreBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLKNNQueryRescoreType
+}
+
+func (e *CommonQueryDSLKNNQueryRescoreBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLKNNQueryRescore: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLKNNQueryRescoreUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLKNNQueryRescore) Type() CommonQueryDSLKNNQueryRescoreType { return u.typ }
@@ -7912,13 +9724,16 @@ func (u *CommonQueryDSLKNNQueryRescore) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLKNNQueryRescoreUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonQueryDSLKNNQueryRescore) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonQueryDSLKNNQueryRescoreBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLKNNQueryRescore) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonQueryDSLKNNQueryRescoreBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonQueryDSLKNNQueryRescoreFromBool returns a CommonQueryDSLKNNQueryRescore populated with v
@@ -7930,13 +9745,16 @@ func NewCommonQueryDSLKNNQueryRescoreFromBool(v bool) CommonQueryDSLKNNQueryResc
 	}
 }
 
-// Context returns the CommonQueryDSLRescoreContext branch value.
-func (u *CommonQueryDSLKNNQueryRescore) Context() CommonQueryDSLRescoreContext {
+// Context returns the CommonQueryDSLRescoreContext branch value. It returns a
+// *CommonQueryDSLKNNQueryRescoreBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLRescoreContext in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLKNNQueryRescore) Context() (CommonQueryDSLRescoreContext, error) {
 	if v, ok := u.value.(*CommonQueryDSLRescoreContext); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLRescoreContext
-	return zero
+	return zero, &CommonQueryDSLKNNQueryRescoreBranchError{Want: "Context", Got: u.typ}
 }
 
 // NewCommonQueryDSLKNNQueryRescoreFromContext returns a CommonQueryDSLKNNQueryRescore populated with v
@@ -8005,6 +9823,34 @@ const (
 	CommonQueryDSLQueryContainerMatchValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLQueryContainerMatchValueType) String() string {
+	switch t {
+	case CommonQueryDSLQueryContainerMatchValueBoolType:
+		return "Bool"
+	case CommonQueryDSLQueryContainerMatchValueFloat64Type:
+		return "Float64"
+	case CommonQueryDSLQueryContainerMatchValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLQueryContainerMatchValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLQueryContainerMatchValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLQueryContainerMatchValueType
+}
+
+func (e *CommonQueryDSLQueryContainerMatchValueBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLQueryContainerMatchValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLQueryContainerMatchValueUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLQueryContainerMatchValue) Type() CommonQueryDSLQueryContainerMatchValueType {
@@ -8026,13 +9872,16 @@ func (u *CommonQueryDSLQueryContainerMatchValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLQueryContainerMatchValueUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonQueryDSLQueryContainerMatchValue) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonQueryDSLQueryContainerMatchValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerMatchValue) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonQueryDSLQueryContainerMatchValueBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerMatchValueFromBool returns a CommonQueryDSLQueryContainerMatchValue populated with v
@@ -8044,13 +9893,16 @@ func NewCommonQueryDSLQueryContainerMatchValueFromBool(v bool) CommonQueryDSLQue
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonQueryDSLQueryContainerMatchValue) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonQueryDSLQueryContainerMatchValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerMatchValue) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonQueryDSLQueryContainerMatchValueBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerMatchValueFromFloat64 returns a CommonQueryDSLQueryContainerMatchValue populated with v
@@ -8062,13 +9914,16 @@ func NewCommonQueryDSLQueryContainerMatchValueFromFloat64(v float64) CommonQuery
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLQueryContainerMatchValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLQueryContainerMatchValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerMatchValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLQueryContainerMatchValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerMatchValueFromString returns a CommonQueryDSLQueryContainerMatchValue populated with v
@@ -8143,6 +9998,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryLikeDocumentType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryLikeType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryLikeStringType:
+		return "String"
+	case CommonQueryDSLMoreLikeThisQueryLikeDocumentType:
+		return "Document"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryLikeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryLikeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryLikeType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryLikeBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryLike: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryLikeUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryLike) Type() CommonQueryDSLMoreLikeThisQueryLikeType {
@@ -8164,13 +10045,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryLike) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLMoreLikeThisQueryLikeUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryLike) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryLikeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryLike) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryLikeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryLikeFromString returns a CommonQueryDSLMoreLikeThisQueryLike populated with v
@@ -8182,13 +10066,16 @@ func NewCommonQueryDSLMoreLikeThisQueryLikeFromString(v string) CommonQueryDSLMo
 	}
 }
 
-// Document returns the CommonQueryDSLLikeDocument branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryLike) Document() CommonQueryDSLLikeDocument {
+// Document returns the CommonQueryDSLLikeDocument branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryLikeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLLikeDocument in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryLike) Document() (CommonQueryDSLLikeDocument, error) {
 	if v, ok := u.value.(*CommonQueryDSLLikeDocument); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLLikeDocument
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryLikeBranchError{Want: "Document", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryLikeFromDocument returns a CommonQueryDSLMoreLikeThisQueryLike populated with v
@@ -8256,6 +10143,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryLikeItemDocumentType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryLikeItemType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryLikeItemStringType:
+		return "String"
+	case CommonQueryDSLMoreLikeThisQueryLikeItemDocumentType:
+		return "Document"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryLikeItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryLikeItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryLikeItemType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryLikeItemBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryLikeItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryLikeItemUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) Type() CommonQueryDSLMoreLikeThisQueryLikeItemType {
@@ -8277,13 +10190,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLMoreLikeThisQueryLikeItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryLikeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryLikeItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryLikeItemFromString returns a CommonQueryDSLMoreLikeThisQueryLikeItem populated with v
@@ -8295,13 +10211,16 @@ func NewCommonQueryDSLMoreLikeThisQueryLikeItemFromString(v string) CommonQueryD
 	}
 }
 
-// Document returns the CommonQueryDSLLikeDocument branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) Document() CommonQueryDSLLikeDocument {
+// Document returns the CommonQueryDSLLikeDocument branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryLikeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLLikeDocument in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryLikeItem) Document() (CommonQueryDSLLikeDocument, error) {
 	if v, ok := u.value.(*CommonQueryDSLLikeDocument); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLLikeDocument
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryLikeItemBranchError{Want: "Document", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryLikeItemFromDocument returns a CommonQueryDSLMoreLikeThisQueryLikeItem populated with v
@@ -8369,6 +10288,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) Type() CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchType {
@@ -8390,13 +10335,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) SetRaw(raw json.RawM
 	u.typ = CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromInt returns a CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch populated with v
@@ -8408,13 +10356,16 @@ func NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromInt(v int) CommonQu
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryMinimumShouldMatchFromString returns a CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch populated with v
@@ -8484,6 +10435,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryStopWordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryStopWordsType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryStopWordsStringType:
+		return "String"
+	case CommonQueryDSLMoreLikeThisQueryStopWordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryStopWordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryStopWordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryStopWordsType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryStopWordsBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryStopWords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryStopWordsUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryStopWords) Type() CommonQueryDSLMoreLikeThisQueryStopWordsType {
@@ -8505,13 +10482,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryStopWords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLMoreLikeThisQueryStopWordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryStopWords) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryStopWordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryStopWords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryStopWordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryStopWordsFromString returns a CommonQueryDSLMoreLikeThisQueryStopWords populated with v
@@ -8523,13 +10503,16 @@ func NewCommonQueryDSLMoreLikeThisQueryStopWordsFromString(v string) CommonQuery
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryStopWords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryStopWordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryStopWords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryStopWordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryStopWordsFromArray returns a CommonQueryDSLMoreLikeThisQueryStopWords populated with v
@@ -8597,6 +10580,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryUnlikeDocumentType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryUnlikeType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryUnlikeStringType:
+		return "String"
+	case CommonQueryDSLMoreLikeThisQueryUnlikeDocumentType:
+		return "Document"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryUnlikeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryUnlikeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryUnlikeType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryUnlikeBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryUnlike: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryUnlikeUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlike) Type() CommonQueryDSLMoreLikeThisQueryUnlikeType {
@@ -8618,13 +10627,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryUnlike) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryUnlike) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryUnlikeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlike) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryUnlikeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryUnlikeFromString returns a CommonQueryDSLMoreLikeThisQueryUnlike populated with v
@@ -8636,13 +10648,16 @@ func NewCommonQueryDSLMoreLikeThisQueryUnlikeFromString(v string) CommonQueryDSL
 	}
 }
 
-// Document returns the CommonQueryDSLLikeDocument branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryUnlike) Document() CommonQueryDSLLikeDocument {
+// Document returns the CommonQueryDSLLikeDocument branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryUnlikeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLLikeDocument in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlike) Document() (CommonQueryDSLLikeDocument, error) {
 	if v, ok := u.value.(*CommonQueryDSLLikeDocument); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLLikeDocument
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryUnlikeBranchError{Want: "Document", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryUnlikeFromDocument returns a CommonQueryDSLMoreLikeThisQueryUnlike populated with v
@@ -8710,6 +10725,32 @@ const (
 	CommonQueryDSLMoreLikeThisQueryUnlikeItemDocumentType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMoreLikeThisQueryUnlikeItemType) String() string {
+	switch t {
+	case CommonQueryDSLMoreLikeThisQueryUnlikeItemStringType:
+		return "String"
+	case CommonQueryDSLMoreLikeThisQueryUnlikeItemDocumentType:
+		return "Document"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMoreLikeThisQueryUnlikeItemType
+}
+
+func (e *CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMoreLikeThisQueryUnlikeItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMoreLikeThisQueryUnlikeItemUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) Type() CommonQueryDSLMoreLikeThisQueryUnlikeItemType {
@@ -8731,13 +10772,16 @@ func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) SetRaw(raw json.RawMessage) 
 	u.typ = CommonQueryDSLMoreLikeThisQueryUnlikeItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromString returns a CommonQueryDSLMoreLikeThisQueryUnlikeItem populated with v
@@ -8749,13 +10793,16 @@ func NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromString(v string) CommonQuer
 	}
 }
 
-// Document returns the CommonQueryDSLLikeDocument branch value.
-func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) Document() CommonQueryDSLLikeDocument {
+// Document returns the CommonQueryDSLLikeDocument branch value. It returns a
+// *CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero CommonQueryDSLLikeDocument in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMoreLikeThisQueryUnlikeItem) Document() (CommonQueryDSLLikeDocument, error) {
 	if v, ok := u.value.(*CommonQueryDSLLikeDocument); ok {
-		return *v
+		return *v, nil
 	}
 	var zero CommonQueryDSLLikeDocument
-	return zero
+	return zero, &CommonQueryDSLMoreLikeThisQueryUnlikeItemBranchError{Want: "Document", Got: u.typ}
 }
 
 // NewCommonQueryDSLMoreLikeThisQueryUnlikeItemFromDocument returns a CommonQueryDSLMoreLikeThisQueryUnlikeItem populated with v
@@ -8823,6 +10870,32 @@ const (
 	CommonQueryDSLMultiMatchQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMultiMatchQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLMultiMatchQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLMultiMatchQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLMultiMatchQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLMultiMatchQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLMultiMatchQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) Type() CommonQueryDSLMultiMatchQueryMinimumShouldMatchType {
@@ -8844,13 +10917,16 @@ func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) SetRaw(raw json.RawMes
 	u.typ = CommonQueryDSLMultiMatchQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromInt returns a CommonQueryDSLMultiMatchQueryMinimumShouldMatch populated with v
@@ -8862,13 +10938,16 @@ func NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromInt(v int) CommonQuer
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMultiMatchQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLMultiMatchQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLMultiMatchQueryMinimumShouldMatchFromString returns a CommonQueryDSLMultiMatchQueryMinimumShouldMatch populated with v
@@ -8936,6 +11015,32 @@ const (
 	CommonQueryDSLQueryStringQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLQueryStringQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLQueryStringQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLQueryStringQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLQueryStringQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLQueryStringQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLQueryStringQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) Type() CommonQueryDSLQueryStringQueryMinimumShouldMatchType {
@@ -8957,13 +11062,16 @@ func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) SetRaw(raw json.RawMe
 	u.typ = CommonQueryDSLQueryStringQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromInt returns a CommonQueryDSLQueryStringQueryMinimumShouldMatch populated with v
@@ -8975,13 +11083,16 @@ func NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromInt(v int) CommonQue
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryStringQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLQueryStringQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryStringQueryMinimumShouldMatchFromString returns a CommonQueryDSLQueryStringQueryMinimumShouldMatch populated with v
@@ -9049,6 +11160,32 @@ const (
 	CommonQueryDSLNumberRangeQueryFromStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLNumberRangeQueryFromType) String() string {
+	switch t {
+	case CommonQueryDSLNumberRangeQueryFromFloat64Type:
+		return "Float64"
+	case CommonQueryDSLNumberRangeQueryFromStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLNumberRangeQueryFromBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLNumberRangeQueryFromBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLNumberRangeQueryFromType
+}
+
+func (e *CommonQueryDSLNumberRangeQueryFromBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLNumberRangeQueryFrom: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLNumberRangeQueryFromUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLNumberRangeQueryFrom) Type() CommonQueryDSLNumberRangeQueryFromType {
@@ -9070,13 +11207,16 @@ func (u *CommonQueryDSLNumberRangeQueryFrom) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLNumberRangeQueryFromUnknownType
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonQueryDSLNumberRangeQueryFrom) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonQueryDSLNumberRangeQueryFromBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLNumberRangeQueryFrom) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonQueryDSLNumberRangeQueryFromBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonQueryDSLNumberRangeQueryFromFromFloat64 returns a CommonQueryDSLNumberRangeQueryFrom populated with v
@@ -9088,13 +11228,16 @@ func NewCommonQueryDSLNumberRangeQueryFromFromFloat64(v float64) CommonQueryDSLN
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLNumberRangeQueryFrom) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLNumberRangeQueryFromBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLNumberRangeQueryFrom) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLNumberRangeQueryFromBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLNumberRangeQueryFromFromString returns a CommonQueryDSLNumberRangeQueryFrom populated with v
@@ -9162,6 +11305,32 @@ const (
 	CommonQueryDSLNumberRangeQueryToStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLNumberRangeQueryToType) String() string {
+	switch t {
+	case CommonQueryDSLNumberRangeQueryToFloat64Type:
+		return "Float64"
+	case CommonQueryDSLNumberRangeQueryToStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLNumberRangeQueryToBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLNumberRangeQueryToBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLNumberRangeQueryToType
+}
+
+func (e *CommonQueryDSLNumberRangeQueryToBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLNumberRangeQueryTo: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLNumberRangeQueryToUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLNumberRangeQueryTo) Type() CommonQueryDSLNumberRangeQueryToType { return u.typ }
@@ -9181,13 +11350,16 @@ func (u *CommonQueryDSLNumberRangeQueryTo) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLNumberRangeQueryToUnknownType
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonQueryDSLNumberRangeQueryTo) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonQueryDSLNumberRangeQueryToBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLNumberRangeQueryTo) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonQueryDSLNumberRangeQueryToBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonQueryDSLNumberRangeQueryToFromFloat64 returns a CommonQueryDSLNumberRangeQueryTo populated with v
@@ -9199,13 +11371,16 @@ func NewCommonQueryDSLNumberRangeQueryToFromFloat64(v float64) CommonQueryDSLNum
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLNumberRangeQueryTo) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLNumberRangeQueryToBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLNumberRangeQueryTo) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLNumberRangeQueryToBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLNumberRangeQueryToFromString returns a CommonQueryDSLNumberRangeQueryTo populated with v
@@ -9354,6 +11529,32 @@ const (
 	CommonQueryDSLScriptQueryScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLScriptQueryScriptType) String() string {
+	switch t {
+	case CommonQueryDSLScriptQueryScriptStringType:
+		return "String"
+	case CommonQueryDSLScriptQueryScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLScriptQueryScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLScriptQueryScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLScriptQueryScriptType
+}
+
+func (e *CommonQueryDSLScriptQueryScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLScriptQueryScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLScriptQueryScriptUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLScriptQueryScript) Type() CommonQueryDSLScriptQueryScriptType { return u.typ }
@@ -9373,13 +11574,16 @@ func (u *CommonQueryDSLScriptQueryScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLScriptQueryScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLScriptQueryScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLScriptQueryScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptQueryScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLScriptQueryScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptQueryScriptFromString returns a CommonQueryDSLScriptQueryScript populated with v
@@ -9391,13 +11595,16 @@ func NewCommonQueryDSLScriptQueryScriptFromString(v string) CommonQueryDSLScript
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonQueryDSLScriptQueryScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonQueryDSLScriptQueryScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptQueryScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonQueryDSLScriptQueryScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptQueryScriptFromStored returns a CommonQueryDSLScriptQueryScript populated with v
@@ -9465,6 +11672,32 @@ const (
 	CommonQueryDSLScriptScoreQueryScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLScriptScoreQueryScriptType) String() string {
+	switch t {
+	case CommonQueryDSLScriptScoreQueryScriptStringType:
+		return "String"
+	case CommonQueryDSLScriptScoreQueryScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLScriptScoreQueryScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLScriptScoreQueryScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLScriptScoreQueryScriptType
+}
+
+func (e *CommonQueryDSLScriptScoreQueryScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLScriptScoreQueryScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLScriptScoreQueryScriptUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLScriptScoreQueryScript) Type() CommonQueryDSLScriptScoreQueryScriptType {
@@ -9486,13 +11719,16 @@ func (u *CommonQueryDSLScriptScoreQueryScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLScriptScoreQueryScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLScriptScoreQueryScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLScriptScoreQueryScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptScoreQueryScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLScriptScoreQueryScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptScoreQueryScriptFromString returns a CommonQueryDSLScriptScoreQueryScript populated with v
@@ -9504,13 +11740,16 @@ func NewCommonQueryDSLScriptScoreQueryScriptFromString(v string) CommonQueryDSLS
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonQueryDSLScriptScoreQueryScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonQueryDSLScriptScoreQueryScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLScriptScoreQueryScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonQueryDSLScriptScoreQueryScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonQueryDSLScriptScoreQueryScriptFromStored returns a CommonQueryDSLScriptScoreQueryScript populated with v
@@ -9578,6 +11817,32 @@ const (
 	CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchType) String() string {
+	switch t {
+	case CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchIntType:
+		return "Int"
+	case CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchType
+}
+
+func (e *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) Type() CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchType {
@@ -9601,13 +11866,16 @@ func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) SetRaw(raw json
 	u.typ = CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchUnknownType
 }
 
-// Int returns the int branch value.
-func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) Int() int {
+// Int returns the int branch value. It returns a
+// *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromInt returns a CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch populated with v
@@ -9619,13 +11887,16 @@ func NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromInt(v int) Com
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLSimpleQueryStringQueryMinimumShouldMatchFromString returns a CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch populated with v
@@ -9694,6 +11965,34 @@ const (
 	CommonQueryDSLQueryContainerTermValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLQueryContainerTermValueType) String() string {
+	switch t {
+	case CommonQueryDSLQueryContainerTermValueBoolType:
+		return "Bool"
+	case CommonQueryDSLQueryContainerTermValueFloat64Type:
+		return "Float64"
+	case CommonQueryDSLQueryContainerTermValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLQueryContainerTermValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLQueryContainerTermValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLQueryContainerTermValueType
+}
+
+func (e *CommonQueryDSLQueryContainerTermValueBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLQueryContainerTermValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLQueryContainerTermValueUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLQueryContainerTermValue) Type() CommonQueryDSLQueryContainerTermValueType {
@@ -9715,13 +12014,16 @@ func (u *CommonQueryDSLQueryContainerTermValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonQueryDSLQueryContainerTermValueUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonQueryDSLQueryContainerTermValue) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonQueryDSLQueryContainerTermValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerTermValue) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonQueryDSLQueryContainerTermValueBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerTermValueFromBool returns a CommonQueryDSLQueryContainerTermValue populated with v
@@ -9733,13 +12035,16 @@ func NewCommonQueryDSLQueryContainerTermValueFromBool(v bool) CommonQueryDSLQuer
 	}
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonQueryDSLQueryContainerTermValue) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonQueryDSLQueryContainerTermValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerTermValue) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonQueryDSLQueryContainerTermValueBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerTermValueFromFloat64 returns a CommonQueryDSLQueryContainerTermValue populated with v
@@ -9751,13 +12056,16 @@ func NewCommonQueryDSLQueryContainerTermValueFromFloat64(v float64) CommonQueryD
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLQueryContainerTermValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLQueryContainerTermValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLQueryContainerTermValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLQueryContainerTermValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLQueryContainerTermValueFromString returns a CommonQueryDSLQueryContainerTermValue populated with v
@@ -9832,6 +12140,32 @@ const (
 	CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptType) String() string {
+	switch t {
+	case CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStringType:
+		return "String"
+	case CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptType
+}
+
+func (e *CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonQueryDSLTermsSetQueryMinimumShouldMatchScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptUnknownType if the value has not been decoded.
 func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Type() CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptType {
@@ -9853,13 +12187,16 @@ func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) SetRaw(raw json.Ra
 	u.typ = CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromString returns a CommonQueryDSLTermsSetQueryMinimumShouldMatchScript populated with v
@@ -9871,13 +12208,16 @@ func NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromString(v string) 
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonQueryDSLTermsSetQueryMinimumShouldMatchScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonQueryDSLTermsSetQueryMinimumShouldMatchScriptFromStored returns a CommonQueryDSLTermsSetQueryMinimumShouldMatchScript populated with v
@@ -9945,6 +12285,32 @@ const (
 	CommonMappingTypeDynamicBoolType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingTypeDynamicType) String() string {
+	switch t {
+	case CommonMappingTypeDynamicStringType:
+		return "String"
+	case CommonMappingTypeDynamicBoolType:
+		return "Bool"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingTypeDynamicBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingTypeDynamicBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingTypeDynamicType
+}
+
+func (e *CommonMappingTypeDynamicBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingTypeDynamic: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingTypeDynamicUnknownType if the value has not been decoded.
 func (u *CommonMappingTypeDynamic) Type() CommonMappingTypeDynamicType { return u.typ }
@@ -9964,13 +12330,16 @@ func (u *CommonMappingTypeDynamic) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingTypeDynamicUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonMappingTypeDynamic) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingTypeDynamicBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingTypeDynamic) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingTypeDynamicBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingTypeDynamicFromString returns a CommonMappingTypeDynamic populated with v
@@ -9982,13 +12351,16 @@ func NewCommonMappingTypeDynamicFromString(v string) CommonMappingTypeDynamic {
 	}
 }
 
-// Bool returns the bool branch value.
-func (u *CommonMappingTypeDynamic) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonMappingTypeDynamicBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingTypeDynamic) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonMappingTypeDynamicBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonMappingTypeDynamicFromBool returns a CommonMappingTypeDynamic populated with v
@@ -10056,6 +12428,32 @@ const (
 	CommonMappingPropertyBaseDynamicBoolType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingPropertyBaseDynamicType) String() string {
+	switch t {
+	case CommonMappingPropertyBaseDynamicStringType:
+		return "String"
+	case CommonMappingPropertyBaseDynamicBoolType:
+		return "Bool"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingPropertyBaseDynamicBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingPropertyBaseDynamicBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingPropertyBaseDynamicType
+}
+
+func (e *CommonMappingPropertyBaseDynamicBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingPropertyBaseDynamic: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingPropertyBaseDynamicUnknownType if the value has not been decoded.
 func (u *CommonMappingPropertyBaseDynamic) Type() CommonMappingPropertyBaseDynamicType { return u.typ }
@@ -10075,13 +12473,16 @@ func (u *CommonMappingPropertyBaseDynamic) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingPropertyBaseDynamicUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonMappingPropertyBaseDynamic) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingPropertyBaseDynamicBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingPropertyBaseDynamic) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingPropertyBaseDynamicBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingPropertyBaseDynamicFromString returns a CommonMappingPropertyBaseDynamic populated with v
@@ -10093,13 +12494,16 @@ func NewCommonMappingPropertyBaseDynamicFromString(v string) CommonMappingProper
 	}
 }
 
-// Bool returns the bool branch value.
-func (u *CommonMappingPropertyBaseDynamic) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonMappingPropertyBaseDynamicBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingPropertyBaseDynamic) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonMappingPropertyBaseDynamicBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonMappingPropertyBaseDynamicFromBool returns a CommonMappingPropertyBaseDynamic populated with v
@@ -10167,6 +12571,32 @@ const (
 	CommonMappingJoinPropertyRelationsValueArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingJoinPropertyRelationsValueType) String() string {
+	switch t {
+	case CommonMappingJoinPropertyRelationsValueStringType:
+		return "String"
+	case CommonMappingJoinPropertyRelationsValueArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingJoinPropertyRelationsValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingJoinPropertyRelationsValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingJoinPropertyRelationsValueType
+}
+
+func (e *CommonMappingJoinPropertyRelationsValueBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingJoinPropertyRelationsValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingJoinPropertyRelationsValueUnknownType if the value has not been decoded.
 func (u *CommonMappingJoinPropertyRelationsValue) Type() CommonMappingJoinPropertyRelationsValueType {
@@ -10188,13 +12618,16 @@ func (u *CommonMappingJoinPropertyRelationsValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingJoinPropertyRelationsValueUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonMappingJoinPropertyRelationsValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingJoinPropertyRelationsValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingJoinPropertyRelationsValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingJoinPropertyRelationsValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingJoinPropertyRelationsValueFromString returns a CommonMappingJoinPropertyRelationsValue populated with v
@@ -10206,13 +12639,16 @@ func NewCommonMappingJoinPropertyRelationsValueFromString(v string) CommonMappin
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonMappingJoinPropertyRelationsValue) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonMappingJoinPropertyRelationsValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingJoinPropertyRelationsValue) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonMappingJoinPropertyRelationsValueBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonMappingJoinPropertyRelationsValueFromArray returns a CommonMappingJoinPropertyRelationsValue populated with v
@@ -10280,6 +12716,32 @@ const (
 	CommonMappingSuggestContextPrecisionStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingSuggestContextPrecisionType) String() string {
+	switch t {
+	case CommonMappingSuggestContextPrecisionFloat64Type:
+		return "Float64"
+	case CommonMappingSuggestContextPrecisionStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingSuggestContextPrecisionBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingSuggestContextPrecisionBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingSuggestContextPrecisionType
+}
+
+func (e *CommonMappingSuggestContextPrecisionBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingSuggestContextPrecision: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingSuggestContextPrecisionUnknownType if the value has not been decoded.
 func (u *CommonMappingSuggestContextPrecision) Type() CommonMappingSuggestContextPrecisionType {
@@ -10301,13 +12763,16 @@ func (u *CommonMappingSuggestContextPrecision) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingSuggestContextPrecisionUnknownType
 }
 
-// Float64 returns the float64 branch value.
-func (u *CommonMappingSuggestContextPrecision) Float64() float64 {
+// Float64 returns the float64 branch value. It returns a
+// *CommonMappingSuggestContextPrecisionBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingSuggestContextPrecision) Float64() (float64, error) {
 	if v, ok := u.value.(*float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero float64
-	return zero
+	return zero, &CommonMappingSuggestContextPrecisionBranchError{Want: "Float64", Got: u.typ}
 }
 
 // NewCommonMappingSuggestContextPrecisionFromFloat64 returns a CommonMappingSuggestContextPrecision populated with v
@@ -10319,13 +12784,16 @@ func NewCommonMappingSuggestContextPrecisionFromFloat64(v float64) CommonMapping
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonMappingSuggestContextPrecision) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingSuggestContextPrecisionBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingSuggestContextPrecision) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingSuggestContextPrecisionBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingSuggestContextPrecisionFromString returns a CommonMappingSuggestContextPrecision populated with v
@@ -10400,6 +12868,36 @@ const (
 	CommonMappingGeoPointPropertyNullValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingGeoPointPropertyNullValueType) String() string {
+	switch t {
+	case CommonMappingGeoPointPropertyNullValueLatlonType:
+		return "Latlon"
+	case CommonMappingGeoPointPropertyNullValueGeohashType:
+		return "Geohash"
+	case CommonMappingGeoPointPropertyNullValueArrayType:
+		return "Array"
+	case CommonMappingGeoPointPropertyNullValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingGeoPointPropertyNullValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingGeoPointPropertyNullValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingGeoPointPropertyNullValueType
+}
+
+func (e *CommonMappingGeoPointPropertyNullValueBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingGeoPointPropertyNullValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingGeoPointPropertyNullValueUnknownType if the value has not been decoded.
 func (u *CommonMappingGeoPointPropertyNullValue) Type() CommonMappingGeoPointPropertyNullValueType {
@@ -10421,13 +12919,16 @@ func (u *CommonMappingGeoPointPropertyNullValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingGeoPointPropertyNullValueUnknownType
 }
 
-// Latlon returns the LatLonGeoLocation branch value.
-func (u *CommonMappingGeoPointPropertyNullValue) Latlon() LatLonGeoLocation {
+// Latlon returns the LatLonGeoLocation branch value. It returns a
+// *CommonMappingGeoPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero LatLonGeoLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingGeoPointPropertyNullValue) Latlon() (LatLonGeoLocation, error) {
 	if v, ok := u.value.(*LatLonGeoLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero LatLonGeoLocation
-	return zero
+	return zero, &CommonMappingGeoPointPropertyNullValueBranchError{Want: "Latlon", Got: u.typ}
 }
 
 // NewCommonMappingGeoPointPropertyNullValueFromLatlon returns a CommonMappingGeoPointPropertyNullValue populated with v
@@ -10439,13 +12940,16 @@ func NewCommonMappingGeoPointPropertyNullValueFromLatlon(v LatLonGeoLocation) Co
 	}
 }
 
-// Geohash returns the GeoHashLocation branch value.
-func (u *CommonMappingGeoPointPropertyNullValue) Geohash() GeoHashLocation {
+// Geohash returns the GeoHashLocation branch value. It returns a
+// *CommonMappingGeoPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeoHashLocation in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingGeoPointPropertyNullValue) Geohash() (GeoHashLocation, error) {
 	if v, ok := u.value.(*GeoHashLocation); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeoHashLocation
-	return zero
+	return zero, &CommonMappingGeoPointPropertyNullValueBranchError{Want: "Geohash", Got: u.typ}
 }
 
 // NewCommonMappingGeoPointPropertyNullValueFromGeohash returns a CommonMappingGeoPointPropertyNullValue populated with v
@@ -10457,13 +12961,16 @@ func NewCommonMappingGeoPointPropertyNullValueFromGeohash(v GeoHashLocation) Com
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *CommonMappingGeoPointPropertyNullValue) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *CommonMappingGeoPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingGeoPointPropertyNullValue) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &CommonMappingGeoPointPropertyNullValueBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonMappingGeoPointPropertyNullValueFromArray returns a CommonMappingGeoPointPropertyNullValue populated with v
@@ -10475,13 +12982,16 @@ func NewCommonMappingGeoPointPropertyNullValueFromArray(v []float64) CommonMappi
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonMappingGeoPointPropertyNullValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingGeoPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingGeoPointPropertyNullValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingGeoPointPropertyNullValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingGeoPointPropertyNullValueFromString returns a CommonMappingGeoPointPropertyNullValue populated with v
@@ -10574,6 +13084,34 @@ const (
 	CommonMappingXYPointPropertyNullValueStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingXYPointPropertyNullValueType) String() string {
+	switch t {
+	case CommonMappingXYPointPropertyNullValueCartesianType:
+		return "Cartesian"
+	case CommonMappingXYPointPropertyNullValueArrayType:
+		return "Array"
+	case CommonMappingXYPointPropertyNullValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingXYPointPropertyNullValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingXYPointPropertyNullValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingXYPointPropertyNullValueType
+}
+
+func (e *CommonMappingXYPointPropertyNullValueBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingXYPointPropertyNullValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingXYPointPropertyNullValueUnknownType if the value has not been decoded.
 func (u *CommonMappingXYPointPropertyNullValue) Type() CommonMappingXYPointPropertyNullValueType {
@@ -10595,13 +13133,16 @@ func (u *CommonMappingXYPointPropertyNullValue) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingXYPointPropertyNullValueUnknownType
 }
 
-// Cartesian returns the XYCartesianCoordinates branch value.
-func (u *CommonMappingXYPointPropertyNullValue) Cartesian() XYCartesianCoordinates {
+// Cartesian returns the XYCartesianCoordinates branch value. It returns a
+// *CommonMappingXYPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero XYCartesianCoordinates in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingXYPointPropertyNullValue) Cartesian() (XYCartesianCoordinates, error) {
 	if v, ok := u.value.(*XYCartesianCoordinates); ok {
-		return *v
+		return *v, nil
 	}
 	var zero XYCartesianCoordinates
-	return zero
+	return zero, &CommonMappingXYPointPropertyNullValueBranchError{Want: "Cartesian", Got: u.typ}
 }
 
 // NewCommonMappingXYPointPropertyNullValueFromCartesian returns a CommonMappingXYPointPropertyNullValue populated with v
@@ -10613,13 +13154,16 @@ func NewCommonMappingXYPointPropertyNullValueFromCartesian(v XYCartesianCoordina
 	}
 }
 
-// Array returns the []float64 branch value.
-func (u *CommonMappingXYPointPropertyNullValue) Array() []float64 {
+// Array returns the []float64 branch value. It returns a
+// *CommonMappingXYPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingXYPointPropertyNullValue) Array() ([]float64, error) {
 	if v, ok := u.value.(*[]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []float64
-	return zero
+	return zero, &CommonMappingXYPointPropertyNullValueBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonMappingXYPointPropertyNullValueFromArray returns a CommonMappingXYPointPropertyNullValue populated with v
@@ -10631,13 +13175,16 @@ func NewCommonMappingXYPointPropertyNullValueFromArray(v []float64) CommonMappin
 	}
 }
 
-// String returns the string branch value.
-func (u *CommonMappingXYPointPropertyNullValue) String() string {
+// String returns the string branch value. It returns a
+// *CommonMappingXYPointPropertyNullValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingXYPointPropertyNullValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonMappingXYPointPropertyNullValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonMappingXYPointPropertyNullValueFromString returns a CommonMappingXYPointPropertyNullValue populated with v
@@ -10712,6 +13259,32 @@ const (
 	CommonMappingSemanticPropertyChunkingArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonMappingSemanticPropertyChunkingType) String() string {
+	switch t {
+	case CommonMappingSemanticPropertyChunkingBoolType:
+		return "Bool"
+	case CommonMappingSemanticPropertyChunkingArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonMappingSemanticPropertyChunkingBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonMappingSemanticPropertyChunkingBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonMappingSemanticPropertyChunkingType
+}
+
+func (e *CommonMappingSemanticPropertyChunkingBranchError) Error() string {
+	return fmt.Sprintf("CommonMappingSemanticPropertyChunking: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonMappingSemanticPropertyChunkingUnknownType if the value has not been decoded.
 func (u *CommonMappingSemanticPropertyChunking) Type() CommonMappingSemanticPropertyChunkingType {
@@ -10733,13 +13306,16 @@ func (u *CommonMappingSemanticPropertyChunking) SetRaw(raw json.RawMessage) {
 	u.typ = CommonMappingSemanticPropertyChunkingUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *CommonMappingSemanticPropertyChunking) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *CommonMappingSemanticPropertyChunkingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingSemanticPropertyChunking) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &CommonMappingSemanticPropertyChunkingBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewCommonMappingSemanticPropertyChunkingFromBool returns a CommonMappingSemanticPropertyChunking populated with v
@@ -10751,13 +13327,16 @@ func NewCommonMappingSemanticPropertyChunkingFromBool(v bool) CommonMappingSeman
 	}
 }
 
-// Array returns the []CommonMappingSemanticChunkingStrategy branch value.
-func (u *CommonMappingSemanticPropertyChunking) Array() []CommonMappingSemanticChunkingStrategy {
+// Array returns the []CommonMappingSemanticChunkingStrategy branch value. It returns a
+// *CommonMappingSemanticPropertyChunkingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []CommonMappingSemanticChunkingStrategy in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonMappingSemanticPropertyChunking) Array() ([]CommonMappingSemanticChunkingStrategy, error) {
 	if v, ok := u.value.(*[]CommonMappingSemanticChunkingStrategy); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []CommonMappingSemanticChunkingStrategy
-	return zero
+	return zero, &CommonMappingSemanticPropertyChunkingBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonMappingSemanticPropertyChunkingFromArray returns a CommonMappingSemanticPropertyChunking populated with v
@@ -15111,6 +17690,32 @@ const (
 	CommonAnalysisFingerprintAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisFingerprintAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisFingerprintAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisFingerprintAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisFingerprintAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisFingerprintAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisFingerprintAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisFingerprintAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisFingerprintAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisFingerprintAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisFingerprintAnalyzerStopwords) Type() CommonAnalysisFingerprintAnalyzerStopwordsType {
@@ -15132,13 +17737,16 @@ func (u *CommonAnalysisFingerprintAnalyzerStopwords) SetRaw(raw json.RawMessage)
 	u.typ = CommonAnalysisFingerprintAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisFingerprintAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisFingerprintAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisFingerprintAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisFingerprintAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisFingerprintAnalyzerStopwordsFromString returns a CommonAnalysisFingerprintAnalyzerStopwords populated with v
@@ -15150,13 +17758,16 @@ func NewCommonAnalysisFingerprintAnalyzerStopwordsFromString(v string) CommonAna
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisFingerprintAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisFingerprintAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisFingerprintAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisFingerprintAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisFingerprintAnalyzerStopwordsFromArray returns a CommonAnalysisFingerprintAnalyzerStopwords populated with v
@@ -15226,6 +17837,32 @@ const (
 	CommonAnalysisLanguageAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisLanguageAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisLanguageAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisLanguageAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisLanguageAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisLanguageAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisLanguageAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisLanguageAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisLanguageAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisLanguageAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisLanguageAnalyzerStopwords) Type() CommonAnalysisLanguageAnalyzerStopwordsType {
@@ -15247,13 +17884,16 @@ func (u *CommonAnalysisLanguageAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisLanguageAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisLanguageAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisLanguageAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisLanguageAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisLanguageAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisLanguageAnalyzerStopwordsFromString returns a CommonAnalysisLanguageAnalyzerStopwords populated with v
@@ -15265,13 +17905,16 @@ func NewCommonAnalysisLanguageAnalyzerStopwordsFromString(v string) CommonAnalys
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisLanguageAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisLanguageAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisLanguageAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisLanguageAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisLanguageAnalyzerStopwordsFromArray returns a CommonAnalysisLanguageAnalyzerStopwords populated with v
@@ -15341,6 +17984,32 @@ const (
 	CommonAnalysisPatternAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisPatternAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisPatternAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisPatternAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisPatternAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisPatternAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisPatternAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisPatternAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisPatternAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisPatternAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisPatternAnalyzerStopwords) Type() CommonAnalysisPatternAnalyzerStopwordsType {
@@ -15362,13 +18031,16 @@ func (u *CommonAnalysisPatternAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisPatternAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisPatternAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisPatternAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisPatternAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisPatternAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisPatternAnalyzerStopwordsFromString returns a CommonAnalysisPatternAnalyzerStopwords populated with v
@@ -15380,13 +18052,16 @@ func NewCommonAnalysisPatternAnalyzerStopwordsFromString(v string) CommonAnalysi
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisPatternAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisPatternAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisPatternAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisPatternAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisPatternAnalyzerStopwordsFromArray returns a CommonAnalysisPatternAnalyzerStopwords populated with v
@@ -15456,6 +18131,32 @@ const (
 	CommonAnalysisStandardAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisStandardAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisStandardAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisStandardAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisStandardAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisStandardAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisStandardAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisStandardAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisStandardAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisStandardAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisStandardAnalyzerStopwords) Type() CommonAnalysisStandardAnalyzerStopwordsType {
@@ -15477,13 +18178,16 @@ func (u *CommonAnalysisStandardAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisStandardAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisStandardAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisStandardAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStandardAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisStandardAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisStandardAnalyzerStopwordsFromString returns a CommonAnalysisStandardAnalyzerStopwords populated with v
@@ -15495,13 +18199,16 @@ func NewCommonAnalysisStandardAnalyzerStopwordsFromString(v string) CommonAnalys
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisStandardAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisStandardAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStandardAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisStandardAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisStandardAnalyzerStopwordsFromArray returns a CommonAnalysisStandardAnalyzerStopwords populated with v
@@ -15571,6 +18278,32 @@ const (
 	CommonAnalysisStopAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisStopAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisStopAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisStopAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisStopAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisStopAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisStopAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisStopAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisStopAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisStopAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisStopAnalyzerStopwords) Type() CommonAnalysisStopAnalyzerStopwordsType {
@@ -15592,13 +18325,16 @@ func (u *CommonAnalysisStopAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisStopAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisStopAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisStopAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStopAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisStopAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisStopAnalyzerStopwordsFromString returns a CommonAnalysisStopAnalyzerStopwords populated with v
@@ -15610,13 +18346,16 @@ func NewCommonAnalysisStopAnalyzerStopwordsFromString(v string) CommonAnalysisSt
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisStopAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisStopAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStopAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisStopAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisStopAnalyzerStopwordsFromArray returns a CommonAnalysisStopAnalyzerStopwords populated with v
@@ -15686,6 +18425,32 @@ const (
 	CommonAnalysisSnowballAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisSnowballAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisSnowballAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisSnowballAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisSnowballAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisSnowballAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisSnowballAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisSnowballAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisSnowballAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisSnowballAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisSnowballAnalyzerStopwords) Type() CommonAnalysisSnowballAnalyzerStopwordsType {
@@ -15707,13 +18472,16 @@ func (u *CommonAnalysisSnowballAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisSnowballAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisSnowballAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisSnowballAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisSnowballAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisSnowballAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisSnowballAnalyzerStopwordsFromString returns a CommonAnalysisSnowballAnalyzerStopwords populated with v
@@ -15725,13 +18493,16 @@ func NewCommonAnalysisSnowballAnalyzerStopwordsFromString(v string) CommonAnalys
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisSnowballAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisSnowballAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisSnowballAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisSnowballAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisSnowballAnalyzerStopwordsFromArray returns a CommonAnalysisSnowballAnalyzerStopwords populated with v
@@ -15801,6 +18572,32 @@ const (
 	CommonAnalysisDutchAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisDutchAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisDutchAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisDutchAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisDutchAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisDutchAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisDutchAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisDutchAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisDutchAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisDutchAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisDutchAnalyzerStopwords) Type() CommonAnalysisDutchAnalyzerStopwordsType {
@@ -15822,13 +18619,16 @@ func (u *CommonAnalysisDutchAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisDutchAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisDutchAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisDutchAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisDutchAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisDutchAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisDutchAnalyzerStopwordsFromString returns a CommonAnalysisDutchAnalyzerStopwords populated with v
@@ -15840,13 +18640,16 @@ func NewCommonAnalysisDutchAnalyzerStopwordsFromString(v string) CommonAnalysisD
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisDutchAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisDutchAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisDutchAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisDutchAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisDutchAnalyzerStopwordsFromArray returns a CommonAnalysisDutchAnalyzerStopwords populated with v
@@ -15916,6 +18719,32 @@ const (
 	CommonAnalysisCJKAnalyzerStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisCJKAnalyzerStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisCJKAnalyzerStopwordsStringType:
+		return "String"
+	case CommonAnalysisCJKAnalyzerStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisCJKAnalyzerStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisCJKAnalyzerStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisCJKAnalyzerStopwordsType
+}
+
+func (e *CommonAnalysisCJKAnalyzerStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisCJKAnalyzerStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisCJKAnalyzerStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisCJKAnalyzerStopwords) Type() CommonAnalysisCJKAnalyzerStopwordsType {
@@ -15937,13 +18766,16 @@ func (u *CommonAnalysisCJKAnalyzerStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisCJKAnalyzerStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisCJKAnalyzerStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisCJKAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisCJKAnalyzerStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisCJKAnalyzerStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisCJKAnalyzerStopwordsFromString returns a CommonAnalysisCJKAnalyzerStopwords populated with v
@@ -15955,13 +18787,16 @@ func NewCommonAnalysisCJKAnalyzerStopwordsFromString(v string) CommonAnalysisCJK
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisCJKAnalyzerStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisCJKAnalyzerStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisCJKAnalyzerStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisCJKAnalyzerStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisCJKAnalyzerStopwordsFromArray returns a CommonAnalysisCJKAnalyzerStopwords populated with v
@@ -16609,6 +19444,32 @@ const (
 	CommonAnalysisConditionTokenFilterScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisConditionTokenFilterScriptType) String() string {
+	switch t {
+	case CommonAnalysisConditionTokenFilterScriptStringType:
+		return "String"
+	case CommonAnalysisConditionTokenFilterScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisConditionTokenFilterScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisConditionTokenFilterScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisConditionTokenFilterScriptType
+}
+
+func (e *CommonAnalysisConditionTokenFilterScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisConditionTokenFilterScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisConditionTokenFilterScriptUnknownType if the value has not been decoded.
 func (u *CommonAnalysisConditionTokenFilterScript) Type() CommonAnalysisConditionTokenFilterScriptType {
@@ -16630,13 +19491,16 @@ func (u *CommonAnalysisConditionTokenFilterScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisConditionTokenFilterScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisConditionTokenFilterScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisConditionTokenFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisConditionTokenFilterScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisConditionTokenFilterScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisConditionTokenFilterScriptFromString returns a CommonAnalysisConditionTokenFilterScript populated with v
@@ -16648,13 +19512,16 @@ func NewCommonAnalysisConditionTokenFilterScriptFromString(v string) CommonAnaly
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonAnalysisConditionTokenFilterScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonAnalysisConditionTokenFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisConditionTokenFilterScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonAnalysisConditionTokenFilterScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonAnalysisConditionTokenFilterScriptFromStored returns a CommonAnalysisConditionTokenFilterScript populated with v
@@ -16722,6 +19589,32 @@ const (
 	CommonAnalysisPredicateTokenFilterScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisPredicateTokenFilterScriptType) String() string {
+	switch t {
+	case CommonAnalysisPredicateTokenFilterScriptStringType:
+		return "String"
+	case CommonAnalysisPredicateTokenFilterScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisPredicateTokenFilterScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisPredicateTokenFilterScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisPredicateTokenFilterScriptType
+}
+
+func (e *CommonAnalysisPredicateTokenFilterScriptBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisPredicateTokenFilterScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisPredicateTokenFilterScriptUnknownType if the value has not been decoded.
 func (u *CommonAnalysisPredicateTokenFilterScript) Type() CommonAnalysisPredicateTokenFilterScriptType {
@@ -16743,13 +19636,16 @@ func (u *CommonAnalysisPredicateTokenFilterScript) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisPredicateTokenFilterScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisPredicateTokenFilterScript) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisPredicateTokenFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisPredicateTokenFilterScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisPredicateTokenFilterScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisPredicateTokenFilterScriptFromString returns a CommonAnalysisPredicateTokenFilterScript populated with v
@@ -16761,13 +19657,16 @@ func NewCommonAnalysisPredicateTokenFilterScriptFromString(v string) CommonAnaly
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *CommonAnalysisPredicateTokenFilterScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *CommonAnalysisPredicateTokenFilterScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisPredicateTokenFilterScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &CommonAnalysisPredicateTokenFilterScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewCommonAnalysisPredicateTokenFilterScriptFromStored returns a CommonAnalysisPredicateTokenFilterScript populated with v
@@ -16837,6 +19736,32 @@ const (
 	CommonAnalysisStopTokenFilterStopwordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonAnalysisStopTokenFilterStopwordsType) String() string {
+	switch t {
+	case CommonAnalysisStopTokenFilterStopwordsStringType:
+		return "String"
+	case CommonAnalysisStopTokenFilterStopwordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// CommonAnalysisStopTokenFilterStopwordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type CommonAnalysisStopTokenFilterStopwordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got CommonAnalysisStopTokenFilterStopwordsType
+}
+
+func (e *CommonAnalysisStopTokenFilterStopwordsBranchError) Error() string {
+	return fmt.Sprintf("CommonAnalysisStopTokenFilterStopwords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns CommonAnalysisStopTokenFilterStopwordsUnknownType if the value has not been decoded.
 func (u *CommonAnalysisStopTokenFilterStopwords) Type() CommonAnalysisStopTokenFilterStopwordsType {
@@ -16858,13 +19783,16 @@ func (u *CommonAnalysisStopTokenFilterStopwords) SetRaw(raw json.RawMessage) {
 	u.typ = CommonAnalysisStopTokenFilterStopwordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *CommonAnalysisStopTokenFilterStopwords) String() string {
+// String returns the string branch value. It returns a
+// *CommonAnalysisStopTokenFilterStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStopTokenFilterStopwords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &CommonAnalysisStopTokenFilterStopwordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewCommonAnalysisStopTokenFilterStopwordsFromString returns a CommonAnalysisStopTokenFilterStopwords populated with v
@@ -16876,13 +19804,16 @@ func NewCommonAnalysisStopTokenFilterStopwordsFromString(v string) CommonAnalysi
 	}
 }
 
-// Array returns the []string branch value.
-func (u *CommonAnalysisStopTokenFilterStopwords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *CommonAnalysisStopTokenFilterStopwordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *CommonAnalysisStopTokenFilterStopwords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &CommonAnalysisStopTokenFilterStopwordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewCommonAnalysisStopTokenFilterStopwordsFromArray returns a CommonAnalysisStopTokenFilterStopwords populated with v
@@ -18583,6 +21514,32 @@ const (
 	IndicesIndexSettingsCreationDateStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSettingsCreationDateType) String() string {
+	switch t {
+	case IndicesIndexSettingsCreationDateInt64Type:
+		return "Int64"
+	case IndicesIndexSettingsCreationDateStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSettingsCreationDateBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSettingsCreationDateBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSettingsCreationDateType
+}
+
+func (e *IndicesIndexSettingsCreationDateBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSettingsCreationDate: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSettingsCreationDateUnknownType if the value has not been decoded.
 func (u *IndicesIndexSettingsCreationDate) Type() IndicesIndexSettingsCreationDateType { return u.typ }
@@ -18602,13 +21559,16 @@ func (u *IndicesIndexSettingsCreationDate) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSettingsCreationDateUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *IndicesIndexSettingsCreationDate) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *IndicesIndexSettingsCreationDateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsCreationDate) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &IndicesIndexSettingsCreationDateBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsCreationDateFromInt64 returns a IndicesIndexSettingsCreationDate populated with v
@@ -18620,13 +21580,16 @@ func NewIndicesIndexSettingsCreationDateFromInt64(v int64) IndicesIndexSettingsC
 	}
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSettingsCreationDate) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSettingsCreationDateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsCreationDate) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSettingsCreationDateBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsCreationDateFromString returns a IndicesIndexSettingsCreationDate populated with v
@@ -18696,6 +21659,32 @@ const (
 	IndicesIndexingPressureMemoryLimitInt64Type
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexingPressureMemoryLimitType) String() string {
+	switch t {
+	case IndicesIndexingPressureMemoryLimitStringType:
+		return "String"
+	case IndicesIndexingPressureMemoryLimitInt64Type:
+		return "Int64"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexingPressureMemoryLimitBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexingPressureMemoryLimitBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexingPressureMemoryLimitType
+}
+
+func (e *IndicesIndexingPressureMemoryLimitBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexingPressureMemoryLimit: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexingPressureMemoryLimitUnknownType if the value has not been decoded.
 func (u *IndicesIndexingPressureMemoryLimit) Type() IndicesIndexingPressureMemoryLimitType {
@@ -18717,13 +21706,16 @@ func (u *IndicesIndexingPressureMemoryLimit) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexingPressureMemoryLimitUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexingPressureMemoryLimit) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexingPressureMemoryLimitBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexingPressureMemoryLimit) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexingPressureMemoryLimitBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexingPressureMemoryLimitFromString returns a IndicesIndexingPressureMemoryLimit populated with v
@@ -18735,13 +21727,16 @@ func NewIndicesIndexingPressureMemoryLimitFromString(v string) IndicesIndexingPr
 	}
 }
 
-// Int64 returns the int64 branch value.
-func (u *IndicesIndexingPressureMemoryLimit) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *IndicesIndexingPressureMemoryLimitBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexingPressureMemoryLimit) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &IndicesIndexingPressureMemoryLimitBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewIndicesIndexingPressureMemoryLimitFromInt64 returns a IndicesIndexingPressureMemoryLimit populated with v
@@ -18811,6 +21806,32 @@ const (
 	IndicesIndexSettingsLifecycleOriginationDateStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSettingsLifecycleOriginationDateType) String() string {
+	switch t {
+	case IndicesIndexSettingsLifecycleOriginationDateInt64Type:
+		return "Int64"
+	case IndicesIndexSettingsLifecycleOriginationDateStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSettingsLifecycleOriginationDateBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSettingsLifecycleOriginationDateBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSettingsLifecycleOriginationDateType
+}
+
+func (e *IndicesIndexSettingsLifecycleOriginationDateBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSettingsLifecycleOriginationDate: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSettingsLifecycleOriginationDateUnknownType if the value has not been decoded.
 func (u *IndicesIndexSettingsLifecycleOriginationDate) Type() IndicesIndexSettingsLifecycleOriginationDateType {
@@ -18832,13 +21853,16 @@ func (u *IndicesIndexSettingsLifecycleOriginationDate) SetRaw(raw json.RawMessag
 	u.typ = IndicesIndexSettingsLifecycleOriginationDateUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *IndicesIndexSettingsLifecycleOriginationDate) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *IndicesIndexSettingsLifecycleOriginationDateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsLifecycleOriginationDate) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &IndicesIndexSettingsLifecycleOriginationDateBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsLifecycleOriginationDateFromInt64 returns a IndicesIndexSettingsLifecycleOriginationDate populated with v
@@ -18850,13 +21874,16 @@ func NewIndicesIndexSettingsLifecycleOriginationDateFromInt64(v int64) IndicesIn
 	}
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSettingsLifecycleOriginationDate) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSettingsLifecycleOriginationDateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsLifecycleOriginationDate) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSettingsLifecycleOriginationDateBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsLifecycleOriginationDateFromString returns a IndicesIndexSettingsLifecycleOriginationDate populated with v
@@ -18924,6 +21951,32 @@ const (
 	IndicesIndexSettingsMergePolicyTieredPolicyConfigType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSettingsMergePolicyType) String() string {
+	switch t {
+	case IndicesIndexSettingsMergePolicyStringType:
+		return "String"
+	case IndicesIndexSettingsMergePolicyTieredPolicyConfigType:
+		return "TieredPolicyConfig"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSettingsMergePolicyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSettingsMergePolicyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSettingsMergePolicyType
+}
+
+func (e *IndicesIndexSettingsMergePolicyBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSettingsMergePolicy: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSettingsMergePolicyUnknownType if the value has not been decoded.
 func (u *IndicesIndexSettingsMergePolicy) Type() IndicesIndexSettingsMergePolicyType { return u.typ }
@@ -18943,13 +21996,16 @@ func (u *IndicesIndexSettingsMergePolicy) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSettingsMergePolicyUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSettingsMergePolicy) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSettingsMergePolicyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsMergePolicy) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSettingsMergePolicyBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsMergePolicyFromString returns a IndicesIndexSettingsMergePolicy populated with v
@@ -18961,13 +22017,16 @@ func NewIndicesIndexSettingsMergePolicyFromString(v string) IndicesIndexSettings
 	}
 }
 
-// TieredPolicyConfig returns the IndicesIndexSettingsMergeTieredPolicy branch value.
-func (u *IndicesIndexSettingsMergePolicy) TieredPolicyConfig() IndicesIndexSettingsMergeTieredPolicy {
+// TieredPolicyConfig returns the IndicesIndexSettingsMergeTieredPolicy branch value. It returns a
+// *IndicesIndexSettingsMergePolicyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero IndicesIndexSettingsMergeTieredPolicy in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsMergePolicy) TieredPolicyConfig() (IndicesIndexSettingsMergeTieredPolicy, error) {
 	if v, ok := u.value.(*IndicesIndexSettingsMergeTieredPolicy); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesIndexSettingsMergeTieredPolicy
-	return zero
+	return zero, &IndicesIndexSettingsMergePolicyBranchError{Want: "TieredPolicyConfig", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsMergePolicyFromTieredPolicyConfig returns a IndicesIndexSettingsMergePolicy populated with v
@@ -19035,6 +22094,32 @@ const (
 	IndicesIndexSettingsRoutingPathArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSettingsRoutingPathType) String() string {
+	switch t {
+	case IndicesIndexSettingsRoutingPathStringType:
+		return "String"
+	case IndicesIndexSettingsRoutingPathArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSettingsRoutingPathBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSettingsRoutingPathBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSettingsRoutingPathType
+}
+
+func (e *IndicesIndexSettingsRoutingPathBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSettingsRoutingPath: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSettingsRoutingPathUnknownType if the value has not been decoded.
 func (u *IndicesIndexSettingsRoutingPath) Type() IndicesIndexSettingsRoutingPathType { return u.typ }
@@ -19054,13 +22139,16 @@ func (u *IndicesIndexSettingsRoutingPath) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSettingsRoutingPathUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSettingsRoutingPath) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSettingsRoutingPathBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsRoutingPath) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSettingsRoutingPathBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsRoutingPathFromString returns a IndicesIndexSettingsRoutingPath populated with v
@@ -19072,13 +22160,16 @@ func NewIndicesIndexSettingsRoutingPathFromString(v string) IndicesIndexSettings
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesIndexSettingsRoutingPath) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesIndexSettingsRoutingPathBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsRoutingPath) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesIndexSettingsRoutingPathBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsRoutingPathFromArray returns a IndicesIndexSettingsRoutingPath populated with v
@@ -19146,6 +22237,32 @@ const (
 	IndicesIndexSettingsSimilarityScriptedTFIDFScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSettingsSimilarityScriptedTFIDFScriptType) String() string {
+	switch t {
+	case IndicesIndexSettingsSimilarityScriptedTFIDFScriptStringType:
+		return "String"
+	case IndicesIndexSettingsSimilarityScriptedTFIDFScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSettingsSimilarityScriptedTFIDFScriptType
+}
+
+func (e *IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSettingsSimilarityScriptedTFIDFScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType if the value has not been decoded.
 func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) Type() IndicesIndexSettingsSimilarityScriptedTFIDFScriptType {
@@ -19167,13 +22284,16 @@ func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) SetRaw(raw json.RawM
 	u.typ = IndicesIndexSettingsSimilarityScriptedTFIDFScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromString returns a IndicesIndexSettingsSimilarityScriptedTFIDFScript populated with v
@@ -19185,13 +22305,16 @@ func NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromString(v string) In
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSettingsSimilarityScriptedTFIDFScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &IndicesIndexSettingsSimilarityScriptedTFIDFScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewIndicesIndexSettingsSimilarityScriptedTFIDFScriptFromStored returns a IndicesIndexSettingsSimilarityScriptedTFIDFScript populated with v
@@ -19259,6 +22382,32 @@ const (
 	IndicesIndexSegmentSortMissingArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSegmentSortMissingType) String() string {
+	switch t {
+	case IndicesIndexSegmentSortMissingStringType:
+		return "String"
+	case IndicesIndexSegmentSortMissingArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSegmentSortMissingBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSegmentSortMissingBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSegmentSortMissingType
+}
+
+func (e *IndicesIndexSegmentSortMissingBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSegmentSortMissing: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSegmentSortMissingUnknownType if the value has not been decoded.
 func (u *IndicesIndexSegmentSortMissing) Type() IndicesIndexSegmentSortMissingType { return u.typ }
@@ -19278,13 +22427,16 @@ func (u *IndicesIndexSegmentSortMissing) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSegmentSortMissingUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSegmentSortMissing) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSegmentSortMissingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortMissing) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSegmentSortMissingBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortMissingFromString returns a IndicesIndexSegmentSortMissing populated with v
@@ -19296,13 +22448,16 @@ func NewIndicesIndexSegmentSortMissingFromString(v string) IndicesIndexSegmentSo
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesIndexSegmentSortMissing) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesIndexSegmentSortMissingBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortMissing) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesIndexSegmentSortMissingBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortMissingFromArray returns a IndicesIndexSegmentSortMissing populated with v
@@ -19370,6 +22525,32 @@ const (
 	IndicesIndexSegmentSortModeArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSegmentSortModeType) String() string {
+	switch t {
+	case IndicesIndexSegmentSortModeStringType:
+		return "String"
+	case IndicesIndexSegmentSortModeArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSegmentSortModeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSegmentSortModeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSegmentSortModeType
+}
+
+func (e *IndicesIndexSegmentSortModeBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSegmentSortMode: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSegmentSortModeUnknownType if the value has not been decoded.
 func (u *IndicesIndexSegmentSortMode) Type() IndicesIndexSegmentSortModeType { return u.typ }
@@ -19389,13 +22570,16 @@ func (u *IndicesIndexSegmentSortMode) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSegmentSortModeUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSegmentSortMode) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSegmentSortModeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortMode) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSegmentSortModeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortModeFromString returns a IndicesIndexSegmentSortMode populated with v
@@ -19407,13 +22591,16 @@ func NewIndicesIndexSegmentSortModeFromString(v string) IndicesIndexSegmentSortM
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesIndexSegmentSortMode) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesIndexSegmentSortModeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortMode) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesIndexSegmentSortModeBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortModeFromArray returns a IndicesIndexSegmentSortMode populated with v
@@ -19481,6 +22668,32 @@ const (
 	IndicesIndexSegmentSortOrderArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesIndexSegmentSortOrderType) String() string {
+	switch t {
+	case IndicesIndexSegmentSortOrderStringType:
+		return "String"
+	case IndicesIndexSegmentSortOrderArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesIndexSegmentSortOrderBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesIndexSegmentSortOrderBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesIndexSegmentSortOrderType
+}
+
+func (e *IndicesIndexSegmentSortOrderBranchError) Error() string {
+	return fmt.Sprintf("IndicesIndexSegmentSortOrder: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesIndexSegmentSortOrderUnknownType if the value has not been decoded.
 func (u *IndicesIndexSegmentSortOrder) Type() IndicesIndexSegmentSortOrderType { return u.typ }
@@ -19500,13 +22713,16 @@ func (u *IndicesIndexSegmentSortOrder) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesIndexSegmentSortOrderUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesIndexSegmentSortOrder) String() string {
+// String returns the string branch value. It returns a
+// *IndicesIndexSegmentSortOrderBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortOrder) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IndicesIndexSegmentSortOrderBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortOrderFromString returns a IndicesIndexSegmentSortOrder populated with v
@@ -19518,13 +22734,16 @@ func NewIndicesIndexSegmentSortOrderFromString(v string) IndicesIndexSegmentSort
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesIndexSegmentSortOrder) Array() []string {
+// Array returns the []string branch value. It returns a
+// *IndicesIndexSegmentSortOrderBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesIndexSegmentSortOrder) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &IndicesIndexSegmentSortOrderBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewIndicesIndexSegmentSortOrderFromArray returns a IndicesIndexSegmentSortOrder populated with v
@@ -19592,6 +22811,32 @@ const (
 	SegmentsStatsSegmentReplicationObject0Type
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SegmentsStatsSegmentReplicationType) String() string {
+	switch t {
+	case SegmentsStatsSegmentReplicationObject1Type:
+		return "Object1"
+	case SegmentsStatsSegmentReplicationObject0Type:
+		return "Object0"
+	default:
+		return "unknown"
+	}
+}
+
+// SegmentsStatsSegmentReplicationBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SegmentsStatsSegmentReplicationBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SegmentsStatsSegmentReplicationType
+}
+
+func (e *SegmentsStatsSegmentReplicationBranchError) Error() string {
+	return fmt.Sprintf("SegmentsStatsSegmentReplication: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SegmentsStatsSegmentReplicationUnknownType if the value has not been decoded.
 func (u *SegmentsStatsSegmentReplication) Type() SegmentsStatsSegmentReplicationType { return u.typ }
@@ -19611,13 +22856,16 @@ func (u *SegmentsStatsSegmentReplication) SetRaw(raw json.RawMessage) {
 	u.typ = SegmentsStatsSegmentReplicationUnknownType
 }
 
-// Object1 returns the SegmentsStatsSegmentReplicationObject1 branch value.
-func (u *SegmentsStatsSegmentReplication) Object1() SegmentsStatsSegmentReplicationObject1 {
+// Object1 returns the SegmentsStatsSegmentReplicationObject1 branch value. It returns a
+// *SegmentsStatsSegmentReplicationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SegmentsStatsSegmentReplicationObject1 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SegmentsStatsSegmentReplication) Object1() (SegmentsStatsSegmentReplicationObject1, error) {
 	if v, ok := u.value.(*SegmentsStatsSegmentReplicationObject1); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SegmentsStatsSegmentReplicationObject1
-	return zero
+	return zero, &SegmentsStatsSegmentReplicationBranchError{Want: "Object1", Got: u.typ}
 }
 
 // NewSegmentsStatsSegmentReplicationFromObject1 returns a SegmentsStatsSegmentReplication populated with v
@@ -19629,13 +22877,16 @@ func NewSegmentsStatsSegmentReplicationFromObject1(v SegmentsStatsSegmentReplica
 	}
 }
 
-// Object0 returns the SegmentsStatsSegmentReplicationObject0 branch value.
-func (u *SegmentsStatsSegmentReplication) Object0() SegmentsStatsSegmentReplicationObject0 {
+// Object0 returns the SegmentsStatsSegmentReplicationObject0 branch value. It returns a
+// *SegmentsStatsSegmentReplicationBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SegmentsStatsSegmentReplicationObject0 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SegmentsStatsSegmentReplication) Object0() (SegmentsStatsSegmentReplicationObject0, error) {
 	if v, ok := u.value.(*SegmentsStatsSegmentReplicationObject0); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SegmentsStatsSegmentReplicationObject0
-	return zero
+	return zero, &SegmentsStatsSegmentReplicationBranchError{Want: "Object0", Got: u.typ}
 }
 
 // NewSegmentsStatsSegmentReplicationFromObject0 returns a SegmentsStatsSegmentReplication populated with v
@@ -19707,6 +22958,32 @@ const (
 	BulkByScrollTaskStatusSlicesItemExceptionType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t BulkByScrollTaskStatusSlicesItemType) String() string {
+	switch t {
+	case BulkByScrollTaskStatusSlicesItemBulkByScrollTaskStatusType:
+		return "BulkByScrollTaskStatus"
+	case BulkByScrollTaskStatusSlicesItemExceptionType:
+		return "Exception"
+	default:
+		return "unknown"
+	}
+}
+
+// BulkByScrollTaskStatusSlicesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type BulkByScrollTaskStatusSlicesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got BulkByScrollTaskStatusSlicesItemType
+}
+
+func (e *BulkByScrollTaskStatusSlicesItemBranchError) Error() string {
+	return fmt.Sprintf("BulkByScrollTaskStatusSlicesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns BulkByScrollTaskStatusSlicesItemUnknownType if the value has not been decoded.
 func (u *BulkByScrollTaskStatusSlicesItem) Type() BulkByScrollTaskStatusSlicesItemType { return u.typ }
@@ -19726,13 +23003,16 @@ func (u *BulkByScrollTaskStatusSlicesItem) SetRaw(raw json.RawMessage) {
 	u.typ = BulkByScrollTaskStatusSlicesItemUnknownType
 }
 
-// BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value.
-func (u *BulkByScrollTaskStatusSlicesItem) BulkByScrollTaskStatus() BulkByScrollTaskStatus {
+// BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value. It returns a
+// *BulkByScrollTaskStatusSlicesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkByScrollTaskStatus in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *BulkByScrollTaskStatusSlicesItem) BulkByScrollTaskStatus() (BulkByScrollTaskStatus, error) {
 	if v, ok := u.value.(*BulkByScrollTaskStatus); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollTaskStatus
-	return zero
+	return zero, &BulkByScrollTaskStatusSlicesItemBranchError{Want: "BulkByScrollTaskStatus", Got: u.typ}
 }
 
 // NewBulkByScrollTaskStatusSlicesItemFromBulkByScrollTaskStatus returns a BulkByScrollTaskStatusSlicesItem populated with v
@@ -19744,13 +23024,16 @@ func NewBulkByScrollTaskStatusSlicesItemFromBulkByScrollTaskStatus(v BulkByScrol
 	}
 }
 
-// Exception returns the ErrorCause branch value.
-func (u *BulkByScrollTaskStatusSlicesItem) Exception() ErrorCause {
+// Exception returns the ErrorCause branch value. It returns a
+// *BulkByScrollTaskStatusSlicesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ErrorCause in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *BulkByScrollTaskStatusSlicesItem) Exception() (ErrorCause, error) {
 	if v, ok := u.value.(*ErrorCause); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ErrorCause
-	return zero
+	return zero, &BulkByScrollTaskStatusSlicesItemBranchError{Want: "Exception", Got: u.typ}
 }
 
 // NewBulkByScrollTaskStatusSlicesItemFromException returns a BulkByScrollTaskStatusSlicesItem populated with v
@@ -19822,6 +23105,32 @@ const (
 	BulkByScrollRespBaseFailuresItemScrollableHitSourceSearchFailureType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t BulkByScrollRespBaseFailuresItemType) String() string {
+	switch t {
+	case BulkByScrollRespBaseFailuresItemBulkItemRespFailureType:
+		return "BulkItemRespFailure"
+	case BulkByScrollRespBaseFailuresItemScrollableHitSourceSearchFailureType:
+		return "ScrollableHitSourceSearchFailure"
+	default:
+		return "unknown"
+	}
+}
+
+// BulkByScrollRespBaseFailuresItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type BulkByScrollRespBaseFailuresItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got BulkByScrollRespBaseFailuresItemType
+}
+
+func (e *BulkByScrollRespBaseFailuresItemBranchError) Error() string {
+	return fmt.Sprintf("BulkByScrollRespBaseFailuresItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns BulkByScrollRespBaseFailuresItemUnknownType if the value has not been decoded.
 func (u *BulkByScrollRespBaseFailuresItem) Type() BulkByScrollRespBaseFailuresItemType { return u.typ }
@@ -19841,13 +23150,16 @@ func (u *BulkByScrollRespBaseFailuresItem) SetRaw(raw json.RawMessage) {
 	u.typ = BulkByScrollRespBaseFailuresItemUnknownType
 }
 
-// BulkItemRespFailure returns the BulkItemRespFailure branch value.
-func (u *BulkByScrollRespBaseFailuresItem) BulkItemRespFailure() BulkItemRespFailure {
+// BulkItemRespFailure returns the BulkItemRespFailure branch value. It returns a
+// *BulkByScrollRespBaseFailuresItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkItemRespFailure in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *BulkByScrollRespBaseFailuresItem) BulkItemRespFailure() (BulkItemRespFailure, error) {
 	if v, ok := u.value.(*BulkItemRespFailure); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkItemRespFailure
-	return zero
+	return zero, &BulkByScrollRespBaseFailuresItemBranchError{Want: "BulkItemRespFailure", Got: u.typ}
 }
 
 // NewBulkByScrollRespBaseFailuresItemFromBulkItemRespFailure returns a BulkByScrollRespBaseFailuresItem populated with v
@@ -19859,13 +23171,16 @@ func NewBulkByScrollRespBaseFailuresItemFromBulkItemRespFailure(v BulkItemRespFa
 	}
 }
 
-// ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
-func (u *BulkByScrollRespBaseFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
+// ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value. It returns a
+// *BulkByScrollRespBaseFailuresItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ScrollableHitSourceSearchFailure in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *BulkByScrollRespBaseFailuresItem) ScrollableHitSourceSearchFailure() (ScrollableHitSourceSearchFailure, error) {
 	if v, ok := u.value.(*ScrollableHitSourceSearchFailure); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ScrollableHitSourceSearchFailure
-	return zero
+	return zero, &BulkByScrollRespBaseFailuresItemBranchError{Want: "ScrollableHitSourceSearchFailure", Got: u.typ}
 }
 
 // NewBulkByScrollRespBaseFailuresItemFromScrollableHitSourceSearchFailure returns a BulkByScrollRespBaseFailuresItem populated with v
@@ -19939,6 +23254,36 @@ const (
 	TasksTaskInfoBaseStatusMapType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TasksTaskInfoBaseStatusType) String() string {
+	switch t {
+	case TasksTaskInfoBaseStatusTasksReplicationTaskStatusType:
+		return "TasksReplicationTaskStatus"
+	case TasksTaskInfoBaseStatusBulkByScrollTaskStatusType:
+		return "BulkByScrollTaskStatus"
+	case TasksTaskInfoBaseStatusTasksPersistentTaskStatusType:
+		return "TasksPersistentTaskStatus"
+	case TasksTaskInfoBaseStatusMapType:
+		return "Map"
+	default:
+		return "unknown"
+	}
+}
+
+// TasksTaskInfoBaseStatusBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TasksTaskInfoBaseStatusBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TasksTaskInfoBaseStatusType
+}
+
+func (e *TasksTaskInfoBaseStatusBranchError) Error() string {
+	return fmt.Sprintf("TasksTaskInfoBaseStatus: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TasksTaskInfoBaseStatusUnknownType if the value has not been decoded.
 func (u *TasksTaskInfoBaseStatus) Type() TasksTaskInfoBaseStatusType { return u.typ }
@@ -19958,13 +23303,16 @@ func (u *TasksTaskInfoBaseStatus) SetRaw(raw json.RawMessage) {
 	u.typ = TasksTaskInfoBaseStatusUnknownType
 }
 
-// TasksReplicationTaskStatus returns the TasksReplicationTaskStatus branch value.
-func (u *TasksTaskInfoBaseStatus) TasksReplicationTaskStatus() TasksReplicationTaskStatus {
+// TasksReplicationTaskStatus returns the TasksReplicationTaskStatus branch value. It returns a
+// *TasksTaskInfoBaseStatusBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero TasksReplicationTaskStatus in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfoBaseStatus) TasksReplicationTaskStatus() (TasksReplicationTaskStatus, error) {
 	if v, ok := u.value.(*TasksReplicationTaskStatus); ok {
-		return *v
+		return *v, nil
 	}
 	var zero TasksReplicationTaskStatus
-	return zero
+	return zero, &TasksTaskInfoBaseStatusBranchError{Want: "TasksReplicationTaskStatus", Got: u.typ}
 }
 
 // NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus returns a TasksTaskInfoBaseStatus populated with v
@@ -19976,13 +23324,16 @@ func NewTasksTaskInfoBaseStatusFromTasksReplicationTaskStatus(v TasksReplication
 	}
 }
 
-// BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value.
-func (u *TasksTaskInfoBaseStatus) BulkByScrollTaskStatus() BulkByScrollTaskStatus {
+// BulkByScrollTaskStatus returns the BulkByScrollTaskStatus branch value. It returns a
+// *TasksTaskInfoBaseStatusBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkByScrollTaskStatus in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfoBaseStatus) BulkByScrollTaskStatus() (BulkByScrollTaskStatus, error) {
 	if v, ok := u.value.(*BulkByScrollTaskStatus); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollTaskStatus
-	return zero
+	return zero, &TasksTaskInfoBaseStatusBranchError{Want: "BulkByScrollTaskStatus", Got: u.typ}
 }
 
 // NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus returns a TasksTaskInfoBaseStatus populated with v
@@ -19994,13 +23345,16 @@ func NewTasksTaskInfoBaseStatusFromBulkByScrollTaskStatus(v BulkByScrollTaskStat
 	}
 }
 
-// TasksPersistentTaskStatus returns the TasksPersistentTaskStatus branch value.
-func (u *TasksTaskInfoBaseStatus) TasksPersistentTaskStatus() TasksPersistentTaskStatus {
+// TasksPersistentTaskStatus returns the TasksPersistentTaskStatus branch value. It returns a
+// *TasksTaskInfoBaseStatusBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero TasksPersistentTaskStatus in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfoBaseStatus) TasksPersistentTaskStatus() (TasksPersistentTaskStatus, error) {
 	if v, ok := u.value.(*TasksPersistentTaskStatus); ok {
-		return *v
+		return *v, nil
 	}
 	var zero TasksPersistentTaskStatus
-	return zero
+	return zero, &TasksTaskInfoBaseStatusBranchError{Want: "TasksPersistentTaskStatus", Got: u.typ}
 }
 
 // NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus returns a TasksTaskInfoBaseStatus populated with v
@@ -20012,13 +23366,16 @@ func NewTasksTaskInfoBaseStatusFromTasksPersistentTaskStatus(v TasksPersistentTa
 	}
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *TasksTaskInfoBaseStatus) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *TasksTaskInfoBaseStatusBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfoBaseStatus) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &TasksTaskInfoBaseStatusBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewTasksTaskInfoBaseStatusFromMap returns a TasksTaskInfoBaseStatus populated with v
@@ -20106,6 +23463,32 @@ const (
 	TasksTaskInfosMapType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t TasksTaskInfosType) String() string {
+	switch t {
+	case TasksTaskInfosArrayType:
+		return "Array"
+	case TasksTaskInfosMapType:
+		return "Map"
+	default:
+		return "unknown"
+	}
+}
+
+// TasksTaskInfosBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type TasksTaskInfosBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got TasksTaskInfosType
+}
+
+func (e *TasksTaskInfosBranchError) Error() string {
+	return fmt.Sprintf("TasksTaskInfos: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns TasksTaskInfosUnknownType if the value has not been decoded.
 func (u *TasksTaskInfos) Type() TasksTaskInfosType { return u.typ }
@@ -20125,13 +23508,16 @@ func (u *TasksTaskInfos) SetRaw(raw json.RawMessage) {
 	u.typ = TasksTaskInfosUnknownType
 }
 
-// Array returns the []TasksTaskInfoBase branch value.
-func (u *TasksTaskInfos) Array() []TasksTaskInfoBase {
+// Array returns the []TasksTaskInfoBase branch value. It returns a
+// *TasksTaskInfosBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []TasksTaskInfoBase in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfos) Array() ([]TasksTaskInfoBase, error) {
 	if v, ok := u.value.(*[]TasksTaskInfoBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []TasksTaskInfoBase
-	return zero
+	return zero, &TasksTaskInfosBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewTasksTaskInfosFromArray returns a TasksTaskInfos populated with v
@@ -20143,13 +23529,16 @@ func NewTasksTaskInfosFromArray(v []TasksTaskInfoBase) TasksTaskInfos {
 	}
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *TasksTaskInfos) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *TasksTaskInfosBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]json.RawMessage in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *TasksTaskInfos) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &TasksTaskInfosBranchError{Want: "Map", Got: u.typ}
 }
 
 // NewTasksTaskInfosFromMap returns a TasksTaskInfos populated with v
@@ -20217,6 +23606,32 @@ const (
 	IngestProcessorContainerScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IngestProcessorContainerScriptType) String() string {
+	switch t {
+	case IngestProcessorContainerScriptStringType:
+		return "String"
+	case IngestProcessorContainerScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// IngestProcessorContainerScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IngestProcessorContainerScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IngestProcessorContainerScriptType
+}
+
+func (e *IngestProcessorContainerScriptBranchError) Error() string {
+	return fmt.Sprintf("IngestProcessorContainerScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IngestProcessorContainerScriptUnknownType if the value has not been decoded.
 func (u *IngestProcessorContainerScript) Type() IngestProcessorContainerScriptType { return u.typ }
@@ -20236,13 +23651,16 @@ func (u *IngestProcessorContainerScript) SetRaw(raw json.RawMessage) {
 	u.typ = IngestProcessorContainerScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *IngestProcessorContainerScript) String() string {
+// String returns the string branch value. It returns a
+// *IngestProcessorContainerScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IngestProcessorContainerScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &IngestProcessorContainerScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewIngestProcessorContainerScriptFromString returns a IngestProcessorContainerScript populated with v
@@ -20254,13 +23672,16 @@ func NewIngestProcessorContainerScriptFromString(v string) IngestProcessorContai
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *IngestProcessorContainerScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *IngestProcessorContainerScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IngestProcessorContainerScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &IngestProcessorContainerScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewIngestProcessorContainerScriptFromStored returns a IngestProcessorContainerScript populated with v
@@ -20328,6 +23749,32 @@ const (
 	InsightsSourceSourceExcludesIncludesType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceSourceType) String() string {
+	switch t {
+	case InsightsSourceSourceStringType:
+		return "String"
+	case InsightsSourceSourceExcludesIncludesType:
+		return "ExcludesIncludes"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceSourceBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceSourceBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceSourceType
+}
+
+func (e *InsightsSourceSourceBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceSource: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceSourceUnknownType if the value has not been decoded.
 func (u *InsightsSourceSource) Type() InsightsSourceSourceType { return u.typ }
@@ -20347,13 +23794,16 @@ func (u *InsightsSourceSource) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceSourceUnknownType
 }
 
-// String returns the string branch value.
-func (u *InsightsSourceSource) String() string {
+// String returns the string branch value. It returns a
+// *InsightsSourceSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &InsightsSourceSourceBranchError{Want: "String", Got: u.typ}
 }
 
 // NewInsightsSourceSourceFromString returns a InsightsSourceSource populated with v
@@ -20365,13 +23815,16 @@ func NewInsightsSourceSourceFromString(v string) InsightsSourceSource {
 	}
 }
 
-// ExcludesIncludes returns the InsightsSourceSourceExcludesIncludes branch value.
-func (u *InsightsSourceSource) ExcludesIncludes() InsightsSourceSourceExcludesIncludes {
+// ExcludesIncludes returns the InsightsSourceSourceExcludesIncludes branch value. It returns a
+// *InsightsSourceSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero InsightsSourceSourceExcludesIncludes in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSource) ExcludesIncludes() (InsightsSourceSourceExcludesIncludes, error) {
 	if v, ok := u.value.(*InsightsSourceSourceExcludesIncludes); ok {
-		return *v
+		return *v, nil
 	}
 	var zero InsightsSourceSourceExcludesIncludes
-	return zero
+	return zero, &InsightsSourceSourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
 }
 
 // NewInsightsSourceSourceFromExcludesIncludes returns a InsightsSourceSource populated with v
@@ -20439,6 +23892,32 @@ const (
 	InsightsSourceDocvalueFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceDocvalueFieldsItemType) String() string {
+	switch t {
+	case InsightsSourceDocvalueFieldsItemStringType:
+		return "String"
+	case InsightsSourceDocvalueFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceDocvalueFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceDocvalueFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceDocvalueFieldsItemType
+}
+
+func (e *InsightsSourceDocvalueFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceDocvalueFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceDocvalueFieldsItemUnknownType if the value has not been decoded.
 func (u *InsightsSourceDocvalueFieldsItem) Type() InsightsSourceDocvalueFieldsItemType { return u.typ }
@@ -20458,13 +23937,16 @@ func (u *InsightsSourceDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceDocvalueFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *InsightsSourceDocvalueFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *InsightsSourceDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceDocvalueFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &InsightsSourceDocvalueFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewInsightsSourceDocvalueFieldsItemFromString returns a InsightsSourceDocvalueFieldsItem populated with v
@@ -20476,13 +23958,16 @@ func NewInsightsSourceDocvalueFieldsItemFromString(v string) InsightsSourceDocva
 	}
 }
 
-// Field returns the InsightsSourceDocvalueFieldsItemField branch value.
-func (u *InsightsSourceDocvalueFieldsItem) Field() InsightsSourceDocvalueFieldsItemField {
+// Field returns the InsightsSourceDocvalueFieldsItemField branch value. It returns a
+// *InsightsSourceDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero InsightsSourceDocvalueFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceDocvalueFieldsItem) Field() (InsightsSourceDocvalueFieldsItemField, error) {
 	if v, ok := u.value.(*InsightsSourceDocvalueFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero InsightsSourceDocvalueFieldsItemField
-	return zero
+	return zero, &InsightsSourceDocvalueFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewInsightsSourceDocvalueFieldsItemFromField returns a InsightsSourceDocvalueFieldsItem populated with v
@@ -20550,6 +24035,32 @@ const (
 	InsightsSourceFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceFieldsItemType) String() string {
+	switch t {
+	case InsightsSourceFieldsItemStringType:
+		return "String"
+	case InsightsSourceFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceFieldsItemType
+}
+
+func (e *InsightsSourceFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceFieldsItemUnknownType if the value has not been decoded.
 func (u *InsightsSourceFieldsItem) Type() InsightsSourceFieldsItemType { return u.typ }
@@ -20569,13 +24080,16 @@ func (u *InsightsSourceFieldsItem) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *InsightsSourceFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *InsightsSourceFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &InsightsSourceFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewInsightsSourceFieldsItemFromString returns a InsightsSourceFieldsItem populated with v
@@ -20587,13 +24101,16 @@ func NewInsightsSourceFieldsItemFromString(v string) InsightsSourceFieldsItem {
 	}
 }
 
-// Field returns the InsightsSourceFieldsItemField branch value.
-func (u *InsightsSourceFieldsItem) Field() InsightsSourceFieldsItemField {
+// Field returns the InsightsSourceFieldsItemField branch value. It returns a
+// *InsightsSourceFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero InsightsSourceFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceFieldsItem) Field() (InsightsSourceFieldsItemField, error) {
 	if v, ok := u.value.(*InsightsSourceFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero InsightsSourceFieldsItemField
-	return zero
+	return zero, &InsightsSourceFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewInsightsSourceFieldsItemFromField returns a InsightsSourceFieldsItem populated with v
@@ -20663,6 +24180,36 @@ const (
 	InsightsSourceSortOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceSortType) String() string {
+	switch t {
+	case InsightsSourceSortStringType:
+		return "String"
+	case InsightsSourceSortStringMapType:
+		return "StringMap"
+	case InsightsSourceSortFieldSortMapType:
+		return "FieldSortMap"
+	case InsightsSourceSortOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceSortBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceSortBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceSortType
+}
+
+func (e *InsightsSourceSortBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceSort: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceSortUnknownType if the value has not been decoded.
 func (u *InsightsSourceSort) Type() InsightsSourceSortType { return u.typ }
@@ -20682,13 +24229,16 @@ func (u *InsightsSourceSort) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceSortUnknownType
 }
 
-// String returns the string branch value.
-func (u *InsightsSourceSort) String() string {
+// String returns the string branch value. It returns a
+// *InsightsSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &InsightsSourceSortBranchError{Want: "String", Got: u.typ}
 }
 
 // NewInsightsSourceSortFromString returns a InsightsSourceSort populated with v
@@ -20700,13 +24250,16 @@ func NewInsightsSourceSortFromString(v string) InsightsSourceSort {
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *InsightsSourceSort) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *InsightsSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &InsightsSourceSortBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewInsightsSourceSortFromStringMap returns a InsightsSourceSort populated with v
@@ -20718,13 +24271,16 @@ func NewInsightsSourceSortFromStringMap(v map[string]string) InsightsSourceSort 
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *InsightsSourceSort) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *InsightsSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &InsightsSourceSortBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewInsightsSourceSortFromFieldSortMap returns a InsightsSourceSort populated with v
@@ -20736,13 +24292,16 @@ func NewInsightsSourceSortFromFieldSortMap(v map[string]FieldSort) InsightsSourc
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *InsightsSourceSort) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *InsightsSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &InsightsSourceSortBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewInsightsSourceSortFromOptions returns a InsightsSourceSort populated with v
@@ -20832,6 +24391,36 @@ const (
 	InsightsSourceSortItemOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceSortItemType) String() string {
+	switch t {
+	case InsightsSourceSortItemStringType:
+		return "String"
+	case InsightsSourceSortItemStringMapType:
+		return "StringMap"
+	case InsightsSourceSortItemFieldSortMapType:
+		return "FieldSortMap"
+	case InsightsSourceSortItemOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceSortItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceSortItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceSortItemType
+}
+
+func (e *InsightsSourceSortItemBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceSortItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceSortItemUnknownType if the value has not been decoded.
 func (u *InsightsSourceSortItem) Type() InsightsSourceSortItemType { return u.typ }
@@ -20851,13 +24440,16 @@ func (u *InsightsSourceSortItem) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceSortItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *InsightsSourceSortItem) String() string {
+// String returns the string branch value. It returns a
+// *InsightsSourceSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSortItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &InsightsSourceSortItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewInsightsSourceSortItemFromString returns a InsightsSourceSortItem populated with v
@@ -20869,13 +24461,16 @@ func NewInsightsSourceSortItemFromString(v string) InsightsSourceSortItem {
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *InsightsSourceSortItem) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *InsightsSourceSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSortItem) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &InsightsSourceSortItemBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewInsightsSourceSortItemFromStringMap returns a InsightsSourceSortItem populated with v
@@ -20887,13 +24482,16 @@ func NewInsightsSourceSortItemFromStringMap(v map[string]string) InsightsSourceS
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *InsightsSourceSortItem) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *InsightsSourceSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSortItem) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &InsightsSourceSortItemBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewInsightsSourceSortItemFromFieldSortMap returns a InsightsSourceSortItem populated with v
@@ -20905,13 +24503,16 @@ func NewInsightsSourceSortItemFromFieldSortMap(v map[string]FieldSort) InsightsS
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *InsightsSourceSortItem) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *InsightsSourceSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceSortItem) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &InsightsSourceSortItemBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewInsightsSourceSortItemFromOptions returns a InsightsSourceSortItem populated with v
@@ -21002,6 +24603,32 @@ const (
 	InsightsSourceTrackTotalHitsIntType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InsightsSourceTrackTotalHitsType) String() string {
+	switch t {
+	case InsightsSourceTrackTotalHitsBoolType:
+		return "Bool"
+	case InsightsSourceTrackTotalHitsIntType:
+		return "Int"
+	default:
+		return "unknown"
+	}
+}
+
+// InsightsSourceTrackTotalHitsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type InsightsSourceTrackTotalHitsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got InsightsSourceTrackTotalHitsType
+}
+
+func (e *InsightsSourceTrackTotalHitsBranchError) Error() string {
+	return fmt.Sprintf("InsightsSourceTrackTotalHits: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns InsightsSourceTrackTotalHitsUnknownType if the value has not been decoded.
 func (u *InsightsSourceTrackTotalHits) Type() InsightsSourceTrackTotalHitsType { return u.typ }
@@ -21021,13 +24648,16 @@ func (u *InsightsSourceTrackTotalHits) SetRaw(raw json.RawMessage) {
 	u.typ = InsightsSourceTrackTotalHitsUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *InsightsSourceTrackTotalHits) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *InsightsSourceTrackTotalHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceTrackTotalHits) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &InsightsSourceTrackTotalHitsBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewInsightsSourceTrackTotalHitsFromBool returns a InsightsSourceTrackTotalHits populated with v
@@ -21039,13 +24669,16 @@ func NewInsightsSourceTrackTotalHitsFromBool(v bool) InsightsSourceTrackTotalHit
 	}
 }
 
-// Int returns the int branch value.
-func (u *InsightsSourceTrackTotalHits) Int() int {
+// Int returns the int branch value. It returns a
+// *InsightsSourceTrackTotalHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *InsightsSourceTrackTotalHits) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &InsightsSourceTrackTotalHitsBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewInsightsSourceTrackTotalHitsFromInt returns a InsightsSourceTrackTotalHits populated with v
@@ -21113,6 +24746,32 @@ const (
 	ISMPolicyTemplateArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ISMPolicyTemplateType) String() string {
+	switch t {
+	case ISMPolicyTemplateISMTemplateType:
+		return "ISMTemplate"
+	case ISMPolicyTemplateArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// ISMPolicyTemplateBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ISMPolicyTemplateBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ISMPolicyTemplateType
+}
+
+func (e *ISMPolicyTemplateBranchError) Error() string {
+	return fmt.Sprintf("ISMPolicyTemplate: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ISMPolicyTemplateUnknownType if the value has not been decoded.
 func (u *ISMPolicyTemplate) Type() ISMPolicyTemplateType { return u.typ }
@@ -21132,13 +24791,16 @@ func (u *ISMPolicyTemplate) SetRaw(raw json.RawMessage) {
 	u.typ = ISMPolicyTemplateUnknownType
 }
 
-// ISMTemplate returns the ISMTemplate branch value.
-func (u *ISMPolicyTemplate) ISMTemplate() ISMTemplate {
+// ISMTemplate returns the ISMTemplate branch value. It returns a
+// *ISMPolicyTemplateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ISMTemplate in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ISMPolicyTemplate) ISMTemplate() (ISMTemplate, error) {
 	if v, ok := u.value.(*ISMTemplate); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ISMTemplate
-	return zero
+	return zero, &ISMPolicyTemplateBranchError{Want: "ISMTemplate", Got: u.typ}
 }
 
 // NewISMPolicyTemplateFromISMTemplate returns a ISMPolicyTemplate populated with v
@@ -21150,13 +24812,16 @@ func NewISMPolicyTemplateFromISMTemplate(v ISMTemplate) ISMPolicyTemplate {
 	}
 }
 
-// Array returns the []ISMTemplate branch value.
-func (u *ISMPolicyTemplate) Array() []ISMTemplate {
+// Array returns the []ISMTemplate branch value. It returns a
+// *ISMPolicyTemplateBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []ISMTemplate in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ISMPolicyTemplate) Array() ([]ISMTemplate, error) {
 	if v, ok := u.value.(*[]ISMTemplate); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []ISMTemplate
-	return zero
+	return zero, &ISMPolicyTemplateBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewISMPolicyTemplateFromArray returns a ISMPolicyTemplate populated with v
@@ -21224,6 +24889,32 @@ const (
 	SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchResultJSONValueSuggestValueItemCompletionOptionsType) String() string {
+	switch t {
+	case SearchResultJSONValueSuggestValueItemCompletionOptionsSourceType:
+		return "Source"
+	case SearchResultJSONValueSuggestValueItemCompletionOptionsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchResultJSONValueSuggestValueItemCompletionOptionsType
+}
+
+func (e *SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError) Error() string {
+	return fmt.Sprintf("SearchResultJSONValueSuggestValueItemCompletionOptions: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType if the value has not been decoded.
 func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Type() SearchResultJSONValueSuggestValueItemCompletionOptionsType {
@@ -21247,13 +24938,16 @@ func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) SetRaw(raw json
 	u.typ = SearchResultJSONValueSuggestValueItemCompletionOptionsUnknownType
 }
 
-// Source returns the SearchResultJSONValueSuggestValueItemCompletionOptionsSource branch value.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Source() SearchResultJSONValueSuggestValueItemCompletionOptionsSource {
+// Source returns the SearchResultJSONValueSuggestValueItemCompletionOptionsSource branch value. It returns a
+// *SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Source() (SearchResultJSONValueSuggestValueItemCompletionOptionsSource, error) {
 	if v, ok := u.value.(*SearchResultJSONValueSuggestValueItemCompletionOptionsSource); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchResultJSONValueSuggestValueItemCompletionOptionsSource
-	return zero
+	return zero, &SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError{Want: "Source", Got: u.typ}
 }
 
 // NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
@@ -21265,13 +24959,16 @@ func NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromSource(v Searc
 	}
 }
 
-// Array returns the []SearchResultJSONValueSuggestValueItemCompletionOptionsItem branch value.
-func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() []SearchResultJSONValueSuggestValueItemCompletionOptionsItem {
+// Array returns the []SearchResultJSONValueSuggestValueItemCompletionOptionsItem branch value. It returns a
+// *SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []SearchResultJSONValueSuggestValueItemCompletionOptionsItem in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchResultJSONValueSuggestValueItemCompletionOptions) Array() ([]SearchResultJSONValueSuggestValueItemCompletionOptionsItem, error) {
 	if v, ok := u.value.(*[]SearchResultJSONValueSuggestValueItemCompletionOptionsItem); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []SearchResultJSONValueSuggestValueItemCompletionOptionsItem
-	return zero
+	return zero, &SearchResultJSONValueSuggestValueItemCompletionOptionsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewSearchResultJSONValueSuggestValueItemCompletionOptionsFromArray returns a SearchResultJSONValueSuggestValueItemCompletionOptions populated with v
@@ -21442,6 +25139,32 @@ const (
 	MLDeleteAgenticMemoryRespFailuresItemScrollableHitSourceSearchFailureType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLDeleteAgenticMemoryRespFailuresItemType) String() string {
+	switch t {
+	case MLDeleteAgenticMemoryRespFailuresItemBulkItemRespFailureType:
+		return "BulkItemRespFailure"
+	case MLDeleteAgenticMemoryRespFailuresItemScrollableHitSourceSearchFailureType:
+		return "ScrollableHitSourceSearchFailure"
+	default:
+		return "unknown"
+	}
+}
+
+// MLDeleteAgenticMemoryRespFailuresItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLDeleteAgenticMemoryRespFailuresItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLDeleteAgenticMemoryRespFailuresItemType
+}
+
+func (e *MLDeleteAgenticMemoryRespFailuresItemBranchError) Error() string {
+	return fmt.Sprintf("MLDeleteAgenticMemoryRespFailuresItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLDeleteAgenticMemoryRespFailuresItemUnknownType if the value has not been decoded.
 func (u *MLDeleteAgenticMemoryRespFailuresItem) Type() MLDeleteAgenticMemoryRespFailuresItemType {
@@ -21463,13 +25186,16 @@ func (u *MLDeleteAgenticMemoryRespFailuresItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLDeleteAgenticMemoryRespFailuresItemUnknownType
 }
 
-// BulkItemRespFailure returns the BulkItemRespFailure branch value.
-func (u *MLDeleteAgenticMemoryRespFailuresItem) BulkItemRespFailure() BulkItemRespFailure {
+// BulkItemRespFailure returns the BulkItemRespFailure branch value. It returns a
+// *MLDeleteAgenticMemoryRespFailuresItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkItemRespFailure in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLDeleteAgenticMemoryRespFailuresItem) BulkItemRespFailure() (BulkItemRespFailure, error) {
 	if v, ok := u.value.(*BulkItemRespFailure); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkItemRespFailure
-	return zero
+	return zero, &MLDeleteAgenticMemoryRespFailuresItemBranchError{Want: "BulkItemRespFailure", Got: u.typ}
 }
 
 // NewMLDeleteAgenticMemoryRespFailuresItemFromBulkItemRespFailure returns a MLDeleteAgenticMemoryRespFailuresItem populated with v
@@ -21481,13 +25207,16 @@ func NewMLDeleteAgenticMemoryRespFailuresItemFromBulkItemRespFailure(v BulkItemR
 	}
 }
 
-// ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value.
-func (u *MLDeleteAgenticMemoryRespFailuresItem) ScrollableHitSourceSearchFailure() ScrollableHitSourceSearchFailure {
+// ScrollableHitSourceSearchFailure returns the ScrollableHitSourceSearchFailure branch value. It returns a
+// *MLDeleteAgenticMemoryRespFailuresItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ScrollableHitSourceSearchFailure in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLDeleteAgenticMemoryRespFailuresItem) ScrollableHitSourceSearchFailure() (ScrollableHitSourceSearchFailure, error) {
 	if v, ok := u.value.(*ScrollableHitSourceSearchFailure); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ScrollableHitSourceSearchFailure
-	return zero
+	return zero, &MLDeleteAgenticMemoryRespFailuresItemBranchError{Want: "ScrollableHitSourceSearchFailure", Got: u.typ}
 }
 
 // NewMLDeleteAgenticMemoryRespFailuresItemFromScrollableHitSourceSearchFailure returns a MLDeleteAgenticMemoryRespFailuresItem populated with v
@@ -21559,6 +25288,32 @@ const (
 	MLExecuteAlgorithmResponseResultsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLExecuteAlgorithmResponseType) String() string {
+	switch t {
+	case MLExecuteAlgorithmResponseMLExecuteLocalSampleCalculatorResponseType:
+		return "MLExecuteLocalSampleCalculatorResponse"
+	case MLExecuteAlgorithmResponseResultsType:
+		return "Results"
+	default:
+		return "unknown"
+	}
+}
+
+// MLExecuteAlgorithmResponseBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLExecuteAlgorithmResponseBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLExecuteAlgorithmResponseType
+}
+
+func (e *MLExecuteAlgorithmResponseBranchError) Error() string {
+	return fmt.Sprintf("MLExecuteAlgorithmResponse: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLExecuteAlgorithmResponseUnknownType if the value has not been decoded.
 func (u *MLExecuteAlgorithmResponse) Type() MLExecuteAlgorithmResponseType { return u.typ }
@@ -21578,13 +25333,16 @@ func (u *MLExecuteAlgorithmResponse) SetRaw(raw json.RawMessage) {
 	u.typ = MLExecuteAlgorithmResponseUnknownType
 }
 
-// MLExecuteLocalSampleCalculatorResponse returns the MLExecuteLocalSampleCalculatorResponse branch value.
-func (u *MLExecuteAlgorithmResponse) MLExecuteLocalSampleCalculatorResponse() MLExecuteLocalSampleCalculatorResponse {
+// MLExecuteLocalSampleCalculatorResponse returns the MLExecuteLocalSampleCalculatorResponse branch value. It returns a
+// *MLExecuteAlgorithmResponseBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero MLExecuteLocalSampleCalculatorResponse in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLExecuteAlgorithmResponse) MLExecuteLocalSampleCalculatorResponse() (MLExecuteLocalSampleCalculatorResponse, error) {
 	if v, ok := u.value.(*MLExecuteLocalSampleCalculatorResponse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero MLExecuteLocalSampleCalculatorResponse
-	return zero
+	return zero, &MLExecuteAlgorithmResponseBranchError{Want: "MLExecuteLocalSampleCalculatorResponse", Got: u.typ}
 }
 
 // NewMLExecuteAlgorithmResponseFromMLExecuteLocalSampleCalculatorResponse returns a MLExecuteAlgorithmResponse populated with v
@@ -21596,13 +25354,16 @@ func NewMLExecuteAlgorithmResponseFromMLExecuteLocalSampleCalculatorResponse(v M
 	}
 }
 
-// Results returns the MLExecuteAlgorithmRespResults branch value.
-func (u *MLExecuteAlgorithmResponse) Results() MLExecuteAlgorithmRespResults {
+// Results returns the MLExecuteAlgorithmRespResults branch value. It returns a
+// *MLExecuteAlgorithmResponseBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero MLExecuteAlgorithmRespResults in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLExecuteAlgorithmResponse) Results() (MLExecuteAlgorithmRespResults, error) {
 	if v, ok := u.value.(*MLExecuteAlgorithmRespResults); ok {
-		return *v
+		return *v, nil
 	}
 	var zero MLExecuteAlgorithmRespResults
-	return zero
+	return zero, &MLExecuteAlgorithmResponseBranchError{Want: "Results", Got: u.typ}
 }
 
 // NewMLExecuteAlgorithmResponseFromResults returns a MLExecuteAlgorithmResponse populated with v
@@ -21674,6 +25435,32 @@ const (
 	MLModelProfileTargetWorkerNodesItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLModelProfileTargetWorkerNodesItemType) String() string {
+	switch t {
+	case MLModelProfileTargetWorkerNodesItemStringType:
+		return "String"
+	case MLModelProfileTargetWorkerNodesItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLModelProfileTargetWorkerNodesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLModelProfileTargetWorkerNodesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLModelProfileTargetWorkerNodesItemType
+}
+
+func (e *MLModelProfileTargetWorkerNodesItemBranchError) Error() string {
+	return fmt.Sprintf("MLModelProfileTargetWorkerNodesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLModelProfileTargetWorkerNodesItemUnknownType if the value has not been decoded.
 func (u *MLModelProfileTargetWorkerNodesItem) Type() MLModelProfileTargetWorkerNodesItemType {
@@ -21695,13 +25482,16 @@ func (u *MLModelProfileTargetWorkerNodesItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLModelProfileTargetWorkerNodesItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLModelProfileTargetWorkerNodesItem) String() string {
+// String returns the string branch value. It returns a
+// *MLModelProfileTargetWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLModelProfileTargetWorkerNodesItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLModelProfileTargetWorkerNodesItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLModelProfileTargetWorkerNodesItemFromString returns a MLModelProfileTargetWorkerNodesItem populated with v
@@ -21713,13 +25503,16 @@ func NewMLModelProfileTargetWorkerNodesItemFromString(v string) MLModelProfileTa
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLModelProfileTargetWorkerNodesItem) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLModelProfileTargetWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLModelProfileTargetWorkerNodesItem) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLModelProfileTargetWorkerNodesItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLModelProfileTargetWorkerNodesItemFromArray returns a MLModelProfileTargetWorkerNodesItem populated with v
@@ -21787,6 +25580,32 @@ const (
 	MLModelProfileWorkerNodesItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLModelProfileWorkerNodesItemType) String() string {
+	switch t {
+	case MLModelProfileWorkerNodesItemStringType:
+		return "String"
+	case MLModelProfileWorkerNodesItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLModelProfileWorkerNodesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLModelProfileWorkerNodesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLModelProfileWorkerNodesItemType
+}
+
+func (e *MLModelProfileWorkerNodesItemBranchError) Error() string {
+	return fmt.Sprintf("MLModelProfileWorkerNodesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLModelProfileWorkerNodesItemUnknownType if the value has not been decoded.
 func (u *MLModelProfileWorkerNodesItem) Type() MLModelProfileWorkerNodesItemType { return u.typ }
@@ -21806,13 +25625,16 @@ func (u *MLModelProfileWorkerNodesItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLModelProfileWorkerNodesItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLModelProfileWorkerNodesItem) String() string {
+// String returns the string branch value. It returns a
+// *MLModelProfileWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLModelProfileWorkerNodesItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLModelProfileWorkerNodesItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLModelProfileWorkerNodesItemFromString returns a MLModelProfileWorkerNodesItem populated with v
@@ -21824,13 +25646,16 @@ func NewMLModelProfileWorkerNodesItemFromString(v string) MLModelProfileWorkerNo
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLModelProfileWorkerNodesItem) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLModelProfileWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLModelProfileWorkerNodesItem) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLModelProfileWorkerNodesItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLModelProfileWorkerNodesItemFromArray returns a MLModelProfileWorkerNodesItem populated with v
@@ -21898,6 +25723,32 @@ const (
 	MLTaskWorkerNodeItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLTaskWorkerNodeItemType) String() string {
+	switch t {
+	case MLTaskWorkerNodeItemStringType:
+		return "String"
+	case MLTaskWorkerNodeItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLTaskWorkerNodeItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLTaskWorkerNodeItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLTaskWorkerNodeItemType
+}
+
+func (e *MLTaskWorkerNodeItemBranchError) Error() string {
+	return fmt.Sprintf("MLTaskWorkerNodeItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLTaskWorkerNodeItemUnknownType if the value has not been decoded.
 func (u *MLTaskWorkerNodeItem) Type() MLTaskWorkerNodeItemType { return u.typ }
@@ -21917,13 +25768,16 @@ func (u *MLTaskWorkerNodeItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLTaskWorkerNodeItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLTaskWorkerNodeItem) String() string {
+// String returns the string branch value. It returns a
+// *MLTaskWorkerNodeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLTaskWorkerNodeItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLTaskWorkerNodeItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLTaskWorkerNodeItemFromString returns a MLTaskWorkerNodeItem populated with v
@@ -21935,13 +25789,16 @@ func NewMLTaskWorkerNodeItemFromString(v string) MLTaskWorkerNodeItem {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLTaskWorkerNodeItem) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLTaskWorkerNodeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLTaskWorkerNodeItem) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLTaskWorkerNodeItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLTaskWorkerNodeItemFromArray returns a MLTaskWorkerNodeItem populated with v
@@ -22009,6 +25866,32 @@ const (
 	MLSourceCreateTimeInt64Type
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLSourceCreateTimeType) String() string {
+	switch t {
+	case MLSourceCreateTimeStringType:
+		return "String"
+	case MLSourceCreateTimeInt64Type:
+		return "Int64"
+	default:
+		return "unknown"
+	}
+}
+
+// MLSourceCreateTimeBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLSourceCreateTimeBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLSourceCreateTimeType
+}
+
+func (e *MLSourceCreateTimeBranchError) Error() string {
+	return fmt.Sprintf("MLSourceCreateTime: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLSourceCreateTimeUnknownType if the value has not been decoded.
 func (u *MLSourceCreateTime) Type() MLSourceCreateTimeType { return u.typ }
@@ -22028,13 +25911,16 @@ func (u *MLSourceCreateTime) SetRaw(raw json.RawMessage) {
 	u.typ = MLSourceCreateTimeUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLSourceCreateTime) String() string {
+// String returns the string branch value. It returns a
+// *MLSourceCreateTimeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourceCreateTime) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLSourceCreateTimeBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLSourceCreateTimeFromString returns a MLSourceCreateTime populated with v
@@ -22046,13 +25932,16 @@ func NewMLSourceCreateTimeFromString(v string) MLSourceCreateTime {
 	}
 }
 
-// Int64 returns the int64 branch value.
-func (u *MLSourceCreateTime) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *MLSourceCreateTimeBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourceCreateTime) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &MLSourceCreateTimeBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewMLSourceCreateTimeFromInt64 returns a MLSourceCreateTime populated with v
@@ -22120,6 +26009,32 @@ const (
 	MLSourcePlanningWorkerNodesItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLSourcePlanningWorkerNodesItemType) String() string {
+	switch t {
+	case MLSourcePlanningWorkerNodesItemStringType:
+		return "String"
+	case MLSourcePlanningWorkerNodesItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLSourcePlanningWorkerNodesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLSourcePlanningWorkerNodesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLSourcePlanningWorkerNodesItemType
+}
+
+func (e *MLSourcePlanningWorkerNodesItemBranchError) Error() string {
+	return fmt.Sprintf("MLSourcePlanningWorkerNodesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLSourcePlanningWorkerNodesItemUnknownType if the value has not been decoded.
 func (u *MLSourcePlanningWorkerNodesItem) Type() MLSourcePlanningWorkerNodesItemType { return u.typ }
@@ -22139,13 +26054,16 @@ func (u *MLSourcePlanningWorkerNodesItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLSourcePlanningWorkerNodesItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLSourcePlanningWorkerNodesItem) String() string {
+// String returns the string branch value. It returns a
+// *MLSourcePlanningWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourcePlanningWorkerNodesItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLSourcePlanningWorkerNodesItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLSourcePlanningWorkerNodesItemFromString returns a MLSourcePlanningWorkerNodesItem populated with v
@@ -22157,13 +26075,16 @@ func NewMLSourcePlanningWorkerNodesItemFromString(v string) MLSourcePlanningWork
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLSourcePlanningWorkerNodesItem) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLSourcePlanningWorkerNodesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourcePlanningWorkerNodesItem) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLSourcePlanningWorkerNodesItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLSourcePlanningWorkerNodesItemFromArray returns a MLSourcePlanningWorkerNodesItem populated with v
@@ -22231,6 +26152,32 @@ const (
 	MLSourceWorkerNodeItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLSourceWorkerNodeItemType) String() string {
+	switch t {
+	case MLSourceWorkerNodeItemStringType:
+		return "String"
+	case MLSourceWorkerNodeItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLSourceWorkerNodeItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLSourceWorkerNodeItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLSourceWorkerNodeItemType
+}
+
+func (e *MLSourceWorkerNodeItemBranchError) Error() string {
+	return fmt.Sprintf("MLSourceWorkerNodeItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLSourceWorkerNodeItemUnknownType if the value has not been decoded.
 func (u *MLSourceWorkerNodeItem) Type() MLSourceWorkerNodeItemType { return u.typ }
@@ -22250,13 +26197,16 @@ func (u *MLSourceWorkerNodeItem) SetRaw(raw json.RawMessage) {
 	u.typ = MLSourceWorkerNodeItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLSourceWorkerNodeItem) String() string {
+// String returns the string branch value. It returns a
+// *MLSourceWorkerNodeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourceWorkerNodeItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLSourceWorkerNodeItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLSourceWorkerNodeItemFromString returns a MLSourceWorkerNodeItem populated with v
@@ -22268,13 +26218,16 @@ func NewMLSourceWorkerNodeItemFromString(v string) MLSourceWorkerNodeItem {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLSourceWorkerNodeItem) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLSourceWorkerNodeItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLSourceWorkerNodeItem) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLSourceWorkerNodeItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLSourceWorkerNodeItemFromArray returns a MLSourceWorkerNodeItem populated with v
@@ -22342,6 +26295,32 @@ const (
 	NeuralStatsNeuralFlatStatsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralStatsType) String() string {
+	switch t {
+	case NeuralStatsNeuralNestedStatsType:
+		return "NeuralNestedStats"
+	case NeuralStatsNeuralFlatStatsType:
+		return "NeuralFlatStats"
+	default:
+		return "unknown"
+	}
+}
+
+// NeuralStatsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type NeuralStatsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got NeuralStatsType
+}
+
+func (e *NeuralStatsBranchError) Error() string {
+	return fmt.Sprintf("NeuralStats: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns NeuralStatsUnknownType if the value has not been decoded.
 func (u *NeuralStats) Type() NeuralStatsType { return u.typ }
@@ -22361,13 +26340,16 @@ func (u *NeuralStats) SetRaw(raw json.RawMessage) {
 	u.typ = NeuralStatsUnknownType
 }
 
-// NeuralNestedStats returns the NeuralNestedStats branch value.
-func (u *NeuralStats) NeuralNestedStats() NeuralNestedStats {
+// NeuralNestedStats returns the NeuralNestedStats branch value. It returns a
+// *NeuralStatsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NeuralNestedStats in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralStats) NeuralNestedStats() (NeuralNestedStats, error) {
 	if v, ok := u.value.(*NeuralNestedStats); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NeuralNestedStats
-	return zero
+	return zero, &NeuralStatsBranchError{Want: "NeuralNestedStats", Got: u.typ}
 }
 
 // NewNeuralStatsFromNeuralNestedStats returns a NeuralStats populated with v
@@ -22379,13 +26361,16 @@ func NewNeuralStatsFromNeuralNestedStats(v NeuralNestedStats) NeuralStats {
 	}
 }
 
-// NeuralFlatStats returns the NeuralFlatStats branch value.
-func (u *NeuralStats) NeuralFlatStats() NeuralFlatStats {
+// NeuralFlatStats returns the NeuralFlatStats branch value. It returns a
+// *NeuralStatsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero NeuralFlatStats in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralStats) NeuralFlatStats() (NeuralFlatStats, error) {
 	if v, ok := u.value.(*NeuralFlatStats); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NeuralFlatStats
-	return zero
+	return zero, &NeuralStatsBranchError{Want: "NeuralFlatStats", Got: u.typ}
 }
 
 // NewNeuralStatsFromNeuralFlatStats returns a NeuralStats populated with v
@@ -22457,6 +26442,32 @@ const (
 	HTTPHeadersValueArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t HTTPHeadersValueType) String() string {
+	switch t {
+	case HTTPHeadersValueStringType:
+		return "String"
+	case HTTPHeadersValueArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// HTTPHeadersValueBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type HTTPHeadersValueBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got HTTPHeadersValueType
+}
+
+func (e *HTTPHeadersValueBranchError) Error() string {
+	return fmt.Sprintf("HTTPHeadersValue: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns HTTPHeadersValueUnknownType if the value has not been decoded.
 func (u *HTTPHeadersValue) Type() HTTPHeadersValueType { return u.typ }
@@ -22476,13 +26487,16 @@ func (u *HTTPHeadersValue) SetRaw(raw json.RawMessage) {
 	u.typ = HTTPHeadersValueUnknownType
 }
 
-// String returns the string branch value.
-func (u *HTTPHeadersValue) String() string {
+// String returns the string branch value. It returns a
+// *HTTPHeadersValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *HTTPHeadersValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &HTTPHeadersValueBranchError{Want: "String", Got: u.typ}
 }
 
 // NewHTTPHeadersValueFromString returns a HTTPHeadersValue populated with v
@@ -22494,13 +26508,16 @@ func NewHTTPHeadersValueFromString(v string) HTTPHeadersValue {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *HTTPHeadersValue) Array() []string {
+// Array returns the []string branch value. It returns a
+// *HTTPHeadersValueBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *HTTPHeadersValue) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &HTTPHeadersValueBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewHTTPHeadersValueFromArray returns a HTTPHeadersValue populated with v
@@ -22572,6 +26589,32 @@ const (
 	ReplicationIndexFollowerStatusTotalWriteTimeMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationIndexFollowerStatusTotalWriteTimeMillisType) String() string {
+	switch t {
+	case ReplicationIndexFollowerStatusTotalWriteTimeMillisInt64Type:
+		return "Int64"
+	case ReplicationIndexFollowerStatusTotalWriteTimeMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationIndexFollowerStatusTotalWriteTimeMillisType
+}
+
+func (e *ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationIndexFollowerStatusTotalWriteTimeMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationIndexFollowerStatusTotalWriteTimeMillisUnknownType if the value has not been decoded.
 func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) Type() ReplicationIndexFollowerStatusTotalWriteTimeMillisType {
@@ -22593,13 +26636,16 @@ func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) SetRaw(raw json.Raw
 	u.typ = ReplicationIndexFollowerStatusTotalWriteTimeMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromInt64 returns a ReplicationIndexFollowerStatusTotalWriteTimeMillis populated with v
@@ -22611,13 +26657,16 @@ func NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromInt64(v int64) Rep
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexFollowerStatusTotalWriteTimeMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationIndexFollowerStatusTotalWriteTimeMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationIndexFollowerStatusTotalWriteTimeMillisFromString returns a ReplicationIndexFollowerStatusTotalWriteTimeMillis populated with v
@@ -22689,6 +26738,32 @@ const (
 	ReplicationFollowerStatusTotalWriteTimeMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationFollowerStatusTotalWriteTimeMillisType) String() string {
+	switch t {
+	case ReplicationFollowerStatusTotalWriteTimeMillisInt64Type:
+		return "Int64"
+	case ReplicationFollowerStatusTotalWriteTimeMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationFollowerStatusTotalWriteTimeMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationFollowerStatusTotalWriteTimeMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationFollowerStatusTotalWriteTimeMillisType
+}
+
+func (e *ReplicationFollowerStatusTotalWriteTimeMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationFollowerStatusTotalWriteTimeMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationFollowerStatusTotalWriteTimeMillisUnknownType if the value has not been decoded.
 func (u *ReplicationFollowerStatusTotalWriteTimeMillis) Type() ReplicationFollowerStatusTotalWriteTimeMillisType {
@@ -22710,13 +26785,16 @@ func (u *ReplicationFollowerStatusTotalWriteTimeMillis) SetRaw(raw json.RawMessa
 	u.typ = ReplicationFollowerStatusTotalWriteTimeMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationFollowerStatusTotalWriteTimeMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationFollowerStatusTotalWriteTimeMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationFollowerStatusTotalWriteTimeMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationFollowerStatusTotalWriteTimeMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationFollowerStatusTotalWriteTimeMillisFromInt64 returns a ReplicationFollowerStatusTotalWriteTimeMillis populated with v
@@ -22728,13 +26806,16 @@ func NewReplicationFollowerStatusTotalWriteTimeMillisFromInt64(v int64) Replicat
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationFollowerStatusTotalWriteTimeMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationFollowerStatusTotalWriteTimeMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationFollowerStatusTotalWriteTimeMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationFollowerStatusTotalWriteTimeMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationFollowerStatusTotalWriteTimeMillisFromString returns a ReplicationFollowerStatusTotalWriteTimeMillis populated with v
@@ -22806,6 +26887,32 @@ const (
 	ReplicationIndexStatusTotalReadTimeLuceneMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationIndexStatusTotalReadTimeLuceneMillisType) String() string {
+	switch t {
+	case ReplicationIndexStatusTotalReadTimeLuceneMillisInt64Type:
+		return "Int64"
+	case ReplicationIndexStatusTotalReadTimeLuceneMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationIndexStatusTotalReadTimeLuceneMillisType
+}
+
+func (e *ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationIndexStatusTotalReadTimeLuceneMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationIndexStatusTotalReadTimeLuceneMillisUnknownType if the value has not been decoded.
 func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) Type() ReplicationIndexStatusTotalReadTimeLuceneMillisType {
@@ -22827,13 +26934,16 @@ func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) SetRaw(raw json.RawMes
 	u.typ = ReplicationIndexStatusTotalReadTimeLuceneMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationIndexStatusTotalReadTimeLuceneMillisFromInt64 returns a ReplicationIndexStatusTotalReadTimeLuceneMillis populated with v
@@ -22845,13 +26955,16 @@ func NewReplicationIndexStatusTotalReadTimeLuceneMillisFromInt64(v int64) Replic
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexStatusTotalReadTimeLuceneMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationIndexStatusTotalReadTimeLuceneMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationIndexStatusTotalReadTimeLuceneMillisFromString returns a ReplicationIndexStatusTotalReadTimeLuceneMillis populated with v
@@ -22923,6 +27036,32 @@ const (
 	ReplicationIndexStatusTotalReadTimeTranslogMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationIndexStatusTotalReadTimeTranslogMillisType) String() string {
+	switch t {
+	case ReplicationIndexStatusTotalReadTimeTranslogMillisInt64Type:
+		return "Int64"
+	case ReplicationIndexStatusTotalReadTimeTranslogMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationIndexStatusTotalReadTimeTranslogMillisType
+}
+
+func (e *ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationIndexStatusTotalReadTimeTranslogMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationIndexStatusTotalReadTimeTranslogMillisUnknownType if the value has not been decoded.
 func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) Type() ReplicationIndexStatusTotalReadTimeTranslogMillisType {
@@ -22944,13 +27083,16 @@ func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) SetRaw(raw json.RawM
 	u.typ = ReplicationIndexStatusTotalReadTimeTranslogMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationIndexStatusTotalReadTimeTranslogMillisFromInt64 returns a ReplicationIndexStatusTotalReadTimeTranslogMillis populated with v
@@ -22962,13 +27104,16 @@ func NewReplicationIndexStatusTotalReadTimeTranslogMillisFromInt64(v int64) Repl
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationIndexStatusTotalReadTimeTranslogMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationIndexStatusTotalReadTimeTranslogMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationIndexStatusTotalReadTimeTranslogMillisFromString returns a ReplicationIndexStatusTotalReadTimeTranslogMillis populated with v
@@ -23040,6 +27185,32 @@ const (
 	ReplicationLeaderStatusTotalReadTimeLuceneMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationLeaderStatusTotalReadTimeLuceneMillisType) String() string {
+	switch t {
+	case ReplicationLeaderStatusTotalReadTimeLuceneMillisInt64Type:
+		return "Int64"
+	case ReplicationLeaderStatusTotalReadTimeLuceneMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationLeaderStatusTotalReadTimeLuceneMillisType
+}
+
+func (e *ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationLeaderStatusTotalReadTimeLuceneMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationLeaderStatusTotalReadTimeLuceneMillisUnknownType if the value has not been decoded.
 func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) Type() ReplicationLeaderStatusTotalReadTimeLuceneMillisType {
@@ -23061,13 +27232,16 @@ func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) SetRaw(raw json.RawMe
 	u.typ = ReplicationLeaderStatusTotalReadTimeLuceneMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromInt64 returns a ReplicationLeaderStatusTotalReadTimeLuceneMillis populated with v
@@ -23079,13 +27253,16 @@ func NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromInt64(v int64) Repli
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationLeaderStatusTotalReadTimeLuceneMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationLeaderStatusTotalReadTimeLuceneMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationLeaderStatusTotalReadTimeLuceneMillisFromString returns a ReplicationLeaderStatusTotalReadTimeLuceneMillis populated with v
@@ -23157,6 +27334,32 @@ const (
 	ReplicationLeaderStatusTotalReadTimeTranslogMillisStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReplicationLeaderStatusTotalReadTimeTranslogMillisType) String() string {
+	switch t {
+	case ReplicationLeaderStatusTotalReadTimeTranslogMillisInt64Type:
+		return "Int64"
+	case ReplicationLeaderStatusTotalReadTimeTranslogMillisStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReplicationLeaderStatusTotalReadTimeTranslogMillisType
+}
+
+func (e *ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError) Error() string {
+	return fmt.Sprintf("ReplicationLeaderStatusTotalReadTimeTranslogMillis: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReplicationLeaderStatusTotalReadTimeTranslogMillisUnknownType if the value has not been decoded.
 func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) Type() ReplicationLeaderStatusTotalReadTimeTranslogMillisType {
@@ -23178,13 +27381,16 @@ func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) SetRaw(raw json.Raw
 	u.typ = ReplicationLeaderStatusTotalReadTimeTranslogMillisUnknownType
 }
 
-// Int64 returns the int64 branch value.
-func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) Int64() int64 {
+// Int64 returns the int64 branch value. It returns a
+// *ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int64
-	return zero
+	return zero, &ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError{Want: "Int64", Got: u.typ}
 }
 
 // NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromInt64 returns a ReplicationLeaderStatusTotalReadTimeTranslogMillis populated with v
@@ -23196,13 +27402,16 @@ func NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromInt64(v int64) Rep
 	}
 }
 
-// String returns the string branch value.
-func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) String() string {
+// String returns the string branch value. It returns a
+// *ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReplicationLeaderStatusTotalReadTimeTranslogMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReplicationLeaderStatusTotalReadTimeTranslogMillisBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReplicationLeaderStatusTotalReadTimeTranslogMillisFromString returns a ReplicationLeaderStatusTotalReadTimeTranslogMillis populated with v
@@ -23270,6 +27479,32 @@ const (
 	RollupsIntervalCronRollupsCronType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t RollupsIntervalCronType) String() string {
+	switch t {
+	case RollupsIntervalCronArrayType:
+		return "Array"
+	case RollupsIntervalCronRollupsCronType:
+		return "RollupsCron"
+	default:
+		return "unknown"
+	}
+}
+
+// RollupsIntervalCronBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type RollupsIntervalCronBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got RollupsIntervalCronType
+}
+
+func (e *RollupsIntervalCronBranchError) Error() string {
+	return fmt.Sprintf("RollupsIntervalCron: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns RollupsIntervalCronUnknownType if the value has not been decoded.
 func (u *RollupsIntervalCron) Type() RollupsIntervalCronType { return u.typ }
@@ -23289,13 +27524,16 @@ func (u *RollupsIntervalCron) SetRaw(raw json.RawMessage) {
 	u.typ = RollupsIntervalCronUnknownType
 }
 
-// Array returns the []RollupsCron branch value.
-func (u *RollupsIntervalCron) Array() []RollupsCron {
+// Array returns the []RollupsCron branch value. It returns a
+// *RollupsIntervalCronBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []RollupsCron in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *RollupsIntervalCron) Array() ([]RollupsCron, error) {
 	if v, ok := u.value.(*[]RollupsCron); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []RollupsCron
-	return zero
+	return zero, &RollupsIntervalCronBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewRollupsIntervalCronFromArray returns a RollupsIntervalCron populated with v
@@ -23307,13 +27545,16 @@ func NewRollupsIntervalCronFromArray(v []RollupsCron) RollupsIntervalCron {
 	}
 }
 
-// RollupsCron returns the RollupsCron branch value.
-func (u *RollupsIntervalCron) RollupsCron() RollupsCron {
+// RollupsCron returns the RollupsCron branch value. It returns a
+// *RollupsIntervalCronBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero RollupsCron in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *RollupsIntervalCron) RollupsCron() (RollupsCron, error) {
 	if v, ok := u.value.(*RollupsCron); ok {
-		return *v
+		return *v, nil
 	}
 	var zero RollupsCron
-	return zero
+	return zero, &RollupsIntervalCronBranchError{Want: "RollupsCron", Got: u.typ}
 }
 
 // NewRollupsIntervalCronFromRollupsCron returns a RollupsIntervalCron populated with v
@@ -23381,6 +27622,32 @@ const (
 	SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessorType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchPipelineStructurePhaseResultsProcessorsItemType) String() string {
+	switch t {
+	case SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessorType:
+		return "NormalizationProcessor"
+	case SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessorType:
+		return "ScoreRankerProcessor"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchPipelineStructurePhaseResultsProcessorsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchPipelineStructurePhaseResultsProcessorsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchPipelineStructurePhaseResultsProcessorsItemType
+}
+
+func (e *SearchPipelineStructurePhaseResultsProcessorsItemBranchError) Error() string {
+	return fmt.Sprintf("SearchPipelineStructurePhaseResultsProcessorsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchPipelineStructurePhaseResultsProcessorsItemUnknownType if the value has not been decoded.
 func (u *SearchPipelineStructurePhaseResultsProcessorsItem) Type() SearchPipelineStructurePhaseResultsProcessorsItemType {
@@ -23402,13 +27669,16 @@ func (u *SearchPipelineStructurePhaseResultsProcessorsItem) SetRaw(raw json.RawM
 	u.typ = SearchPipelineStructurePhaseResultsProcessorsItemUnknownType
 }
 
-// NormalizationProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor branch value.
-func (u *SearchPipelineStructurePhaseResultsProcessorsItem) NormalizationProcessor() SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor {
+// NormalizationProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor branch value. It returns a
+// *SearchPipelineStructurePhaseResultsProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructurePhaseResultsProcessorsItem) NormalizationProcessor() (SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor, error) {
 	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor
-	return zero
+	return zero, &SearchPipelineStructurePhaseResultsProcessorsItemBranchError{Want: "NormalizationProcessor", Got: u.typ}
 }
 
 // NewSearchPipelineStructurePhaseResultsProcessorsItemFromNormalizationProcessor returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
@@ -23420,13 +27690,16 @@ func NewSearchPipelineStructurePhaseResultsProcessorsItemFromNormalizationProces
 	}
 }
 
-// ScoreRankerProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor branch value.
-func (u *SearchPipelineStructurePhaseResultsProcessorsItem) ScoreRankerProcessor() SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor {
+// ScoreRankerProcessor returns the SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor branch value. It returns a
+// *SearchPipelineStructurePhaseResultsProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructurePhaseResultsProcessorsItem) ScoreRankerProcessor() (SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor, error) {
 	if v, ok := u.value.(*SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor
-	return zero
+	return zero, &SearchPipelineStructurePhaseResultsProcessorsItemBranchError{Want: "ScoreRankerProcessor", Got: u.typ}
 }
 
 // NewSearchPipelineStructurePhaseResultsProcessorsItemFromScoreRankerProcessor returns a SearchPipelineStructurePhaseResultsProcessorsItem populated with v
@@ -23501,6 +27774,38 @@ const (
 	SearchPipelineStructureRequestProcessorsItemOversampleType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchPipelineStructureRequestProcessorsItemType) String() string {
+	switch t {
+	case SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslatorType:
+		return "AgenticQueryTranslator"
+	case SearchPipelineStructureRequestProcessorsItemFilterQueryType:
+		return "FilterQuery"
+	case SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricherType:
+		return "NeuralQueryEnricher"
+	case SearchPipelineStructureRequestProcessorsItemScriptType:
+		return "Script"
+	case SearchPipelineStructureRequestProcessorsItemOversampleType:
+		return "Oversample"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchPipelineStructureRequestProcessorsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchPipelineStructureRequestProcessorsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchPipelineStructureRequestProcessorsItemType
+}
+
+func (e *SearchPipelineStructureRequestProcessorsItemBranchError) Error() string {
+	return fmt.Sprintf("SearchPipelineStructureRequestProcessorsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchPipelineStructureRequestProcessorsItemUnknownType if the value has not been decoded.
 func (u *SearchPipelineStructureRequestProcessorsItem) Type() SearchPipelineStructureRequestProcessorsItemType {
@@ -23522,13 +27827,16 @@ func (u *SearchPipelineStructureRequestProcessorsItem) SetRaw(raw json.RawMessag
 	u.typ = SearchPipelineStructureRequestProcessorsItemUnknownType
 }
 
-// AgenticQueryTranslator returns the SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) AgenticQueryTranslator() SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator {
+// AgenticQueryTranslator returns the SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator branch value. It returns a
+// *SearchPipelineStructureRequestProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRequestProcessorsItem) AgenticQueryTranslator() (SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator
-	return zero
+	return zero, &SearchPipelineStructureRequestProcessorsItemBranchError{Want: "AgenticQueryTranslator", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRequestProcessorsItemFromAgenticQueryTranslator returns a SearchPipelineStructureRequestProcessorsItem populated with v
@@ -23540,13 +27848,16 @@ func NewSearchPipelineStructureRequestProcessorsItemFromAgenticQueryTranslator(v
 	}
 }
 
-// FilterQuery returns the SearchPipelineStructureRequestProcessorsItemFilterQuery branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) FilterQuery() SearchPipelineStructureRequestProcessorsItemFilterQuery {
+// FilterQuery returns the SearchPipelineStructureRequestProcessorsItemFilterQuery branch value. It returns a
+// *SearchPipelineStructureRequestProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRequestProcessorsItemFilterQuery in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRequestProcessorsItem) FilterQuery() (SearchPipelineStructureRequestProcessorsItemFilterQuery, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemFilterQuery); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRequestProcessorsItemFilterQuery
-	return zero
+	return zero, &SearchPipelineStructureRequestProcessorsItemBranchError{Want: "FilterQuery", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRequestProcessorsItemFromFilterQuery returns a SearchPipelineStructureRequestProcessorsItem populated with v
@@ -23558,13 +27869,16 @@ func NewSearchPipelineStructureRequestProcessorsItemFromFilterQuery(v SearchPipe
 	}
 }
 
-// NeuralQueryEnricher returns the SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) NeuralQueryEnricher() SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher {
+// NeuralQueryEnricher returns the SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher branch value. It returns a
+// *SearchPipelineStructureRequestProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRequestProcessorsItem) NeuralQueryEnricher() (SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher
-	return zero
+	return zero, &SearchPipelineStructureRequestProcessorsItemBranchError{Want: "NeuralQueryEnricher", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRequestProcessorsItemFromNeuralQueryEnricher returns a SearchPipelineStructureRequestProcessorsItem populated with v
@@ -23576,13 +27890,16 @@ func NewSearchPipelineStructureRequestProcessorsItemFromNeuralQueryEnricher(v Se
 	}
 }
 
-// Script returns the SearchPipelineStructureRequestProcessorsItemScript branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) Script() SearchPipelineStructureRequestProcessorsItemScript {
+// Script returns the SearchPipelineStructureRequestProcessorsItemScript branch value. It returns a
+// *SearchPipelineStructureRequestProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRequestProcessorsItemScript in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRequestProcessorsItem) Script() (SearchPipelineStructureRequestProcessorsItemScript, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemScript); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRequestProcessorsItemScript
-	return zero
+	return zero, &SearchPipelineStructureRequestProcessorsItemBranchError{Want: "Script", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRequestProcessorsItemFromScript returns a SearchPipelineStructureRequestProcessorsItem populated with v
@@ -23594,13 +27911,16 @@ func NewSearchPipelineStructureRequestProcessorsItemFromScript(v SearchPipelineS
 	}
 }
 
-// Oversample returns the SearchPipelineStructureRequestProcessorsItemOversample branch value.
-func (u *SearchPipelineStructureRequestProcessorsItem) Oversample() SearchPipelineStructureRequestProcessorsItemOversample {
+// Oversample returns the SearchPipelineStructureRequestProcessorsItemOversample branch value. It returns a
+// *SearchPipelineStructureRequestProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRequestProcessorsItemOversample in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRequestProcessorsItem) Oversample() (SearchPipelineStructureRequestProcessorsItemOversample, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRequestProcessorsItemOversample); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRequestProcessorsItemOversample
-	return zero
+	return zero, &SearchPipelineStructureRequestProcessorsItemBranchError{Want: "Oversample", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRequestProcessorsItemFromOversample returns a SearchPipelineStructureRequestProcessorsItem populated with v
@@ -23709,6 +28029,46 @@ const (
 	SearchPipelineStructureRespProcessorsItemSplitType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchPipelineStructureRespProcessorsItemType) String() string {
+	switch t {
+	case SearchPipelineStructureRespProcessorsItemAgenticContextType:
+		return "AgenticContext"
+	case SearchPipelineStructureRespProcessorsItemPersonalizeSearchRankingType:
+		return "PersonalizeSearchRanking"
+	case SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGenerationType:
+		return "RetrievalAugmentedGeneration"
+	case SearchPipelineStructureRespProcessorsItemRenameFieldType:
+		return "RenameField"
+	case SearchPipelineStructureRespProcessorsItemRerankType:
+		return "Rerank"
+	case SearchPipelineStructureRespProcessorsItemCollapseType:
+		return "Collapse"
+	case SearchPipelineStructureRespProcessorsItemTruncateHitsType:
+		return "TruncateHits"
+	case SearchPipelineStructureRespProcessorsItemSortType:
+		return "Sort"
+	case SearchPipelineStructureRespProcessorsItemSplitType:
+		return "Split"
+	default:
+		return "unknown"
+	}
+}
+
+// SearchPipelineStructureRespProcessorsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SearchPipelineStructureRespProcessorsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SearchPipelineStructureRespProcessorsItemType
+}
+
+func (e *SearchPipelineStructureRespProcessorsItemBranchError) Error() string {
+	return fmt.Sprintf("SearchPipelineStructureRespProcessorsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SearchPipelineStructureRespProcessorsItemUnknownType if the value has not been decoded.
 func (u *SearchPipelineStructureRespProcessorsItem) Type() SearchPipelineStructureRespProcessorsItemType {
@@ -23730,13 +28090,16 @@ func (u *SearchPipelineStructureRespProcessorsItem) SetRaw(raw json.RawMessage) 
 	u.typ = SearchPipelineStructureRespProcessorsItemUnknownType
 }
 
-// AgenticContext returns the SearchPipelineStructureRespProcessorsItemAgenticContext branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) AgenticContext() SearchPipelineStructureRespProcessorsItemAgenticContext {
+// AgenticContext returns the SearchPipelineStructureRespProcessorsItemAgenticContext branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemAgenticContext in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) AgenticContext() (SearchPipelineStructureRespProcessorsItemAgenticContext, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemAgenticContext); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemAgenticContext
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "AgenticContext", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromAgenticContext returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23748,13 +28111,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromAgenticContext(v SearchPipe
 	}
 }
 
-// PersonalizeSearchRanking returns the SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) PersonalizeSearchRanking() SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking {
+// PersonalizeSearchRanking returns the SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) PersonalizeSearchRanking() (SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "PersonalizeSearchRanking", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromPersonalizeSearchRanking returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23766,13 +28132,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromPersonalizeSearchRanking(v 
 	}
 }
 
-// RetrievalAugmentedGeneration returns the SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) RetrievalAugmentedGeneration() SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration {
+// RetrievalAugmentedGeneration returns the SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) RetrievalAugmentedGeneration() (SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "RetrievalAugmentedGeneration", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromRetrievalAugmentedGeneration returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23784,13 +28153,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromRetrievalAugmentedGeneratio
 	}
 }
 
-// RenameField returns the SearchPipelineStructureRespProcessorsItemRenameField branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) RenameField() SearchPipelineStructureRespProcessorsItemRenameField {
+// RenameField returns the SearchPipelineStructureRespProcessorsItemRenameField branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemRenameField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) RenameField() (SearchPipelineStructureRespProcessorsItemRenameField, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRenameField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemRenameField
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "RenameField", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromRenameField returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23802,13 +28174,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromRenameField(v SearchPipelin
 	}
 }
 
-// Rerank returns the SearchPipelineStructureRespProcessorsItemRerank branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) Rerank() SearchPipelineStructureRespProcessorsItemRerank {
+// Rerank returns the SearchPipelineStructureRespProcessorsItemRerank branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemRerank in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) Rerank() (SearchPipelineStructureRespProcessorsItemRerank, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemRerank); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemRerank
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "Rerank", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromRerank returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23820,13 +28195,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromRerank(v SearchPipelineStru
 	}
 }
 
-// Collapse returns the SearchPipelineStructureRespProcessorsItemCollapse branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) Collapse() SearchPipelineStructureRespProcessorsItemCollapse {
+// Collapse returns the SearchPipelineStructureRespProcessorsItemCollapse branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemCollapse in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) Collapse() (SearchPipelineStructureRespProcessorsItemCollapse, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemCollapse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemCollapse
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "Collapse", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromCollapse returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23838,13 +28216,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromCollapse(v SearchPipelineSt
 	}
 }
 
-// TruncateHits returns the SearchPipelineStructureRespProcessorsItemTruncateHits branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) TruncateHits() SearchPipelineStructureRespProcessorsItemTruncateHits {
+// TruncateHits returns the SearchPipelineStructureRespProcessorsItemTruncateHits branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemTruncateHits in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) TruncateHits() (SearchPipelineStructureRespProcessorsItemTruncateHits, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemTruncateHits); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemTruncateHits
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "TruncateHits", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromTruncateHits returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23856,13 +28237,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromTruncateHits(v SearchPipeli
 	}
 }
 
-// Sort returns the SearchPipelineStructureRespProcessorsItemSort branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) Sort() SearchPipelineStructureRespProcessorsItemSort {
+// Sort returns the SearchPipelineStructureRespProcessorsItemSort branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) Sort() (SearchPipelineStructureRespProcessorsItemSort, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemSort
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "Sort", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromSort returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -23874,13 +28258,16 @@ func NewSearchPipelineStructureRespProcessorsItemFromSort(v SearchPipelineStruct
 	}
 }
 
-// Split returns the SearchPipelineStructureRespProcessorsItemSplit branch value.
-func (u *SearchPipelineStructureRespProcessorsItem) Split() SearchPipelineStructureRespProcessorsItemSplit {
+// Split returns the SearchPipelineStructureRespProcessorsItemSplit branch value. It returns a
+// *SearchPipelineStructureRespProcessorsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SearchPipelineStructureRespProcessorsItemSplit in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SearchPipelineStructureRespProcessorsItem) Split() (SearchPipelineStructureRespProcessorsItemSplit, error) {
 	if v, ok := u.value.(*SearchPipelineStructureRespProcessorsItemSplit); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchPipelineStructureRespProcessorsItemSplit
-	return zero
+	return zero, &SearchPipelineStructureRespProcessorsItemBranchError{Want: "Split", Got: u.typ}
 }
 
 // NewSearchPipelineStructureRespProcessorsItemFromSplit returns a SearchPipelineStructureRespProcessorsItem populated with v
@@ -24022,6 +28409,32 @@ const (
 	SQLPPLEnabledStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SQLPPLEnabledType) String() string {
+	switch t {
+	case SQLPPLEnabledBoolType:
+		return "Bool"
+	case SQLPPLEnabledStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// SQLPPLEnabledBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SQLPPLEnabledBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SQLPPLEnabledType
+}
+
+func (e *SQLPPLEnabledBranchError) Error() string {
+	return fmt.Sprintf("SQLPPLEnabled: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SQLPPLEnabledUnknownType if the value has not been decoded.
 func (u *SQLPPLEnabled) Type() SQLPPLEnabledType { return u.typ }
@@ -24041,13 +28454,16 @@ func (u *SQLPPLEnabled) SetRaw(raw json.RawMessage) {
 	u.typ = SQLPPLEnabledUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *SQLPPLEnabled) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *SQLPPLEnabledBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLPPLEnabled) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &SQLPPLEnabledBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewSQLPPLEnabledFromBool returns a SQLPPLEnabled populated with v
@@ -24059,13 +28475,16 @@ func NewSQLPPLEnabledFromBool(v bool) SQLPPLEnabled {
 	}
 }
 
-// String returns the string branch value.
-func (u *SQLPPLEnabled) String() string {
+// String returns the string branch value. It returns a
+// *SQLPPLEnabledBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLPPLEnabled) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SQLPPLEnabledBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSQLPPLEnabledFromString returns a SQLPPLEnabled populated with v
@@ -24133,6 +28552,32 @@ const (
 	SQLPluginsQuerySizeLimitIntType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SQLPluginsQuerySizeLimitType) String() string {
+	switch t {
+	case SQLPluginsQuerySizeLimitStringType:
+		return "String"
+	case SQLPluginsQuerySizeLimitIntType:
+		return "Int"
+	default:
+		return "unknown"
+	}
+}
+
+// SQLPluginsQuerySizeLimitBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SQLPluginsQuerySizeLimitBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SQLPluginsQuerySizeLimitType
+}
+
+func (e *SQLPluginsQuerySizeLimitBranchError) Error() string {
+	return fmt.Sprintf("SQLPluginsQuerySizeLimit: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SQLPluginsQuerySizeLimitUnknownType if the value has not been decoded.
 func (u *SQLPluginsQuerySizeLimit) Type() SQLPluginsQuerySizeLimitType { return u.typ }
@@ -24152,13 +28597,16 @@ func (u *SQLPluginsQuerySizeLimit) SetRaw(raw json.RawMessage) {
 	u.typ = SQLPluginsQuerySizeLimitUnknownType
 }
 
-// String returns the string branch value.
-func (u *SQLPluginsQuerySizeLimit) String() string {
+// String returns the string branch value. It returns a
+// *SQLPluginsQuerySizeLimitBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLPluginsQuerySizeLimit) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SQLPluginsQuerySizeLimitBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSQLPluginsQuerySizeLimitFromString returns a SQLPluginsQuerySizeLimit populated with v
@@ -24170,13 +28618,16 @@ func NewSQLPluginsQuerySizeLimitFromString(v string) SQLPluginsQuerySizeLimit {
 	}
 }
 
-// Int returns the int branch value.
-func (u *SQLPluginsQuerySizeLimit) Int() int {
+// Int returns the int branch value. It returns a
+// *SQLPluginsQuerySizeLimitBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLPluginsQuerySizeLimit) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &SQLPluginsQuerySizeLimitBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewSQLPluginsQuerySizeLimitFromInt returns a SQLPluginsQuerySizeLimit populated with v
@@ -24244,6 +28695,32 @@ const (
 	SQLEnabledStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SQLEnabledType) String() string {
+	switch t {
+	case SQLEnabledBoolType:
+		return "Bool"
+	case SQLEnabledStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// SQLEnabledBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SQLEnabledBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SQLEnabledType
+}
+
+func (e *SQLEnabledBranchError) Error() string {
+	return fmt.Sprintf("SQLEnabled: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SQLEnabledUnknownType if the value has not been decoded.
 func (u *SQLEnabled) Type() SQLEnabledType { return u.typ }
@@ -24263,13 +28740,16 @@ func (u *SQLEnabled) SetRaw(raw json.RawMessage) {
 	u.typ = SQLEnabledUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *SQLEnabled) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *SQLEnabledBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLEnabled) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &SQLEnabledBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewSQLEnabledFromBool returns a SQLEnabled populated with v
@@ -24281,13 +28761,16 @@ func NewSQLEnabledFromBool(v bool) SQLEnabled {
 	}
 }
 
-// String returns the string branch value.
-func (u *SQLEnabled) String() string {
+// String returns the string branch value. It returns a
+// *SQLEnabledBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLEnabled) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SQLEnabledBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSQLEnabledFromString returns a SQLEnabled populated with v
@@ -24355,6 +28838,32 @@ const (
 	SQLSlowlogStringType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SQLSlowlogType) String() string {
+	switch t {
+	case SQLSlowlogIntType:
+		return "Int"
+	case SQLSlowlogStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// SQLSlowlogBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type SQLSlowlogBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got SQLSlowlogType
+}
+
+func (e *SQLSlowlogBranchError) Error() string {
+	return fmt.Sprintf("SQLSlowlog: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns SQLSlowlogUnknownType if the value has not been decoded.
 func (u *SQLSlowlog) Type() SQLSlowlogType { return u.typ }
@@ -24374,13 +28883,16 @@ func (u *SQLSlowlog) SetRaw(raw json.RawMessage) {
 	u.typ = SQLSlowlogUnknownType
 }
 
-// Int returns the int branch value.
-func (u *SQLSlowlog) Int() int {
+// Int returns the int branch value. It returns a
+// *SQLSlowlogBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLSlowlog) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &SQLSlowlogBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewSQLSlowlogFromInt returns a SQLSlowlog populated with v
@@ -24392,13 +28904,16 @@ func NewSQLSlowlogFromInt(v int) SQLSlowlog {
 	}
 }
 
-// String returns the string branch value.
-func (u *SQLSlowlog) String() string {
+// String returns the string branch value. It returns a
+// *SQLSlowlogBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *SQLSlowlog) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &SQLSlowlogBranchError{Want: "String", Got: u.typ}
 }
 
 // NewSQLSlowlogFromString returns a SQLSlowlog populated with v
@@ -24466,6 +28981,32 @@ const (
 	WLMQueryGroupRespResourceLimitsCPUType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t WLMQueryGroupRespResourceLimitsType) String() string {
+	switch t {
+	case WLMQueryGroupRespResourceLimitsMemoryType:
+		return "Memory"
+	case WLMQueryGroupRespResourceLimitsCPUType:
+		return "CPU"
+	default:
+		return "unknown"
+	}
+}
+
+// WLMQueryGroupRespResourceLimitsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type WLMQueryGroupRespResourceLimitsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got WLMQueryGroupRespResourceLimitsType
+}
+
+func (e *WLMQueryGroupRespResourceLimitsBranchError) Error() string {
+	return fmt.Sprintf("WLMQueryGroupRespResourceLimits: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns WLMQueryGroupRespResourceLimitsUnknownType if the value has not been decoded.
 func (u *WLMQueryGroupRespResourceLimits) Type() WLMQueryGroupRespResourceLimitsType { return u.typ }
@@ -24485,13 +29026,16 @@ func (u *WLMQueryGroupRespResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupRespResourceLimitsUnknownType
 }
 
-// Memory returns the WLMQueryGroupRespResourceLimitsMemory branch value.
-func (u *WLMQueryGroupRespResourceLimits) Memory() WLMQueryGroupRespResourceLimitsMemory {
+// Memory returns the WLMQueryGroupRespResourceLimitsMemory branch value. It returns a
+// *WLMQueryGroupRespResourceLimitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero WLMQueryGroupRespResourceLimitsMemory in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *WLMQueryGroupRespResourceLimits) Memory() (WLMQueryGroupRespResourceLimitsMemory, error) {
 	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsMemory); ok {
-		return *v
+		return *v, nil
 	}
 	var zero WLMQueryGroupRespResourceLimitsMemory
-	return zero
+	return zero, &WLMQueryGroupRespResourceLimitsBranchError{Want: "Memory", Got: u.typ}
 }
 
 // NewWLMQueryGroupRespResourceLimitsFromMemory returns a WLMQueryGroupRespResourceLimits populated with v
@@ -24503,13 +29047,16 @@ func NewWLMQueryGroupRespResourceLimitsFromMemory(v WLMQueryGroupRespResourceLim
 	}
 }
 
-// CPU returns the WLMQueryGroupRespResourceLimitsCPU branch value.
-func (u *WLMQueryGroupRespResourceLimits) CPU() WLMQueryGroupRespResourceLimitsCPU {
+// CPU returns the WLMQueryGroupRespResourceLimitsCPU branch value. It returns a
+// *WLMQueryGroupRespResourceLimitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero WLMQueryGroupRespResourceLimitsCPU in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *WLMQueryGroupRespResourceLimits) CPU() (WLMQueryGroupRespResourceLimitsCPU, error) {
 	if v, ok := u.value.(*WLMQueryGroupRespResourceLimitsCPU); ok {
-		return *v
+		return *v, nil
 	}
 	var zero WLMQueryGroupRespResourceLimitsCPU
-	return zero
+	return zero, &WLMQueryGroupRespResourceLimitsBranchError{Want: "CPU", Got: u.typ}
 }
 
 // NewWLMQueryGroupRespResourceLimitsFromCPU returns a WLMQueryGroupRespResourceLimits populated with v
@@ -24581,6 +29128,32 @@ const (
 	AsynchronousSearchSearchSourceExcludesIncludesType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchSourceType) String() string {
+	switch t {
+	case AsynchronousSearchSearchSourceStringType:
+		return "String"
+	case AsynchronousSearchSearchSourceExcludesIncludesType:
+		return "ExcludesIncludes"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchSourceBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchSourceBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchSourceType
+}
+
+func (e *AsynchronousSearchSearchSourceBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchSource: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchSourceUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchSource) Type() AsynchronousSearchSearchSourceType { return u.typ }
@@ -24600,13 +29173,16 @@ func (u *AsynchronousSearchSearchSource) SetRaw(raw json.RawMessage) {
 	u.typ = AsynchronousSearchSearchSourceUnknownType
 }
 
-// String returns the string branch value.
-func (u *AsynchronousSearchSearchSource) String() string {
+// String returns the string branch value. It returns a
+// *AsynchronousSearchSearchSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &AsynchronousSearchSearchSourceBranchError{Want: "String", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSourceFromString returns a AsynchronousSearchSearchSource populated with v
@@ -24618,13 +29194,16 @@ func NewAsynchronousSearchSearchSourceFromString(v string) AsynchronousSearchSea
 	}
 }
 
-// ExcludesIncludes returns the AsynchronousSearchSearchSourceExcludesIncludes branch value.
-func (u *AsynchronousSearchSearchSource) ExcludesIncludes() AsynchronousSearchSearchSourceExcludesIncludes {
+// ExcludesIncludes returns the AsynchronousSearchSearchSourceExcludesIncludes branch value. It returns a
+// *AsynchronousSearchSearchSourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero AsynchronousSearchSearchSourceExcludesIncludes in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSource) ExcludesIncludes() (AsynchronousSearchSearchSourceExcludesIncludes, error) {
 	if v, ok := u.value.(*AsynchronousSearchSearchSourceExcludesIncludes); ok {
-		return *v
+		return *v, nil
 	}
 	var zero AsynchronousSearchSearchSourceExcludesIncludes
-	return zero
+	return zero, &AsynchronousSearchSearchSourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSourceFromExcludesIncludes returns a AsynchronousSearchSearchSource populated with v
@@ -24692,6 +29271,32 @@ const (
 	AsynchronousSearchSearchDocvalueFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchDocvalueFieldsItemType) String() string {
+	switch t {
+	case AsynchronousSearchSearchDocvalueFieldsItemStringType:
+		return "String"
+	case AsynchronousSearchSearchDocvalueFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchDocvalueFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchDocvalueFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchDocvalueFieldsItemType
+}
+
+func (e *AsynchronousSearchSearchDocvalueFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchDocvalueFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchDocvalueFieldsItemUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchDocvalueFieldsItem) Type() AsynchronousSearchSearchDocvalueFieldsItemType {
@@ -24713,13 +29318,16 @@ func (u *AsynchronousSearchSearchDocvalueFieldsItem) SetRaw(raw json.RawMessage)
 	u.typ = AsynchronousSearchSearchDocvalueFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *AsynchronousSearchSearchDocvalueFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *AsynchronousSearchSearchDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchDocvalueFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &AsynchronousSearchSearchDocvalueFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchDocvalueFieldsItemFromString returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
@@ -24731,13 +29339,16 @@ func NewAsynchronousSearchSearchDocvalueFieldsItemFromString(v string) Asynchron
 	}
 }
 
-// Field returns the AsynchronousSearchSearchDocvalueFieldsItemField branch value.
-func (u *AsynchronousSearchSearchDocvalueFieldsItem) Field() AsynchronousSearchSearchDocvalueFieldsItemField {
+// Field returns the AsynchronousSearchSearchDocvalueFieldsItemField branch value. It returns a
+// *AsynchronousSearchSearchDocvalueFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero AsynchronousSearchSearchDocvalueFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchDocvalueFieldsItem) Field() (AsynchronousSearchSearchDocvalueFieldsItemField, error) {
 	if v, ok := u.value.(*AsynchronousSearchSearchDocvalueFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero AsynchronousSearchSearchDocvalueFieldsItemField
-	return zero
+	return zero, &AsynchronousSearchSearchDocvalueFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchDocvalueFieldsItemFromField returns a AsynchronousSearchSearchDocvalueFieldsItem populated with v
@@ -24805,6 +29416,32 @@ const (
 	AsynchronousSearchSearchFieldsItemFieldType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchFieldsItemType) String() string {
+	switch t {
+	case AsynchronousSearchSearchFieldsItemStringType:
+		return "String"
+	case AsynchronousSearchSearchFieldsItemFieldType:
+		return "Field"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchFieldsItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchFieldsItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchFieldsItemType
+}
+
+func (e *AsynchronousSearchSearchFieldsItemBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchFieldsItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchFieldsItemUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchFieldsItem) Type() AsynchronousSearchSearchFieldsItemType {
@@ -24826,13 +29463,16 @@ func (u *AsynchronousSearchSearchFieldsItem) SetRaw(raw json.RawMessage) {
 	u.typ = AsynchronousSearchSearchFieldsItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *AsynchronousSearchSearchFieldsItem) String() string {
+// String returns the string branch value. It returns a
+// *AsynchronousSearchSearchFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &AsynchronousSearchSearchFieldsItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchFieldsItemFromString returns a AsynchronousSearchSearchFieldsItem populated with v
@@ -24844,13 +29484,16 @@ func NewAsynchronousSearchSearchFieldsItemFromString(v string) AsynchronousSearc
 	}
 }
 
-// Field returns the AsynchronousSearchSearchFieldsItemField branch value.
-func (u *AsynchronousSearchSearchFieldsItem) Field() AsynchronousSearchSearchFieldsItemField {
+// Field returns the AsynchronousSearchSearchFieldsItemField branch value. It returns a
+// *AsynchronousSearchSearchFieldsItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero AsynchronousSearchSearchFieldsItemField in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchFieldsItem) Field() (AsynchronousSearchSearchFieldsItemField, error) {
 	if v, ok := u.value.(*AsynchronousSearchSearchFieldsItemField); ok {
-		return *v
+		return *v, nil
 	}
 	var zero AsynchronousSearchSearchFieldsItemField
-	return zero
+	return zero, &AsynchronousSearchSearchFieldsItemBranchError{Want: "Field", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchFieldsItemFromField returns a AsynchronousSearchSearchFieldsItem populated with v
@@ -24920,6 +29563,36 @@ const (
 	AsynchronousSearchSearchSortOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchSortType) String() string {
+	switch t {
+	case AsynchronousSearchSearchSortStringType:
+		return "String"
+	case AsynchronousSearchSearchSortStringMapType:
+		return "StringMap"
+	case AsynchronousSearchSearchSortFieldSortMapType:
+		return "FieldSortMap"
+	case AsynchronousSearchSearchSortOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchSortBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchSortBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchSortType
+}
+
+func (e *AsynchronousSearchSearchSortBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchSort: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchSortUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchSort) Type() AsynchronousSearchSearchSortType { return u.typ }
@@ -24939,13 +29612,16 @@ func (u *AsynchronousSearchSearchSort) SetRaw(raw json.RawMessage) {
 	u.typ = AsynchronousSearchSearchSortUnknownType
 }
 
-// String returns the string branch value.
-func (u *AsynchronousSearchSearchSort) String() string {
+// String returns the string branch value. It returns a
+// *AsynchronousSearchSearchSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &AsynchronousSearchSearchSortBranchError{Want: "String", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortFromString returns a AsynchronousSearchSearchSort populated with v
@@ -24957,13 +29633,16 @@ func NewAsynchronousSearchSearchSortFromString(v string) AsynchronousSearchSearc
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *AsynchronousSearchSearchSort) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *AsynchronousSearchSearchSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &AsynchronousSearchSearchSortBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortFromStringMap returns a AsynchronousSearchSearchSort populated with v
@@ -24975,13 +29654,16 @@ func NewAsynchronousSearchSearchSortFromStringMap(v map[string]string) Asynchron
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *AsynchronousSearchSearchSort) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *AsynchronousSearchSearchSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &AsynchronousSearchSearchSortBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortFromFieldSortMap returns a AsynchronousSearchSearchSort populated with v
@@ -24993,13 +29675,16 @@ func NewAsynchronousSearchSearchSortFromFieldSortMap(v map[string]FieldSort) Asy
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *AsynchronousSearchSearchSort) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *AsynchronousSearchSearchSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &AsynchronousSearchSearchSortBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortFromOptions returns a AsynchronousSearchSearchSort populated with v
@@ -25089,6 +29774,36 @@ const (
 	AsynchronousSearchSearchSortItemOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchSortItemType) String() string {
+	switch t {
+	case AsynchronousSearchSearchSortItemStringType:
+		return "String"
+	case AsynchronousSearchSearchSortItemStringMapType:
+		return "StringMap"
+	case AsynchronousSearchSearchSortItemFieldSortMapType:
+		return "FieldSortMap"
+	case AsynchronousSearchSearchSortItemOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchSortItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchSortItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchSortItemType
+}
+
+func (e *AsynchronousSearchSearchSortItemBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchSortItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchSortItemUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchSortItem) Type() AsynchronousSearchSearchSortItemType { return u.typ }
@@ -25108,13 +29823,16 @@ func (u *AsynchronousSearchSearchSortItem) SetRaw(raw json.RawMessage) {
 	u.typ = AsynchronousSearchSearchSortItemUnknownType
 }
 
-// String returns the string branch value.
-func (u *AsynchronousSearchSearchSortItem) String() string {
+// String returns the string branch value. It returns a
+// *AsynchronousSearchSearchSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSortItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &AsynchronousSearchSearchSortItemBranchError{Want: "String", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortItemFromString returns a AsynchronousSearchSearchSortItem populated with v
@@ -25126,13 +29844,16 @@ func NewAsynchronousSearchSearchSortItemFromString(v string) AsynchronousSearchS
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *AsynchronousSearchSearchSortItem) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *AsynchronousSearchSearchSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSortItem) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &AsynchronousSearchSearchSortItemBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortItemFromStringMap returns a AsynchronousSearchSearchSortItem populated with v
@@ -25144,13 +29865,16 @@ func NewAsynchronousSearchSearchSortItemFromStringMap(v map[string]string) Async
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *AsynchronousSearchSearchSortItem) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *AsynchronousSearchSearchSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSortItem) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &AsynchronousSearchSearchSortItemBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortItemFromFieldSortMap returns a AsynchronousSearchSearchSortItem populated with v
@@ -25162,13 +29886,16 @@ func NewAsynchronousSearchSearchSortItemFromFieldSortMap(v map[string]FieldSort)
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *AsynchronousSearchSearchSortItem) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *AsynchronousSearchSearchSortItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchSortItem) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &AsynchronousSearchSearchSortItemBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchSortItemFromOptions returns a AsynchronousSearchSearchSortItem populated with v
@@ -25259,6 +29986,32 @@ const (
 	AsynchronousSearchSearchTrackTotalHitsIntType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t AsynchronousSearchSearchTrackTotalHitsType) String() string {
+	switch t {
+	case AsynchronousSearchSearchTrackTotalHitsBoolType:
+		return "Bool"
+	case AsynchronousSearchSearchTrackTotalHitsIntType:
+		return "Int"
+	default:
+		return "unknown"
+	}
+}
+
+// AsynchronousSearchSearchTrackTotalHitsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type AsynchronousSearchSearchTrackTotalHitsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got AsynchronousSearchSearchTrackTotalHitsType
+}
+
+func (e *AsynchronousSearchSearchTrackTotalHitsBranchError) Error() string {
+	return fmt.Sprintf("AsynchronousSearchSearchTrackTotalHits: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns AsynchronousSearchSearchTrackTotalHitsUnknownType if the value has not been decoded.
 func (u *AsynchronousSearchSearchTrackTotalHits) Type() AsynchronousSearchSearchTrackTotalHitsType {
@@ -25280,13 +30033,16 @@ func (u *AsynchronousSearchSearchTrackTotalHits) SetRaw(raw json.RawMessage) {
 	u.typ = AsynchronousSearchSearchTrackTotalHitsUnknownType
 }
 
-// Bool returns the bool branch value.
-func (u *AsynchronousSearchSearchTrackTotalHits) Bool() bool {
+// Bool returns the bool branch value. It returns a
+// *AsynchronousSearchSearchTrackTotalHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero bool in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchTrackTotalHits) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
-		return *v
+		return *v, nil
 	}
 	var zero bool
-	return zero
+	return zero, &AsynchronousSearchSearchTrackTotalHitsBranchError{Want: "Bool", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchTrackTotalHitsFromBool returns a AsynchronousSearchSearchTrackTotalHits populated with v
@@ -25298,13 +30054,16 @@ func NewAsynchronousSearchSearchTrackTotalHitsFromBool(v bool) AsynchronousSearc
 	}
 }
 
-// Int returns the int branch value.
-func (u *AsynchronousSearchSearchTrackTotalHits) Int() int {
+// Int returns the int branch value. It returns a
+// *AsynchronousSearchSearchTrackTotalHitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero int in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *AsynchronousSearchSearchTrackTotalHits) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
-		return *v
+		return *v, nil
 	}
 	var zero int
-	return zero
+	return zero, &AsynchronousSearchSearchTrackTotalHitsBranchError{Want: "Int", Got: u.typ}
 }
 
 // NewAsynchronousSearchSearchTrackTotalHitsFromInt returns a AsynchronousSearchSearchTrackTotalHits populated with v
@@ -25378,6 +30137,42 @@ const (
 	GeospatialGeoJSONDataGeometryArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t GeospatialGeoJSONDataGeometryType) String() string {
+	switch t {
+	case GeospatialGeoJSONDataGeometryGeospatialPointType:
+		return "GeospatialPoint"
+	case GeospatialGeoJSONDataGeometryGeospatialMultiPointType:
+		return "GeospatialMultiPoint"
+	case GeospatialGeoJSONDataGeometryGeospatialLineStringType:
+		return "GeospatialLineString"
+	case GeospatialGeoJSONDataGeometryGeospatialMultiLineStringType:
+		return "GeospatialMultiLineString"
+	case GeospatialGeoJSONDataGeometryGeospatialPolygonType:
+		return "GeospatialPolygon"
+	case GeospatialGeoJSONDataGeometryGeospatialMultiPolygonType:
+		return "GeospatialMultiPolygon"
+	case GeospatialGeoJSONDataGeometryArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// GeospatialGeoJSONDataGeometryBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type GeospatialGeoJSONDataGeometryBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got GeospatialGeoJSONDataGeometryType
+}
+
+func (e *GeospatialGeoJSONDataGeometryBranchError) Error() string {
+	return fmt.Sprintf("GeospatialGeoJSONDataGeometry: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns GeospatialGeoJSONDataGeometryUnknownType if the value has not been decoded.
 func (u *GeospatialGeoJSONDataGeometry) Type() GeospatialGeoJSONDataGeometryType { return u.typ }
@@ -25397,13 +30192,16 @@ func (u *GeospatialGeoJSONDataGeometry) SetRaw(raw json.RawMessage) {
 	u.typ = GeospatialGeoJSONDataGeometryUnknownType
 }
 
-// GeospatialPoint returns the GeospatialPoint branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialPoint() GeospatialPoint {
+// GeospatialPoint returns the GeospatialPoint branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialPoint in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialPoint() (GeospatialPoint, error) {
 	if v, ok := u.value.(*GeospatialPoint); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialPoint
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialPoint", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialPoint returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25415,13 +30213,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialPoint(v GeospatialPoint) Geos
 	}
 }
 
-// GeospatialMultiPoint returns the GeospatialMultiPoint branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPoint() GeospatialMultiPoint {
+// GeospatialMultiPoint returns the GeospatialMultiPoint branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiPoint in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPoint() (GeospatialMultiPoint, error) {
 	if v, ok := u.value.(*GeospatialMultiPoint); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiPoint
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialMultiPoint", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPoint returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25433,13 +30234,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPoint(v GeospatialMultiP
 	}
 }
 
-// GeospatialLineString returns the GeospatialLineString branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialLineString() GeospatialLineString {
+// GeospatialLineString returns the GeospatialLineString branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialLineString in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialLineString() (GeospatialLineString, error) {
 	if v, ok := u.value.(*GeospatialLineString); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialLineString
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialLineString", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialLineString returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25451,13 +30255,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialLineString(v GeospatialLineSt
 	}
 }
 
-// GeospatialMultiLineString returns the GeospatialMultiLineString branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiLineString() GeospatialMultiLineString {
+// GeospatialMultiLineString returns the GeospatialMultiLineString branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiLineString in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiLineString() (GeospatialMultiLineString, error) {
 	if v, ok := u.value.(*GeospatialMultiLineString); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiLineString
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialMultiLineString", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialMultiLineString returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25469,13 +30276,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiLineString(v GeospatialM
 	}
 }
 
-// GeospatialPolygon returns the GeospatialPolygon branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialPolygon() GeospatialPolygon {
+// GeospatialPolygon returns the GeospatialPolygon branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialPolygon in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialPolygon() (GeospatialPolygon, error) {
 	if v, ok := u.value.(*GeospatialPolygon); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialPolygon
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialPolygon", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialPolygon returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25487,13 +30297,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialPolygon(v GeospatialPolygon) 
 	}
 }
 
-// GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value.
-func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPolygon() GeospatialMultiPolygon {
+// GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiPolygon in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) GeospatialMultiPolygon() (GeospatialMultiPolygon, error) {
 	if v, ok := u.value.(*GeospatialMultiPolygon); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiPolygon
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "GeospatialMultiPolygon", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPolygon returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25505,13 +30318,16 @@ func NewGeospatialGeoJSONDataGeometryFromGeospatialMultiPolygon(v GeospatialMult
 	}
 }
 
-// Array returns the [][]float64 branch value.
-func (u *GeospatialGeoJSONDataGeometry) Array() [][]float64 {
+// Array returns the [][]float64 branch value. It returns a
+// *GeospatialGeoJSONDataGeometryBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero [][]float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeoJSONDataGeometry) Array() ([][]float64, error) {
 	if v, ok := u.value.(*[][]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero [][]float64
-	return zero
+	return zero, &GeospatialGeoJSONDataGeometryBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewGeospatialGeoJSONDataGeometryFromArray returns a GeospatialGeoJSONDataGeometry populated with v
@@ -25629,6 +30445,42 @@ const (
 	GeospatialGeometryCollectionGeometriesItemArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t GeospatialGeometryCollectionGeometriesItemType) String() string {
+	switch t {
+	case GeospatialGeometryCollectionGeometriesItemGeospatialPointType:
+		return "GeospatialPoint"
+	case GeospatialGeometryCollectionGeometriesItemGeospatialMultiPointType:
+		return "GeospatialMultiPoint"
+	case GeospatialGeometryCollectionGeometriesItemGeospatialLineStringType:
+		return "GeospatialLineString"
+	case GeospatialGeometryCollectionGeometriesItemGeospatialMultiLineStringType:
+		return "GeospatialMultiLineString"
+	case GeospatialGeometryCollectionGeometriesItemGeospatialPolygonType:
+		return "GeospatialPolygon"
+	case GeospatialGeometryCollectionGeometriesItemGeospatialMultiPolygonType:
+		return "GeospatialMultiPolygon"
+	case GeospatialGeometryCollectionGeometriesItemArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// GeospatialGeometryCollectionGeometriesItemBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type GeospatialGeometryCollectionGeometriesItemBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got GeospatialGeometryCollectionGeometriesItemType
+}
+
+func (e *GeospatialGeometryCollectionGeometriesItemBranchError) Error() string {
+	return fmt.Sprintf("GeospatialGeometryCollectionGeometriesItem: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns GeospatialGeometryCollectionGeometriesItemUnknownType if the value has not been decoded.
 func (u *GeospatialGeometryCollectionGeometriesItem) Type() GeospatialGeometryCollectionGeometriesItemType {
@@ -25650,13 +30502,16 @@ func (u *GeospatialGeometryCollectionGeometriesItem) SetRaw(raw json.RawMessage)
 	u.typ = GeospatialGeometryCollectionGeometriesItemUnknownType
 }
 
-// GeospatialPoint returns the GeospatialPoint branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPoint() GeospatialPoint {
+// GeospatialPoint returns the GeospatialPoint branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialPoint in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPoint() (GeospatialPoint, error) {
 	if v, ok := u.value.(*GeospatialPoint); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialPoint
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialPoint", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPoint returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25668,13 +30523,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPoint(v Geospati
 	}
 }
 
-// GeospatialMultiPoint returns the GeospatialMultiPoint branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPoint() GeospatialMultiPoint {
+// GeospatialMultiPoint returns the GeospatialMultiPoint branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiPoint in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPoint() (GeospatialMultiPoint, error) {
 	if v, ok := u.value.(*GeospatialMultiPoint); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiPoint
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialMultiPoint", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPoint returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25686,13 +30544,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPoint(v Geo
 	}
 }
 
-// GeospatialLineString returns the GeospatialLineString branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialLineString() GeospatialLineString {
+// GeospatialLineString returns the GeospatialLineString branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialLineString in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialLineString() (GeospatialLineString, error) {
 	if v, ok := u.value.(*GeospatialLineString); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialLineString
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialLineString", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialLineString returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25704,13 +30565,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialLineString(v Geo
 	}
 }
 
-// GeospatialMultiLineString returns the GeospatialMultiLineString branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiLineString() GeospatialMultiLineString {
+// GeospatialMultiLineString returns the GeospatialMultiLineString branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiLineString in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiLineString() (GeospatialMultiLineString, error) {
 	if v, ok := u.value.(*GeospatialMultiLineString); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiLineString
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialMultiLineString", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiLineString returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25722,13 +30586,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiLineString(
 	}
 }
 
-// GeospatialPolygon returns the GeospatialPolygon branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPolygon() GeospatialPolygon {
+// GeospatialPolygon returns the GeospatialPolygon branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialPolygon in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialPolygon() (GeospatialPolygon, error) {
 	if v, ok := u.value.(*GeospatialPolygon); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialPolygon
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialPolygon", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPolygon returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25740,13 +30607,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialPolygon(v Geospa
 	}
 }
 
-// GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPolygon() GeospatialMultiPolygon {
+// GeospatialMultiPolygon returns the GeospatialMultiPolygon branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero GeospatialMultiPolygon in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) GeospatialMultiPolygon() (GeospatialMultiPolygon, error) {
 	if v, ok := u.value.(*GeospatialMultiPolygon); ok {
-		return *v
+		return *v, nil
 	}
 	var zero GeospatialMultiPolygon
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "GeospatialMultiPolygon", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPolygon returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25758,13 +30628,16 @@ func NewGeospatialGeometryCollectionGeometriesItemFromGeospatialMultiPolygon(v G
 	}
 }
 
-// Array returns the [][]float64 branch value.
-func (u *GeospatialGeometryCollectionGeometriesItem) Array() [][]float64 {
+// Array returns the [][]float64 branch value. It returns a
+// *GeospatialGeometryCollectionGeometriesItemBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero [][]float64 in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *GeospatialGeometryCollectionGeometriesItem) Array() ([][]float64, error) {
 	if v, ok := u.value.(*[][]float64); ok {
-		return *v
+		return *v, nil
 	}
 	var zero [][]float64
-	return zero
+	return zero, &GeospatialGeometryCollectionGeometriesItemBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewGeospatialGeometryCollectionGeometriesItemFromArray returns a GeospatialGeometryCollectionGeometriesItem populated with v
@@ -25878,6 +30751,32 @@ const (
 	MLGuardrailsStopWordsArrayType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t MLGuardrailsStopWordsType) String() string {
+	switch t {
+	case MLGuardrailsStopWordsStringType:
+		return "String"
+	case MLGuardrailsStopWordsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// MLGuardrailsStopWordsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type MLGuardrailsStopWordsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got MLGuardrailsStopWordsType
+}
+
+func (e *MLGuardrailsStopWordsBranchError) Error() string {
+	return fmt.Sprintf("MLGuardrailsStopWords: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns MLGuardrailsStopWordsUnknownType if the value has not been decoded.
 func (u *MLGuardrailsStopWords) Type() MLGuardrailsStopWordsType { return u.typ }
@@ -25897,13 +30796,16 @@ func (u *MLGuardrailsStopWords) SetRaw(raw json.RawMessage) {
 	u.typ = MLGuardrailsStopWordsUnknownType
 }
 
-// String returns the string branch value.
-func (u *MLGuardrailsStopWords) String() string {
+// String returns the string branch value. It returns a
+// *MLGuardrailsStopWordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLGuardrailsStopWords) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &MLGuardrailsStopWordsBranchError{Want: "String", Got: u.typ}
 }
 
 // NewMLGuardrailsStopWordsFromString returns a MLGuardrailsStopWords populated with v
@@ -25915,13 +30817,16 @@ func NewMLGuardrailsStopWordsFromString(v string) MLGuardrailsStopWords {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *MLGuardrailsStopWords) Array() []string {
+// Array returns the []string branch value. It returns a
+// *MLGuardrailsStopWordsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero []string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *MLGuardrailsStopWords) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &MLGuardrailsStopWordsBranchError{Want: "Array", Got: u.typ}
 }
 
 // NewMLGuardrailsStopWordsFromArray returns a MLGuardrailsStopWords populated with v
@@ -25989,6 +30894,32 @@ const (
 	DerivedFieldScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t DerivedFieldScriptType) String() string {
+	switch t {
+	case DerivedFieldScriptStringType:
+		return "String"
+	case DerivedFieldScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// DerivedFieldScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type DerivedFieldScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got DerivedFieldScriptType
+}
+
+func (e *DerivedFieldScriptBranchError) Error() string {
+	return fmt.Sprintf("DerivedFieldScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns DerivedFieldScriptUnknownType if the value has not been decoded.
 func (u *DerivedFieldScript) Type() DerivedFieldScriptType { return u.typ }
@@ -26008,13 +30939,16 @@ func (u *DerivedFieldScript) SetRaw(raw json.RawMessage) {
 	u.typ = DerivedFieldScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *DerivedFieldScript) String() string {
+// String returns the string branch value. It returns a
+// *DerivedFieldScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *DerivedFieldScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &DerivedFieldScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewDerivedFieldScriptFromString returns a DerivedFieldScript populated with v
@@ -26026,13 +30960,16 @@ func NewDerivedFieldScriptFromString(v string) DerivedFieldScript {
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *DerivedFieldScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *DerivedFieldScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *DerivedFieldScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &DerivedFieldScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewDerivedFieldScriptFromStored returns a DerivedFieldScript populated with v
@@ -26100,6 +31037,32 @@ const (
 	WLMQueryGroupCreateResourceLimitsCPUType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t WLMQueryGroupCreateResourceLimitsType) String() string {
+	switch t {
+	case WLMQueryGroupCreateResourceLimitsMemoryType:
+		return "Memory"
+	case WLMQueryGroupCreateResourceLimitsCPUType:
+		return "CPU"
+	default:
+		return "unknown"
+	}
+}
+
+// WLMQueryGroupCreateResourceLimitsBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type WLMQueryGroupCreateResourceLimitsBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got WLMQueryGroupCreateResourceLimitsType
+}
+
+func (e *WLMQueryGroupCreateResourceLimitsBranchError) Error() string {
+	return fmt.Sprintf("WLMQueryGroupCreateResourceLimits: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns WLMQueryGroupCreateResourceLimitsUnknownType if the value has not been decoded.
 func (u *WLMQueryGroupCreateResourceLimits) Type() WLMQueryGroupCreateResourceLimitsType {
@@ -26121,13 +31084,16 @@ func (u *WLMQueryGroupCreateResourceLimits) SetRaw(raw json.RawMessage) {
 	u.typ = WLMQueryGroupCreateResourceLimitsUnknownType
 }
 
-// Memory returns the WLMQueryGroupCreateResourceLimitsMemory branch value.
-func (u *WLMQueryGroupCreateResourceLimits) Memory() WLMQueryGroupCreateResourceLimitsMemory {
+// Memory returns the WLMQueryGroupCreateResourceLimitsMemory branch value. It returns a
+// *WLMQueryGroupCreateResourceLimitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero WLMQueryGroupCreateResourceLimitsMemory in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *WLMQueryGroupCreateResourceLimits) Memory() (WLMQueryGroupCreateResourceLimitsMemory, error) {
 	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsMemory); ok {
-		return *v
+		return *v, nil
 	}
 	var zero WLMQueryGroupCreateResourceLimitsMemory
-	return zero
+	return zero, &WLMQueryGroupCreateResourceLimitsBranchError{Want: "Memory", Got: u.typ}
 }
 
 // NewWLMQueryGroupCreateResourceLimitsFromMemory returns a WLMQueryGroupCreateResourceLimits populated with v
@@ -26139,13 +31105,16 @@ func NewWLMQueryGroupCreateResourceLimitsFromMemory(v WLMQueryGroupCreateResourc
 	}
 }
 
-// CPU returns the WLMQueryGroupCreateResourceLimitsCPU branch value.
-func (u *WLMQueryGroupCreateResourceLimits) CPU() WLMQueryGroupCreateResourceLimitsCPU {
+// CPU returns the WLMQueryGroupCreateResourceLimitsCPU branch value. It returns a
+// *WLMQueryGroupCreateResourceLimitsBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero WLMQueryGroupCreateResourceLimitsCPU in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *WLMQueryGroupCreateResourceLimits) CPU() (WLMQueryGroupCreateResourceLimitsCPU, error) {
 	if v, ok := u.value.(*WLMQueryGroupCreateResourceLimitsCPU); ok {
-		return *v
+		return *v, nil
 	}
 	var zero WLMQueryGroupCreateResourceLimitsCPU
-	return zero
+	return zero, &WLMQueryGroupCreateResourceLimitsBranchError{Want: "CPU", Got: u.typ}
 }
 
 // NewWLMQueryGroupCreateResourceLimitsFromCPU returns a WLMQueryGroupCreateResourceLimits populated with v

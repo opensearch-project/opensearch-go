@@ -135,7 +135,9 @@ func TestUnionConstructors(t *testing.T) {
 			}
 
 			if tt.wantArrayLen >= 0 {
-				require.Len(t, u.Array(), tt.wantArrayLen)
+				arr, err := u.Array()
+				require.NoError(t, err)
+				require.Len(t, arr, tt.wantArrayLen)
 			}
 		})
 	}

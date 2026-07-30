@@ -182,7 +182,8 @@ func (r *MSearchTemplateResp) SearchShardFailures() *PartialSearchError {
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
 		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
-			item := resp.MSearchMultiSearchItem()
+			// Guarded by the Type() check above, so the branch error cannot fire.
+			item, _ := resp.MSearchMultiSearchItem()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -209,9 +210,11 @@ func (r *MSearchTemplateResp) MultiSearchItemFailures() *MultiSearchItemError {
 	succeeded := 0
 	for i, resp := range r.Responses {
 		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
+			// Guarded by the Type() check, so the branch error cannot fire.
+			errBranch, _ := resp.ErrorRespBase()
 			failed = append(failed, MultiSearchItemFailure{
 				Index:         i,
-				ErrorRespBase: resp.ErrorRespBase(),
+				ErrorRespBase: errBranch,
 			})
 		} else {
 			succeeded++

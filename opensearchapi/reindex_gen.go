@@ -237,6 +237,32 @@ const (
 	ReindexRespBodyTaskType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReindexRespBodyType) String() string {
+	switch t {
+	case ReindexRespBodyBulkByScrollRespBaseType:
+		return "BulkByScrollRespBase"
+	case ReindexRespBodyTaskType:
+		return "Task"
+	default:
+		return "unknown"
+	}
+}
+
+// ReindexRespBodyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReindexRespBodyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReindexRespBodyType
+}
+
+func (e *ReindexRespBodyBranchError) Error() string {
+	return fmt.Sprintf("ReindexRespBody: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReindexRespBodyUnknownType if the value has not been decoded.
 func (u *ReindexRespBody) Type() ReindexRespBodyType { return u.typ }
@@ -256,13 +282,16 @@ func (u *ReindexRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = ReindexRespBodyUnknownType
 }
 
-// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
-func (u *ReindexRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
+// *ReindexRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkByScrollRespBase in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero
+	return zero, &ReindexRespBodyBranchError{Want: "BulkByScrollRespBase", Got: u.typ}
 }
 
 // NewReindexRespBodyFromBulkByScrollRespBase returns a ReindexRespBody populated with v
@@ -274,13 +303,16 @@ func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexR
 	}
 }
 
-// Task returns the ReindexRespBodyTask branch value.
-func (u *ReindexRespBody) Task() ReindexRespBodyTask {
+// Task returns the ReindexRespBodyTask branch value. It returns a
+// *ReindexRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero ReindexRespBodyTask in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexRespBody) Task() (ReindexRespBodyTask, error) {
 	if v, ok := u.value.(*ReindexRespBodyTask); ok {
-		return *v
+		return *v, nil
 	}
 	var zero ReindexRespBodyTask
-	return zero
+	return zero, &ReindexRespBodyBranchError{Want: "Task", Got: u.typ}
 }
 
 // NewReindexRespBodyFromTask returns a ReindexRespBody populated with v
@@ -433,6 +465,32 @@ const (
 	ReindexBodyScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReindexBodyScriptType) String() string {
+	switch t {
+	case ReindexBodyScriptStringType:
+		return "String"
+	case ReindexBodyScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// ReindexBodyScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReindexBodyScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReindexBodyScriptType
+}
+
+func (e *ReindexBodyScriptBranchError) Error() string {
+	return fmt.Sprintf("ReindexBodyScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReindexBodyScriptUnknownType if the value has not been decoded.
 func (u *ReindexBodyScript) Type() ReindexBodyScriptType { return u.typ }
@@ -452,13 +510,16 @@ func (u *ReindexBodyScript) SetRaw(raw json.RawMessage) {
 	u.typ = ReindexBodyScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *ReindexBodyScript) String() string {
+// String returns the string branch value. It returns a
+// *ReindexBodyScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexBodyScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReindexBodyScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReindexBodyScriptFromString returns a ReindexBodyScript populated with v
@@ -470,13 +531,16 @@ func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *ReindexBodyScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *ReindexBodyScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexBodyScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &ReindexBodyScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
@@ -546,6 +610,36 @@ const (
 	ReindexSourceSortOptionsType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReindexSourceSortType) String() string {
+	switch t {
+	case ReindexSourceSortStringType:
+		return "String"
+	case ReindexSourceSortStringMapType:
+		return "StringMap"
+	case ReindexSourceSortFieldSortMapType:
+		return "FieldSortMap"
+	case ReindexSourceSortOptionsType:
+		return "Options"
+	default:
+		return "unknown"
+	}
+}
+
+// ReindexSourceSortBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type ReindexSourceSortBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got ReindexSourceSortType
+}
+
+func (e *ReindexSourceSortBranchError) Error() string {
+	return fmt.Sprintf("ReindexSourceSort: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns ReindexSourceSortUnknownType if the value has not been decoded.
 func (u *ReindexSourceSort) Type() ReindexSourceSortType { return u.typ }
@@ -565,13 +659,16 @@ func (u *ReindexSourceSort) SetRaw(raw json.RawMessage) {
 	u.typ = ReindexSourceSortUnknownType
 }
 
-// String returns the string branch value.
-func (u *ReindexSourceSort) String() string {
+// String returns the string branch value. It returns a
+// *ReindexSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexSourceSort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &ReindexSourceSortBranchError{Want: "String", Got: u.typ}
 }
 
 // NewReindexSourceSortFromString returns a ReindexSourceSort populated with v
@@ -583,13 +680,16 @@ func NewReindexSourceSortFromString(v string) ReindexSourceSort {
 	}
 }
 
-// StringMap returns the map[string]string branch value.
-func (u *ReindexSourceSort) StringMap() map[string]string {
+// StringMap returns the map[string]string branch value. It returns a
+// *ReindexSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexSourceSort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]string
-	return zero
+	return zero, &ReindexSourceSortBranchError{Want: "StringMap", Got: u.typ}
 }
 
 // NewReindexSourceSortFromStringMap returns a ReindexSourceSort populated with v
@@ -601,13 +701,16 @@ func NewReindexSourceSortFromStringMap(v map[string]string) ReindexSourceSort {
 	}
 }
 
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *ReindexSourceSort) FieldSortMap() map[string]FieldSort {
+// FieldSortMap returns the map[string]FieldSort branch value. It returns a
+// *ReindexSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero map[string]FieldSort in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexSourceSort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero
+	return zero, &ReindexSourceSortBranchError{Want: "FieldSortMap", Got: u.typ}
 }
 
 // NewReindexSourceSortFromFieldSortMap returns a ReindexSourceSort populated with v
@@ -619,13 +722,16 @@ func NewReindexSourceSortFromFieldSortMap(v map[string]FieldSort) ReindexSourceS
 	}
 }
 
-// Options returns the SortOptions branch value.
-func (u *ReindexSourceSort) Options() SortOptions {
+// Options returns the SortOptions branch value. It returns a
+// *ReindexSourceSortBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero SortOptions in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexSourceSort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SortOptions
-	return zero
+	return zero, &ReindexSourceSortBranchError{Want: "Options", Got: u.typ}
 }
 
 // NewReindexSourceSortFromOptions returns a ReindexSourceSort populated with v

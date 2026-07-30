@@ -77,7 +77,8 @@ func TestManual_MGet(t *testing.T) {
 			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
 				t.Helper()
 				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, item.Type())
-				v := item.GetResult()
+				v, err := item.GetResult()
+				require.NoError(t, err)
 				require.Equal(t, "1", v.ID)
 				require.Equal(t, index, v.Index)
 				require.True(t, v.Found)
@@ -90,7 +91,8 @@ func TestManual_MGet(t *testing.T) {
 			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
 				t.Helper()
 				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, item.Type())
-				v := item.GetResult()
+				v, err := item.GetResult()
+				require.NoError(t, err)
 				require.Equal(t, "404", v.ID)
 				require.Equal(t, index, v.Index)
 				require.False(t, v.Found)
@@ -102,7 +104,8 @@ func TestManual_MGet(t *testing.T) {
 			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
 				t.Helper()
 				require.Equal(t, opensearchapi.MGetRespBodyDocsItemMGetMultiGetErrorType, item.Type())
-				v := item.MGetMultiGetError()
+				v, err := item.MGetMultiGetError()
+				require.NoError(t, err)
 				require.Equal(t, "1", v.ID)
 				require.Equal(t, missingIndex, v.Index)
 				require.NotEmpty(t, v.Error.Type)

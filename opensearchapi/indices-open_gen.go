@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -216,6 +217,32 @@ const (
 	IndicesOpenRespBodyAcknowledgedType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesOpenRespBodyType) String() string {
+	switch t {
+	case IndicesOpenRespBodyTaskType:
+		return "Task"
+	case IndicesOpenRespBodyAcknowledgedType:
+		return "Acknowledged"
+	default:
+		return "unknown"
+	}
+}
+
+// IndicesOpenRespBodyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type IndicesOpenRespBodyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got IndicesOpenRespBodyType
+}
+
+func (e *IndicesOpenRespBodyBranchError) Error() string {
+	return fmt.Sprintf("IndicesOpenRespBody: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns IndicesOpenRespBodyUnknownType if the value has not been decoded.
 func (u *IndicesOpenRespBody) Type() IndicesOpenRespBodyType { return u.typ }
@@ -235,13 +262,16 @@ func (u *IndicesOpenRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesOpenRespBodyUnknownType
 }
 
-// Task returns the IndicesOpenRespBodyTask branch value.
-func (u *IndicesOpenRespBody) Task() IndicesOpenRespBodyTask {
+// Task returns the IndicesOpenRespBodyTask branch value. It returns a
+// *IndicesOpenRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero IndicesOpenRespBodyTask in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesOpenRespBody) Task() (IndicesOpenRespBodyTask, error) {
 	if v, ok := u.value.(*IndicesOpenRespBodyTask); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesOpenRespBodyTask
-	return zero
+	return zero, &IndicesOpenRespBodyBranchError{Want: "Task", Got: u.typ}
 }
 
 // NewIndicesOpenRespBodyFromTask returns a IndicesOpenRespBody populated with v
@@ -253,13 +283,16 @@ func NewIndicesOpenRespBodyFromTask(v IndicesOpenRespBodyTask) IndicesOpenRespBo
 	}
 }
 
-// Acknowledged returns the IndicesOpenRespBodyAcknowledged branch value.
-func (u *IndicesOpenRespBody) Acknowledged() IndicesOpenRespBodyAcknowledged {
+// Acknowledged returns the IndicesOpenRespBodyAcknowledged branch value. It returns a
+// *IndicesOpenRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero IndicesOpenRespBodyAcknowledged in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesOpenRespBody) Acknowledged() (IndicesOpenRespBodyAcknowledged, error) {
 	if v, ok := u.value.(*IndicesOpenRespBodyAcknowledged); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesOpenRespBodyAcknowledged
-	return zero
+	return zero, &IndicesOpenRespBodyBranchError{Want: "Acknowledged", Got: u.typ}
 }
 
 // NewIndicesOpenRespBodyFromAcknowledged returns a IndicesOpenRespBody populated with v

@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -433,6 +434,32 @@ const (
 	DeleteByQueryRespBodyTaskType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t DeleteByQueryRespBodyType) String() string {
+	switch t {
+	case DeleteByQueryRespBodyBulkByScrollRespBaseType:
+		return "BulkByScrollRespBase"
+	case DeleteByQueryRespBodyTaskType:
+		return "Task"
+	default:
+		return "unknown"
+	}
+}
+
+// DeleteByQueryRespBodyBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type DeleteByQueryRespBodyBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got DeleteByQueryRespBodyType
+}
+
+func (e *DeleteByQueryRespBodyBranchError) Error() string {
+	return fmt.Sprintf("DeleteByQueryRespBody: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns DeleteByQueryRespBodyUnknownType if the value has not been decoded.
 func (u *DeleteByQueryRespBody) Type() DeleteByQueryRespBodyType { return u.typ }
@@ -452,13 +479,16 @@ func (u *DeleteByQueryRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = DeleteByQueryRespBodyUnknownType
 }
 
-// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
-func (u *DeleteByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
+// *DeleteByQueryRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero BulkByScrollRespBase in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *DeleteByQueryRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero
+	return zero, &DeleteByQueryRespBodyBranchError{Want: "BulkByScrollRespBase", Got: u.typ}
 }
 
 // NewDeleteByQueryRespBodyFromBulkByScrollRespBase returns a DeleteByQueryRespBody populated with v
@@ -470,13 +500,16 @@ func NewDeleteByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) De
 	}
 }
 
-// Task returns the DeleteByQueryRespBodyTask branch value.
-func (u *DeleteByQueryRespBody) Task() DeleteByQueryRespBodyTask {
+// Task returns the DeleteByQueryRespBodyTask branch value. It returns a
+// *DeleteByQueryRespBodyBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero DeleteByQueryRespBodyTask in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *DeleteByQueryRespBody) Task() (DeleteByQueryRespBodyTask, error) {
 	if v, ok := u.value.(*DeleteByQueryRespBodyTask); ok {
-		return *v
+		return *v, nil
 	}
 	var zero DeleteByQueryRespBodyTask
-	return zero
+	return zero, &DeleteByQueryRespBodyBranchError{Want: "Task", Got: u.typ}
 }
 
 // NewDeleteByQueryRespBodyFromTask returns a DeleteByQueryRespBody populated with v

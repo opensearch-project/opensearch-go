@@ -89,11 +89,14 @@ func TestManual_MSearch(t *testing.T) {
 			check: func(t *testing.T, item opensearchapi.MSearchMultiSearchResultResponsesItem) {
 				t.Helper()
 				require.Equal(t, opensearchapi.MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType, item.Type())
-				v := item.MSearchMultiSearchItem()
+				v, err := item.MSearchMultiSearchItem()
+				require.NoError(t, err)
 				require.False(t, v.TimedOut)
 				require.NotNil(t, v.Hits.Total)
 				require.Equal(t, opensearchapi.SearchHitsMetadataTotalSearchTotalHitsType, v.Hits.Total.Type())
-				require.Equal(t, int64(1), v.Hits.Total.SearchTotalHits().Value)
+				total, err := v.Hits.Total.SearchTotalHits()
+				require.NoError(t, err)
+				require.Equal(t, int64(1), total.Value)
 				require.Len(t, v.Hits.Hits, 1)
 			},
 		},
@@ -103,7 +106,8 @@ func TestManual_MSearch(t *testing.T) {
 			check: func(t *testing.T, item opensearchapi.MSearchMultiSearchResultResponsesItem) {
 				t.Helper()
 				require.Equal(t, opensearchapi.MSearchMultiSearchResultResponsesItemErrorRespBaseType, item.Type())
-				v := item.ErrorRespBase()
+				v, err := item.ErrorRespBase()
+				require.NoError(t, err)
 				require.Equal(t, 404, v.Status)
 				require.NotEmpty(t, v.Error.Type)
 			},

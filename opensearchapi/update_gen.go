@@ -293,6 +293,32 @@ const (
 	UpdateBodySourceExcludesIncludesType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t UpdateBodySourceType) String() string {
+	switch t {
+	case UpdateBodySourceStringType:
+		return "String"
+	case UpdateBodySourceExcludesIncludesType:
+		return "ExcludesIncludes"
+	default:
+		return "unknown"
+	}
+}
+
+// UpdateBodySourceBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type UpdateBodySourceBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got UpdateBodySourceType
+}
+
+func (e *UpdateBodySourceBranchError) Error() string {
+	return fmt.Sprintf("UpdateBodySource: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns UpdateBodySourceUnknownType if the value has not been decoded.
 func (u *UpdateBodySource) Type() UpdateBodySourceType { return u.typ }
@@ -312,13 +338,16 @@ func (u *UpdateBodySource) SetRaw(raw json.RawMessage) {
 	u.typ = UpdateBodySourceUnknownType
 }
 
-// String returns the string branch value.
-func (u *UpdateBodySource) String() string {
+// String returns the string branch value. It returns a
+// *UpdateBodySourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *UpdateBodySource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &UpdateBodySourceBranchError{Want: "String", Got: u.typ}
 }
 
 // NewUpdateBodySourceFromString returns a UpdateBodySource populated with v
@@ -330,13 +359,16 @@ func NewUpdateBodySourceFromString(v string) UpdateBodySource {
 	}
 }
 
-// ExcludesIncludes returns the UpdateBodySourceExcludesIncludes branch value.
-func (u *UpdateBodySource) ExcludesIncludes() UpdateBodySourceExcludesIncludes {
+// ExcludesIncludes returns the UpdateBodySourceExcludesIncludes branch value. It returns a
+// *UpdateBodySourceBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero UpdateBodySourceExcludesIncludes in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *UpdateBodySource) ExcludesIncludes() (UpdateBodySourceExcludesIncludes, error) {
 	if v, ok := u.value.(*UpdateBodySourceExcludesIncludes); ok {
-		return *v
+		return *v, nil
 	}
 	var zero UpdateBodySourceExcludesIncludes
-	return zero
+	return zero, &UpdateBodySourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
 }
 
 // NewUpdateBodySourceFromExcludesIncludes returns a UpdateBodySource populated with v
@@ -404,6 +436,32 @@ const (
 	UpdateBodyScriptStoredType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t UpdateBodyScriptType) String() string {
+	switch t {
+	case UpdateBodyScriptStringType:
+		return "String"
+	case UpdateBodyScriptStoredType:
+		return "Stored"
+	default:
+		return "unknown"
+	}
+}
+
+// UpdateBodyScriptBranchError is returned by a branch accessor when the union holds a
+// different branch. Recover it with errors.As to compare Want against Got.
+type UpdateBodyScriptBranchError struct {
+	// Want is the branch the caller asked for.
+	Want string
+	// Got is the branch actually decoded.
+	Got UpdateBodyScriptType
+}
+
+func (e *UpdateBodyScriptBranchError) Error() string {
+	return fmt.Sprintf("UpdateBodyScript: holds branch %s, not %s", e.Got, e.Want)
+}
+
 // Type returns which union branch was populated during decoding.
 // Returns UpdateBodyScriptUnknownType if the value has not been decoded.
 func (u *UpdateBodyScript) Type() UpdateBodyScriptType { return u.typ }
@@ -423,13 +481,16 @@ func (u *UpdateBodyScript) SetRaw(raw json.RawMessage) {
 	u.typ = UpdateBodyScriptUnknownType
 }
 
-// String returns the string branch value.
-func (u *UpdateBodyScript) String() string {
+// String returns the string branch value. It returns a
+// *UpdateBodyScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero string in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *UpdateBodyScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &UpdateBodyScriptBranchError{Want: "String", Got: u.typ}
 }
 
 // NewUpdateBodyScriptFromString returns a UpdateBodyScript populated with v
@@ -441,13 +502,16 @@ func NewUpdateBodyScriptFromString(v string) UpdateBodyScript {
 	}
 }
 
-// Stored returns the StoredScriptID branch value.
-func (u *UpdateBodyScript) Stored() StoredScriptID {
+// Stored returns the StoredScriptID branch value. It returns a
+// *UpdateBodyScriptBranchError when the union holds a different branch, naming the
+// branch that is set; the returned value is the zero StoredScriptID in that
+// case, which is indistinguishable from a decoded one, so check the error.
+func (u *UpdateBodyScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
+		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero
+	return zero, &UpdateBodyScriptBranchError{Want: "Stored", Got: u.typ}
 }
 
 // NewUpdateBodyScriptFromStored returns a UpdateBodyScript populated with v
