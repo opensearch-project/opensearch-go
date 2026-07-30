@@ -72,12 +72,10 @@ func TestRespHelperMethods(t *testing.T) {
 				t.Helper()
 				shardReason := "boom"
 				r := &opensearchapi.SearchResp{
-					SearchResult: opensearchapi.SearchResult{
-						Shards: opensearchapi.ShardStatistics{
-							Total: 5, Successful: 3, Failed: 2,
-							Failures: []opensearchapi.ShardSearchFailure{
-								{Reason: opensearchapi.ErrorCause{Type: "x", Reason: &shardReason}},
-							},
+					Shards: opensearchapi.ShardStatistics{
+						Total: 5, Successful: 3, Failed: 2,
+						Failures: []opensearchapi.ShardSearchFailure{
+							{Reason: opensearchapi.ErrorCause{Type: "x", Reason: &shardReason}},
 						},
 					},
 				}

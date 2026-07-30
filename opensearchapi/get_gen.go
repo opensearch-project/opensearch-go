@@ -177,7 +177,6 @@ func (r GetParams) get() map[string]string {
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
 type GetResp struct {
 	GetResultBase
-	Source json.RawMessage `json:"_source"`
 
 	response *opensearch.Response
 }

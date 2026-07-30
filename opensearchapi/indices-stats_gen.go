@@ -203,13 +203,8 @@ func (r IndicesStatsResp) RawBody() io.Reader {
 //
 // The statistics for all indexes.
 type IndicesStatsAllIndices struct {
-	Primaries IndicesStatsIndex `json:"primaries"`
-	Total     IndicesStatsIndex `json:"total"`
-}
-
-// IndicesStatsIndex is a typed component of the indices.stats operation.
-type IndicesStatsIndex struct {
-	IndicesStatsIndexBase
+	Primaries IndicesStatsIndexBase `json:"primaries"`
+	Total     IndicesStatsIndexBase `json:"total"`
 }
 
 // IndicesStatsIndexBase is a typed component of the indices.stats operation.
@@ -267,20 +262,15 @@ type IndicesStatsIndexBase struct {
 //
 // The statistics for specific indexes.
 type IndicesStatsIndices struct {
-	Primaries IndicesStatsIndex `json:"primaries"`
+	Primaries IndicesStatsIndexBase `json:"primaries"`
 
 	// The statistics for individual shards.
-	Shards map[string][]IndicesStatsIndexShard `json:"shards,omitempty"`
+	Shards map[string][]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 
-	Total IndicesStatsIndex `json:"total"`
+	Total IndicesStatsIndexBase `json:"total"`
 
 	// The universally unique identifier.
 	UUID string `json:"uuid"`
-}
-
-// IndicesStatsIndexShard is a typed component of the indices.stats operation.
-type IndicesStatsIndexShard struct {
-	IndicesStatsIndexShardBase
 }
 
 // IndicesStatsIndexShardBase is a typed component of the indices.stats operation.

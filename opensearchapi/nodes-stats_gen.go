@@ -227,7 +227,7 @@ type NodesStatsStats struct {
 	// The role assigned to the node.
 	Roles []NodeRole `json:"roles,omitempty"`
 
-	Script                         *NodesStatsScript                              `json:"script,omitempty"`
+	Script                         *NodesStatsScriptBase                          `json:"script,omitempty"`
 	ScriptCache                    *NodesStatsScriptCache                         `json:"script_cache,omitempty"`
 	SearchBackpressure             *NodesStatsShardSearchBackpressure             `json:"search_backpressure,omitempty"`
 	SearchPipeline                 *NodesStatsShardSearchPipeline                 `json:"search_pipeline,omitempty"`
@@ -326,9 +326,9 @@ type NodesStatsBreaker struct {
 // NodesStatsCache is a typed component of the nodes.stats operation.
 type NodesStatsCache struct {
 	NodesStatsCacheBase
-	Indices   map[string]NodesStatsCacheIndices `json:"indices,omitempty"`
-	Shards    map[string]NodesStatsCacheShard   `json:"shards,omitempty"`
-	StoreName *string                           `json:"store_name,omitempty"`
+	Indices   map[string]NodesStatsCacheBase `json:"indices,omitempty"`
+	Shards    map[string]NodesStatsCacheBase `json:"shards,omitempty"`
+	StoreName *string                        `json:"store_name,omitempty"`
 }
 
 // NodesStatsCacheBase is a typed component of the nodes.stats operation.
@@ -343,16 +343,6 @@ type NodesStatsCacheBase struct {
 
 	// The size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
-}
-
-// NodesStatsCacheIndices is a typed component of the nodes.stats operation.
-type NodesStatsCacheIndices struct {
-	NodesStatsCacheBase
-}
-
-// NodesStatsCacheShard is a typed component of the nodes.stats operation.
-type NodesStatsCacheShard struct {
-	NodesStatsCacheBase
 }
 
 // NodesStatsShardClusterManagerThrottling is a typed component of the nodes.stats operation.
@@ -622,13 +612,8 @@ type NodesStatsPressureMemory struct {
 // NodesStatsNodeIndices is a typed component of the nodes.stats operation.
 type NodesStatsNodeIndices struct {
 	IndicesStatsIndexBase
-	Indices map[string]IndicesStatsIndex                     `json:"indices,omitempty"`
-	Shards  map[string][]map[string]NodesStatsNodeIndexShard `json:"shards,omitempty"`
-}
-
-// NodesStatsNodeIndexShard is a typed component of the nodes.stats operation.
-type NodesStatsNodeIndexShard struct {
-	IndicesStatsIndexShardBase
+	Indices map[string]IndicesStatsIndexBase                   `json:"indices,omitempty"`
+	Shards  map[string][]map[string]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 }
 
 // NodesStatsIngest is a typed component of the nodes.stats operation.
@@ -897,7 +882,7 @@ type NodesStatsOperatingSystem struct {
 	Cgroup *NodesStatsCgroup             `json:"cgroup,omitempty"`
 	CPU    *NodesStatsOperatingSystemCPU `json:"cpu,omitempty"`
 	Mem    *NodesStatsExtendedMemory     `json:"mem,omitempty"`
-	Swap   *NodesStatsMemory             `json:"swap,omitempty"`
+	Swap   *NodesStatsMemoryBase         `json:"swap,omitempty"`
 
 	// The time unit for milliseconds.
 	Timestamp *int64 `json:"timestamp,omitempty"`
@@ -1010,11 +995,6 @@ type NodesStatsMemoryBase struct {
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsMemory is a typed component of the nodes.stats operation.
-type NodesStatsMemory struct {
-	NodesStatsMemoryBase
-}
-
 // NodesStatsProcess is a typed component of the nodes.stats operation.
 type NodesStatsProcess struct {
 	CPU *NodesStatsProcessCPU `json:"cpu,omitempty"`
@@ -1119,11 +1099,6 @@ type NodesStatsShardResourceUsageIoUsageStats struct {
 	MaxIoUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
 }
 
-// NodesStatsScript is a typed component of the nodes.stats operation.
-type NodesStatsScript struct {
-	NodesStatsScriptBase
-}
-
 // NodesStatsScriptBase is a typed component of the nodes.stats operation.
 type NodesStatsScriptBase struct {
 	// Total number of times the script cache has evicted old data.
@@ -1140,7 +1115,7 @@ type NodesStatsScriptBase struct {
 // NodesStatsScriptCache is a typed component of the nodes.stats operation.
 type NodesStatsScriptCache struct {
 	Contexts []NodesStatsScriptContext `json:"contexts,omitempty"`
-	Sum      NodesStatsScript          `json:"sum"`
+	Sum      NodesStatsScriptBase      `json:"sum"`
 }
 
 // NodesStatsScriptContext is a typed component of the nodes.stats operation.

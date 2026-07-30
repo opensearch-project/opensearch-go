@@ -202,12 +202,6 @@ func (r MGetResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// GetResult is a typed component of the mget operation.
-type GetResult struct {
-	GetResultBase
-	Source json.RawMessage `json:"_source"`
-}
-
 // MGetMultiGetError is a typed component of the mget operation.
 type MGetMultiGetError struct {
 	// The unique identifier for a resource.
@@ -254,18 +248,18 @@ func (u *MGetRespBodyDocsItem) SetRaw(raw json.RawMessage) {
 	u.typ = MGetRespBodyDocsItemUnknownType
 }
 
-// GetResult returns the GetResult branch value.
-func (u *MGetRespBodyDocsItem) GetResult() GetResult {
-	if v, ok := u.value.(*GetResult); ok {
+// GetResult returns the GetResultBase branch value.
+func (u *MGetRespBodyDocsItem) GetResult() GetResultBase {
+	if v, ok := u.value.(*GetResultBase); ok {
 		return *v
 	}
-	var zero GetResult
+	var zero GetResultBase
 	return zero
 }
 
 // NewMGetRespBodyDocsItemFromGetResult returns a MGetRespBodyDocsItem populated with v
 // on the GetResult branch.
-func NewMGetRespBodyDocsItemFromGetResult(v GetResult) MGetRespBodyDocsItem {
+func NewMGetRespBodyDocsItemFromGetResult(v GetResultBase) MGetRespBodyDocsItem {
 	return MGetRespBodyDocsItem{
 		typ:   MGetRespBodyDocsItemGetResultType,
 		value: &v,
@@ -301,7 +295,7 @@ func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		GetResult
+		GetResultBase
 		Disc0 json.RawMessage `json:"error"`
 	}
 	var m merged
@@ -318,7 +312,7 @@ func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	u.typ = MGetRespBodyDocsItemGetResultType
-	u.value = &m.GetResult
+	u.value = &m.GetResultBase
 	return nil
 }
 

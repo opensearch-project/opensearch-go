@@ -431,6 +431,7 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all response schemas to build the full type registry.
@@ -548,6 +549,7 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all request body schemas to register types.
@@ -635,6 +637,7 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	for i := range ops {

@@ -235,9 +235,9 @@ type RankEvalBody struct {
 type RankEvalMetric struct {
 	Dcg                    *RankEvalMetricDiscountedCumulativeGain `json:"dcg,omitempty"`
 	ExpectedReciprocalRank *RankEvalMetricExpectedReciprocalRank   `json:"expected_reciprocal_rank,omitempty"`
-	MeanReciprocalRank     *RankEvalMetricMeanReciprocalRank       `json:"mean_reciprocal_rank,omitempty"`
+	MeanReciprocalRank     *RankEvalMetricRatingThreshold          `json:"mean_reciprocal_rank,omitempty"`
 	Precision              *RankEvalMetricPrecision                `json:"precision,omitempty"`
-	Recall                 *RankEvalMetricRecall                   `json:"recall,omitempty"`
+	Recall                 *RankEvalMetricRatingThreshold          `json:"recall,omitempty"`
 }
 
 // RankEvalMetricDiscountedCumulativeGain is a typed component of the rank_eval operation.
@@ -264,11 +264,6 @@ type RankEvalMetricExpectedReciprocalRank struct {
 	MaximumRelevance int `json:"maximum_relevance"`
 }
 
-// RankEvalMetricMeanReciprocalRank is a typed component of the rank_eval operation.
-type RankEvalMetricMeanReciprocalRank struct {
-	RankEvalMetricRatingThreshold
-}
-
 // RankEvalMetricRatingThreshold is a typed component of the rank_eval operation.
 type RankEvalMetricRatingThreshold struct {
 	RankEvalMetricBase
@@ -287,11 +282,6 @@ type RankEvalMetricPrecision struct {
 	// or irrelevant. When `false`, unlabeled documents are treated as
 	// irrelevant.
 	IgnoreUnlabeled *bool `json:"ignore_unlabeled,omitempty"`
-}
-
-// RankEvalMetricRecall is a typed component of the rank_eval operation.
-type RankEvalMetricRecall struct {
-	RankEvalMetricRatingThreshold
 }
 
 // RankEvalRequestItem is a typed component of the rank_eval operation.

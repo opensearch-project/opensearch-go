@@ -338,7 +338,7 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: "array", VersionAdded: versionAdded}
 	}
 
-	branchName := deriveBranchName(ref, goTypeName)
+	branchName := deriveBranchName(ref, goTypeName, key)
 	required := flattenRequired(ref.Value)
 
 	return unionBranch{
@@ -502,10 +502,23 @@ func mapValueTypeName(goType string) string {
 // The fallback to goTypeName runs through baseGoName so cross-package
 // type strings ("subpkg.Foo") or hyphenated names yield valid Go
 // identifier fragments.
-func deriveBranchName(ref *openapi3.SchemaRef, goTypeName string) string {
+// deriveBranchName names a union branch. schemaKey is the branch's own $ref key,
+// which may differ from goTypeName when the referenced schema collapsed onto
+// another type (see walker.resolveCollapsedBase).
+func deriveBranchName(ref *openapi3.SchemaRef, goTypeName, schemaKey string) string {
 	// Prefer the spec title if available.
 	if ref.Value != nil && ref.Value.Title != "" {
 		return baseGoName(ref.Value.Title)
+	}
+	// Name the branch after the schema the union actually references, not after
+	// whatever that schema resolved to. A collapsed schema resolves to its base,
+	// whose name may carry the spec's "Base" suffix -- so mget's GetResult branch
+	// would otherwise generate AsGetResultBase()/GetResultBase(), advertising a
+	// name the union never mentions.
+	if schemaKey != "" {
+		if name := schemaTypeName(schemaKey, false); name != "" {
+			return baseGoName(name)
+		}
 	}
 	// Normalize the Go type name through baseGoName to strip dotted
 	// package qualifiers and other non-identifier punctuation.

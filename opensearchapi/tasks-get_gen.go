@@ -104,7 +104,7 @@ type TasksGetResp struct {
 	Completed bool                  `json:"completed"`
 	Error     *ErrorCause           `json:"error,omitempty"`
 	Response  *BulkByScrollRespBase `json:"response,omitempty"`
-	Task      TasksTaskInfo         `json:"task"`
+	Task      TasksTaskInfoBase     `json:"task"`
 
 	response *opensearch.Response
 }

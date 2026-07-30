@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"go/token"
+	"io"
 	"os"
 	"slices"
 	"sort"
@@ -32,6 +33,13 @@ type walker struct {
 	// to disambiguate the same type appearing on both sides of a request.
 	excludedFields []ir.Exclusion
 	excSeen        map[string]bool // dedupe key: qualified field name
+
+	// warnOut receives generator diagnostics. Nil discards them, which keeps
+	// tests quiet unless they assert on the output.
+	warnOut io.Writer
+
+	// depthWarned dedupes maxOverrideDepth reports, keyed "<schemaKey>/<json>".
+	depthWarned set[string]
 }
 
 // walkSchema resolves a SchemaRef and returns the Go type expression.
@@ -126,6 +134,12 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 	}
 
 	if got, ok := w.resolvePropertylessSchema(schema, key, group, isRespBody); ok {
+		return got
+	}
+
+	// An allOf that adds nothing to its base describes the same shape as the base:
+	// resolve to it rather than emitting a wrapper that only embeds it.
+	if got, ok := w.resolveCollapsedBase(schema, key, group, isRespBody); ok {
 		return got
 	}
 
@@ -259,6 +273,12 @@ func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group s
 }
 
 func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
+	// An allOf that adds nothing to its base describes the same shape as the base:
+	// resolve to it rather than emitting a wrapper that only embeds it.
+	if got, ok := w.resolveCollapsedBase(schema, schemaKey, group, isRespBody); ok {
+		return got
+	}
+
 	name := schemaTypeName(schemaKey, isRespBody)
 	shared := isSharedSchema(schemaKey)
 
@@ -275,6 +295,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 	defer delete(w.inFlight, schemaKey)
 
 	seen := make(map[string]bool)
+	redundant := w.redundantOverrideTags(schema, schemaKey)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			goTypeName := w.walkSchema(sub, schemaKey, group, false)
@@ -294,6 +315,9 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 			continue
 		}
 		for _, f := range w.walkProperties(subSchema, schemaKey, group, name, isRespBody) {
+			if redundant[f.JSONName] {
+				continue
+			}
 			if !seen[f.JSONName] {
 				seen[f.JSONName] = true
 				t.Fields = append(t.Fields, f)
@@ -776,6 +800,7 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 
 	var fields []goField
 	seen := make(map[string]bool)
+	redundant := w.redundantOverrideTags(schema, key)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != "json.RawMessage" {
@@ -787,6 +812,9 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 			continue
 		}
 		for _, f := range w.walkProperties(sub.Value, key, group, parentTypeName, isRespBody) {
+			if redundant[f.JSONName] {
+				continue
+			}
 			if !seen[f.JSONName] {
 				seen[f.JSONName] = true
 				fields = append(fields, f)

@@ -138,6 +138,28 @@ func (r *typeRegistry) lookup(ref string) (*goType, bool) {
 	return t, ok
 }
 
+// aliasRef points ref at an already-registered type instead of registering a new
+// one, so a schema that is the same type as another resolves to it everywhere.
+//
+// Used for allOf schemas whose override contributes nothing beyond the base (see
+// walker.collapsesToBase): the spec names them separately, but after erasing the
+// generic type argument they describe the identical shape. Aliasing keeps every
+// lookup path working -- notably the response-body classifier, which resolves an
+// operation's Resp by its own ref and would otherwise degrade the response to raw
+// JSON -- while emitting only one Go type.
+//
+// The alias is not appended to r.order, so the type is emitted once, under the
+// name it was originally registered with.
+func (r *typeRegistry) aliasRef(ref string, target *goType) {
+	if ref == "" || target == nil {
+		return
+	}
+	if _, exists := r.byRef[ref]; exists {
+		return
+	}
+	r.byRef[ref] = target
+}
+
 // lookupByName returns a previously registered type by its Go name.
 func (r *typeRegistry) lookupByName(name string) (*goType, bool) {
 	t, ok := r.byName[name]

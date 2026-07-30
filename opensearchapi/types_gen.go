@@ -222,10 +222,6 @@ type CommonAggregationsSingleBucketAggregateBase struct {
 	DocCount int64 `json:"doc_count"`
 }
 
-type CommonAggregationsChildrenAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets `json:"buckets"`
@@ -245,12 +241,8 @@ type CommonAggregationsMultiBucketAggregateBaseRangeBucket struct {
 	Buckets CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets `json:"buckets"`
 }
 
-type CommonAggregationsRangeAggregateBase struct {
-	CommonAggregationsMultiBucketAggregateBaseRangeBucket
-}
-
 type CommonAggregationsDateRangeAggregate struct {
-	CommonAggregationsRangeAggregateBase
+	CommonAggregationsMultiBucketAggregateBaseRangeBucket
 }
 
 type CommonAggregationsDerivativeAggregate struct {
@@ -286,11 +278,6 @@ type CommonAggregationsDoubleTermsBucket struct {
 type CommonAggregationsTermsAggregateBaseDoubleTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsDoubleTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is some kind of decimal number like a float, double, or distance.
-type CommonAggregationsDoubleTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseDoubleTermsBucket
 }
 
 type CommonAggregationsStatsAggregateBase struct {
@@ -342,16 +329,8 @@ type CommonAggregationsExtendedStatsAggregateBase struct {
 	VarianceSamplingAsString   *string                                            `json:"variance_sampling_as_string,omitempty"`
 }
 
-type CommonAggregationsExtendedStatsAggregate struct {
-	CommonAggregationsExtendedStatsAggregateBase
-}
-
 type CommonAggregationsExtendedStatsBucketAggregate struct {
 	CommonAggregationsExtendedStatsAggregateBase
-}
-
-type CommonAggregationsFilterAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
 }
 
 type CommonAggregationsMultiBucketAggregateBaseFiltersBucket struct {
@@ -439,7 +418,7 @@ type CommonAggregationsGeoCentroidAggregate struct {
 }
 
 type CommonAggregationsGeoDistanceAggregate struct {
-	CommonAggregationsRangeAggregateBase
+	CommonAggregationsMultiBucketAggregateBaseRangeBucket
 }
 
 type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket struct {
@@ -458,10 +437,6 @@ type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket struct {
 
 type CommonAggregationsGeoTileGridAggregate struct {
 	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket
-}
-
-type CommonAggregationsGlobalAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
 }
 
 type CommonAggregationsArrayPercentilesItem struct {
@@ -506,11 +481,6 @@ type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
 	Buckets *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets `json:"buckets,omitempty"`
 }
 
-// Result of the `rare_terms` aggregation when the field is some kind of whole number like a integer, long, or a date.
-type CommonAggregationsLongRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket
-}
-
 type CommonAggregationsLongTermsBucket struct {
 	CommonAggregationsTermsBucketBase
 	Key         CommonAggregationsLongTermsBucketKey `json:"key"`
@@ -520,11 +490,6 @@ type CommonAggregationsLongTermsBucket struct {
 type CommonAggregationsTermsAggregateBaseLongTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsLongTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is some kind of whole number like a integer, long, or a date.
-type CommonAggregationsLongTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseLongTermsBucket
 }
 
 type CommonAggregationsMatrixStatsFields struct {
@@ -560,10 +525,6 @@ type CommonAggregationsMinAggregate struct {
 	CommonAggregationsSingleMetricAggregateBase
 }
 
-type CommonAggregationsMissingAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
 type CommonAggregationsTermsAggregateBaseMultiTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets `json:"buckets,omitempty"`
@@ -573,34 +534,18 @@ type CommonAggregationsMultiTermsAggregate struct {
 	CommonAggregationsTermsAggregateBaseMultiTermsBucket
 }
 
-type CommonAggregationsNestedAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsParentAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
 type CommonAggregationsPercentilesBucketAggregate struct {
 	CommonAggregationsPercentilesAggregateBase
 }
 
 type CommonAggregationsRangeAggregate struct {
-	CommonAggregationsRangeAggregateBase
+	CommonAggregationsMultiBucketAggregateBaseRangeBucket
 }
 
 type CommonAggregationsRateAggregate struct {
 	CommonAggregationsAggregateBase
 	Value         float64 `json:"value"`
 	ValueAsString *string `json:"value_as_string,omitempty"`
-}
-
-type CommonAggregationsReverseNestedAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsSamplerAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
 }
 
 type CommonAggregationsScriptedMetricAggregate struct {
@@ -642,10 +587,6 @@ type CommonAggregationsSimpleValueAggregate struct {
 	CommonAggregationsSingleMetricAggregateBase
 }
 
-type CommonAggregationsStatsAggregate struct {
-	CommonAggregationsStatsAggregateBase
-}
-
 type CommonAggregationsStatsBucketAggregate struct {
 	CommonAggregationsStatsAggregateBase
 }
@@ -653,11 +594,6 @@ type CommonAggregationsStatsBucketAggregate struct {
 type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets `json:"buckets,omitempty"`
-}
-
-// Result of the `rare_terms` aggregation when the field is a string.
-type CommonAggregationsStringRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket
 }
 
 type CommonAggregationsStringTermsBucket struct {
@@ -668,11 +604,6 @@ type CommonAggregationsStringTermsBucket struct {
 type CommonAggregationsTermsAggregateBaseStringTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsStringTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is a string.
-type CommonAggregationsStringTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseStringTermsBucket
 }
 
 type CommonAggregationsSumAggregate struct {
@@ -751,37 +682,23 @@ type SearchHit struct {
 	Sort []SortResultsItem `json:"sort,omitempty"`
 }
 
-type SearchHitsMetadataHitsItem struct {
-	SearchHit
-	Source json.RawMessage `json:"_source"`
-}
-
 type SearchTotalHits struct {
 	Relation SearchTotalHitsRelation `json:"relation"`
 	Value    int64                   `json:"value"`
 }
 
 type SearchHitsMetadata struct {
-	Hits     []SearchHitsMetadataHitsItem `json:"hits"`
-	MaxScore *float32                     `json:"max_score"`
+	Hits     []SearchHit `json:"hits"`
+	MaxScore *float32    `json:"max_score"`
 
 	// The total number of hits, present only if `track_total_hits` is not set
 	// to `false` in the search request.
 	Total *SearchHitsMetadataTotal `json:"total,omitempty"`
 }
 
-type SearchHitsMetadataJSONValueHitsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchHitsMetadataJSONValue struct {
-	SearchHitsMetadata
-	Hits []SearchHitsMetadataJSONValueHitsItem `json:"hits,omitempty"`
-}
-
 type CommonAggregationsTopHitsAggregate struct {
 	CommonAggregationsAggregateBase
-	Hits SearchHitsMetadataJSONValue `json:"hits"`
+	Hits SearchHitsMetadata `json:"hits"`
 }
 
 // Terms bucket for `unsigned_long` field type. The server returns 64-bit unsigned integer values
@@ -809,24 +726,9 @@ type CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket struct {
 	Buckets []CommonAggregationsUnsignedLongTermsBucket `json:"buckets"`
 }
 
-// Result of a `terms` aggregation when the field is an `unsigned_long` (64-bit unsigned integer).
-// OpenSearch stores `unsigned_long` values as Long or BigInteger internally. In JSON responses,
-// bucket keys are represented as numbers, which may lose precision for values larger than 2^53--1
-// due to IEEE 754 double precision limitations. In protocol buffer representations, keys are
-// manually defined as uint64 to preserve the full 64-bit unsigned range. Use `key_as_string` in
-// buckets for exact string representation of large unsigned long values.
-type CommonAggregationsUnsignedLongTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket
-}
-
 type CommonAggregationsMultiBucketAggregateBaseVoid struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets *CommonAggregationsMultiBucketAggregateBaseVoidBuckets `json:"buckets,omitempty"`
-}
-
-// Result of a `rare_terms` aggregation when the field is unmapped. `buckets` is always empty.
-type CommonAggregationsUnmappedRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseVoid
 }
 
 type CommonAggregationsSignificantTermsAggregateBaseVoid struct {
@@ -849,12 +751,6 @@ type Void struct {
 
 type CommonAggregationsTermsAggregateBaseVoid struct {
 	CommonAggregationsTermsAggregateBase
-	Buckets []Void `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is unmapped. `buckets` is always empty.
-type CommonAggregationsUnmappedTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseVoid
 }
 
 type CommonAggregationsValueCountAggregate struct {
@@ -872,15 +768,6 @@ type CommonAggregationsVariableWidthHistogramAggregate struct {
 
 type CommonAggregationsWeightedAvgAggregate struct {
 	CommonAggregationsSingleMetricAggregateBase
-}
-
-type SearchResultHitsHitsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchResultHits struct {
-	SearchHitsMetadata
-	Hits []SearchResultHitsHitsItem `json:"hits,omitempty"`
 }
 
 // The time taken by different phases of the search.
@@ -1104,7 +991,7 @@ type SearchResult struct {
 	ScrollID        *string                                  `json:"_scroll_id,omitempty"`
 	Shards          ShardStatistics                          `json:"_shards"`
 	Aggregations    map[string]SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            SearchResultHits                         `json:"hits"`
+	Hits            SearchHitsMetadata                       `json:"hits"`
 	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
 
 	// The time taken by different phases of the search.
@@ -1123,17 +1010,13 @@ type SearchResult struct {
 	Took            int64                                     `json:"took"`
 }
 
-type SearchResponse struct {
-	SearchResult
-}
-
 type AsynchronousSearchRespBody struct {
-	ExpirationTimeInMillis *float64        `json:"expiration_time_in_millis,omitempty"`
-	ID                     *string         `json:"id,omitempty"`
-	Response               *SearchResponse `json:"response,omitempty"`
-	StartTimeInMillis      *float64        `json:"start_time_in_millis,omitempty"`
-	State                  *string         `json:"state,omitempty"`
-	Took                   *float64        `json:"took,omitempty"`
+	ExpirationTimeInMillis *float64      `json:"expiration_time_in_millis,omitempty"`
+	ID                     *string       `json:"id,omitempty"`
+	Response               *SearchResult `json:"response,omitempty"`
+	StartTimeInMillis      *float64      `json:"start_time_in_millis,omitempty"`
+	State                  *string       `json:"state,omitempty"`
+	Took                   *float64      `json:"took,omitempty"`
 }
 
 // Contains statistics about the number of nodes selected by the request's node filters.
@@ -2783,14 +2666,6 @@ type CommonQueryDSLKNNQuery struct {
 	Vector  []float32                      `json:"vector"`
 }
 
-type CommonQueryDSLMatchAllQuery struct {
-	CommonQueryDSLQueryBase
-}
-
-type CommonQueryDSLMatchNoneQuery struct {
-	CommonQueryDSLQueryBase
-}
-
 type CommonQueryDSLLikeDocument struct {
 	// The unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
@@ -3163,10 +3038,6 @@ type CommonQueryDSLDateRangeQuery struct {
 type CommonQueryDSLRankFeatureFunction struct {
 }
 
-type CommonQueryDSLRankFeatureFunctionLinear struct {
-	CommonQueryDSLRankFeatureFunction
-}
-
 type CommonQueryDSLRankFeatureFunctionLogarithm struct {
 	CommonQueryDSLRankFeatureFunction
 
@@ -3198,7 +3069,7 @@ type CommonQueryDSLRankFeatureQuery struct {
 	// the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	Linear     *CommonQueryDSLRankFeatureFunctionLinear     `json:"linear,omitempty"`
+	Linear     *CommonQueryDSLRankFeatureFunction           `json:"linear,omitempty"`
 	Log        *CommonQueryDSLRankFeatureFunctionLogarithm  `json:"log,omitempty"`
 	Saturation *CommonQueryDSLRankFeatureFunctionSaturation `json:"saturation,omitempty"`
 	Sigmoid    *CommonQueryDSLRankFeatureFunctionSigmoid    `json:"sigmoid,omitempty"`
@@ -3348,14 +3219,14 @@ type CommonQueryDSLQueryContainer struct {
 	// value. The provided text is analyzed before matching.
 	Match map[string]CommonQueryDSLQueryContainerMatchValue `json:"match,omitempty"`
 
-	MatchAll *CommonQueryDSLMatchAllQuery `json:"match_all,omitempty"`
+	MatchAll *CommonQueryDSLQueryBase `json:"match_all,omitempty"`
 
 	// Analyzes its input and constructs a `bool` query from the terms. Each
 	// term except the last is used in a `term` query. The last term is used in
 	// a prefix query.
 	MatchBoolPrefix map[string]string `json:"match_bool_prefix,omitempty"`
 
-	MatchNone *CommonQueryDSLMatchNoneQuery `json:"match_none,omitempty"`
+	MatchNone *CommonQueryDSLQueryBase `json:"match_none,omitempty"`
 
 	// Analyzes the text and creates a phrase query out of the analyzed text.
 	MatchPhrase map[string]string `json:"match_phrase,omitempty"`
@@ -6795,13 +6666,9 @@ type TasksTaskInfoBase struct {
 	Type string `json:"type"`
 }
 
-type TasksTaskInfo struct {
-	TasksTaskInfoBase
-}
-
 type TasksTaskExecutingNode struct {
 	BaseNode
-	Tasks map[string]TasksTaskInfo `json:"tasks"`
+	Tasks map[string]TasksTaskInfoBase `json:"tasks"`
 }
 
 // The details of a task failure.
@@ -7950,10 +7817,6 @@ type IngestDotExpanderProcessor struct {
 	Path *string `json:"path,omitempty"`
 }
 
-type IngestDropProcessor struct {
-	IngestProcessorBase
-}
-
 type IngestFailProcessor struct {
 	IngestProcessorBase
 
@@ -8363,7 +8226,7 @@ type IngestProcessorContainer struct {
 	DateIndexName   *IngestDateIndexNameProcessor   `json:"date_index_name,omitempty"`
 	Dissect         *IngestDissectProcessor         `json:"dissect,omitempty"`
 	DotExpander     *IngestDotExpanderProcessor     `json:"dot_expander,omitempty"`
-	Drop            *IngestDropProcessor            `json:"drop,omitempty"`
+	Drop            *IngestProcessorBase            `json:"drop,omitempty"`
 	Fail            *IngestFailProcessor            `json:"fail,omitempty"`
 	Foreach         *IngestForeachProcessor         `json:"foreach,omitempty"`
 	Geoip           *IngestGeoIPProcessor           `json:"geoip,omitempty"`
@@ -9049,14 +8912,6 @@ type KNNDeletedModel struct {
 	Result  string `json:"result"`
 }
 
-type SearchResultJSONValueHitsHitsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchResultJSONValueHits struct {
-	Hits []SearchResultJSONValueHitsHitsItem `json:"hits,omitempty"`
-}
-
 type SearchResultJSONValueSuggestValueItemCompletionOptionsSource struct {
 	Source json.RawMessage `json:"_source"`
 }
@@ -9071,7 +8926,6 @@ type SearchResultJSONValueSuggestValueItemCompletion struct {
 
 type SearchResultJSONValue struct {
 	SearchResult
-	Hits    *SearchResultJSONValueHits                         `json:"hits,omitempty"`
 	Suggest map[string][]SearchResultJSONValueSuggestValueItem `json:"suggest,omitempty"`
 }
 

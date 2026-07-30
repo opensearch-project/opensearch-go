@@ -222,7 +222,7 @@ type ExplainResp struct {
 	Type *string `json:"_type,omitempty"`
 
 	Explanation *ExplainExplanation `json:"explanation,omitempty"`
-	Get         *ExplainRespBodyGet `json:"get,omitempty"`
+	Get         *InlineGet          `json:"get,omitempty"`
 	Matched     bool                `json:"matched"`
 
 	response *opensearch.Response
@@ -240,12 +240,6 @@ func (r ExplainResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
-}
-
-// ExplainRespBodyGet is a typed component of the explain operation.
-type ExplainRespBodyGet struct {
-	InlineGet
-	Source json.RawMessage `json:"_source"`
 }
 
 // ExplainBody is a typed component of the explain operation.
