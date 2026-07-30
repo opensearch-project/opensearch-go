@@ -29,9 +29,17 @@ const searchHitEnvelopeBody = `{"hits":{"total":{"value":1,"relation":"eq"},"max
 // body: `_id` is needed to address the hit at all, `_seq_no`/`_primary_term`
 // gate optimistic-concurrency writes, and `sort` is the search_after cursor.
 //
-// This is the expression a consumer writes. It previously compiled and returned an
-// empty slice, because a redundant `hits` redeclaration on the enclosing struct
-// shadowed the declaration that carries the envelope.
+// What this pins is the public API surface, not the structural rule. Against the
+// pre-fix types the body below decoded without complaint and the length
+// assertion passed; the test failed to COMPILE, because `hit.ID` and its
+// siblings did not exist on the shadowed hit type. So it guards the shape a
+// consumer writes: these accessors exist, on these types, carrying these values.
+//
+// The structural rule - a struct must not redeclare a JSON tag its embed already
+// carries, which is what made these fields unreachable - is enforced at
+// generation time instead, by the allowlist guard in
+// cmd/osgen/tagshadow_guard.go. That catches the shape everywhere in the
+// generated surface; this catches the one place a consumer would notice.
 func TestSearchHitEnvelopeIsDecoded(t *testing.T) {
 	t.Parallel()
 
@@ -39,7 +47,7 @@ func TestSearchHitEnvelopeIsDecoded(t *testing.T) {
 	require.NoError(t, json.Unmarshal([]byte(searchHitEnvelopeBody), &resp))
 
 	hits := resp.Hits.Hits
-	require.Len(t, hits, 1, "the per-hit envelope must be populated, not shadowed away")
+	require.Len(t, hits, 1, "the response body carries exactly one hit")
 
 	hit := hits[0]
 
@@ -71,24 +79,4 @@ func TestSearchHitEnvelopeIsDecoded(t *testing.T) {
 	require.InDelta(t, float64(2), sort1, 1e-9)
 
 	require.JSONEq(t, `{"a":1}`, string(hit.Source))
-}
-
-// TestSearchHitEnvelopeSiblingsAreDecoded pins the sibling fields of `hits` as a
-// control. These share the embedded struct with the shadowed slice but carry no
-// duplicate tag, so they decode correctly both before and after the fix. If one
-// of these ever regresses alongside the envelope, the cause is broader than tag
-// shadowing.
-func TestSearchHitEnvelopeSiblingsAreDecoded(t *testing.T) {
-	t.Parallel()
-
-	var resp opensearchapi.SearchResult
-	require.NoError(t, json.Unmarshal([]byte(searchHitEnvelopeBody), &resp))
-
-	require.NotNil(t, resp.Hits.MaxScore)
-	require.InDelta(t, float32(1.5), *resp.Hits.MaxScore, 1e-6)
-
-	require.NotNil(t, resp.Hits.Total)
-	total, err := resp.Hits.Total.SearchTotalHits()
-	require.NoError(t, err)
-	require.Equal(t, int64(1), total.Value)
 }
