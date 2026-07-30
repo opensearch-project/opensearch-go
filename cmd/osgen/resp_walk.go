@@ -184,8 +184,13 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 }
 
 func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
-	// allOf: flatten into a single struct.
+	// allOf: flatten into a single struct, unless the merge is really a narrowed
+	// union (see narrowedUnionMember), in which case the narrowing member is the
+	// only informative one and a struct merge would discard it.
 	if len(schema.AllOf) > 0 {
+		if narrowed, ok := narrowedUnionMember(schema); ok {
+			return w.resolveInlineSchema(narrowed, schemaKey, group, isRespBody)
+		}
 		return w.resolveAllOf(schema, schemaKey, group, isRespBody)
 	}
 

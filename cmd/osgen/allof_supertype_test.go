@@ -249,3 +249,100 @@ func TestWarnOverrideDepthDedupes(t *testing.T) {
 	require.Equal(t, 1, strings.Count(buf.String(), `property "other"`))
 	require.Contains(t, buf.String(), "pkg___Derived")
 }
+
+// TestNarrowedUnionMember pins the distinction between an allOf that composes
+// structs and an allOf that narrows a union.
+//
+// The spec instantiates a generic union by allOf-ing the erased base with a
+// oneOf that restates the branches over the concrete type argument. Merging that
+// as a struct discards the narrowing (a oneOf member contributes no properties),
+// which degraded every aggregation `buckets` union to json.RawMessage and left
+// the concrete bucket types unemitted.
+func TestNarrowedUnionMember(t *testing.T) {
+	t.Parallel()
+
+	oneOfBranches := func() openapi3.SchemaRefs {
+		return openapi3.SchemaRefs{
+			{Value: &openapi3.Schema{
+				Type:                 &openapi3.Types{openapi3.TypeObject},
+				AdditionalProperties: openapi3.AdditionalProperties{Schema: &openapi3.SchemaRef{Ref: "#/components/schemas/pkg___Bucket"}},
+			}},
+			{Value: &openapi3.Schema{
+				Type:  &openapi3.Types{openapi3.TypeArray},
+				Items: &openapi3.SchemaRef{Ref: "#/components/schemas/pkg___Bucket"},
+			}},
+		}
+	}
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+		want   bool
+	}{
+		{
+			// The shape the aggregation buckets use. The loader resolves the $ref,
+			// so the base member carries its own oneOf too -- it must be skipped by
+			// Ref, or it looks like a second narrowing and the whole thing is
+			// rejected.
+			name: "base $ref plus inline oneOf narrowing",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{
+					Ref:   "#/components/schemas/pkg___Buckets",
+					Value: &openapi3.Schema{OneOf: oneOfBranches()},
+				},
+				{Value: &openapi3.Schema{OneOf: oneOfBranches()}},
+			}},
+			want: true,
+		},
+		{
+			name: "anyOf narrowing is equivalent",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Ref: "#/components/schemas/pkg___Buckets"},
+				{Value: &openapi3.Schema{AnyOf: oneOfBranches()}},
+			}},
+			want: true,
+		},
+		{
+			// A member contributing properties makes this a real composition; the
+			// struct merge is correct and must not be bypassed.
+			name: "member with properties is a struct composition",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Ref: "#/components/schemas/pkg___Base"},
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{openapi3.TypeObject},
+					Properties: openapi3.Schemas{"extra": {Value: openapi3.NewStringSchema()}},
+				}},
+			}},
+			want: false,
+		},
+		{
+			name: "two inline narrowings are ambiguous",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{OneOf: oneOfBranches()}},
+				{Value: &openapi3.Schema{OneOf: oneOfBranches()}},
+			}},
+			want: false,
+		},
+		{
+			name: "no oneOf member at all",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Ref: "#/components/schemas/pkg___Base"},
+				{Value: &openapi3.Schema{Type: &openapi3.Types{openapi3.TypeObject}}},
+			}},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			narrowed, ok := narrowedUnionMember(tt.schema)
+			require.Equal(t, tt.want, ok)
+			if tt.want {
+				require.NotNil(t, narrowed, "the narrowing member must be returned")
+				require.NotEmpty(t, append(narrowed.OneOf, narrowed.AnyOf...),
+					"the returned member is the one carrying the branches")
+			}
+		})
+	}
+}

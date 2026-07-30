@@ -152,9 +152,27 @@ type CommonAggregationsMultiBucketAggregateBase struct {
 	Buckets CommonAggregationsMultiBucketAggregateBaseBuckets `json:"buckets"`
 }
 
+type CommonAggregationsMultiBucketBase struct {
+	DocCount int64 `json:"doc_count"`
+}
+
+type CommonAggregationsAdjacencyMatrixBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key string `json:"key"`
+}
+
 type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets `json:"buckets"`
+}
+
+type CommonAggregationsDateHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+
+	// The time unit for milliseconds.
+	Key int64 `json:"key"`
+
+	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket struct {
@@ -214,6 +232,11 @@ type CommonAggregationsSingleBucketAggregateBase struct {
 	DocCount int64 `json:"doc_count"`
 }
 
+type CommonAggregationsCompositeBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key map[string]CommonAggregationsCompositeAggregateKeyValue `json:"key"`
+}
+
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets `json:"buckets"`
@@ -222,6 +245,18 @@ type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
 type CommonAggregationsCompositeAggregate struct {
 	CommonAggregationsMultiBucketAggregateBaseCompositeBucket
 	AfterKey map[string]CommonAggregationsCompositeAggregateKeyValue `json:"after_key,omitempty"`
+}
+
+type CommonAggregationsRangeBucket struct {
+	CommonAggregationsMultiBucketBase
+	From         *float64 `json:"from,omitempty"`
+	FromAsString *string  `json:"from_as_string,omitempty"`
+
+	// The bucket key. Present if the aggregation is not keyed.
+	Key *string `json:"key,omitempty"`
+
+	To         *float64 `json:"to,omitempty"`
+	ToAsString *string  `json:"to_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseRangeBucket struct {
@@ -239,10 +274,6 @@ type CommonAggregationsTermsAggregateBase struct {
 	CommonAggregationsMultiBucketAggregateBase
 	DocCountErrorUpperBound *int64 `json:"doc_count_error_upper_bound,omitempty"`
 	SumOtherDocCount        *int64 `json:"sum_other_doc_count,omitempty"`
-}
-
-type CommonAggregationsMultiBucketBase struct {
-	DocCount int64 `json:"doc_count"`
 }
 
 type CommonAggregationsTermsBucketBase struct {
@@ -393,9 +424,23 @@ type CommonAggregationsGeoCentroidAggregate struct {
 	Location *CommonAggregationsGeoCentroidAggregateLocation `json:"location,omitempty"`
 }
 
+type CommonAggregationsGeoHashGridBucket struct {
+	CommonAggregationsMultiBucketBase
+
+	// The geohash string representation of a geographical location.
+	Key string `json:"key"`
+}
+
 type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets `json:"buckets"`
+}
+
+type CommonAggregationsGeoTileGridBucket struct {
+	CommonAggregationsMultiBucketBase
+
+	// A map tile reference, represented as `{zoom}/{x}/{y}`.
+	Key string `json:"key"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket struct {
@@ -414,14 +459,33 @@ type CommonAggregationsPercentilesAggregateBase struct {
 	Values CommonAggregationsPercentilesAggregateBaseValues `json:"values"`
 }
 
+type CommonAggregationsHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         float64 `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
 type CommonAggregationsMultiBucketAggregateBaseHistogramBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets `json:"buckets"`
 }
 
+type CommonAggregationsIPRangeBucket struct {
+	CommonAggregationsMultiBucketBase
+	From *string `json:"from,omitempty"`
+	Key  *string `json:"key,omitempty"`
+	To   *string `json:"to,omitempty"`
+}
+
 type CommonAggregationsMultiBucketAggregateBaseIPRangeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets `json:"buckets"`
+}
+
+type CommonAggregationsLongRareTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         int64   `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
@@ -461,6 +525,13 @@ type CommonAggregationsMatrixStatsAggregate struct {
 	Fields   []CommonAggregationsMatrixStatsFields `json:"fields,omitempty"`
 }
 
+type CommonAggregationsMultiTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	DocCountErrorUpperBound *int64                                      `json:"doc_count_error_upper_bound,omitempty"`
+	Key                     []CommonAggregationsMultiTermsBucketKeyItem `json:"key"`
+	KeyAsString             *string                                     `json:"key_as_string,omitempty"`
+}
+
 type CommonAggregationsTermsAggregateBaseMultiTermsBucket struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets `json:"buckets,omitempty"`
@@ -483,9 +554,26 @@ type CommonAggregationsSignificantTermsAggregateBase struct {
 	DocCount *int64 `json:"doc_count,omitempty"`
 }
 
+type CommonAggregationsSignificantTermsBucketBase struct {
+	CommonAggregationsMultiBucketBase
+	BgCount int64   `json:"bg_count"`
+	Score   float64 `json:"score"`
+}
+
+type CommonAggregationsSignificantLongTermsBucket struct {
+	CommonAggregationsSignificantTermsBucketBase
+	Key         int64   `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
 type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket struct {
 	CommonAggregationsSignificantTermsAggregateBase
 	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets `json:"buckets,omitempty"`
+}
+
+type CommonAggregationsSignificantStringTermsBucket struct {
+	CommonAggregationsSignificantTermsBucketBase
+	Key string `json:"key"`
 }
 
 type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket struct {
@@ -497,6 +585,11 @@ type CommonAggregationsCumulativeCardinalityAggregate struct {
 	CommonAggregationsAggregateBase
 	Value         int64   `json:"value"`
 	ValueAsString *string `json:"value_as_string,omitempty"`
+}
+
+type CommonAggregationsStringRareTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key string `json:"key"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket struct {
@@ -622,6 +715,15 @@ type CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket struct {
 	Buckets []CommonAggregationsUnsignedLongTermsBucket `json:"buckets"`
 }
 
+// The absence of any type. This is commonly used in APIs that don't return a body.
+//
+// Although "void" is generally used for a unit type that has only one value, this is interpreted as
+// the bottom type, which has no value. Most languages have a unit type, but few have a bottom type.
+//
+// See https://en.m.wikipedia.org/wiki/Unit_type and https://en.m.wikipedia.org/wiki/Bottom_type.
+type Void struct {
+}
+
 type CommonAggregationsMultiBucketAggregateBaseVoid struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets *CommonAggregationsMultiBucketAggregateBaseVoidBuckets `json:"buckets,omitempty"`
@@ -632,17 +734,18 @@ type CommonAggregationsSignificantTermsAggregateBaseVoid struct {
 	Buckets *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets `json:"buckets,omitempty"`
 }
 
-// The absence of any type. This is commonly used in APIs that don't return a body.
-//
-// Although "void" is generally used for a unit type that has only one value, this is interpreted as
-// the bottom type, which has no value. Most languages have a unit type, but few have a bottom type.
-//
-// See https://en.m.wikipedia.org/wiki/Unit_type and https://en.m.wikipedia.org/wiki/Bottom_type.
-type Void struct {
-}
-
 type CommonAggregationsTermsAggregateBaseVoid struct {
 	CommonAggregationsTermsAggregateBase
+}
+
+type CommonAggregationsVariableWidthHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         float64 `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
+	Max         float64 `json:"max"`
+	MaxAsString *string `json:"max_as_string,omitempty"`
+	Min         float64 `json:"min"`
+	MinAsString *string `json:"min_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket struct {

@@ -170,6 +170,54 @@ func (w *walker) declaresProperty(ref *openapi3.SchemaRef, jsonName string, dept
 	return false
 }
 
+// narrowedUnionMember reports whether an allOf is a narrowed union rather than a
+// struct merge, returning the member that carries the narrowing.
+//
+// The spec instantiates a generic union by allOf-ing the erased base with a
+// oneOf/anyOf that restates the same branches over the concrete type argument:
+//
+//	buckets:
+//	  allOf:
+//	    - $ref: Buckets                     # oneOf[keyed, array] over TBucket
+//	    - oneOf:
+//	        - {type: object, additionalProperties: {$ref: AdjacencyMatrixBucket}}
+//	        - {type: array,  items: {$ref: AdjacencyMatrixBucket}}
+//
+// Merging that as a struct discards the narrowing entirely: a oneOf member
+// contributes no properties, so the result degrades to the erased base and the
+// concrete bucket type is never emitted. The narrowing member IS the type; the
+// $ref member only names what it narrows.
+//
+// Applies only when no member contributes properties -- with properties present
+// the allOf is a genuine composition and the struct merge is correct.
+func narrowedUnionMember(schema *openapi3.Schema) (*openapi3.Schema, bool) {
+	var narrowed *openapi3.Schema
+	for _, member := range schema.AllOf {
+		if member == nil || member.Value == nil {
+			continue
+		}
+		// A $ref member names the base being narrowed. The loader resolves it, so
+		// its Value carries the base's own branches -- skip it by Ref, not by a
+		// nil Value, or the base's oneOf is mistaken for a second narrowing.
+		if member.Ref != "" {
+			continue
+		}
+		s := member.Value
+		if len(s.Properties) > 0 {
+			return nil, false
+		}
+		if len(s.OneOf) == 0 && len(s.AnyOf) == 0 {
+			continue
+		}
+		if narrowed != nil {
+			// Two inline narrowing members: not a single union to resolve.
+			return nil, false
+		}
+		narrowed = s
+	}
+	return narrowed, narrowed != nil
+}
+
 // collapsesToBase reports whether schema describes the same shape as its allOf
 // base, so callers can resolve to the base instead of emitting a wrapper.
 //
