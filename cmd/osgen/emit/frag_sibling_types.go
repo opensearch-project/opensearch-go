@@ -28,7 +28,7 @@ func (f *SiblingTypesFragment) Imports() []Import {
 	hasCrossPkg := false
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
-			if !hasJSON && strings.Contains(field.GoType, "json.RawMessage") {
+			if !hasJSON && strings.Contains(field.GoType, GoTypeRawMessage) {
 				hasJSON = true
 			}
 			if !hasCrossPkg && f.Op.IsPlugin && f.Registry != nil && isCrossPackageType(field.GoType, f.Registry) {

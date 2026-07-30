@@ -36,7 +36,7 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 			continue
 		}
 		// Skip null branches (handled by pointer semantics).
-		if branch.Value != nil && branch.Value.Type != nil && branch.Value.Type.Is("null") {
+		if branch.Value != nil && branch.Value.Type != nil && branch.Value.Type.Is(openapi3.TypeNull) {
 			continue
 		}
 		b := w.classifyBranch(branch, schemaKey, group, branchIdx, objNames[branchIdx])
@@ -56,7 +56,7 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		if len(classified) == 1 {
 			return classified[0].GoType
 		}
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	// Deduplicate branches by GoType (some specs list the same type twice).
@@ -157,8 +157,8 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		}
 	}
 
-	if s.Type.Is("array") {
-		elemType := "json.RawMessage"
+	if s.Type.Is(openapi3.TypeArray) {
+		elemType := goTypeRawMessage
 		if s.Items != nil {
 			elemType = w.walkSchema(s.Items, parentKey+"Item", group, false)
 		}
@@ -171,7 +171,7 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		}
 	}
 
-	if s.Type.Is("object") {
+	if s.Type.Is(openapi3.TypeObject) {
 		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
 	}
 
@@ -206,7 +206,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 	}
 	childKey := fmt.Sprintf("%s.%s", parentKey, name)
 	goTypeName := w.resolveObjectSchema(s, childKey, group, false)
-	if goTypeName != "" && goTypeName != "json.RawMessage" {
+	if goTypeName != "" && goTypeName != goTypeRawMessage {
 		return unionBranch{
 			Name:         name,
 			GoType:       goTypeName,
@@ -275,10 +275,10 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 		if br == nil {
 			continue
 		}
-		if br.Value != nil && br.Value.Type != nil && br.Value.Type.Is("null") {
+		if br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeNull) {
 			continue
 		}
-		if br.Ref == "" && br.Value != nil && br.Value.Type != nil && br.Value.Type.Is("object") {
+		if br.Ref == "" && br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeObject) {
 			if n := objectBranchName(br.Value); n != "" {
 				names[idx] = n
 			}
@@ -311,7 +311,7 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 	}
 
 	goTypeName := w.walkSchema(ref, parentKey, group, false)
-	if goTypeName == "" || goTypeName == "json.RawMessage" {
+	if goTypeName == "" || goTypeName == goTypeRawMessage {
 		return unionBranch{}
 	}
 
@@ -396,15 +396,15 @@ func tokenClassForSchemaValue(schema *openapi3.Schema) string {
 		return "object"
 	}
 	switch {
-	case schema.Type.Is("object"):
+	case schema.Type.Is(openapi3.TypeObject):
 		return "object"
-	case schema.Type.Is("array"):
+	case schema.Type.Is(openapi3.TypeArray):
 		return "array"
-	case schema.Type.Is("string"):
+	case schema.Type.Is(openapi3.TypeString):
 		return "string"
-	case schema.Type.Is("integer"), schema.Type.Is("number"):
+	case schema.Type.Is(openapi3.TypeInteger), schema.Type.Is(openapi3.TypeNumber):
 		return "number"
-	case schema.Type.Is("boolean"):
+	case schema.Type.Is(openapi3.TypeBoolean):
 		return "bool"
 	}
 	return "object"

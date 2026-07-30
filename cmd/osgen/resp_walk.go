@@ -21,6 +21,13 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
+// goTypeRawMessage is the Go type expression the walker returns when a schema
+// cannot be resolved to a named type: an unresolvable $ref, an untyped or empty
+// schema, or a generic type parameter. Callers test against it to decide whether a
+// schema resolved to something typed, so it is a sentinel and not merely the name
+// of a type -- keep the spelling in one place rather than comparing bare literals.
+const goTypeRawMessage = "json.RawMessage"
+
 type walker struct {
 	registry *typeRegistry
 	spec     *openapi3.T
@@ -47,7 +54,7 @@ type walker struct {
 // a primitive or composite type string.
 func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, isRespBody bool) string {
 	if ref == nil {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	if ref.Ref != "" {
@@ -56,7 +63,7 @@ func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, is
 
 	// Inline schema.
 	if ref.Value == nil {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 	return w.resolveInlineSchema(ref.Value, schemaKey, group, isRespBody)
 }
@@ -130,7 +137,7 @@ func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, gr
 
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {
 	if schema != nil && extensionBool(schema.Extensions, extGenericTypeParam) {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	if got, ok := w.resolvePropertylessSchema(schema, key, group, isRespBody); ok {
@@ -194,7 +201,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		if len(schema.Properties) > 0 {
 			return w.resolveObjectSchema(schema, schemaKey, group, isRespBody)
 		}
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	// Primitive types.
@@ -216,7 +223,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 
 	// Array.
 	if schema.Type.Is(openapi3.TypeArray) {
-		elemType := "json.RawMessage"
+		elemType := goTypeRawMessage
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, schemaKey+"Item", group, false)
 		}
@@ -235,7 +242,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		return gt
 	}
 
-	return "json.RawMessage"
+	return goTypeRawMessage
 }
 
 func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
@@ -269,7 +276,7 @@ func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group s
 		return "map[string]json.RawMessage"
 	}
 
-	return "json.RawMessage"
+	return goTypeRawMessage
 }
 
 func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
@@ -299,7 +306,7 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			goTypeName := w.walkSchema(sub, schemaKey, group, false)
-			if goTypeName != "json.RawMessage" {
+			if goTypeName != goTypeRawMessage {
 				t.Fields = append(t.Fields, goField{
 					GoType:  goTypeName,
 					IsEmbed: true,
@@ -405,7 +412,7 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 
 		// json.RawMessage is inherently nullable (nil means absent/null),
 		// so a pointer wrapper + omitempty loses null values on roundtrip.
-		if goType == "json.RawMessage" {
+		if goType == goTypeRawMessage {
 			isPointer = false
 			omitEmpty = false
 		}
@@ -803,7 +810,7 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 	redundant := w.redundantOverrideTags(schema, key)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
-			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != "json.RawMessage" {
+			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != goTypeRawMessage {
 				fields = append(fields, goField{GoType: goTypeName, IsEmbed: true})
 				continue
 			}
@@ -847,7 +854,7 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 		return goType, true
 	}
 	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
-		elemType := "json.RawMessage"
+		elemType := goTypeRawMessage
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, key+"Item", group, false)
 		}

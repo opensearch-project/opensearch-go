@@ -23,7 +23,7 @@ type SharedTypesFragment struct {
 func (f *SharedTypesFragment) Imports() []Import {
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
-			if strings.Contains(field.GoType, "json.RawMessage") {
+			if strings.Contains(field.GoType, GoTypeRawMessage) {
 				return []Import{{Path: "encoding/json"}}
 			}
 		}

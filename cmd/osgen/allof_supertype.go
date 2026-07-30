@@ -266,7 +266,7 @@ func (w *walker) resolveCollapsedBase(schema *openapi3.Schema, schemaKey, group 
 
 	// Resolve the base under its OWN key so it is registered and named as itself.
 	resolved := w.resolveNamedSchema(baseKey, target.Value, group, isRespBody)
-	if resolved == "json.RawMessage" {
+	if resolved == goTypeRawMessage {
 		return "", false
 	}
 

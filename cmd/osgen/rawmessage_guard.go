@@ -118,7 +118,7 @@ func classifyRawForm(goType string) (rawForm, bool) {
 			leaf = leaf[len("[]"):]
 		case strings.HasPrefix(leaf, "map[string]"):
 			leaf = leaf[len("map[string]"):]
-		case leaf == "json.RawMessage":
+		case leaf == goTypeRawMessage:
 			return form, true
 		default:
 			return 0, false

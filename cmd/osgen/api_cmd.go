@@ -675,7 +675,7 @@ func classifyRespShape(op *apiOperation, spec *openapi3.T, registry *typeRegistr
 	}
 
 	// Array: type=array with items.
-	if schema.Type != nil && schema.Type.Is("array") {
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
 		op.RespShape = ir.RespShapeArray
 		if schema.Items != nil {
 			op.RespElemType = resolveElemType(schema.Items, registry)
