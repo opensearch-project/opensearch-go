@@ -176,7 +176,7 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
 type GetResp struct {
-	GetResultBase
+	GetResult
 
 	response *opensearch.Response
 }
@@ -195,8 +195,8 @@ func (r GetResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// GetResultBase is a typed component of the get operation.
-type GetResultBase struct {
+// GetResult is a typed component of the get operation.
+type GetResult struct {
 	// The unique identifier for a resource.
 	ID string `json:"_id"`
 

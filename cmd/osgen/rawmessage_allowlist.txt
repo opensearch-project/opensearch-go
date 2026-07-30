@@ -98,8 +98,8 @@ FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
 GeospatialGeoJSONData/properties # bare
 
 # --- get ---
-GetResultBase/_source # bare
-GetResultBase/fields # map
+GetResult/_source # bare
+GetResult/fields # map
 
 # --- get_source ---
 GetSourceResp/- # bare

@@ -239,7 +239,7 @@ func (e *ShardFailureError) IsPartial() bool { return true }
 // union holds a different branch than the one requested.
 //
 // The accessor also returns the zero value of the branch type, which is
-// indistinguishable from a decoded one -- a zero GetResultBase reads as a
+// indistinguishable from a decoded one -- a zero GetResult reads as a
 // found=false document -- so the error is the only signal that the branch was
 // not the one on the wire. Recover it with [errors.As] and compare Union when a
 // call chain touches more than one union.

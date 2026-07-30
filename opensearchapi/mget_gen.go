@@ -261,21 +261,21 @@ func (u *MGetRespBodyDocsItem) SetRaw(raw json.RawMessage) {
 	u.typ = MGetRespBodyDocsItemUnknownType
 }
 
-// GetResult returns the GetResultBase branch value. It returns a
+// GetResult returns the GetResult branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero GetResultBase in that case,
+// that is set; the returned value is the zero GetResult in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *MGetRespBodyDocsItem) GetResult() (GetResultBase, error) {
-	if v, ok := u.value.(*GetResultBase); ok {
+func (u *MGetRespBodyDocsItem) GetResult() (GetResult, error) {
+	if v, ok := u.value.(*GetResult); ok {
 		return *v, nil
 	}
-	var zero GetResultBase
+	var zero GetResult
 	return zero, &UnionBranchError{Union: "MGetRespBodyDocsItem", Want: "GetResult", Got: u.typ.String()}
 }
 
 // NewMGetRespBodyDocsItemFromGetResult returns a MGetRespBodyDocsItem populated with v
 // on the GetResult branch.
-func NewMGetRespBodyDocsItemFromGetResult(v GetResultBase) MGetRespBodyDocsItem {
+func NewMGetRespBodyDocsItemFromGetResult(v GetResult) MGetRespBodyDocsItem {
 	return MGetRespBodyDocsItem{
 		typ:   MGetRespBodyDocsItemGetResultType,
 		value: &v,
@@ -314,7 +314,7 @@ func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
 	// discriminating keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		GetResultBase
+		GetResult
 		Disc0 json.RawMessage `json:"error"`
 	}
 	var m merged
@@ -331,7 +331,7 @@ func (u *MGetRespBodyDocsItem) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	u.typ = MGetRespBodyDocsItemGetResultType
-	u.value = &m.GetResultBase
+	u.value = &m.GetResult
 	return nil
 }
 
