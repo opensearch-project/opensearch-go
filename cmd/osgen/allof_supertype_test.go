@@ -199,10 +199,10 @@ func TestConveysNoConcreteTypeStopsAtConcreteSchemas(t *testing.T) {
 		"a concrete schema stays concrete even when its own fields are erased")
 }
 
-// cyclicSchemas returns a mutually recursive allOf pair: A composes B and B
-// composes A. Neither declares anything, so nothing stops the descent on
-// content; only the visited set can.
-func cyclicSchemas() openapi3.Schemas {
+// cyclicAllOfSchemas returns a mutually recursive allOf pair: A composes B and B
+// composes A. This is the shape declaresProperty descends, since it follows allOf
+// members and has no stopping rule of its own.
+func cyclicAllOfSchemas() openapi3.Schemas {
 	return openapi3.Schemas{
 		"pkg___A": {Value: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
 			{Ref: "#/components/schemas/pkg___B"},
@@ -213,6 +213,26 @@ func cyclicSchemas() openapi3.Schemas {
 	}
 }
 
+// cyclicAliasSchemas returns a mutually recursive pair of bare aliases,
+// `A: {$ref: B}` and `B: {$ref: A}`. kin-openapi sets such a component's Ref
+// while still resolving its Value, so each hop re-enters the $ref branch.
+//
+// This is the shape that reaches conveysNoConcreteType's cycle guard. An allOf
+// pair does not: an allOf makes a schema concrete by namesConcreteSchema, which
+// stops the descent one hop in.
+func cyclicAliasSchemas() openapi3.Schemas {
+	return openapi3.Schemas{
+		"pkg___A": {
+			Ref:   "#/components/schemas/pkg___B",
+			Value: &openapi3.Schema{},
+		},
+		"pkg___B": {
+			Ref:   "#/components/schemas/pkg___A",
+			Value: &openapi3.Schema{},
+		},
+	}
+}
+
 // TestConveysNoConcreteTypeTerminatesOnCycle pins the cycle guard. A $ref is the
 // only way the descent can revisit a schema, so recording the refs in flight is
 // what makes a cyclic spec terminate. A repeat resolves as concrete, matching the
@@ -220,7 +240,7 @@ func cyclicSchemas() openapi3.Schemas {
 func TestConveysNoConcreteTypeTerminatesOnCycle(t *testing.T) {
 	t.Parallel()
 
-	w := newOverrideWalker(cyclicSchemas())
+	w := newOverrideWalker(cyclicAliasSchemas())
 
 	require.False(t,
 		w.conveysNoConcreteType(&openapi3.SchemaRef{Ref: "#/components/schemas/pkg___A"}, make(set[string])),
@@ -234,7 +254,7 @@ func TestConveysNoConcreteTypeTerminatesOnCycle(t *testing.T) {
 func TestDeclaresPropertyTerminatesOnCycle(t *testing.T) {
 	t.Parallel()
 
-	w := newOverrideWalker(cyclicSchemas())
+	w := newOverrideWalker(cyclicAllOfSchemas())
 
 	require.False(t,
 		w.declaresProperty(&openapi3.SchemaRef{Ref: "#/components/schemas/pkg___A"}, "hits", make(set[string])),
