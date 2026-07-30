@@ -120,8 +120,12 @@ func example() error {
 	}
 	fmt.Printf("Task completed: action=%s\n", taskResp.Task.Action)
 
-	// Read the BulkByScroll status.
-	status := taskResp.Task.Status.BulkByScrollTaskStatus()
+	// Read the BulkByScroll status. The accessor errors when the task's status
+	// decoded as some other branch of the union.
+	status, err := taskResp.Task.Status.BulkByScrollTaskStatus()
+	if err != nil {
+		return err
+	}
 
 	fmt.Printf("Total: %d\n", status.Total)
 	if status.Created != nil {
