@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -87,7 +88,7 @@ func (r ClusterRemoteInfoParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/remote-info/
 type ClusterRemoteInfoResp struct {
-	Entries  map[string]json.RawMessage `json:"-"`
+	Entries  map[string]ClusterRemoteInfoCluster `json:"-"`
 	response *opensearch.Response
 }
 
@@ -150,131 +151,149 @@ type ClusterRemoteInfoClusterRemoteProxyInfo struct {
 	SkipUnavailable           bool   `json:"skip_unavailable"`
 }
 
-// ClusterRemoteInfoRespBodyValue is a discriminated union type (single-pass merge decode).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type ClusterRemoteInfoRespBodyValue struct {
-	typ   ClusterRemoteInfoRespBodyValueType
+// ClusterRemoteInfoCluster is a oneOf union whose branch the payload names itself.
+//
+// The OpenAPI spec declares a discriminator on ClusterRemoteInfoCluster: the mode
+// property carries the branch name, so UnmarshalJSON reads that one property and
+// decodes exactly that branch -- it never guesses, and a mode naming
+// no known branch is an error rather than a silent mis-decode.
+//
+// Use Type() to learn which branch was decoded, then call the corresponding
+// accessor.
+
+type ClusterRemoteInfoCluster struct {
+	typ   ClusterRemoteInfoClusterType
 	raw   json.RawMessage
 	value any
 }
 
-// ClusterRemoteInfoRespBodyValueType discriminates the branches of ClusterRemoteInfoRespBodyValue.
-type ClusterRemoteInfoRespBodyValueType int
+// ClusterRemoteInfoClusterType names which branch of ClusterRemoteInfoCluster is set.
+type ClusterRemoteInfoClusterType int
 
 const (
-	ClusterRemoteInfoRespBodyValueUnknownType ClusterRemoteInfoRespBodyValueType = iota
-	ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
-	ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
+	ClusterRemoteInfoClusterUnknownType ClusterRemoteInfoClusterType = iota
+	ClusterRemoteInfoClusterClusterRemoteSniffInfoType
+	ClusterRemoteInfoClusterClusterRemoteProxyInfoType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t ClusterRemoteInfoRespBodyValueType) String() string {
+func (t ClusterRemoteInfoClusterType) String() string {
 	switch t {
-	case ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType:
-		return "ClusterRemoteInfoClusterRemoteSniffInfo"
-	case ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType:
-		return "ClusterRemoteInfoClusterRemoteProxyInfo"
+	case ClusterRemoteInfoClusterClusterRemoteSniffInfoType:
+		return "ClusterRemoteSniffInfo"
+	case ClusterRemoteInfoClusterClusterRemoteProxyInfoType:
+		return "ClusterRemoteProxyInfo"
 	default:
 		return "unknown"
 	}
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns ClusterRemoteInfoRespBodyValueUnknownType if the value has not been decoded.
-func (u *ClusterRemoteInfoRespBodyValue) Type() ClusterRemoteInfoRespBodyValueType { return u.typ }
+// Returns ClusterRemoteInfoClusterUnknownType if the value has not been decoded.
+func (u *ClusterRemoteInfoCluster) Type() ClusterRemoteInfoClusterType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *ClusterRemoteInfoRespBodyValue) RawJSON() json.RawMessage { return u.raw }
+func (u *ClusterRemoteInfoCluster) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewClusterRemoteInfoRespBodyValueFrom*
+// verbatim when no typed branch is set. Use the NewClusterRemoteInfoClusterFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *ClusterRemoteInfoRespBodyValue) SetRaw(raw json.RawMessage) {
+func (u *ClusterRemoteInfoCluster) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = ClusterRemoteInfoRespBodyValueUnknownType
+	u.typ = ClusterRemoteInfoClusterUnknownType
 }
 
-// ClusterRemoteInfoClusterRemoteSniffInfo returns the ClusterRemoteInfoClusterRemoteSniffInfo branch value. It returns a
+// ClusterRemoteSniffInfo returns the ClusterRemoteInfoClusterRemoteSniffInfo branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteSniffInfo in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteSniffInfo() (ClusterRemoteInfoClusterRemoteSniffInfo, error) {
+func (u *ClusterRemoteInfoCluster) ClusterRemoteSniffInfo() (ClusterRemoteInfoClusterRemoteSniffInfo, error) {
 	if v, ok := u.value.(*ClusterRemoteInfoClusterRemoteSniffInfo); ok {
 		return *v, nil
 	}
 	var zero ClusterRemoteInfoClusterRemoteSniffInfo
-	return zero, &UnionBranchError{Union: "ClusterRemoteInfoRespBodyValue", Want: "ClusterRemoteInfoClusterRemoteSniffInfo", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "ClusterRemoteInfoCluster", Want: "ClusterRemoteSniffInfo", Got: u.typ.String()}
 }
 
-// NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo returns a ClusterRemoteInfoRespBodyValue populated with v
-// on the ClusterRemoteInfoClusterRemoteSniffInfo branch.
-func NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo(v ClusterRemoteInfoClusterRemoteSniffInfo) ClusterRemoteInfoRespBodyValue {
-	return ClusterRemoteInfoRespBodyValue{
-		typ:   ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType,
+// NewClusterRemoteInfoClusterFromClusterRemoteSniffInfo returns a ClusterRemoteInfoCluster populated with v
+// on the ClusterRemoteSniffInfo branch.
+//
+// It sets v.Mode to "sniff" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewClusterRemoteInfoClusterFromClusterRemoteSniffInfo(v ClusterRemoteInfoClusterRemoteSniffInfo) ClusterRemoteInfoCluster {
+	v.Mode = "sniff"
+	return ClusterRemoteInfoCluster{
+		typ:   ClusterRemoteInfoClusterClusterRemoteSniffInfoType,
 		value: &v,
 	}
 }
 
-// ClusterRemoteInfoClusterRemoteProxyInfo returns the ClusterRemoteInfoClusterRemoteProxyInfo branch value. It returns a
+// ClusterRemoteProxyInfo returns the ClusterRemoteInfoClusterRemoteProxyInfo branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteProxyInfo in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteProxyInfo() (ClusterRemoteInfoClusterRemoteProxyInfo, error) {
+func (u *ClusterRemoteInfoCluster) ClusterRemoteProxyInfo() (ClusterRemoteInfoClusterRemoteProxyInfo, error) {
 	if v, ok := u.value.(*ClusterRemoteInfoClusterRemoteProxyInfo); ok {
 		return *v, nil
 	}
 	var zero ClusterRemoteInfoClusterRemoteProxyInfo
-	return zero, &UnionBranchError{Union: "ClusterRemoteInfoRespBodyValue", Want: "ClusterRemoteInfoClusterRemoteProxyInfo", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "ClusterRemoteInfoCluster", Want: "ClusterRemoteProxyInfo", Got: u.typ.String()}
 }
 
-// NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo returns a ClusterRemoteInfoRespBodyValue populated with v
-// on the ClusterRemoteInfoClusterRemoteProxyInfo branch.
-func NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo(v ClusterRemoteInfoClusterRemoteProxyInfo) ClusterRemoteInfoRespBodyValue {
-	return ClusterRemoteInfoRespBodyValue{
-		typ:   ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType,
+// NewClusterRemoteInfoClusterFromClusterRemoteProxyInfo returns a ClusterRemoteInfoCluster populated with v
+// on the ClusterRemoteProxyInfo branch.
+//
+// It sets v.Mode to "proxy" so the value marshals with the
+// discriminator the spec requires, and so the result decodes back to this branch.
+func NewClusterRemoteInfoClusterFromClusterRemoteProxyInfo(v ClusterRemoteInfoClusterRemoteProxyInfo) ClusterRemoteInfoCluster {
+	v.Mode = "proxy"
+	return ClusterRemoteInfoCluster{
+		typ:   ClusterRemoteInfoClusterClusterRemoteProxyInfoType,
 		value: &v,
 	}
 }
 
-func (u *ClusterRemoteInfoRespBodyValue) UnmarshalJSON(data []byte) error {
+func (u *ClusterRemoteInfoCluster) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = ClusterRemoteInfoRespBodyValueUnknownType
+	u.typ = ClusterRemoteInfoClusterUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
-	// populates the embedded primary directly; the probes only test presence.
-	type merged struct {
-		ClusterRemoteInfoClusterRemoteSniffInfo
-		Disc0 json.RawMessage `json:"max_proxy_socket_connections"`
+	discriminator, present, err := build.JSONDiscriminator(data, "mode")
+	if err != nil {
+		return fmt.Errorf("ClusterRemoteInfoCluster: reading mode discriminator: %w", err)
 	}
-	var m merged
-	if err := json.Unmarshal(data, &m); err != nil {
-		return err
+	if !present {
+		return fmt.Errorf("ClusterRemoteInfoCluster: payload has no mode discriminator: %s", data[:min(len(data), 64)])
 	}
-	if len(m.Disc0) > 0 {
+	switch discriminator {
+	case "sniff":
+		var v ClusterRemoteInfoClusterRemoteSniffInfo
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = ClusterRemoteInfoClusterClusterRemoteSniffInfoType
+		u.value = &v
+	case "proxy":
 		var v ClusterRemoteInfoClusterRemoteProxyInfo
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteProxyInfoType
+		u.typ = ClusterRemoteInfoClusterClusterRemoteProxyInfoType
 		u.value = &v
-		return nil
+	default:
+		return fmt.Errorf("ClusterRemoteInfoCluster: unknown mode discriminator %q", discriminator)
 	}
-	u.typ = ClusterRemoteInfoRespBodyValueClusterRemoteInfoClusterRemoteSniffInfoType
-	u.value = &m.ClusterRemoteInfoClusterRemoteSniffInfo
 	return nil
 }
 
-func (u ClusterRemoteInfoRespBodyValue) MarshalJSON() ([]byte, error) {
+func (u ClusterRemoteInfoCluster) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}

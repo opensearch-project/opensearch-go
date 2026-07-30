@@ -1564,16 +1564,22 @@ type NodesStatsShardWeightedRoutingDetail struct {
 	FailOpenCount *int `json:"fail_open_count,omitempty"`
 }
 
+//
 // IP address and port for the node.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type NodesStatsIP struct {
 	typ   NodesStatsIPType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesStatsIPType discriminates the branches of NodesStatsIP.
+// NodesStatsIPType names which branch of NodesStatsIP is set.
 type NodesStatsIPType int
 
 const (

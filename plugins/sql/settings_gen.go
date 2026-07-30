@@ -125,16 +125,20 @@ func (r SettingsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SQLSettingsBody is a discriminated union type (try-each, newest version first).
+// SQLSettingsBody is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type SQLSettingsBody struct {
 	typ   SQLSettingsBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// SQLSettingsBodyType discriminates the branches of SQLSettingsBody.
+// SQLSettingsBodyType names which branch of SQLSettingsBody is set.
 type SQLSettingsBodyType int
 
 const (
@@ -224,12 +228,12 @@ func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
 	{
 		var v opensearchapi.SQLSettingsPlain
 		if err := json.Unmarshal(data, &v); err == nil {

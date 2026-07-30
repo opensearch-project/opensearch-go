@@ -112,8 +112,8 @@ func TestRespHelperMethods(t *testing.T) {
 				shardReason := "shard boom"
 				itemReason := "unknown query"
 				r := &opensearchapi.MSearchResp{
-					Responses: []opensearchapi.MSearchMultiSearchResultResponsesItem{
-						opensearchapi.NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(
+					Responses: []opensearchapi.MSearchRespItem{
+						opensearchapi.NewMSearchRespItemFromMultiSearchItem(
 							opensearchapi.MSearchMultiSearchItem{
 								SearchResult: opensearchapi.SearchResult{
 									Shards: opensearchapi.ShardStatistics{
@@ -125,7 +125,7 @@ func TestRespHelperMethods(t *testing.T) {
 								},
 							},
 						),
-						opensearchapi.NewMSearchMultiSearchResultResponsesItemFromErrorRespBase(
+						opensearchapi.NewMSearchRespItemFromErrorRespBase(
 							opensearchapi.ErrorRespBase{
 								Status: 400,
 								Error:  opensearchapi.ErrorCause{Type: "parsing_exception", Reason: &itemReason},

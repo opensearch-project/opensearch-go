@@ -186,8 +186,8 @@ func (r MSearchParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/multi-search/
 type MSearchResp struct {
-	Responses []MSearchMultiSearchResultResponsesItem `json:"responses"`
-	Took      float64                                 `json:"took"`
+	Responses []MSearchRespItem `json:"responses"`
+	Took      float64           `json:"took"`
 
 	response *opensearch.Response
 }
@@ -212,31 +212,36 @@ type MSearchMultiSearchItem struct {
 	Status *float64 `json:"status,omitempty"`
 }
 
-// MSearchMultiSearchResultResponsesItem is a discriminated union type (single-pass merge decode).
+// MSearchRespItem is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type MSearchMultiSearchResultResponsesItem struct {
-	typ   MSearchMultiSearchResultResponsesItemType
+
+type MSearchRespItem struct {
+	typ   MSearchRespItemType
 	raw   json.RawMessage
 	value any
 }
 
-// MSearchMultiSearchResultResponsesItemType discriminates the branches of MSearchMultiSearchResultResponsesItem.
-type MSearchMultiSearchResultResponsesItemType int
+// MSearchRespItemType names which branch of MSearchRespItem is set.
+type MSearchRespItemType int
 
 const (
-	MSearchMultiSearchResultResponsesItemUnknownType MSearchMultiSearchResultResponsesItemType = iota
-	MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
-	MSearchMultiSearchResultResponsesItemErrorRespBaseType
+	MSearchRespItemUnknownType MSearchRespItemType = iota
+	MSearchRespItemMultiSearchItemType
+	MSearchRespItemErrorRespBaseType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
-func (t MSearchMultiSearchResultResponsesItemType) String() string {
+func (t MSearchRespItemType) String() string {
 	switch t {
-	case MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType:
-		return "MSearchMultiSearchItem"
-	case MSearchMultiSearchResultResponsesItemErrorRespBaseType:
+	case MSearchRespItemMultiSearchItemType:
+		return "MultiSearchItem"
+	case MSearchRespItemErrorRespBaseType:
 		return "ErrorRespBase"
 	default:
 		return "unknown"
@@ -244,43 +249,41 @@ func (t MSearchMultiSearchResultResponsesItemType) String() string {
 }
 
 // Type returns which union branch was populated during decoding.
-// Returns MSearchMultiSearchResultResponsesItemUnknownType if the value has not been decoded.
-func (u *MSearchMultiSearchResultResponsesItem) Type() MSearchMultiSearchResultResponsesItemType {
-	return u.typ
-}
+// Returns MSearchRespItemUnknownType if the value has not been decoded.
+func (u *MSearchRespItem) Type() MSearchRespItemType { return u.typ }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *MSearchMultiSearchResultResponsesItem) RawJSON() json.RawMessage { return u.raw }
+func (u *MSearchRespItem) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewMSearchMultiSearchResultResponsesItemFrom*
+// verbatim when no typed branch is set. Use the NewMSearchRespItemFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *MSearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
+func (u *MSearchRespItem) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = MSearchMultiSearchResultResponsesItemUnknownType
+	u.typ = MSearchRespItemUnknownType
 }
 
-// MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value. It returns a
+// MultiSearchItem returns the MSearchMultiSearchItem branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero MSearchMultiSearchItem in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() (MSearchMultiSearchItem, error) {
+func (u *MSearchRespItem) MultiSearchItem() (MSearchMultiSearchItem, error) {
 	if v, ok := u.value.(*MSearchMultiSearchItem); ok {
 		return *v, nil
 	}
 	var zero MSearchMultiSearchItem
-	return zero, &UnionBranchError{Union: "MSearchMultiSearchResultResponsesItem", Want: "MSearchMultiSearchItem", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "MSearchRespItem", Want: "MultiSearchItem", Got: u.typ.String()}
 }
 
-// NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem returns a MSearchMultiSearchResultResponsesItem populated with v
-// on the MSearchMultiSearchItem branch.
-func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearchMultiSearchItem) MSearchMultiSearchResultResponsesItem {
-	return MSearchMultiSearchResultResponsesItem{
-		typ:   MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType,
+// NewMSearchRespItemFromMultiSearchItem returns a MSearchRespItem populated with v
+// on the MultiSearchItem branch.
+func NewMSearchRespItemFromMultiSearchItem(v MSearchMultiSearchItem) MSearchRespItem {
+	return MSearchRespItem{
+		typ:   MSearchRespItemMultiSearchItemType,
 		value: &v,
 	}
 }
@@ -289,32 +292,32 @@ func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearc
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero ErrorRespBase in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() (ErrorRespBase, error) {
+func (u *MSearchRespItem) ErrorRespBase() (ErrorRespBase, error) {
 	if v, ok := u.value.(*ErrorRespBase); ok {
 		return *v, nil
 	}
 	var zero ErrorRespBase
-	return zero, &UnionBranchError{Union: "MSearchMultiSearchResultResponsesItem", Want: "ErrorRespBase", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "MSearchRespItem", Want: "ErrorRespBase", Got: u.typ.String()}
 }
 
-// NewMSearchMultiSearchResultResponsesItemFromErrorRespBase returns a MSearchMultiSearchResultResponsesItem populated with v
+// NewMSearchRespItemFromErrorRespBase returns a MSearchRespItem populated with v
 // on the ErrorRespBase branch.
-func NewMSearchMultiSearchResultResponsesItemFromErrorRespBase(v ErrorRespBase) MSearchMultiSearchResultResponsesItem {
-	return MSearchMultiSearchResultResponsesItem{
-		typ:   MSearchMultiSearchResultResponsesItemErrorRespBaseType,
+func NewMSearchRespItemFromErrorRespBase(v ErrorRespBase) MSearchRespItem {
+	return MSearchRespItem{
+		typ:   MSearchRespItemErrorRespBaseType,
 		value: &v,
 	}
 }
 
-func (u *MSearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error {
+func (u *MSearchRespItem) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = MSearchMultiSearchResultResponsesItemUnknownType
+	u.typ = MSearchRespItemUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
 		MSearchMultiSearchItem
@@ -329,16 +332,16 @@ func (u *MSearchMultiSearchResultResponsesItem) UnmarshalJSON(data []byte) error
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = MSearchMultiSearchResultResponsesItemErrorRespBaseType
+		u.typ = MSearchRespItemErrorRespBaseType
 		u.value = &v
 		return nil
 	}
-	u.typ = MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType
+	u.typ = MSearchRespItemMultiSearchItemType
 	u.value = &m.MSearchMultiSearchItem
 	return nil
 }
 
-func (u MSearchMultiSearchResultResponsesItem) MarshalJSON() ([]byte, error) {
+func (u MSearchRespItem) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -357,9 +360,9 @@ func (r *MSearchResp) SearchShardFailures() *PartialSearchError {
 	var totalShards, failedShards int
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
-		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
+		if resp.Type() == MSearchRespItemMultiSearchItemType {
 			// Guarded by the Type() check above, so the branch error cannot fire.
-			item, _ := resp.MSearchMultiSearchItem()
+			item, _ := resp.MultiSearchItem()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -385,7 +388,7 @@ func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError {
 	var failed []MultiSearchItemFailure
 	succeeded := 0
 	for i, resp := range r.Responses {
-		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
+		if resp.Type() == MSearchRespItemErrorRespBaseType {
 			// Guarded by the Type() check, so the branch error cannot fire.
 			errBranch, _ := resp.ErrorRespBase()
 			failed = append(failed, MultiSearchItemFailure{

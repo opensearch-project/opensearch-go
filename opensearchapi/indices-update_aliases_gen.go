@@ -227,16 +227,22 @@ type IndicesUpdateAliasesRemoveIndexAction struct {
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 
+//
 // The list of aliases to add. Index alias names support date math.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesUpdateAliasesAddActionAliases struct {
 	typ   IndicesUpdateAliasesAddActionAliasesType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesUpdateAliasesAddActionAliasesType discriminates the branches of IndicesUpdateAliasesAddActionAliases.
+// IndicesUpdateAliasesAddActionAliasesType names which branch of IndicesUpdateAliasesAddActionAliases is set.
 type IndicesUpdateAliasesAddActionAliasesType int
 
 const (
@@ -359,16 +365,22 @@ func (u IndicesUpdateAliasesAddActionAliases) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+//
 // The list of aliases to remove. Index alias names support date math.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesUpdateAliasesRemoveActionAliases struct {
 	typ   IndicesUpdateAliasesRemoveActionAliasesType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesUpdateAliasesRemoveActionAliasesType discriminates the branches of IndicesUpdateAliasesRemoveActionAliases.
+// IndicesUpdateAliasesRemoveActionAliasesType names which branch of IndicesUpdateAliasesRemoveActionAliases is set.
 type IndicesUpdateAliasesRemoveActionAliasesType int
 
 const (

@@ -18,15 +18,21 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
-// resolveUnionType classifies a oneOf/anyOf schema into branches, registers
-// a discriminated union goType in the registry, and returns the Go type name.
-// Returns "json.RawMessage" only if the schema cannot be meaningfully resolved
-// (e.g., single null branch, no valid branches).
+// resolveUnionType classifies a oneOf/anyOf schema into branches, registers a
+// union goType in the registry, and returns the Go type name. Returns
+// "json.RawMessage" only if the schema cannot be meaningfully resolved (e.g.,
+// single null branch, no valid branches).
 func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group string) string {
 	branches := schema.OneOf
 	if len(branches) == 0 {
 		branches = schema.AnyOf
 	}
+
+	// Resolve the spec's discriminator, if any, before the branch walk mutates
+	// the set: discriminatorValues keys its result by position among non-null
+	// spec branches, which is the Ordinal assigned below and survives the later
+	// collapse and sort passes.
+	disc, discValues, hasDisc := discriminatorValues(schema, branches)
 
 	var classified []unionBranch
 	branchIdx := 0
@@ -49,6 +55,9 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		// branchIdx is the spec-array position; record it as the branch's
 		// order source of truth so no downstream sort has to parse the Name.
 		b.Ordinal = branchIdx
+		if hasDisc {
+			b.DiscriminatorValue = discValues[branchIdx]
+		}
 		classified = append(classified, b)
 		branchIdx++
 	}
@@ -62,12 +71,12 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 	}
 
 	// Branches that share a GoType are kept here. Reachability depends on which
-	// decode state the union ends up in, and that state is not assigned until the
+	// decode strategy the union ends up with, and that is not assigned until the
 	// IR phase (classifyUnions): a wire-decoded union can only ever reach the
-	// first branch of a given type, while a caller-keyed lazy union is selected
-	// by the caller, so As<Branch>() accessors over one Go type are all reachable
+	// first branch of a given type, while a request-selected union is chosen by
+	// the caller, so As<Branch>() accessors over one Go type are all reachable
 	// and distinct (AsAvg/AsSum/AsMin over SingleMetricAggregateBase). The Parse
-	// phase cannot decide it; dropUnreachableBranches does, once the state is
+	// phase cannot decide it; dropUnreachableBranches does, once the strategy is
 	// known.
 
 	// Collapse branches that are indistinguishable when decoded from the same
@@ -93,14 +102,34 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 	// Disambiguate branches that share the same accessor Name.
 	deduplicateAccessorNames(classified)
 
-	// For try-each unions, sort branches newest-first so the most recent
-	// (and most likely) version is attempted first during unmarshal.
-	if unionNeedsTryEach(classified) {
+	// A discriminator names its branch outright, so decode order is irrelevant
+	// to it. Order the branches newest-first only for the fallback decoders,
+	// which attempt branches in slice order and want the most recent (and most
+	// likely) schema first.
+	if !hasDisc && branchesCollideOnTokenClass(classified) {
 		sortBranchesNewestFirst(classified)
+	}
+
+	// A collapse pass above can drop a branch the discriminator resolved, which
+	// would leave a wire value mapping to nothing. Re-verify that every surviving
+	// branch still carries a value and that the values remain distinct; give the
+	// discriminator up otherwise, since a decoder with an unreachable case is
+	// worse than the fallback.
+	if hasDisc && !discriminatorStillCovers(classified, disc) {
+		disc, hasDisc = nil, false
+		if branchesCollideOnTokenClass(classified) {
+			sortBranchesNewestFirst(classified)
+		}
 	}
 
 	name := schemaTypeName(schemaKey, false)
 	shared := isSharedSchema(schemaKey)
+
+	// A branch const is "<Union><Branch>Type", which lands in the same
+	// package-level namespace as every union's "<Union>Type" enum type. Those can
+	// collide across DIFFERENT unions, which deduplicateAccessorNames cannot see
+	// because it only compares branches within one union.
+	renameBranchesShadowingTypeNames(name, classified)
 
 	ownerGroup := group
 	if g := schemaGroup(schemaKey); g != "" {
@@ -108,14 +137,18 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 	}
 
 	t := &goType{
-		Name:      name,
-		Pkg:       typePkg(shared, ownerGroup, w.registry),
-		SchemaRef: schemaKey,
-		IsShared:  shared,
-		IsUnion:   true,
-		IsLazy:    unionNeedsTryEach(classified),
-		Branches:  classified,
-		Comment:   schema.Description,
+		Name:            name,
+		Pkg:             typePkg(shared, ownerGroup, w.registry),
+		SchemaRef:       schemaKey,
+		IsShared:        shared,
+		IsUnion:         true,
+		IsAmbiguousWire: branchesCollideOnTokenClass(classified),
+		Branches:        classified,
+		Comment:         schema.Description,
+	}
+	if hasDisc {
+		t.Discriminator = disc
+		w.resolveDiscriminatorFields(classified, disc.PropertyName)
 	}
 
 	if registered, ok := w.registry.register(t); ok {
@@ -125,6 +158,88 @@ func (w *walker) resolveUnionType(schema *openapi3.Schema, schemaKey, group stri
 		return existing.Name
 	}
 	return name
+}
+
+// resolveDiscriminatorFields records, for each branch, the Go field that carries
+// the discriminator property, so the generated constructor can set it.
+//
+// A union built in Go rather than decoded would otherwise marshal without its
+// discriminator: NewCommonMappingPropertyFromKeywordProperty leaves the branch's
+// `Type string` field at "", MarshalJSON emits `"type":""`, and feeding those
+// bytes back to UnmarshalJSON fails with an unknown-discriminator error. The
+// value is fixed per branch by the spec, so the constructor can supply it.
+//
+// Only a plain (non-pointer) string field is eligible. The field may sit on an
+// allOf base rather than the branch struct itself, so the search follows embeds.
+func (w *walker) resolveDiscriminatorFields(branches []unionBranch, propertyName string) {
+	for i := range branches {
+		b := &branches[i]
+		if b.DiscriminatorValue == "" {
+			continue
+		}
+		b.DiscriminatorField = w.findStringFieldByJSONName(unwrapTypeName(b.GoType), propertyName, make(set[string]))
+	}
+}
+
+// findStringFieldByJSONName returns the Go name of the plain-string field whose
+// JSON tag is jsonName on the named type, following embedded types. Returns ""
+// when no such field exists, the field is a pointer, or the type is not a
+// registered struct.
+//
+// visited guards against an embed cycle, which the registry does not itself rule
+// out.
+func (w *walker) findStringFieldByJSONName(typeName, jsonName string, visited set[string]) string {
+	if typeName == "" || visited.has(typeName) {
+		return ""
+	}
+	visited.add(typeName)
+
+	t, ok := w.registry.lookupByName(typeName)
+	if !ok {
+		return ""
+	}
+	for _, f := range t.Fields {
+		if f.JSONName == jsonName {
+			// A pointer or non-string field is not something the constructor can
+			// assign a bare wire value to.
+			if f.GoType == "string" && !f.IsPointer {
+				return f.GoName
+			}
+			return ""
+		}
+	}
+	for _, f := range t.Fields {
+		if !f.IsEmbed {
+			continue
+		}
+		if name := w.findStringFieldByJSONName(unwrapTypeName(f.GoType), jsonName, visited); name != "" {
+			return name
+		}
+	}
+	return ""
+}
+
+// discriminatorStillCovers reports whether every branch left after the collapse
+// passes carries a distinct discriminator value, and whether the spec's
+// x-default still names one of them.
+//
+// The collapse passes run after discriminatorValues resolved, and each can drop
+// a branch (collapseEquivalentBranches drops narrower numeric siblings,
+// collapseStringEnumWithString drops a plain-string branch). Dropping a branch
+// the discriminator mapped would leave that wire value decoding into nothing, so
+// the union falls back rather than emitting a decoder with a dead case. In
+// practice no discriminated union in the spec has numeric or string branches for
+// those passes to touch, so this guard does not fire today; it keeps the
+// invariant local instead of resting on that coincidence.
+func discriminatorStillCovers(branches []unionBranch, disc *unionDiscriminator) bool {
+	seen := make(set[string], len(branches))
+	for _, b := range branches {
+		if b.DiscriminatorValue == "" || seen.has(b.DiscriminatorValue) {
+			return false
+		}
+		seen.add(b.DiscriminatorValue)
+	}
+	return disc.DefaultValue == "" || seen.has(disc.DefaultValue)
 }
 
 // classifyBranch resolves a single oneOf/anyOf branch into a unionBranch.
@@ -347,6 +462,7 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 	return unionBranch{
 		Name:         branchName,
 		GoType:       goTypeName,
+		SchemaKey:    key,
 		TokenClass:   tokenClassForSchemaValue(ref.Value),
 		Required:     required,
 		IsRef:        true,
@@ -454,6 +570,61 @@ func primitiveBranchName(goType string) string {
 	return baseGoName(goType)
 }
 
+// renameBranchesShadowingTypeNames disambiguates a branch whose discriminant
+// const would collide with some union's generated enum TYPE name.
+//
+// Both live in one package-level namespace: a union emits `type <Union>Type int`
+// and one `<Union><Branch>Type` const per branch. So a union X with a branch B
+// collides with a sibling union named XB -- the const XBType is also XB's enum
+// type name, and the package no longer compiles.
+//
+// The spec hits this three times, all the same shape: a `<Thing>` union
+// (string | <Thing>Definition) whose Definition branch sits beside the
+// `<Thing>Definition` union it points at. CharFilter/CharFilterDefinition,
+// TokenFilter/TokenFilterDefinition, and Tokenizer/TokenizerDefinition.
+//
+// The branch takes the referenced schema's own local name instead, which is
+// unambiguous and more descriptive than the colliding short form: Definition ->
+// CharFilterDefinition, giving CommonAnalysisCharFilterCharFilterDefinitionType.
+//
+// The replacement comes from the schema KEY's local segment, never from the
+// branch's Go type name. The Go type name carries the group prefix the union name
+// already supplies, so using it would reintroduce the very stutter this naming
+// scheme exists to avoid
+// (CommonAnalysisCharFilterCommonAnalysisCharFilterDefinitionType, 62 chars,
+// against 48 for the local form). A branch with no schema key is skipped
+// outright, since no unqualified name is recoverable for it.
+//
+// Only $ref branches are considered; see the loop for why inline branches are
+// exempt. The collision is decidable from the two names alone, so this needs no
+// registry lookup and does not depend on which union is walked first.
+// deduplicateAccessorNames runs before this and handles the within-union case;
+// this handles only the cross-union one.
+func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) {
+	for i := range branches {
+		b := &branches[i]
+		// Only $ref branches can collide. An INLINE object branch's type name is
+		// derived as "<Union><Branch>" by construction (see
+		// classifyObjectBranch), so it matches the test below every time -- but
+		// that type is the union's own child, not an independent sibling union, so
+		// there is nothing to disambiguate against. Renaming those would corrupt
+		// every inline branch name.
+		if !b.IsRef || b.SchemaKey == "" {
+			continue
+		}
+		branchType := unwrapTypeName(b.GoType)
+		// The const emitted for this branch is "<unionName><b.Name>Type"; the
+		// branch's own type emits "<branchType>Type". They collide exactly when
+		// the two stems match.
+		if unionName+b.Name != branchType {
+			continue
+		}
+		if replacement := schemaLocalGoName(b.SchemaKey); replacement != "" && replacement != b.Name {
+			b.Name = replacement
+		}
+	}
+}
+
 // deduplicateAccessorNames renames branches that share the same Name.
 // For example, two map branches both named "Map" become "StringMap" and
 // "FieldSortMap" based on their value type.
@@ -505,9 +676,24 @@ func mapValueTypeName(goType string) string {
 // The fallback to goTypeName runs through baseGoName so cross-package
 // type strings ("subpkg.Foo") or hyphenated names yield valid Go
 // identifier fragments.
-// deriveBranchName names a union branch. schemaKey is the branch's own $ref key,
-// which may differ from goTypeName when the referenced schema collapsed onto
-// another type (see walker.resolveCollapsedBase).
+// deriveBranchName names a union branch. The name becomes the branch's accessor,
+// its discriminant const suffix, and its String() value, so all three stay the
+// same token by construction.
+//
+// schemaKey is the branch's own $ref key, which may differ from goTypeName when
+// the referenced schema collapsed onto another type (see
+// walker.resolveCollapsedBase).
+//
+// The name is the schema's LOCAL segment (the part after "___"), not its fully
+// qualified Go type name. A union and its branches almost always live in the same
+// spec group, so the qualified name repeats the group prefix the union name
+// already carries: _common.analysis___CustomAnalyzer as a branch of
+// _common.analysis___Analyzer would otherwise yield the const
+// CommonAnalysisAnalyzerCommonAnalysisCustomAnalyzerType. Using the local segment
+// gives CommonAnalysisAnalyzerCustomAnalyzerType.
+//
+// Branches whose local names collide within one union are disambiguated by
+// deduplicateAccessorNames, which is why this can safely discard the qualifier.
 func deriveBranchName(ref *openapi3.SchemaRef, goTypeName, schemaKey string) string {
 	// Prefer the spec title if available.
 	if ref.Value != nil && ref.Value.Title != "" {
@@ -518,14 +704,29 @@ func deriveBranchName(ref *openapi3.SchemaRef, goTypeName, schemaKey string) str
 	// whose name may carry the spec's "Base" suffix -- so mget's GetResult branch
 	// would otherwise generate AsGetResultBase()/GetResultBase(), advertising a
 	// name the union never mentions.
-	if schemaKey != "" {
-		if name := schemaTypeName(schemaKey, false); name != "" {
-			return baseGoName(name)
-		}
+	if name := schemaLocalGoName(schemaKey); name != "" {
+		return name
 	}
 	// Normalize the Go type name through baseGoName to strip dotted
 	// package qualifiers and other non-identifier punctuation.
 	return baseGoName(goTypeName)
+}
+
+// schemaLocalGoName renders the Go-identifier form of a schema key's local
+// segment: the part after "___", which is the schema's own name within its group
+// ("_common.analysis___CustomAnalyzer" -> "CustomAnalyzer"). Keys with no "___"
+// separator (inline child keys such as "<parent>.<field>") have no local segment
+// to isolate and yield "".
+//
+// This deliberately skips schemaTypeName's group-prefixing: the caller wants the
+// unqualified name precisely because the enclosing union name already supplies
+// the group context.
+func schemaLocalGoName(schemaKey string) string {
+	_, local, ok := strings.Cut(schemaKey, "___")
+	if !ok || local == "" {
+		return ""
+	}
+	return pascalFromSegments(local)
 }
 
 // isPrimitiveType returns true if the Go type name is a builtin primitive.

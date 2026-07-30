@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -171,7 +170,7 @@ type IngestSimulateDocumentSimulation struct {
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	Version *IngestSimulateDocumentSimulationVersion `json:"_version,omitempty"`
+	Version *StringifiedVersionNumber `json:"_version,omitempty"`
 
 	VersionType *VersionType `json:"_version_type,omitempty"`
 }
@@ -186,142 +185,6 @@ type IngestSimulateIngest struct {
 	// the epoch. OpenSearch accepts both as an input but will generally output
 	// a string. representation.
 	Timestamp string `json:"timestamp"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type IngestSimulateDocumentSimulationVersion struct {
-	typ   IngestSimulateDocumentSimulationVersionType
-	raw   json.RawMessage
-	value any
-}
-
-// IngestSimulateDocumentSimulationVersionType discriminates the branches of IngestSimulateDocumentSimulationVersion.
-type IngestSimulateDocumentSimulationVersionType int
-
-const (
-	IngestSimulateDocumentSimulationVersionUnknownType IngestSimulateDocumentSimulationVersionType = iota
-	IngestSimulateDocumentSimulationVersionInt64Type
-	IngestSimulateDocumentSimulationVersionStringType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t IngestSimulateDocumentSimulationVersionType) String() string {
-	switch t {
-	case IngestSimulateDocumentSimulationVersionInt64Type:
-		return "Int64"
-	case IngestSimulateDocumentSimulationVersionStringType:
-		return "String"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns IngestSimulateDocumentSimulationVersionUnknownType if the value has not been decoded.
-func (u *IngestSimulateDocumentSimulationVersion) Type() IngestSimulateDocumentSimulationVersionType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *IngestSimulateDocumentSimulationVersion) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIngestSimulateDocumentSimulationVersionFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *IngestSimulateDocumentSimulationVersion) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
-}
-
-// Int64 returns the int64 branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero int64 in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *IngestSimulateDocumentSimulationVersion) Int64() (int64, error) {
-	if v, ok := u.value.(*int64); ok {
-		return *v, nil
-	}
-	var zero int64
-	return zero, &UnionBranchError{Union: "IngestSimulateDocumentSimulationVersion", Want: "Int64", Got: u.typ.String()}
-}
-
-// NewIngestSimulateDocumentSimulationVersionFromInt64 returns a IngestSimulateDocumentSimulationVersion populated with v
-// on the Int64 branch.
-func NewIngestSimulateDocumentSimulationVersionFromInt64(v int64) IngestSimulateDocumentSimulationVersion {
-	return IngestSimulateDocumentSimulationVersion{
-		typ:   IngestSimulateDocumentSimulationVersionInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *IngestSimulateDocumentSimulationVersion) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "IngestSimulateDocumentSimulationVersion", Want: "String", Got: u.typ.String()}
-}
-
-// NewIngestSimulateDocumentSimulationVersionFromString returns a IngestSimulateDocumentSimulationVersion populated with v
-// on the String branch.
-func NewIngestSimulateDocumentSimulationVersionFromString(v string) IngestSimulateDocumentSimulationVersion {
-	return IngestSimulateDocumentSimulationVersion{
-		typ:   IngestSimulateDocumentSimulationVersionStringType,
-		value: &v,
-	}
-}
-
-func (u *IngestSimulateDocumentSimulationVersion) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IngestSimulateDocumentSimulationVersionInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IngestSimulateDocumentSimulationVersionStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("IngestSimulateDocumentSimulationVersion: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u IngestSimulateDocumentSimulationVersion) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // IngestSimulateBody is a typed component of the ingest.simulate operation.

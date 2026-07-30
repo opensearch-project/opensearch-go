@@ -140,12 +140,12 @@ func (r ScrollParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/scroll/#path-and-http-methods
 type ScrollResp struct {
-	Clusters        *ClusterStatistics                       `json:"_clusters,omitempty"`
-	ScrollID        *string                                  `json:"_scroll_id,omitempty"`
-	Shards          ShardStatistics                          `json:"_shards"`
-	Aggregations    map[string]SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            SearchHitsMetadata                       `json:"hits"`
-	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
+	Clusters        *ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                `json:"_scroll_id,omitempty"`
+	Shards          ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.
 	//
@@ -158,11 +158,11 @@ type ScrollResp struct {
 	// Available: >= 3.0.0.
 	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *SearchProfileResult                      `json:"profile,omitempty"`
-	Suggest         map[string][]SearchResultSuggestValueItem `json:"suggest,omitempty"`
-	TerminatedEarly *bool                                     `json:"terminated_early,omitempty"`
-	TimedOut        bool                                      `json:"timed_out"`
-	Took            int64                                     `json:"took"`
+	Profile         *SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                      `json:"terminated_early,omitempty"`
+	TimedOut        bool                       `json:"timed_out"`
+	Took            int64                      `json:"took"`
 
 	response *opensearch.Response
 }

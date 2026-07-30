@@ -143,7 +143,7 @@ type FollowerStatsResp struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalWriteTimeMillis *opensearchapi.ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	TotalWriteTimeMillis *opensearchapi.StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 
 	response *opensearch.Response
 }

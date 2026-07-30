@@ -233,7 +233,7 @@ func elementTypeHasShards(goType string, reg *ir.TypeRegistry) bool {
 	}
 	// Element is a discriminated union -- delegate to union resolution
 	// to see whether any branch carries Shards.
-	if resolved.Kind == ir.TypeLazyUnion || resolved.Kind == ir.TypeUnion {
+	if resolved.Kind == ir.TypeAmbiguousWire || resolved.Kind == ir.TypeUnion {
 		return resolveUnionShape(resolved, reg).success != ""
 	}
 	return false
@@ -288,13 +288,13 @@ type unionShape struct {
 	errorBranch string // error branch accessor Name (Status + Error), or ""
 }
 
-// resolveUnionShape walks a TypeLazyUnion/TypeUnion's branches and
+// resolveUnionShape walks a TypeAmbiguousWire/TypeUnion's branches and
 // classifies them. Branches whose resolved type has a Shards field
 // become the success branch; branches with both Status and Error
 // fields become the error branch. Returns zero-value if the type isn't
 // a union or no branches matched.
 func resolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) unionShape {
-	if t == nil || (t.Kind != ir.TypeLazyUnion && t.Kind != ir.TypeUnion) {
+	if t == nil || (t.Kind != ir.TypeAmbiguousWire && t.Kind != ir.TypeUnion) {
 		return unionShape{}
 	}
 	out := unionShape{unionName: t.Name}
@@ -654,7 +654,7 @@ func unionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) unionShape {
 	if !ok {
 		return unionShape{}
 	}
-	if resolved.Kind != ir.TypeLazyUnion && resolved.Kind != ir.TypeUnion {
+	if resolved.Kind != ir.TypeAmbiguousWire && resolved.Kind != ir.TypeUnion {
 		return unionShape{}
 	}
 	return resolveUnionShape(resolved, reg)

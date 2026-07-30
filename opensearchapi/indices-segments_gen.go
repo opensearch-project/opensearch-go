@@ -233,22 +233,27 @@ type IndicesSegmentsSegment struct {
 	Version string `json:"version"`
 }
 
-// IndicesSegmentsIndexSegmentShardsValue is a discriminated union type.
+// IndicesSegmentsIndexSegmentShardsValue is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesSegmentsIndexSegmentShardsValue struct {
 	typ   IndicesSegmentsIndexSegmentShardsValueType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesSegmentsIndexSegmentShardsValueType discriminates the branches of IndicesSegmentsIndexSegmentShardsValue.
+// IndicesSegmentsIndexSegmentShardsValueType names which branch of IndicesSegmentsIndexSegmentShardsValue is set.
 type IndicesSegmentsIndexSegmentShardsValueType int
 
 const (
 	IndicesSegmentsIndexSegmentShardsValueUnknownType IndicesSegmentsIndexSegmentShardsValueType = iota
 	IndicesSegmentsIndexSegmentShardsValueArrayType
-	IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
+	IndicesSegmentsIndexSegmentShardsValueShardsSegmentType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -257,8 +262,8 @@ func (t IndicesSegmentsIndexSegmentShardsValueType) String() string {
 	switch t {
 	case IndicesSegmentsIndexSegmentShardsValueArrayType:
 		return "Array"
-	case IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType:
-		return "IndicesSegmentsShardsSegment"
+	case IndicesSegmentsIndexSegmentShardsValueShardsSegmentType:
+		return "ShardsSegment"
 	default:
 		return "unknown"
 	}
@@ -306,23 +311,23 @@ func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShard
 	}
 }
 
-// IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value. It returns a
+// ShardsSegment returns the IndicesSegmentsShardsSegment branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero IndicesSegmentsShardsSegment in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() (IndicesSegmentsShardsSegment, error) {
+func (u *IndicesSegmentsIndexSegmentShardsValue) ShardsSegment() (IndicesSegmentsShardsSegment, error) {
 	if v, ok := u.value.(*IndicesSegmentsShardsSegment); ok {
 		return *v, nil
 	}
 	var zero IndicesSegmentsShardsSegment
-	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "IndicesSegmentsShardsSegment", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "ShardsSegment", Got: u.typ.String()}
 }
 
-// NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
-// on the IndicesSegmentsShardsSegment branch.
-func NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+// NewIndicesSegmentsIndexSegmentShardsValueFromShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the ShardsSegment branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
 	return IndicesSegmentsIndexSegmentShardsValue{
-		typ:   IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType,
+		typ:   IndicesSegmentsIndexSegmentShardsValueShardsSegmentType,
 		value: &v,
 	}
 }
@@ -347,7 +352,7 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) erro
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
+		u.typ = IndicesSegmentsIndexSegmentShardsValueShardsSegmentType
 		u.value = &v
 	default:
 		return fmt.Errorf("IndicesSegmentsIndexSegmentShardsValue: unexpected JSON token: %s", data[:1])

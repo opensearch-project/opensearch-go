@@ -198,16 +198,21 @@ type IndicesOpenRespBodyAcknowledged struct {
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
 
-// IndicesOpenRespBody is a discriminated union type (single-pass merge decode).
+// IndicesOpenRespBody is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesOpenRespBody struct {
 	typ   IndicesOpenRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesOpenRespBodyType discriminates the branches of IndicesOpenRespBody.
+// IndicesOpenRespBodyType names which branch of IndicesOpenRespBody is set.
 type IndicesOpenRespBodyType int
 
 const (
@@ -298,7 +303,7 @@ func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
 		IndicesOpenRespBodyTask

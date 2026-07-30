@@ -31,7 +31,7 @@ func TestUnionConstructors(t *testing.T) {
 	type unionType = opensearchapi.CommonQueryDSLBoolQueryFilterType
 	const (
 		unknownT = opensearchapi.CommonQueryDSLBoolQueryFilterUnknownType
-		objT     = opensearchapi.CommonQueryDSLBoolQueryFilterCommonQueryDSLQueryContainerType
+		objT     = opensearchapi.CommonQueryDSLBoolQueryFilterQueryContainerType
 		arrT     = opensearchapi.CommonQueryDSLBoolQueryFilterArrayType
 	)
 
@@ -44,9 +44,9 @@ func TestUnionConstructors(t *testing.T) {
 		wantArrayLen int    // -1 = don't check; >=0 = check Array() length
 	}{
 		{
-			name: "object branch via NewFromCommonQueryDSLQueryContainer",
+			name: "object branch via NewFromQueryContainer",
 			build: func() union {
-				return opensearchapi.NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer(
+				return opensearchapi.NewCommonQueryDSLBoolQueryFilterFromQueryContainer(
 					opensearchapi.CommonQueryDSLQueryContainer{},
 				)
 			},
@@ -81,7 +81,7 @@ func TestUnionConstructors(t *testing.T) {
 			// so MarshalJSON returns raw, not the stale typed value.
 			name: "SetRaw overrides previously typed branch",
 			build: func() union {
-				return opensearchapi.NewCommonQueryDSLBoolQueryFilterFromCommonQueryDSLQueryContainer(
+				return opensearchapi.NewCommonQueryDSLBoolQueryFilterFromQueryContainer(
 					opensearchapi.CommonQueryDSLQueryContainer{},
 				)
 			},

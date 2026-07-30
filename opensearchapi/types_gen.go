@@ -61,7 +61,7 @@ type ErrorCause struct {
 	// `search_phase_execution_exception` responses.
 	Grouped *bool `json:"grouped,omitempty"`
 
-	Header map[string]ErrorCauseHeaderValue `json:"header,omitempty"`
+	Header map[string]StringOrStringArray `json:"header,omitempty"`
 
 	// Lang is the scripting language. Present in `script_exception` responses.
 	Lang *string `json:"lang,omitempty"`
@@ -235,7 +235,7 @@ type CommonAggregationsSingleBucketAggregateBase struct {
 
 type CommonAggregationsCompositeBucket struct {
 	CommonAggregationsMultiBucketBase
-	Key map[string]CommonAggregationsCompositeAggregateKeyValue `json:"key"`
+	Key map[string]FieldValue `json:"key"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
@@ -245,7 +245,7 @@ type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
 
 type CommonAggregationsCompositeAggregate struct {
 	CommonAggregationsMultiBucketAggregateBaseCompositeBucket
-	AfterKey map[string]CommonAggregationsCompositeAggregateKeyValue `json:"after_key,omitempty"`
+	AfterKey map[string]FieldValue `json:"after_key,omitempty"`
 }
 
 type CommonAggregationsRangeBucket struct {
@@ -383,19 +383,19 @@ type GeoHashLocation struct {
 // The bounds specified using upper-left and lower-right points.
 type TopLeftBottomRightGeoBounds struct {
 	// BottomRight is the lower-right corner coordinates.
-	BottomRight TopLeftBottomRightGeoBoundsBottomRight `json:"bottom_right"`
+	BottomRight GeoLocation `json:"bottom_right"`
 
 	// TopLeft is the upper-left corner coordinates.
-	TopLeft TopLeftBottomRightGeoBoundsTopLeft `json:"top_left"`
+	TopLeft GeoLocation `json:"top_left"`
 }
 
 // The bounds specified using upper-right and lower-left points.
 type TopRightBottomLeftGeoBounds struct {
 	// BottomLeft is the lower-left corner coordinates.
-	BottomLeft TopRightBottomLeftGeoBoundsBottomLeft `json:"bottom_left"`
+	BottomLeft GeoLocation `json:"bottom_left"`
 
 	// TopRight is the upper-right corner coordinates.
-	TopRight TopRightBottomLeftGeoBoundsTopRight `json:"top_right"`
+	TopRight GeoLocation `json:"top_right"`
 }
 
 // The bounds specified using WKT format.
@@ -411,7 +411,7 @@ type CommonAggregationsGeoBoundsAggregate struct {
 	// ways: - As 4 top/bottom/left/right coordinates. - As 2
 	// top_left/bottom_right points. - As 2 top_right/bottom_left points. - As
 	// a Well Known Text (WKT) bounding box.
-	Bounds *CommonAggregationsGeoBoundsAggregateBounds `json:"bounds,omitempty"`
+	Bounds *GeoBounds `json:"bounds,omitempty"`
 }
 
 type CommonAggregationsGeoCentroidAggregate struct {
@@ -422,7 +422,7 @@ type CommonAggregationsGeoCentroidAggregate struct {
 	// represented in the following ways: - As a `{lat, long}` object. - As a
 	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
 	// <lon>` or WKT point format.
-	Location *CommonAggregationsGeoCentroidAggregateLocation `json:"location,omitempty"`
+	Location *GeoLocation `json:"location,omitempty"`
 }
 
 type CommonAggregationsGeoHashGridBucket struct {
@@ -457,7 +457,7 @@ type CommonAggregationsArrayPercentilesItem struct {
 
 type CommonAggregationsPercentilesAggregateBase struct {
 	CommonAggregationsAggregateBase
-	Values CommonAggregationsPercentilesAggregateBaseValues `json:"values"`
+	Values CommonAggregationsPercentiles `json:"values"`
 }
 
 type CommonAggregationsHistogramBucket struct {
@@ -528,9 +528,9 @@ type CommonAggregationsMatrixStatsAggregate struct {
 
 type CommonAggregationsMultiTermsBucket struct {
 	CommonAggregationsMultiBucketBase
-	DocCountErrorUpperBound *int64                                      `json:"doc_count_error_upper_bound,omitempty"`
-	Key                     []CommonAggregationsMultiTermsBucketKeyItem `json:"key"`
-	KeyAsString             *string                                     `json:"key_as_string,omitempty"`
+	DocCountErrorUpperBound *int64       `json:"doc_count_error_upper_bound,omitempty"`
+	Key                     []FieldValue `json:"key"`
+	KeyAsString             *string      `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiTermsAggregate struct {
@@ -669,7 +669,7 @@ type SearchHit struct {
 	// scores.
 	MatchedQueries *SearchHitMatchedQueries `json:"matched_queries,omitempty"`
 
-	Sort []SortResultsItem `json:"sort,omitempty"`
+	Sort []FieldValue `json:"sort,omitempty"`
 }
 
 type SearchTotalHits struct {
@@ -973,12 +973,12 @@ type SearchTermSuggest struct {
 }
 
 type SearchResult struct {
-	Clusters        *ClusterStatistics                       `json:"_clusters,omitempty"`
-	ScrollID        *string                                  `json:"_scroll_id,omitempty"`
-	Shards          ShardStatistics                          `json:"_shards"`
-	Aggregations    map[string]SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            SearchHitsMetadata                       `json:"hits"`
-	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
+	Clusters        *ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                `json:"_scroll_id,omitempty"`
+	Shards          ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
 	// PhaseTook is the time taken by different phases of the search.
 	//
@@ -991,11 +991,11 @@ type SearchResult struct {
 	// Available: >= 3.0.0.
 	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *SearchProfileResult                      `json:"profile,omitempty"`
-	Suggest         map[string][]SearchResultSuggestValueItem `json:"suggest,omitempty"`
-	TerminatedEarly *bool                                     `json:"terminated_early,omitempty"`
-	TimedOut        bool                                      `json:"timed_out"`
-	Took            int64                                     `json:"took"`
+	Profile         *SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                      `json:"terminated_early,omitempty"`
+	TimedOut        bool                       `json:"timed_out"`
+	Took            int64                      `json:"took"`
 }
 
 type AsynchronousSearchRespBody struct {
@@ -1884,7 +1884,7 @@ type CommonQueryDSLBoolQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLBoolQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	// Must is the clause (query) must appear in matching documents and will
 	// contribute to the score.
@@ -1924,7 +1924,7 @@ type CommonQueryDSLCombinedFieldsQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	Operator *string `json:"operator,omitempty"`
 
@@ -2106,7 +2106,7 @@ type StoredScriptID struct {
 }
 
 type CommonQueryDSLScriptScoreFunction struct {
-	Script CommonQueryDSLScriptScoreFunctionScript `json:"script"`
+	Script Script `json:"script"`
 }
 
 type CommonQueryDSLFunctionScoreContainer struct {
@@ -2187,7 +2187,7 @@ type CommonQueryDSLGeoShapeQuery struct {
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 }
 
-type SearchInnerHitsSourceExcludesIncludes struct {
+type SearchSourceFilterExcludesIncludes struct {
 	// Excludes is a comma-separated list or a wildcard expression specifying
 	// the fields to include in the statistics. Used as the default list unless
 	// a specific field list is provided in the `completion_fields` or
@@ -2214,16 +2214,7 @@ type SearchFieldCollapse struct {
 	MaxConcurrentGroupSearches *int `json:"max_concurrent_group_searches,omitempty"`
 }
 
-type SearchInnerHitsDocvalueFieldsItemField struct {
-	// Field is the path to a field or an array of paths. Some APIs support
-	// wildcards in the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type SearchInnerHitsFieldsItemField struct {
+type CommonQueryDSLFieldAndFormatField struct {
 	// Field is the path to a field or an array of paths. Some APIs support
 	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
@@ -2329,7 +2320,7 @@ type ScriptField struct {
 	IgnoreFailure *bool `json:"ignore_failure,omitempty"`
 
 	// Script is the script to execute for this field.
-	Script ScriptFieldScript `json:"script"`
+	Script Script `json:"script"`
 }
 
 // The nested path sort options.
@@ -2348,7 +2339,7 @@ type NestedSortValue struct {
 // The detailed field sort options.
 type FieldSort struct {
 	// Missing is the value to use when the field is missing.
-	Missing *FieldSortMissing `json:"missing"`
+	Missing *FieldValue `json:"missing"`
 
 	// Mode is the mode for sorting on array fields.
 	Mode *SortMode `json:"mode,omitempty"`
@@ -2405,7 +2396,7 @@ type ScriptSort struct {
 	Order *string `json:"order,omitempty"`
 
 	// Script is the script to use for sorting.
-	Script ScriptSortScript `json:"script"`
+	Script Script `json:"script"`
 
 	// Type is the type of the script sort value.
 	Type *ScriptSortType `json:"type,omitempty"`
@@ -2422,12 +2413,12 @@ type SortOptions struct {
 type SearchInnerHits struct {
 	// Source. Defines how to fetch a source. Fetching can be disabled
 	// entirely, or the source can be filtered.
-	Source *SearchInnerHitsSource `json:"_source,omitempty"`
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	Collapse       *SearchFieldCollapse                `json:"collapse,omitempty"`
-	DocvalueFields []SearchInnerHitsDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
-	Explain        *bool                               `json:"explain,omitempty"`
-	Fields         []SearchInnerHitsFieldsItem         `json:"fields,omitempty"`
+	Collapse       *SearchFieldCollapse           `json:"collapse,omitempty"`
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
+	Explain        *bool                          `json:"explain,omitempty"`
+	Fields         []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
 	// From is the inner hit that initiates document offset.
 	From *int `json:"from,omitempty"`
@@ -2444,7 +2435,7 @@ type SearchInnerHits struct {
 	// Size is the maximum number of hits to return per `inner_hits`.
 	Size *int `json:"size,omitempty"`
 
-	Sort *SearchInnerHitsSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// StoredFields is a comma-separated list or a wildcard expression
 	// specifying the fields to include in the statistics. Used as the default
@@ -2605,15 +2596,15 @@ type CommonQueryDSLIntervalsContainer struct {
 }
 
 type CommonQueryDSLIntervalsFilter struct {
-	After          *CommonQueryDSLIntervalsContainer    `json:"after,omitempty"`
-	Before         *CommonQueryDSLIntervalsContainer    `json:"before,omitempty"`
-	ContainedBy    *CommonQueryDSLIntervalsContainer    `json:"contained_by,omitempty"`
-	Containing     *CommonQueryDSLIntervalsContainer    `json:"containing,omitempty"`
-	NotContainedBy *CommonQueryDSLIntervalsContainer    `json:"not_contained_by,omitempty"`
-	NotContaining  *CommonQueryDSLIntervalsContainer    `json:"not_containing,omitempty"`
-	NotOverlapping *CommonQueryDSLIntervalsContainer    `json:"not_overlapping,omitempty"`
-	Overlapping    *CommonQueryDSLIntervalsContainer    `json:"overlapping,omitempty"`
-	Script         *CommonQueryDSLIntervalsFilterScript `json:"script,omitempty"`
+	After          *CommonQueryDSLIntervalsContainer `json:"after,omitempty"`
+	Before         *CommonQueryDSLIntervalsContainer `json:"before,omitempty"`
+	ContainedBy    *CommonQueryDSLIntervalsContainer `json:"contained_by,omitempty"`
+	Containing     *CommonQueryDSLIntervalsContainer `json:"containing,omitempty"`
+	NotContainedBy *CommonQueryDSLIntervalsContainer `json:"not_contained_by,omitempty"`
+	NotContaining  *CommonQueryDSLIntervalsContainer `json:"not_containing,omitempty"`
+	NotOverlapping *CommonQueryDSLIntervalsContainer `json:"not_overlapping,omitempty"`
+	Overlapping    *CommonQueryDSLIntervalsContainer `json:"overlapping,omitempty"`
+	Script         *Script                           `json:"script,omitempty"`
 }
 
 type CommonQueryDSLIntervalsAllOf struct {
@@ -2756,7 +2747,7 @@ type CommonQueryDSLMoreLikeThisQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	// PerFieldAnalyzer. Overrides the default analyzer.
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
@@ -2768,7 +2759,7 @@ type CommonQueryDSLMoreLikeThisQuery struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	StopWords *CommonQueryDSLMoreLikeThisQueryStopWords `json:"stop_words,omitempty"`
+	StopWords *CommonAnalysisStopWords `json:"stop_words,omitempty"`
 
 	// Unlike. Used in combination with `like` to exclude documents that match
 	// a set of terms.
@@ -2815,7 +2806,7 @@ type CommonQueryDSLMultiMatchQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLMultiMatchQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	Operator *string `json:"operator,omitempty"`
 
@@ -2971,7 +2962,7 @@ type CommonQueryDSLQueryStringQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLQueryStringQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	// PhraseSlop. Maximum number of positions allowed between matching tokens
 	// for phrases.
@@ -3101,7 +3092,7 @@ type CommonQueryDSLRankFeatureQuery struct {
 
 type CommonQueryDSLScriptQuery struct {
 	CommonQueryDSLQueryBase
-	Script CommonQueryDSLScriptQueryScript `json:"script"`
+	Script Script `json:"script"`
 }
 
 type CommonQueryDSLScriptScoreQuery struct {
@@ -3111,8 +3102,8 @@ type CommonQueryDSLScriptScoreQuery struct {
 	// are excluded from the search results.
 	MinScore *float32 `json:"min_score,omitempty"`
 
-	Query  CommonQueryDSLQueryContainer         `json:"query"`
-	Script CommonQueryDSLScriptScoreQueryScript `json:"script"`
+	Query  CommonQueryDSLQueryContainer `json:"query"`
+	Script Script                       `json:"script"`
 }
 
 type CommonQueryDSLSimpleQueryStringQuery struct {
@@ -3160,7 +3151,7 @@ type CommonQueryDSLSimpleQueryStringQuery struct {
 
 	// MinimumShouldMatch is the minimum number of terms that should match as
 	// an integer, percentage, or range.
-	MinimumShouldMatch *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	// Query string in the simple query string syntax you wish to parse and use
 	// for search.
@@ -3188,8 +3179,8 @@ type CommonQueryDSLTermsSetQuery struct {
 	// multiple fields.
 	MinimumShouldMatchField *string `json:"minimum_should_match_field,omitempty"`
 
-	MinimumShouldMatchScript *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript `json:"minimum_should_match_script,omitempty"`
-	Terms                    []string                                             `json:"terms"`
+	MinimumShouldMatchScript *Script  `json:"minimum_should_match_script,omitempty"`
+	Terms                    []string `json:"terms"`
 }
 
 type CommonQueryDSLTypeQuery struct {
@@ -3227,7 +3218,7 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Fuzzy. Returns documents that contain terms similar to the search term,
 	// as measured by a Levenshtein edit distance.
-	Fuzzy map[string]CommonQueryDSLQueryContainerFuzzyValue `json:"fuzzy,omitempty"`
+	Fuzzy map[string]FieldValue `json:"fuzzy,omitempty"`
 
 	GeoBoundingBox *CommonQueryDSLGeoBoundingBoxQuery `json:"geo_bounding_box,omitempty"`
 	GeoDistance    *CommonQueryDSLGeoDistanceQuery    `json:"geo_distance,omitempty"`
@@ -3246,7 +3237,7 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Match. Returns documents that match a provided text, number, date or
 	// Boolean value. The provided text is analyzed before matching.
-	Match map[string]CommonQueryDSLQueryContainerMatchValue `json:"match,omitempty"`
+	Match map[string]FieldValue `json:"match,omitempty"`
 
 	MatchAll *CommonQueryDSLQueryBase `json:"match_all,omitempty"`
 
@@ -3281,7 +3272,7 @@ type CommonQueryDSLQueryContainer struct {
 	QueryString *CommonQueryDSLQueryStringQuery `json:"query_string,omitempty"`
 
 	// Range. Returns documents that contain terms within a provided range.
-	Range map[string]CommonQueryDSLQueryContainerRangeValue `json:"range,omitempty"`
+	Range map[string]CommonQueryDSLRangeQuery `json:"range,omitempty"`
 
 	RankFeature *CommonQueryDSLRankFeatureQuery `json:"rank_feature,omitempty"`
 
@@ -3311,7 +3302,7 @@ type CommonQueryDSLQueryContainer struct {
 	// Term. Returns documents that contain an exact term in a provided field.
 	// To return a document, the query term must exactly match the queried
 	// field's value, including white space and capitalization.
-	Term map[string]CommonQueryDSLQueryContainerTermValue `json:"term,omitempty"`
+	Term map[string]FieldValue `json:"term,omitempty"`
 
 	// Terms. Returns documents that contain one or more exact terms in a
 	// provided field.
@@ -3662,7 +3653,7 @@ type CommonMappingGeoPointProperty struct {
 	// represented in the following ways: - As a `{lat, long}` object. - As a
 	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
 	// <lon>` or WKT point format.
-	NullValue *CommonMappingGeoPointPropertyNullValue `json:"null_value,omitempty"`
+	NullValue *GeoLocation `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -3698,7 +3689,7 @@ type CommonMappingXYPointProperty struct {
 	// point format.
 	//
 	// Available: >= 2.4.0.
-	NullValue *CommonMappingXYPointPropertyNullValue `json:"null_value,omitempty"`
+	NullValue *XYLocation `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -3900,7 +3891,7 @@ type CommonMappingMatchOnlyTextProperty struct {
 	// multiple ways for different purposes, such as one field for search and a
 	// multi-field for sorting and aggregations, or the same string value
 	// analyzed by different analyzers.
-	Fields map[string]CommonMappingMatchOnlyTextPropertyFieldsValue `json:"fields,omitempty"`
+	Fields map[string]CommonMappingProperty `json:"fields,omitempty"`
 
 	// Meta. Metadata about the field.
 	Meta map[string]string `json:"meta,omitempty"`
@@ -3909,14 +3900,14 @@ type CommonMappingMatchOnlyTextProperty struct {
 }
 
 type CommonMappingPropertyBase struct {
-	Dynamic     *CommonMappingPropertyBaseDynamic               `json:"dynamic,omitempty"`
-	Fields      map[string]CommonMappingPropertyBaseFieldsValue `json:"fields,omitempty"`
-	IgnoreAbove *int                                            `json:"ignore_above,omitempty"`
+	Dynamic     *CommonMappingDynamic            `json:"dynamic,omitempty"`
+	Fields      map[string]CommonMappingProperty `json:"fields,omitempty"`
+	IgnoreAbove *int                             `json:"ignore_above,omitempty"`
 
 	// Meta. Metadata about the field.
 	Meta map[string]string `json:"meta,omitempty"`
 
-	Properties map[string]CommonMappingPropertyBasePropertiesValue `json:"properties,omitempty"`
+	Properties map[string]CommonMappingProperty `json:"properties,omitempty"`
 }
 
 type CommonMappingCorePropertyBase struct {
@@ -3968,7 +3959,7 @@ type CommonMappingType struct {
 	Source             *CommonMappingSourceField                 `json:"_source,omitempty"`
 	AllField           *CommonMappingAllField                    `json:"all_field,omitempty"`
 	DateDetection      *bool                                     `json:"date_detection,omitempty"`
-	Dynamic            *CommonMappingTypeDynamic                 `json:"dynamic,omitempty"`
+	Dynamic            *CommonMappingDynamic                     `json:"dynamic,omitempty"`
 	DynamicDateFormats []string                                  `json:"dynamic_date_formats,omitempty"`
 	DynamicTemplates   []map[string]CommonMappingDynamicTemplate `json:"dynamic_templates,omitempty"`
 	Enabled            *bool                                     `json:"enabled,omitempty"`
@@ -3995,7 +3986,7 @@ type CommonAnalysisFingerprintAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisFingerprintAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4015,7 +4006,7 @@ type CommonAnalysisLanguageAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisLanguageAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4039,7 +4030,7 @@ type CommonAnalysisPatternAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisPatternAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type    string  `json:"type"`
 	Version *string `json:"version,omitempty"`
@@ -4057,7 +4048,7 @@ type CommonAnalysisStandardAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStandardAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -4067,7 +4058,7 @@ type CommonAnalysisStopAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStopAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4098,7 +4089,7 @@ type CommonAnalysisSnowballAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisSnowballAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type    string  `json:"type"`
 	Version *string `json:"version,omitempty"`
@@ -4109,7 +4100,7 @@ type CommonAnalysisDutchAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisDutchAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -4123,7 +4114,7 @@ type CommonAnalysisCJKAnalyzer struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisCJKAnalyzerStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          *string `json:"type,omitempty"`
@@ -4211,9 +4202,9 @@ type CommonAnalysisCommonGramsTokenFilter struct {
 
 type CommonAnalysisConditionTokenFilter struct {
 	CommonAnalysisTokenFilterBase
-	Filter []string                                 `json:"filter"`
-	Script CommonAnalysisConditionTokenFilterScript `json:"script"`
-	Type   string                                   `json:"type"`
+	Filter []string `json:"filter"`
+	Script Script   `json:"script"`
+	Type   string   `json:"type"`
 }
 
 type CommonAnalysisDelimitedPayloadTokenFilter struct {
@@ -4412,8 +4403,8 @@ type CommonAnalysisPorterStemTokenFilter struct {
 
 type CommonAnalysisPredicateTokenFilter struct {
 	CommonAnalysisTokenFilterBase
-	Script CommonAnalysisPredicateTokenFilterScript `json:"script"`
-	Type   string                                   `json:"type"`
+	Script Script `json:"script"`
+	Type   string `json:"type"`
 }
 
 type CommonAnalysisRemoveDuplicatesTokenFilter struct {
@@ -4478,7 +4469,7 @@ type CommonAnalysisStopTokenFilter struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStopTokenFilterStopwords `json:"stopwords,omitempty"`
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4815,19 +4806,19 @@ type CommonAnalysisSmartcnTokenizer struct {
 // The text analysis configuration.
 type IndicesIndexSettingsAnalysis struct {
 	// Analyzer is the custom analyzer configurations.
-	Analyzer map[string]IndicesIndexSettingsAnalysisAnalyzerValue `json:"analyzer,omitempty"`
+	Analyzer map[string]CommonAnalysisAnalyzer `json:"analyzer,omitempty"`
 
 	// CharFilter is the custom character filter configurations.
-	CharFilter map[string]IndicesIndexSettingsAnalysisCharFilterValue `json:"char_filter,omitempty"`
+	CharFilter map[string]CommonAnalysisCharFilter `json:"char_filter,omitempty"`
 
 	// Filter is the custom token filter configurations.
-	Filter map[string]IndicesIndexSettingsAnalysisFilterValue `json:"filter,omitempty"`
+	Filter map[string]CommonAnalysisTokenFilter `json:"filter,omitempty"`
 
 	// Normalizer is the custom normalizer configurations.
-	Normalizer map[string]IndicesIndexSettingsAnalysisNormalizerValue `json:"normalizer,omitempty"`
+	Normalizer map[string]CommonAnalysisNormalizer `json:"normalizer,omitempty"`
 
 	// Tokenizer is the custom tokenizer configurations.
-	Tokenizer map[string]IndicesIndexSettingsAnalysisTokenizerValue `json:"tokenizer,omitempty"`
+	Tokenizer map[string]CommonAnalysisTokenizer `json:"tokenizer,omitempty"`
 }
 
 // The configuration for text analysis.
@@ -5117,7 +5108,7 @@ type IndicesIndexSettingsLifecycle struct {
 	// contains old data and want to use the original creation date to
 	// calculate the index age. Specified as a Unix epoch value in
 	// milliseconds.
-	OriginationDate *IndicesIndexSettingsLifecycleOriginationDate `json:"origination_date,omitempty"`
+	OriginationDate *StringifiedEpochTimeUnitMillis `json:"origination_date,omitempty"`
 
 	// ParseOriginationDate. When `true`, parses the origination date from the
 	// index name. This origination date is used to calculate the index age for
@@ -5570,8 +5561,8 @@ type IndicesIndexSettingsSimilarityLMJ struct {
 
 // The scripted TF/IDF similarity algorithm configuration.
 type IndicesIndexSettingsSimilarityScriptedTFIDF struct {
-	Script IndicesIndexSettingsSimilarityScriptedTFIDFScript `json:"script"`
-	Type   string                                            `json:"type"`
+	Script Script `json:"script"`
+	Type   string `json:"type"`
 }
 
 // The configuration for similarity algorithms.
@@ -5803,7 +5794,7 @@ type IndicesIndexSettings struct {
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	CreationDate *IndicesIndexSettingsCreationDate `json:"creation_date,omitempty"`
+	CreationDate *StringifiedEpochTimeUnitMillis `json:"creation_date,omitempty"`
 
 	// CreationDateString is a date and time, either as a string whose format
 	// depends on the context (defaulting to ISO_8601) or the number of
@@ -6039,7 +6030,7 @@ type IndicesIndexSettings struct {
 	// leniently parse strings to the target type.
 	RoutingPartitionSize *string `json:"routing_partition_size,omitempty"`
 
-	RoutingPath *IndicesIndexSettingsRoutingPath `json:"routing_path,omitempty"`
+	RoutingPath *StringOrStringArray `json:"routing_path,omitempty"`
 
 	// Search is the configuration for search operations.
 	Search *IndicesIndexSettingsSearch `json:"search,omitempty"`
@@ -6353,7 +6344,7 @@ type RemoteStoreStats struct {
 }
 
 // The segment replication statistics for versions 2.10.0 to 2.12.0.
-type SegmentsStatsSegmentReplicationObject0 struct {
+type SegmentReplicationStatsObject0 struct {
 	// MaxBytesBehind is the maximum number of bytes the replica is behind the
 	// primary.
 	MaxBytesBehind string `json:"max_bytes_behind"`
@@ -6368,7 +6359,7 @@ type SegmentsStatsSegmentReplicationObject0 struct {
 }
 
 // The segment replication statistics for version 2.12.0 and later.
-type SegmentsStatsSegmentReplicationObject1 struct {
+type SegmentReplicationStatsObject1 struct {
 	// MaxBytesBehind is the maximum number of bytes the replica is behind the
 	// primary.
 	MaxBytesBehind int64 `json:"max_bytes_behind"`
@@ -6452,7 +6443,7 @@ type SegmentsStats struct {
 	RemoteStore *RemoteStoreStats `json:"remote_store,omitempty"`
 
 	// Available: >= 2.10.0.
-	SegmentReplication *SegmentsStatsSegmentReplication `json:"segment_replication,omitempty"`
+	SegmentReplication *SegmentReplicationStats `json:"segment_replication,omitempty"`
 
 	// StoredFieldsMemory is the total amount of memory used for stored fields
 	// across all shards assigned to the selected nodes.
@@ -6580,8 +6571,8 @@ type BulkByScrollTaskStatus struct {
 	// Retries is the retry statistics for bulk and search operations.
 	Retries Retries `json:"retries"`
 
-	SliceID *int                               `json:"slice_id,omitempty"`
-	Slices  []BulkByScrollTaskStatusSlicesItem `json:"slices,omitempty"`
+	SliceID *int                                `json:"slice_id,omitempty"`
+	Slices  []BulkByScrollTaskStatusOrException `json:"slices,omitempty"`
 
 	// Throttled is a duration. Units can be `nanos`, `micros`, `ms`
 	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
@@ -6634,7 +6625,7 @@ type BulkByScrollRespBase struct {
 	BulkByScrollTaskStatus
 
 	// Failures is the list of failures that occurred during the operation.
-	Failures []BulkByScrollRespBaseFailuresItem `json:"failures"`
+	Failures []BulkByScrollFailure `json:"failures"`
 
 	// TimedOut. Whether the operation timed out.
 	TimedOut bool `json:"timed_out"`
@@ -6742,7 +6733,7 @@ type TasksTaskInfo struct {
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
 	// Status. Task status information can vary wildly from task to task.
-	Status *TasksTaskInfoStatus `json:"status,omitempty"`
+	Status *TasksStatus `json:"status,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -8409,7 +8400,7 @@ type IngestProcessorContainer struct {
 	Pipeline        *IngestPipelineProcessor        `json:"pipeline,omitempty"`
 	Remove          *IngestRemoveProcessor          `json:"remove,omitempty"`
 	Rename          *IngestRenameProcessor          `json:"rename,omitempty"`
-	Script          *IngestProcessorContainerScript `json:"script,omitempty"`
+	Script          *Script                         `json:"script,omitempty"`
 	Set             *IngestSetProcessor             `json:"set,omitempty"`
 	SetSecurityUser *IngestSetSecurityUserProcessor `json:"set_security_user,omitempty"`
 	Sort            *IngestSortProcessor            `json:"sort,omitempty"`
@@ -8518,38 +8509,6 @@ type InsightsMeasurements struct {
 	Memory  *InsightsMeasurement `json:"memory,omitempty"`
 }
 
-type InsightsSourceSourceExcludesIncludes struct {
-	// Excludes is a comma-separated list or a wildcard expression specifying
-	// the fields to include in the statistics. Used as the default list unless
-	// a specific field list is provided in the `completion_fields` or
-	// `fielddata_fields` parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// Includes is a comma-separated list or a wildcard expression specifying
-	// the fields to include in the statistics. Used as the default list unless
-	// a specific field list is provided in the `completion_fields` or
-	// `fielddata_fields` parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
-type InsightsSourceDocvalueFieldsItemField struct {
-	// Field is the path to a field or an array of paths. Some APIs support
-	// wildcards in the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type InsightsSourceFieldsItemField struct {
-	// Field is the path to a field or an array of paths. Some APIs support
-	// wildcards in the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
 type SearchPointInTimeReference struct {
 	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
@@ -8582,7 +8541,7 @@ type SearchSuggester struct {
 type InsightsSource struct {
 	// Source. Defines how to fetch a source. Fetching can be disabled
 	// entirely, or the source can be filtered.
-	Source *InsightsSourceSource `json:"_source,omitempty"`
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
 	// Aggregations. Defines the aggregations that are run as part of the
 	// search request.
@@ -8593,7 +8552,7 @@ type InsightsSource struct {
 	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
 	// doc values for field names matching these patterns in the `hits.fields`
 	// property of the response.
-	DocvalueFields []InsightsSourceDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
 
 	// Explain. If `true`, returns detailed information about score computation
 	// as part of a hit.
@@ -8605,7 +8564,7 @@ type InsightsSource struct {
 	// Fields. Array of wildcard (`*`) patterns. The request returns values for
 	// field names matching these patterns in the `hits.fields` property of the
 	// response.
-	Fields []InsightsSourceFieldsItem `json:"fields,omitempty"`
+	Fields []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
 	// From. Starting document offset. Needs to be non-negative. By default,
 	// you cannot page through more than 10,000 hits using the `from` and
@@ -8636,7 +8595,7 @@ type InsightsSource struct {
 	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
-	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
+	SearchAfter []FieldValue `json:"search_after,omitempty"`
 
 	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
 	// the last modification of each hit.
@@ -8650,7 +8609,7 @@ type InsightsSource struct {
 	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *InsightsSourceSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// Stats groups to associate with the search. Each group maintains a
 	// statistics aggregation for its associated searches. You can retrieve
@@ -8688,7 +8647,7 @@ type InsightsSource struct {
 	// the exact number of hits is returned at the cost of some performance.
 	// When `false`, the response does not include the total number of hits
 	// matching the query. Default is `10,000` hits.
-	TrackTotalHits *InsightsSourceTrackTotalHits `json:"track_total_hits,omitempty"`
+	TrackTotalHits *SearchTrackHits `json:"track_total_hits,omitempty"`
 
 	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
@@ -9382,7 +9341,7 @@ type MLDeleteAgenticMemoryResponse struct {
 	Deleted *int64 `json:"deleted,omitempty"`
 
 	// Failures. Any failures occurred during the operation.
-	Failures []MLDeleteAgenticMemoryRespFailuresItem `json:"failures,omitempty"`
+	Failures []BulkByScrollFailure `json:"failures,omitempty"`
 
 	// Noops. Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`
@@ -10019,12 +9978,12 @@ type MLModelProfile struct {
 	// Predictor is the predictor.
 	Predictor *string `json:"predictor,omitempty"`
 
-	Register          *MLModelStats                         `json:"register,omitempty"`
-	TargetWorkerNodes []MLModelProfileTargetWorkerNodesItem `json:"target_worker_nodes,omitempty"`
-	Train             *MLModelStats                         `json:"train,omitempty"`
-	TrainPredict      *MLModelStats                         `json:"train_predict,omitempty"`
-	Undeploy          *MLModelStats                         `json:"undeploy,omitempty"`
-	WorkerNodes       []MLModelProfileWorkerNodesItem       `json:"worker_nodes,omitempty"`
+	Register          *MLModelStats `json:"register,omitempty"`
+	TargetWorkerNodes []NodeIDs     `json:"target_worker_nodes,omitempty"`
+	Train             *MLModelStats `json:"train,omitempty"`
+	TrainPredict      *MLModelStats `json:"train_predict,omitempty"`
+	Undeploy          *MLModelStats `json:"undeploy,omitempty"`
+	WorkerNodes       []NodeIDs     `json:"worker_nodes,omitempty"`
 }
 
 type MLTask struct {
@@ -10043,7 +10002,7 @@ type MLTask struct {
 	// TaskType. Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
-	WorkerNode []MLTaskWorkerNodeItem `json:"worker_node,omitempty"`
+	WorkerNode []NodeIDs `json:"worker_node,omitempty"`
 }
 
 type MLNode struct {
@@ -10281,7 +10240,7 @@ type MLSource struct {
 	// PlanningWorkerNodeCount is the planning worker node count.
 	PlanningWorkerNodeCount *float64 `json:"planning_worker_node_count,omitempty"`
 
-	PlanningWorkerNodes []MLSourcePlanningWorkerNodesItem `json:"planning_worker_nodes,omitempty"`
+	PlanningWorkerNodes []NodeIDs `json:"planning_worker_nodes,omitempty"`
 
 	// PromptTemplate is the prompt template.
 	PromptTemplate *string `json:"prompt_template"`
@@ -10318,8 +10277,8 @@ type MLSource struct {
 	// User is the username of the user.
 	User *string `json:"user,omitempty"`
 
-	Version    *string                  `json:"version,omitempty"`
-	WorkerNode []MLSourceWorkerNodeItem `json:"worker_node,omitempty"`
+	Version    *string   `json:"version,omitempty"`
+	WorkerNode []NodeIDs `json:"worker_node,omitempty"`
 }
 
 type MLSearchHitsHit struct {
@@ -11312,7 +11271,7 @@ type ReplicationIndexFollowerStatus struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalWriteTimeMillis *ReplicationIndexFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	TotalWriteTimeMillis *StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 }
 
 type ReplicationFollowerStatus struct {
@@ -11372,7 +11331,7 @@ type ReplicationFollowerStatus struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalWriteTimeMillis *ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	TotalWriteTimeMillis *StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 }
 
 type ReplicationIndexStatus struct {
@@ -11396,14 +11355,14 @@ type ReplicationIndexStatus struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeLuceneMillis *ReplicationIndexStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	TotalReadTimeLuceneMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_lucene_millis,omitempty"`
 
 	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
 	// numbers such as epoch timestamps, as strings. This setting captures this
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeTranslogMillis *ReplicationIndexStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	TotalReadTimeTranslogMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_translog_millis,omitempty"`
 
 	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
@@ -11435,14 +11394,14 @@ type ReplicationLeaderStatus struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeLuceneMillis *ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	TotalReadTimeLuceneMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_lucene_millis,omitempty"`
 
 	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
 	// numbers such as epoch timestamps, as strings. This setting captures this
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeTranslogMillis *ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	TotalReadTimeTranslogMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_translog_millis,omitempty"`
 
 	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
@@ -11713,7 +11672,7 @@ type SearchPipelineNormalizationPhaseResultsProcessor struct {
 	Tag           *string                           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor struct {
+type SearchPipelinePhaseResultsProcessorNormalizationProcessor struct {
 	NormalizationProcessor SearchPipelineNormalizationPhaseResultsProcessor `json:"normalization-processor"`
 }
 
@@ -11726,7 +11685,7 @@ type SearchPipelineScoreRankerPhaseResultsProcessor struct {
 	Combination SearchPipelineScoreRankerCombination `json:"combination"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor struct {
+type SearchPipelinePhaseResultsProcessorScoreRankerProcessor struct {
 	ScoreRankerProcessor SearchPipelineScoreRankerPhaseResultsProcessor `json:"score-ranker-processor"`
 }
 
@@ -11739,7 +11698,7 @@ type SearchPipelineAgenticQueryTranslatorRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator struct {
+type SearchPipelineRequestProcessorAgenticQueryTranslator struct {
 	// Available: >= 3.2.0.
 	AgenticQueryTranslator SearchPipelineAgenticQueryTranslatorRequestProcessor `json:"agentic_query_translator"`
 }
@@ -11751,7 +11710,7 @@ type SearchPipelineFilterQueryRequestProcessor struct {
 	Tag           *string                       `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemFilterQuery struct {
+type SearchPipelineRequestProcessorFilterQuery struct {
 	FilterQuery SearchPipelineFilterQueryRequestProcessor `json:"filter_query"`
 }
 
@@ -11762,7 +11721,7 @@ type SearchPipelineNeuralQueryEnricherRequestProcessor struct {
 	Tag                  *string           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher struct {
+type SearchPipelineRequestProcessorNeuralQueryEnricher struct {
 	NeuralQueryEnricher SearchPipelineNeuralQueryEnricherRequestProcessor `json:"neural_query_enricher"`
 }
 
@@ -11774,7 +11733,7 @@ type SearchPipelineSearchScriptRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemScript struct {
+type SearchPipelineRequestProcessorScript struct {
 	Script SearchPipelineSearchScriptRequestProcessor `json:"script"`
 }
 
@@ -11786,7 +11745,7 @@ type SearchPipelineOversampleRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemOversample struct {
+type SearchPipelineRequestProcessorOversample struct {
 	Oversample SearchPipelineOversampleRequestProcessor `json:"oversample"`
 }
 
@@ -11805,7 +11764,7 @@ type SearchPipelineAgenticContextRespProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemAgenticContext struct {
+type SearchPipelineRespProcessorAgenticContext struct {
 	// Available: >= 3.3.0.
 	AgenticContext SearchPipelineAgenticContextRespProcessor `json:"agentic_context"`
 }
@@ -11821,7 +11780,7 @@ type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
 	Weight        float32 `json:"weight"`
 }
 
-type SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking struct {
+type SearchPipelineRespProcessorPersonalizeSearchRanking struct {
 	PersonalizeSearchRanking SearchPipelinePersonalizeSearchRankingRespProcessor `json:"personalize_search_ranking"`
 }
 
@@ -11834,7 +11793,7 @@ type SearchPipelineRetrievalAugmentedGenerationRespProcessor struct {
 	UserInstructions *string  `json:"user_instructions,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration struct {
+type SearchPipelineRespProcessorRetrievalAugmentedGeneration struct {
 	RetrievalAugmentedGeneration SearchPipelineRetrievalAugmentedGenerationRespProcessor `json:"retrieval_augmented_generation"`
 }
 
@@ -11846,7 +11805,7 @@ type SearchPipelineRenameFieldRespProcessor struct {
 	TargetField   string  `json:"target_field"`
 }
 
-type SearchPipelineStructureRespProcessorsItemRenameField struct {
+type SearchPipelineRespProcessorRenameField struct {
 	RenameField SearchPipelineRenameFieldRespProcessor `json:"rename_field"`
 }
 
@@ -11866,7 +11825,7 @@ type SearchPipelineRerankRespProcessor struct {
 	Tag           *string                             `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemRerank struct {
+type SearchPipelineRespProcessorRerank struct {
 	Rerank SearchPipelineRerankRespProcessor `json:"rerank"`
 }
 
@@ -11878,7 +11837,7 @@ type SearchPipelineCollapseRespProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemCollapse struct {
+type SearchPipelineRespProcessorCollapse struct {
 	Collapse SearchPipelineCollapseRespProcessor `json:"collapse"`
 }
 
@@ -11890,7 +11849,7 @@ type SearchPipelineTruncateHitsRespProcessor struct {
 	TargetSize    *int    `json:"target_size,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemTruncateHits struct {
+type SearchPipelineRespProcessorTruncateHits struct {
 	TruncateHits SearchPipelineTruncateHitsRespProcessor `json:"truncate_hits"`
 }
 
@@ -11903,7 +11862,7 @@ type SearchPipelineSortRespProcessor struct {
 	TargetField   *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemSort struct {
+type SearchPipelineRespProcessorSort struct {
 	Sort SearchPipelineSortRespProcessor `json:"sort"`
 }
 
@@ -11917,16 +11876,16 @@ type SearchPipelineSplitRespProcessor struct {
 	TargetField      *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemSplit struct {
+type SearchPipelineRespProcessorSplit struct {
 	Split SearchPipelineSplitRespProcessor `json:"split"`
 }
 
 type SearchPipelineStructure struct {
-	Description            *string                                             `json:"description,omitempty"`
-	PhaseResultsProcessors []SearchPipelineStructurePhaseResultsProcessorsItem `json:"phase_results_processors,omitempty"`
-	RequestProcessors      []SearchPipelineStructureRequestProcessorsItem      `json:"request_processors,omitempty"`
-	RespProcessors         []SearchPipelineStructureRespProcessorsItem         `json:"response_processors,omitempty"`
-	Version                *int                                                `json:"version,omitempty"`
+	Description            *string                               `json:"description,omitempty"`
+	PhaseResultsProcessors []SearchPipelinePhaseResultsProcessor `json:"phase_results_processors,omitempty"`
+	RequestProcessors      []SearchPipelineRequestProcessor      `json:"request_processors,omitempty"`
+	RespProcessors         []SearchPipelineRespProcessor         `json:"response_processors,omitempty"`
+	Version                *int                                  `json:"version,omitempty"`
 }
 
 type SearchRelevancePostQuerySetsResponse struct {
@@ -13053,20 +13012,6 @@ type WLMQueryGroupResponse struct {
 	UpdatedAt int64 `json:"updated_at"`
 }
 
-type AsynchronousSearchSearchSourceExcludesIncludes struct {
-	// Excludes is a comma-separated list or a wildcard expression specifying
-	// the fields to include in the statistics. Used as the default list unless
-	// a specific field list is provided in the `completion_fields` or
-	// `fielddata_fields` parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// Includes is a comma-separated list or a wildcard expression specifying
-	// the fields to include in the statistics. Used as the default list unless
-	// a specific field list is provided in the `completion_fields` or
-	// `fielddata_fields` parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
 type CommonAggregationsAggregation struct {
 	// Meta. Custom metadata to associate with the aggregation (optional)
 	Meta map[string]json.RawMessage `json:"meta,omitempty"`
@@ -13076,29 +13021,11 @@ type CommonAggregationsAggregationContainer struct {
 	CommonAggregationsAggregation
 }
 
-type AsynchronousSearchSearchDocvalueFieldsItemField struct {
-	// Field is the path to a field or an array of paths. Some APIs support
-	// wildcards in the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type AsynchronousSearchSearchFieldsItemField struct {
-	// Field is the path to a field or an array of paths. Some APIs support
-	// wildcards in the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
 // The search definition using the Query DSL.
 type AsynchronousSearchSearch struct {
 	// Source. Defines how to fetch a source. Fetching can be disabled
 	// entirely, or the source can be filtered.
-	Source *AsynchronousSearchSearchSource `json:"_source,omitempty"`
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
 	// Aggregations. Defines the aggregations that are run as part of the
 	// search request.
@@ -13109,7 +13036,7 @@ type AsynchronousSearchSearch struct {
 	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
 	// doc values for field names matching these patterns in the `hits.fields`
 	// property of the response.
-	DocvalueFields []AsynchronousSearchSearchDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
 
 	// Explain. If `true`, returns detailed information about score computation
 	// as part of a hit.
@@ -13121,7 +13048,7 @@ type AsynchronousSearchSearch struct {
 	// Fields. Array of wildcard (`*`) patterns. The request returns values for
 	// field names matching these patterns in the `hits.fields` property of the
 	// response.
-	Fields []AsynchronousSearchSearchFieldsItem `json:"fields,omitempty"`
+	Fields []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
 	// From. Starting document offset. Needs to be non-negative. By default,
 	// you cannot page through more than 10,000 hits using the `from` and
@@ -13152,7 +13079,7 @@ type AsynchronousSearchSearch struct {
 	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
-	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
+	SearchAfter []FieldValue `json:"search_after,omitempty"`
 
 	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
 	// the last modification of each hit.
@@ -13166,7 +13093,7 @@ type AsynchronousSearchSearch struct {
 	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *AsynchronousSearchSearchSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// Stats groups to associate with the search. Each group maintains a
 	// statistics aggregation for its associated searches. You can retrieve
@@ -13204,7 +13131,7 @@ type AsynchronousSearchSearch struct {
 	// the exact number of hits is returned at the cost of some performance.
 	// When `false`, the response does not include the total number of hits
 	// matching the query. Default is `10,000` hits.
-	TrackTotalHits *AsynchronousSearchSearchTrackTotalHits `json:"track_total_hits,omitempty"`
+	TrackTotalHits *SearchTrackHits `json:"track_total_hits,omitempty"`
 
 	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
@@ -13258,15 +13185,15 @@ type GeospatialMultiPolygon struct {
 
 type GeospatialGeometryCollection struct {
 	// Geometries. Array of geometry objects.
-	Geometries []GeospatialGeometryCollectionGeometriesItem `json:"geometries"`
+	Geometries []GeospatialGeometry `json:"geometries"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialGeoJSONData struct {
-	Geometry   GeospatialGeoJSONDataGeometry `json:"geometry"`
-	Properties json.RawMessage               `json:"properties"`
-	Type       string                        `json:"type"`
+	Geometry   GeospatialGeometry `json:"geometry"`
+	Properties json.RawMessage    `json:"properties"`
+	Type       string             `json:"type"`
 }
 
 type GeospatialGeoJSONRequest struct {
@@ -13452,7 +13379,7 @@ type MLGuardrails struct {
 	// `english`. Each language value corresponds to a predefined list of stop
 	// words in Lucene. See Stop words by language for supported language
 	// values and their stop words. Also accepts an array of stop words.
-	StopWords *MLGuardrailsStopWords `json:"stop_words,omitempty"`
+	StopWords *CommonAnalysisStopWords `json:"stop_words,omitempty"`
 
 	// Type is the guardrails type.
 	Type *string `json:"type,omitempty"`
@@ -13551,13 +13478,13 @@ type ReplicationUpdateSettings struct {
 }
 
 type DerivedField struct {
-	Format          *string            `json:"format,omitempty"`
-	IgnoreMalformed *bool              `json:"ignore_malformed,omitempty"`
-	Name            string             `json:"name"`
-	PrefilterField  *string            `json:"prefilter_field,omitempty"`
-	Properties      json.RawMessage    `json:"properties"`
-	Script          DerivedFieldScript `json:"script"`
-	Type            string             `json:"type"`
+	Format          *string         `json:"format,omitempty"`
+	IgnoreMalformed *bool           `json:"ignore_malformed,omitempty"`
+	Name            string          `json:"name"`
+	PrefilterField  *string         `json:"prefilter_field,omitempty"`
+	Properties      json.RawMessage `json:"properties"`
+	Script          Script          `json:"script"`
+	Type            string          `json:"type"`
 }
 
 // The schema for creating a query set.

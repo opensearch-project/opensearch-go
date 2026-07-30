@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -164,7 +163,7 @@ type IndicesPutTemplateBody struct {
 
 	// IndexPatterns. Array of wildcard expressions used to match the names of
 	// indexes during creation.
-	IndexPatterns *IndicesPutTemplateBodyIndexPatterns `json:"index_patterns,omitempty"`
+	IndexPatterns *StringOrStringArray `json:"index_patterns,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
@@ -178,139 +177,6 @@ type IndicesPutTemplateBody struct {
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`
-}
-
-// Array of wildcard expressions used to match the names
-// of indexes during creation.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type IndicesPutTemplateBodyIndexPatterns struct {
-	typ   IndicesPutTemplateBodyIndexPatternsType
-	raw   json.RawMessage
-	value any
-}
-
-// IndicesPutTemplateBodyIndexPatternsType discriminates the branches of IndicesPutTemplateBodyIndexPatterns.
-type IndicesPutTemplateBodyIndexPatternsType int
-
-const (
-	IndicesPutTemplateBodyIndexPatternsUnknownType IndicesPutTemplateBodyIndexPatternsType = iota
-	IndicesPutTemplateBodyIndexPatternsStringType
-	IndicesPutTemplateBodyIndexPatternsArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t IndicesPutTemplateBodyIndexPatternsType) String() string {
-	switch t {
-	case IndicesPutTemplateBodyIndexPatternsStringType:
-		return "String"
-	case IndicesPutTemplateBodyIndexPatternsArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns IndicesPutTemplateBodyIndexPatternsUnknownType if the value has not been decoded.
-func (u *IndicesPutTemplateBodyIndexPatterns) Type() IndicesPutTemplateBodyIndexPatternsType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *IndicesPutTemplateBodyIndexPatterns) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIndicesPutTemplateBodyIndexPatternsFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *IndicesPutTemplateBodyIndexPatterns) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = IndicesPutTemplateBodyIndexPatternsUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *IndicesPutTemplateBodyIndexPatterns) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "IndicesPutTemplateBodyIndexPatterns", Want: "String", Got: u.typ.String()}
-}
-
-// NewIndicesPutTemplateBodyIndexPatternsFromString returns a IndicesPutTemplateBodyIndexPatterns populated with v
-// on the String branch.
-func NewIndicesPutTemplateBodyIndexPatternsFromString(v string) IndicesPutTemplateBodyIndexPatterns {
-	return IndicesPutTemplateBodyIndexPatterns{
-		typ:   IndicesPutTemplateBodyIndexPatternsStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *IndicesPutTemplateBodyIndexPatterns) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "IndicesPutTemplateBodyIndexPatterns", Want: "Array", Got: u.typ.String()}
-}
-
-// NewIndicesPutTemplateBodyIndexPatternsFromArray returns a IndicesPutTemplateBodyIndexPatterns populated with v
-// on the Array branch.
-func NewIndicesPutTemplateBodyIndexPatternsFromArray(v []string) IndicesPutTemplateBodyIndexPatterns {
-	return IndicesPutTemplateBodyIndexPatterns{
-		typ:   IndicesPutTemplateBodyIndexPatternsArrayType,
-		value: &v,
-	}
-}
-
-func (u *IndicesPutTemplateBodyIndexPatterns) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = IndicesPutTemplateBodyIndexPatternsUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IndicesPutTemplateBodyIndexPatternsStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IndicesPutTemplateBodyIndexPatternsArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("IndicesPutTemplateBodyIndexPatterns: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u IndicesPutTemplateBodyIndexPatterns) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // PutTemplate creates or updates an index template.

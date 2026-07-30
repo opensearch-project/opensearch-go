@@ -579,8 +579,8 @@ type NodesInfoNodeSettingsCluster struct {
 	// Election is the cluster election strategy configuration.
 	Election *NodesInfoNodeSettingsClusterElection `json:"election,omitempty"`
 
-	InitialClusterManagerNodes *NodesInfoNodeSettingsClusterInitialClusterManagerNodes `json:"initial_cluster_manager_nodes,omitempty"`
-	InitialMasterNodes         *NodesInfoNodeSettingsClusterInitialMasterNodes         `json:"initial_master_nodes,omitempty"`
+	InitialClusterManagerNodes *StringOrStringArray `json:"initial_cluster_manager_nodes,omitempty"`
+	InitialMasterNodes         *StringOrStringArray `json:"initial_master_nodes,omitempty"`
 
 	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
@@ -631,7 +631,7 @@ type NodesInfoNodeSettingsHTTP struct {
 	// parse strings to the target type.
 	Compression *string `json:"compression,omitempty"`
 
-	Host *NodesInfoNodeSettingsHTTPHost `json:"host,omitempty"`
+	Host *StringOrStringArray `json:"host,omitempty"`
 
 	// Port. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
@@ -640,7 +640,7 @@ type NodesInfoNodeSettingsHTTP struct {
 	// parse strings to the target type.
 	Port *string `json:"port,omitempty"`
 
-	PublishHost *NodesInfoNodeSettingsHTTPPublishHost `json:"publish_host,omitempty"`
+	PublishHost *StringOrStringArray `json:"publish_host,omitempty"`
 
 	// PublishPort. Certain APIs may return values, including numbers such as
 	// epoch timestamps, as strings. This setting captures this behavior while
@@ -841,7 +841,7 @@ type NodesInfoNodeSettingsNode struct {
 	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	Roles *NodesInfoNodeSettingsNodeRoles `json:"roles,omitempty"`
+	Roles *StringOrStringArray `json:"roles,omitempty"`
 }
 
 // NodesInfoNodePath is a typed component of the nodes.info operation.
@@ -909,7 +909,7 @@ type NodesInfoNodeSearchRemote struct {
 //
 // The transport layer configuration settings.
 type NodesInfoNodeSettingsTransport struct {
-	Host *NodesInfoNodeSettingsTransportHost `json:"host,omitempty"`
+	Host *StringOrStringArray `json:"host,omitempty"`
 
 	// Type is the transport layer type configuration.
 	Type NodesInfoNodeSettingsTransportType `json:"type"`
@@ -967,550 +967,28 @@ type NodesInfoNodeTransport struct {
 	PublishAddress string `json:"publish_address"`
 }
 
-// NodesInfoNodeSettingsClusterInitialClusterManagerNodes is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsClusterInitialClusterManagerNodes struct {
-	typ   NodesInfoNodeSettingsClusterInitialClusterManagerNodesType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsClusterInitialClusterManagerNodesType discriminates the branches of NodesInfoNodeSettingsClusterInitialClusterManagerNodes.
-type NodesInfoNodeSettingsClusterInitialClusterManagerNodesType int
-
-const (
-	NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType NodesInfoNodeSettingsClusterInitialClusterManagerNodesType = iota
-	NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType
-	NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsClusterInitialClusterManagerNodesType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType:
-		return "String"
-	case NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Type() NodesInfoNodeSettingsClusterInitialClusterManagerNodesType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) RawJSON() json.RawMessage {
-	return u.raw
-}
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsClusterInitialClusterManagerNodes", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromString(v string) NodesInfoNodeSettingsClusterInitialClusterManagerNodes {
-	return NodesInfoNodeSettingsClusterInitialClusterManagerNodes{
-		typ:   NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsClusterInitialClusterManagerNodes", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromArray returns a NodesInfoNodeSettingsClusterInitialClusterManagerNodes populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsClusterInitialClusterManagerNodesFromArray(v []string) NodesInfoNodeSettingsClusterInitialClusterManagerNodes {
-	return NodesInfoNodeSettingsClusterInitialClusterManagerNodes{
-		typ:   NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsClusterInitialClusterManagerNodes) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsClusterInitialClusterManagerNodesArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsClusterInitialClusterManagerNodes: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsClusterInitialClusterManagerNodes) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// NodesInfoNodeSettingsClusterInitialMasterNodes is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsClusterInitialMasterNodes struct {
-	typ   NodesInfoNodeSettingsClusterInitialMasterNodesType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsClusterInitialMasterNodesType discriminates the branches of NodesInfoNodeSettingsClusterInitialMasterNodes.
-type NodesInfoNodeSettingsClusterInitialMasterNodesType int
-
-const (
-	NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType NodesInfoNodeSettingsClusterInitialMasterNodesType = iota
-	NodesInfoNodeSettingsClusterInitialMasterNodesStringType
-	NodesInfoNodeSettingsClusterInitialMasterNodesArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsClusterInitialMasterNodesType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsClusterInitialMasterNodesStringType:
-		return "String"
-	case NodesInfoNodeSettingsClusterInitialMasterNodesArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Type() NodesInfoNodeSettingsClusterInitialMasterNodesType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsClusterInitialMasterNodesFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsClusterInitialMasterNodes", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsClusterInitialMasterNodesFromString(v string) NodesInfoNodeSettingsClusterInitialMasterNodes {
-	return NodesInfoNodeSettingsClusterInitialMasterNodes{
-		typ:   NodesInfoNodeSettingsClusterInitialMasterNodesStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsClusterInitialMasterNodes", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsClusterInitialMasterNodesFromArray returns a NodesInfoNodeSettingsClusterInitialMasterNodes populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsClusterInitialMasterNodesFromArray(v []string) NodesInfoNodeSettingsClusterInitialMasterNodes {
-	return NodesInfoNodeSettingsClusterInitialMasterNodes{
-		typ:   NodesInfoNodeSettingsClusterInitialMasterNodesArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsClusterInitialMasterNodes) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsClusterInitialMasterNodesArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsClusterInitialMasterNodes: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsClusterInitialMasterNodes) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// NodesInfoNodeSettingsHTTPHost is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsHTTPHost struct {
-	typ   NodesInfoNodeSettingsHTTPHostType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsHTTPHostType discriminates the branches of NodesInfoNodeSettingsHTTPHost.
-type NodesInfoNodeSettingsHTTPHostType int
-
-const (
-	NodesInfoNodeSettingsHTTPHostUnknownType NodesInfoNodeSettingsHTTPHostType = iota
-	NodesInfoNodeSettingsHTTPHostStringType
-	NodesInfoNodeSettingsHTTPHostArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsHTTPHostType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsHTTPHostStringType:
-		return "String"
-	case NodesInfoNodeSettingsHTTPHostArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsHTTPHostUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsHTTPHost) Type() NodesInfoNodeSettingsHTTPHostType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsHTTPHost) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHTTPHostFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsHTTPHost) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsHTTPHostUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsHTTPHost) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPHost", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsHTTPHostFromString returns a NodesInfoNodeSettingsHTTPHost populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsHTTPHostFromString(v string) NodesInfoNodeSettingsHTTPHost {
-	return NodesInfoNodeSettingsHTTPHost{
-		typ:   NodesInfoNodeSettingsHTTPHostStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsHTTPHost) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPHost", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsHTTPHostFromArray returns a NodesInfoNodeSettingsHTTPHost populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsHTTPHostFromArray(v []string) NodesInfoNodeSettingsHTTPHost {
-	return NodesInfoNodeSettingsHTTPHost{
-		typ:   NodesInfoNodeSettingsHTTPHostArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsHTTPHost) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsHTTPHostUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsHTTPHostStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsHTTPHostArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsHTTPHost: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsHTTPHost) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// NodesInfoNodeSettingsHTTPPublishHost is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsHTTPPublishHost struct {
-	typ   NodesInfoNodeSettingsHTTPPublishHostType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsHTTPPublishHostType discriminates the branches of NodesInfoNodeSettingsHTTPPublishHost.
-type NodesInfoNodeSettingsHTTPPublishHostType int
-
-const (
-	NodesInfoNodeSettingsHTTPPublishHostUnknownType NodesInfoNodeSettingsHTTPPublishHostType = iota
-	NodesInfoNodeSettingsHTTPPublishHostStringType
-	NodesInfoNodeSettingsHTTPPublishHostArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsHTTPPublishHostType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsHTTPPublishHostStringType:
-		return "String"
-	case NodesInfoNodeSettingsHTTPPublishHostArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsHTTPPublishHostUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) Type() NodesInfoNodeSettingsHTTPPublishHostType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsHTTPPublishHostFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsHTTPPublishHostUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPPublishHost", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsHTTPPublishHostFromString returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsHTTPPublishHostFromString(v string) NodesInfoNodeSettingsHTTPPublishHost {
-	return NodesInfoNodeSettingsHTTPPublishHost{
-		typ:   NodesInfoNodeSettingsHTTPPublishHostStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsHTTPPublishHost) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPPublishHost", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsHTTPPublishHostFromArray returns a NodesInfoNodeSettingsHTTPPublishHost populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsHTTPPublishHostFromArray(v []string) NodesInfoNodeSettingsHTTPPublishHost {
-	return NodesInfoNodeSettingsHTTPPublishHost{
-		typ:   NodesInfoNodeSettingsHTTPPublishHostArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsHTTPPublishHost) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsHTTPPublishHostUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsHTTPPublishHostStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsHTTPPublishHostArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsHTTPPublishHost: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsHTTPPublishHost) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
+//
 // The HTTP server type configuration.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type NodesInfoNodeSettingsHTTPType struct {
 	typ   NodesInfoNodeSettingsHTTPTypeType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeSettingsHTTPTypeType discriminates the branches of NodesInfoNodeSettingsHTTPType.
+// NodesInfoNodeSettingsHTTPTypeType names which branch of NodesInfoNodeSettingsHTTPType is set.
 type NodesInfoNodeSettingsHTTPTypeType int
 
 const (
 	NodesInfoNodeSettingsHTTPTypeUnknownType NodesInfoNodeSettingsHTTPTypeType = iota
 	NodesInfoNodeSettingsHTTPTypeStringType
-	NodesInfoNodeSettingsHTTPTypeConfigType
+	NodesInfoNodeSettingsHTTPTypeNodeInfoSettingsHTTPTypeConfigType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -1519,8 +997,8 @@ func (t NodesInfoNodeSettingsHTTPTypeType) String() string {
 	switch t {
 	case NodesInfoNodeSettingsHTTPTypeStringType:
 		return "String"
-	case NodesInfoNodeSettingsHTTPTypeConfigType:
-		return "Config"
+	case NodesInfoNodeSettingsHTTPTypeNodeInfoSettingsHTTPTypeConfigType:
+		return "NodeInfoSettingsHTTPTypeConfig"
 	default:
 		return "unknown"
 	}
@@ -1566,23 +1044,23 @@ func NewNodesInfoNodeSettingsHTTPTypeFromString(v string) NodesInfoNodeSettingsH
 	}
 }
 
-// Config returns the NodesInfoNodeSettingsHTTPTypeConfig branch value. It returns a
+// NodeInfoSettingsHTTPTypeConfig returns the NodesInfoNodeSettingsHTTPTypeConfig branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero NodesInfoNodeSettingsHTTPTypeConfig in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsHTTPType) Config() (NodesInfoNodeSettingsHTTPTypeConfig, error) {
+func (u *NodesInfoNodeSettingsHTTPType) NodeInfoSettingsHTTPTypeConfig() (NodesInfoNodeSettingsHTTPTypeConfig, error) {
 	if v, ok := u.value.(*NodesInfoNodeSettingsHTTPTypeConfig); ok {
 		return *v, nil
 	}
 	var zero NodesInfoNodeSettingsHTTPTypeConfig
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPType", Want: "Config", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsHTTPType", Want: "NodeInfoSettingsHTTPTypeConfig", Got: u.typ.String()}
 }
 
-// NewNodesInfoNodeSettingsHTTPTypeFromConfig returns a NodesInfoNodeSettingsHTTPType populated with v
-// on the Config branch.
-func NewNodesInfoNodeSettingsHTTPTypeFromConfig(v NodesInfoNodeSettingsHTTPTypeConfig) NodesInfoNodeSettingsHTTPType {
+// NewNodesInfoNodeSettingsHTTPTypeFromNodeInfoSettingsHTTPTypeConfig returns a NodesInfoNodeSettingsHTTPType populated with v
+// on the NodeInfoSettingsHTTPTypeConfig branch.
+func NewNodesInfoNodeSettingsHTTPTypeFromNodeInfoSettingsHTTPTypeConfig(v NodesInfoNodeSettingsHTTPTypeConfig) NodesInfoNodeSettingsHTTPType {
 	return NodesInfoNodeSettingsHTTPType{
-		typ:   NodesInfoNodeSettingsHTTPTypeConfigType,
+		typ:   NodesInfoNodeSettingsHTTPTypeNodeInfoSettingsHTTPTypeConfigType,
 		value: &v,
 	}
 }
@@ -1607,7 +1085,7 @@ func (u *NodesInfoNodeSettingsHTTPType) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsHTTPTypeConfigType
+		u.typ = NodesInfoNodeSettingsHTTPTypeNodeInfoSettingsHTTPTypeConfigType
 		u.value = &v
 	default:
 		return fmt.Errorf("NodesInfoNodeSettingsHTTPType: unexpected JSON token: %s", data[:1])
@@ -1625,284 +1103,28 @@ func (u NodesInfoNodeSettingsHTTPType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// NodesInfoNodeSettingsNodeRoles is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsNodeRoles struct {
-	typ   NodesInfoNodeSettingsNodeRolesType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsNodeRolesType discriminates the branches of NodesInfoNodeSettingsNodeRoles.
-type NodesInfoNodeSettingsNodeRolesType int
-
-const (
-	NodesInfoNodeSettingsNodeRolesUnknownType NodesInfoNodeSettingsNodeRolesType = iota
-	NodesInfoNodeSettingsNodeRolesStringType
-	NodesInfoNodeSettingsNodeRolesArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsNodeRolesType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsNodeRolesStringType:
-		return "String"
-	case NodesInfoNodeSettingsNodeRolesArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsNodeRolesUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsNodeRoles) Type() NodesInfoNodeSettingsNodeRolesType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsNodeRoles) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsNodeRolesFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsNodeRoles) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsNodeRolesUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsNodeRoles) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsNodeRoles", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsNodeRolesFromString returns a NodesInfoNodeSettingsNodeRoles populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsNodeRolesFromString(v string) NodesInfoNodeSettingsNodeRoles {
-	return NodesInfoNodeSettingsNodeRoles{
-		typ:   NodesInfoNodeSettingsNodeRolesStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsNodeRoles) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsNodeRoles", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsNodeRolesFromArray returns a NodesInfoNodeSettingsNodeRoles populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsNodeRolesFromArray(v []string) NodesInfoNodeSettingsNodeRoles {
-	return NodesInfoNodeSettingsNodeRoles{
-		typ:   NodesInfoNodeSettingsNodeRolesArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsNodeRoles) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsNodeRolesUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsNodeRolesStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsNodeRolesArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsNodeRoles: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsNodeRoles) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// NodesInfoNodeSettingsTransportHost is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type NodesInfoNodeSettingsTransportHost struct {
-	typ   NodesInfoNodeSettingsTransportHostType
-	raw   json.RawMessage
-	value any
-}
-
-// NodesInfoNodeSettingsTransportHostType discriminates the branches of NodesInfoNodeSettingsTransportHost.
-type NodesInfoNodeSettingsTransportHostType int
-
-const (
-	NodesInfoNodeSettingsTransportHostUnknownType NodesInfoNodeSettingsTransportHostType = iota
-	NodesInfoNodeSettingsTransportHostStringType
-	NodesInfoNodeSettingsTransportHostArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t NodesInfoNodeSettingsTransportHostType) String() string {
-	switch t {
-	case NodesInfoNodeSettingsTransportHostStringType:
-		return "String"
-	case NodesInfoNodeSettingsTransportHostArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns NodesInfoNodeSettingsTransportHostUnknownType if the value has not been decoded.
-func (u *NodesInfoNodeSettingsTransportHost) Type() NodesInfoNodeSettingsTransportHostType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesInfoNodeSettingsTransportHost) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesInfoNodeSettingsTransportHostFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *NodesInfoNodeSettingsTransportHost) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsTransportHostUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsTransportHost) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsTransportHost", Want: "String", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsTransportHostFromString returns a NodesInfoNodeSettingsTransportHost populated with v
-// on the String branch.
-func NewNodesInfoNodeSettingsTransportHostFromString(v string) NodesInfoNodeSettingsTransportHost {
-	return NodesInfoNodeSettingsTransportHost{
-		typ:   NodesInfoNodeSettingsTransportHostStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsTransportHost) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsTransportHost", Want: "Array", Got: u.typ.String()}
-}
-
-// NewNodesInfoNodeSettingsTransportHostFromArray returns a NodesInfoNodeSettingsTransportHost populated with v
-// on the Array branch.
-func NewNodesInfoNodeSettingsTransportHostFromArray(v []string) NodesInfoNodeSettingsTransportHost {
-	return NodesInfoNodeSettingsTransportHost{
-		typ:   NodesInfoNodeSettingsTransportHostArrayType,
-		value: &v,
-	}
-}
-
-func (u *NodesInfoNodeSettingsTransportHost) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = NodesInfoNodeSettingsTransportHostUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsTransportHostStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = NodesInfoNodeSettingsTransportHostArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("NodesInfoNodeSettingsTransportHost: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u NodesInfoNodeSettingsTransportHost) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
+//
 // The transport layer type configuration.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type NodesInfoNodeSettingsTransportType struct {
 	typ   NodesInfoNodeSettingsTransportTypeType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeSettingsTransportTypeType discriminates the branches of NodesInfoNodeSettingsTransportType.
+// NodesInfoNodeSettingsTransportTypeType names which branch of NodesInfoNodeSettingsTransportType is set.
 type NodesInfoNodeSettingsTransportTypeType int
 
 const (
 	NodesInfoNodeSettingsTransportTypeUnknownType NodesInfoNodeSettingsTransportTypeType = iota
 	NodesInfoNodeSettingsTransportTypeStringType
-	NodesInfoNodeSettingsTransportTypeConfigType
+	NodesInfoNodeSettingsTransportTypeNodeInfoSettingsTransportTypeConfigType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -1911,8 +1133,8 @@ func (t NodesInfoNodeSettingsTransportTypeType) String() string {
 	switch t {
 	case NodesInfoNodeSettingsTransportTypeStringType:
 		return "String"
-	case NodesInfoNodeSettingsTransportTypeConfigType:
-		return "Config"
+	case NodesInfoNodeSettingsTransportTypeNodeInfoSettingsTransportTypeConfigType:
+		return "NodeInfoSettingsTransportTypeConfig"
 	default:
 		return "unknown"
 	}
@@ -1960,23 +1182,23 @@ func NewNodesInfoNodeSettingsTransportTypeFromString(v string) NodesInfoNodeSett
 	}
 }
 
-// Config returns the NodesInfoNodeSettingsTransportTypeConfig branch value. It returns a
+// NodeInfoSettingsTransportTypeConfig returns the NodesInfoNodeSettingsTransportTypeConfig branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero NodesInfoNodeSettingsTransportTypeConfig in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *NodesInfoNodeSettingsTransportType) Config() (NodesInfoNodeSettingsTransportTypeConfig, error) {
+func (u *NodesInfoNodeSettingsTransportType) NodeInfoSettingsTransportTypeConfig() (NodesInfoNodeSettingsTransportTypeConfig, error) {
 	if v, ok := u.value.(*NodesInfoNodeSettingsTransportTypeConfig); ok {
 		return *v, nil
 	}
 	var zero NodesInfoNodeSettingsTransportTypeConfig
-	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsTransportType", Want: "Config", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "NodesInfoNodeSettingsTransportType", Want: "NodeInfoSettingsTransportTypeConfig", Got: u.typ.String()}
 }
 
-// NewNodesInfoNodeSettingsTransportTypeFromConfig returns a NodesInfoNodeSettingsTransportType populated with v
-// on the Config branch.
-func NewNodesInfoNodeSettingsTransportTypeFromConfig(v NodesInfoNodeSettingsTransportTypeConfig) NodesInfoNodeSettingsTransportType {
+// NewNodesInfoNodeSettingsTransportTypeFromNodeInfoSettingsTransportTypeConfig returns a NodesInfoNodeSettingsTransportType populated with v
+// on the NodeInfoSettingsTransportTypeConfig branch.
+func NewNodesInfoNodeSettingsTransportTypeFromNodeInfoSettingsTransportTypeConfig(v NodesInfoNodeSettingsTransportTypeConfig) NodesInfoNodeSettingsTransportType {
 	return NodesInfoNodeSettingsTransportType{
-		typ:   NodesInfoNodeSettingsTransportTypeConfigType,
+		typ:   NodesInfoNodeSettingsTransportTypeNodeInfoSettingsTransportTypeConfigType,
 		value: &v,
 	}
 }
@@ -2001,7 +1223,7 @@ func (u *NodesInfoNodeSettingsTransportType) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesInfoNodeSettingsTransportTypeConfigType
+		u.typ = NodesInfoNodeSettingsTransportTypeNodeInfoSettingsTransportTypeConfigType
 		u.value = &v
 	default:
 		return fmt.Errorf("NodesInfoNodeSettingsTransportType: unexpected JSON token: %s", data[:1])
@@ -2019,16 +1241,22 @@ func (u NodesInfoNodeSettingsTransportType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+//
 // Total heap allowed to be used to hold recently indexed documents before they must be written to disk. This size is a shared pool across all shards on this node, and is controlled by Indexing Buffer settings.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type NodesInfoNodeTotalIndexingBuffer struct {
 	typ   NodesInfoNodeTotalIndexingBufferType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeTotalIndexingBufferType discriminates the branches of NodesInfoNodeTotalIndexingBuffer.
+// NodesInfoNodeTotalIndexingBufferType names which branch of NodesInfoNodeTotalIndexingBuffer is set.
 type NodesInfoNodeTotalIndexingBufferType int
 
 const (
@@ -2149,16 +1377,21 @@ func (u NodesInfoNodeTotalIndexingBuffer) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// NodesInfoNodeTotalIndexingBufferInBytes is a discriminated union type.
+// NodesInfoNodeTotalIndexingBufferInBytes is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type NodesInfoNodeTotalIndexingBufferInBytes struct {
 	typ   NodesInfoNodeTotalIndexingBufferInBytesType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesInfoNodeTotalIndexingBufferInBytesType discriminates the branches of NodesInfoNodeTotalIndexingBufferInBytes.
+// NodesInfoNodeTotalIndexingBufferInBytesType names which branch of NodesInfoNodeTotalIndexingBufferInBytes is set.
 type NodesInfoNodeTotalIndexingBufferInBytesType int
 
 const (

@@ -102,7 +102,7 @@ type GetTaskResp struct {
 	// TaskType. Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
-	WorkerNode []opensearchapi.MLTaskWorkerNodeItem `json:"worker_node,omitempty"`
+	WorkerNode []opensearchapi.NodeIDs `json:"worker_node,omitempty"`
 
 	response *opensearch.Response
 }

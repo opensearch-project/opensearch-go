@@ -121,7 +121,7 @@ type DeleteAgenticMemoryQueryResp struct {
 	Deleted *int64 `json:"deleted,omitempty"`
 
 	// Failures. Any failures occurred during the operation.
-	Failures []opensearchapi.MLDeleteAgenticMemoryRespFailuresItem `json:"failures,omitempty"`
+	Failures []opensearchapi.BulkByScrollFailure `json:"failures,omitempty"`
 
 	// Noops. Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`

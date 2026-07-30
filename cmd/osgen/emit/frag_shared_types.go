@@ -100,7 +100,7 @@ func NewSharedTypesFile(outDir, pkg string, types []*ir.Type) Target {
 func NewUnionTypesFile(outDir, pkg string, types []*ir.Type) Target {
 	var unionTypes []*ir.Type
 	for _, t := range types {
-		if (t.Kind == ir.TypeUnion || t.Kind == ir.TypeLazyUnion) && t.Scope == ir.ScopeShared {
+		if (t.Kind == ir.TypeUnion || t.Kind == ir.TypeAmbiguousWire) && t.Scope == ir.ScopeShared {
 			unionTypes = append(unionTypes, t)
 		}
 	}
@@ -127,7 +127,7 @@ func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
 			enumTypes = append(enumTypes, t)
 		case ir.TypeStringEnum:
 			stringEnumTypes = append(stringEnumTypes, t)
-		case ir.TypeStruct, ir.TypeUnion, ir.TypeLazyUnion:
+		case ir.TypeStruct, ir.TypeUnion, ir.TypeAmbiguousWire:
 			// Emitted by other fragments (SharedTypesFragment / UnionFragment).
 		}
 	}

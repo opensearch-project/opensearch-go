@@ -207,21 +207,26 @@ type FlowFrameworkCommonResourcesCreated struct {
 	WorkflowStepName *string `json:"workflow_step_name,omitempty"`
 }
 
-// FlowFrameworkCommonSearchStateRespResourcesCreated is a discriminated union type.
+// FlowFrameworkCommonSearchStateRespResourcesCreated is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type FlowFrameworkCommonSearchStateRespResourcesCreated struct {
 	typ   FlowFrameworkCommonSearchStateRespResourcesCreatedType
 	raw   json.RawMessage
 	value any
 }
 
-// FlowFrameworkCommonSearchStateRespResourcesCreatedType discriminates the branches of FlowFrameworkCommonSearchStateRespResourcesCreated.
+// FlowFrameworkCommonSearchStateRespResourcesCreatedType names which branch of FlowFrameworkCommonSearchStateRespResourcesCreated is set.
 type FlowFrameworkCommonSearchStateRespResourcesCreatedType int
 
 const (
 	FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType FlowFrameworkCommonSearchStateRespResourcesCreatedType = iota
-	FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+	FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType
 	FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
 )
 
@@ -229,8 +234,8 @@ const (
 // been decoded.
 func (t FlowFrameworkCommonSearchStateRespResourcesCreatedType) String() string {
 	switch t {
-	case FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType:
-		return "FlowFrameworkCommonResourcesCreated"
+	case FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType:
+		return "ResourcesCreated"
 	case FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType:
 		return "Array"
 	default:
@@ -259,23 +264,23 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) SetRaw(raw json.Raw
 	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
 }
 
-// FlowFrameworkCommonResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value. It returns a
+// ResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero FlowFrameworkCommonResourcesCreated in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) FlowFrameworkCommonResourcesCreated() (FlowFrameworkCommonResourcesCreated, error) {
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) ResourcesCreated() (FlowFrameworkCommonResourcesCreated, error) {
 	if v, ok := u.value.(*FlowFrameworkCommonResourcesCreated); ok {
 		return *v, nil
 	}
 	var zero FlowFrameworkCommonResourcesCreated
-	return zero, &opensearchapi.UnionBranchError{Union: "FlowFrameworkCommonSearchStateRespResourcesCreated", Want: "FlowFrameworkCommonResourcesCreated", Got: u.typ.String()}
+	return zero, &opensearchapi.UnionBranchError{Union: "FlowFrameworkCommonSearchStateRespResourcesCreated", Want: "ResourcesCreated", Got: u.typ.String()}
 }
 
-// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
-// on the FlowFrameworkCommonResourcesCreated branch.
-func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
+// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
+// on the ResourcesCreated branch.
+func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromResourcesCreated(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
 	return FlowFrameworkCommonSearchStateRespResourcesCreated{
-		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType,
+		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType,
 		value: &v,
 	}
 }
@@ -314,7 +319,7 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) UnmarshalJSON(data 
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType
 		u.value = &v
 	case data[0] == '[':
 		var v []FlowFrameworkCommonResourcesCreated

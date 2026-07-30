@@ -23,7 +23,7 @@ import (
 // decoded shape of each per-item union branch. mget responses intermix
 // success items ({_index,_id,found,_source,...}) and error items
 // ({_index,_id,error:{...}}) as sibling array elements; this exercises the
-// MGetRespBodyDocsItem merged single-pass decode (the success|error fan-in)
+// MGetRespItem merged single-pass decode (the success|error fan-in)
 // and validates that the running server version returns what the generated
 // client can decode.
 func TestManual_MGet(t *testing.T) {
@@ -64,19 +64,19 @@ func TestManual_MGet(t *testing.T) {
 	require.Len(t, resp.Docs, 3)
 
 	// Each case asserts the decoded branch of one docs[] element, exercising the
-	// MGetRespBodyDocsItem success|error fan-in: GetResult for found/not-found
-	// documents, MGetMultiGetError for a per-item index-missing error.
+	// MGetRespItem success|error fan-in: GetResult for found/not-found
+	// documents, MultiGetError for a per-item index-missing error.
 	tests := []struct {
 		name  string
 		idx   int
-		check func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem)
+		check func(t *testing.T, item opensearchapi.MGetRespItem)
 	}{
 		{
 			name: "found document decodes via GetResult branch",
 			idx:  0,
-			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
+			check: func(t *testing.T, item opensearchapi.MGetRespItem) {
 				t.Helper()
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, item.Type())
+				require.Equal(t, opensearchapi.MGetRespItemGetResultType, item.Type())
 				v, err := item.GetResult()
 				require.NoError(t, err)
 				require.Equal(t, "1", v.ID)
@@ -88,9 +88,9 @@ func TestManual_MGet(t *testing.T) {
 		{
 			name: "missing document decodes via GetResult branch with found=false",
 			idx:  1,
-			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
+			check: func(t *testing.T, item opensearchapi.MGetRespItem) {
 				t.Helper()
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, item.Type())
+				require.Equal(t, opensearchapi.MGetRespItemGetResultType, item.Type())
 				v, err := item.GetResult()
 				require.NoError(t, err)
 				require.Equal(t, "404", v.ID)
@@ -99,12 +99,12 @@ func TestManual_MGet(t *testing.T) {
 			},
 		},
 		{
-			name: "missing index decodes via MGetMultiGetError branch",
+			name: "missing index decodes via MultiGetError branch",
 			idx:  2,
-			check: func(t *testing.T, item opensearchapi.MGetRespBodyDocsItem) {
+			check: func(t *testing.T, item opensearchapi.MGetRespItem) {
 				t.Helper()
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemMGetMultiGetErrorType, item.Type())
-				v, err := item.MGetMultiGetError()
+				require.Equal(t, opensearchapi.MGetRespItemMultiGetErrorType, item.Type())
+				v, err := item.MultiGetError()
 				require.NoError(t, err)
 				require.Equal(t, "1", v.ID)
 				require.Equal(t, missingIndex, v.Index)

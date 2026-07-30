@@ -112,14 +112,14 @@ type LeaderStatsResp struct {
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeLuceneMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	TotalReadTimeLuceneMillis *opensearchapi.StringifiedEpochTimeUnitMillis `json:"total_read_time_lucene_millis,omitempty"`
 
 	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
 	// numbers such as epoch timestamps, as strings. This setting captures this
 	// behavior while keeping the semantics of the field type. Depending on the
 	// target language, code generators can keep the union or remove it and
 	// leniently parse strings to the target type.
-	TotalReadTimeTranslogMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	TotalReadTimeTranslogMillis *opensearchapi.StringifiedEpochTimeUnitMillis `json:"total_read_time_translog_millis,omitempty"`
 
 	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`

@@ -152,7 +152,7 @@ func TestParamKindConstants(t *testing.T) {
 func TestTypeKindConstants(t *testing.T) {
 	t.Parallel()
 
-	kinds := []ir.TypeKind{ir.TypeStruct, ir.TypeUnion, ir.TypeLazyUnion}
+	kinds := []ir.TypeKind{ir.TypeStruct, ir.TypeUnion, ir.TypeAmbiguousWire}
 	for i := range kinds {
 		if int(kinds[i]) != i {
 			t.Errorf("TypeKind %d has value %d, want %d", i, int(kinds[i]), i)

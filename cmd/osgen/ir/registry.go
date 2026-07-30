@@ -81,12 +81,12 @@ func (r *TypeRegistry) Shared() []*Type {
 	return result
 }
 
-// Unions returns all union types (both strict and lazy) sorted by name.
+// Unions returns every union type, whatever its decode strategy, sorted by name.
 func (r *TypeRegistry) Unions() []*Type {
 	var result []*Type
 	for _, ref := range r.order {
 		t := r.byRef[ref]
-		if t.Kind == TypeUnion || t.Kind == TypeLazyUnion {
+		if t.Kind == TypeUnion || t.Kind == TypeAmbiguousWire {
 			result = append(result, t)
 		}
 	}

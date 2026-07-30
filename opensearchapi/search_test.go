@@ -70,7 +70,7 @@ func TestSearchHitEnvelopeIsDecoded(t *testing.T) {
 	require.Equal(t, "r1", *hit.Routing)
 
 	require.Len(t, hit.Sort, 2, "sort must be reachable for search_after pagination")
-	require.Equal(t, opensearchapi.SortResultsItemFloat64Type, hit.Sort[0].Type())
+	require.Equal(t, opensearchapi.FieldValueFloat64Type, hit.Sort[0].Type())
 	sort0, err := hit.Sort[0].Float64()
 	require.NoError(t, err)
 	require.InDelta(t, float64(1), sort0, 1e-9)

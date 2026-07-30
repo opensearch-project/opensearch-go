@@ -42,11 +42,11 @@ func TestClassifyUnions(t *testing.T) {
 		// setup returns the spec to classify and the union under test.
 		setup func() (*ir.Spec, *ir.Type)
 
-		wantMerge    bool
-		wantLazy     bool
-		wantPrimary  string   // expected embedded primary GoType (when wantMerge)
-		wantProbes   []string // expected probe JSON keys (when wantMerge)
-		wantBranches []string // expected discriminated branch GoTypes (when wantMerge)
+		wantMerge           bool
+		wantRequestSelected bool
+		wantPrimary         string   // expected embedded primary GoType (when wantMerge)
+		wantProbes          []string // expected probe JSON keys (when wantMerge)
+		wantBranches        []string // expected discriminated branch GoTypes (when wantMerge)
 	}{
 		{
 			name: "success|error wrapper merges, discriminated by the error key",
@@ -61,7 +61,7 @@ func TestClassifyUnions(t *testing.T) {
 					field("Index", "_index", "string"),
 					field("Error", "error", "ErrorCause"),
 				)
-				union := &ir.Type{Name: "DocsItem", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "DocsItem", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "GetResult", GoType: "GetResult", TokenClass: ir.TokenObject},
 					{Name: "MultiGetError", GoType: "MultiGetError", TokenClass: ir.TokenObject, Required: []string{"_id", "_index", "error"}},
 				}}
@@ -83,7 +83,7 @@ func TestClassifyUnions(t *testing.T) {
 					field("Type", "type", "string"),
 					field("Reason", "reason", "string"),
 				)
-				union := &ir.Type{Name: "StatusOrException", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "StatusOrException", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Status", GoType: "ScrollStatus", TokenClass: ir.TokenObject, Required: []string{"batches", "total"}},
 					{Name: "ErrorCause", GoType: "ErrorCause", TokenClass: ir.TokenObject, Required: []string{"type"}},
 				}}
@@ -99,21 +99,21 @@ func TestClassifyUnions(t *testing.T) {
 			setup: func() (*ir.Spec, *ir.Type) {
 				avg := structType("AvgAgg", field("Value", "value", "float64"))
 				sum := structType("SumAgg", field("Value", "value", "float64"))
-				union := &ir.Type{Name: "AggValue", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "AggValue", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Avg", GoType: "AvgAgg", TokenClass: ir.TokenObject},
 					{Name: "Sum", GoType: "SumAgg", TokenClass: ir.TokenObject},
 				}}
 				resp := structType("SearchResult", field("Aggregations", "aggregations", "map[string]AggValue"))
 				return newClassifySpec(avg, sum, union, resp), union
 			},
-			wantLazy: true,
+			wantRequestSelected: true,
 		},
 		{
 			name: "non-map all-permissive union left on try-each",
 			setup: func() (*ir.Spec, *ir.Type) {
 				a := structType("ShapeA", field("X", "x", "int"))
 				b := structType("ShapeB", field("Y", "y", "int"))
-				union := &ir.Type{Name: "DirectBody", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "DirectBody", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "ShapeA", GoType: "ShapeA", TokenClass: ir.TokenObject},
 					{Name: "ShapeB", GoType: "ShapeB", TokenClass: ir.TokenObject},
 				}}
@@ -126,7 +126,7 @@ func TestClassifyUnions(t *testing.T) {
 			name: "unembeddable (map) primary cannot merge",
 			setup: func() (*ir.Spec, *ir.Type) {
 				errBranch := structType("Err", field("Error", "error", "ErrorCause"))
-				union := &ir.Type{Name: "OpenItem", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "OpenItem", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Map", GoType: "map[string]json.RawMessage", TokenClass: ir.TokenObject},
 					{Name: "Err", GoType: "Err", TokenClass: ir.TokenObject, Required: []string{"error"}},
 				}}
@@ -143,21 +143,21 @@ func TestClassifyUnions(t *testing.T) {
 				// Both branches require "value" (as allOf flattening produces for
 				// single-metric aggregates): not mutually distinguishable, so the
 				// disjointness guard rejects the merge and Case B keeps As<T>().
-				union := &ir.Type{Name: "MetricAgg", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "MetricAgg", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Avg", GoType: "AvgAgg", TokenClass: ir.TokenObject, Required: []string{"value"}},
 					{Name: "Sum", GoType: "SumAgg", TokenClass: ir.TokenObject, Required: []string{"value"}},
 				}}
 				resp := structType("SearchResult2", field("Aggregations", "aggregations", "map[string]MetricAgg"))
 				return newClassifySpec(avg, sum, union, resp), union
 			},
-			wantLazy: true,
+			wantRequestSelected: true,
 		},
 		{
 			name: "non-map branches sharing a required key are left on try-each",
 			setup: func() (*ir.Spec, *ir.Type) {
 				a := structType("VariantA", field("Type", "type", "string"), field("A", "a", "int"))
 				b := structType("VariantB", field("Type", "type", "string"), field("B", "b", "int"))
-				union := &ir.Type{Name: "TypeTagged", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "TypeTagged", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "VariantA", GoType: "VariantA", TokenClass: ir.TokenObject, Required: []string{"type"}},
 					{Name: "VariantB", GoType: "VariantB", TokenClass: ir.TokenObject, Required: []string{"type"}},
 				}}
@@ -170,7 +170,7 @@ func TestClassifyUnions(t *testing.T) {
 			name: "non-object branch skips classification entirely",
 			setup: func() (*ir.Spec, *ir.Type) {
 				obj := structType("Obj", field("X", "x", "int"))
-				union := &ir.Type{Name: "ObjectOrString", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "ObjectOrString", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Obj", GoType: "Obj", TokenClass: ir.TokenObject},
 					{Name: "Str", GoType: "string", TokenClass: ir.TokenString},
 				}}
@@ -193,7 +193,7 @@ func TestClassifyUnions(t *testing.T) {
 				disc := structType("AckDisc",
 					field("Status", "status", "string"),
 				)
-				union := &ir.Type{Name: "AckUnion", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "AckUnion", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Primary", GoType: "AckPrimary", TokenClass: ir.TokenObject},
 					{Name: "Disc", GoType: "AckDisc", TokenClass: ir.TokenObject, Required: []string{"status"}},
 				}}
@@ -218,7 +218,7 @@ func TestClassifyUnions(t *testing.T) {
 					field("Y", "y", "int"),
 					field("Z", "z", "int"),
 				)
-				union := &ir.Type{Name: "AmbigUnion", Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{
+				union := &ir.Type{Name: "AmbigUnion", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
 					{Name: "Primary", GoType: "Primary", TokenClass: ir.TokenObject},
 					{Name: "HasXY", GoType: "HasXY", TokenClass: ir.TokenObject, Required: []string{"x", "y"}},
 					{Name: "AlsoXY", GoType: "AlsoXY", TokenClass: ir.TokenObject, Required: []string{"z"}},
@@ -237,8 +237,8 @@ func TestClassifyUnions(t *testing.T) {
 			if got := union.Merge != nil; got != tt.wantMerge {
 				t.Fatalf("Merge present = %v, want %v (Merge=%+v)", got, tt.wantMerge, union.Merge)
 			}
-			if union.LazyAccessors != tt.wantLazy {
-				t.Errorf("LazyAccessors = %v, want %v", union.LazyAccessors, tt.wantLazy)
+			if union.RequestSelected != tt.wantRequestSelected {
+				t.Errorf("RequestSelected = %v, want %v", union.RequestSelected, tt.wantRequestSelected)
 			}
 			if !tt.wantMerge {
 				return
@@ -295,10 +295,10 @@ func TestDropUnreachableBranches(t *testing.T) {
 		{
 			name: "lazy union keeps every accessor over one Go type",
 			union: &ir.Type{
-				Name:          "AggValue",
-				Kind:          ir.TypeLazyUnion,
-				LazyAccessors: true,
-				Branches:      metricBranches(),
+				Name:            "AggValue",
+				Kind:            ir.TypeAmbiguousWire,
+				RequestSelected: true,
+				Branches:        metricBranches(),
 			},
 			wantBranch: []string{"Avg", "Sum", "Min", "Max", "ValueCount", "WeightedAvg", "SimpleValue", "MedianAbsoluteDeviation"},
 		},
@@ -306,7 +306,7 @@ func TestDropUnreachableBranches(t *testing.T) {
 			name: "wire-decoded union drops the unreachable duplicates",
 			union: &ir.Type{
 				Name:     "TryEachValue",
-				Kind:     ir.TypeLazyUnion,
+				Kind:     ir.TypeAmbiguousWire,
 				Branches: metricBranches(),
 			},
 			wantBranch: []string{"Avg"},

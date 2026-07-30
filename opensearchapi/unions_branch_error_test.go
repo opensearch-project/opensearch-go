@@ -21,7 +21,7 @@ import (
 //
 // The mget case is what motivated it. A document that genuinely was not found
 // decodes as the GetResult branch with Found=false, so a zero GetResultBase
-// returned for an item actually holding MGetMultiGetError is indistinguishable
+// returned for an item actually holding MultiGetError is indistinguishable
 // from real data: without the error a caller silently reads "not found" for what
 // is really an index-level failure.
 func TestUnionBranchAccessorErrors(t *testing.T) {
@@ -38,11 +38,11 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 			name: "held branch returns no error",
 			check: func(t *testing.T) {
 				t.Helper()
-				var u opensearchapi.MGetRespBodyDocsItem
+				var u opensearchapi.MGetRespItem
 				require.NoError(t, json.Unmarshal([]byte(mgetErrDoc), &u))
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemMGetMultiGetErrorType, u.Type())
+				require.Equal(t, opensearchapi.MGetRespItemMultiGetErrorType, u.Type())
 
-				got, err := u.MGetMultiGetError()
+				got, err := u.MultiGetError()
 				require.NoError(t, err)
 				require.Equal(t, "1", got.ID)
 			},
@@ -53,7 +53,7 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 			name: "unheld branch reports the branch actually held",
 			check: func(t *testing.T) {
 				t.Helper()
-				var u opensearchapi.MGetRespBodyDocsItem
+				var u opensearchapi.MGetRespItem
 				require.NoError(t, json.Unmarshal([]byte(mgetErrDoc), &u))
 
 				zero, err := u.GetResult()
@@ -62,10 +62,10 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 
 				var branchErr *opensearchapi.UnionBranchError
 				require.ErrorAs(t, err, &branchErr)
-				require.Equal(t, "MGetRespBodyDocsItem", branchErr.Union)
+				require.Equal(t, "MGetRespItem", branchErr.Union)
 				require.Equal(t, "GetResult", branchErr.Want)
-				require.Equal(t, "MGetMultiGetError", branchErr.Got)
-				require.Contains(t, err.Error(), "holds branch MGetMultiGetError, not GetResult")
+				require.Equal(t, "MultiGetError", branchErr.Got)
+				require.Contains(t, err.Error(), "holds branch MultiGetError, not GetResult")
 			},
 		},
 		{
@@ -74,8 +74,8 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 			name: "undecoded union reports the unknown branch",
 			check: func(t *testing.T) {
 				t.Helper()
-				var u opensearchapi.MGetRespBodyDocsItem
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemUnknownType, u.Type())
+				var u opensearchapi.MGetRespItem
+				require.Equal(t, opensearchapi.MGetRespItemUnknownType, u.Type())
 
 				_, err := u.GetResult()
 				require.Error(t, err)
@@ -92,7 +92,7 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 			name: "Union names the union that failed",
 			check: func(t *testing.T) {
 				t.Helper()
-				var sort opensearchapi.SortResultsItem
+				var sort opensearchapi.FieldValue
 				require.NoError(t, json.Unmarshal([]byte(`"asc"`), &sort))
 
 				_, err := sort.Float64()
@@ -100,7 +100,7 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 
 				var branchErr *opensearchapi.UnionBranchError
 				require.ErrorAs(t, err, &branchErr)
-				require.Equal(t, "SortResultsItem", branchErr.Union)
+				require.Equal(t, "FieldValue", branchErr.Union)
 				require.Equal(t, "Float64", branchErr.Want)
 				require.Equal(t, "String", branchErr.Got)
 			},

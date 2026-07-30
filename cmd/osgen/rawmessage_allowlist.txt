@@ -67,9 +67,6 @@ ClusterPutSettingsBody/transient # map
 ClusterPutSettingsResp/persistent # map
 ClusterPutSettingsResp/transient # map
 
-# --- cluster.remote_info ---
-ClusterRemoteInfoResp/[entries] # map
-
 # --- cluster.reroute ---
 ClusterRerouteResp/state # bare
 

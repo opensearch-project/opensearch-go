@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -159,7 +158,7 @@ type CatHealthRecord struct {
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	Epoch *CatHealthRecordEpoch `json:"epoch,omitempty"`
+	Epoch *StringifiedEpochTimeUnitSeconds `json:"epoch,omitempty"`
 
 	// Init. Number of initializing nodes
 	Init *string `json:"init,omitempty"`
@@ -193,140 +192,6 @@ type CatHealthRecord struct {
 
 	// Unassign. Number of unassigned shards
 	Unassign *string `json:"unassign,omitempty"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatHealthRecordEpoch struct {
-	typ   CatHealthRecordEpochType
-	raw   json.RawMessage
-	value any
-}
-
-// CatHealthRecordEpochType discriminates the branches of CatHealthRecordEpoch.
-type CatHealthRecordEpochType int
-
-const (
-	CatHealthRecordEpochUnknownType CatHealthRecordEpochType = iota
-	CatHealthRecordEpochInt64Type
-	CatHealthRecordEpochStringType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t CatHealthRecordEpochType) String() string {
-	switch t {
-	case CatHealthRecordEpochInt64Type:
-		return "Int64"
-	case CatHealthRecordEpochStringType:
-		return "String"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns CatHealthRecordEpochUnknownType if the value has not been decoded.
-func (u *CatHealthRecordEpoch) Type() CatHealthRecordEpochType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatHealthRecordEpoch) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatHealthRecordEpochFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatHealthRecordEpoch) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatHealthRecordEpochUnknownType
-}
-
-// Int64 returns the int64 branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero int64 in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *CatHealthRecordEpoch) Int64() (int64, error) {
-	if v, ok := u.value.(*int64); ok {
-		return *v, nil
-	}
-	var zero int64
-	return zero, &UnionBranchError{Union: "CatHealthRecordEpoch", Want: "Int64", Got: u.typ.String()}
-}
-
-// NewCatHealthRecordEpochFromInt64 returns a CatHealthRecordEpoch populated with v
-// on the Int64 branch.
-func NewCatHealthRecordEpochFromInt64(v int64) CatHealthRecordEpoch {
-	return CatHealthRecordEpoch{
-		typ:   CatHealthRecordEpochInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *CatHealthRecordEpoch) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "CatHealthRecordEpoch", Want: "String", Got: u.typ.String()}
-}
-
-// NewCatHealthRecordEpochFromString returns a CatHealthRecordEpoch populated with v
-// on the String branch.
-func NewCatHealthRecordEpochFromString(v string) CatHealthRecordEpoch {
-	return CatHealthRecordEpoch{
-		typ:   CatHealthRecordEpochStringType,
-		value: &v,
-	}
-}
-
-func (u *CatHealthRecordEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatHealthRecordEpochUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatHealthRecordEpochInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatHealthRecordEpochStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatHealthRecordEpoch: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatHealthRecordEpoch) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Health returns a concise representation of the cluster health.

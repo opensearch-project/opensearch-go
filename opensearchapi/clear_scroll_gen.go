@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -136,137 +135,7 @@ func (r ClearScrollResp) RawBody() io.Reader {
 //
 // A comma-separated list of scroll IDs to clear if none was specified using the `scroll_id` parameter
 type ClearScrollBody struct {
-	ScrollID *ClearScrollBodyScrollID `json:"scroll_id,omitempty"`
-}
-
-// ClearScrollBodyScrollID is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type ClearScrollBodyScrollID struct {
-	typ   ClearScrollBodyScrollIDType
-	raw   json.RawMessage
-	value any
-}
-
-// ClearScrollBodyScrollIDType discriminates the branches of ClearScrollBodyScrollID.
-type ClearScrollBodyScrollIDType int
-
-const (
-	ClearScrollBodyScrollIDUnknownType ClearScrollBodyScrollIDType = iota
-	ClearScrollBodyScrollIDStringType
-	ClearScrollBodyScrollIDArrayType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t ClearScrollBodyScrollIDType) String() string {
-	switch t {
-	case ClearScrollBodyScrollIDStringType:
-		return "String"
-	case ClearScrollBodyScrollIDArrayType:
-		return "Array"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns ClearScrollBodyScrollIDUnknownType if the value has not been decoded.
-func (u *ClearScrollBodyScrollID) Type() ClearScrollBodyScrollIDType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *ClearScrollBodyScrollID) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewClearScrollBodyScrollIDFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *ClearScrollBodyScrollID) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = ClearScrollBodyScrollIDUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *ClearScrollBodyScrollID) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "ClearScrollBodyScrollID", Want: "String", Got: u.typ.String()}
-}
-
-// NewClearScrollBodyScrollIDFromString returns a ClearScrollBodyScrollID populated with v
-// on the String branch.
-func NewClearScrollBodyScrollIDFromString(v string) ClearScrollBodyScrollID {
-	return ClearScrollBodyScrollID{
-		typ:   ClearScrollBodyScrollIDStringType,
-		value: &v,
-	}
-}
-
-// Array returns the []string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero []string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *ClearScrollBodyScrollID) Array() ([]string, error) {
-	if v, ok := u.value.(*[]string); ok {
-		return *v, nil
-	}
-	var zero []string
-	return zero, &UnionBranchError{Union: "ClearScrollBodyScrollID", Want: "Array", Got: u.typ.String()}
-}
-
-// NewClearScrollBodyScrollIDFromArray returns a ClearScrollBodyScrollID populated with v
-// on the Array branch.
-func NewClearScrollBodyScrollIDFromArray(v []string) ClearScrollBodyScrollID {
-	return ClearScrollBodyScrollID{
-		typ:   ClearScrollBodyScrollIDArrayType,
-		value: &v,
-	}
-}
-
-func (u *ClearScrollBodyScrollID) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = ClearScrollBodyScrollIDUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = ClearScrollBodyScrollIDStringType
-		u.value = &v
-	case data[0] == '[':
-		var v []string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = ClearScrollBodyScrollIDArrayType
-		u.value = &v
-	default:
-		return fmt.Errorf("ClearScrollBodyScrollID: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u ClearScrollBodyScrollID) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
+	ScrollID *ScrollIDs `json:"scroll_id,omitempty"`
 }
 
 // Delete explicitly clears the search context for a scroll.

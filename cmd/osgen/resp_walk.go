@@ -83,28 +83,36 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 		return name
 	}
 
-	if resolved, ok := w.resolveParentScopedUnion(ref, schemaKey, group); ok {
+	if resolved, ok := w.resolveRefUnion(ref, schemaKey, group); ok {
 		return resolved
 	}
 
 	return w.resolveNamedSchema(key, ref.Value, group, isRespBody)
 }
 
-// resolveParentScopedUnion handles the case where a $ref points to a pure
-// oneOf/anyOf schema (no properties). Such a schema would otherwise be routed
-// to resolveNamedSchema and registered as an empty struct (it has no
-// properties to collect), so it is sent to resolveUnionType instead.
+// resolveRefUnion handles the case where a $ref points to a pure oneOf/anyOf
+// schema (no properties). Such a schema would otherwise be routed to
+// resolveNamedSchema and registered as an empty struct (it has no properties to
+// collect), so it is sent to resolveUnionType instead.
 //
-// By default the union is keyed by the CALLER's schemaKey so it attaches to its
-// parent field context. There is one exception: if that parent-scoped key would
-// derive a Go type name identical to the parent struct's own name, the union
-// registers first and the parent struct is then silently dropped by the
-// registry (its name is already taken), degrading the parent response to raw
-// json.RawMessage. In that case the union is re-keyed by the REFERENCED
-// schema's own canonical key (e.g. tasks._common___TaskInfos -> TasksTaskInfos)
-// so it owns a distinct name and the parent struct survives. Every other
-// parent-scoped union keeps its existing name, keeping this fix narrow.
-func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
+// The union is keyed by the REFERENCED schema's own canonical key
+// (_common.analysis___Analyzer -> CommonAnalysisAnalyzer), not by the caller's
+// field path. A $ref'd schema is a named schema with its own identity: keying it
+// by whichever field happened to reference it produced names like
+// IndicesIndexSettingsAnalysisAnalyzerValue for a schema the spec calls Analyzer,
+// and discarded the identity that carries the schema's `discriminator`. Only a
+// genuinely inline union is parent-scoped, which resolveInlineSchema handles.
+//
+// There is one exception, which the parent-scoped key still serves: if the
+// referenced schema's own key derives a Go type name already held by a DIFFERENT
+// schema, registering under it would be dropped by the registry's collision
+// guard and the union would silently degrade to json.RawMessage. In that case it
+// falls back to the caller's parent-scoped key -- unless that name would in turn
+// equal the parent struct's own name, which would drop the PARENT instead (the
+// tasks.list bug: see TestWalkerRefUnionNameCollision). Both operands of that
+// parent-name check matter, because for non-_common keys the resp-body and
+// non-resp-body name forms differ.
+func (w *walker) resolveRefUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
 	if ref.Value == nil || len(ref.Value.Properties) != 0 {
 		return "", false
 	}
@@ -115,21 +123,43 @@ func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, gr
 		return resolvedGoType, true
 	}
 
-	unionKey := schemaKey
-	// schemaKey is the parent field key "<parentKey>.<field>". If the union's
-	// parent-scoped Go name would equal the parent struct's own name (in either
-	// its resp- or non-resp-bodied form), re-key by the referenced schema to
-	// avoid the collision that would drop the parent struct.
-	if dot := strings.LastIndexByte(schemaKey, '.'); dot >= 0 {
-		parentKey := schemaKey[:dot]
-		unionName := schemaTypeName(schemaKey, false)
-		if unionName == schemaTypeName(parentKey, false) || unionName == schemaTypeName(parentKey, true) {
-			if k := refToSchemaKey(ref.Ref); k != "" {
-				unionKey = k
-			}
-		}
+	unionKey := refToSchemaKey(ref.Ref)
+	if unionKey == "" || w.nameTakenByOtherSchema(unionKey) {
+		unionKey = w.parentScopedUnionKey(ref, schemaKey)
 	}
 	return w.resolveUnionType(ref.Value, unionKey, group), true
+}
+
+// nameTakenByOtherSchema reports whether the Go type name unionKey derives is
+// already registered to a different schema ref. Registering under a taken name is
+// dropped by the registry (see typeRegistry.register), which would degrade the
+// union to json.RawMessage, so the caller keys it differently instead.
+func (w *walker) nameTakenByOtherSchema(unionKey string) bool {
+	existing, ok := w.registry.lookupByName(schemaTypeName(unionKey, false))
+	return ok && existing.SchemaRef != unionKey
+}
+
+// parentScopedUnionKey returns the caller-field-scoped key for a union
+// (<parentKey>.<field>), or the referenced schema's own key when the
+// parent-scoped name would collide with the parent struct's own name.
+//
+// That collision is the case resolveRefUnion's doc comment calls out: the union
+// registers first, the parent struct's name is then already taken, and the parent
+// is silently dropped -- degrading the whole parent response to json.RawMessage.
+func (w *walker) parentScopedUnionKey(ref *openapi3.SchemaRef, schemaKey string) string {
+	dot := strings.LastIndexByte(schemaKey, '.')
+	if dot < 0 {
+		return schemaKey
+	}
+	parentKey := schemaKey[:dot]
+	unionName := schemaTypeName(schemaKey, false)
+	if unionName != schemaTypeName(parentKey, false) && unionName != schemaTypeName(parentKey, true) {
+		return schemaKey
+	}
+	if k := refToSchemaKey(ref.Ref); k != "" {
+		return k
+	}
+	return schemaKey
 }
 
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {

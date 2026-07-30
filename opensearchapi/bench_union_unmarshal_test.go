@@ -133,7 +133,7 @@ func BenchmarkUnion_MGetDocsItem_Success(b *testing.B) {
 	data := []byte(benchMGetDocSuccess)
 	b.ReportAllocs()
 	for b.Loop() {
-		var item opensearchapi.MGetRespBodyDocsItem
+		var item opensearchapi.MGetRespItem
 		if err := json.Unmarshal(data, &item); err != nil {
 			b.Fatal(err)
 		}
@@ -145,7 +145,7 @@ func BenchmarkUnion_MGetDocsItem_Error(b *testing.B) {
 	data := []byte(benchMGetDocError)
 	b.ReportAllocs()
 	for b.Loop() {
-		var item opensearchapi.MGetRespBodyDocsItem
+		var item opensearchapi.MGetRespItem
 		if err := json.Unmarshal(data, &item); err != nil {
 			b.Fatal(err)
 		}

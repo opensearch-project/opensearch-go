@@ -44,7 +44,7 @@ func UnionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) (string, string, st
 }
 
 // ResolveUnionShape mirrors UnionFromResponses for direct calls
-// against a TypeUnion / TypeLazyUnion (skipping the Responses-field
+// against a TypeUnion / TypeAmbiguousWire (skipping the Responses-field
 // indirection). Returns (unionName, success, errorBranch).
 func ResolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) (string, string, string) {
 	u := resolveUnionShape(t, reg)

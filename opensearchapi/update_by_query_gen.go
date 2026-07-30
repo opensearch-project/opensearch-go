@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -428,16 +427,21 @@ type UpdateByQueryRespBodyTask struct {
 	Task *string `json:"task,omitempty"`
 }
 
-// UpdateByQueryRespBody is a discriminated union type (single-pass merge decode).
+// UpdateByQueryRespBody is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type UpdateByQueryRespBody struct {
 	typ   UpdateByQueryRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// UpdateByQueryRespBodyType discriminates the branches of UpdateByQueryRespBody.
+// UpdateByQueryRespBodyType names which branch of UpdateByQueryRespBody is set.
 type UpdateByQueryRespBodyType int
 
 const (
@@ -528,7 +532,7 @@ func (u *UpdateByQueryRespBody) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
 		UpdateByQueryRespBodyTask
@@ -572,140 +576,10 @@ type UpdateByQueryBody struct {
 	MaxDocs *int `json:"max_docs,omitempty"`
 
 	Query  *CommonQueryDSLQueryContainer `json:"query,omitempty"`
-	Script *UpdateByQueryBodyScript      `json:"script,omitempty"`
+	Script *Script                       `json:"script,omitempty"`
 
 	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
-}
-
-// UpdateByQueryBodyScript is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type UpdateByQueryBodyScript struct {
-	typ   UpdateByQueryBodyScriptType
-	raw   json.RawMessage
-	value any
-}
-
-// UpdateByQueryBodyScriptType discriminates the branches of UpdateByQueryBodyScript.
-type UpdateByQueryBodyScriptType int
-
-const (
-	UpdateByQueryBodyScriptUnknownType UpdateByQueryBodyScriptType = iota
-	UpdateByQueryBodyScriptStringType
-	UpdateByQueryBodyScriptStoredType
-)
-
-// String names the branch, for diagnostics. Returns "unknown" when no branch has
-// been decoded.
-func (t UpdateByQueryBodyScriptType) String() string {
-	switch t {
-	case UpdateByQueryBodyScriptStringType:
-		return "String"
-	case UpdateByQueryBodyScriptStoredType:
-		return "Stored"
-	default:
-		return "unknown"
-	}
-}
-
-// Type returns which union branch was populated during decoding.
-// Returns UpdateByQueryBodyScriptUnknownType if the value has not been decoded.
-func (u *UpdateByQueryBodyScript) Type() UpdateByQueryBodyScriptType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *UpdateByQueryBodyScript) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewUpdateByQueryBodyScriptFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *UpdateByQueryBodyScript) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = UpdateByQueryBodyScriptUnknownType
-}
-
-// String returns the string branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *UpdateByQueryBodyScript) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
-		return *v, nil
-	}
-	var zero string
-	return zero, &UnionBranchError{Union: "UpdateByQueryBodyScript", Want: "String", Got: u.typ.String()}
-}
-
-// NewUpdateByQueryBodyScriptFromString returns a UpdateByQueryBodyScript populated with v
-// on the String branch.
-func NewUpdateByQueryBodyScriptFromString(v string) UpdateByQueryBodyScript {
-	return UpdateByQueryBodyScript{
-		typ:   UpdateByQueryBodyScriptStringType,
-		value: &v,
-	}
-}
-
-// Stored returns the StoredScriptID branch value. It returns a
-// *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero StoredScriptID in that case,
-// which is indistinguishable from a decoded one, so check the error.
-func (u *UpdateByQueryBodyScript) Stored() (StoredScriptID, error) {
-	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v, nil
-	}
-	var zero StoredScriptID
-	return zero, &UnionBranchError{Union: "UpdateByQueryBodyScript", Want: "Stored", Got: u.typ.String()}
-}
-
-// NewUpdateByQueryBodyScriptFromStored returns a UpdateByQueryBodyScript populated with v
-// on the Stored branch.
-func NewUpdateByQueryBodyScriptFromStored(v StoredScriptID) UpdateByQueryBodyScript {
-	return UpdateByQueryBodyScript{
-		typ:   UpdateByQueryBodyScriptStoredType,
-		value: &v,
-	}
-}
-
-func (u *UpdateByQueryBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = UpdateByQueryBodyScriptUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateByQueryBodyScriptStringType
-		u.value = &v
-	case data[0] == '{':
-		var v StoredScriptID
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateByQueryBodyScriptStoredType
-		u.value = &v
-	default:
-		return fmt.Errorf("UpdateByQueryBodyScript: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u UpdateByQueryBodyScript) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // UpdateByQuery performs an update on every document in the index without changing the source,.

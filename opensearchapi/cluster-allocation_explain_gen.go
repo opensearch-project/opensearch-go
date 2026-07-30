@@ -310,16 +310,21 @@ type ClusterAllocationExplainAllocationStore struct {
 	StoreException string `json:"store_exception"`
 }
 
-// ClusterAllocationExplainClusterInfoShardSizesValue is a discriminated union type.
+// ClusterAllocationExplainClusterInfoShardSizesValue is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type ClusterAllocationExplainClusterInfoShardSizesValue struct {
 	typ   ClusterAllocationExplainClusterInfoShardSizesValueType
 	raw   json.RawMessage
 	value any
 }
 
-// ClusterAllocationExplainClusterInfoShardSizesValueType discriminates the branches of ClusterAllocationExplainClusterInfoShardSizesValue.
+// ClusterAllocationExplainClusterInfoShardSizesValueType names which branch of ClusterAllocationExplainClusterInfoShardSizesValue is set.
 type ClusterAllocationExplainClusterInfoShardSizesValueType int
 
 const (

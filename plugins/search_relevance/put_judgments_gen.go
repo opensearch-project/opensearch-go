@@ -107,35 +107,39 @@ func (r PutJudgmentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutJudgmentsBody is a discriminated union type (try-each, newest version first).
+// SearchRelevancePutJudgmentsBody is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type SearchRelevancePutJudgmentsBody struct {
 	typ   SearchRelevancePutJudgmentsBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// SearchRelevancePutJudgmentsBodyType discriminates the branches of SearchRelevancePutJudgmentsBody.
+// SearchRelevancePutJudgmentsBodyType names which branch of SearchRelevancePutJudgmentsBody is set.
 type SearchRelevancePutJudgmentsBodyType int
 
 const (
 	SearchRelevancePutJudgmentsBodyUnknownType SearchRelevancePutJudgmentsBodyType = iota
-	SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType
-	SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType
-	SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType
+	SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType
+	SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType
+	SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
 // been decoded.
 func (t SearchRelevancePutJudgmentsBodyType) String() string {
 	switch t {
-	case SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType:
-		return "SearchRelevancePutLLMJudgmentsRequest"
-	case SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType:
-		return "SearchRelevancePutUBIJudgmentsRequest"
-	case SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType:
-		return "SearchRelevancePutImportJudgmentsRequest"
+	case SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType:
+		return "PutLLMJudgmentsRequest"
+	case SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType:
+		return "PutUBIJudgmentsRequest"
+	case SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType:
+		return "PutImportJudgmentsRequest"
 	default:
 		return "unknown"
 	}
@@ -160,65 +164,65 @@ func (u *SearchRelevancePutJudgmentsBody) SetRaw(raw json.RawMessage) {
 	u.typ = SearchRelevancePutJudgmentsBodyUnknownType
 }
 
-// SearchRelevancePutLLMJudgmentsRequest returns the opensearchapi.SearchRelevancePutLLMJudgmentsRequest branch value. It returns a
+// PutLLMJudgmentsRequest returns the opensearchapi.SearchRelevancePutLLMJudgmentsRequest branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutLLMJudgmentsRequest() (opensearchapi.SearchRelevancePutLLMJudgmentsRequest, error) {
+func (u *SearchRelevancePutJudgmentsBody) PutLLMJudgmentsRequest() (opensearchapi.SearchRelevancePutLLMJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutLLMJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest
-	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutLLMJudgmentsRequest", Got: u.typ.String()}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "PutLLMJudgmentsRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
-// on the SearchRelevancePutLLMJudgmentsRequest branch.
-func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest(v opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+// NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the PutLLMJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromPutLLMJudgmentsRequest(v opensearchapi.SearchRelevancePutLLMJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
-		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType,
+		typ:   SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType,
 		value: &v,
 	}
 }
 
-// SearchRelevancePutUBIJudgmentsRequest returns the opensearchapi.SearchRelevancePutUBIJudgmentsRequest branch value. It returns a
+// PutUBIJudgmentsRequest returns the opensearchapi.SearchRelevancePutUBIJudgmentsRequest branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutUBIJudgmentsRequest() (opensearchapi.SearchRelevancePutUBIJudgmentsRequest, error) {
+func (u *SearchRelevancePutJudgmentsBody) PutUBIJudgmentsRequest() (opensearchapi.SearchRelevancePutUBIJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutUBIJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest
-	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutUBIJudgmentsRequest", Got: u.typ.String()}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "PutUBIJudgmentsRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
-// on the SearchRelevancePutUBIJudgmentsRequest branch.
-func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest(v opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+// NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the PutUBIJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromPutUBIJudgmentsRequest(v opensearchapi.SearchRelevancePutUBIJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
-		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType,
+		typ:   SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType,
 		value: &v,
 	}
 }
 
-// SearchRelevancePutImportJudgmentsRequest returns the opensearchapi.SearchRelevancePutImportJudgmentsRequest branch value. It returns a
+// PutImportJudgmentsRequest returns the opensearchapi.SearchRelevancePutImportJudgmentsRequest branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero opensearchapi.SearchRelevancePutImportJudgmentsRequest in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutImportJudgmentsRequest() (opensearchapi.SearchRelevancePutImportJudgmentsRequest, error) {
+func (u *SearchRelevancePutJudgmentsBody) PutImportJudgmentsRequest() (opensearchapi.SearchRelevancePutImportJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutImportJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutImportJudgmentsRequest
-	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutImportJudgmentsRequest", Got: u.typ.String()}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "PutImportJudgmentsRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
-// on the SearchRelevancePutImportJudgmentsRequest branch.
-func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest(v opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody {
+// NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
+// on the PutImportJudgmentsRequest branch.
+func NewSearchRelevancePutJudgmentsBodyFromPutImportJudgmentsRequest(v opensearchapi.SearchRelevancePutImportJudgmentsRequest) SearchRelevancePutJudgmentsBody {
 	return SearchRelevancePutJudgmentsBody{
-		typ:   SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType,
+		typ:   SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType,
 		value: &v,
 	}
 }
@@ -230,16 +234,16 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
 	{
 		var v opensearchapi.SearchRelevancePutLLMJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutLLMJudgmentsRequestType
+			u.typ = SearchRelevancePutJudgmentsBodyPutLLMJudgmentsRequestType
 			u.value = &v
 			return nil
 		}
@@ -247,7 +251,7 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 	{
 		var v opensearchapi.SearchRelevancePutUBIJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutUBIJudgmentsRequestType
+			u.typ = SearchRelevancePutJudgmentsBodyPutUBIJudgmentsRequestType
 			u.value = &v
 			return nil
 		}
@@ -255,7 +259,7 @@ func (u *SearchRelevancePutJudgmentsBody) UnmarshalJSON(data []byte) error {
 	{
 		var v opensearchapi.SearchRelevancePutImportJudgmentsRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutJudgmentsBodySearchRelevancePutImportJudgmentsRequestType
+			u.typ = SearchRelevancePutJudgmentsBodyPutImportJudgmentsRequestType
 			u.value = &v
 			return nil
 		}
