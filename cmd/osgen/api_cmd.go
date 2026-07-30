@@ -60,6 +60,16 @@ func runAPI() error {
 		"rewrite the json.RawMessage allowlist from current output instead of checking it")
 	allowUnlistedRaw := fs.Bool("allow-unlisted-raw-message", false,
 		"downgrade the json.RawMessage allowlist check from fatal to a warning")
+	tagShadowAllowlist := fs.String("tagshadow-allowlist", "",
+		"check against this duplicate-JSON-tag allowlist file (relative to cwd) instead of the one embedded in osgen; "+
+			"with -update-tagshadow-allowlist, the file to write (default: "+tagShadowAllowlistFile+" in cwd)")
+	updateTagShadowAllowlist := fs.Bool("update-tagshadow-allowlist", false,
+		"rewrite the duplicate-JSON-tag allowlist from current output instead of checking it")
+	allowUnlistedTagShadow := fs.Bool("allow-unlisted-tagshadow", false,
+		"downgrade the duplicate-JSON-tag allowlist check from fatal to a warning")
+	reportMissingDesc := fs.Bool("report-missing-descriptions", false,
+		"after generating, list generated types, fields, and enum members whose OpenAPI schema has no description "+
+			"(reporting only: never changes output and never fails generation)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -88,7 +98,13 @@ func runAPI() error {
 
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
 		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation},
-		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw})
+		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw},
+		TagShadowConfig{
+			AllowlistPath: *tagShadowAllowlist,
+			Update:        *updateTagShadowAllowlist,
+			AllowUnlisted: *allowUnlistedTagShadow,
+		},
+		DescriptionReportConfig{Report: *reportMissingDesc})
 }
 
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
@@ -107,6 +123,8 @@ func generateAPI(
 	bc BreadcrumbConfig,
 	compat CompatConfig,
 	rawCfg RawMessageConfig,
+	tagShadowCfg TagShadowConfig,
+	descCfg DescriptionReportConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
 		return fmt.Errorf("--version-breadcrumb-types is not implemented for `osgen api`: " +
@@ -144,6 +162,12 @@ func generateAPI(
 	// Guard against the generator silently widening the raw-JSON surface. Run
 	// before any file is written so an unlisted use aborts cleanly.
 	if err := guardRawMessages(os.Stderr, irSpec, rawCfg); err != nil {
+		return err
+	}
+
+	// Guard against a struct redeclaring a JSON tag its embed already carries,
+	// which makes the embedded declaration unreachable. Also before any write.
+	if err := guardTagShadows(os.Stderr, irSpec, tagShadowCfg); err != nil {
 		return err
 	}
 
@@ -258,6 +282,10 @@ func generateAPI(
 	}
 
 	fmt.Fprintf(os.Stderr, "generated %d operations (%d files written, %d stale removed)\n", len(irSpec.Operations), wrote, removed)
+
+	// Advisory only, and last so it does not bury the write log. Runs after the
+	// files are on disk to make it clear the report cannot have shaped them.
+	reportMissingDescriptions(os.Stderr, irSpec, descCfg)
 	return nil
 }
 

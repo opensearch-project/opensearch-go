@@ -97,7 +97,7 @@ func (s *GenerateSuite) TestGenerateAPI() {
 	pluginsDir := filepath.Join(s.tmpDir, "plugins")
 
 	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true})
+		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -123,7 +123,7 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 
 	filter := map[string]bool{"cluster.health": true}
 	err := generateAPI(specPath, filter, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true})
+		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -147,7 +147,9 @@ func (s *GenerateSuite) TestGenerateAPI_InvalidSpec() {
 		VersionRange{},
 		BreadcrumbConfig{},
 		CompatConfig{V4Compat: true},
-		RawMessageConfig{AllowUnlisted: true})
+		RawMessageConfig{AllowUnlisted: true},
+		TagShadowConfig{AllowUnlisted: true},
+		DescriptionReportConfig{})
 	s.Require().Error(err)
 }
 
@@ -157,7 +159,7 @@ func (s *GenerateSuite) TestGenerateAPI_WithPlugins() {
 	pluginsDir := filepath.Join(s.tmpDir, "plugins-with")
 
 	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true})
+		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	pluginDir := filepath.Join(pluginsDir, "knn")
@@ -184,7 +186,7 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 	s.Require().NoError(maybe.WriteFile(staleFile, []byte("package "+opensearchAPIPkgName+"\n"), 0o600))
 
 	err := generateAPI(specPath, nil, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true})
+		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	// Stale file should be removed.
