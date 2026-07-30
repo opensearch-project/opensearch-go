@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -180,19 +179,6 @@ func (t ClusterRemoteInfoRespBodyValueType) String() string {
 	}
 }
 
-// ClusterRemoteInfoRespBodyValueBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type ClusterRemoteInfoRespBodyValueBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got ClusterRemoteInfoRespBodyValueType
-}
-
-func (e *ClusterRemoteInfoRespBodyValueBranchError) Error() string {
-	return fmt.Sprintf("ClusterRemoteInfoRespBodyValue: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns ClusterRemoteInfoRespBodyValueUnknownType if the value has not been decoded.
 func (u *ClusterRemoteInfoRespBodyValue) Type() ClusterRemoteInfoRespBodyValueType { return u.typ }
@@ -213,15 +199,15 @@ func (u *ClusterRemoteInfoRespBodyValue) SetRaw(raw json.RawMessage) {
 }
 
 // ClusterRemoteInfoClusterRemoteSniffInfo returns the ClusterRemoteInfoClusterRemoteSniffInfo branch value. It returns a
-// *ClusterRemoteInfoRespBodyValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteSniffInfo in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteSniffInfo in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteSniffInfo() (ClusterRemoteInfoClusterRemoteSniffInfo, error) {
 	if v, ok := u.value.(*ClusterRemoteInfoClusterRemoteSniffInfo); ok {
 		return *v, nil
 	}
 	var zero ClusterRemoteInfoClusterRemoteSniffInfo
-	return zero, &ClusterRemoteInfoRespBodyValueBranchError{Want: "ClusterRemoteInfoClusterRemoteSniffInfo", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ClusterRemoteInfoRespBodyValue", Want: "ClusterRemoteInfoClusterRemoteSniffInfo", Got: u.typ.String()}
 }
 
 // NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInfo returns a ClusterRemoteInfoRespBodyValue populated with v
@@ -234,15 +220,15 @@ func NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteSniffInf
 }
 
 // ClusterRemoteInfoClusterRemoteProxyInfo returns the ClusterRemoteInfoClusterRemoteProxyInfo branch value. It returns a
-// *ClusterRemoteInfoRespBodyValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteProxyInfo in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero ClusterRemoteInfoClusterRemoteProxyInfo in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ClusterRemoteInfoRespBodyValue) ClusterRemoteInfoClusterRemoteProxyInfo() (ClusterRemoteInfoClusterRemoteProxyInfo, error) {
 	if v, ok := u.value.(*ClusterRemoteInfoClusterRemoteProxyInfo); ok {
 		return *v, nil
 	}
 	var zero ClusterRemoteInfoClusterRemoteProxyInfo
-	return zero, &ClusterRemoteInfoRespBodyValueBranchError{Want: "ClusterRemoteInfoClusterRemoteProxyInfo", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ClusterRemoteInfoRespBodyValue", Want: "ClusterRemoteInfoClusterRemoteProxyInfo", Got: u.typ.String()}
 }
 
 // NewClusterRemoteInfoRespBodyValueFromClusterRemoteInfoClusterRemoteProxyInfo returns a ClusterRemoteInfoRespBodyValue populated with v

@@ -235,6 +235,29 @@ func (e *ShardFailureError) Error() string {
 // IsPartial implements [PartialFailureError].
 func (e *ShardFailureError) IsPartial() bool { return true }
 
+// UnionBranchError is returned by a generated union's branch accessor when the
+// union holds a different branch than the one requested.
+//
+// The accessor also returns the zero value of the branch type, which is
+// indistinguishable from a decoded one -- a zero GetResultBase reads as a
+// found=false document -- so the error is the only signal that the branch was
+// not the one on the wire. Recover it with [errors.As] and compare Union when a
+// call chain touches more than one union.
+//
+// Union, Want, and Got are branch and type names rather than typed enums: the
+// alternative is one error type per generated union (148 of them), all
+// structurally identical. Compare Got against the union's Type enum via its
+// String method when a switch is needed.
+type UnionBranchError struct {
+	Union string // generated union type name, e.g. "MGetRespBodyDocsItem"
+	Want  string // branch the caller asked for, e.g. "GetResult"
+	Got   string // branch actually decoded, or "unknown" if never decoded
+}
+
+func (e *UnionBranchError) Error() string {
+	return fmt.Sprintf("%s: holds branch %s, not %s", e.Union, e.Got, e.Want)
+}
+
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------

@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -244,19 +243,6 @@ func (t MSearchMultiSearchResultResponsesItemType) String() string {
 	}
 }
 
-// MSearchMultiSearchResultResponsesItemBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type MSearchMultiSearchResultResponsesItemBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got MSearchMultiSearchResultResponsesItemType
-}
-
-func (e *MSearchMultiSearchResultResponsesItemBranchError) Error() string {
-	return fmt.Sprintf("MSearchMultiSearchResultResponsesItem: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns MSearchMultiSearchResultResponsesItemUnknownType if the value has not been decoded.
 func (u *MSearchMultiSearchResultResponsesItem) Type() MSearchMultiSearchResultResponsesItemType {
@@ -279,15 +265,15 @@ func (u *MSearchMultiSearchResultResponsesItem) SetRaw(raw json.RawMessage) {
 }
 
 // MSearchMultiSearchItem returns the MSearchMultiSearchItem branch value. It returns a
-// *MSearchMultiSearchResultResponsesItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero MSearchMultiSearchItem in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero MSearchMultiSearchItem in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MSearchMultiSearchResultResponsesItem) MSearchMultiSearchItem() (MSearchMultiSearchItem, error) {
 	if v, ok := u.value.(*MSearchMultiSearchItem); ok {
 		return *v, nil
 	}
 	var zero MSearchMultiSearchItem
-	return zero, &MSearchMultiSearchResultResponsesItemBranchError{Want: "MSearchMultiSearchItem", Got: u.typ}
+	return zero, &UnionBranchError{Union: "MSearchMultiSearchResultResponsesItem", Want: "MSearchMultiSearchItem", Got: u.typ.String()}
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem returns a MSearchMultiSearchResultResponsesItem populated with v
@@ -300,15 +286,15 @@ func NewMSearchMultiSearchResultResponsesItemFromMSearchMultiSearchItem(v MSearc
 }
 
 // ErrorRespBase returns the ErrorRespBase branch value. It returns a
-// *MSearchMultiSearchResultResponsesItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero ErrorRespBase in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero ErrorRespBase in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MSearchMultiSearchResultResponsesItem) ErrorRespBase() (ErrorRespBase, error) {
 	if v, ok := u.value.(*ErrorRespBase); ok {
 		return *v, nil
 	}
 	var zero ErrorRespBase
-	return zero, &MSearchMultiSearchResultResponsesItemBranchError{Want: "ErrorRespBase", Got: u.typ}
+	return zero, &UnionBranchError{Union: "MSearchMultiSearchResultResponsesItem", Want: "ErrorRespBase", Got: u.typ.String()}
 }
 
 // NewMSearchMultiSearchResultResponsesItemFromErrorRespBase returns a MSearchMultiSearchResultResponsesItem populated with v

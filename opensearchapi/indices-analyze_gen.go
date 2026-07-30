@@ -327,19 +327,6 @@ func (t IndicesAnalyzeBodyCharFilterItemType) String() string {
 	}
 }
 
-// IndicesAnalyzeBodyCharFilterItemBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesAnalyzeBodyCharFilterItemBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesAnalyzeBodyCharFilterItemType
-}
-
-func (e *IndicesAnalyzeBodyCharFilterItemBranchError) Error() string {
-	return fmt.Sprintf("IndicesAnalyzeBodyCharFilterItem: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesAnalyzeBodyCharFilterItemUnknownType if the value has not been decoded.
 func (u *IndicesAnalyzeBodyCharFilterItem) Type() IndicesAnalyzeBodyCharFilterItemType { return u.typ }
@@ -360,15 +347,15 @@ func (u *IndicesAnalyzeBodyCharFilterItem) SetRaw(raw json.RawMessage) {
 }
 
 // CommonAnalysisHTMLStripCharFilter returns the CommonAnalysisHTMLStripCharFilter branch value. It returns a
-// *IndicesAnalyzeBodyCharFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisHTMLStripCharFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisHTMLStripCharFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisHTMLStripCharFilter() (CommonAnalysisHTMLStripCharFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisHTMLStripCharFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisHTMLStripCharFilter
-	return zero, &IndicesAnalyzeBodyCharFilterItemBranchError{Want: "CommonAnalysisHTMLStripCharFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyCharFilterItem", Want: "CommonAnalysisHTMLStripCharFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHTMLStripCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
@@ -381,15 +368,15 @@ func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisHTMLStripCharFilter(v 
 }
 
 // CommonAnalysisMappingCharFilter returns the CommonAnalysisMappingCharFilter branch value. It returns a
-// *IndicesAnalyzeBodyCharFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisMappingCharFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisMappingCharFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisMappingCharFilter() (CommonAnalysisMappingCharFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisMappingCharFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisMappingCharFilter
-	return zero, &IndicesAnalyzeBodyCharFilterItemBranchError{Want: "CommonAnalysisMappingCharFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyCharFilterItem", Want: "CommonAnalysisMappingCharFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisMappingCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
@@ -402,15 +389,15 @@ func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisMappingCharFilter(v Co
 }
 
 // CommonAnalysisPatternReplaceCharFilter returns the CommonAnalysisPatternReplaceCharFilter branch value. It returns a
-// *IndicesAnalyzeBodyCharFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPatternReplaceCharFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPatternReplaceCharFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisPatternReplaceCharFilter() (CommonAnalysisPatternReplaceCharFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPatternReplaceCharFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPatternReplaceCharFilter
-	return zero, &IndicesAnalyzeBodyCharFilterItemBranchError{Want: "CommonAnalysisPatternReplaceCharFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyCharFilterItem", Want: "CommonAnalysisPatternReplaceCharFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisPatternReplaceCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
@@ -423,15 +410,15 @@ func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisPatternReplaceCharFilt
 }
 
 // CommonAnalysisICUNormalizationCharFilter returns the CommonAnalysisICUNormalizationCharFilter branch value. It returns a
-// *IndicesAnalyzeBodyCharFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUNormalizationCharFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUNormalizationCharFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisICUNormalizationCharFilter() (CommonAnalysisICUNormalizationCharFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisICUNormalizationCharFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUNormalizationCharFilter
-	return zero, &IndicesAnalyzeBodyCharFilterItemBranchError{Want: "CommonAnalysisICUNormalizationCharFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyCharFilterItem", Want: "CommonAnalysisICUNormalizationCharFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisICUNormalizationCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
@@ -444,15 +431,15 @@ func NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisICUNormalizationCharFi
 }
 
 // CommonAnalysisKuromojiIterationMarkCharFilter returns the CommonAnalysisKuromojiIterationMarkCharFilter branch value. It returns a
-// *IndicesAnalyzeBodyCharFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKuromojiIterationMarkCharFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKuromojiIterationMarkCharFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyCharFilterItem) CommonAnalysisKuromojiIterationMarkCharFilter() (CommonAnalysisKuromojiIterationMarkCharFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKuromojiIterationMarkCharFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKuromojiIterationMarkCharFilter
-	return zero, &IndicesAnalyzeBodyCharFilterItemBranchError{Want: "CommonAnalysisKuromojiIterationMarkCharFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyCharFilterItem", Want: "CommonAnalysisKuromojiIterationMarkCharFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyCharFilterItemFromCommonAnalysisKuromojiIterationMarkCharFilter returns a IndicesAnalyzeBodyCharFilterItem populated with v
@@ -705,19 +692,6 @@ func (t IndicesAnalyzeBodyFilterItemType) String() string {
 	}
 }
 
-// IndicesAnalyzeBodyFilterItemBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesAnalyzeBodyFilterItemBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesAnalyzeBodyFilterItemType
-}
-
-func (e *IndicesAnalyzeBodyFilterItemBranchError) Error() string {
-	return fmt.Sprintf("IndicesAnalyzeBodyFilterItem: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesAnalyzeBodyFilterItemUnknownType if the value has not been decoded.
 func (u *IndicesAnalyzeBodyFilterItem) Type() IndicesAnalyzeBodyFilterItemType { return u.typ }
@@ -738,15 +712,15 @@ func (u *IndicesAnalyzeBodyFilterItem) SetRaw(raw json.RawMessage) {
 }
 
 // CommonAnalysisAsciiFoldingTokenFilter returns the CommonAnalysisAsciiFoldingTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisAsciiFoldingTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisAsciiFoldingTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisAsciiFoldingTokenFilter() (CommonAnalysisAsciiFoldingTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisAsciiFoldingTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisAsciiFoldingTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisAsciiFoldingTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisAsciiFoldingTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisAsciiFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -759,15 +733,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisAsciiFoldingTokenFilter(v 
 }
 
 // CommonAnalysisCommonGramsTokenFilter returns the CommonAnalysisCommonGramsTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisCommonGramsTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisCommonGramsTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisCommonGramsTokenFilter() (CommonAnalysisCommonGramsTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisCommonGramsTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisCommonGramsTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisCommonGramsTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisCommonGramsTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisCommonGramsTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -780,15 +754,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisCommonGramsTokenFilter(v C
 }
 
 // CommonAnalysisConditionTokenFilter returns the CommonAnalysisConditionTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisConditionTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisConditionTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisConditionTokenFilter() (CommonAnalysisConditionTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisConditionTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisConditionTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisConditionTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisConditionTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisConditionTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -801,15 +775,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisConditionTokenFilter(v Com
 }
 
 // CommonAnalysisDelimitedPayloadTokenFilter returns the CommonAnalysisDelimitedPayloadTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisDelimitedPayloadTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisDelimitedPayloadTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisDelimitedPayloadTokenFilter() (CommonAnalysisDelimitedPayloadTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisDelimitedPayloadTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisDelimitedPayloadTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisDelimitedPayloadTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisDelimitedPayloadTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDelimitedPayloadTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -822,15 +796,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDelimitedPayloadTokenFilte
 }
 
 // CommonAnalysisEdgeNGramTokenFilter returns the CommonAnalysisEdgeNGramTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisEdgeNGramTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisEdgeNGramTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisEdgeNGramTokenFilter() (CommonAnalysisEdgeNGramTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisEdgeNGramTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisEdgeNGramTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisEdgeNGramTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisEdgeNGramTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisEdgeNGramTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -843,15 +817,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisEdgeNGramTokenFilter(v Com
 }
 
 // CommonAnalysisElisionTokenFilter returns the CommonAnalysisElisionTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisElisionTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisElisionTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisElisionTokenFilter() (CommonAnalysisElisionTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisElisionTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisElisionTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisElisionTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisElisionTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisElisionTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -864,15 +838,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisElisionTokenFilter(v Commo
 }
 
 // CommonAnalysisFingerprintTokenFilter returns the CommonAnalysisFingerprintTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisFingerprintTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisFingerprintTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisFingerprintTokenFilter() (CommonAnalysisFingerprintTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisFingerprintTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisFingerprintTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisFingerprintTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisFingerprintTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisFingerprintTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -885,15 +859,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisFingerprintTokenFilter(v C
 }
 
 // CommonAnalysisHunspellTokenFilter returns the CommonAnalysisHunspellTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisHunspellTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisHunspellTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisHunspellTokenFilter() (CommonAnalysisHunspellTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisHunspellTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisHunspellTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisHunspellTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisHunspellTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHunspellTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -906,15 +880,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHunspellTokenFilter(v Comm
 }
 
 // CommonAnalysisHyphenationDecompounderTokenFilter returns the CommonAnalysisHyphenationDecompounderTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisHyphenationDecompounderTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisHyphenationDecompounderTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisHyphenationDecompounderTokenFilter() (CommonAnalysisHyphenationDecompounderTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisHyphenationDecompounderTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisHyphenationDecompounderTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisHyphenationDecompounderTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisHyphenationDecompounderTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHyphenationDecompounderTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -927,15 +901,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisHyphenationDecompounderTok
 }
 
 // CommonAnalysisKeepTypesTokenFilter returns the CommonAnalysisKeepTypesTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKeepTypesTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKeepTypesTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeepTypesTokenFilter() (CommonAnalysisKeepTypesTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKeepTypesTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKeepTypesTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKeepTypesTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKeepTypesTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepTypesTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -948,15 +922,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepTypesTokenFilter(v Com
 }
 
 // CommonAnalysisKeepWordsTokenFilter returns the CommonAnalysisKeepWordsTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKeepWordsTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKeepWordsTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeepWordsTokenFilter() (CommonAnalysisKeepWordsTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKeepWordsTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKeepWordsTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKeepWordsTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKeepWordsTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepWordsTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -969,15 +943,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeepWordsTokenFilter(v Com
 }
 
 // CommonAnalysisKeywordMarkerTokenFilter returns the CommonAnalysisKeywordMarkerTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKeywordMarkerTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKeywordMarkerTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKeywordMarkerTokenFilter() (CommonAnalysisKeywordMarkerTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKeywordMarkerTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKeywordMarkerTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKeywordMarkerTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKeywordMarkerTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeywordMarkerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -990,15 +964,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKeywordMarkerTokenFilter(v
 }
 
 // CommonAnalysisKStemTokenFilter returns the CommonAnalysisKStemTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKStemTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKStemTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKStemTokenFilter() (CommonAnalysisKStemTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKStemTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKStemTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKStemTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKStemTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1011,15 +985,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKStemTokenFilter(v CommonA
 }
 
 // CommonAnalysisLengthTokenFilter returns the CommonAnalysisLengthTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisLengthTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisLengthTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLengthTokenFilter() (CommonAnalysisLengthTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisLengthTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisLengthTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisLengthTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisLengthTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLengthTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1032,15 +1006,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLengthTokenFilter(v Common
 }
 
 // CommonAnalysisLimitTokenCountTokenFilter returns the CommonAnalysisLimitTokenCountTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisLimitTokenCountTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisLimitTokenCountTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLimitTokenCountTokenFilter() (CommonAnalysisLimitTokenCountTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisLimitTokenCountTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisLimitTokenCountTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisLimitTokenCountTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisLimitTokenCountTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLimitTokenCountTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1053,15 +1027,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLimitTokenCountTokenFilter
 }
 
 // CommonAnalysisLowercaseTokenFilter returns the CommonAnalysisLowercaseTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisLowercaseTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisLowercaseTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisLowercaseTokenFilter() (CommonAnalysisLowercaseTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisLowercaseTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisLowercaseTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisLowercaseTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisLowercaseTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLowercaseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1074,15 +1048,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisLowercaseTokenFilter(v Com
 }
 
 // CommonAnalysisMultiplexerTokenFilter returns the CommonAnalysisMultiplexerTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisMultiplexerTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisMultiplexerTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisMultiplexerTokenFilter() (CommonAnalysisMultiplexerTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisMultiplexerTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisMultiplexerTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisMultiplexerTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisMultiplexerTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisMultiplexerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1095,15 +1069,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisMultiplexerTokenFilter(v C
 }
 
 // CommonAnalysisNGramTokenFilter returns the CommonAnalysisNGramTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisNGramTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisNGramTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisNGramTokenFilter() (CommonAnalysisNGramTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisNGramTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisNGramTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisNGramTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisNGramTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNGramTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1116,15 +1090,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNGramTokenFilter(v CommonA
 }
 
 // CommonAnalysisNoriPartOfSpeechTokenFilter returns the CommonAnalysisNoriPartOfSpeechTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisNoriPartOfSpeechTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisNoriPartOfSpeechTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisNoriPartOfSpeechTokenFilter() (CommonAnalysisNoriPartOfSpeechTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisNoriPartOfSpeechTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisNoriPartOfSpeechTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisNoriPartOfSpeechTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisNoriPartOfSpeechTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNoriPartOfSpeechTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1137,15 +1111,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisNoriPartOfSpeechTokenFilte
 }
 
 // CommonAnalysisPatternCaptureTokenFilter returns the CommonAnalysisPatternCaptureTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPatternCaptureTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPatternCaptureTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPatternCaptureTokenFilter() (CommonAnalysisPatternCaptureTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPatternCaptureTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPatternCaptureTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPatternCaptureTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPatternCaptureTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternCaptureTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1158,15 +1132,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternCaptureTokenFilter(
 }
 
 // CommonAnalysisPatternReplaceTokenFilter returns the CommonAnalysisPatternReplaceTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPatternReplaceTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPatternReplaceTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPatternReplaceTokenFilter() (CommonAnalysisPatternReplaceTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPatternReplaceTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPatternReplaceTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPatternReplaceTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPatternReplaceTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternReplaceTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1179,15 +1153,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPatternReplaceTokenFilter(
 }
 
 // CommonAnalysisPersianStemTokenFilter returns the CommonAnalysisPersianStemTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPersianStemTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPersianStemTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPersianStemTokenFilter() (CommonAnalysisPersianStemTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPersianStemTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPersianStemTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPersianStemTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPersianStemTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPersianStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1200,15 +1174,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPersianStemTokenFilter(v C
 }
 
 // CommonAnalysisPorterStemTokenFilter returns the CommonAnalysisPorterStemTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPorterStemTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPorterStemTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPorterStemTokenFilter() (CommonAnalysisPorterStemTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPorterStemTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPorterStemTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPorterStemTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPorterStemTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPorterStemTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1221,15 +1195,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPorterStemTokenFilter(v Co
 }
 
 // CommonAnalysisPredicateTokenFilter returns the CommonAnalysisPredicateTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPredicateTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPredicateTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPredicateTokenFilter() (CommonAnalysisPredicateTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPredicateTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPredicateTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPredicateTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPredicateTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPredicateTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1242,15 +1216,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPredicateTokenFilter(v Com
 }
 
 // CommonAnalysisRemoveDuplicatesTokenFilter returns the CommonAnalysisRemoveDuplicatesTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisRemoveDuplicatesTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisRemoveDuplicatesTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisRemoveDuplicatesTokenFilter() (CommonAnalysisRemoveDuplicatesTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisRemoveDuplicatesTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisRemoveDuplicatesTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisRemoveDuplicatesTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisRemoveDuplicatesTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisRemoveDuplicatesTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1263,15 +1237,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisRemoveDuplicatesTokenFilte
 }
 
 // CommonAnalysisReverseTokenFilter returns the CommonAnalysisReverseTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisReverseTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisReverseTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisReverseTokenFilter() (CommonAnalysisReverseTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisReverseTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisReverseTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisReverseTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisReverseTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisReverseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1284,15 +1258,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisReverseTokenFilter(v Commo
 }
 
 // CommonAnalysisShingleTokenFilter returns the CommonAnalysisShingleTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisShingleTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisShingleTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisShingleTokenFilter() (CommonAnalysisShingleTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisShingleTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisShingleTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisShingleTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisShingleTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisShingleTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1305,15 +1279,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisShingleTokenFilter(v Commo
 }
 
 // CommonAnalysisSnowballTokenFilter returns the CommonAnalysisSnowballTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSnowballTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSnowballTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSnowballTokenFilter() (CommonAnalysisSnowballTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisSnowballTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSnowballTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisSnowballTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisSnowballTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSnowballTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1326,15 +1300,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSnowballTokenFilter(v Comm
 }
 
 // CommonAnalysisStemmerOverrideTokenFilter returns the CommonAnalysisStemmerOverrideTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisStemmerOverrideTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisStemmerOverrideTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStemmerOverrideTokenFilter() (CommonAnalysisStemmerOverrideTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisStemmerOverrideTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisStemmerOverrideTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisStemmerOverrideTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisStemmerOverrideTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerOverrideTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1347,15 +1321,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerOverrideTokenFilter
 }
 
 // CommonAnalysisStemmerTokenFilter returns the CommonAnalysisStemmerTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisStemmerTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisStemmerTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStemmerTokenFilter() (CommonAnalysisStemmerTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisStemmerTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisStemmerTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisStemmerTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisStemmerTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1368,15 +1342,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStemmerTokenFilter(v Commo
 }
 
 // CommonAnalysisStopTokenFilter returns the CommonAnalysisStopTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisStopTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisStopTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisStopTokenFilter() (CommonAnalysisStopTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisStopTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisStopTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisStopTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisStopTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStopTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1389,15 +1363,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisStopTokenFilter(v CommonAn
 }
 
 // CommonAnalysisSynonymGraphTokenFilter returns the CommonAnalysisSynonymGraphTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSynonymGraphTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSynonymGraphTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSynonymGraphTokenFilter() (CommonAnalysisSynonymGraphTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisSynonymGraphTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSynonymGraphTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisSynonymGraphTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisSynonymGraphTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymGraphTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1410,15 +1384,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymGraphTokenFilter(v 
 }
 
 // CommonAnalysisSynonymTokenFilter returns the CommonAnalysisSynonymTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSynonymTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSynonymTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSynonymTokenFilter() (CommonAnalysisSynonymTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisSynonymTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSynonymTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisSynonymTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisSynonymTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1431,15 +1405,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSynonymTokenFilter(v Commo
 }
 
 // CommonAnalysisTrimTokenFilter returns the CommonAnalysisTrimTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisTrimTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisTrimTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisTrimTokenFilter() (CommonAnalysisTrimTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisTrimTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisTrimTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisTrimTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisTrimTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTrimTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1452,15 +1426,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTrimTokenFilter(v CommonAn
 }
 
 // CommonAnalysisTruncateTokenFilter returns the CommonAnalysisTruncateTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisTruncateTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisTruncateTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisTruncateTokenFilter() (CommonAnalysisTruncateTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisTruncateTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisTruncateTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisTruncateTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisTruncateTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTruncateTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1473,15 +1447,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisTruncateTokenFilter(v Comm
 }
 
 // CommonAnalysisUniqueTokenFilter returns the CommonAnalysisUniqueTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisUniqueTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisUniqueTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisUniqueTokenFilter() (CommonAnalysisUniqueTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisUniqueTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisUniqueTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisUniqueTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisUniqueTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUniqueTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1494,15 +1468,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUniqueTokenFilter(v Common
 }
 
 // CommonAnalysisUppercaseTokenFilter returns the CommonAnalysisUppercaseTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisUppercaseTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisUppercaseTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisUppercaseTokenFilter() (CommonAnalysisUppercaseTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisUppercaseTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisUppercaseTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisUppercaseTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisUppercaseTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUppercaseTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1515,15 +1489,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisUppercaseTokenFilter(v Com
 }
 
 // CommonAnalysisWordDelimiterGraphTokenFilter returns the CommonAnalysisWordDelimiterGraphTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisWordDelimiterGraphTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisWordDelimiterGraphTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisWordDelimiterGraphTokenFilter() (CommonAnalysisWordDelimiterGraphTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisWordDelimiterGraphTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisWordDelimiterGraphTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisWordDelimiterGraphTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisWordDelimiterGraphTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterGraphTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1536,15 +1510,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterGraphTokenFil
 }
 
 // CommonAnalysisWordDelimiterTokenFilter returns the CommonAnalysisWordDelimiterTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisWordDelimiterTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisWordDelimiterTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisWordDelimiterTokenFilter() (CommonAnalysisWordDelimiterTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisWordDelimiterTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisWordDelimiterTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisWordDelimiterTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisWordDelimiterTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1557,15 +1531,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisWordDelimiterTokenFilter(v
 }
 
 // CommonAnalysisKuromojiStemmerTokenFilter returns the CommonAnalysisKuromojiStemmerTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKuromojiStemmerTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKuromojiStemmerTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiStemmerTokenFilter() (CommonAnalysisKuromojiStemmerTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKuromojiStemmerTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKuromojiStemmerTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKuromojiStemmerTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKuromojiStemmerTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiStemmerTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1578,15 +1552,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiStemmerTokenFilter
 }
 
 // CommonAnalysisKuromojiReadingFormTokenFilter returns the CommonAnalysisKuromojiReadingFormTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKuromojiReadingFormTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKuromojiReadingFormTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiReadingFormTokenFilter() (CommonAnalysisKuromojiReadingFormTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKuromojiReadingFormTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKuromojiReadingFormTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKuromojiReadingFormTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKuromojiReadingFormTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiReadingFormTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1599,15 +1573,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiReadingFormTokenFi
 }
 
 // CommonAnalysisKuromojiPartOfSpeechTokenFilter returns the CommonAnalysisKuromojiPartOfSpeechTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKuromojiPartOfSpeechTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKuromojiPartOfSpeechTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisKuromojiPartOfSpeechTokenFilter() (CommonAnalysisKuromojiPartOfSpeechTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisKuromojiPartOfSpeechTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKuromojiPartOfSpeechTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisKuromojiPartOfSpeechTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisKuromojiPartOfSpeechTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiPartOfSpeechTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1620,15 +1594,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisKuromojiPartOfSpeechTokenF
 }
 
 // CommonAnalysisICUTokenizer returns the CommonAnalysisICUTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUTokenizer() (CommonAnalysisICUTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUTokenizer
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisICUTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisICUTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTokenizer returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1641,15 +1615,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTokenizer(v CommonAnaly
 }
 
 // CommonAnalysisICUCollationTokenFilter returns the CommonAnalysisICUCollationTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUCollationTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUCollationTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUCollationTokenFilter() (CommonAnalysisICUCollationTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisICUCollationTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUCollationTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisICUCollationTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisICUCollationTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUCollationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1662,15 +1636,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUCollationTokenFilter(v 
 }
 
 // CommonAnalysisICUFoldingTokenFilter returns the CommonAnalysisICUFoldingTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUFoldingTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUFoldingTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUFoldingTokenFilter() (CommonAnalysisICUFoldingTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisICUFoldingTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUFoldingTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisICUFoldingTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisICUFoldingTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUFoldingTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1683,15 +1657,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUFoldingTokenFilter(v Co
 }
 
 // CommonAnalysisICUNormalizationTokenFilter returns the CommonAnalysisICUNormalizationTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUNormalizationTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUNormalizationTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUNormalizationTokenFilter() (CommonAnalysisICUNormalizationTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisICUNormalizationTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUNormalizationTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisICUNormalizationTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisICUNormalizationTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUNormalizationTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1704,15 +1678,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUNormalizationTokenFilte
 }
 
 // CommonAnalysisICUTransformTokenFilter returns the CommonAnalysisICUTransformTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUTransformTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUTransformTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisICUTransformTokenFilter() (CommonAnalysisICUTransformTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisICUTransformTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUTransformTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisICUTransformTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisICUTransformTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTransformTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1725,15 +1699,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisICUTransformTokenFilter(v 
 }
 
 // CommonAnalysisPhoneticTokenFilter returns the CommonAnalysisPhoneticTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPhoneticTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPhoneticTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisPhoneticTokenFilter() (CommonAnalysisPhoneticTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisPhoneticTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPhoneticTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisPhoneticTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisPhoneticTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPhoneticTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1746,15 +1720,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisPhoneticTokenFilter(v Comm
 }
 
 // CommonAnalysisDictionaryDecompounderTokenFilter returns the CommonAnalysisDictionaryDecompounderTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisDictionaryDecompounderTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisDictionaryDecompounderTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisDictionaryDecompounderTokenFilter() (CommonAnalysisDictionaryDecompounderTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisDictionaryDecompounderTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisDictionaryDecompounderTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisDictionaryDecompounderTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisDictionaryDecompounderTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDictionaryDecompounderTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -1767,15 +1741,15 @@ func NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisDictionaryDecompounderToke
 }
 
 // CommonAnalysisSmartcnStopTokenFilter returns the CommonAnalysisSmartcnStopTokenFilter branch value. It returns a
-// *IndicesAnalyzeBodyFilterItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSmartcnStopTokenFilter in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSmartcnStopTokenFilter in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyFilterItem) CommonAnalysisSmartcnStopTokenFilter() (CommonAnalysisSmartcnStopTokenFilter, error) {
 	if v, ok := u.value.(*CommonAnalysisSmartcnStopTokenFilter); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSmartcnStopTokenFilter
-	return zero, &IndicesAnalyzeBodyFilterItemBranchError{Want: "CommonAnalysisSmartcnStopTokenFilter", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyFilterItem", Want: "CommonAnalysisSmartcnStopTokenFilter", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyFilterItemFromCommonAnalysisSmartcnStopTokenFilter returns a IndicesAnalyzeBodyFilterItem populated with v
@@ -2244,19 +2218,6 @@ func (t IndicesAnalyzeBodyTextType) String() string {
 	}
 }
 
-// IndicesAnalyzeBodyTextBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesAnalyzeBodyTextBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesAnalyzeBodyTextType
-}
-
-func (e *IndicesAnalyzeBodyTextBranchError) Error() string {
-	return fmt.Sprintf("IndicesAnalyzeBodyText: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesAnalyzeBodyTextUnknownType if the value has not been decoded.
 func (u *IndicesAnalyzeBodyText) Type() IndicesAnalyzeBodyTextType { return u.typ }
@@ -2277,15 +2238,15 @@ func (u *IndicesAnalyzeBodyText) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *IndicesAnalyzeBodyTextBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyText) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &IndicesAnalyzeBodyTextBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyText", Want: "String", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTextFromString returns a IndicesAnalyzeBodyText populated with v
@@ -2298,15 +2259,15 @@ func NewIndicesAnalyzeBodyTextFromString(v string) IndicesAnalyzeBodyText {
 }
 
 // Array returns the []string branch value. It returns a
-// *IndicesAnalyzeBodyTextBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero []string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyText) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
 		return *v, nil
 	}
 	var zero []string
-	return zero, &IndicesAnalyzeBodyTextBranchError{Want: "Array", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyText", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTextFromArray returns a IndicesAnalyzeBodyText populated with v
@@ -2432,19 +2393,6 @@ func (t IndicesAnalyzeBodyTokenizerType) String() string {
 	}
 }
 
-// IndicesAnalyzeBodyTokenizerBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesAnalyzeBodyTokenizerBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesAnalyzeBodyTokenizerType
-}
-
-func (e *IndicesAnalyzeBodyTokenizerBranchError) Error() string {
-	return fmt.Sprintf("IndicesAnalyzeBodyTokenizer: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesAnalyzeBodyTokenizerUnknownType if the value has not been decoded.
 func (u *IndicesAnalyzeBodyTokenizer) Type() IndicesAnalyzeBodyTokenizerType { return u.typ }
@@ -2465,15 +2413,15 @@ func (u *IndicesAnalyzeBodyTokenizer) SetRaw(raw json.RawMessage) {
 }
 
 // CommonAnalysisCharGroupTokenizer returns the CommonAnalysisCharGroupTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisCharGroupTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisCharGroupTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisCharGroupTokenizer() (CommonAnalysisCharGroupTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisCharGroupTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisCharGroupTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisCharGroupTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisCharGroupTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisCharGroupTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2486,15 +2434,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisCharGroupTokenizer(v Common
 }
 
 // CommonAnalysisEdgeNGramTokenizer returns the CommonAnalysisEdgeNGramTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisEdgeNGramTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisEdgeNGramTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisEdgeNGramTokenizer() (CommonAnalysisEdgeNGramTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisEdgeNGramTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisEdgeNGramTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisEdgeNGramTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisEdgeNGramTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisEdgeNGramTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2507,15 +2455,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisEdgeNGramTokenizer(v Common
 }
 
 // CommonAnalysisKeywordTokenizer returns the CommonAnalysisKeywordTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKeywordTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKeywordTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisKeywordTokenizer() (CommonAnalysisKeywordTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisKeywordTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKeywordTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisKeywordTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisKeywordTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKeywordTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2528,15 +2476,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKeywordTokenizer(v CommonAn
 }
 
 // CommonAnalysisLetterTokenizer returns the CommonAnalysisLetterTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisLetterTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisLetterTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisLetterTokenizer() (CommonAnalysisLetterTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisLetterTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisLetterTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisLetterTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisLetterTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLetterTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2549,15 +2497,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLetterTokenizer(v CommonAna
 }
 
 // CommonAnalysisLowercaseTokenizer returns the CommonAnalysisLowercaseTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisLowercaseTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisLowercaseTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisLowercaseTokenizer() (CommonAnalysisLowercaseTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisLowercaseTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisLowercaseTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisLowercaseTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisLowercaseTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLowercaseTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2570,15 +2518,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisLowercaseTokenizer(v Common
 }
 
 // CommonAnalysisNGramTokenizer returns the CommonAnalysisNGramTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisNGramTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisNGramTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisNGramTokenizer() (CommonAnalysisNGramTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisNGramTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisNGramTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisNGramTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisNGramTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNGramTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2591,15 +2539,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNGramTokenizer(v CommonAnal
 }
 
 // CommonAnalysisNoriTokenizer returns the CommonAnalysisNoriTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisNoriTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisNoriTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisNoriTokenizer() (CommonAnalysisNoriTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisNoriTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisNoriTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisNoriTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisNoriTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNoriTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2612,15 +2560,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisNoriTokenizer(v CommonAnaly
 }
 
 // CommonAnalysisPathHierarchyTokenizer returns the CommonAnalysisPathHierarchyTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPathHierarchyTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPathHierarchyTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisPathHierarchyTokenizer() (CommonAnalysisPathHierarchyTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisPathHierarchyTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPathHierarchyTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisPathHierarchyTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisPathHierarchyTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPathHierarchyTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2633,15 +2581,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPathHierarchyTokenizer(v Co
 }
 
 // CommonAnalysisStandardTokenizer returns the CommonAnalysisStandardTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisStandardTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisStandardTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisStandardTokenizer() (CommonAnalysisStandardTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisStandardTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisStandardTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisStandardTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisStandardTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2654,15 +2602,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisStandardTokenizer(v CommonA
 }
 
 // CommonAnalysisUAXEmailURLTokenizer returns the CommonAnalysisUAXEmailURLTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisUAXEmailURLTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisUAXEmailURLTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisUAXEmailURLTokenizer() (CommonAnalysisUAXEmailURLTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisUAXEmailURLTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisUAXEmailURLTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisUAXEmailURLTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisUAXEmailURLTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUAXEmailURLTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2675,15 +2623,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisUAXEmailURLTokenizer(v Comm
 }
 
 // CommonAnalysisWhitespaceTokenizer returns the CommonAnalysisWhitespaceTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisWhitespaceTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisWhitespaceTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisWhitespaceTokenizer() (CommonAnalysisWhitespaceTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisWhitespaceTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisWhitespaceTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisWhitespaceTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisWhitespaceTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisWhitespaceTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2696,15 +2644,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisWhitespaceTokenizer(v Commo
 }
 
 // CommonAnalysisKuromojiTokenizer returns the CommonAnalysisKuromojiTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisKuromojiTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisKuromojiTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisKuromojiTokenizer() (CommonAnalysisKuromojiTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisKuromojiTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisKuromojiTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisKuromojiTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisKuromojiTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKuromojiTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2717,15 +2665,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisKuromojiTokenizer(v CommonA
 }
 
 // CommonAnalysisPatternTokenizer returns the CommonAnalysisPatternTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisPatternTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisPatternTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisPatternTokenizer() (CommonAnalysisPatternTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisPatternTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisPatternTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisPatternTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisPatternTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPatternTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2738,15 +2686,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisPatternTokenizer(v CommonAn
 }
 
 // CommonAnalysisSimplePatternTokenizer returns the CommonAnalysisSimplePatternTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSimplePatternTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSimplePatternTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSimplePatternTokenizer() (CommonAnalysisSimplePatternTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisSimplePatternTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSimplePatternTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisSimplePatternTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisSimplePatternTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2759,15 +2707,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternTokenizer(v Co
 }
 
 // CommonAnalysisSimplePatternSplitTokenizer returns the CommonAnalysisSimplePatternSplitTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSimplePatternSplitTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSimplePatternSplitTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSimplePatternSplitTokenizer() (CommonAnalysisSimplePatternSplitTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisSimplePatternSplitTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSimplePatternSplitTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisSimplePatternSplitTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisSimplePatternSplitTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternSplitTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2780,15 +2728,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSimplePatternSplitTokenizer
 }
 
 // CommonAnalysisICUTokenizer returns the CommonAnalysisICUTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisICUTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisICUTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisICUTokenizer() (CommonAnalysisICUTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisICUTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisICUTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisICUTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisICUTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisICUTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v
@@ -2801,15 +2749,15 @@ func NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisICUTokenizer(v CommonAnalys
 }
 
 // CommonAnalysisSmartcnTokenizer returns the CommonAnalysisSmartcnTokenizer branch value. It returns a
-// *IndicesAnalyzeBodyTokenizerBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero CommonAnalysisSmartcnTokenizer in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonAnalysisSmartcnTokenizer in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesAnalyzeBodyTokenizer) CommonAnalysisSmartcnTokenizer() (CommonAnalysisSmartcnTokenizer, error) {
 	if v, ok := u.value.(*CommonAnalysisSmartcnTokenizer); ok {
 		return *v, nil
 	}
 	var zero CommonAnalysisSmartcnTokenizer
-	return zero, &IndicesAnalyzeBodyTokenizerBranchError{Want: "CommonAnalysisSmartcnTokenizer", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesAnalyzeBodyTokenizer", Want: "CommonAnalysisSmartcnTokenizer", Got: u.typ.String()}
 }
 
 // NewIndicesAnalyzeBodyTokenizerFromCommonAnalysisSmartcnTokenizer returns a IndicesAnalyzeBodyTokenizer populated with v

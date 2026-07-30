@@ -141,19 +141,6 @@ func (t SearchRelevancePutJudgmentsBodyType) String() string {
 	}
 }
 
-// SearchRelevancePutJudgmentsBodyBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchRelevancePutJudgmentsBodyBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchRelevancePutJudgmentsBodyType
-}
-
-func (e *SearchRelevancePutJudgmentsBodyBranchError) Error() string {
-	return fmt.Sprintf("SearchRelevancePutJudgmentsBody: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchRelevancePutJudgmentsBodyUnknownType if the value has not been decoded.
 func (u *SearchRelevancePutJudgmentsBody) Type() SearchRelevancePutJudgmentsBodyType { return u.typ }
@@ -174,15 +161,15 @@ func (u *SearchRelevancePutJudgmentsBody) SetRaw(raw json.RawMessage) {
 }
 
 // SearchRelevancePutLLMJudgmentsRequest returns the opensearchapi.SearchRelevancePutLLMJudgmentsRequest branch value. It returns a
-// *SearchRelevancePutJudgmentsBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutLLMJudgmentsRequest() (opensearchapi.SearchRelevancePutLLMJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutLLMJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutLLMJudgmentsRequest
-	return zero, &SearchRelevancePutJudgmentsBodyBranchError{Want: "SearchRelevancePutLLMJudgmentsRequest", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutLLMJudgmentsRequest", Got: u.typ.String()}
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
@@ -195,15 +182,15 @@ func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutLLMJudgmentsRequest
 }
 
 // SearchRelevancePutUBIJudgmentsRequest returns the opensearchapi.SearchRelevancePutUBIJudgmentsRequest branch value. It returns a
-// *SearchRelevancePutJudgmentsBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutUBIJudgmentsRequest() (opensearchapi.SearchRelevancePutUBIJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutUBIJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutUBIJudgmentsRequest
-	return zero, &SearchRelevancePutJudgmentsBodyBranchError{Want: "SearchRelevancePutUBIJudgmentsRequest", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutUBIJudgmentsRequest", Got: u.typ.String()}
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v
@@ -216,15 +203,15 @@ func NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutUBIJudgmentsRequest
 }
 
 // SearchRelevancePutImportJudgmentsRequest returns the opensearchapi.SearchRelevancePutImportJudgmentsRequest branch value. It returns a
-// *SearchRelevancePutJudgmentsBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SearchRelevancePutImportJudgmentsRequest in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutImportJudgmentsRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchRelevancePutJudgmentsBody) SearchRelevancePutImportJudgmentsRequest() (opensearchapi.SearchRelevancePutImportJudgmentsRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutImportJudgmentsRequest); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutImportJudgmentsRequest
-	return zero, &SearchRelevancePutJudgmentsBodyBranchError{Want: "SearchRelevancePutImportJudgmentsRequest", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutJudgmentsBody", Want: "SearchRelevancePutImportJudgmentsRequest", Got: u.typ.String()}
 }
 
 // NewSearchRelevancePutJudgmentsBodyFromSearchRelevancePutImportJudgmentsRequest returns a SearchRelevancePutJudgmentsBody populated with v

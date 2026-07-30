@@ -70,7 +70,7 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "value any")
 	require.Contains(t, body, "TryEachValueType")
 	require.Contains(t, body, "func (u *TryEachValue) AsMap() (map[string]any, error)")
-	require.Contains(t, body, "TryEachValueBranchError{Want: \"AsMap\"")
+	require.Contains(t, body, "&UnionBranchError{Union: \"TryEachValue\", Want: \"AsMap\"")
 	require.Contains(t, body, "u.value.(*map[string]any)")
 	require.Contains(t, body, "if err := json.Unmarshal(data, &v); err == nil")
 	require.Contains(t, body, "RawJSON")

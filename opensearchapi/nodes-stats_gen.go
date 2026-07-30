@@ -1539,19 +1539,6 @@ func (t NodesStatsIPType) String() string {
 	}
 }
 
-// NodesStatsIPBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type NodesStatsIPBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got NodesStatsIPType
-}
-
-func (e *NodesStatsIPBranchError) Error() string {
-	return fmt.Sprintf("NodesStatsIP: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns NodesStatsIPUnknownType if the value has not been decoded.
 func (u *NodesStatsIP) Type() NodesStatsIPType { return u.typ }
@@ -1572,15 +1559,15 @@ func (u *NodesStatsIP) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *NodesStatsIPBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *NodesStatsIP) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &NodesStatsIPBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "NodesStatsIP", Want: "String", Got: u.typ.String()}
 }
 
 // NewNodesStatsIPFromString returns a NodesStatsIP populated with v
@@ -1593,15 +1580,15 @@ func NewNodesStatsIPFromString(v string) NodesStatsIP {
 }
 
 // Array returns the []string branch value. It returns a
-// *NodesStatsIPBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero []string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *NodesStatsIP) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
 		return *v, nil
 	}
 	var zero []string
-	return zero, &NodesStatsIPBranchError{Want: "Array", Got: u.typ}
+	return zero, &UnionBranchError{Union: "NodesStatsIP", Want: "Array", Got: u.typ.String()}
 }
 
 // NewNodesStatsIPFromArray returns a NodesStatsIP populated with v

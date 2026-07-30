@@ -840,19 +840,6 @@ func (t SearchBodySourceType) String() string {
 	}
 }
 
-// SearchBodySourceBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodySourceBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodySourceType
-}
-
-func (e *SearchBodySourceBranchError) Error() string {
-	return fmt.Sprintf("SearchBodySource: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodySourceUnknownType if the value has not been decoded.
 func (u *SearchBodySource) Type() SearchBodySourceType { return u.typ }
@@ -873,15 +860,15 @@ func (u *SearchBodySource) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *SearchBodySourceBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySource) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &SearchBodySourceBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySource", Want: "String", Got: u.typ.String()}
 }
 
 // NewSearchBodySourceFromString returns a SearchBodySource populated with v
@@ -894,15 +881,15 @@ func NewSearchBodySourceFromString(v string) SearchBodySource {
 }
 
 // ExcludesIncludes returns the SearchBodySourceExcludesIncludes branch value. It returns a
-// *SearchBodySourceBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SearchBodySourceExcludesIncludes in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchBodySourceExcludesIncludes in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySource) ExcludesIncludes() (SearchBodySourceExcludesIncludes, error) {
 	if v, ok := u.value.(*SearchBodySourceExcludesIncludes); ok {
 		return *v, nil
 	}
 	var zero SearchBodySourceExcludesIncludes
-	return zero, &SearchBodySourceBranchError{Want: "ExcludesIncludes", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySource", Want: "ExcludesIncludes", Got: u.typ.String()}
 }
 
 // NewSearchBodySourceFromExcludesIncludes returns a SearchBodySource populated with v
@@ -983,19 +970,6 @@ func (t SearchBodyDocvalueFieldsItemType) String() string {
 	}
 }
 
-// SearchBodyDocvalueFieldsItemBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodyDocvalueFieldsItemBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodyDocvalueFieldsItemType
-}
-
-func (e *SearchBodyDocvalueFieldsItemBranchError) Error() string {
-	return fmt.Sprintf("SearchBodyDocvalueFieldsItem: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodyDocvalueFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchBodyDocvalueFieldsItem) Type() SearchBodyDocvalueFieldsItemType { return u.typ }
@@ -1016,15 +990,15 @@ func (u *SearchBodyDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *SearchBodyDocvalueFieldsItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyDocvalueFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &SearchBodyDocvalueFieldsItemBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyDocvalueFieldsItem", Want: "String", Got: u.typ.String()}
 }
 
 // NewSearchBodyDocvalueFieldsItemFromString returns a SearchBodyDocvalueFieldsItem populated with v
@@ -1037,15 +1011,15 @@ func NewSearchBodyDocvalueFieldsItemFromString(v string) SearchBodyDocvalueField
 }
 
 // Field returns the SearchBodyDocvalueFieldsItemField branch value. It returns a
-// *SearchBodyDocvalueFieldsItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SearchBodyDocvalueFieldsItemField in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchBodyDocvalueFieldsItemField in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyDocvalueFieldsItem) Field() (SearchBodyDocvalueFieldsItemField, error) {
 	if v, ok := u.value.(*SearchBodyDocvalueFieldsItemField); ok {
 		return *v, nil
 	}
 	var zero SearchBodyDocvalueFieldsItemField
-	return zero, &SearchBodyDocvalueFieldsItemBranchError{Want: "Field", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyDocvalueFieldsItem", Want: "Field", Got: u.typ.String()}
 }
 
 // NewSearchBodyDocvalueFieldsItemFromField returns a SearchBodyDocvalueFieldsItem populated with v
@@ -1126,19 +1100,6 @@ func (t SearchBodyFieldsItemType) String() string {
 	}
 }
 
-// SearchBodyFieldsItemBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodyFieldsItemBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodyFieldsItemType
-}
-
-func (e *SearchBodyFieldsItemBranchError) Error() string {
-	return fmt.Sprintf("SearchBodyFieldsItem: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodyFieldsItemUnknownType if the value has not been decoded.
 func (u *SearchBodyFieldsItem) Type() SearchBodyFieldsItemType { return u.typ }
@@ -1159,15 +1120,15 @@ func (u *SearchBodyFieldsItem) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *SearchBodyFieldsItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyFieldsItem) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &SearchBodyFieldsItemBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyFieldsItem", Want: "String", Got: u.typ.String()}
 }
 
 // NewSearchBodyFieldsItemFromString returns a SearchBodyFieldsItem populated with v
@@ -1180,15 +1141,15 @@ func NewSearchBodyFieldsItemFromString(v string) SearchBodyFieldsItem {
 }
 
 // Field returns the SearchBodyFieldsItemField branch value. It returns a
-// *SearchBodyFieldsItemBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SearchBodyFieldsItemField in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchBodyFieldsItemField in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyFieldsItem) Field() (SearchBodyFieldsItemField, error) {
 	if v, ok := u.value.(*SearchBodyFieldsItemField); ok {
 		return *v, nil
 	}
 	var zero SearchBodyFieldsItemField
-	return zero, &SearchBodyFieldsItemBranchError{Want: "Field", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyFieldsItem", Want: "Field", Got: u.typ.String()}
 }
 
 // NewSearchBodyFieldsItemFromField returns a SearchBodyFieldsItem populated with v
@@ -1269,19 +1230,6 @@ func (t SearchBodyRescoreType) String() string {
 	}
 }
 
-// SearchBodyRescoreBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodyRescoreBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodyRescoreType
-}
-
-func (e *SearchBodyRescoreBranchError) Error() string {
-	return fmt.Sprintf("SearchBodyRescore: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodyRescoreUnknownType if the value has not been decoded.
 func (u *SearchBodyRescore) Type() SearchBodyRescoreType { return u.typ }
@@ -1302,15 +1250,15 @@ func (u *SearchBodyRescore) SetRaw(raw json.RawMessage) {
 }
 
 // SearchRescore returns the SearchRescore branch value. It returns a
-// *SearchBodyRescoreBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SearchRescore in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchRescore in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyRescore) SearchRescore() (SearchRescore, error) {
 	if v, ok := u.value.(*SearchRescore); ok {
 		return *v, nil
 	}
 	var zero SearchRescore
-	return zero, &SearchBodyRescoreBranchError{Want: "SearchRescore", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyRescore", Want: "SearchRescore", Got: u.typ.String()}
 }
 
 // NewSearchBodyRescoreFromSearchRescore returns a SearchBodyRescore populated with v
@@ -1323,15 +1271,15 @@ func NewSearchBodyRescoreFromSearchRescore(v SearchRescore) SearchBodyRescore {
 }
 
 // Array returns the []SearchRescore branch value. It returns a
-// *SearchBodyRescoreBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero []SearchRescore in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []SearchRescore in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyRescore) Array() ([]SearchRescore, error) {
 	if v, ok := u.value.(*[]SearchRescore); ok {
 		return *v, nil
 	}
 	var zero []SearchRescore
-	return zero, &SearchBodyRescoreBranchError{Want: "Array", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyRescore", Want: "Array", Got: u.typ.String()}
 }
 
 // NewSearchBodyRescoreFromArray returns a SearchBodyRescore populated with v
@@ -1418,19 +1366,6 @@ func (t SearchBodySortType) String() string {
 	}
 }
 
-// SearchBodySortBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodySortBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodySortType
-}
-
-func (e *SearchBodySortBranchError) Error() string {
-	return fmt.Sprintf("SearchBodySort: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodySortUnknownType if the value has not been decoded.
 func (u *SearchBodySort) Type() SearchBodySortType { return u.typ }
@@ -1451,15 +1386,15 @@ func (u *SearchBodySort) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *SearchBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &SearchBodySortBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySort", Want: "String", Got: u.typ.String()}
 }
 
 // NewSearchBodySortFromString returns a SearchBodySort populated with v
@@ -1472,15 +1407,15 @@ func NewSearchBodySortFromString(v string) SearchBodySort {
 }
 
 // StringMap returns the map[string]string branch value. It returns a
-// *SearchBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
 		return *v, nil
 	}
 	var zero map[string]string
-	return zero, &SearchBodySortBranchError{Want: "StringMap", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySort", Want: "StringMap", Got: u.typ.String()}
 }
 
 // NewSearchBodySortFromStringMap returns a SearchBodySort populated with v
@@ -1493,15 +1428,15 @@ func NewSearchBodySortFromStringMap(v map[string]string) SearchBodySort {
 }
 
 // FieldSortMap returns the map[string]FieldSort branch value. It returns a
-// *SearchBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]FieldSort in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]FieldSort in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
 		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero, &SearchBodySortBranchError{Want: "FieldSortMap", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySort", Want: "FieldSortMap", Got: u.typ.String()}
 }
 
 // NewSearchBodySortFromFieldSortMap returns a SearchBodySort populated with v
@@ -1514,15 +1449,15 @@ func NewSearchBodySortFromFieldSortMap(v map[string]FieldSort) SearchBodySort {
 }
 
 // Options returns the SortOptions branch value. It returns a
-// *SearchBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SortOptions in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SortOptions in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodySort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
 		return *v, nil
 	}
 	var zero SortOptions
-	return zero, &SearchBodySortBranchError{Want: "Options", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodySort", Want: "Options", Got: u.typ.String()}
 }
 
 // NewSearchBodySortFromOptions returns a SearchBodySort populated with v
@@ -1626,19 +1561,6 @@ func (t SearchBodyTrackTotalHitsType) String() string {
 	}
 }
 
-// SearchBodyTrackTotalHitsBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SearchBodyTrackTotalHitsBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SearchBodyTrackTotalHitsType
-}
-
-func (e *SearchBodyTrackTotalHitsBranchError) Error() string {
-	return fmt.Sprintf("SearchBodyTrackTotalHits: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodyTrackTotalHitsUnknownType if the value has not been decoded.
 func (u *SearchBodyTrackTotalHits) Type() SearchBodyTrackTotalHitsType { return u.typ }
@@ -1659,15 +1581,15 @@ func (u *SearchBodyTrackTotalHits) SetRaw(raw json.RawMessage) {
 }
 
 // Bool returns the bool branch value. It returns a
-// *SearchBodyTrackTotalHitsBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero bool in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero bool in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyTrackTotalHits) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
 		return *v, nil
 	}
 	var zero bool
-	return zero, &SearchBodyTrackTotalHitsBranchError{Want: "Bool", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyTrackTotalHits", Want: "Bool", Got: u.typ.String()}
 }
 
 // NewSearchBodyTrackTotalHitsFromBool returns a SearchBodyTrackTotalHits populated with v
@@ -1680,15 +1602,15 @@ func NewSearchBodyTrackTotalHitsFromBool(v bool) SearchBodyTrackTotalHits {
 }
 
 // Int returns the int branch value. It returns a
-// *SearchBodyTrackTotalHitsBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SearchBodyTrackTotalHits) Int() (int, error) {
 	if v, ok := u.value.(*int); ok {
 		return *v, nil
 	}
 	var zero int
-	return zero, &SearchBodyTrackTotalHitsBranchError{Want: "Int", Got: u.typ}
+	return zero, &UnionBranchError{Union: "SearchBodyTrackTotalHits", Want: "Int", Got: u.typ.String()}
 }
 
 // NewSearchBodyTrackTotalHitsFromInt returns a SearchBodyTrackTotalHits populated with v

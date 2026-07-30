@@ -8,7 +8,6 @@ package opensearchapi_test
 
 import (
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -61,10 +60,11 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 				require.Error(t, err)
 				require.False(t, zero.Found, "value is the zero struct; the error is the signal")
 
-				var branchErr *opensearchapi.MGetRespBodyDocsItemBranchError
+				var branchErr *opensearchapi.UnionBranchError
 				require.ErrorAs(t, err, &branchErr)
+				require.Equal(t, "MGetRespBodyDocsItem", branchErr.Union)
 				require.Equal(t, "GetResult", branchErr.Want)
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemMGetMultiGetErrorType, branchErr.Got)
+				require.Equal(t, "MGetMultiGetError", branchErr.Got)
 				require.Contains(t, err.Error(), "holds branch MGetMultiGetError, not GetResult")
 			},
 		},
@@ -80,16 +80,16 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 				_, err := u.GetResult()
 				require.Error(t, err)
 
-				var branchErr *opensearchapi.MGetRespBodyDocsItemBranchError
+				var branchErr *opensearchapi.UnionBranchError
 				require.ErrorAs(t, err, &branchErr)
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemUnknownType, branchErr.Got)
+				require.Equal(t, "unknown", branchErr.Got)
 				require.Contains(t, err.Error(), "holds branch unknown")
 			},
 		},
 		{
-			// Each union declares its own error type, so errors.As can tell
-			// apart failures from different unions in one call chain.
-			name: "error type is distinct per union",
+			// One shared error type, so Union is what distinguishes failures
+			// from different unions in a single call chain.
+			name: "Union names the union that failed",
 			check: func(t *testing.T) {
 				t.Helper()
 				var sort opensearchapi.SortResultsItem
@@ -98,14 +98,11 @@ func TestUnionBranchAccessorErrors(t *testing.T) {
 				_, err := sort.Float64()
 				require.Error(t, err)
 
-				var wrongUnion *opensearchapi.MGetRespBodyDocsItemBranchError
-				require.False(t, errors.As(err, &wrongUnion),
-					"another union's error type must not match")
-
-				var right *opensearchapi.SortResultsItemBranchError
-				require.ErrorAs(t, err, &right)
-				require.Equal(t, "Float64", right.Want)
-				require.Equal(t, opensearchapi.SortResultsItemStringType, right.Got)
+				var branchErr *opensearchapi.UnionBranchError
+				require.ErrorAs(t, err, &branchErr)
+				require.Equal(t, "SortResultsItem", branchErr.Union)
+				require.Equal(t, "Float64", branchErr.Want)
+				require.Equal(t, "String", branchErr.Got)
 			},
 		},
 		{

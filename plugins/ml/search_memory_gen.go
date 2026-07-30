@@ -180,19 +180,6 @@ func (t MLSearchMemoryBodySortType) String() string {
 	}
 }
 
-// MLSearchMemoryBodySortBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type MLSearchMemoryBodySortBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got MLSearchMemoryBodySortType
-}
-
-func (e *MLSearchMemoryBodySortBranchError) Error() string {
-	return fmt.Sprintf("MLSearchMemoryBodySort: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns MLSearchMemoryBodySortUnknownType if the value has not been decoded.
 func (u *MLSearchMemoryBodySort) Type() MLSearchMemoryBodySortType { return u.typ }
@@ -213,15 +200,15 @@ func (u *MLSearchMemoryBodySort) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *MLSearchMemoryBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MLSearchMemoryBodySort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &MLSearchMemoryBodySortBranchError{Want: "String", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "MLSearchMemoryBodySort", Want: "String", Got: u.typ.String()}
 }
 
 // NewMLSearchMemoryBodySortFromString returns a MLSearchMemoryBodySort populated with v
@@ -234,15 +221,15 @@ func NewMLSearchMemoryBodySortFromString(v string) MLSearchMemoryBodySort {
 }
 
 // StringMap returns the map[string]string branch value. It returns a
-// *MLSearchMemoryBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MLSearchMemoryBodySort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
 		return *v, nil
 	}
 	var zero map[string]string
-	return zero, &MLSearchMemoryBodySortBranchError{Want: "StringMap", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "MLSearchMemoryBodySort", Want: "StringMap", Got: u.typ.String()}
 }
 
 // NewMLSearchMemoryBodySortFromStringMap returns a MLSearchMemoryBodySort populated with v
@@ -255,15 +242,15 @@ func NewMLSearchMemoryBodySortFromStringMap(v map[string]string) MLSearchMemoryB
 }
 
 // FieldSortMap returns the map[string]opensearchapi.FieldSort branch value. It returns a
-// *MLSearchMemoryBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]opensearchapi.FieldSort in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]opensearchapi.FieldSort in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MLSearchMemoryBodySort) FieldSortMap() (map[string]opensearchapi.FieldSort, error) {
 	if v, ok := u.value.(*map[string]opensearchapi.FieldSort); ok {
 		return *v, nil
 	}
 	var zero map[string]opensearchapi.FieldSort
-	return zero, &MLSearchMemoryBodySortBranchError{Want: "FieldSortMap", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "MLSearchMemoryBodySort", Want: "FieldSortMap", Got: u.typ.String()}
 }
 
 // NewMLSearchMemoryBodySortFromFieldSortMap returns a MLSearchMemoryBodySort populated with v
@@ -276,15 +263,15 @@ func NewMLSearchMemoryBodySortFromFieldSortMap(v map[string]opensearchapi.FieldS
 }
 
 // Options returns the opensearchapi.SortOptions branch value. It returns a
-// *MLSearchMemoryBodySortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SortOptions in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SortOptions in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *MLSearchMemoryBodySort) Options() (opensearchapi.SortOptions, error) {
 	if v, ok := u.value.(*opensearchapi.SortOptions); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SortOptions
-	return zero, &MLSearchMemoryBodySortBranchError{Want: "Options", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "MLSearchMemoryBodySort", Want: "Options", Got: u.typ.String()}
 }
 
 // NewMLSearchMemoryBodySortFromOptions returns a MLSearchMemoryBodySort populated with v

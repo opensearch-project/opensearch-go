@@ -459,19 +459,6 @@ func (t UpdateByQueryRespBodyType) String() string {
 	}
 }
 
-// UpdateByQueryRespBodyBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type UpdateByQueryRespBodyBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got UpdateByQueryRespBodyType
-}
-
-func (e *UpdateByQueryRespBodyBranchError) Error() string {
-	return fmt.Sprintf("UpdateByQueryRespBody: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns UpdateByQueryRespBodyUnknownType if the value has not been decoded.
 func (u *UpdateByQueryRespBody) Type() UpdateByQueryRespBodyType { return u.typ }
@@ -492,15 +479,15 @@ func (u *UpdateByQueryRespBody) SetRaw(raw json.RawMessage) {
 }
 
 // BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
-// *UpdateByQueryRespBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero BulkByScrollRespBase in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero BulkByScrollRespBase in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *UpdateByQueryRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
 		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero, &UpdateByQueryRespBodyBranchError{Want: "BulkByScrollRespBase", Got: u.typ}
+	return zero, &UnionBranchError{Union: "UpdateByQueryRespBody", Want: "BulkByScrollRespBase", Got: u.typ.String()}
 }
 
 // NewUpdateByQueryRespBodyFromBulkByScrollRespBase returns a UpdateByQueryRespBody populated with v
@@ -513,15 +500,15 @@ func NewUpdateByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) Up
 }
 
 // Task returns the UpdateByQueryRespBodyTask branch value. It returns a
-// *UpdateByQueryRespBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero UpdateByQueryRespBodyTask in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero UpdateByQueryRespBodyTask in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *UpdateByQueryRespBody) Task() (UpdateByQueryRespBodyTask, error) {
 	if v, ok := u.value.(*UpdateByQueryRespBodyTask); ok {
 		return *v, nil
 	}
 	var zero UpdateByQueryRespBodyTask
-	return zero, &UpdateByQueryRespBodyBranchError{Want: "Task", Got: u.typ}
+	return zero, &UnionBranchError{Union: "UpdateByQueryRespBody", Want: "Task", Got: u.typ.String()}
 }
 
 // NewUpdateByQueryRespBodyFromTask returns a UpdateByQueryRespBody populated with v
@@ -622,19 +609,6 @@ func (t UpdateByQueryBodyScriptType) String() string {
 	}
 }
 
-// UpdateByQueryBodyScriptBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type UpdateByQueryBodyScriptBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got UpdateByQueryBodyScriptType
-}
-
-func (e *UpdateByQueryBodyScriptBranchError) Error() string {
-	return fmt.Sprintf("UpdateByQueryBodyScript: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns UpdateByQueryBodyScriptUnknownType if the value has not been decoded.
 func (u *UpdateByQueryBodyScript) Type() UpdateByQueryBodyScriptType { return u.typ }
@@ -655,15 +629,15 @@ func (u *UpdateByQueryBodyScript) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *UpdateByQueryBodyScriptBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *UpdateByQueryBodyScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &UpdateByQueryBodyScriptBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "UpdateByQueryBodyScript", Want: "String", Got: u.typ.String()}
 }
 
 // NewUpdateByQueryBodyScriptFromString returns a UpdateByQueryBodyScript populated with v
@@ -676,15 +650,15 @@ func NewUpdateByQueryBodyScriptFromString(v string) UpdateByQueryBodyScript {
 }
 
 // Stored returns the StoredScriptID branch value. It returns a
-// *UpdateByQueryBodyScriptBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero StoredScriptID in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero StoredScriptID in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *UpdateByQueryBodyScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero, &UpdateByQueryBodyScriptBranchError{Want: "Stored", Got: u.typ}
+	return zero, &UnionBranchError{Union: "UpdateByQueryBodyScript", Want: "Stored", Got: u.typ.String()}
 }
 
 // NewUpdateByQueryBodyScriptFromStored returns a UpdateByQueryBodyScript populated with v

@@ -156,19 +156,6 @@ func (t SQLSettingsBodyType) String() string {
 	}
 }
 
-// SQLSettingsBodyBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type SQLSettingsBodyBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got SQLSettingsBodyType
-}
-
-func (e *SQLSettingsBodyBranchError) Error() string {
-	return fmt.Sprintf("SQLSettingsBody: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns SQLSettingsBodyUnknownType if the value has not been decoded.
 func (u *SQLSettingsBody) Type() SQLSettingsBodyType { return u.typ }
@@ -189,15 +176,15 @@ func (u *SQLSettingsBody) SetRaw(raw json.RawMessage) {
 }
 
 // SQLSettingsPlain returns the opensearchapi.SQLSettingsPlain branch value. It returns a
-// *SQLSettingsBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SQLSettingsPlain in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SQLSettingsPlain in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SQLSettingsBody) SQLSettingsPlain() (opensearchapi.SQLSettingsPlain, error) {
 	if v, ok := u.value.(*opensearchapi.SQLSettingsPlain); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SQLSettingsPlain
-	return zero, &SQLSettingsBodyBranchError{Want: "SQLSettingsPlain", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "SQLSettingsBody", Want: "SQLSettingsPlain", Got: u.typ.String()}
 }
 
 // NewSQLSettingsBodyFromSQLSettingsPlain returns a SQLSettingsBody populated with v
@@ -210,15 +197,15 @@ func NewSQLSettingsBodyFromSQLSettingsPlain(v opensearchapi.SQLSettingsPlain) SQ
 }
 
 // SQLSettings returns the opensearchapi.SQLSettings branch value. It returns a
-// *SQLSettingsBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero opensearchapi.SQLSettings in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SQLSettings in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *SQLSettingsBody) SQLSettings() (opensearchapi.SQLSettings, error) {
 	if v, ok := u.value.(*opensearchapi.SQLSettings); ok {
 		return *v, nil
 	}
 	var zero opensearchapi.SQLSettings
-	return zero, &SQLSettingsBodyBranchError{Want: "SQLSettings", Got: u.typ}
+	return zero, &opensearchapi.UnionBranchError{Union: "SQLSettingsBody", Want: "SQLSettings", Got: u.typ.String()}
 }
 
 // NewSQLSettingsBodyFromSQLSettings returns a SQLSettingsBody populated with v

@@ -303,19 +303,6 @@ func (t CatRecoveryRecordStartTimeMillisType) String() string {
 	}
 }
 
-// CatRecoveryRecordStartTimeMillisBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type CatRecoveryRecordStartTimeMillisBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got CatRecoveryRecordStartTimeMillisType
-}
-
-func (e *CatRecoveryRecordStartTimeMillisBranchError) Error() string {
-	return fmt.Sprintf("CatRecoveryRecordStartTimeMillis: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns CatRecoveryRecordStartTimeMillisUnknownType if the value has not been decoded.
 func (u *CatRecoveryRecordStartTimeMillis) Type() CatRecoveryRecordStartTimeMillisType { return u.typ }
@@ -336,15 +323,15 @@ func (u *CatRecoveryRecordStartTimeMillis) SetRaw(raw json.RawMessage) {
 }
 
 // Int64 returns the int64 branch value. It returns a
-// *CatRecoveryRecordStartTimeMillisBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int64 in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatRecoveryRecordStartTimeMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
 		return *v, nil
 	}
 	var zero int64
-	return zero, &CatRecoveryRecordStartTimeMillisBranchError{Want: "Int64", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatRecoveryRecordStartTimeMillis", Want: "Int64", Got: u.typ.String()}
 }
 
 // NewCatRecoveryRecordStartTimeMillisFromInt64 returns a CatRecoveryRecordStartTimeMillis populated with v
@@ -357,15 +344,15 @@ func NewCatRecoveryRecordStartTimeMillisFromInt64(v int64) CatRecoveryRecordStar
 }
 
 // String returns the string branch value. It returns a
-// *CatRecoveryRecordStartTimeMillisBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatRecoveryRecordStartTimeMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &CatRecoveryRecordStartTimeMillisBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatRecoveryRecordStartTimeMillis", Want: "String", Got: u.typ.String()}
 }
 
 // NewCatRecoveryRecordStartTimeMillisFromString returns a CatRecoveryRecordStartTimeMillis populated with v
@@ -450,19 +437,6 @@ func (t CatRecoveryRecordStopTimeMillisType) String() string {
 	}
 }
 
-// CatRecoveryRecordStopTimeMillisBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type CatRecoveryRecordStopTimeMillisBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got CatRecoveryRecordStopTimeMillisType
-}
-
-func (e *CatRecoveryRecordStopTimeMillisBranchError) Error() string {
-	return fmt.Sprintf("CatRecoveryRecordStopTimeMillis: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns CatRecoveryRecordStopTimeMillisUnknownType if the value has not been decoded.
 func (u *CatRecoveryRecordStopTimeMillis) Type() CatRecoveryRecordStopTimeMillisType { return u.typ }
@@ -483,15 +457,15 @@ func (u *CatRecoveryRecordStopTimeMillis) SetRaw(raw json.RawMessage) {
 }
 
 // Int64 returns the int64 branch value. It returns a
-// *CatRecoveryRecordStopTimeMillisBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int64 in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatRecoveryRecordStopTimeMillis) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
 		return *v, nil
 	}
 	var zero int64
-	return zero, &CatRecoveryRecordStopTimeMillisBranchError{Want: "Int64", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatRecoveryRecordStopTimeMillis", Want: "Int64", Got: u.typ.String()}
 }
 
 // NewCatRecoveryRecordStopTimeMillisFromInt64 returns a CatRecoveryRecordStopTimeMillis populated with v
@@ -504,15 +478,15 @@ func NewCatRecoveryRecordStopTimeMillisFromInt64(v int64) CatRecoveryRecordStopT
 }
 
 // String returns the string branch value. It returns a
-// *CatRecoveryRecordStopTimeMillisBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatRecoveryRecordStopTimeMillis) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &CatRecoveryRecordStopTimeMillisBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatRecoveryRecordStopTimeMillis", Want: "String", Got: u.typ.String()}
 }
 
 // NewCatRecoveryRecordStopTimeMillisFromString returns a CatRecoveryRecordStopTimeMillis populated with v

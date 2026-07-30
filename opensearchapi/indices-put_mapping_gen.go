@@ -237,19 +237,6 @@ func (t IndicesPutMappingBodyDynamicType) String() string {
 	}
 }
 
-// IndicesPutMappingBodyDynamicBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesPutMappingBodyDynamicBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesPutMappingBodyDynamicType
-}
-
-func (e *IndicesPutMappingBodyDynamicBranchError) Error() string {
-	return fmt.Sprintf("IndicesPutMappingBodyDynamic: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesPutMappingBodyDynamicUnknownType if the value has not been decoded.
 func (u *IndicesPutMappingBodyDynamic) Type() IndicesPutMappingBodyDynamicType { return u.typ }
@@ -270,15 +257,15 @@ func (u *IndicesPutMappingBodyDynamic) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *IndicesPutMappingBodyDynamicBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesPutMappingBodyDynamic) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &IndicesPutMappingBodyDynamicBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamic", Want: "String", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicFromString returns a IndicesPutMappingBodyDynamic populated with v
@@ -291,15 +278,15 @@ func NewIndicesPutMappingBodyDynamicFromString(v string) IndicesPutMappingBodyDy
 }
 
 // Bool returns the bool branch value. It returns a
-// *IndicesPutMappingBodyDynamicBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero bool in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero bool in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesPutMappingBodyDynamic) Bool() (bool, error) {
 	if v, ok := u.value.(*bool); ok {
 		return *v, nil
 	}
 	var zero bool
-	return zero, &IndicesPutMappingBodyDynamicBranchError{Want: "Bool", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamic", Want: "Bool", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicFromBool returns a IndicesPutMappingBodyDynamic populated with v
@@ -380,19 +367,6 @@ func (t IndicesPutMappingBodyDynamicTemplatesType) String() string {
 	}
 }
 
-// IndicesPutMappingBodyDynamicTemplatesBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesPutMappingBodyDynamicTemplatesBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesPutMappingBodyDynamicTemplatesType
-}
-
-func (e *IndicesPutMappingBodyDynamicTemplatesBranchError) Error() string {
-	return fmt.Sprintf("IndicesPutMappingBodyDynamicTemplates: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesPutMappingBodyDynamicTemplatesUnknownType if the value has not been decoded.
 func (u *IndicesPutMappingBodyDynamicTemplates) Type() IndicesPutMappingBodyDynamicTemplatesType {
@@ -415,15 +389,15 @@ func (u *IndicesPutMappingBodyDynamicTemplates) SetRaw(raw json.RawMessage) {
 }
 
 // Map returns the map[string]json.RawMessage branch value. It returns a
-// *IndicesPutMappingBodyDynamicTemplatesBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]json.RawMessage in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesPutMappingBodyDynamicTemplates) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
 		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero, &IndicesPutMappingBodyDynamicTemplatesBranchError{Want: "Map", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamicTemplates", Want: "Map", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromMap returns a IndicesPutMappingBodyDynamicTemplates populated with v
@@ -436,15 +410,15 @@ func NewIndicesPutMappingBodyDynamicTemplatesFromMap(v map[string]json.RawMessag
 }
 
 // Array returns the []map[string]CommonMappingDynamicTemplate branch value. It returns a
-// *IndicesPutMappingBodyDynamicTemplatesBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero []map[string]CommonMappingDynamicTemplate in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []map[string]CommonMappingDynamicTemplate in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesPutMappingBodyDynamicTemplates) Array() ([]map[string]CommonMappingDynamicTemplate, error) {
 	if v, ok := u.value.(*[]map[string]CommonMappingDynamicTemplate); ok {
 		return *v, nil
 	}
 	var zero []map[string]CommonMappingDynamicTemplate
-	return zero, &IndicesPutMappingBodyDynamicTemplatesBranchError{Want: "Array", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamicTemplates", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromArray returns a IndicesPutMappingBodyDynamicTemplates populated with v

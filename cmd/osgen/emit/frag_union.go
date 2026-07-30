@@ -37,9 +37,6 @@ func (f *UnionFragment) Imports() []Import {
 		{Path: LocalModule + "/internal/build"},
 	}
 	var needBytes, needFmt bool
-	// Every union kind emits a <Name>BranchError whose Error method formats with
-	// fmt, so fmt is always required once any union is present.
-	needFmt = true
 	for _, t := range f.Types {
 		switch {
 		case t.Merge != nil:
@@ -47,9 +44,9 @@ func (f *UnionFragment) Imports() []Import {
 		case t.LazyAccessors:
 			// json + build only
 		case t.Kind == ir.TypeLazyUnion: // try-each
-			needBytes = true
+			needBytes, needFmt = true, true
 		default: // first-byte switch
-			needBytes = true
+			needBytes, needFmt = true, true
 		}
 	}
 	if needBytes {
@@ -91,6 +88,14 @@ func (f *UnionFragment) Body() (string, error) {
 		qualify = func(s string) string { return s }
 	}
 
+	// coreType names a hand-written core-package type (UnionBranchError). It is
+	// not in the registry, so qualifyType cannot resolve it; a plugin package
+	// must still reach it through the core package qualifier.
+	coreType := func(name string) string { return name }
+	if f.Op != nil && f.Op.IsPlugin && f.Registry != nil {
+		coreType = func(name string) string { return f.Registry.CorePkg + "." + name }
+	}
+
 	var sb strings.Builder
 	tmpl := template.Must(template.New("union").Funcs(template.FuncMap{
 		"comment":     CommentWrap,
@@ -104,6 +109,7 @@ func (f *UnionFragment) Body() (string, error) {
 		"tokenString": func() ir.TokenClass { return ir.TokenString },
 		"tokenNumber": func() ir.TokenClass { return ir.TokenNumber },
 		"tokenBool":   func() ir.TokenClass { return ir.TokenBool },
+		"coreType":    coreType,
 	}).Parse(unionFragTmplText))
 
 	if err := tmpl.Execute(&sb, f.Types); err != nil {
@@ -175,19 +181,6 @@ func (t {{$t.Name}}Type) String() string {
 	}
 }
 
-// {{$t.Name}}BranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type {{$t.Name}}BranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got {{$t.Name}}Type
-}
-
-func (e *{{$t.Name}}BranchError) Error() string {
-	return fmt.Sprintf("{{$t.Name}}: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns {{$t.Name}}UnknownType if the value has not been decoded.
 func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
@@ -208,15 +201,15 @@ func (u *{{$t.Name}}) SetRaw(raw json.RawMessage) {
 }
 {{range $t.Branches}}
 // {{.Name}} returns the {{qualify .GoType}} branch value. It returns a
-// *{{$t.Name}}BranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero {{qualify .GoType}} in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero {{qualify .GoType}} in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *{{$t.Name}}) {{.Name}}() ({{qualify .GoType}}, error) {
 	if v, ok := u.value.(*{{qualify .GoType}}); ok {
 		return *v, nil
 	}
 	var zero {{qualify .GoType}}
-	return zero, &{{$t.Name}}BranchError{Want: "{{.Name}}", Got: u.typ}
+	return zero, &{{coreType "UnionBranchError"}}{Union: "{{$t.Name}}", Want: "{{.Name}}", Got: u.typ.String()}
 }
 
 // New{{$t.Name}}From{{.Name}} returns a {{$t.Name}} populated with v
@@ -373,19 +366,6 @@ func (t {{$t.Name}}Type) String() string {
 	}
 }
 
-// {{$t.Name}}BranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type {{$t.Name}}BranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got {{$t.Name}}Type
-}
-
-func (e *{{$t.Name}}BranchError) Error() string {
-	return fmt.Sprintf("{{$t.Name}}: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns {{$t.Name}}UnknownType if the value has not been decoded.
 func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
@@ -406,15 +386,15 @@ func (u *{{$t.Name}}) SetRaw(raw json.RawMessage) {
 }
 {{range $t.Branches}}
 // {{.Name}} returns the {{qualify .GoType}} branch value. It returns a
-// *{{$t.Name}}BranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero {{qualify .GoType}} in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero {{qualify .GoType}} in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *{{$t.Name}}) {{.Name}}() ({{qualify .GoType}}, error) {
 	if v, ok := u.value.(*{{qualify .GoType}}); ok {
 		return *v, nil
 	}
 	var zero {{qualify .GoType}}
-	return zero, &{{$t.Name}}BranchError{Want: "{{.Name}}", Got: u.typ}
+	return zero, &{{coreType "UnionBranchError"}}{Union: "{{$t.Name}}", Want: "{{.Name}}", Got: u.typ.String()}
 }
 
 // New{{$t.Name}}From{{.Name}} returns a {{$t.Name}} populated with v
@@ -512,19 +492,6 @@ func (t {{$t.Name}}Type) String() string {
 	}
 }
 
-// {{$t.Name}}BranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type {{$t.Name}}BranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got {{$t.Name}}Type
-}
-
-func (e *{{$t.Name}}BranchError) Error() string {
-	return fmt.Sprintf("{{$t.Name}}: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns {{$t.Name}}UnknownType if the value has not been decoded.
 func (u *{{$t.Name}}) Type() {{$t.Name}}Type { return u.typ }
@@ -545,15 +512,15 @@ func (u *{{$t.Name}}) SetRaw(raw json.RawMessage) {
 }
 {{range $t.Branches}}
 // {{.Name}} returns the {{qualify .GoType}} branch value. It returns a
-// *{{$t.Name}}BranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero {{qualify .GoType}} in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero {{qualify .GoType}} in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *{{$t.Name}}) {{.Name}}() ({{qualify .GoType}}, error) {
 	if v, ok := u.value.(*{{qualify .GoType}}); ok {
 		return *v, nil
 	}
 	var zero {{qualify .GoType}}
-	return zero, &{{$t.Name}}BranchError{Want: "{{.Name}}", Got: u.typ}
+	return zero, &{{coreType "UnionBranchError"}}{Union: "{{$t.Name}}", Want: "{{.Name}}", Got: u.typ.String()}
 }
 
 // New{{$t.Name}}From{{.Name}} returns a {{$t.Name}} populated with v

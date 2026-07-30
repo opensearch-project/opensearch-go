@@ -223,19 +223,6 @@ func (t IngestSimulateDocumentSimulationVersionType) String() string {
 	}
 }
 
-// IngestSimulateDocumentSimulationVersionBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IngestSimulateDocumentSimulationVersionBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IngestSimulateDocumentSimulationVersionType
-}
-
-func (e *IngestSimulateDocumentSimulationVersionBranchError) Error() string {
-	return fmt.Sprintf("IngestSimulateDocumentSimulationVersion: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IngestSimulateDocumentSimulationVersionUnknownType if the value has not been decoded.
 func (u *IngestSimulateDocumentSimulationVersion) Type() IngestSimulateDocumentSimulationVersionType {
@@ -258,15 +245,15 @@ func (u *IngestSimulateDocumentSimulationVersion) SetRaw(raw json.RawMessage) {
 }
 
 // Int64 returns the int64 branch value. It returns a
-// *IngestSimulateDocumentSimulationVersionBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int64 in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IngestSimulateDocumentSimulationVersion) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
 		return *v, nil
 	}
 	var zero int64
-	return zero, &IngestSimulateDocumentSimulationVersionBranchError{Want: "Int64", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IngestSimulateDocumentSimulationVersion", Want: "Int64", Got: u.typ.String()}
 }
 
 // NewIngestSimulateDocumentSimulationVersionFromInt64 returns a IngestSimulateDocumentSimulationVersion populated with v
@@ -279,15 +266,15 @@ func NewIngestSimulateDocumentSimulationVersionFromInt64(v int64) IngestSimulate
 }
 
 // String returns the string branch value. It returns a
-// *IngestSimulateDocumentSimulationVersionBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IngestSimulateDocumentSimulationVersion) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &IngestSimulateDocumentSimulationVersionBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IngestSimulateDocumentSimulationVersion", Want: "String", Got: u.typ.String()}
 }
 
 // NewIngestSimulateDocumentSimulationVersionFromString returns a IngestSimulateDocumentSimulationVersion populated with v

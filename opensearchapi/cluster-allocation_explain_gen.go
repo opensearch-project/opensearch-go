@@ -338,19 +338,6 @@ func (t ClusterAllocationExplainClusterInfoShardSizesValueType) String() string 
 	}
 }
 
-// ClusterAllocationExplainClusterInfoShardSizesValueBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type ClusterAllocationExplainClusterInfoShardSizesValueBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got ClusterAllocationExplainClusterInfoShardSizesValueType
-}
-
-func (e *ClusterAllocationExplainClusterInfoShardSizesValueBranchError) Error() string {
-	return fmt.Sprintf("ClusterAllocationExplainClusterInfoShardSizesValue: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns ClusterAllocationExplainClusterInfoShardSizesValueUnknownType if the value has not been decoded.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Type() ClusterAllocationExplainClusterInfoShardSizesValueType {
@@ -373,15 +360,15 @@ func (u *ClusterAllocationExplainClusterInfoShardSizesValue) SetRaw(raw json.Raw
 }
 
 // Int64 returns the int64 branch value. It returns a
-// *ClusterAllocationExplainClusterInfoShardSizesValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int64 in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
 		return *v, nil
 	}
 	var zero int64
-	return zero, &ClusterAllocationExplainClusterInfoShardSizesValueBranchError{Want: "Int64", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ClusterAllocationExplainClusterInfoShardSizesValue", Want: "Int64", Got: u.typ.String()}
 }
 
 // NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64 returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v
@@ -394,15 +381,15 @@ func NewClusterAllocationExplainClusterInfoShardSizesValueFromInt64(v int64) Clu
 }
 
 // String returns the string branch value. It returns a
-// *ClusterAllocationExplainClusterInfoShardSizesValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ClusterAllocationExplainClusterInfoShardSizesValue) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &ClusterAllocationExplainClusterInfoShardSizesValueBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ClusterAllocationExplainClusterInfoShardSizesValue", Want: "String", Got: u.typ.String()}
 }
 
 // NewClusterAllocationExplainClusterInfoShardSizesValueFromString returns a ClusterAllocationExplainClusterInfoShardSizesValue populated with v

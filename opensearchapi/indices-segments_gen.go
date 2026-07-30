@@ -264,19 +264,6 @@ func (t IndicesSegmentsIndexSegmentShardsValueType) String() string {
 	}
 }
 
-// IndicesSegmentsIndexSegmentShardsValueBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type IndicesSegmentsIndexSegmentShardsValueBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got IndicesSegmentsIndexSegmentShardsValueType
-}
-
-func (e *IndicesSegmentsIndexSegmentShardsValueBranchError) Error() string {
-	return fmt.Sprintf("IndicesSegmentsIndexSegmentShardsValue: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns IndicesSegmentsIndexSegmentShardsValueUnknownType if the value has not been decoded.
 func (u *IndicesSegmentsIndexSegmentShardsValue) Type() IndicesSegmentsIndexSegmentShardsValueType {
@@ -299,15 +286,15 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) SetRaw(raw json.RawMessage) {
 }
 
 // Array returns the []IndicesSegmentsShardsSegment branch value. It returns a
-// *IndicesSegmentsIndexSegmentShardsValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero []IndicesSegmentsShardsSegment in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []IndicesSegmentsShardsSegment in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesSegmentsIndexSegmentShardsValue) Array() ([]IndicesSegmentsShardsSegment, error) {
 	if v, ok := u.value.(*[]IndicesSegmentsShardsSegment); ok {
 		return *v, nil
 	}
 	var zero []IndicesSegmentsShardsSegment
-	return zero, &IndicesSegmentsIndexSegmentShardsValueBranchError{Want: "Array", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesSegmentsIndexSegmentShardsValueFromArray returns a IndicesSegmentsIndexSegmentShardsValue populated with v
@@ -320,15 +307,15 @@ func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShard
 }
 
 // IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value. It returns a
-// *IndicesSegmentsIndexSegmentShardsValueBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero IndicesSegmentsShardsSegment in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero IndicesSegmentsShardsSegment in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() (IndicesSegmentsShardsSegment, error) {
 	if v, ok := u.value.(*IndicesSegmentsShardsSegment); ok {
 		return *v, nil
 	}
 	var zero IndicesSegmentsShardsSegment
-	return zero, &IndicesSegmentsIndexSegmentShardsValueBranchError{Want: "IndicesSegmentsShardsSegment", Got: u.typ}
+	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "IndicesSegmentsShardsSegment", Got: u.typ.String()}
 }
 
 // NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v

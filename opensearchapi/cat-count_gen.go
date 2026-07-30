@@ -179,19 +179,6 @@ func (t CatCountRecordEpochType) String() string {
 	}
 }
 
-// CatCountRecordEpochBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type CatCountRecordEpochBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got CatCountRecordEpochType
-}
-
-func (e *CatCountRecordEpochBranchError) Error() string {
-	return fmt.Sprintf("CatCountRecordEpoch: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns CatCountRecordEpochUnknownType if the value has not been decoded.
 func (u *CatCountRecordEpoch) Type() CatCountRecordEpochType { return u.typ }
@@ -212,15 +199,15 @@ func (u *CatCountRecordEpoch) SetRaw(raw json.RawMessage) {
 }
 
 // Int64 returns the int64 branch value. It returns a
-// *CatCountRecordEpochBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero int64 in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int64 in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatCountRecordEpoch) Int64() (int64, error) {
 	if v, ok := u.value.(*int64); ok {
 		return *v, nil
 	}
 	var zero int64
-	return zero, &CatCountRecordEpochBranchError{Want: "Int64", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatCountRecordEpoch", Want: "Int64", Got: u.typ.String()}
 }
 
 // NewCatCountRecordEpochFromInt64 returns a CatCountRecordEpoch populated with v
@@ -233,15 +220,15 @@ func NewCatCountRecordEpochFromInt64(v int64) CatCountRecordEpoch {
 }
 
 // String returns the string branch value. It returns a
-// *CatCountRecordEpochBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *CatCountRecordEpoch) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &CatCountRecordEpochBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "CatCountRecordEpoch", Want: "String", Got: u.typ.String()}
 }
 
 // NewCatCountRecordEpochFromString returns a CatCountRecordEpoch populated with v

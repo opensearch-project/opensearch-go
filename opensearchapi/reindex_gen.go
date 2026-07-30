@@ -250,19 +250,6 @@ func (t ReindexRespBodyType) String() string {
 	}
 }
 
-// ReindexRespBodyBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type ReindexRespBodyBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got ReindexRespBodyType
-}
-
-func (e *ReindexRespBodyBranchError) Error() string {
-	return fmt.Sprintf("ReindexRespBody: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns ReindexRespBodyUnknownType if the value has not been decoded.
 func (u *ReindexRespBody) Type() ReindexRespBodyType { return u.typ }
@@ -283,15 +270,15 @@ func (u *ReindexRespBody) SetRaw(raw json.RawMessage) {
 }
 
 // BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
-// *ReindexRespBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero BulkByScrollRespBase in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero BulkByScrollRespBase in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
 		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero, &ReindexRespBodyBranchError{Want: "BulkByScrollRespBase", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexRespBody", Want: "BulkByScrollRespBase", Got: u.typ.String()}
 }
 
 // NewReindexRespBodyFromBulkByScrollRespBase returns a ReindexRespBody populated with v
@@ -304,15 +291,15 @@ func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexR
 }
 
 // Task returns the ReindexRespBodyTask branch value. It returns a
-// *ReindexRespBodyBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero ReindexRespBodyTask in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero ReindexRespBodyTask in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexRespBody) Task() (ReindexRespBodyTask, error) {
 	if v, ok := u.value.(*ReindexRespBodyTask); ok {
 		return *v, nil
 	}
 	var zero ReindexRespBodyTask
-	return zero, &ReindexRespBodyBranchError{Want: "Task", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexRespBody", Want: "Task", Got: u.typ.String()}
 }
 
 // NewReindexRespBodyFromTask returns a ReindexRespBody populated with v
@@ -478,19 +465,6 @@ func (t ReindexBodyScriptType) String() string {
 	}
 }
 
-// ReindexBodyScriptBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type ReindexBodyScriptBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got ReindexBodyScriptType
-}
-
-func (e *ReindexBodyScriptBranchError) Error() string {
-	return fmt.Sprintf("ReindexBodyScript: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns ReindexBodyScriptUnknownType if the value has not been decoded.
 func (u *ReindexBodyScript) Type() ReindexBodyScriptType { return u.typ }
@@ -511,15 +485,15 @@ func (u *ReindexBodyScript) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *ReindexBodyScriptBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexBodyScript) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &ReindexBodyScriptBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexBodyScript", Want: "String", Got: u.typ.String()}
 }
 
 // NewReindexBodyScriptFromString returns a ReindexBodyScript populated with v
@@ -532,15 +506,15 @@ func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
 }
 
 // Stored returns the StoredScriptID branch value. It returns a
-// *ReindexBodyScriptBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero StoredScriptID in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero StoredScriptID in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexBodyScript) Stored() (StoredScriptID, error) {
 	if v, ok := u.value.(*StoredScriptID); ok {
 		return *v, nil
 	}
 	var zero StoredScriptID
-	return zero, &ReindexBodyScriptBranchError{Want: "Stored", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexBodyScript", Want: "Stored", Got: u.typ.String()}
 }
 
 // NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
@@ -627,19 +601,6 @@ func (t ReindexSourceSortType) String() string {
 	}
 }
 
-// ReindexSourceSortBranchError is returned by a branch accessor when the union holds a
-// different branch. Recover it with errors.As to compare Want against Got.
-type ReindexSourceSortBranchError struct {
-	// Want is the branch the caller asked for.
-	Want string
-	// Got is the branch actually decoded.
-	Got ReindexSourceSortType
-}
-
-func (e *ReindexSourceSortBranchError) Error() string {
-	return fmt.Sprintf("ReindexSourceSort: holds branch %s, not %s", e.Got, e.Want)
-}
-
 // Type returns which union branch was populated during decoding.
 // Returns ReindexSourceSortUnknownType if the value has not been decoded.
 func (u *ReindexSourceSort) Type() ReindexSourceSortType { return u.typ }
@@ -660,15 +621,15 @@ func (u *ReindexSourceSort) SetRaw(raw json.RawMessage) {
 }
 
 // String returns the string branch value. It returns a
-// *ReindexSourceSortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexSourceSort) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
 		return *v, nil
 	}
 	var zero string
-	return zero, &ReindexSourceSortBranchError{Want: "String", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexSourceSort", Want: "String", Got: u.typ.String()}
 }
 
 // NewReindexSourceSortFromString returns a ReindexSourceSort populated with v
@@ -681,15 +642,15 @@ func NewReindexSourceSortFromString(v string) ReindexSourceSort {
 }
 
 // StringMap returns the map[string]string branch value. It returns a
-// *ReindexSourceSortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]string in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]string in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexSourceSort) StringMap() (map[string]string, error) {
 	if v, ok := u.value.(*map[string]string); ok {
 		return *v, nil
 	}
 	var zero map[string]string
-	return zero, &ReindexSourceSortBranchError{Want: "StringMap", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexSourceSort", Want: "StringMap", Got: u.typ.String()}
 }
 
 // NewReindexSourceSortFromStringMap returns a ReindexSourceSort populated with v
@@ -702,15 +663,15 @@ func NewReindexSourceSortFromStringMap(v map[string]string) ReindexSourceSort {
 }
 
 // FieldSortMap returns the map[string]FieldSort branch value. It returns a
-// *ReindexSourceSortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero map[string]FieldSort in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]FieldSort in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexSourceSort) FieldSortMap() (map[string]FieldSort, error) {
 	if v, ok := u.value.(*map[string]FieldSort); ok {
 		return *v, nil
 	}
 	var zero map[string]FieldSort
-	return zero, &ReindexSourceSortBranchError{Want: "FieldSortMap", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexSourceSort", Want: "FieldSortMap", Got: u.typ.String()}
 }
 
 // NewReindexSourceSortFromFieldSortMap returns a ReindexSourceSort populated with v
@@ -723,15 +684,15 @@ func NewReindexSourceSortFromFieldSortMap(v map[string]FieldSort) ReindexSourceS
 }
 
 // Options returns the SortOptions branch value. It returns a
-// *ReindexSourceSortBranchError when the union holds a different branch, naming the
-// branch that is set; the returned value is the zero SortOptions in that
-// case, which is indistinguishable from a decoded one, so check the error.
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SortOptions in that case,
+// which is indistinguishable from a decoded one, so check the error.
 func (u *ReindexSourceSort) Options() (SortOptions, error) {
 	if v, ok := u.value.(*SortOptions); ok {
 		return *v, nil
 	}
 	var zero SortOptions
-	return zero, &ReindexSourceSortBranchError{Want: "Options", Got: u.typ}
+	return zero, &UnionBranchError{Union: "ReindexSourceSort", Want: "Options", Got: u.typ.String()}
 }
 
 // NewReindexSourceSortFromOptions returns a ReindexSourceSort populated with v
