@@ -113,12 +113,10 @@ func flattenFields(st *types.Struct, seen map[string]bool) []Field {
 		if !f.Exported() {
 			continue
 		}
-		_, isPtr := f.Type().(*types.Pointer)
 		out = append(out, Field{
-			Name:      f.Name(),
-			Type:      f.Type().String(),
-			IsPointer: isPtr,
-			JSONTag:   reflect.StructTag(st.Tag(i)).Get("json"),
+			Name:    f.Name(),
+			Type:    f.Type().String(),
+			JSONTag: reflect.StructTag(st.Tag(i)).Get("json"),
 		})
 	}
 	return out

@@ -65,7 +65,7 @@ func TestArgDetailV2toV3AgainstSurfaces(t *testing.T) {
 		require.Truef(t, ok, "struct %s.%s not found in surface", pkg, structName)
 		m := make(map[string]bool, len(st.Fields))
 		for _, f := range st.Fields {
-			m[f.Name] = f.IsPointer
+			m[f.Name] = f.IsPointer()
 		}
 		return m
 	}
