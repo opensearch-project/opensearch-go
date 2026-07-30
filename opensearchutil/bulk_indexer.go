@@ -35,7 +35,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"runtime"
 	"strings"
 	"sync"
@@ -282,10 +281,17 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 			idx = bi.config.Index
 		}
 
-		u := url.URL{Path: path.Join("/", idx, "_doc", item.DocumentID)}
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
+		encodedPath := "/" + url.PathEscape(idx) + "/_doc/" + url.PathEscape(item.DocumentID)
 
-		if err == nil {
+		if p, err := url.PathUnescape(encodedPath); err == nil {
+			req := (&http.Request{
+				Method: http.MethodPost,
+				URL: &url.URL{
+					Path:    p,
+					RawPath: encodedPath,
+				},
+			}).WithContext(ctx)
+
 			if hop, evalErr := bi.docRouter.Eval(ctx, req); evalErr == nil && hop.Conn != nil {
 				bi.queues.RLock()
 				targetQueue = bi.queues.m[hop.Conn]
