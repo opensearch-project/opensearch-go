@@ -697,7 +697,8 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 			contains: []string{
 				"func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError",
 				"resp.Type() == MSearchUnionItemErrorResultType",
-				"ErrorRespBase: resp.ErrorResult()",
+				"errBranch, _ := resp.ErrorResult()",
+				"ErrorRespBase: errBranch,",
 			},
 			// Union shape must not fall back to the flat template.
 			notContains: []string{"if resp.Error != nil"},

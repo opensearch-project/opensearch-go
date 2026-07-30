@@ -69,7 +69,8 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "type TryEachValue struct")
 	require.Contains(t, body, "value any")
 	require.Contains(t, body, "TryEachValueType")
-	require.Contains(t, body, "func (u *TryEachValue) AsMap() map[string]any")
+	require.Contains(t, body, "func (u *TryEachValue) AsMap() (map[string]any, error)")
+	require.Contains(t, body, "TryEachValueBranchError{Want: \"AsMap\"")
 	require.Contains(t, body, "u.value.(*map[string]any)")
 	require.Contains(t, body, "if err := json.Unmarshal(data, &v); err == nil")
 	require.Contains(t, body, "RawJSON")
@@ -230,29 +231,6 @@ func TestUnionFragment_Imports(t *testing.T) {
 			require.True(t, hasJSON, "all union fragments need encoding/json")
 			require.Equal(t, tt.wantFmt, hasFmt, "fmt import mismatch")
 			require.Equal(t, tt.wantCoreImport, hasCore, "core import mismatch")
-		})
-	}
-}
-
-func TestTokenClassStr(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		tc   ir.TokenClass
-		want string
-	}{
-		{ir.TokenObject, "object"},
-		{ir.TokenArray, "array"},
-		{ir.TokenString, "string"},
-		{ir.TokenNumber, "number"},
-		{ir.TokenBool, "bool"},
-		{ir.TokenClass(99), "unknown"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.want, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, emit.TokenClassStr(tt.tc))
 		})
 	}
 }

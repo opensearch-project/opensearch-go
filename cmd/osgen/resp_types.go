@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"sort"
+
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // goField represents a single struct field in a generated Go type.
@@ -28,13 +30,13 @@ type goField struct {
 
 // unionBranch represents one branch of a oneOf/anyOf discriminated union.
 type unionBranch struct {
-	Name         string   // Go accessor/const suffix (e.g. "TotalHits", "Int64")
-	GoType       string   // Go type of the branch value (e.g. "SearchTotalHits", "int64")
-	TokenClass   string   // "object", "array", "number", "string", "bool" for byte-prefix dispatch
-	Required     []string // required fields for object validation (try-each heuristic)
-	IsRef        bool     // branch came from a $ref (needs registry walk)
-	VersionAdded string   // x-version-added from the spec (for try-each ordering)
-	Ordinal      int      // position in the spec oneOf/anyOf array; the source of truth for order (Name must never be parsed for it)
+	Name         string        // Go accessor/const suffix (e.g. "TotalHits", "Int64")
+	GoType       string        // Go type of the branch value (e.g. "SearchTotalHits", "int64")
+	TokenClass   ir.TokenClass // JSON token that selects this branch in byte-prefix dispatch
+	Required     []string      // required fields for object validation (try-each heuristic)
+	IsRef        bool          // branch came from a $ref (needs registry walk)
+	VersionAdded string        // x-version-added from the spec (for try-each ordering)
+	Ordinal      int           // position in the spec oneOf/anyOf array; the source of truth for order (Name must never be parsed for it)
 }
 
 // goType represents a generated Go struct type or discriminated union.

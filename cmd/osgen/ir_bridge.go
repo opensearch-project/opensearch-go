@@ -416,27 +416,10 @@ func convertUnionBranch(b unionBranch) ir.UnionBranch {
 	return ir.UnionBranch{
 		Name:         b.Name,
 		GoType:       b.GoType,
-		TokenClass:   convertTokenClass(b.TokenClass),
+		TokenClass:   b.TokenClass,
 		Required:     b.Required,
 		IsRef:        b.IsRef,
 		VersionAdded: b.VersionAdded,
-	}
-}
-
-func convertTokenClass(tc string) ir.TokenClass {
-	switch tc {
-	case "object":
-		return ir.TokenObject
-	case "array":
-		return ir.TokenArray
-	case "string":
-		return ir.TokenString
-	case "number":
-		return ir.TokenNumber
-	case "bool":
-		return ir.TokenBool
-	default:
-		return ir.TokenObject
 	}
 }
 

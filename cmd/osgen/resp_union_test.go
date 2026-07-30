@@ -317,39 +317,39 @@ func TestUnionNeedsTryEach(t *testing.T) {
 	}{
 		{
 			name:     "single branch",
-			branches: []unionBranch{{TokenClass: "object"}},
+			branches: []unionBranch{{TokenClass: ir.TokenObject}},
 			want:     false,
 		},
 		{
 			name: "different tokens",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "number"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenNumber},
 			},
 			want: false,
 		},
 		{
 			name: "same token object",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "object"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenObject},
 			},
 			want: true,
 		},
 		{
 			name: "same token string",
 			branches: []unionBranch{
-				{TokenClass: "string"},
-				{TokenClass: "string"},
+				{TokenClass: ir.TokenString},
+				{TokenClass: ir.TokenString},
 			},
 			want: true,
 		},
 		{
 			name: "three mixed with collision",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "object"},
-				{TokenClass: "string"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenString},
 			},
 			want: true,
 		},
@@ -369,19 +369,19 @@ func TestTokenClassForPrimitive(t *testing.T) {
 
 	tests := []struct {
 		goType string
-		want   string
+		want   ir.TokenClass
 	}{
-		{"string", "string"},
-		{"bool", "bool"},
-		{"int", "number"},
-		{"int32", "number"},
-		{"int64", "number"},
-		{"float32", "number"},
-		{"float64", "number"},
-		{"[]string", "array"},
-		{"[]int", "array"},
-		{"map[string]int", "object"},
-		{"SomeStruct", "object"},
+		{"string", ir.TokenString},
+		{"bool", ir.TokenBool},
+		{"int", ir.TokenNumber},
+		{"int32", ir.TokenNumber},
+		{"int64", ir.TokenNumber},
+		{"float32", ir.TokenNumber},
+		{"float64", ir.TokenNumber},
+		{"[]string", ir.TokenArray},
+		{"[]int", ir.TokenArray},
+		{"map[string]int", ir.TokenObject},
+		{"SomeStruct", ir.TokenObject},
 	}
 
 	for _, tt := range tests {
@@ -462,42 +462,42 @@ func TestClassifyBranchInlinePrimitives(t *testing.T) {
 		schema    *openapi3.Schema
 		wantName  string
 		wantType  string
-		wantToken string
+		wantToken ir.TokenClass
 	}{
 		{
 			name:      "string",
 			schema:    openapi3.NewStringSchema(),
 			wantName:  "String",
 			wantType:  "string",
-			wantToken: "string",
+			wantToken: ir.TokenString,
 		},
 		{
 			name:      "boolean",
 			schema:    openapi3.NewBoolSchema(),
 			wantName:  "Bool",
 			wantType:  "bool",
-			wantToken: "bool",
+			wantToken: ir.TokenBool,
 		},
 		{
 			name:      "integer",
 			schema:    openapi3.NewIntegerSchema(),
 			wantName:  "Int",
 			wantType:  "int",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 		{
 			name:      "int64",
 			schema:    openapi3.NewInt64Schema(),
 			wantName:  "Int64",
 			wantType:  "int64",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 		{
 			name:      "float64",
 			schema:    openapi3.NewFloat64Schema(),
 			wantName:  "Float64",
 			wantType:  "float64",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 	}
 
@@ -532,7 +532,7 @@ func TestClassifyBranchInlineArray(t *testing.T) {
 	b := w.classifyBranch(ref, "test___Parent", "test", 0, "")
 	require.Equal(t, "Array", b.Name)
 	require.Equal(t, "[]string", b.GoType)
-	require.Equal(t, "array", b.TokenClass)
+	require.Equal(t, ir.TokenArray, b.TokenClass)
 }
 
 func TestClassifyBranchNilRef(t *testing.T) {
@@ -669,7 +669,7 @@ func TestClassifyBranchInlineObject(t *testing.T) {
 			b := w.classifyBranch(objectSchema(), "_common___Parent", "_common", tt.branchIdx, tt.objName)
 			require.Equal(t, tt.wantName, b.Name)
 			require.Equal(t, tt.wantGoType, b.GoType)
-			require.Equal(t, "object", b.TokenClass)
+			require.Equal(t, ir.TokenObject, b.TokenClass)
 		})
 	}
 }
@@ -764,7 +764,7 @@ func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {
 		IsShared:  true,
 		IsUnion:   true,
 		Branches: []unionBranch{
-			{Name: "BranchType", GoType: "BranchType", TokenClass: "object"},
+			{Name: "BranchType", GoType: "BranchType", TokenClass: ir.TokenObject},
 		},
 	}
 	reg.register(unionType)

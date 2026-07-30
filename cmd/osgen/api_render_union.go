@@ -6,13 +6,15 @@
 
 package main
 
+import "github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+
 // unionNeedsTryEach returns true if any two branches share the same token class,
 // meaning byte-prefix discrimination is insufficient for at least one pair.
 func unionNeedsTryEach(branches []unionBranch) bool {
 	if len(branches) < 2 {
 		return false
 	}
-	seen := make(map[string]bool, len(branches))
+	seen := make(map[ir.TokenClass]bool, len(branches))
 	for _, b := range branches {
 		if seen[b.TokenClass] {
 			return true

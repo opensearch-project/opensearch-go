@@ -14,6 +14,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"golang.org/x/mod/semver"
+
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // resolveUnionType classifies a oneOf/anyOf schema into branches, registers
@@ -166,7 +168,7 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		return unionBranch{
 			Name:         "Array",
 			GoType:       sliceType,
-			TokenClass:   "array",
+			TokenClass:   ir.TokenArray,
 			VersionAdded: versionAdded,
 		}
 	}
@@ -191,7 +193,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		return unionBranch{
 			Name:         "Map",
 			GoType:       "map[string]json.RawMessage",
-			TokenClass:   "object",
+			TokenClass:   ir.TokenObject,
 			VersionAdded: versionAdded,
 		}
 	}
@@ -210,7 +212,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		return unionBranch{
 			Name:         name,
 			GoType:       goTypeName,
-			TokenClass:   "object",
+			TokenClass:   ir.TokenObject,
 			Required:     flattenRequired(s),
 			IsRef:        true,
 			VersionAdded: versionAdded,
@@ -221,7 +223,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 	return unionBranch{
 		Name:         "Map",
 		GoType:       "map[string]json.RawMessage",
-		TokenClass:   "object",
+		TokenClass:   ir.TokenObject,
 		VersionAdded: versionAdded,
 	}
 }
@@ -332,10 +334,10 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 	}
 
 	if strings.HasPrefix(goTypeName, "map[") {
-		return unionBranch{Name: "Map", GoType: goTypeName, TokenClass: "object", VersionAdded: versionAdded}
+		return unionBranch{Name: "Map", GoType: goTypeName, TokenClass: ir.TokenObject, VersionAdded: versionAdded}
 	}
 	if strings.HasPrefix(goTypeName, "[]") {
-		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: "array", VersionAdded: versionAdded}
+		return unionBranch{Name: "Array", GoType: goTypeName, TokenClass: ir.TokenArray, VersionAdded: versionAdded}
 	}
 
 	branchName := deriveBranchName(ref, goTypeName, key)
@@ -385,48 +387,48 @@ func flattenRequired(s *openapi3.Schema) []string {
 }
 
 // tokenClassForSchemaValue returns the JSON token class for a resolved schema.
-func tokenClassForSchemaValue(schema *openapi3.Schema) string {
+func tokenClassForSchemaValue(schema *openapi3.Schema) ir.TokenClass {
 	if schema == nil {
-		return "object"
+		return ir.TokenObject
 	}
 	if schema.Type == nil {
 		if len(schema.Properties) > 0 || len(schema.AllOf) > 0 {
-			return "object"
+			return ir.TokenObject
 		}
-		return "object"
+		return ir.TokenObject
 	}
 	switch {
 	case schema.Type.Is(openapi3.TypeObject):
-		return "object"
+		return ir.TokenObject
 	case schema.Type.Is(openapi3.TypeArray):
-		return "array"
+		return ir.TokenArray
 	case schema.Type.Is(openapi3.TypeString):
-		return "string"
+		return ir.TokenString
 	case schema.Type.Is(openapi3.TypeInteger), schema.Type.Is(openapi3.TypeNumber):
-		return "number"
+		return ir.TokenNumber
 	case schema.Type.Is(openapi3.TypeBoolean):
-		return "bool"
+		return ir.TokenBool
 	}
-	return "object"
+	return ir.TokenObject
 }
 
 // tokenClassForPrimitive maps a Go type name to its JSON token class.
-func tokenClassForPrimitive(goType string) string {
+func tokenClassForPrimitive(goType string) ir.TokenClass {
 	switch goType {
 	case "string":
-		return "string"
+		return ir.TokenString
 	case "bool":
-		return "bool"
+		return ir.TokenBool
 	case "int", "int32", "int64", "float32", "float64":
-		return "number"
+		return ir.TokenNumber
 	}
 	if strings.HasPrefix(goType, "[]") {
-		return "array"
+		return ir.TokenArray
 	}
 	if strings.HasPrefix(goType, "map[") {
-		return "object"
+		return ir.TokenObject
 	}
-	return "object"
+	return ir.TokenObject
 }
 
 // primitiveBranchName returns the exported Go name for a primitive type

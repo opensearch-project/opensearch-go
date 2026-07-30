@@ -93,36 +93,23 @@ func (f *UnionFragment) Body() (string, error) {
 
 	var sb strings.Builder
 	tmpl := template.Must(template.New("union").Funcs(template.FuncMap{
-		"comment":    CommentWrap,
-		"constName":  unionConstNameIR,
-		"tokenStr":   tokenClassStr,
-		"isTryEach":  func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
-		"qualify":    qualify,
-		"quotedKeys": quotedKeys,
-		"embedField": embedFieldName,
+		"comment":     CommentWrap,
+		"constName":   unionConstNameIR,
+		"isTryEach":   func(k ir.TypeKind) bool { return k == ir.TypeLazyUnion },
+		"qualify":     qualify,
+		"quotedKeys":  quotedKeys,
+		"embedField":  embedFieldName,
+		"tokenObject": func() ir.TokenClass { return ir.TokenObject },
+		"tokenArray":  func() ir.TokenClass { return ir.TokenArray },
+		"tokenString": func() ir.TokenClass { return ir.TokenString },
+		"tokenNumber": func() ir.TokenClass { return ir.TokenNumber },
+		"tokenBool":   func() ir.TokenClass { return ir.TokenBool },
 	}).Parse(unionFragTmplText))
 
 	if err := tmpl.Execute(&sb, f.Types); err != nil {
 		return "", fmt.Errorf("rendering UnionFragment: %w", err)
 	}
 	return sb.String(), nil
-}
-
-func tokenClassStr(tc ir.TokenClass) string {
-	switch tc {
-	case ir.TokenObject:
-		return "object"
-	case ir.TokenArray:
-		return "array"
-	case ir.TokenString:
-		return "string"
-	case ir.TokenNumber:
-		return "number"
-	case ir.TokenBool:
-		return "bool"
-	default:
-		return "unknown"
-	}
 }
 
 func unionConstNameIR(unionName, branchName string) string {
@@ -587,7 +574,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	}
 	switch {
 {{- range $t.Branches}}
-{{- if eq (tokenStr .TokenClass) "object"}}
+{{- if eq .TokenClass tokenObject}}
 	case data[0] == '{':
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
@@ -595,7 +582,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		}
 		u.typ = {{constName $t.Name .Name}}
 		u.value = &v
-{{- else if eq (tokenStr .TokenClass) "array"}}
+{{- else if eq .TokenClass tokenArray}}
 	case data[0] == '[':
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
@@ -603,7 +590,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		}
 		u.typ = {{constName $t.Name .Name}}
 		u.value = &v
-{{- else if eq (tokenStr .TokenClass) "string"}}
+{{- else if eq .TokenClass tokenString}}
 	case data[0] == '"':
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
@@ -611,7 +598,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		}
 		u.typ = {{constName $t.Name .Name}}
 		u.value = &v
-{{- else if eq (tokenStr .TokenClass) "number"}}
+{{- else if eq .TokenClass tokenNumber}}
 	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {
@@ -619,7 +606,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 		}
 		u.typ = {{constName $t.Name .Name}}
 		u.value = &v
-{{- else if eq (tokenStr .TokenClass) "bool"}}
+{{- else if eq .TokenClass tokenBool}}
 	case data[0] == 't' || data[0] == 'f':
 		var v {{qualify .GoType}}
 		if err := json.Unmarshal(data, &v); err != nil {

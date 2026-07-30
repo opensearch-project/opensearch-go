@@ -31,8 +31,7 @@ var (
 	WrapperMethodName = wrapperMethodName
 
 	// frag_union.go helpers.
-	TokenClassStr = tokenClassStr
-	QuotedKeys    = quotedKeys
+	QuotedKeys = quotedKeys
 )
 
 // UnionFromResponses returns the resolved union shape for the test

@@ -9,6 +9,8 @@ package ir_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
@@ -155,5 +157,24 @@ func TestTypeKindConstants(t *testing.T) {
 		if int(kinds[i]) != i {
 			t.Errorf("TypeKind %d has value %d, want %d", i, int(kinds[i]), i)
 		}
+	}
+}
+
+func TestTokenClassConstants(t *testing.T) {
+	t.Parallel()
+
+	// The emitter selects a union branch's decode arm by comparing TokenClass
+	// values, so the constants are the contract; nothing depends on a string
+	// spelling. Pin the iota order so a reordering that would silently remap
+	// existing branches fails here.
+	classes := []ir.TokenClass{
+		ir.TokenObject,
+		ir.TokenArray,
+		ir.TokenString,
+		ir.TokenNumber,
+		ir.TokenBool,
+	}
+	for i := range classes {
+		require.Equal(t, i, int(classes[i]), "TokenClass constants must keep their iota order")
 	}
 }
