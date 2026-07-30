@@ -1111,15 +1111,18 @@ func TestBulkIndexer_ConsistentRouting(t *testing.T) {
 	docRouter, err := opensearchtransport.NewDocRouter()
 	require.NoError(t, err, "Unexpected error creating DocRouter")
 
+	// Manually initialize the indexer without calling init()
+	// so background workers don't drain the queues during the test.
 	bi := &bulkIndexer{
 		config:    BulkIndexerConfig{NumWorkers: numWorkers},
-		queues:    make([]chan BulkIndexerItem, numWorkers),
+		rrQueues:  make([]chan BulkIndexerItem, numWorkers),
 		stats:     &bulkIndexerStats{},
 		docRouter: docRouter,
 	}
+	bi.queues.m = make(map[*opensearchtransport.Connection]chan BulkIndexerItem)
 
 	for i := range numWorkers {
-		bi.queues[i] = make(chan BulkIndexerItem, 100)
+		bi.rrQueues[i] = make(chan BulkIndexerItem, 100)
 	}
 
 	targetDocID := "user_123"
@@ -1135,7 +1138,8 @@ func TestBulkIndexer_ConsistentRouting(t *testing.T) {
 	}
 
 	populatedChannels := 0
-	for i, q := range bi.queues {
+	// Check rrQueues since the map dynamically points to these channels
+	for i, q := range bi.rrQueues {
 		if len(q) == numItems {
 			populatedChannels++
 		} else {

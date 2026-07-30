@@ -34,6 +34,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
 	"runtime"
 	"strings"
 	"sync"
@@ -168,8 +170,12 @@ type BulkIndexerDebugLogger interface {
 }
 
 type bulkIndexer struct {
-	wg        sync.WaitGroup
-	queues    []chan BulkIndexerItem
+	wg     sync.WaitGroup
+	queues struct {
+		sync.RWMutex
+		m map[*opensearchtransport.Connection]chan BulkIndexerItem
+	}
+	rrQueues  []chan BulkIndexerItem
 	docRouter *opensearchtransport.DocRouter
 	rrCounter atomic.Uint64 // added for round-robin fallback
 	workers   []*worker
@@ -276,25 +282,39 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 			idx = bi.config.Index
 		}
 
-		hashInput := item.DocumentID
-		path := fmt.Sprintf("/%s/_doc/%s", idx, item.DocumentID)
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, path, nil)
+		u := url.URL{Path: path.Join("/", idx, "_doc", item.DocumentID)}
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), nil)
 
 		if err == nil {
-			hop, evalErr := bi.docRouter.Eval(ctx, req)
-			if evalErr == nil && hop.Conn != nil {
-				hashInput = fmt.Sprintf("%p", hop.Conn)
+			if hop, evalErr := bi.docRouter.Eval(ctx, req); evalErr == nil && hop.Conn != nil {
+				bi.queues.RLock()
+				targetQueue = bi.queues.m[hop.Conn]
+				bi.queues.RUnlock()
+
+				if targetQueue == nil {
+					bi.queues.Lock()
+					targetQueue = bi.queues.m[hop.Conn]
+					if targetQueue == nil {
+						//nolint:gosec // G115: NumWorkers is strictly positive
+						workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
+						targetQueue = bi.rrQueues[workerIndex]
+						bi.queues.m[hop.Conn] = targetQueue
+					}
+					bi.queues.Unlock()
+				}
 			}
 		}
 
-		//nolint:gosec // intentional conversion from signed to unsigned for modulo
-		workerIndex := uint32(shardhash.Hash(hashInput)) % uint32(bi.config.NumWorkers)
-		targetQueue = bi.queues[workerIndex]
+		if targetQueue == nil {
+			//nolint:gosec // G115: intentional conversion from signed to unsigned for modulo
+			workerIndex := uint32(shardhash.Hash(item.DocumentID)) % uint32(bi.config.NumWorkers)
+			targetQueue = bi.rrQueues[workerIndex]
+		}
 	} else {
 		// Round-robin distribution for items without a DocumentID
-		//nolint:gosec // NumWorkers is strictly positive
+		//nolint:gosec // G115: NumWorkers is strictly positive
 		workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
-		targetQueue = bi.queues[workerIndex]
+		targetQueue = bi.rrQueues[workerIndex]
 	}
 
 	select {
@@ -317,7 +337,7 @@ func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
 
 	// Iterate through the slice and close each worker's channel
-	for _, q := range bi.queues {
+	for _, q := range bi.rrQueues {
 		close(q)
 	}
 
@@ -383,19 +403,22 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 
 // init initializes the bulk indexer.
 func (bi *bulkIndexer) init(ctx context.Context) {
-	bi.queues = make([]chan BulkIndexerItem, bi.config.NumWorkers)
+	bi.queues.m = make(map[*opensearchtransport.Connection]chan BulkIndexerItem)
+	bi.rrQueues = make([]chan BulkIndexerItem, bi.config.NumWorkers)
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
-		bi.queues[i-1] = make(chan BulkIndexerItem, bi.config.NumWorkers)
+		ch := make(chan BulkIndexerItem, bi.config.NumWorkers)
+		bi.rrQueues[i-1] = ch
 		w := worker{
 			id:  i,
-			ch:  bi.queues[i-1],
+			ch:  ch,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
 		}
 		w.run(ctx)
 		bi.workers = append(bi.workers, &w)
 	}
+
 	bi.wg.Add(bi.config.NumWorkers)
 
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)
