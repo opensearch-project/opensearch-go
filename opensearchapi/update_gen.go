@@ -211,7 +211,7 @@ func (r UpdateParams) get() map[string]string {
 type UpdateResp struct {
 	WriteRespBase
 
-	// The result of an inline get operation.
+	// Get is the result of an inline get operation.
 	Get *InlineGet `json:"get,omitempty"`
 
 	response *opensearch.Response
@@ -235,43 +235,45 @@ func (r UpdateResp) RawBody() io.Reader {
 //
 // The request definition requires either `script` or partial `doc`
 type UpdateBody struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
 	Source *UpdateBodySource `json:"_source,omitempty"`
 
-	// Set to `false` to disable setting `result` in the response to `noop` if
-	// no change to the document occurred.
+	// DetectNoop. Set to `false` to disable setting `result` in the response
+	// to `noop` if no change to the document occurred.
 	DetectNoop *bool `json:"detect_noop,omitempty"`
 
-	// A partial update to an existing document.
+	// Doc is a partial update to an existing document.
 	Doc json.RawMessage `json:"doc"`
 
-	// Set to `true` to use the contents of 'doc' as the value of 'upsert'
+	// DocAsUpsert. Set to `true` to use the contents of 'doc' as the value of
+	// 'upsert'
 	DocAsUpsert *bool `json:"doc_as_upsert,omitempty"`
 
 	Script *UpdateBodyScript `json:"script,omitempty"`
 
-	// Set to `true` to execute the script whether or not the document exists.
+	// ScriptedUpsert. Set to `true` to execute the script whether or not the
+	// document exists.
 	ScriptedUpsert *bool `json:"scripted_upsert,omitempty"`
 
-	// If the document does not already exist, the contents of 'upsert' are
-	// inserted as a new document. If the document exists, the 'script' is
+	// Upsert. If the document does not already exist, the contents of 'upsert'
+	// are inserted as a new document. If the document exists, the 'script' is
 	// executed.
 	Upsert json.RawMessage `json:"upsert"`
 }
 
 // UpdateBodySourceExcludesIncludes is a typed component of the update operation.
 type UpdateBodySourceExcludesIncludes struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Excludes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Excludes *string `json:"excludes,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Includes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Includes *string `json:"includes,omitempty"`
 }
 

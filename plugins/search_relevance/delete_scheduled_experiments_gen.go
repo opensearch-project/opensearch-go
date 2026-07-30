@@ -87,20 +87,20 @@ func (r DeleteScheduledExperimentsParams) get() map[string]string {
 //
 // Available: >= 3.4.0.
 type DeleteScheduledExperimentsResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version       int64                `json:"_version"`

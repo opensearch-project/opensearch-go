@@ -110,7 +110,7 @@ type ExecuteAgentResp struct {
 	InferenceResults []opensearchapi.MLInferenceResults `json:"inference_results,omitempty"`
 	PredictionResult *opensearchapi.MLPredictionResult  `json:"prediction_result,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 
 	response *opensearch.Response
@@ -134,6 +134,6 @@ func (r ExecuteAgentResp) RawBody() io.Reader {
 type MLExecuteAgentBody struct {
 	Parameters opensearchapi.MLParameters `json:"parameters"`
 
-	// Whether to provide verbose output.
+	// ParametersVerbose. Whether to provide verbose output.
 	ParametersVerbose *bool `json:"parameters.verbose,omitempty"`
 }

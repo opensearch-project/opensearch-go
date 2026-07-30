@@ -113,10 +113,10 @@ type SearchMessageResp struct {
 	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 	Hits   opensearchapi.MLSearchHits     `json:"hits"`
 
-	// Whether the search timed out.
+	// TimedOut. Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// The time taken to execute the search.
+	// Took is the time taken to execute the search.
 	Took *int `json:"took,omitempty"`
 
 	response *opensearch.Response
@@ -140,10 +140,10 @@ func (r SearchMessageResp) RawBody() io.Reader {
 type MLSearchMessageBody struct {
 	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The number of messages to return.
+	// Size is the number of messages to return.
 	Size *int64 `json:"size,omitempty"`
 
-	// The sort order.
+	// Sort is the sort order.
 	Sort *MLSearchMessageBodySort `json:"sort,omitempty"`
 }
 

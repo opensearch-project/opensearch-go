@@ -107,20 +107,20 @@ func (r UpdateModelParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type UpdateModelResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version       int64                `json:"_version"`
@@ -146,26 +146,26 @@ func (r UpdateModelResp) RawBody() io.Reader {
 
 // MLUpdateModelBody is a typed component of the ml.update_model operation.
 type MLUpdateModelBody struct {
-	// The connector to use for the model.
+	// Connector is the connector to use for the model.
 	Connector json.RawMessage `json:"connector"`
 
-	// The connector ID.
+	// ConnectorID is the connector ID.
 	ConnectorID *string `json:"connector_id,omitempty"`
 
-	// The model description.
+	// Description is the model description.
 	Description *string `json:"description,omitempty"`
 
 	Guardrails *opensearchapi.MLGuardrails `json:"guardrails,omitempty"`
 
-	// The model interface.
+	// Interface is the model interface.
 	Interface json.RawMessage `json:"interface"`
 
-	// Whether the model is enabled.
+	// IsEnabled. Whether the model is enabled.
 	IsEnabled *bool `json:"is_enabled,omitempty"`
 
 	ModelConfig *opensearchapi.MLModelConfig `json:"model_config,omitempty"`
 
-	// The model name.
+	// Name is the model name.
 	Name *string `json:"name,omitempty"`
 
 	RateLimiter *opensearchapi.MLRateLimiter `json:"rate_limiter,omitempty"`

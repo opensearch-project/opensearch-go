@@ -111,49 +111,49 @@ func (r DeleteAgenticMemoryQueryParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type DeleteAgenticMemoryQueryResp struct {
-	// Number of batches processed.
+	// Batches. Number of batches processed.
 	Batches *int64 `json:"batches,omitempty"`
 
-	// Number of documents created.
+	// Created. Number of documents created.
 	Created *int64 `json:"created,omitempty"`
 
-	// Number of documents deleted.
+	// Deleted. Number of documents deleted.
 	Deleted *int64 `json:"deleted,omitempty"`
 
-	// Any failures occurred during the operation.
+	// Failures. Any failures occurred during the operation.
 	Failures []opensearchapi.MLDeleteAgenticMemoryRespFailuresItem `json:"failures,omitempty"`
 
-	// Number of no-operation updates.
+	// Noops. Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`
 
-	// Number of requests processed per second.
+	// RequestsPerSecond. Number of requests processed per second.
 	RequestsPerSecond *float32 `json:"requests_per_second,omitempty"`
 
-	// The result of delete operation.
+	// Result is the result of delete operation.
 	Result *string `json:"result,omitempty"`
 
-	// The retry statistics for bulk and search operations.
+	// Retries is the retry statistics for bulk and search operations.
 	Retries *opensearchapi.Retries `json:"retries,omitempty"`
 
-	// Time that the request was throttled.
+	// ThrottledMillis. Time that the request was throttled.
 	ThrottledMillis *int64 `json:"throttled_millis,omitempty"`
 
-	// Time until throttling is lifted.
+	// ThrottledUntilMillis. Time until throttling is lifted.
 	ThrottledUntilMillis *int64 `json:"throttled_until_millis,omitempty"`
 
-	// Whether the request timed out.
+	// TimedOut. Whether the request timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// Time taken to execute the request.
+	// Took. Time taken to execute the request.
 	Took *int64 `json:"took,omitempty"`
 
 	// Total number of documents processed.
 	Total *int64 `json:"total,omitempty"`
 
-	// Number of documents updated.
+	// Updated. Number of documents updated.
 	Updated *int64 `json:"updated,omitempty"`
 
-	// Number of version conflicts encountered.
+	// VersionConflicts. Number of version conflicts encountered.
 	VersionConflicts *int64 `json:"version_conflicts,omitempty"`
 
 	response *opensearch.Response

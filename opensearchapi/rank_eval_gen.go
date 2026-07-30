@@ -147,13 +147,14 @@ func (r RankEvalParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/rank-eval/
 type RankEvalResp struct {
-	// The details section contains one entry for every query in the original
-	// requests section, keyed by the search request id
+	// Details is the details section contains one entry for every query in the
+	// original requests section, keyed by the search request id
 	Details map[string]RankEvalMetricDetail `json:"details"`
 
 	Failures map[string]json.RawMessage `json:"failures"`
 
-	// The overall evaluation quality calculated by the defined metric
+	// MetricScore is the overall evaluation quality calculated by the defined
+	// metric
 	MetricScore float64 `json:"metric_score"`
 
 	response *opensearch.Response
@@ -175,23 +176,24 @@ func (r RankEvalResp) RawBody() io.Reader {
 
 // RankEvalMetricDetail is a typed component of the rank_eval operation.
 type RankEvalMetricDetail struct {
-	// The `hits` section provides a grouping of the search results with their
-	// supplied ratings.
+	// Hits is the `hits` section provides a grouping of the search results
+	// with their supplied ratings.
 	Hits []RankEvalHitItem `json:"hits"`
 
-	// The `metric_details` section provides additional information about the
-	// calculated quality metric indicating the number of relevant retrieved
-	// documents. The content varies for each metric but allows for better
-	// interpretation of the results.
+	// MetricDetails is the `metric_details` section provides additional
+	// information about the calculated quality metric indicating the number of
+	// relevant retrieved documents. The content varies for each metric but
+	// allows for better interpretation of the results.
 	MetricDetails map[string]map[string]json.RawMessage `json:"metric_details"`
 
-	// The `metric_score`, found in the `metric_details` section, shows the
-	// contribution of this query to the global quality metric score.
+	// MetricScore is the `metric_score`, found in the `metric_details`
+	// section, shows the contribution of this query to the global quality
+	// metric score.
 	MetricScore float64 `json:"metric_score"`
 
-	// The `unrated_docs` section contains an `_index` and `_id` entry for each
-	// document that didn't have a `ratings` value. This can be used to ask the
-	// user to supply ratings for these documents.
+	// UnratedDocs is the `unrated_docs` section contains an `_index` and `_id`
+	// entry for each document that didn't have a `ratings` value. This can be
+	// used to ask the user to supply ratings for these documents.
 	UnratedDocs []RankEvalUnratedDocument `json:"unrated_docs"`
 }
 
@@ -203,19 +205,19 @@ type RankEvalHitItem struct {
 
 // RankEvalHit is a typed component of the rank_eval operation.
 type RankEvalHit struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string  `json:"_index"`
 	Score float64 `json:"_score"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 }
 
 // RankEvalUnratedDocument is a typed component of the rank_eval operation.
 type RankEvalUnratedDocument struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
@@ -227,7 +229,8 @@ type RankEvalUnratedDocument struct {
 type RankEvalBody struct {
 	Metric *RankEvalMetric `json:"metric,omitempty"`
 
-	// A set of typical search requests, together with their provided ratings.
+	// Requests is a set of typical search requests, together with their
+	// provided ratings.
 	Requests []RankEvalRequestItem `json:"requests"`
 }
 
@@ -244,14 +247,15 @@ type RankEvalMetric struct {
 type RankEvalMetricDiscountedCumulativeGain struct {
 	RankEvalMetricBase
 
-	// When `true`, calculates the [normalized discounted cumulative gain
+	// Normalize. When `true`, calculates the [normalized discounted cumulative
+	// gain
 	// (nDCG)](https://en.wikipedia.org/wiki/Discounted_cumulative_gain#Normalized_DCG).
 	Normalize *bool `json:"normalize,omitempty"`
 }
 
 // RankEvalMetricBase is a typed component of the rank_eval operation.
 type RankEvalMetricBase struct {
-	// Sets the maximum number of documents retrieved per query. This value
+	// K. Sets the maximum number of documents retrieved per query. This value
 	// replaces the `size` parameter in the query.
 	K *int `json:"k,omitempty"`
 }
@@ -260,7 +264,8 @@ type RankEvalMetricBase struct {
 type RankEvalMetricExpectedReciprocalRank struct {
 	RankEvalMetricBase
 
-	// The highest relevance grade used in user-supplied relevance judgments.
+	// MaximumRelevance is the highest relevance grade used in user-supplied
+	// relevance judgments.
 	MaximumRelevance int `json:"maximum_relevance"`
 }
 
@@ -268,8 +273,8 @@ type RankEvalMetricExpectedReciprocalRank struct {
 type RankEvalMetricRatingThreshold struct {
 	RankEvalMetricBase
 
-	// Sets the rating threshold above which documents are considered to be
-	// relevant.
+	// RelevantRatingThreshold. Sets the rating threshold above which documents
+	// are considered to be relevant.
 	RelevantRatingThreshold *int `json:"relevant_rating_threshold,omitempty"`
 }
 
@@ -277,38 +282,39 @@ type RankEvalMetricRatingThreshold struct {
 type RankEvalMetricPrecision struct {
 	RankEvalMetricRatingThreshold
 
-	// Controls how unlabeled documents in the search results are counted. When
-	// `true`, unlabeled documents are ignored and are not treated as relevant
-	// or irrelevant. When `false`, unlabeled documents are treated as
-	// irrelevant.
+	// IgnoreUnlabeled. Controls how unlabeled documents in the search results
+	// are counted. When `true`, unlabeled documents are ignored and are not
+	// treated as relevant or irrelevant. When `false`, unlabeled documents are
+	// treated as irrelevant.
 	IgnoreUnlabeled *bool `json:"ignore_unlabeled,omitempty"`
 }
 
 // RankEvalRequestItem is a typed component of the rank_eval operation.
 type RankEvalRequestItem struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// The search template parameters.
+	// Params is the search template parameters.
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 
-	// A list of document ratings.
+	// Ratings is a list of document ratings.
 	Ratings []RankEvalDocumentRating `json:"ratings"`
 
 	Request *RankEvalQuery `json:"request,omitempty"`
 
-	// The unique identifier for a resource.
+	// TemplateID is the unique identifier for a resource.
 	TemplateID *string `json:"template_id,omitempty"`
 }
 
 // RankEvalDocumentRating is a typed component of the rank_eval operation.
 type RankEvalDocumentRating struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The document's relevance with regard to the specified search request.
+	// Rating is the document's relevance with regard to the specified search
+	// request.
 	Rating int `json:"rating"`
 }
 

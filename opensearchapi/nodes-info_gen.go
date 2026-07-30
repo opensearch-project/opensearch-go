@@ -108,7 +108,7 @@ func (r NodesInfoParams) get() map[string]string {
 type NodesInfoResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
 	Nodes map[string]NodesInfoNode `json:"nodes"`
@@ -132,76 +132,77 @@ func (r NodesInfoResp) RawBody() io.Reader {
 
 // NodesInfoNode is a typed component of the nodes.info operation.
 type NodesInfoNode struct {
-	// Information about available aggregation types.
+	// Aggregations. Information about available aggregation types.
 	Aggregations map[string]NodesInfoNodeAggregation `json:"aggregations,omitempty"`
 
-	// The custom attributes of the node.
+	// Attributes is the custom attributes of the node.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
 	BuildFlavor *string `json:"build_flavor,omitempty"`
 
-	// Short hash of the last git commit in this release.
+	// BuildHash. Short hash of the last git commit in this release.
 	BuildHash string `json:"build_hash"`
 
-	// The type of build, such as `tar`, `docker`, `rpm`.
+	// BuildType is the type of build, such as `tar`, `docker`, `rpm`.
 	BuildType string `json:"build_type"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host *string `json:"host,omitempty"`
 
-	// Provides HTTP connection information for the node.
+	// HTTP. Provides HTTP connection information for the node.
 	HTTP *NodesInfoNodeHTTP `json:"http,omitempty"`
 
-	// The ingest pipeline configuration.
+	// Ingest is the ingest pipeline configuration.
 	Ingest *NodesInfoNodeIngest `json:"ingest,omitempty"`
 
-	// The IP address.
+	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// Provides JVM-specific information for the node.
+	// JVM. Provides JVM-specific information for the node.
 	JVM *NodesInfoNodeJVM `json:"jvm,omitempty"`
 
-	// The list of modules installed on the node.
+	// Modules is the list of modules installed on the node.
 	Modules []PluginStats `json:"modules,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// Provides network-related information for the node.
+	// Network. Provides network-related information for the node.
 	Network *NodesInfoNodeNetwork `json:"network,omitempty"`
 
-	// Provides operating system information for the node.
+	// Os. Provides operating system information for the node.
 	Os *NodesInfoNodeOperatingSystem `json:"os,omitempty"`
 
-	// The list of plugins installed on the node.
+	// Plugins is the list of plugins installed on the node.
 	Plugins []PluginStats `json:"plugins,omitempty"`
 
-	// Provides process-related information for the node.
+	// Process. Provides process-related information for the node.
 	Process *NodesInfoNodeProcess `json:"process,omitempty"`
 
-	// The role assigned to the node.
+	// Roles is the role assigned to the node.
 	Roles []NodeRole `json:"roles"`
 
-	// The search pipeline configuration.
+	// SearchPipelines is the search pipeline configuration.
 	SearchPipelines *NodesInfoNodeSearchPipelines `json:"search_pipelines,omitempty"`
 
-	// The configuration settings for the node.
+	// Settings is the configuration settings for the node.
 	Settings *NodesInfoNodeSettings `json:"settings,omitempty"`
 
-	// Information about thread pool configurations.
+	// ThreadPool. Information about thread pool configurations.
 	ThreadPool map[string]NodesInfoNodeThreadPool `json:"thread_pool,omitempty"`
 
-	// Total heap allowed to be used to hold recently indexed documents before
-	// they must be written to disk. This size is a shared pool across all
-	// shards on this node, and is controlled by Indexing Buffer settings.
+	// TotalIndexingBuffer. Total heap allowed to be used to hold recently
+	// indexed documents before they must be written to disk. This size is a
+	// shared pool across all shards on this node, and is controlled by
+	// Indexing Buffer settings.
 	TotalIndexingBuffer *NodesInfoNodeTotalIndexingBuffer `json:"total_indexing_buffer,omitempty"`
 
 	TotalIndexingBufferInBytes *NodesInfoNodeTotalIndexingBufferInBytes `json:"total_indexing_buffer_in_bytes,omitempty"`
 
-	// The transport layer information.
+	// Transport is the transport layer information.
 	Transport *NodesInfoNodeTransport `json:"transport,omitempty"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`
 
 	Version string `json:"version"`
@@ -211,7 +212,7 @@ type NodesInfoNode struct {
 //
 // The aggregation configuration.
 type NodesInfoNodeAggregation struct {
-	// The list of supported aggregation types.
+	// Types is the list of supported aggregation types.
 	Types []string `json:"types"`
 }
 
@@ -219,16 +220,16 @@ type NodesInfoNodeAggregation struct {
 //
 // Provides HTTP connection information for the node.
 type NodesInfoNodeHTTP struct {
-	// The addresses the node is bound to for HTTP traffic.
+	// BoundAddress is the addresses the node is bound to for HTTP traffic.
 	BoundAddress []string `json:"bound_address"`
 
-	// The unique identifier of a node.
+	// MaxContentLength is the unique identifier of a node.
 	MaxContentLength *string `json:"max_content_length,omitempty"`
 
-	// The size in bytes.
+	// MaxContentLengthInBytes is the size in bytes.
 	MaxContentLengthInBytes int64 `json:"max_content_length_in_bytes"`
 
-	// The HTTP address published to other nodes.
+	// PublishAddress is the HTTP address published to other nodes.
 	PublishAddress string `json:"publish_address"`
 }
 
@@ -236,7 +237,7 @@ type NodesInfoNodeHTTP struct {
 //
 // The ingest pipeline configuration.
 type NodesInfoNodeIngest struct {
-	// The list of configured ingest processors.
+	// Processors is the list of configured ingest processors.
 	Processors []NodesInfoNodeIngestProcessor `json:"processors"`
 }
 
@@ -244,7 +245,7 @@ type NodesInfoNodeIngest struct {
 //
 // The ingest processor configuration.
 type NodesInfoNodeIngestProcessor struct {
-	// The type of ingest processor.
+	// Type is the type of ingest processor.
 	Type string `json:"type"`
 }
 
@@ -252,49 +253,49 @@ type NodesInfoNodeIngestProcessor struct {
 //
 // Provides JVM-specific information for the node.
 type NodesInfoNodeJVM struct {
-	// Whether the JDK is bundled with OpenSearch.
+	// BundledJdk. Whether the JDK is bundled with OpenSearch.
 	BundledJdk bool `json:"bundled_jdk"`
 
-	// The garbage collectors enabled in the JVM.
+	// GCCollectors is the garbage collectors enabled in the JVM.
 	GCCollectors []string `json:"gc_collectors,omitempty"`
 
-	// The command line arguments passed to the JVM.
+	// InputArguments is the command line arguments passed to the JVM.
 	InputArguments []string `json:"input_arguments,omitempty"`
 
-	// Provides JVM memory settings and statistics.
+	// Mem. Provides JVM memory settings and statistics.
 	Mem NodesInfoNodeJVMMemory `json:"mem"`
 
-	// The memory pools available to the JVM.
+	// MemoryPools is the memory pools available to the JVM.
 	MemoryPools []string `json:"memory_pools,omitempty"`
 
-	// The process identifier of the JVM.
+	// Pid is the process identifier of the JVM.
 	Pid int `json:"pid"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StartTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// StartTimeInMillis is the time unit for milliseconds.
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
-	// Whether the node is using the bundled JDK.
+	// UsingBundledJdk. Whether the node is using the bundled JDK.
 	UsingBundledJdk *bool `json:"using_bundled_jdk"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// UsingCompressedOrdinaryObjectPointers. Certain APIs may return values,
+	// including numbers such as epoch timestamps, as strings. This setting
+	// captures this behavior while keeping the semantics of the field type.
+	// Depending on the target language, code generators can keep the union or
+	// remove it and leniently parse strings to the target type.
 	UsingCompressedOrdinaryObjectPointers *string `json:"using_compressed_ordinary_object_pointers,omitempty"`
 
 	Version *string `json:"version,omitempty"`
 
-	// The name of a resource or configuration element.
+	// VmName is the name of a resource or configuration element.
 	VmName *string `json:"vm_name,omitempty"`
 
-	// The vendor of the JVM.
+	// VmVendor is the vendor of the JVM.
 	VmVendor *string `json:"vm_vendor,omitempty"`
 
 	VmVersion *string `json:"vm_version,omitempty"`
@@ -304,34 +305,34 @@ type NodesInfoNodeJVM struct {
 //
 // Provides JVM memory settings and statistics.
 type NodesInfoNodeJVMMemory struct {
-	// The unique identifier of a node.
+	// DirectMax is the unique identifier of a node.
 	DirectMax *string `json:"direct_max,omitempty"`
 
-	// The size in bytes.
+	// DirectMaxInBytes is the size in bytes.
 	DirectMaxInBytes int64 `json:"direct_max_in_bytes"`
 
-	// The unique identifier of a node.
+	// HeapInit is the unique identifier of a node.
 	HeapInit *string `json:"heap_init,omitempty"`
 
-	// The size in bytes.
+	// HeapInitInBytes is the size in bytes.
 	HeapInitInBytes int64 `json:"heap_init_in_bytes"`
 
-	// The unique identifier of a node.
+	// HeapMax is the unique identifier of a node.
 	HeapMax *string `json:"heap_max,omitempty"`
 
-	// The size in bytes.
+	// HeapMaxInBytes is the size in bytes.
 	HeapMaxInBytes int64 `json:"heap_max_in_bytes"`
 
-	// The unique identifier of a node.
+	// NonHeapInit is the unique identifier of a node.
 	NonHeapInit *string `json:"non_heap_init,omitempty"`
 
-	// The size in bytes.
+	// NonHeapInitInBytes is the size in bytes.
 	NonHeapInitInBytes int64 `json:"non_heap_init_in_bytes"`
 
-	// The unique identifier of a node.
+	// NonHeapMax is the unique identifier of a node.
 	NonHeapMax *string `json:"non_heap_max,omitempty"`
 
-	// The size in bytes.
+	// NonHeapMaxInBytes is the size in bytes.
 	NonHeapMaxInBytes int64 `json:"non_heap_max_in_bytes"`
 }
 
@@ -339,10 +340,10 @@ type NodesInfoNodeJVMMemory struct {
 //
 // Provides network-related information for the node.
 type NodesInfoNodeNetwork struct {
-	// Describes a network interface on the node.
+	// PrimaryInterface. Describes a network interface on the node.
 	PrimaryInterface NodesInfoNodeNetworkInterface `json:"primary_interface"`
 
-	// The interval for refreshing network information.
+	// RefreshInterval is the interval for refreshing network information.
 	RefreshInterval int `json:"refresh_interval"`
 }
 
@@ -350,13 +351,13 @@ type NodesInfoNodeNetwork struct {
 //
 // Describes a network interface on the node.
 type NodesInfoNodeNetworkInterface struct {
-	// The IP address of the interface.
+	// Address is the IP address of the interface.
 	Address string `json:"address"`
 
-	// The MAC address of the interface.
+	// MacAddress is the MAC address of the interface.
 	MacAddress string `json:"mac_address"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -364,38 +365,41 @@ type NodesInfoNodeNetworkInterface struct {
 //
 // Provides operating system information for the node.
 type NodesInfoNodeOperatingSystem struct {
-	// The number of processors actually used to calculate thread pool size.
-	// This number can be set with the `node.processors` setting of a node and
-	// defaults to the number of processors reported by the OS.
+	// AllocatedProcessors is the number of processors actually used to
+	// calculate thread pool size. This number can be set with the
+	// `node.processors` setting of a node and defaults to the number of
+	// processors reported by the OS.
 	AllocatedProcessors *int `json:"allocated_processors,omitempty"`
 
-	// Name of the JVM architecture, for example `amd64` or `x86`.
+	// Arch. Name of the JVM architecture, for example `amd64` or `x86`.
 	Arch *string `json:"arch,omitempty"`
 
-	// The number of processors available to the Java virtual machine.
+	// AvailableProcessors is the number of processors available to the Java
+	// virtual machine.
 	AvailableProcessors int `json:"available_processors"`
 
-	// Provides CPU information for the node.
+	// CPU. Provides CPU information for the node.
 	CPU *NodesInfoNodeOSCPU `json:"cpu,omitempty"`
 
-	// Provides memory information for the node.
+	// Mem. Provides memory information for the node.
 	Mem *NodesInfoNodeMemory `json:"mem,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// The name of a resource or configuration element.
+	// PrettyName is the name of a resource or configuration element.
 	PrettyName *string `json:"pretty_name,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// RefreshInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	RefreshInterval *string `json:"refresh_interval,omitempty"`
 
-	// The time unit for milliseconds.
+	// RefreshIntervalInMillis is the time unit for milliseconds.
 	RefreshIntervalInMillis int64 `json:"refresh_interval_in_millis"`
 
-	// Provides memory information for the node.
+	// Swap. Provides memory information for the node.
 	Swap *NodesInfoNodeMemory `json:"swap,omitempty"`
 
 	Version *string `json:"version,omitempty"`
@@ -405,28 +409,28 @@ type NodesInfoNodeOperatingSystem struct {
 //
 // Provides CPU information for the node.
 type NodesInfoNodeOSCPU struct {
-	// The unique identifier of a node.
+	// CacheSize is the unique identifier of a node.
 	CacheSize string `json:"cache_size"`
 
-	// The size in bytes.
+	// CacheSizeInBytes is the size in bytes.
 	CacheSizeInBytes int64 `json:"cache_size_in_bytes"`
 
-	// The number of cores per CPU socket.
+	// CoresPerSocket is the number of cores per CPU socket.
 	CoresPerSocket int `json:"cores_per_socket"`
 
-	// The CPU clock speed in MHz.
+	// Mhz is the CPU clock speed in MHz.
 	Mhz int `json:"mhz"`
 
-	// The CPU model name.
+	// Model is the CPU model name.
 	Model string `json:"model"`
 
-	// The total number of CPU cores.
+	// TotalCores is the total number of CPU cores.
 	TotalCores int `json:"total_cores"`
 
-	// The total number of CPU sockets.
+	// TotalSockets is the total number of CPU sockets.
 	TotalSockets int `json:"total_sockets"`
 
-	// The CPU vendor name.
+	// Vendor is the CPU vendor name.
 	Vendor string `json:"vendor"`
 }
 
@@ -434,10 +438,10 @@ type NodesInfoNodeOSCPU struct {
 //
 // Provides memory information for the node.
 type NodesInfoNodeMemory struct {
-	// The unique identifier of a node.
+	// Total is the unique identifier of a node.
 	Total string `json:"total"`
 
-	// The size in bytes.
+	// TotalInBytes is the size in bytes.
 	TotalInBytes int64 `json:"total_in_bytes"`
 }
 
@@ -445,19 +449,20 @@ type NodesInfoNodeMemory struct {
 //
 // Provides process-related information for the node.
 type NodesInfoNodeProcess struct {
-	// The process identifier (PID)
+	// ID is the process identifier (PID)
 	ID int64 `json:"id"`
 
-	// Indicates if the process address space has been successfully locked in
-	// memory.
+	// Mlockall. Indicates if the process address space has been successfully
+	// locked in memory.
 	Mlockall bool `json:"mlockall"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// RefreshInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	RefreshInterval *string `json:"refresh_interval,omitempty"`
 
-	// The time unit for milliseconds.
+	// RefreshIntervalInMillis is the time unit for milliseconds.
 	RefreshIntervalInMillis int64 `json:"refresh_interval_in_millis"`
 }
 
@@ -465,15 +470,16 @@ type NodesInfoNodeProcess struct {
 //
 // The search pipeline configuration.
 type NodesInfoNodeSearchPipelines struct {
-	// The list of phase results processors in the pipeline.
+	// PhaseResultsProcessors is the list of phase results processors in the
+	// pipeline.
 	//
 	// Available: >= 3.1.0.
 	PhaseResultsProcessors []NodesInfoNodeSearchPipelineProcessor `json:"phase_results_processors,omitempty"`
 
-	// The list of request processors in the pipeline.
+	// RequestProcessors is the list of request processors in the pipeline.
 	RequestProcessors []NodesInfoNodeSearchPipelineProcessor `json:"request_processors,omitempty"`
 
-	// The list of response processors in the pipeline.
+	// RespProcessors is the list of response processors in the pipeline.
 	RespProcessors []NodesInfoNodeSearchPipelineProcessor `json:"response_processors,omitempty"`
 }
 
@@ -481,7 +487,7 @@ type NodesInfoNodeSearchPipelines struct {
 //
 // The search pipeline processor configuration.
 type NodesInfoNodeSearchPipelineProcessor struct {
-	// The type of search pipeline processor.
+	// Type is the type of search pipeline processor.
 	Type string `json:"type"`
 }
 
@@ -489,52 +495,52 @@ type NodesInfoNodeSearchPipelineProcessor struct {
 //
 // The configuration settings for the node.
 type NodesInfoNodeSettings struct {
-	// The action-related configuration settings.
+	// Action is the action-related configuration settings.
 	Action *NodesInfoNodeAction `json:"action,omitempty"`
 
-	// The bootstrap configuration settings for the node.
+	// Bootstrap is the bootstrap configuration settings for the node.
 	Bootstrap *NodesInfoNodeBootstrap `json:"bootstrap,omitempty"`
 
-	// The client node configuration.
+	// Client is the client node configuration.
 	Client NodesInfoNodeClient `json:"client"`
 
-	// Provides cluster-level settings information.
+	// Cluster. Provides cluster-level settings information.
 	Cluster NodesInfoNodeSettingsCluster `json:"cluster"`
 
-	// The node discovery configuration.
+	// Discovery is the node discovery configuration.
 	Discovery *NodesInfoNodeDiscovery `json:"discovery,omitempty"`
 
-	// The HTTP server configuration.
+	// HTTP is the HTTP server configuration.
 	HTTP NodesInfoNodeSettingsHTTP `json:"http"`
 
-	// The index-level settings configuration.
+	// Index is the index-level settings configuration.
 	Index *NodesInfoNodeSettingsIndex `json:"index,omitempty"`
 
-	// The ingest processor configurations.
+	// Ingest is the ingest processor configurations.
 	Ingest *NodesInfoNodeSettingsIngest `json:"ingest,omitempty"`
 
-	// The network configuration settings.
+	// Network is the network configuration settings.
 	Network *NodesInfoNodeSettingsNetwork `json:"network,omitempty"`
 
-	// The node-specific configuration settings.
+	// Node is the node-specific configuration settings.
 	Node NodesInfoNodeSettingsNode `json:"node"`
 
-	// The `filesystem` path configurations for the node.
+	// Path is the `filesystem` path configurations for the node.
 	Path NodesInfoNodePath `json:"path"`
 
-	// The plugin-specific settings.
+	// Plugins is the plugin-specific settings.
 	Plugins map[string]json.RawMessage `json:"plugins,omitempty"`
 
-	// The repository configuration information.
+	// Repositories is the repository configuration information.
 	Repositories *NodesInfoNodeRepositories `json:"repositories,omitempty"`
 
-	// The script execution configuration.
+	// Script is the script execution configuration.
 	Script *NodesInfoNodeScript `json:"script,omitempty"`
 
-	// The search operation configuration.
+	// Search is the search operation configuration.
 	Search *NodesInfoNodeSearch `json:"search,omitempty"`
 
-	// The transport layer configuration settings.
+	// Transport is the transport layer configuration settings.
 	Transport NodesInfoNodeSettingsTransport `json:"transport"`
 }
 
@@ -542,7 +548,8 @@ type NodesInfoNodeSettings struct {
 //
 // The action-related configuration settings.
 type NodesInfoNodeAction struct {
-	// Whether destructive actions require explicit names.
+	// DestructiveRequiresName. Whether destructive actions require explicit
+	// names.
 	DestructiveRequiresName string `json:"destructive_requires_name"`
 }
 
@@ -550,7 +557,7 @@ type NodesInfoNodeAction struct {
 //
 // The bootstrap configuration settings for the node.
 type NodesInfoNodeBootstrap struct {
-	// The memory lock setting for the bootstrap process.
+	// MemoryLock is the memory lock setting for the bootstrap process.
 	MemoryLock string `json:"memory_lock"`
 }
 
@@ -558,7 +565,7 @@ type NodesInfoNodeBootstrap struct {
 //
 // The client node configuration.
 type NodesInfoNodeClient struct {
-	// The type of client node configuration.
+	// Type is the type of client node configuration.
 	Type string `json:"type"`
 }
 
@@ -566,19 +573,19 @@ type NodesInfoNodeClient struct {
 //
 // Provides cluster-level settings information.
 type NodesInfoNodeSettingsCluster struct {
-	// Controls deprecation notice indexing behavior.
+	// DeprecationIndexing. Controls deprecation notice indexing behavior.
 	DeprecationIndexing *NodesInfoNodeSettingsDeprecationIndexing `json:"deprecation_indexing,omitempty"`
 
-	// The cluster election strategy configuration.
+	// Election is the cluster election strategy configuration.
 	Election *NodesInfoNodeSettingsClusterElection `json:"election,omitempty"`
 
 	InitialClusterManagerNodes *NodesInfoNodeSettingsClusterInitialClusterManagerNodes `json:"initial_cluster_manager_nodes,omitempty"`
 	InitialMasterNodes         *NodesInfoNodeSettingsClusterInitialMasterNodes         `json:"initial_master_nodes,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The routing configuration for index operations.
+	// Routing is the routing configuration for index operations.
 	Routing *IndicesIndexRouting `json:"routing,omitempty"`
 }
 
@@ -586,7 +593,7 @@ type NodesInfoNodeSettingsCluster struct {
 //
 // Controls deprecation notice indexing behavior.
 type NodesInfoNodeSettingsDeprecationIndexing struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Enabled. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -598,7 +605,7 @@ type NodesInfoNodeSettingsDeprecationIndexing struct {
 //
 // The cluster election strategy configuration.
 type NodesInfoNodeSettingsClusterElection struct {
-	// The name of a resource or configuration element.
+	// Strategy is the name of a resource or configuration element.
 	Strategy string `json:"strategy"`
 }
 
@@ -606,10 +613,10 @@ type NodesInfoNodeSettingsClusterElection struct {
 //
 // The node discovery configuration.
 type NodesInfoNodeDiscovery struct {
-	// The configured seed hosts for node discovery.
+	// SeedHosts is the configured seed hosts for node discovery.
 	SeedHosts *string `json:"seed_hosts,omitempty"`
 
-	// The discovery mechanism type.
+	// Type is the discovery mechanism type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -617,8 +624,8 @@ type NodesInfoNodeDiscovery struct {
 //
 // The HTTP server configuration.
 type NodesInfoNodeSettingsHTTP struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// Compression. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -626,7 +633,7 @@ type NodesInfoNodeSettingsHTTP struct {
 
 	Host *NodesInfoNodeSettingsHTTPHost `json:"host,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Port. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -635,17 +642,17 @@ type NodesInfoNodeSettingsHTTP struct {
 
 	PublishHost *NodesInfoNodeSettingsHTTPPublishHost `json:"publish_host,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// PublishPort. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PublishPort *string `json:"publish_port,omitempty"`
 
-	// The HTTP server type configuration.
+	// Type is the HTTP server type configuration.
 	Type NodesInfoNodeSettingsHTTPType `json:"type"`
 
-	// The default HTTP server type.
+	// TypeDefault is the default HTTP server type.
 	TypeDefault *string `json:"type.default,omitempty"`
 }
 
@@ -653,7 +660,7 @@ type NodesInfoNodeSettingsHTTP struct {
 //
 // The HTTP server type configuration details.
 type NodesInfoNodeSettingsHTTPTypeConfig struct {
-	// The default HTTP server implementation.
+	// Default is the default HTTP server implementation.
 	Default *string `json:"default,omitempty"`
 }
 
@@ -661,7 +668,7 @@ type NodesInfoNodeSettingsHTTPTypeConfig struct {
 //
 // The index-level settings configuration.
 type NodesInfoNodeSettingsIndex struct {
-	// The index store configuration.
+	// Store is the index store configuration.
 	Store *NodesInfoNodeSettingsIndexStore `json:"store,omitempty"`
 }
 
@@ -669,7 +676,7 @@ type NodesInfoNodeSettingsIndex struct {
 //
 // The index store configuration.
 type NodesInfoNodeSettingsIndexStore struct {
-	// The hybrid store configuration.
+	// Hybrid is the hybrid store configuration.
 	Hybrid *NodesInfoNodeSettingsIndexHybrid `json:"hybrid,omitempty"`
 }
 
@@ -677,7 +684,7 @@ type NodesInfoNodeSettingsIndexStore struct {
 //
 // The hybrid store configuration.
 type NodesInfoNodeSettingsIndexHybrid struct {
-	// The memory-mapped store configuration.
+	// MMap is the memory-mapped store configuration.
 	MMap *NodesInfoNodeSettingsIndexStoreMMap `json:"mmap,omitempty"`
 }
 
@@ -685,7 +692,7 @@ type NodesInfoNodeSettingsIndexHybrid struct {
 //
 // The memory-mapped store configuration.
 type NodesInfoNodeSettingsIndexStoreMMap struct {
-	// The file extensions configured for memory mapping.
+	// Extensions is the file extensions configured for memory mapping.
 	Extensions []string `json:"extensions,omitempty"`
 }
 
@@ -693,106 +700,106 @@ type NodesInfoNodeSettingsIndexStoreMMap struct {
 //
 // The ingest processor configurations.
 type NodesInfoNodeSettingsIngest struct {
-	// The ingest processor configuration details.
+	// Append is the ingest processor configuration details.
 	Append *NodesInfoNodeIngestInfo `json:"append,omitempty"`
 
-	// The ingest processor configuration details.
+	// Attachment is the ingest processor configuration details.
 	Attachment *NodesInfoNodeIngestInfo `json:"attachment,omitempty"`
 
-	// The ingest processor configuration details.
+	// Bytes is the ingest processor configuration details.
 	Bytes *NodesInfoNodeIngestInfo `json:"bytes,omitempty"`
 
-	// The ingest processor configuration details.
+	// Circle is the ingest processor configuration details.
 	Circle *NodesInfoNodeIngestInfo `json:"circle,omitempty"`
 
-	// The ingest processor configuration details.
+	// Convert is the ingest processor configuration details.
 	Convert *NodesInfoNodeIngestInfo `json:"convert,omitempty"`
 
-	// The ingest processor configuration details.
+	// CSV is the ingest processor configuration details.
 	CSV *NodesInfoNodeIngestInfo `json:"csv,omitempty"`
 
-	// The ingest processor configuration details.
+	// Date is the ingest processor configuration details.
 	Date *NodesInfoNodeIngestInfo `json:"date,omitempty"`
 
-	// The ingest processor configuration details.
+	// DateIndexName is the ingest processor configuration details.
 	DateIndexName *NodesInfoNodeIngestInfo `json:"date_index_name,omitempty"`
 
-	// The ingest processor configuration details.
+	// Dissect is the ingest processor configuration details.
 	Dissect *NodesInfoNodeIngestInfo `json:"dissect,omitempty"`
 
-	// The ingest processor configuration details.
+	// DotExpander is the ingest processor configuration details.
 	DotExpander *NodesInfoNodeIngestInfo `json:"dot_expander,omitempty"`
 
-	// The ingest processor configuration details.
+	// Drop is the ingest processor configuration details.
 	Drop *NodesInfoNodeIngestInfo `json:"drop,omitempty"`
 
-	// The ingest processor configuration details.
+	// Enrich is the ingest processor configuration details.
 	Enrich *NodesInfoNodeIngestInfo `json:"enrich,omitempty"`
 
-	// The ingest processor configuration details.
+	// Fail is the ingest processor configuration details.
 	Fail *NodesInfoNodeIngestInfo `json:"fail,omitempty"`
 
-	// The ingest processor configuration details.
+	// Foreach is the ingest processor configuration details.
 	Foreach *NodesInfoNodeIngestInfo `json:"foreach,omitempty"`
 
-	// The ingest processor configuration details.
+	// Geoip is the ingest processor configuration details.
 	Geoip *NodesInfoNodeIngestInfo `json:"geoip,omitempty"`
 
-	// The ingest processor configuration details.
+	// Grok is the ingest processor configuration details.
 	Grok *NodesInfoNodeIngestInfo `json:"grok,omitempty"`
 
-	// The ingest processor configuration details.
+	// Gsub is the ingest processor configuration details.
 	Gsub *NodesInfoNodeIngestInfo `json:"gsub,omitempty"`
 
-	// The ingest processor configuration details.
+	// Inference is the ingest processor configuration details.
 	Inference *NodesInfoNodeIngestInfo `json:"inference,omitempty"`
 
-	// The ingest processor configuration details.
+	// Join is the ingest processor configuration details.
 	Join *NodesInfoNodeIngestInfo `json:"join,omitempty"`
 
-	// The ingest processor configuration details.
+	// JSON is the ingest processor configuration details.
 	JSON *NodesInfoNodeIngestInfo `json:"json,omitempty"`
 
-	// The ingest processor configuration details.
+	// Kv is the ingest processor configuration details.
 	Kv *NodesInfoNodeIngestInfo `json:"kv,omitempty"`
 
-	// The ingest processor configuration details.
+	// Lowercase is the ingest processor configuration details.
 	Lowercase *NodesInfoNodeIngestInfo `json:"lowercase,omitempty"`
 
-	// The ingest processor configuration details.
+	// Pipeline is the ingest processor configuration details.
 	Pipeline *NodesInfoNodeIngestInfo `json:"pipeline,omitempty"`
 
-	// The ingest processor configuration details.
+	// Remove is the ingest processor configuration details.
 	Remove *NodesInfoNodeIngestInfo `json:"remove,omitempty"`
 
-	// The ingest processor configuration details.
+	// Rename is the ingest processor configuration details.
 	Rename *NodesInfoNodeIngestInfo `json:"rename,omitempty"`
 
-	// The ingest processor configuration details.
+	// Script is the ingest processor configuration details.
 	Script *NodesInfoNodeIngestInfo `json:"script,omitempty"`
 
-	// The ingest processor configuration details.
+	// Set is the ingest processor configuration details.
 	Set *NodesInfoNodeIngestInfo `json:"set,omitempty"`
 
-	// The ingest processor configuration details.
+	// SetSecurityUser is the ingest processor configuration details.
 	SetSecurityUser *NodesInfoNodeIngestInfo `json:"set_security_user,omitempty"`
 
-	// The ingest processor configuration details.
+	// Sort is the ingest processor configuration details.
 	Sort *NodesInfoNodeIngestInfo `json:"sort,omitempty"`
 
-	// The ingest processor configuration details.
+	// Split is the ingest processor configuration details.
 	Split *NodesInfoNodeIngestInfo `json:"split,omitempty"`
 
-	// The ingest processor configuration details.
+	// Trim is the ingest processor configuration details.
 	Trim *NodesInfoNodeIngestInfo `json:"trim,omitempty"`
 
-	// The ingest processor configuration details.
+	// Uppercase is the ingest processor configuration details.
 	Uppercase *NodesInfoNodeIngestInfo `json:"uppercase,omitempty"`
 
-	// The ingest processor configuration details.
+	// Urldecode is the ingest processor configuration details.
 	Urldecode *NodesInfoNodeIngestInfo `json:"urldecode,omitempty"`
 
-	// The ingest processor configuration details.
+	// UserAgent is the ingest processor configuration details.
 	UserAgent *NodesInfoNodeIngestInfo `json:"user_agent,omitempty"`
 }
 
@@ -800,7 +807,7 @@ type NodesInfoNodeSettingsIngest struct {
 //
 // The ingest processor configuration details.
 type NodesInfoNodeIngestInfo struct {
-	// The ingest processor download configuration.
+	// Downloader is the ingest processor download configuration.
 	Downloader NodesInfoNodeIngestDownloader `json:"downloader"`
 }
 
@@ -808,7 +815,7 @@ type NodesInfoNodeIngestInfo struct {
 //
 // The ingest processor download configuration.
 type NodesInfoNodeIngestDownloader struct {
-	// Whether the downloader is enabled.
+	// Enabled. Whether the downloader is enabled.
 	Enabled string `json:"enabled"`
 }
 
@@ -816,7 +823,7 @@ type NodesInfoNodeIngestDownloader struct {
 //
 // The network configuration settings.
 type NodesInfoNodeSettingsNetwork struct {
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host string `json:"host"`
 }
 
@@ -824,13 +831,14 @@ type NodesInfoNodeSettingsNetwork struct {
 //
 // The node-specific configuration settings.
 type NodesInfoNodeSettingsNode struct {
-	// The custom attributes assigned to the node.
+	// Attr is the custom attributes assigned to the node.
 	Attr map[string]json.RawMessage `json:"attr,omitempty"`
 
-	// The maximum number of nodes allowed to store data locally
+	// MaxLocalStorageNodes is the maximum number of nodes allowed to store
+	// data locally
 	MaxLocalStorageNodes *string `json:"max_local_storage_nodes,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
 	Roles *NodesInfoNodeSettingsNodeRoles `json:"roles,omitempty"`
@@ -840,16 +848,16 @@ type NodesInfoNodeSettingsNode struct {
 //
 // The `filesystem` path configurations for the node.
 type NodesInfoNodePath struct {
-	// The paths configured for data storage.
+	// Data is the paths configured for data storage.
 	Data []string `json:"data,omitempty"`
 
-	// The OpenSearch home directory path.
+	// Home is the OpenSearch home directory path.
 	Home string `json:"home"`
 
-	// The path to node log files.
+	// Logs is the path to node log files.
 	Logs string `json:"logs"`
 
-	// The paths configured for snapshot repositories.
+	// Repo is the paths configured for snapshot repositories.
 	Repo []string `json:"repo,omitempty"`
 }
 
@@ -857,7 +865,7 @@ type NodesInfoNodePath struct {
 //
 // The repository configuration information.
 type NodesInfoNodeRepositories struct {
-	// Specifies allowed repository URLs.
+	// URL. Specifies allowed repository URLs.
 	URL NodesInfoNodeRepositoriesURL `json:"url"`
 }
 
@@ -865,7 +873,7 @@ type NodesInfoNodeRepositories struct {
 //
 // Specifies allowed repository URLs.
 type NodesInfoNodeRepositoriesURL struct {
-	// The pattern for allowed repository URLs.
+	// AllowedUrls is the pattern for allowed repository URLs.
 	AllowedUrls string `json:"allowed_urls"`
 }
 
@@ -873,10 +881,11 @@ type NodesInfoNodeRepositoriesURL struct {
 //
 // The script execution configuration.
 type NodesInfoNodeScript struct {
-	// The types of scripts allowed.
+	// AllowedTypes is the types of scripts allowed.
 	AllowedTypes string `json:"allowed_types"`
 
-	// The setting to disable maximum script compilation rate.
+	// DisableMaxCompilationsRate is the setting to disable maximum script
+	// compilation rate.
 	DisableMaxCompilationsRate string `json:"disable_max_compilations_rate"`
 }
 
@@ -884,7 +893,7 @@ type NodesInfoNodeScript struct {
 //
 // The search operation configuration.
 type NodesInfoNodeSearch struct {
-	// The remote search connection configuration.
+	// Remote is the remote search connection configuration.
 	Remote NodesInfoNodeSearchRemote `json:"remote"`
 }
 
@@ -892,7 +901,7 @@ type NodesInfoNodeSearch struct {
 //
 // The remote search connection configuration.
 type NodesInfoNodeSearchRemote struct {
-	// The remote connection settings.
+	// Connect is the remote connection settings.
 	Connect string `json:"connect"`
 }
 
@@ -902,10 +911,10 @@ type NodesInfoNodeSearchRemote struct {
 type NodesInfoNodeSettingsTransport struct {
 	Host *NodesInfoNodeSettingsTransportHost `json:"host,omitempty"`
 
-	// The transport layer type configuration.
+	// Type is the transport layer type configuration.
 	Type NodesInfoNodeSettingsTransportType `json:"type"`
 
-	// The default transport type.
+	// TypeDefault is the default transport type.
 	TypeDefault *string `json:"type.default,omitempty"`
 }
 
@@ -913,7 +922,7 @@ type NodesInfoNodeSettingsTransport struct {
 //
 // The detailed transport type configuration.
 type NodesInfoNodeSettingsTransportTypeConfig struct {
-	// The default transport implementation.
+	// Default is the default transport implementation.
 	Default *string `json:"default,omitempty"`
 }
 
@@ -921,24 +930,25 @@ type NodesInfoNodeSettingsTransportTypeConfig struct {
 //
 // The thread pool configuration details.
 type NodesInfoNodeThreadPool struct {
-	// The core number of threads.
+	// Core is the core number of threads.
 	Core *int `json:"core,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// KeepAlive is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	KeepAlive *string `json:"keep_alive,omitempty"`
 
-	// The maximum number of threads.
+	// Max is the maximum number of threads.
 	Max *int `json:"max,omitempty"`
 
-	// The size of the task queue.
+	// QueueSize is the size of the task queue.
 	QueueSize int `json:"queue_size"`
 
-	// The current size of the thread pool.
+	// Size is the current size of the thread pool.
 	Size *int `json:"size,omitempty"`
 
-	// The type of thread pool executor.
+	// Type is the type of thread pool executor.
 	Type string `json:"type"`
 }
 
@@ -946,13 +956,14 @@ type NodesInfoNodeThreadPool struct {
 //
 // The transport layer information.
 type NodesInfoNodeTransport struct {
-	// The addresses the node is bound to for transport traffic.
+	// BoundAddress is the addresses the node is bound to for transport
+	// traffic.
 	BoundAddress []string `json:"bound_address"`
 
-	// The configured transport profiles.
+	// Profiles is the configured transport profiles.
 	Profiles map[string]string `json:"profiles"`
 
-	// The published transport address.
+	// PublishAddress is the published transport address.
 	PublishAddress string `json:"publish_address"`
 }
 

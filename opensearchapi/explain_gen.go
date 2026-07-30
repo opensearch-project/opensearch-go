@@ -213,12 +213,12 @@ func (r ExplainParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/explain/
 type ExplainResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Explanation *ExplainExplanation `json:"explanation,omitempty"`

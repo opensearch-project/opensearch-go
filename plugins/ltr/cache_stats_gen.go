@@ -86,16 +86,16 @@ func (r CacheStatsParams) get() map[string]string {
 type CacheStatsResp struct {
 	opensearchapi.NodesRespBase
 
-	// Aggregate cache statistics across all nodes.
+	// All. Aggregate cache statistics across all nodes.
 	All *opensearchapi.LTRCacheAllStats `json:"all,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	// Cache statistics per node.
+	// Nodes. Cache statistics per node.
 	Nodes map[string]opensearchapi.LTRNodeDetails `json:"nodes,omitempty"`
 
-	// Cache statistics by store.
+	// Stores. Cache statistics by store.
 	Stores json.RawMessage `json:"stores"`
 
 	response *opensearch.Response

@@ -91,12 +91,12 @@ func (r GetScriptParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/script-apis/get-stored-script/
 type GetScriptResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Found bool `json:"found"`
 
-	// The definition of a stored script.
+	// Script is the definition of a stored script.
 	Script *StoredScript `json:"script,omitempty"`
 
 	response *opensearch.Response

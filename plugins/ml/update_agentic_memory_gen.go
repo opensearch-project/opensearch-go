@@ -115,20 +115,20 @@ func (r UpdateAgenticMemoryParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type UpdateAgenticMemoryResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version       int64                `json:"_version"`
@@ -154,20 +154,20 @@ func (r UpdateAgenticMemoryResp) RawBody() io.Reader {
 
 // MLUpdateAgenticMemoryBody is a typed component of the ml.update_agentic_memory operation.
 type MLUpdateAgenticMemoryBody struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
 	Agents     map[string]json.RawMessage `json:"agents,omitempty"`
 	BinaryData map[string]json.RawMessage `json:"binary_data,omitempty"`
 
-	// The updated memory content.
+	// Memory is the updated memory content.
 	Memory *string `json:"memory,omitempty"`
 
 	Messages       []opensearchapi.MLMessage  `json:"messages,omitempty"`
 	Metadata       map[string]json.RawMessage `json:"metadata,omitempty"`
 	StructuredData map[string]json.RawMessage `json:"structured_data,omitempty"`
 
-	// The summary of the session.
+	// Summary is the summary of the session.
 	Summary *string `json:"summary,omitempty"`
 
 	Tags map[string]json.RawMessage `json:"tags,omitempty"`

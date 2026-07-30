@@ -94,12 +94,12 @@ type GetExperimentsResp struct {
 	Hits            opensearchapi.SearchHitsMetadata                       `json:"hits"`
 	NumReducePhases *int                                                   `json:"num_reduce_phases,omitempty"`
 
-	// The time taken by different phases of the search.
+	// PhaseTook is the time taken by different phases of the search.
 	//
 	// Available: >= 2.12.0.
 	PhaseTook *opensearchapi.PhaseTook `json:"phase_took,omitempty"`
 
-	// The unique identifier for a resource.
+	// PITID is the unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.

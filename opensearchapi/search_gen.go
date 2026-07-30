@@ -587,12 +587,12 @@ type SearchResp struct {
 	Hits            SearchHitsMetadata                       `json:"hits"`
 	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
 
-	// The time taken by different phases of the search.
+	// PhaseTook is the time taken by different phases of the search.
 	//
 	// Available: >= 2.12.0.
 	PhaseTook *PhaseTook `json:"phase_took,omitempty"`
 
-	// The unique identifier for a resource.
+	// PITID is the unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
@@ -625,14 +625,16 @@ func (r SearchResp) RawBody() io.Reader {
 //
 // The search definition using the Query DSL
 type SearchBody struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
 	Source *SearchBodySource `json:"_source,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
+	// Aggregations. Defines the aggregations that are run as part of the
+	// search request.
 	Aggregations map[string]CommonAggregationsAggregationContainer `json:"aggregations,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
+	// Aggs. Defines the aggregations that are run as part of the search
+	// request.
 	Aggs map[string]CommonAggregationsAggregationContainer `json:"aggs,omitempty"`
 
 	Collapse *SearchFieldCollapse `json:"collapse,omitempty"`
@@ -640,72 +642,77 @@ type SearchBody struct {
 	// Available: >= 2.14.0.
 	Derived map[string]DerivedField `json:"derived,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns doc values for
-	// field names matching these patterns in the `hits.fields` property of the
-	// response.
+	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
+	// doc values for field names matching these patterns in the `hits.fields`
+	// property of the response.
 	DocvalueFields []SearchBodyDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
 
-	// If `true`, returns detailed information about score computation as part
-	// of a hit.
+	// Explain. If `true`, returns detailed information about score computation
+	// as part of a hit.
 	Explain *bool `json:"explain,omitempty"`
 
-	// Configuration of search extensions defined by OpenSearch plugins.
+	// Ext. Configuration of search extensions defined by OpenSearch plugins.
 	Ext map[string]json.RawMessage `json:"ext,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns values for field
-	// names matching these patterns in the `hits.fields` property of the
+	// Fields. Array of wildcard (`*`) patterns. The request returns values for
+	// field names matching these patterns in the `hits.fields` property of the
 	// response.
 	Fields []SearchBodyFieldsItem `json:"fields,omitempty"`
 
-	// Starting document offset. Needs to be non-negative. By default, you
-	// cannot page through more than 10,000 hits using the `from` and `size`
-	// parameters. To page through more hits, use the `search_after` parameter.
+	// From. Starting document offset. Needs to be non-negative. By default,
+	// you cannot page through more than 10,000 hits using the `from` and
+	// `size` parameters. To page through more hits, use the `search_after`
+	// parameter.
 	From *int `json:"from,omitempty"`
 
 	Highlight *SearchHighlight `json:"highlight,omitempty"`
 
-	// Whether to return scores with named queries. Default is false.
+	// IncludeNamedQueriesScore. Whether to return scores with named queries.
+	// Default is false.
 	IncludeNamedQueriesScore *bool `json:"include_named_queries_score,omitempty"`
 
-	// Boosts the `_score` of documents from specified indexes.
+	// IndicesBoost. Boosts the `_score` of documents from specified indexes.
 	IndicesBoost []map[string]float32 `json:"indices_boost,omitempty"`
 
-	// Minimum `_score` for matching documents. Documents with a lower `_score`
-	// are not included in the search results.
+	// MinScore. Minimum `_score` for matching documents. Documents with a
+	// lower `_score` are not included in the search results.
 	MinScore *float32 `json:"min_score,omitempty"`
 
 	PIT        *SearchPointInTimeReference   `json:"pit,omitempty"`
 	PostFilter *CommonQueryDSLQueryContainer `json:"post_filter,omitempty"`
 
-	// Set to `true` to return detailed timing information about the execution
-	// of individual components in a search request. NOTE: This is a debugging
-	// tool and adds significant overhead to search execution.
+	// Profile. Set to `true` to return detailed timing information about the
+	// execution of individual components in a search request. NOTE: This is a
+	// debugging tool and adds significant overhead to search execution.
 	Profile *bool `json:"profile,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// Can be used to improve precision by reordering just the top (for example
-	// 100 - 500) documents returned by the `query` and `post_filter` phases.
+	// Rescore. Can be used to improve precision by reordering just the top
+	// (for example 100 - 500) documents returned by the `query` and
+	// `post_filter` phases.
 	Rescore *SearchBodyRescore `json:"rescore,omitempty"`
 
-	// Retrieve a script evaluation (based on different fields) for each hit.
+	// ScriptFields. Retrieve a script evaluation (based on different fields)
+	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
 	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
 
-	// Customizable sequence of processing stages applied to search queries.
+	// SearchPipeline. Customizable sequence of processing stages applied to
+	// search queries.
 	SearchPipeline *string `json:"search_pipeline,omitempty"`
 
-	// If `true`, returns sequence number and primary term of the last
-	// modification of each hit.
+	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
+	// the last modification of each hit.
 	SeqNoPrimaryTerm *bool `json:"seq_no_primary_term,omitempty"`
 
-	// The number of hits to return. By default, you cannot page through more
-	// than 10,000 hits using the `from` and `size` parameters. To page through
-	// more hits, use the `search_after` parameter.
+	// Size is the number of hits to return. By default, you cannot page
+	// through more than 10,000 hits using the `from` and `size` parameters. To
+	// page through more hits, use the `search_after` parameter.
 	Size *int `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
 	Sort *SearchBodySort `json:"sort,omitempty"`
@@ -715,65 +722,66 @@ type SearchBody struct {
 	// these stats using the indexes stats API.
 	Stats []string `json:"stats,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	Suggest *SearchSuggester `json:"suggest,omitempty"`
 
-	// Maximum number of documents to collect for each shard. If a query
-	// reaches this limit, OpenSearch terminates the query early. OpenSearch
-	// collects documents before sorting. Use with caution. OpenSearch applies
-	// this parameter to each shard handling the request. When possible, let
-	// OpenSearch perform early termination automatically. Avoid specifying
-	// this parameter for requests that target data streams with backing
-	// indexes across multiple data tiers. If set to `0` (default), the query
-	// does not terminate early.
+	// TerminateAfter. Maximum number of documents to collect for each shard.
+	// If a query reaches this limit, OpenSearch terminates the query early.
+	// OpenSearch collects documents before sorting. Use with caution.
+	// OpenSearch applies this parameter to each shard handling the request.
+	// When possible, let OpenSearch perform early termination automatically.
+	// Avoid specifying this parameter for requests that target data streams
+	// with backing indexes across multiple data tiers. If set to `0`
+	// (default), the query does not terminate early.
 	TerminateAfter *int `json:"terminate_after,omitempty"`
 
-	// Specifies the period of time to wait for a response from each shard. If
-	// no response is received before the timeout expires, the request fails
-	// and returns an error. Defaults to no timeout.
+	// Timeout. Specifies the period of time to wait for a response from each
+	// shard. If no response is received before the timeout expires, the
+	// request fails and returns an error. Defaults to no timeout.
 	Timeout *string `json:"timeout,omitempty"`
 
-	// If `true`, calculate and return document scores, even if the scores are
-	// not used for sorting.
+	// TrackScores. If `true`, calculate and return document scores, even if
+	// the scores are not used for sorting.
 	TrackScores *bool `json:"track_scores,omitempty"`
 
-	// The number of hits matching the query. When `true`, the exact number of
-	// hits is returned at the cost of some performance. When `false`, the
-	// response does not include the total number of hits matching the query.
-	// Default is `10,000` hits.
+	// TrackTotalHits is the number of hits matching the query. When `true`,
+	// the exact number of hits is returned at the cost of some performance.
+	// When `false`, the response does not include the total number of hits
+	// matching the query. Default is `10,000` hits.
 	TrackTotalHits *SearchBodyTrackTotalHits `json:"track_total_hits,omitempty"`
 
-	// Enables or disables verbose mode for the search pipeline.
+	// VerbosePipeline. Enables or disables verbose mode for the search
+	// pipeline.
 	VerbosePipeline *bool `json:"verbose_pipeline,omitempty"`
 
-	// If `true`, returns document version as part of a hit.
+	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
 }
 
 // SearchBodySourceExcludesIncludes is a typed component of the search operation.
 type SearchBodySourceExcludesIncludes struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Excludes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Excludes *string `json:"excludes,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Includes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Includes *string `json:"includes,omitempty"`
 }
 
 // SearchBodyDocvalueFieldsItemField is a typed component of the search operation.
 type SearchBodyDocvalueFieldsItemField struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
 	// Format in which the values are returned.
@@ -782,8 +790,8 @@ type SearchBodyDocvalueFieldsItemField struct {
 
 // SearchBodyFieldsItemField is a typed component of the search operation.
 type SearchBodyFieldsItemField struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
 	// Format in which the values are returned.
@@ -798,14 +806,14 @@ type SearchRescore struct {
 
 // SearchRescoreQuery is a typed component of the search operation.
 type SearchRescoreQuery struct {
-	// The relative importance of the original query as compared to the rescore
-	// query.
+	// QueryWeight is the relative importance of the original query as compared
+	// to the rescore query.
 	QueryWeight *float32 `json:"query_weight,omitempty"`
 
 	RescoreQuery CommonQueryDSLQueryContainer `json:"rescore_query"`
 
-	// The relative importance of the rescore query as compared to the original
-	// query.
+	// RescoreQueryWeight is the relative importance of the rescore query as
+	// compared to the original query.
 	RescoreQueryWeight *float32 `json:"rescore_query_weight,omitempty"`
 
 	ScoreMode *string `json:"score_mode,omitempty"`

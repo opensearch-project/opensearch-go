@@ -87,38 +87,41 @@ func (r LeaderStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#get-leader-cluster-stats
 type LeaderStatsResp struct {
-	// The size in bytes.
+	// BytesRead is the size in bytes.
 	BytesRead *int64 `json:"bytes_read,omitempty"`
 
 	IndexStats map[string]opensearchapi.ReplicationIndexStatus `json:"index_stats,omitempty"`
 
-	// The number of indexes being replicated.
+	// NumReplicatedIndices is the number of indexes being replicated.
 	NumReplicatedIndices *float64 `json:"num_replicated_indices,omitempty"`
 
-	// The total number of operations read during replication.
+	// OperationsRead is the total number of operations read during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The number of operations read from Lucene during replication.
+	// OperationsReadLucene is the number of operations read from Lucene during
+	// replication.
 	OperationsReadLucene *float64 `json:"operations_read_lucene,omitempty"`
 
-	// The number of operations read from the translog during replication.
+	// OperationsReadTranslog is the number of operations read from the
+	// translog during replication.
 	OperationsReadTranslog *float64 `json:"operations_read_translog,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// TotalReadTimeLuceneMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	TotalReadTimeLuceneMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	TotalReadTimeTranslogMillis *opensearchapi.ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
 
-	// The size in bytes.
+	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
 
 	response *opensearch.Response

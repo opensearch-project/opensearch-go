@@ -142,56 +142,56 @@ func (r CatHealthResp) RawBody() io.Reader {
 
 // CatHealthRecord is a typed component of the cat.health operation.
 type CatHealthRecord struct {
-	// active number of shards in percent
+	// ActiveShardsPercent. Active number of shards in percent
 	ActiveShardsPercent *string `json:"active_shards_percent,omitempty"`
 
-	// cluster name
+	// Cluster. Cluster name
 	Cluster *string `json:"cluster,omitempty"`
 
-	// cluster manager is discovered or not
+	// DiscoveredClusterManager. Cluster manager is discovered or not
 	DiscoveredClusterManager *string `json:"discovered_cluster_manager,omitempty"`
 
-	// cluster manager is discovered or not
+	// DiscoveredMaster. Cluster manager is discovered or not
 	DiscoveredMaster *string `json:"discovered_master,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Epoch. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Epoch *CatHealthRecordEpoch `json:"epoch,omitempty"`
 
-	// number of initializing nodes
+	// Init. Number of initializing nodes
 	Init *string `json:"init,omitempty"`
 
-	// wait time of longest task pending
+	// MaxTaskWaitTime. Wait time of longest task pending
 	MaxTaskWaitTime *string `json:"max_task_wait_time,omitempty"`
 
-	// number of nodes that can store data
+	// NodeData. Number of nodes that can store data
 	NodeData *string `json:"node.data,omitempty"`
 
-	// total number of nodes
+	// NodeTotal. Total number of nodes
 	NodeTotal *string `json:"node.total,omitempty"`
 
-	// number of pending tasks
+	// PendingTasks. Number of pending tasks
 	PendingTasks *string `json:"pending_tasks,omitempty"`
 
-	// number of primary shards
+	// Pri. Number of primary shards
 	Pri *string `json:"pri,omitempty"`
 
-	// number of relocating nodes
+	// Relo. Number of relocating nodes
 	Relo *string `json:"relo,omitempty"`
 
-	// total number of shards
+	// Shards. Total number of shards
 	Shards *string `json:"shards,omitempty"`
 
-	// health status
+	// Status. Health status
 	Status *string `json:"status,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// Timestamp. Time of day, expressed as HH:MM:SS.
 	Timestamp *string `json:"timestamp,omitempty"`
 
-	// number of unassigned shards
+	// Unassign. Number of unassigned shards
 	Unassign *string `json:"unassign,omitempty"`
 }
 

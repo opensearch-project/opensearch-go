@@ -113,7 +113,7 @@ func (r NodesReloadSecureSettingsParams) get() map[string]string {
 type NodesReloadSecureSettingsResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
 	Nodes map[string]NodesReloadSecureSettingsRespBodyNodesValue `json:"nodes"`
@@ -137,7 +137,7 @@ func (r NodesReloadSecureSettingsResp) RawBody() io.Reader {
 
 // NodesReloadSecureSettingsNodeReloadResponse is a typed component of the nodes.reload_secure_settings operation.
 type NodesReloadSecureSettingsNodeReloadResponse struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -287,7 +287,7 @@ func (u NodesReloadSecureSettingsRespBodyNodesValue) MarshalJSON() ([]byte, erro
 //
 // An object containing the password for the OpenSearch keystore.
 type NodesReloadSecureSettingsBody struct {
-	// The password for authentication.
+	// SecureSettingsPassword is the password for authentication.
 	SecureSettingsPassword *string `json:"secure_settings_password,omitempty"`
 }
 

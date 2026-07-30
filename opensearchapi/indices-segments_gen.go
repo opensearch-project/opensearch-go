@@ -158,7 +158,7 @@ func (r IndicesSegmentsResp) RawBody() io.Reader {
 //
 // The segment information for an index.
 type IndicesSegmentsIndexSegment struct {
-	// The segment information for each shard.
+	// Shards is the segment information for each shard.
 	Shards map[string]IndicesSegmentsIndexSegmentShardsValue `json:"shards"`
 }
 
@@ -166,16 +166,16 @@ type IndicesSegmentsIndexSegment struct {
 //
 // The segment information for a shard.
 type IndicesSegmentsShardsSegment struct {
-	// The number of committed segments.
+	// NumCommittedSegments is the number of committed segments.
 	NumCommittedSegments int `json:"num_committed_segments"`
 
-	// The number of segments available for search.
+	// NumSearchSegments is the number of segments available for search.
 	NumSearchSegments int `json:"num_search_segments"`
 
-	// The routing information for a shard segment.
+	// Routing is the routing information for a shard segment.
 	Routing IndicesSegmentsShardSegmentRouting `json:"routing"`
 
-	// The detailed information for each segment.
+	// Segments is the detailed information for each segment.
 	Segments map[string]IndicesSegmentsSegment `json:"segments"`
 }
 
@@ -183,13 +183,13 @@ type IndicesSegmentsShardsSegment struct {
 //
 // The routing information for a shard segment.
 type IndicesSegmentsShardSegmentRouting struct {
-	// The node containing the segment.
+	// Node is the node containing the segment.
 	Node string `json:"node"`
 
-	// Whether this is a primary shard.
+	// Primary. Whether this is a primary shard.
 	Primary bool `json:"primary"`
 
-	// The current state of the shard.
+	// State is the current state of the shard.
 	State string `json:"state"`
 }
 
@@ -197,37 +197,37 @@ type IndicesSegmentsShardSegmentRouting struct {
 //
 // The detailed information about a segment.
 type IndicesSegmentsSegment struct {
-	// The attributes of the segment.
+	// Attributes is the attributes of the segment.
 	Attributes map[string]string `json:"attributes"`
 
-	// Whether the segment is committed.
+	// Committed. Whether the segment is committed.
 	Committed bool `json:"committed"`
 
-	// Whether the segment is compound.
+	// Compound. Whether the segment is compound.
 	Compound bool `json:"compound"`
 
-	// The number of deleted documents in the segment.
+	// DeletedDocs is the number of deleted documents in the segment.
 	DeletedDocs int `json:"deleted_docs"`
 
-	// The generation number of the segment.
+	// Generation is the generation number of the segment.
 	Generation int `json:"generation"`
 
-	// The unique identifier of a node.
+	// Memory is the unique identifier of a node.
 	Memory *string `json:"memory,omitempty"`
 
-	// The size in bytes.
+	// MemoryInBytes is the size in bytes.
 	MemoryInBytes *int64 `json:"memory_in_bytes,omitempty"`
 
-	// The number of documents in the segment.
+	// NumDocs is the number of documents in the segment.
 	NumDocs int `json:"num_docs"`
 
-	// Whether the segment is searchable.
+	// Search. Whether the segment is searchable.
 	Search bool `json:"search"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 
 	Version string `json:"version"`

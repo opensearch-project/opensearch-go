@@ -128,9 +128,9 @@ func (r PredictModelResp) RawBody() io.Reader {
 
 // MLPredictModelBody is a typed component of the ml.predict_model operation.
 type MLPredictModelBody struct {
-	// The query text.
+	// QueryText is the query text.
 	QueryText *string `json:"query_text,omitempty"`
 
-	// The text documents.
+	// TextDocs is the text documents.
 	TextDocs []string `json:"text_docs"`
 }

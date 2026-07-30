@@ -120,7 +120,7 @@ func (r IndicesAnalyzeParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/analyze-apis/perform-text-analysis/
 type IndicesAnalyzeResp struct {
-	// The detailed analysis results.
+	// Detail is the detailed analysis results.
 	Detail *IndicesAnalyzeDetail `json:"detail,omitempty"`
 
 	Tokens []IndicesAnalyzeToken `json:"tokens,omitempty"`
@@ -146,19 +146,19 @@ func (r IndicesAnalyzeResp) RawBody() io.Reader {
 //
 // The detailed analysis results.
 type IndicesAnalyzeDetail struct {
-	// The analyzer results.
+	// Analyzer is the analyzer results.
 	Analyzer *IndicesAnalyzeAnalyzerDetail `json:"analyzer,omitempty"`
 
-	// The list of character filter results.
+	// Charfilters is the list of character filter results.
 	Charfilters []IndicesAnalyzeCharFilterDetail `json:"charfilters,omitempty"`
 
-	// Whether a custom analyzer was used.
+	// CustomAnalyzer. Whether a custom analyzer was used.
 	CustomAnalyzer bool `json:"custom_analyzer"`
 
-	// The list of token filter results.
+	// Tokenfilters is the list of token filter results.
 	Tokenfilters []IndicesAnalyzeTokenDetail `json:"tokenfilters,omitempty"`
 
-	// The token filter or tokenizer results.
+	// Tokenizer is the token filter or tokenizer results.
 	Tokenizer *IndicesAnalyzeTokenDetail `json:"tokenizer,omitempty"`
 }
 
@@ -166,10 +166,10 @@ type IndicesAnalyzeDetail struct {
 //
 // The analyzer results.
 type IndicesAnalyzeAnalyzerDetail struct {
-	// The name of the analyzer.
+	// Name is the name of the analyzer.
 	Name string `json:"name"`
 
-	// The list of tokens produced by the analyzer.
+	// Tokens is the list of tokens produced by the analyzer.
 	Tokens []IndicesAnalyzeExplainToken `json:"tokens"`
 }
 
@@ -177,31 +177,31 @@ type IndicesAnalyzeAnalyzerDetail struct {
 //
 // The detailed token information.
 type IndicesAnalyzeExplainToken struct {
-	// The bytes representation of the token.
+	// Bytes is the bytes representation of the token.
 	Bytes string `json:"bytes"`
 
-	// The ending character offset of the token.
+	// EndOffset is the ending character offset of the token.
 	EndOffset int `json:"end_offset"`
 
-	// Whether the token is a keyword.
+	// Keyword. Whether the token is a keyword.
 	Keyword *bool `json:"keyword,omitempty"`
 
-	// The position of the token.
+	// Position is the position of the token.
 	Position int `json:"position"`
 
-	// The length of the token position.
+	// PositionLength is the length of the token position.
 	PositionLength int `json:"positionLength"`
 
-	// The starting character offset of the token.
+	// StartOffset is the starting character offset of the token.
 	StartOffset int `json:"start_offset"`
 
-	// The frequency of the term.
+	// TermFrequency is the frequency of the term.
 	TermFrequency int `json:"termFrequency"`
 
-	// The token string.
+	// Token is the token string.
 	Token string `json:"token"`
 
-	// The type of the token.
+	// Type is the type of the token.
 	Type string `json:"type"`
 }
 
@@ -209,10 +209,10 @@ type IndicesAnalyzeExplainToken struct {
 //
 // The character filter results.
 type IndicesAnalyzeCharFilterDetail struct {
-	// The text after character filtering.
+	// FilteredText is the text after character filtering.
 	FilteredText []string `json:"filtered_text"`
 
-	// The name of the character filter.
+	// Name is the name of the character filter.
 	Name string `json:"name"`
 }
 
@@ -220,10 +220,10 @@ type IndicesAnalyzeCharFilterDetail struct {
 //
 // The token filter or tokenizer results.
 type IndicesAnalyzeTokenDetail struct {
-	// The name of the token filter or tokenizer.
+	// Name is the name of the token filter or tokenizer.
 	Name string `json:"name"`
 
-	// The list of tokens produced.
+	// Tokens is the list of tokens produced.
 	Tokens []IndicesAnalyzeExplainToken `json:"tokens"`
 }
 
@@ -231,22 +231,22 @@ type IndicesAnalyzeTokenDetail struct {
 //
 // The basic token information.
 type IndicesAnalyzeToken struct {
-	// The ending character offset of the token.
+	// EndOffset is the ending character offset of the token.
 	EndOffset int `json:"end_offset"`
 
-	// The position of the token.
+	// Position is the position of the token.
 	Position int `json:"position"`
 
-	// The length of the token position.
+	// PositionLength is the length of the token position.
 	PositionLength *int `json:"positionLength,omitempty"`
 
-	// The starting character offset of the token.
+	// StartOffset is the starting character offset of the token.
 	StartOffset int `json:"start_offset"`
 
-	// The token string.
+	// Token is the token string.
 	Token string `json:"token"`
 
-	// The type of the token.
+	// Type is the type of the token.
 	Type string `json:"type"`
 }
 
@@ -254,34 +254,34 @@ type IndicesAnalyzeToken struct {
 //
 // Define analyzer/tokenizer parameters and the text on which the analysis should be performed
 type IndicesAnalyzeBody struct {
-	// The name of the analyzer that should be applied to the provided `text`.
-	// This could be a built-in analyzer, or an analyzer that's been configured
-	// in the index.
+	// Analyzer is the name of the analyzer that should be applied to the
+	// provided `text`. This could be a built-in analyzer, or an analyzer
+	// that's been configured in the index.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// Array of token attributes used to filter the output of the `explain`
-	// parameter.
+	// Attributes. Array of token attributes used to filter the output of the
+	// `explain` parameter.
 	Attributes []string `json:"attributes,omitempty"`
 
-	// Array of character filters used to preprocess characters before the
-	// tokenizer.
+	// CharFilter. Array of character filters used to preprocess characters
+	// before the tokenizer.
 	CharFilter []IndicesAnalyzeBodyCharFilterItem `json:"char_filter,omitempty"`
 
-	// If `true`, the response includes token attributes and additional
-	// details.
+	// Explain. If `true`, the response includes token attributes and
+	// additional details.
 	Explain *bool `json:"explain,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field *string `json:"field,omitempty"`
 
-	// Array of token filters used to apply after the tokenizer.
+	// Filter. Array of token filters used to apply after the tokenizer.
 	Filter []IndicesAnalyzeBodyFilterItem `json:"filter,omitempty"`
 
 	// Normalizer to use to convert text into a single token.
 	Normalizer *string `json:"normalizer,omitempty"`
 
-	// The text or array of text to analyze.
+	// Text is the text or array of text to analyze.
 	Text *IndicesAnalyzeBodyText `json:"text,omitempty"`
 
 	Tokenizer *IndicesAnalyzeBodyTokenizer `json:"tokenizer,omitempty"`

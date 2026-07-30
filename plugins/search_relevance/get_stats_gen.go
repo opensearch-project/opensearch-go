@@ -125,7 +125,7 @@ type GetStatsResp struct {
 	opensearchapi.NodesRespBase
 	AllNodes json.RawMessage `json:"all_nodes"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Info  json.RawMessage `json:"info"`

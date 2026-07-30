@@ -176,7 +176,7 @@ func (r IndicesStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesStatsResp struct {
-	// The statistics for all indexes.
+	// All is the statistics for all indexes.
 	All IndicesStatsAllIndices `json:"_all"`
 
 	Shards  ShardStatistics                `json:"_shards"`
@@ -213,48 +213,48 @@ type IndicesStatsAllIndices struct {
 type IndicesStatsIndex struct {
 	Completion *CompletionStats `json:"completion,omitempty"`
 
-	// The document-level statistics.
+	// Docs is the document-level statistics.
 	Docs *DocStats `json:"docs,omitempty"`
 
-	// The statistics about field data memory usage.
+	// Fielddata is the statistics about field data memory usage.
 	Fielddata *FielddataStats `json:"fielddata,omitempty"`
 
-	// The statistics about flush operations.
+	// Flush is the statistics about flush operations.
 	Flush *FlushStats `json:"flush,omitempty"`
 
-	// The statistics about get operations.
+	// Get is the statistics about get operations.
 	Get *GetStats `json:"get,omitempty"`
 
-	// The statistics about indexing operations.
+	// Indexing is the statistics about indexing operations.
 	Indexing *IndexingStats `json:"indexing,omitempty"`
 
-	// The statistics about merge operations.
+	// Merges is the statistics about merge operations.
 	Merges *MergesStats `json:"merges,omitempty"`
 
-	// The statistics about query cache usage.
+	// QueryCache is the statistics about query cache usage.
 	QueryCache *QueryCacheStats `json:"query_cache,omitempty"`
 
-	// The statistics about recovery operations.
+	// Recovery is the statistics about recovery operations.
 	Recovery *RecoveryStats `json:"recovery,omitempty"`
 
-	// The statistics about refresh operations.
+	// Refresh is the statistics about refresh operations.
 	Refresh *RefreshStats `json:"refresh,omitempty"`
 
-	// The statistics about request cache operations.
+	// RequestCache is the statistics about request cache operations.
 	RequestCache *RequestCacheStats `json:"request_cache,omitempty"`
 
-	// The statistics about search operations.
+	// Search is the statistics about search operations.
 	Search *SearchStats `json:"search,omitempty"`
 
-	// The statistics about segments.
+	// Segments is the statistics about segments.
 	Segments *SegmentsStats `json:"segments,omitempty"`
 
 	Store *StoreStats `json:"store,omitempty"`
 
-	// The statistics about translog operations.
+	// Translog is the statistics about translog operations.
 	Translog *TranslogStats `json:"translog,omitempty"`
 
-	// The statistics about index warmer operations.
+	// Warmer is the statistics about index warmer operations.
 	Warmer *WarmerStats `json:"warmer,omitempty"`
 }
 
@@ -264,12 +264,12 @@ type IndicesStatsIndex struct {
 type IndicesStatsIndices struct {
 	Primaries IndicesStatsIndex `json:"primaries"`
 
-	// The statistics for individual shards.
+	// Shards is the statistics for individual shards.
 	Shards map[string][]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 
 	Total IndicesStatsIndex `json:"total"`
 
-	// The universally unique identifier.
+	// UUID is the universally unique identifier.
 	UUID string `json:"uuid"`
 }
 
@@ -277,19 +277,19 @@ type IndicesStatsIndices struct {
 type IndicesStatsIndexShardBase struct {
 	IndicesStatsIndex
 
-	// The commit information for a shard.
+	// Commit is the commit information for a shard.
 	Commit *IndicesStatsShardCommit `json:"commit,omitempty"`
 
-	// The retention lease information for a shard.
+	// RetentionLeases is the retention lease information for a shard.
 	RetentionLeases *IndicesStatsShardRetentionLeases `json:"retention_leases,omitempty"`
 
-	// The routing information for a shard.
+	// Routing is the routing information for a shard.
 	Routing *IndicesStatsShardRouting `json:"routing,omitempty"`
 
-	// The sequence number information for a shard.
+	// SeqNo is the sequence number information for a shard.
 	SeqNo *IndicesStatsShardSequenceNumber `json:"seq_no,omitempty"`
 
-	// The path information for a shard.
+	// ShardPath is the path information for a shard.
 	ShardPath *IndicesStatsShardPath `json:"shard_path,omitempty"`
 }
 
@@ -297,16 +297,16 @@ type IndicesStatsIndexShardBase struct {
 //
 // The commit information for a shard.
 type IndicesStatsShardCommit struct {
-	// The generation number of the commit.
+	// Generation is the generation number of the commit.
 	Generation int `json:"generation"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// The number of documents in the commit.
+	// NumDocs is the number of documents in the commit.
 	NumDocs int64 `json:"num_docs"`
 
-	// The user-defined data associated with the commit.
+	// UserData is the user-defined data associated with the commit.
 	UserData map[string]string `json:"user_data"`
 }
 
@@ -314,10 +314,10 @@ type IndicesStatsShardCommit struct {
 //
 // The retention lease information for a shard.
 type IndicesStatsShardRetentionLeases struct {
-	// The list of retention leases.
+	// Leases is the list of retention leases.
 	Leases []IndicesStatsShardLease `json:"leases"`
 
-	// The primary term of the retention leases.
+	// PrimaryTerm is the primary term of the retention leases.
 	PrimaryTerm int64 `json:"primary_term"`
 
 	Version int64 `json:"version"`
@@ -327,10 +327,10 @@ type IndicesStatsShardRetentionLeases struct {
 //
 // The retention lease details.
 type IndicesStatsShardLease struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// The sequence number of the document.
+	// RetainingSeqNo is the sequence number of the document.
 	RetainingSeqNo int64 `json:"retaining_seq_no"`
 
 	Source    string `json:"source"`
@@ -341,16 +341,16 @@ type IndicesStatsShardLease struct {
 //
 // The routing information for a shard.
 type IndicesStatsShardRouting struct {
-	// The node containing the shard.
+	// Node is the node containing the shard.
 	Node string `json:"node"`
 
-	// Whether this is a primary shard.
+	// Primary. Whether this is a primary shard.
 	Primary bool `json:"primary"`
 
-	// The node where the shard is relocating to.
+	// RelocatingNode is the node where the shard is relocating to.
 	RelocatingNode *string `json:"relocating_node"`
 
-	// The state of shard routing.
+	// State is the state of shard routing.
 	State string `json:"state"`
 }
 
@@ -358,13 +358,13 @@ type IndicesStatsShardRouting struct {
 //
 // The sequence number information for a shard.
 type IndicesStatsShardSequenceNumber struct {
-	// The global checkpoint for the shard.
+	// GlobalCheckpoint is the global checkpoint for the shard.
 	GlobalCheckpoint int64 `json:"global_checkpoint"`
 
-	// The local checkpoint for the shard.
+	// LocalCheckpoint is the local checkpoint for the shard.
 	LocalCheckpoint int64 `json:"local_checkpoint"`
 
-	// The sequence number of the document.
+	// MaxSeqNo is the sequence number of the document.
 	MaxSeqNo int64 `json:"max_seq_no"`
 }
 
@@ -372,13 +372,13 @@ type IndicesStatsShardSequenceNumber struct {
 //
 // The path information for a shard.
 type IndicesStatsShardPath struct {
-	// The path to the shard's data.
+	// DataPath is the path to the shard's data.
 	DataPath string `json:"data_path"`
 
-	// Whether the shard uses a custom data path.
+	// IsCustomDataPath. Whether the shard uses a custom data path.
 	IsCustomDataPath bool `json:"is_custom_data_path"`
 
-	// The path to the shard's state.
+	// StatePath is the path to the shard's state.
 	StatePath string `json:"state_path"`
 }
 

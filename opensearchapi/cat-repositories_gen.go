@@ -135,10 +135,10 @@ func (r CatRepositoriesResp) RawBody() io.Reader {
 
 // CatRepositoriesRecord is a typed component of the cat.repositories operation.
 type CatRepositoriesRecord struct {
-	// The unique repository identifier.
+	// ID is the unique repository identifier.
 	ID *string `json:"id,omitempty"`
 
-	// The repository type.
+	// Type is the repository type.
 	Type *string `json:"type,omitempty"`
 }
 

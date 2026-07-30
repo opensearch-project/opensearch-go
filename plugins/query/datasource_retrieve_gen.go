@@ -88,27 +88,27 @@ func (r DatasourceRetrieveParams) get() map[string]string {
 //
 // Available: >= 2.7.0.
 type DatasourceRetrieveResp struct {
-	// The roles allowed to access this data source.
+	// AllowedRoles is the roles allowed to access this data source.
 	AllowedRoles []string `json:"allowedRoles,omitempty"`
 
 	Configuration *opensearchapi.QueryDataSourceConfiguration `json:"configuration,omitempty"`
 
-	// The connector type for the data source.
+	// Connector is the connector type for the data source.
 	Connector string `json:"connector"`
 
-	// The description of the data source.
+	// Description is the description of the data source.
 	Description *string `json:"description,omitempty"`
 
-	// The name of the data source.
+	// Name is the name of the data source.
 	Name string `json:"name"`
 
-	// The configuration properties for the data source.
+	// Properties is the configuration properties for the data source.
 	Properties map[string]json.RawMessage `json:"properties"`
 
-	// The index where query results are stored.
+	// ResultIndex is the index where query results are stored.
 	ResultIndex string `json:"resultIndex"`
 
-	// The current status of the data source.
+	// Status is the current status of the data source.
 	Status string `json:"status"`
 
 	response *opensearch.Response

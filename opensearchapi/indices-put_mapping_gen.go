@@ -179,30 +179,31 @@ func (r IndicesPutMappingResp) RawBody() io.Reader {
 type IndicesPutMappingBody struct {
 	FieldNames *CommonMappingFieldNamesField `json:"_field_names,omitempty"`
 
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	Routing *CommonMappingRoutingField `json:"_routing,omitempty"`
 	Source  *CommonMappingSourceField  `json:"_source,omitempty"`
 
-	// Controls whether dynamic date detection is enabled.
+	// DateDetection. Controls whether dynamic date detection is enabled.
 	DateDetection *bool `json:"date_detection,omitempty"`
 
 	Dynamic *IndicesPutMappingBodyDynamic `json:"dynamic,omitempty"`
 
-	// If date detection is enabled then new string fields are checked against
-	// `dynamic_date_formats` and if the value matches then a new date field is
-	// added instead of string.
+	// DynamicDateFormats. If date detection is enabled then new string fields
+	// are checked against `dynamic_date_formats` and if the value matches then
+	// a new date field is added instead of string.
 	DynamicDateFormats []string `json:"dynamic_date_formats,omitempty"`
 
-	// Specify dynamic templates for the mapping.
+	// DynamicTemplates. Specify dynamic templates for the mapping.
 	DynamicTemplates *IndicesPutMappingBodyDynamicTemplates `json:"dynamic_templates,omitempty"`
 
-	// Automatically map strings into numeric data types for all fields.
+	// NumericDetection. Automatically map strings into numeric data types for
+	// all fields.
 	NumericDetection *bool `json:"numeric_detection,omitempty"`
 
-	// Mapping for a field. For new fields, this mapping can include: - Field
-	// name - Field data type - Mapping parameters
+	// Properties. Mapping for a field. For new fields, this mapping can
+	// include: - Field name - Field data type - Mapping parameters
 	Properties map[string]CommonMappingProperty `json:"properties,omitempty"`
 }
 

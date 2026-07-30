@@ -98,7 +98,7 @@ func (r NodesUsageParams) get() map[string]string {
 type NodesUsageResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
 	Nodes map[string]NodesUsageNode `json:"nodes"`
@@ -125,10 +125,10 @@ type NodesUsageNode struct {
 	Aggregations map[string]json.RawMessage `json:"aggregations,omitempty"`
 	RestActions  map[string]int64           `json:"rest_actions,omitempty"`
 
-	// The time unit for milliseconds.
+	// Since is the time unit for milliseconds.
 	Since int64 `json:"since"`
 
-	// The time unit for milliseconds.
+	// Timestamp is the time unit for milliseconds.
 	Timestamp int64 `json:"timestamp"`
 }
 

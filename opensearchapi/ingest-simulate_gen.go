@@ -154,19 +154,19 @@ type IngestSimulatePipelineSimulation struct {
 
 // IngestSimulateDocumentSimulation is a typed component of the ingest.simulate operation.
 type IngestSimulateDocumentSimulation struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index  string               `json:"_index"`
 	Ingest IngestSimulateIngest `json:"_ingest"`
 
-	// Value used to send the document to a specific primary shard.
+	// Routing. Value used to send the document to a specific primary shard.
 	Routing *string `json:"_routing,omitempty"`
 
-	// JSON body for the document.
+	// Source. JSON body for the document.
 	Source map[string]json.RawMessage `json:"_source"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Version. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -178,13 +178,13 @@ type IngestSimulateDocumentSimulation struct {
 
 // IngestSimulateIngest is a typed component of the ingest.simulate operation.
 type IngestSimulateIngest struct {
-	// The name of a resource or configuration element.
+	// Pipeline is the name of a resource or configuration element.
 	Pipeline *string `json:"pipeline,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// Timestamp is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	Timestamp string `json:"timestamp"`
 }
 
@@ -328,7 +328,7 @@ func (u IngestSimulateDocumentSimulationVersion) MarshalJSON() ([]byte, error) {
 //
 // The simulate definition
 type IngestSimulateBody struct {
-	// A list of sample documents to test in the pipeline.
+	// Docs is a list of sample documents to test in the pipeline.
 	Docs []IngestSimulateDocument `json:"docs,omitempty"`
 
 	Pipeline *IngestPipeline `json:"pipeline,omitempty"`
@@ -336,12 +336,12 @@ type IngestSimulateBody struct {
 
 // IngestSimulateDocument is a typed component of the ingest.simulate operation.
 type IngestSimulateDocument struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// JSON body for the document.
+	// Source. JSON body for the document.
 	Source json.RawMessage `json:"_source"`
 }
 

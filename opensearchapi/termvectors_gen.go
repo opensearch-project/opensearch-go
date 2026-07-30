@@ -212,12 +212,12 @@ func (r TermVectorsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type TermVectorsResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index string `json:"_index"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version     int64                            `json:"_version"`
@@ -246,13 +246,13 @@ func (r TermVectorsResp) RawBody() io.Reader {
 //
 // Define parameters and or supply a document to get termvectors for. See documentation.
 type TermVectorsBody struct {
-	// An artificial document (a document not present in the index) for which
-	// you want to retrieve term vectors.
+	// Doc is an artificial document (a document not present in the index) for
+	// which you want to retrieve term vectors.
 	Doc json.RawMessage `json:"doc"`
 
 	Filter *TermVectorsFilter `json:"filter,omitempty"`
 
-	// Overrides the default per-field analyzer.
+	// PerFieldAnalyzer. Overrides the default per-field analyzer.
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
 }
 

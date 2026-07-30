@@ -295,7 +295,7 @@ func TestStringEnumFragment_Body(t *testing.T) {
 	for _, want := range []string{
 		"// The role assigned to the node.",
 		"type NodeRole string",
-		"// The node can store hot data.",
+		"// NodeRoleDataHot. The node can store hot data.",
 		`NodeRoleDataHot NodeRole = "data_hot"`,
 		`NodeRoleML NodeRole = "ml"`,
 	} {

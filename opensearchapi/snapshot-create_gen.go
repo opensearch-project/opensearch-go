@@ -128,8 +128,8 @@ func (r SnapshotCreateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-snapshot/
 type SnapshotCreateResp struct {
-	// Returns `true` if the snapshot was accepted. Present when the request
-	// had `wait_for_completion` set to `false`.
+	// Accepted. Returns `true` if the snapshot was accepted. Present when the
+	// request had `wait_for_completion` set to `false`.
 	Accepted *bool `json:"accepted,omitempty"`
 
 	Snapshot *SnapshotInfo `json:"snapshot,omitempty"`
@@ -155,40 +155,41 @@ func (r SnapshotCreateResp) RawBody() io.Reader {
 //
 // The snapshot definition.
 type SnapshotCreateBody struct {
-	// A list of feature states to include in the snapshot. Each feature state
-	// includes one or more system indexes which contain related data. You can
-	// view a list of features using the Get Feature API. If
-	// `include_global_state` is `true`, all current feature states are
+	// FeatureStates is a list of feature states to include in the snapshot.
+	// Each feature state includes one or more system indexes which contain
+	// related data. You can view a list of features using the Get Feature API.
+	// If `include_global_state` is `true`, all current feature states are
 	// included by default. If `include_global_state` is `false`, no feature
 	// states are included by default.
 	FeatureStates []string `json:"feature_states,omitempty"`
 
-	// When `true`, the request ignores any data streams and indexes that are
-	// missing or closed. When `false`, the request returns an error for any
-	// data streams or indexes that is missing or closed.
+	// IgnoreUnavailable. When `true`, the request ignores any data streams and
+	// indexes that are missing or closed. When `false`, the request returns an
+	// error for any data streams or indexes that is missing or closed.
 	IgnoreUnavailable *bool `json:"ignore_unavailable,omitempty"`
 
-	// When `true`, includes the current cluster state in the snapshot. The
-	// cluster state includes persistent cluster settings, composable index
-	// templates, legacy index templates, ingest pipelines, and ILM policies.
-	// The cluster state also includes data stored in system indexes, such as
-	// watches and task records (configurable with `feature_states`).
+	// IncludeGlobalState. When `true`, includes the current cluster state in
+	// the snapshot. The cluster state includes persistent cluster settings,
+	// composable index templates, legacy index templates, ingest pipelines,
+	// and ILM policies. The cluster state also includes data stored in system
+	// indexes, such as watches and task records (configurable with
+	// `feature_states`).
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// The custom metadata attached to a resource.
+	// Metadata is the custom metadata attached to a resource.
 	Metadata map[string]json.RawMessage `json:"metadata,omitempty"`
 
-	// When `true`, enables the restoration of a partial snapshot from indexes
-	// with unavailable shards. Only shards that were successfully included in
-	// the snapshot will be restored. All missing shards will be recreated as
-	// empty. When `false`, the entire restore operation will fail if one or
-	// more indexes included in the snapshot do not have all primary shards
-	// available.
+	// Partial. When `true`, enables the restoration of a partial snapshot from
+	// indexes with unavailable shards. Only shards that were successfully
+	// included in the snapshot will be restored. All missing shards will be
+	// recreated as empty. When `false`, the entire restore operation will fail
+	// if one or more indexes included in the snapshot do not have all primary
+	// shards available.
 	Partial *bool `json:"partial,omitempty"`
 }
 

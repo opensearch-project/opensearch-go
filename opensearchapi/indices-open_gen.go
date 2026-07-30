@@ -188,7 +188,7 @@ func (r IndicesOpenResp) RawBody() io.Reader {
 
 // IndicesOpenRespBodyTask is a typed component of the indices.open operation.
 type IndicesOpenRespBodyTask struct {
-	// The unique identifier of a task.
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 

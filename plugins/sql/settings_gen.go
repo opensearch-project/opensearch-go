@@ -100,10 +100,10 @@ func (r SettingsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/settings/
 type SettingsResp struct {
-	// Whether the settings were acknowledged.
+	// Acknowledged. Whether the settings were acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
-	// The permanent settings that persist through restarts.
+	// Persistent is the permanent settings that persist through restarts.
 	Persistent json.RawMessage `json:"persistent"`
 
 	Transient *opensearchapi.SQLTransient `json:"transient,omitempty"`

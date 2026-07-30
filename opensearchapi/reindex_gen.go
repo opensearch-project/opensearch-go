@@ -215,7 +215,7 @@ func (r ReindexResp) RawBody() io.Reader {
 
 // ReindexRespBodyTask is a typed component of the reindex operation.
 type ReindexRespBodyTask struct {
-	// The unique identifier of a task.
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
@@ -360,7 +360,7 @@ type ReindexBody struct {
 	Conflicts *Conflicts         `json:"conflicts,omitempty"`
 	Dest      ReindexDestination `json:"dest"`
 
-	// The maximum number of documents to reindex.
+	// MaxDocs is the maximum number of documents to reindex.
 	MaxDocs *int `json:"max_docs,omitempty"`
 
 	Script *ReindexBodyScript `json:"script,omitempty"`
@@ -373,10 +373,10 @@ type ReindexDestination struct {
 	Index  string  `json:"index"`
 	OpType *OpType `json:"op_type,omitempty"`
 
-	// The name of the pipeline to use.
+	// Pipeline is the name of the pipeline to use.
 	Pipeline *string `json:"pipeline,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
 	VersionType *VersionType `json:"version_type,omitempty"`
@@ -384,26 +384,27 @@ type ReindexDestination struct {
 
 // ReindexSource is a typed component of the reindex operation.
 type ReindexSource struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Source is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Source *string `json:"_source,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Index is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Index []string `json:"index"`
 
 	Query  *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 	Remote *ReindexRemoteSource          `json:"remote,omitempty"`
 
-	// The number of documents to index per batch. Use the `size` setting when
-	// indexing from a remote cluster. This ensures that batches fit in the
-	// on-heap buffer. The buffer defaults to a maximum size of `100MB`.
+	// Size is the number of documents to index per batch. Use the `size`
+	// setting when indexing from a remote cluster. This ensures that batches
+	// fit in the on-heap buffer. The buffer defaults to a maximum size of
+	// `100MB`.
 	Size *int `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
 	Sort *ReindexSourceSort `json:"sort,omitempty"`
@@ -411,26 +412,28 @@ type ReindexSource struct {
 
 // ReindexRemoteSource is a typed component of the reindex operation.
 type ReindexRemoteSource struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ConnectTimeout is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ConnectTimeout *string `json:"connect_timeout,omitempty"`
 
-	// An object containing the headers of the request.
+	// Headers is an object containing the headers of the request.
 	Headers map[string]string `json:"headers,omitempty"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host string `json:"host"`
 
-	// The password for authentication.
+	// Password is the password for authentication.
 	Password *string `json:"password,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SocketTimeout is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SocketTimeout *string `json:"socket_timeout,omitempty"`
 
-	// The username for authentication.
+	// Username is the username for authentication.
 	Username *string `json:"username,omitempty"`
 }
 

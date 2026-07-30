@@ -115,10 +115,10 @@ type SearchAgenticMemoryResp struct {
 	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 	Hits   opensearchapi.MLSearchHits     `json:"hits"`
 
-	// Whether the search timed out.
+	// TimedOut. Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// The time taken to execute the search.
+	// Took is the time taken to execute the search.
 	Took *int `json:"took,omitempty"`
 
 	response *opensearch.Response
@@ -142,7 +142,7 @@ func (r SearchAgenticMemoryResp) RawBody() io.Reader {
 type MLSearchAgenticMemoryBody struct {
 	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The number of memory containers to return.
+	// Size is the number of memory containers to return.
 	Size *int64 `json:"size,omitempty"`
 
 	Sort *MLSearchAgenticMemoryBodySort `json:"sort,omitempty"`

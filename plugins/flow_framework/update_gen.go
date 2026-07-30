@@ -147,7 +147,8 @@ func (r UpdateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/create-workflow/
 type UpdateResp struct {
-	// The ID of the workflow to be updated. Required for the PUT method.
+	// WorkflowID is the ID of the workflow to be updated. Required for the PUT
+	// method.
 	WorkflowID string `json:"workflow_id"`
 
 	response *opensearch.Response
@@ -169,19 +170,19 @@ func (r UpdateResp) RawBody() io.Reader {
 
 // FlowFrameworkCommonFlowFrameworkUpdate is a typed component of the flow_framework.update operation.
 type FlowFrameworkCommonFlowFrameworkUpdate struct {
-	// A description of the workflow.
+	// Description is a description of the workflow.
 	Description *string `json:"description,omitempty"`
 
-	// The name of the workflow.
+	// Name is the name of the workflow.
 	Name *string `json:"name,omitempty"`
 
-	// A use case ID, which can be used with the Search Workflow API to find
-	// related workflows.
+	// UseCase is a use case ID, which can be used with the Search Workflow API
+	// to find related workflows.
 	UseCase *string `json:"use_case,omitempty"`
 
-	// A key-value map with two fields, template, which identifies the template
-	// version, and compatibility, which identifies a list of minimum required
-	// OpenSearch versions.
+	// Version is a key-value map with two fields, template, which identifies
+	// the template version, and compatibility, which identifies a list of
+	// minimum required OpenSearch versions.
 	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
 
 	Workflows json.RawMessage `json:"workflows"`

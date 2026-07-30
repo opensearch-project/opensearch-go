@@ -85,8 +85,8 @@ func (r GetPermissionsInfoParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type GetPermissionsInfoResp struct {
-	// An object with disabled APIs as keys and an array of HTTP methods as
-	// values.
+	// DisabledEndpoints is an object with disabled APIs as keys and an array
+	// of HTTP methods as values.
 	DisabledEndpoints map[string][]string `json:"disabled_endpoints,omitempty"`
 
 	HasAPIAccess *bool   `json:"has_api_access,omitempty"`

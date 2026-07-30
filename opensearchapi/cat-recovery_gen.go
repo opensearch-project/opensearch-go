@@ -174,97 +174,97 @@ func (r CatRecoveryResp) RawBody() io.Reader {
 
 // CatRecoveryRecord is a typed component of the cat.recovery operation.
 type CatRecoveryRecord struct {
-	// The number of bytes to recover.
+	// Bytes is the number of bytes to recover.
 	Bytes *string `json:"bytes,omitempty"`
 
-	// The percentage value as a string.
+	// BytesPercent is the percentage value as a string.
 	BytesPercent *string `json:"bytes_percent,omitempty"`
 
-	// The bytes recovered.
+	// BytesRecovered is the bytes recovered.
 	BytesRecovered *string `json:"bytes_recovered,omitempty"`
 
-	// The total number of bytes.
+	// BytesTotal is the total number of bytes.
 	BytesTotal *string `json:"bytes_total,omitempty"`
 
-	// The number of files to recover.
+	// Files is the number of files to recover.
 	Files *string `json:"files,omitempty"`
 
-	// The percentage value as a string.
+	// FilesPercent is the percentage value as a string.
 	FilesPercent *string `json:"files_percent,omitempty"`
 
-	// The files recovered.
+	// FilesRecovered is the files recovered.
 	FilesRecovered *string `json:"files_recovered,omitempty"`
 
-	// The total number of files.
+	// FilesTotal is the total number of files.
 	FilesTotal *string `json:"files_total,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// The repository name.
+	// Repository is the repository name.
 	Repository *string `json:"repository,omitempty"`
 
-	// The shard name.
+	// Shard is the shard name.
 	Shard *string `json:"shard,omitempty"`
 
-	// The snapshot name.
+	// Snapshot is the snapshot name.
 	Snapshot *string `json:"snapshot,omitempty"`
 
-	// The source host.
+	// SourceHost is the source host.
 	SourceHost *string `json:"source_host,omitempty"`
 
-	// The source node name.
+	// SourceNode is the source node name.
 	SourceNode *string `json:"source_node,omitempty"`
 
-	// The recovery stage.
+	// Stage is the recovery stage.
 	Stage *string `json:"stage,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StartTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// StartTimeMillis. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	StartTimeMillis *CatRecoveryRecordStartTimeMillis `json:"start_time_millis,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StopTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StopTime *string `json:"stop_time,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// StopTimeMillis. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	StopTimeMillis *CatRecoveryRecordStopTimeMillis `json:"stop_time_millis,omitempty"`
 
-	// The target host.
+	// TargetHost is the target host.
 	TargetHost *string `json:"target_host,omitempty"`
 
-	// The target node name.
+	// TargetNode is the target node name.
 	TargetNode *string `json:"target_node,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Time *string `json:"time,omitempty"`
 
-	// The number of translog operations to recover.
+	// TranslogOps is the number of translog operations to recover.
 	TranslogOps *string `json:"translog_ops,omitempty"`
 
-	// The percentage value as a string.
+	// TranslogOpsPercent is the percentage value as a string.
 	TranslogOpsPercent *string `json:"translog_ops_percent,omitempty"`
 
-	// The translog operations recovered.
+	// TranslogOpsRecovered is the translog operations recovered.
 	TranslogOpsRecovered *string `json:"translog_ops_recovered,omitempty"`
 
-	// The recovery type.
+	// Type is the recovery type.
 	Type *string `json:"type,omitempty"`
 }
 

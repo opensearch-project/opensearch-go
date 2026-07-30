@@ -165,7 +165,7 @@ func (r IndicesGetAliasResp) RawBody() io.Reader {
 //
 // The alias configuration for an index.
 type IndicesGetAliasIndexAliases struct {
-	// The map of alias names to their definitions.
+	// Aliases is the map of alias names to their definitions.
 	Aliases map[string]IndicesAliasDefinition `json:"aliases"`
 }
 

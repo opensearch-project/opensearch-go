@@ -147,12 +147,12 @@ type ScrollResp struct {
 	Hits            SearchHitsMetadata                       `json:"hits"`
 	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
 
-	// The time taken by different phases of the search.
+	// PhaseTook is the time taken by different phases of the search.
 	//
 	// Available: >= 2.12.0.
 	PhaseTook *PhaseTook `json:"phase_took,omitempty"`
 
-	// The unique identifier for a resource.
+	// PITID is the unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
@@ -183,9 +183,10 @@ func (r ScrollResp) RawBody() io.Reader {
 
 // ScrollBody is a typed component of the scroll operation.
 type ScrollBody struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Scroll is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Scroll *string `json:"scroll,omitempty"`
 
 	ScrollID *string `json:"scroll_id,omitempty"`

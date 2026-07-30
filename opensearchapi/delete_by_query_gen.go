@@ -411,7 +411,7 @@ func (r DeleteByQueryResp) RawBody() io.Reader {
 
 // DeleteByQueryRespBodyTask is a typed component of the delete_by_query operation.
 type DeleteByQueryRespBodyTask struct {
-	// The unique identifier of a task.
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
@@ -553,12 +553,12 @@ func (u DeleteByQueryRespBody) MarshalJSON() ([]byte, error) {
 //
 // The search definition using the Query DSL
 type DeleteByQueryBody struct {
-	// The maximum number of documents to delete.
+	// MaxDocs is the maximum number of documents to delete.
 	MaxDocs *int `json:"max_docs,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 

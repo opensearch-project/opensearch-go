@@ -63,6 +63,7 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 	tmpl := template.Must(template.New("siblings").Funcs(template.FuncMap{
 		"comment":          CommentWrap,
 		"wrapField":        WrapField,
+		"fieldComment":     FieldComment,
 		"availabilityNote": AvailabilityNote,
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
@@ -86,7 +87,7 @@ type {{.Name}} struct {
 {{- if needsSep $fields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}

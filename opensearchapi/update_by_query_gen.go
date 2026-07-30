@@ -424,7 +424,7 @@ func (r UpdateByQueryResp) RawBody() io.Reader {
 
 // UpdateByQueryRespBodyTask is a typed component of the update_by_query operation.
 type UpdateByQueryRespBodyTask struct {
-	// The unique identifier of a task.
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
@@ -568,13 +568,13 @@ func (u UpdateByQueryRespBody) MarshalJSON() ([]byte, error) {
 type UpdateByQueryBody struct {
 	Conflicts *Conflicts `json:"conflicts,omitempty"`
 
-	// The maximum number of documents to update.
+	// MaxDocs is the maximum number of documents to update.
 	MaxDocs *int `json:"max_docs,omitempty"`
 
 	Query  *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 	Script *UpdateByQueryBodyScript      `json:"script,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 

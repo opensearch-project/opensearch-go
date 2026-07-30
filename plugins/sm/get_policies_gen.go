@@ -122,10 +122,10 @@ func (r GetPoliciesParams) get() map[string]string {
 //
 // Available: >= 2.1.0.
 type GetPoliciesResp struct {
-	// A list of snapshot management policies.
+	// Policies is a list of snapshot management policies.
 	Policies []opensearchapi.SMListedPolicy `json:"policies"`
 
-	// The total number of policies found.
+	// TotalPolicies is the total number of policies found.
 	TotalPolicies int `json:"total_policies"`
 
 	response *opensearch.Response

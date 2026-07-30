@@ -134,8 +134,8 @@ func (r IndicesPutTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
 type IndicesPutTemplateResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -162,8 +162,8 @@ type IndicesPutTemplateBody struct {
 	// Aliases for the index.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Array of wildcard expressions used to match the names of indexes during
-	// creation.
+	// IndexPatterns. Array of wildcard expressions used to match the names of
+	// indexes during creation.
 	IndexPatterns *IndicesPutTemplateBodyIndexPatterns `json:"index_patterns,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
@@ -174,7 +174,7 @@ type IndicesPutTemplateBody struct {
 	// templates with lower values.
 	Order *int `json:"order,omitempty"`
 
-	// Configuration options for the index.
+	// Settings. Configuration options for the index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`

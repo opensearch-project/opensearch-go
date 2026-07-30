@@ -90,7 +90,7 @@ type GetTaskResp struct {
 	CreateTime *int64  `json:"create_time,omitempty"`
 	Error      *string `json:"error,omitempty"`
 
-	// The function name.
+	// FunctionName is the function name.
 	FunctionName *string `json:"function_name,omitempty"`
 
 	IsAsync        *bool   `json:"is_async,omitempty"`
@@ -99,7 +99,7 @@ type GetTaskResp struct {
 	State          string  `json:"state"`
 	TaskID         *string `json:"task_id,omitempty"`
 
-	// Task type.
+	// TaskType. Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
 	WorkerNode []opensearchapi.MLTaskWorkerNodeItem `json:"worker_node,omitempty"`

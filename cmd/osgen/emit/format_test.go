@@ -186,3 +186,190 @@ func TestMethodComment(t *testing.T) {
 		})
 	}
 }
+
+func TestFieldComment(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		field string
+		text  string
+		want  string
+	}{
+		{
+			name:  "noun phrase takes a copula",
+			field: "PhaseTook",
+			text:  "The time taken by different phases of the search.",
+			want:  "// PhaseTook is the time taken by different phases of the search.",
+		},
+		{
+			name:  "indefinite article is lowercased",
+			field: "Reason",
+			text:  "A human-readable explanation of the error.",
+			want:  "// Reason is a human-readable explanation of the error.",
+		},
+		{
+			name:  "an is lowercased",
+			field: "Entry",
+			text:  "An entry in the index.",
+			want:  "// Entry is an entry in the index.",
+		},
+		{
+			name:  "verb-initial description stays its own sentence",
+			field: "Found",
+			text:  "Whether the document was found.",
+			want:  "// Found. Whether the document was found.",
+		},
+		{
+			name:  "conditional description stays its own sentence",
+			field: "Ordered",
+			text:  "If `true`, matching terms must appear in order.",
+			want:  "// Ordered. If `true`, matching terms must appear in order.",
+		},
+		{
+			name:  "description already leading with the field name is untouched",
+			field: "Timeout",
+			text:  "Timeout for the request.",
+			want:  "// Timeout for the request.",
+		},
+		{
+			name:  "deprecation marker is never prefixed",
+			field: "GetTime",
+			text:  "Deprecated: use time instead.",
+			want:  "// Deprecated: use time instead.",
+		},
+		{
+			name:  "empty description yields no comment",
+			field: "Nodes",
+			text:  "",
+			want:  "",
+		},
+		{
+			name:  "missing field name falls back to the bare description",
+			field: "",
+			text:  "The number of shards.",
+			want:  "// The number of shards.",
+		},
+		{
+			name:  "article-only description is not treated as a noun phrase",
+			field: "Value",
+			text:  "The",
+			want:  "// Value. The",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.FieldComment(tt.field, tt.text))
+		})
+	}
+}
+
+// TestFieldCommentWrapsAtTheSameWidth pins that prefixing does not bypass the
+// wrap: the field name counts toward the line budget like any other word.
+func TestFieldCommentWrapsAtTheSameWidth(t *testing.T) {
+	t.Parallel()
+
+	got := emit.FieldComment(
+		"GlobalNativeMemoryUsage",
+		"The percentage of native memory currently consumed across every node in the cluster.",
+	)
+
+	require.Equal(t,
+		"// GlobalNativeMemoryUsage is the percentage of native memory currently\n"+
+			"\t// consumed across every node in the cluster.",
+		got,
+	)
+}
+
+// TestFieldCommentCapitalizesSentenceForm covers the spec descriptions that are
+// lowercase fragments: promoted to their own sentence, they have to start like
+// one.
+func TestFieldCommentCapitalizesSentenceForm(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		field string
+		text  string
+		want  string
+	}{
+		{
+			name:  "lowercase fragment is capitalized",
+			field: "Alias",
+			text:  "alias name",
+			want:  "// Alias. Alias name",
+		},
+		{
+			name:  "backtick opening is left alone",
+			field: "Mode",
+			text:  "`true` enables the mode.",
+			want:  "// Mode. `true` enables the mode.",
+		},
+		{
+			name:  "already capitalized is unchanged",
+			field: "Found",
+			text:  "Whether the document was found.",
+			want:  "// Found. Whether the document was found.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.FieldComment(tt.field, tt.text))
+		})
+	}
+}
+
+// TestConstComment covers enum members, where the description says what the
+// value means rather than naming an attribute, so a copula never applies.
+func TestConstComment(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		const_ string
+		text   string
+		want   string
+	}{
+		{
+			name:   "noun phrase stays a sentence, unlike a struct field",
+			const_: "NodeRoleDataHot",
+			text:   "The node can store hot data.",
+			want:   "// NodeRoleDataHot. The node can store hot data.",
+		},
+		{
+			name:   "imperative description stays a sentence",
+			const_: "SortModeAvg",
+			text:   "Use the average of all values.",
+			want:   "// SortModeAvg. Use the average of all values.",
+		},
+		{
+			name:   "lowercase fragment is capitalized",
+			const_: "SearchTotalHitsRelationEq",
+			text:   "accurate",
+			want:   "// SearchTotalHitsRelationEq. Accurate",
+		},
+		{
+			name:   "deprecation marker is never prefixed",
+			const_: "NodeRoleLegacy",
+			text:   "Deprecated: use data instead.",
+			want:   "// Deprecated: use data instead.",
+		},
+		{
+			name:   "empty description yields no comment",
+			const_: "NodeRoleML",
+			text:   "",
+			want:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.ConstComment(tt.const_, tt.text))
+		})
+	}
+}

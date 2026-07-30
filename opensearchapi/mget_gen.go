@@ -204,7 +204,7 @@ func (r MGetResp) RawBody() io.Reader {
 
 // MGetMultiGetError is a typed component of the mget operation.
 type MGetMultiGetError struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string     `json:"_index"`
@@ -349,8 +349,8 @@ func (u MGetRespBodyDocsItem) MarshalJSON() ([]byte, error) {
 //
 // Document identifiers; can be either `docs` (containing full document information) or `ids` (when index is provided in the URL.
 type MGetBody struct {
-	// The documents you want to retrieve. Required if no index is specified in
-	// the request URI.
+	// Docs is the documents you want to retrieve. Required if no index is
+	// specified in the request URI.
 	Docs []MGetOperation `json:"docs,omitempty"`
 
 	IDs *string `json:"ids,omitempty"`
@@ -358,22 +358,22 @@ type MGetBody struct {
 
 // MGetOperation is a typed component of the mget operation.
 type MGetOperation struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
 	Source *MGetOperationSource `json:"_source,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	Version     *int64       `json:"version,omitempty"`
@@ -382,16 +382,16 @@ type MGetOperation struct {
 
 // MGetOperationSourceExcludesIncludes is a typed component of the mget operation.
 type MGetOperationSourceExcludesIncludes struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Excludes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Excludes *string `json:"excludes,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Includes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Includes *string `json:"includes,omitempty"`
 }
 

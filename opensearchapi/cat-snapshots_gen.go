@@ -159,58 +159,59 @@ func (r CatSnapshotsResp) RawBody() io.Reader {
 
 // CatSnapshotsRecord is a typed component of the cat.snapshots operation.
 type CatSnapshotsRecord struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Duration is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Duration *string `json:"duration,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// EndEpoch. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	EndEpoch *CatSnapshotsRecordEndEpoch `json:"end_epoch,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// EndTime. Time of day, expressed as HH:MM:SS.
 	EndTime *string `json:"end_time,omitempty"`
 
-	// The number of failed shards in the snapshot.
+	// FailedShards is the number of failed shards in the snapshot.
 	FailedShards *string `json:"failed_shards,omitempty"`
 
-	// The unique identifier for the snapshot.
+	// ID is the unique identifier for the snapshot.
 	ID *string `json:"id,omitempty"`
 
-	// The number of indexes in the snapshot.
+	// Indices is the number of indexes in the snapshot.
 	Indices *string `json:"indices,omitempty"`
 
-	// The reason for any snapshot failures.
+	// Reason is the reason for any snapshot failures.
 	Reason *string `json:"reason,omitempty"`
 
-	// The repository name.
+	// Repository is the repository name.
 	Repository *string `json:"repository,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// StartEpoch. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	StartEpoch *CatSnapshotsRecordStartEpoch `json:"start_epoch,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// StartTime. Time of day, expressed as HH:MM:SS.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The state of the snapshot process. Returned values include: `FAILED`:
-	// The snapshot process failed. `INCOMPATIBLE`: The snapshot process is
-	// incompatible with the current cluster version. `IN_PROGRESS`: The
-	// snapshot process started but has not completed. `PARTIAL`: The snapshot
-	// process completed with a partial success. `SUCCESS`: The snapshot
-	// process completed with a full success.
+	// Status is the state of the snapshot process. Returned values include:
+	// `FAILED`: The snapshot process failed. `INCOMPATIBLE`: The snapshot
+	// process is incompatible with the current cluster version. `IN_PROGRESS`:
+	// The snapshot process started but has not completed. `PARTIAL`: The
+	// snapshot process completed with a partial success. `SUCCESS`: The
+	// snapshot process completed with a full success.
 	Status *string `json:"status,omitempty"`
 
-	// The number of successful shards in the snapshot.
+	// SuccessfulShards is the number of successful shards in the snapshot.
 	SuccessfulShards *string `json:"successful_shards,omitempty"`
 
-	// The total number of shards in the snapshot.
+	// TotalShards is the total number of shards in the snapshot.
 	TotalShards *string `json:"total_shards,omitempty"`
 }
 

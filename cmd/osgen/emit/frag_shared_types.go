@@ -48,6 +48,7 @@ func (f *SharedTypesFragment) Body() (string, error) {
 var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
+	"fieldComment":     FieldComment,
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
 }).Parse(`{{range .}}
@@ -60,7 +61,7 @@ type {{.Name}} struct {
 {{- if needsSep $fields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}

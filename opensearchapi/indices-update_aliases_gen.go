@@ -108,8 +108,8 @@ func (r IndicesUpdateAliasesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/alias/
 type IndicesUpdateAliasesResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -141,13 +141,13 @@ type IndicesUpdateAliasesBody struct {
 //
 // The action to perform on aliases.
 type IndicesUpdateAliasesAction struct {
-	// The configuration for adding an alias.
+	// Add is the configuration for adding an alias.
 	Add *IndicesUpdateAliasesAddAction `json:"add,omitempty"`
 
-	// The configuration for removing an alias.
+	// Remove is the configuration for removing an alias.
 	Remove *IndicesUpdateAliasesRemoveAction `json:"remove,omitempty"`
 
-	// The configuration for removing an index.
+	// RemoveIndex is the configuration for removing an index.
 	RemoveIndex *IndicesUpdateAliasesRemoveIndexAction `json:"remove_index,omitempty"`
 }
 
@@ -155,36 +155,38 @@ type IndicesUpdateAliasesAction struct {
 //
 // The configuration for adding an alias.
 type IndicesUpdateAliasesAddAction struct {
-	// The name of an index alias.
+	// Alias is the name of an index alias.
 	Alias *string `json:"alias,omitempty"`
 
-	// The list of aliases to add. Index alias names support date math.
+	// Aliases is the list of aliases to add. Index alias names support date
+	// math.
 	Aliases *IndicesUpdateAliasesAddActionAliases `json:"aliases,omitempty"`
 
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 	Index  *string                       `json:"index,omitempty"`
 
-	// The routing value for the document.
+	// IndexRouting is the routing value for the document.
 	IndexRouting *string `json:"index_routing,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias is hidden.
+	// IsHidden. Whether the alias is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// Whether this is the write index or data stream for the alias.
+	// IsWriteIndex. Whether this is the write index or data stream for the
+	// alias.
 	IsWriteIndex *bool `json:"is_write_index,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// The routing value for the document.
+	// SearchRouting is the routing value for the document.
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
@@ -192,20 +194,21 @@ type IndicesUpdateAliasesAddAction struct {
 //
 // The configuration for removing an alias.
 type IndicesUpdateAliasesRemoveAction struct {
-	// The name of an index alias.
+	// Alias is the name of an index alias.
 	Alias *string `json:"alias,omitempty"`
 
-	// The list of aliases to remove. Index alias names support date math.
+	// Aliases is the list of aliases to remove. Index alias names support date
+	// math.
 	Aliases *IndicesUpdateAliasesRemoveActionAliases `json:"aliases,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 
@@ -215,12 +218,12 @@ type IndicesUpdateAliasesRemoveAction struct {
 type IndicesUpdateAliasesRemoveIndexAction struct {
 	Index *string `json:"index,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 

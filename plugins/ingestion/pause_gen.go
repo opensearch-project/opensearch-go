@@ -91,16 +91,16 @@ func (r PauseParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/docs/latest/api-reference/document-apis/pull-based-ingestion-management/
 type PauseResp struct {
-	// Indicates if the pause request has been acknowledged.
+	// Acknowledged. Indicates if the pause request has been acknowledged.
 	Acknowledged bool `json:"acknowledged"`
 
 	Error *string `json:"error,omitempty"`
 
-	// Shard-level failures grouped by index name.
+	// Failures. Shard-level failures grouped by index name.
 	Failures map[string][]opensearchapi.IngestionStateShardFailure `json:"failures,omitempty"`
 
-	// Indicates if the pause request has been acknowledged by individual
-	// shards.
+	// ShardsAcknowledged. Indicates if the pause request has been acknowledged
+	// by individual shards.
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 
 	response *opensearch.Response

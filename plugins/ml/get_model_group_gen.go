@@ -83,20 +83,20 @@ func (r GetModelGroupParams) get() map[string]string {
 //
 // Retrieves a model group.
 type GetModelGroupResp struct {
-	// The model group access mode.
+	// Access is the model group access mode.
 	Access string `json:"access"`
 
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The model group description.
+	// Description is the model group description.
 	Description string `json:"description"`
 
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The latest version.
+	// LatestVersion is the latest version.
 	LatestVersion int `json:"latest_version"`
 
-	// The model group name.
+	// Name is the model group name.
 	Name string `json:"name"`
 
 	Owner *opensearchapi.MLOwner `json:"owner,omitempty"`

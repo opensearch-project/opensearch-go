@@ -83,7 +83,7 @@ func (r ListStoresParams) get() map[string]string {
 //
 // Available: >= 2.17.1.
 type ListStoresResp struct {
-	// Map of available feature stores.
+	// Stores. Map of available feature stores.
 	Stores map[string]opensearchapi.LTRStoreDetails `json:"stores"`
 
 	response *opensearch.Response

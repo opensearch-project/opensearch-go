@@ -91,6 +91,7 @@ func (f *RespFragment) Body() (string, error) {
 		"comment":          CommentWrap,
 		"wrapLine":         WrapLine,
 		"wrapField":        WrapField,
+		"fieldComment":     FieldComment,
 		"availabilityNote": AvailabilityNote,
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
@@ -237,7 +238,7 @@ type {{.TypePrefix}}Resp struct {
 {{- if needsSep $.RespFields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}

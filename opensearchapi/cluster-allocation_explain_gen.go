@@ -132,12 +132,13 @@ func (r ClusterAllocationExplainParams) get() map[string]string {
 type ClusterAllocationExplainResp struct {
 	AllocateExplanation *string `json:"allocate_explanation,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// AllocationDelay is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	AllocationDelay *string `json:"allocation_delay,omitempty"`
 
-	// The time unit for milliseconds.
+	// AllocationDelayInMillis is the time unit for milliseconds.
 	AllocationDelayInMillis *int64 `json:"allocation_delay_in_millis,omitempty"`
 
 	CanAllocate                  *string                                      `json:"can_allocate,omitempty"`
@@ -149,12 +150,13 @@ type ClusterAllocationExplainResp struct {
 	CanRemainOnCurrentNode       *string                                      `json:"can_remain_on_current_node,omitempty"`
 	ClusterInfo                  *ClusterAllocationExplainClusterInfo         `json:"cluster_info,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ConfiguredDelay is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ConfiguredDelay *string `json:"configured_delay,omitempty"`
 
-	// The time unit for milliseconds.
+	// ConfiguredDelayInMillis is the time unit for milliseconds.
 	ConfiguredDelayInMillis *int64 `json:"configured_delay_in_millis,omitempty"`
 
 	CurrentNode             *ClusterAllocationExplainCurrentNode                `json:"current_node,omitempty"`
@@ -166,12 +168,13 @@ type ClusterAllocationExplainResp struct {
 	Primary                 bool                                                `json:"primary"`
 	RebalanceExplanation    *string                                             `json:"rebalance_explanation,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// RemainingDelay is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	RemainingDelay *string `json:"remaining_delay,omitempty"`
 
-	// The time unit for milliseconds.
+	// RemainingDelayInMillis is the time unit for milliseconds.
 	RemainingDelayInMillis *int64 `json:"remaining_delay_in_millis,omitempty"`
 
 	Shard          int                                            `json:"shard"`
@@ -215,42 +218,42 @@ type ClusterAllocationExplainNodeDiskUsage struct {
 	LeastAvailable ClusterAllocationExplainDiskUsage `json:"least_available"`
 	MostAvailable  ClusterAllocationExplainDiskUsage `json:"most_available"`
 
-	// The name of a resource or configuration element.
+	// NodeName is the name of a resource or configuration element.
 	NodeName string `json:"node_name"`
 }
 
 // ClusterAllocationExplainDiskUsage is a typed component of the cluster.allocation_explain operation.
 type ClusterAllocationExplainDiskUsage struct {
-	// The unique identifier of a node.
+	// Free is the unique identifier of a node.
 	Free *string `json:"free,omitempty"`
 
-	// The size in bytes.
+	// FreeBytes is the size in bytes.
 	FreeBytes int64 `json:"free_bytes"`
 
-	// The percentage value as a number.
+	// FreeDiskPercent is the percentage value as a number.
 	FreeDiskPercent float64 `json:"free_disk_percent"`
 
 	Path string `json:"path"`
 
-	// The unique identifier of a node.
+	// Total is the unique identifier of a node.
 	Total *string `json:"total,omitempty"`
 
-	// The size in bytes.
+	// TotalBytes is the size in bytes.
 	TotalBytes int64 `json:"total_bytes"`
 
-	// The unique identifier of a node.
+	// Used is the unique identifier of a node.
 	Used *string `json:"used,omitempty"`
 
-	// The size in bytes.
+	// UsedBytes is the size in bytes.
 	UsedBytes int64 `json:"used_bytes"`
 
-	// The percentage value as a number.
+	// UsedDiskPercent is the percentage value as a number.
 	UsedDiskPercent float64 `json:"used_disk_percent"`
 }
 
 // ClusterAllocationExplainReservedSize is a typed component of the cluster.allocation_explain operation.
 type ClusterAllocationExplainReservedSize struct {
-	// The unique identifier for a resource.
+	// NodeID is the unique identifier for a resource.
 	NodeID string `json:"node_id"`
 
 	Path   string   `json:"path"`
@@ -262,13 +265,13 @@ type ClusterAllocationExplainReservedSize struct {
 type ClusterAllocationExplainCurrentNode struct {
 	Attributes map[string]string `json:"attributes"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress string `json:"transport_address"`
 
 	WeightRanking int `json:"weight_ranking"`
@@ -280,15 +283,15 @@ type ClusterAllocationExplainNodeAllocationExplanation struct {
 	NodeAttributes map[string]string                            `json:"node_attributes"`
 	NodeDecision   string                                       `json:"node_decision"`
 
-	// The unique identifier for a resource.
+	// NodeID is the unique identifier for a resource.
 	NodeID string `json:"node_id"`
 
-	// The name of a resource or configuration element.
+	// NodeName is the name of a resource or configuration element.
 	NodeName string `json:"node_name"`
 
 	Store *ClusterAllocationExplainAllocationStore `json:"store,omitempty"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress string `json:"transport_address"`
 
 	WeightRanking *int `json:"weight_ranking,omitempty"`
@@ -300,7 +303,7 @@ type ClusterAllocationExplainAllocationStore struct {
 	Found        bool   `json:"found"`
 	InSync       bool   `json:"in_sync"`
 
-	// The size in bytes.
+	// MatchingSizeInBytes is the size in bytes.
 	MatchingSizeInBytes int64 `json:"matching_size_in_bytes"`
 
 	MatchingSyncID bool   `json:"matching_sync_id"`
@@ -443,17 +446,18 @@ func (u ClusterAllocationExplainClusterInfoShardSizesValue) MarshalJSON() ([]byt
 //
 // The index, shard, and primary flag for which to generate an explanation. Leave this empty to generate an explanation for the first unassigned shard.
 type ClusterAllocationExplainBody struct {
-	// Specifies the node ID or the name of the node to only explain a shard
-	// that is currently located on the specified node.
+	// CurrentNode. Specifies the node ID or the name of the node to only
+	// explain a shard that is currently located on the specified node.
 	CurrentNode *string `json:"current_node,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// When `true`, returns a routing explanation for the primary shard based
-	// on the node ID.
+	// Primary. When `true`, returns a routing explanation for the primary
+	// shard based on the node ID.
 	Primary *bool `json:"primary,omitempty"`
 
-	// Specifies the ID of the shard that you would like an explanation for.
+	// Shard. Specifies the ID of the shard that you would like an explanation
+	// for.
 	Shard *int `json:"shard,omitempty"`
 }
 

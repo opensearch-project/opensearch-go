@@ -119,9 +119,10 @@ func (r ClusterRemoteInfoResp) RawBody() io.Reader {
 type ClusterRemoteInfoClusterRemoteSniffInfo struct {
 	Connected bool `json:"connected"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// InitialConnectTimeout is a duration. Units can be `nanos`, `micros`,
+	// `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	InitialConnectTimeout string `json:"initial_connect_timeout"`
 
 	MaxConnectionsPerCluster int      `json:"max_connections_per_cluster"`
@@ -135,9 +136,10 @@ type ClusterRemoteInfoClusterRemoteSniffInfo struct {
 type ClusterRemoteInfoClusterRemoteProxyInfo struct {
 	Connected bool `json:"connected"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// InitialConnectTimeout is a duration. Units can be `nanos`, `micros`,
+	// `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	InitialConnectTimeout string `json:"initial_connect_timeout"`
 
 	MaxProxySocketConnections int    `json:"max_proxy_socket_connections"`

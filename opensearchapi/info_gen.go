@@ -89,18 +89,18 @@ func (r InfoParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type InfoResp struct {
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
-	// The universally unique identifier.
+	// ClusterUUID is the universally unique identifier.
 	ClusterUUID string `json:"cluster_uuid"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
 	Tagline string `json:"tagline"`
 
-	// The version information for OpenSearch.
+	// Version is the version information for OpenSearch.
 	Version OpenSearchVersionInfo `json:"version"`
 
 	response *opensearch.Response

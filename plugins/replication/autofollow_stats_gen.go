@@ -89,16 +89,18 @@ func (r AutofollowStatsParams) get() map[string]string {
 type AutofollowStatsResp struct {
 	AutofollowStats []opensearchapi.ReplicationAutoFollowStats `json:"autofollow_stats,omitempty"`
 
-	// The list of indices that failed to replicate.
+	// FailedIndices is the list of indices that failed to replicate.
 	FailedIndices []string `json:"failed_indices,omitempty"`
 
-	// The number of failed calls to the leader cluster.
+	// NumFailedLeaderCalls is the number of failed calls to the leader
+	// cluster.
 	NumFailedLeaderCalls *float64 `json:"num_failed_leader_calls,omitempty"`
 
-	// The number of failed replication starts.
+	// NumFailedStartReplication is the number of failed replication starts.
 	NumFailedStartReplication *float64 `json:"num_failed_start_replication,omitempty"`
 
-	// The number of successful replication starts.
+	// NumSuccessStartReplication is the number of successful replication
+	// starts.
 	NumSuccessStartReplication *float64 `json:"num_success_start_replication,omitempty"`
 
 	response *opensearch.Response

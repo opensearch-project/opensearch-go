@@ -197,19 +197,19 @@ func (r GetResp) RawBody() io.Reader {
 
 // GetResult is a typed component of the get operation.
 type GetResult struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index       string  `json:"_index"`
 	PrimaryTerm *int64  `json:"_primary_term,omitempty"`
 	Routing     *string `json:"_routing,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Source json.RawMessage `json:"_source"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version *int64                     `json:"_version,omitempty"`
