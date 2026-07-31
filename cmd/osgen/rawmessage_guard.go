@@ -8,12 +8,8 @@ package main
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
-	"os"
-	"sort"
 	"strings"
 
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
@@ -24,7 +20,9 @@ import (
 // generator bug can silently widen the raw-JSON surface of the public API by
 // spawning many at once. The guard pins the permitted set in a checked-in
 // allowlist and fails generation when an unlisted use appears, so a regression
-// is caught at gen time rather than shipped. See [guardRawMessages].
+// is caught at gen time rather than shipped. See [guardRawMessages], and
+// [allowlistEntry] for the file format it shares with the duplicate-JSON-tag
+// guard.
 
 // rawMessageAllowlistFile is the checked-in allowlist's filename: the default
 // -update write target, and the name reported in messages. The //go:embed
@@ -32,13 +30,33 @@ import (
 // const.
 const rawMessageAllowlistFile = "rawmessage_allowlist.txt"
 
+// The noun this guard reports itself by, and the flags that update or bypass it.
+const (
+	rawMessageNoun       = "json.RawMessage"
+	rawMessageUpdateFlag = "-update-raw-message-allowlist"
+	rawMessageAllowFlag  = "-allow-unlisted-raw-message"
+)
+
 // embeddedRawMessageAllowlist is the checked-in allowlist compiled into the
 // binary, so the check enforces the same set regardless of the process working
 // directory. Disk reads happen only for an explicit override (see
-// RawMessageConfig.AllowlistPath).
+// AllowlistConfig.AllowlistPath).
 //
 //go:embed rawmessage_allowlist.txt
 var embeddedRawMessageAllowlist []byte
+
+// rawMessageAllowlistHeader is the comment block [writeAllowlistFile] writes
+// above the entries.
+const rawMessageAllowlistHeader = "# osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.\n" +
+	"# Regenerate by re-running `cmd/osgen` with `-update-raw-message-allowlist`.\n" +
+	"#\n" +
+	"# Each line is a permitted json.RawMessage use, keyed \"GoTypeName/jsonFieldName\".\n" +
+	"# Whole-response raw bodies use \"<Prefix>Resp/-\"; map/array responses whose\n" +
+	"# element type is unresolved use \"<Prefix>Resp/[entries]\" and \"<Prefix>Resp/[records]\".\n" +
+	"# The trailing \"# form\" comment is informational and ignored on load.\n" +
+	"#\n" +
+	"# A new entry here means the generator emitted a raw json.RawMessage where a\n" +
+	"# typed struct was expected. Confirm the degradation is intended before adding.\n"
 
 // rawForm classifies the three json.RawMessage spellings the generator emits.
 type rawForm int
@@ -81,7 +99,8 @@ const (
 	rawKindRespElem                   // a map/array response whose element defaulted to raw
 )
 
-// rawUse is one occurrence of json.RawMessage in generated output.
+// rawUse is one occurrence of json.RawMessage in generated output. It satisfies
+// [allowlistEntry].
 type rawUse struct {
 	GoType   string  // owning Go type name (e.g. "SearchHit", "TasksTaskListRespBase")
 	JSONName string  // JSON field name; sentinels for whole-response shapes (see collectRawMessageUses)
@@ -93,27 +112,12 @@ type rawUse struct {
 // key is the allowlist line key: "GoTypeName/jsonFieldName".
 func (u rawUse) key() string { return u.GoType + "/" + u.JSONName }
 
-// RawMessageConfig controls the json.RawMessage guard.
-type RawMessageConfig struct {
-	// AllowlistPath overrides the embedded allowlist with a file, relative to
-	// cwd. Empty (the default) checks against embeddedRawMessageAllowlist. Under
-	// Update it is the write target, defaulting to rawMessageAllowlistFile in
-	// cwd when empty.
-	AllowlistPath string
-	// Update rewrites the allowlist file from the current output instead of
-	// checking against it.
-	Update bool
-	// AllowUnlisted downgrades the fatal check to a warning.
-	AllowUnlisted bool
-}
+// groupName is the schema/operation group the entry is banner-grouped under.
+func (u rawUse) groupName() string { return u.group }
 
-// allowlistSource names the allowlist the check consulted, for messages.
-func (c RawMessageConfig) allowlistSource() string {
-	if c.AllowlistPath == "" {
-		return "embedded " + rawMessageAllowlistFile
-	}
-	return fmt.Sprintf("%q", c.AllowlistPath)
-}
+// comment records the raw spelling beside the key. Informational: the form does
+// not affect whether the use is permitted.
+func (u rawUse) comment() string { return u.Form.String() }
 
 // classifyRawForm reports the rawForm of a Go type expression, and false if the
 // type does not have a json.RawMessage leaf. A raw leaf can sit under any depth
@@ -161,10 +165,10 @@ const (
 )
 
 // collectRawMessageUses walks the IR and returns every json.RawMessage use,
-// deduplicated by key. It mirrors exactly what the emitter renders: struct
-// fields across response, sibling, and request-body types, plus the
-// whole-response map/array/raw shapes that are synthesized in convertOperation
-// and never registered in spec.Types.
+// deduplicated by key and sorted for grouped output. It mirrors exactly what the
+// emitter renders: struct fields across response, sibling, and request-body
+// types, plus the whole-response map/array/raw shapes that are synthesized in
+// convertOperation and never registered in spec.Types.
 func collectRawMessageUses(spec *ir.Spec) []rawUse {
 	seen := make(set[string])
 	var uses []rawUse
@@ -232,84 +236,8 @@ func collectRawMessageUses(spec *ir.Spec) []rawUse {
 		addFields(t, schemaGroup(t.SchemaRef))
 	}
 
-	sortRawUses(uses)
+	sortAllowlistEntries(uses)
 	return uses
-}
-
-// sortRawUses orders uses by group then key for stable, grouped output.
-func sortRawUses(uses []rawUse) {
-	sort.Slice(uses, func(i, j int) bool {
-		if uses[i].group != uses[j].group {
-			return uses[i].group < uses[j].group
-		}
-		return uses[i].key() < uses[j].key()
-	})
-}
-
-// parseRawMessageAllowlist parses allowlist bytes into a set of keys. Lines are
-// trimmed, '#' comments (whole-line or trailing) are stripped, and blank lines
-// are ignored. The key is the first whitespace-delimited token on each line.
-func parseRawMessageAllowlist(data []byte) set[string] {
-	allowed := make(set[string])
-	for line := range strings.SplitSeq(string(data), "\n") {
-		if i := strings.IndexByte(line, '#'); i >= 0 {
-			line = line[:i]
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		allowed.add(strings.Fields(line)[0])
-	}
-	return allowed
-}
-
-// loadRawMessageAllowlist reads an allowlist file and parses it. Used only for an
-// explicit AllowlistPath override; the default check parses
-// embeddedRawMessageAllowlist and cannot fail.
-func loadRawMessageAllowlist(path string) (set[string], error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("json.RawMessage allowlist %q not found; run with -update-raw-message-allowlist to create it: %w", path, err)
-		}
-		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
-	}
-	return parseRawMessageAllowlist(data), nil
-}
-
-// writeRawMessageAllowlist rewrites the allowlist file from uses, grouped by
-// group with sorted keys for minimal diffs. uses is assumed pre-sorted by
-// sortRawUses (collectRawMessageUses guarantees this).
-func writeRawMessageAllowlist(path string, uses []rawUse) (bool, error) {
-	var b strings.Builder
-	b.WriteString("# osgen json.RawMessage allowlist - DO NOT EDIT BY HAND.\n")
-	b.WriteString("# Regenerate by re-running `cmd/osgen` with `-update-raw-message-allowlist`.\n")
-	b.WriteString("#\n")
-	b.WriteString("# Each line is a permitted json.RawMessage use, keyed \"GoTypeName/jsonFieldName\".\n")
-	b.WriteString("# Whole-response raw bodies use \"<Prefix>Resp/-\"; map/array responses whose\n")
-	b.WriteString("# element type is unresolved use \"<Prefix>Resp/[entries]\" and \"<Prefix>Resp/[records]\".\n")
-	b.WriteString("# The trailing \"# form\" comment is informational and ignored on load.\n")
-	b.WriteString("#\n")
-	b.WriteString("# A new entry here means the generator emitted a raw json.RawMessage where a\n")
-	b.WriteString("# typed struct was expected. Confirm the degradation is intended before adding.\n")
-
-	var group string
-	first := true
-	for _, u := range uses {
-		if first || u.group != group {
-			group = u.group
-			first = false
-			label := group
-			if label == "" {
-				label = "(ungrouped)"
-			}
-			fmt.Fprintf(&b, "\n# --- %s ---\n", label)
-		}
-		fmt.Fprintf(&b, "%s # %s\n", u.key(), u.Form)
-	}
-
-	return writeIfChanged(path, []byte(b.String()))
 }
 
 // guardRawMessages enforces the json.RawMessage allowlist against the IR.
@@ -320,9 +248,8 @@ func writeRawMessageAllowlist(path string, uses []rawUse) (bool, error) {
 // cfg.AllowlistPath, when set - reports any unlisted uses to w, and returns a
 // non-nil error (aborting generation) unless cfg.AllowUnlisted is set, in which
 // case the offenders are a warning only. Stale entries (listed but no longer
-// emitted) are always a non-fatal warning, since they permit nothing and failing
-// on them would break unrelated spec edits.
-func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
+// emitted) are always a non-fatal warning; see [reportStaleAllowlist].
+func guardRawMessages(w io.Writer, spec *ir.Spec, cfg AllowlistConfig) error {
 	uses := collectRawMessageUses(spec)
 
 	if cfg.Update {
@@ -330,79 +257,43 @@ func guardRawMessages(w io.Writer, spec *ir.Spec, cfg RawMessageConfig) error {
 		if path == "" {
 			path = rawMessageAllowlistFile
 		}
-		changed, err := writeRawMessageAllowlist(path, uses)
+		changed, err := writeAllowlistFile(path, rawMessageAllowlistHeader, uses)
 		if err != nil {
 			return err
 		}
 		if changed {
-			fmt.Fprintf(w, "osgen: wrote json.RawMessage allowlist %q (%d entries)\n", path, len(uses))
+			fmt.Fprintf(w, "osgen: wrote %s allowlist %q (%d entries)\n", rawMessageNoun, path, len(uses))
 		}
 		return nil
 	}
 
-	var allowed set[string]
-	if cfg.AllowlistPath == "" {
-		allowed = parseRawMessageAllowlist(embeddedRawMessageAllowlist)
-	} else {
-		loaded, err := loadRawMessageAllowlist(cfg.AllowlistPath)
-		switch {
-		// Under AllowUnlisted the check is advisory, so a missing file is not
-		// fatal: treat the allowlist as empty and let every use fall through to
-		// the warning path below.
-		case cfg.AllowUnlisted && errors.Is(err, fs.ErrNotExist):
-			allowed = set[string]{}
-		case err != nil:
-			return err
-		default:
-			allowed = loaded
-		}
+	allowed, err := resolveAllowlist(cfg, embeddedRawMessageAllowlist, rawMessageNoun, rawMessageUpdateFlag)
+	if err != nil {
+		return err
 	}
 
-	var offenders []rawUse
-	for _, u := range uses {
-		if !allowed.has(u.key()) {
-			offenders = append(offenders, u)
-		}
-	}
+	reportStaleAllowlist(w, allowed, uses, rawMessageNoun, rawMessageUpdateFlag)
 
-	used := make(set[string], len(uses))
-	for _, u := range uses {
-		used.add(u.key())
-	}
-	var stale []string
-	for k := range allowed {
-		if !used.has(k) {
-			stale = append(stale, k)
-		}
-	}
-	if len(stale) > 0 {
-		sort.Strings(stale)
-		fmt.Fprintf(w, "NOTE: %d json.RawMessage allowlist entr%s no longer present in output; run -update-raw-message-allowlist to prune:\n",
-			len(stale), plural(len(stale), "y is", "ies are"))
-		for _, k := range stale {
-			fmt.Fprintf(w, "  - %s\n", k)
-		}
-	}
-
+	offenders := unlistedEntries(uses, allowed)
 	if len(offenders) == 0 {
 		return nil
 	}
 
-	fmt.Fprintf(w, "WARNING: osgen emitted %d json.RawMessage use(s) not in the allowlist %s.\n", len(offenders), cfg.allowlistSource())
+	source := cfg.allowlistSource(rawMessageAllowlistFile)
+	fmt.Fprintf(w, "WARNING: osgen emitted %d json.RawMessage use(s) not in the allowlist %s.\n", len(offenders), source)
 	fmt.Fprintln(w, "Each is a response/request field that degraded to raw JSON instead of a typed struct.")
 	for _, u := range offenders {
 		fmt.Fprintf(w, "  - %s (%s, %s)\n", u.key(), u.Form, u.kindLabel())
 	}
-	fmt.Fprintln(w, "Investigate the degradation. If it is intended, add the key(s) via -update-raw-message-allowlist.")
+	fmt.Fprintf(w, "Investigate the degradation. If it is intended, add the key(s) via %s.\n", rawMessageUpdateFlag)
 
 	if cfg.AllowUnlisted {
-		fmt.Fprintf(w, "osgen: continuing despite %d unlisted json.RawMessage use(s) (-allow-unlisted-raw-message)\n", len(offenders))
+		fmt.Fprintf(w, "osgen: continuing despite %d unlisted json.RawMessage use(s) (%s)\n", len(offenders), rawMessageAllowFlag)
 		return nil
 	}
 	return fmt.Errorf(
-		"%d unlisted json.RawMessage use(s) against %s; add them with -update-raw-message-allowlist "+
-			"or pass -allow-unlisted-raw-message",
-		len(offenders), cfg.allowlistSource())
+		"%d unlisted json.RawMessage use(s) against %s; add them with %s or pass %s",
+		len(offenders), source, rawMessageUpdateFlag, rawMessageAllowFlag)
 }
 
 // kindLabel returns a human-readable description of the raw use's source.
@@ -417,12 +308,4 @@ func (u rawUse) kindLabel() string {
 	default:
 		return "struct field"
 	}
-}
-
-// plural picks the singular or plural form based on n.
-func plural(n int, singular, pluralForm string) string {
-	if n == 1 {
-		return singular
-	}
-	return pluralForm
 }

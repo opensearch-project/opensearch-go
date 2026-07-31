@@ -273,62 +273,6 @@ func TestCollectTagShadows_Detail(t *testing.T) {
 	require.Contains(t, detail, "(via TermsAggregateBase)")
 }
 
-func TestLoadTagShadowAllowlist(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		content string
-		want    []string // sorted keys expected in the set
-	}{
-		{
-			name:    "keys with comments and blanks",
-			content: "# header\n\nOuter/hits/Base # narrowing\n  Other/x/Base  # narrowing\n\n# trailing\n",
-			want:    []string{"Other/x/Base", "Outer/hits/Base"},
-		},
-		{
-			name:    "group headers ignored",
-			content: "# --- _core.search ---\nOuter/hits/Base\n# --- _common.aggregations ---\nAgg/buckets/Base\n",
-			want:    []string{"Agg/buckets/Base", "Outer/hits/Base"},
-		},
-		{
-			name:    "duplicate keys collapse",
-			content: "Dup/k/Base # first\nDup/k/Base # second\n",
-			want:    []string{"Dup/k/Base"},
-		},
-		{
-			name:    "empty file",
-			content: "# only comments\n",
-			want:    nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			path := filepath.Join(t.TempDir(), "allow.txt")
-			require.NoError(t, os.WriteFile(path, []byte(tt.content), 0o600))
-
-			allowed, err := loadTagShadowAllowlist(path)
-			require.NoError(t, err)
-
-			got := make([]string, 0, len(allowed))
-			for k := range allowed {
-				got = append(got, k)
-			}
-			require.ElementsMatch(t, tt.want, got)
-		})
-	}
-}
-
-func TestLoadTagShadowAllowlist_MissingFile(t *testing.T) {
-	t.Parallel()
-
-	_, err := loadTagShadowAllowlist(filepath.Join(t.TempDir(), "does-not-exist.txt"))
-	require.Error(t, err)
-	require.ErrorContains(t, err, "-update-tagshadow-allowlist")
-}
-
 func TestGuardTagShadows(t *testing.T) {
 	t.Parallel()
 
@@ -348,7 +292,7 @@ func TestGuardTagShadows(t *testing.T) {
 		name          string
 		allowlist     string // file content; "" means do not create the file
 		createFile    bool
-		cfg           TagShadowConfig
+		cfg           AllowlistConfig
 		wantErr       bool
 		wantOutSubstr []string
 	}{
@@ -378,7 +322,7 @@ func TestGuardTagShadows(t *testing.T) {
 			name:          "unlisted shadow with bypass is a warning",
 			allowlist:     "# empty\n",
 			createFile:    true,
-			cfg:           TagShadowConfig{AllowUnlisted: true},
+			cfg:           AllowlistConfig{AllowUnlisted: true},
 			wantErr:       false,
 			wantOutSubstr: []string{"continuing despite", "SearchResultHits/hits/SearchHitsMetadata"},
 		},
@@ -397,7 +341,7 @@ func TestGuardTagShadows(t *testing.T) {
 		{
 			name:       "missing file with bypass is not fatal",
 			createFile: false,
-			cfg:        TagShadowConfig{AllowUnlisted: true},
+			cfg:        AllowlistConfig{AllowUnlisted: true},
 			wantErr:    false,
 		},
 	}
@@ -438,18 +382,18 @@ func TestGuardTagShadows_UpdateRoundTrip(t *testing.T) {
 	}}
 
 	path := filepath.Join(t.TempDir(), "allow.txt")
-	cfg := TagShadowConfig{AllowlistPath: path, Update: true}
+	cfg := AllowlistConfig{AllowlistPath: path, Update: true}
 
 	var out bytes.Buffer
 	require.NoError(t, guardTagShadows(&out, spec, cfg))
 	require.FileExists(t, path)
 
 	// The written file must satisfy a subsequent (non-update) check.
-	check := TagShadowConfig{AllowlistPath: path}
+	check := AllowlistConfig{AllowlistPath: path}
 	require.NoError(t, guardTagShadows(&bytes.Buffer{}, spec, check))
 
 	// And it round-trips to the same shadow set.
-	allowed, err := loadTagShadowAllowlist(path)
+	allowed, err := loadAllowlist(path, tagShadowNoun, tagShadowUpdateFlag)
 	require.NoError(t, err)
 	require.Contains(t, allowed, "SearchResultHits/hits/SearchHitsMetadata")
 }
@@ -475,7 +419,7 @@ func TestGuardTagShadows_EmbeddedDefault(t *testing.T) {
 	}}
 
 	var out bytes.Buffer
-	require.NoError(t, guardTagShadows(&out, spec, TagShadowConfig{}))
+	require.NoError(t, guardTagShadows(&out, spec, AllowlistConfig{}))
 	require.NotContains(t, out.String(), "WARNING")
 
 	// The inverse: a shadow absent from the embedded allowlist is fatal, and both
@@ -489,7 +433,7 @@ func TestGuardTagShadows_EmbeddedDefault(t *testing.T) {
 	}}
 
 	out.Reset()
-	err := guardTagShadows(&out, unlisted, TagShadowConfig{})
+	err := guardTagShadows(&out, unlisted, AllowlistConfig{})
 	require.ErrorContains(t, err, "embedded "+tagShadowAllowlistFile)
 	require.Contains(t, out.String(), "embedded "+tagShadowAllowlistFile)
 	require.Contains(t, out.String(), shadowKindLabelErased)
@@ -507,9 +451,9 @@ func TestWriteTagShadowAllowlist_StableSorted(t *testing.T) {
 
 	render := func(in []tagShadow) string {
 		cp := append([]tagShadow(nil), in...)
-		sortTagShadows(cp)
+		sortAllowlistEntries(cp)
 		path := filepath.Join(t.TempDir(), "allow.txt")
-		_, err := writeTagShadowAllowlist(path, cp)
+		_, err := writeAllowlistFile(path, tagShadowAllowlistHeader, cp)
 		require.NoError(t, err)
 		data, err := os.ReadFile(path)
 		require.NoError(t, err)

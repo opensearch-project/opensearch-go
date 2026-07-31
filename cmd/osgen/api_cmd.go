@@ -98,11 +98,13 @@ func runAPI() error {
 
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
 		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation},
-		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw},
-		TagShadowConfig{
-			AllowlistPath: *tagShadowAllowlist,
-			Update:        *updateTagShadowAllowlist,
-			AllowUnlisted: *allowUnlistedTagShadow,
+		guardConfig{
+			RawMessage: AllowlistConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw},
+			TagShadow: AllowlistConfig{
+				AllowlistPath: *tagShadowAllowlist,
+				Update:        *updateTagShadowAllowlist,
+				AllowUnlisted: *allowUnlistedTagShadow,
+			},
 		},
 		DescriptionReportConfig{Report: *reportMissingDesc})
 }
@@ -122,8 +124,7 @@ func generateAPI(
 	vrange VersionRange,
 	bc BreadcrumbConfig,
 	compat CompatConfig,
-	rawCfg RawMessageConfig,
-	tagShadowCfg TagShadowConfig,
+	guards guardConfig,
 	descCfg DescriptionReportConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
@@ -161,13 +162,13 @@ func generateAPI(
 
 	// Guard against the generator silently widening the raw-JSON surface. Run
 	// before any file is written so an unlisted use aborts cleanly.
-	if err := guardRawMessages(os.Stderr, irSpec, rawCfg); err != nil {
+	if err := guardRawMessages(os.Stderr, irSpec, guards.RawMessage); err != nil {
 		return err
 	}
 
 	// Guard against a struct redeclaring a JSON tag its embed already carries,
 	// which makes the embedded declaration unreachable. Also before any write.
-	if err := guardTagShadows(os.Stderr, irSpec, tagShadowCfg); err != nil {
+	if err := guardTagShadows(os.Stderr, irSpec, guards.TagShadow); err != nil {
 		return err
 	}
 

@@ -8,11 +8,8 @@ package main
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
-	"os"
 	"sort"
 	"strings"
 
@@ -28,7 +25,8 @@ import (
 // go vet's structtag analyzer does not catch this: it only compares tags declared
 // within a single struct, not across an embed boundary. The guard pins the
 // permitted set in a checked-in allowlist and fails generation when an unlisted
-// shadow appears. See [guardTagShadows].
+// shadow appears. See [guardTagShadows], and [allowlistEntry] for the file format
+// it shares with the json.RawMessage guard.
 
 // tagShadowAllowlistFile is the checked-in allowlist's filename: the default
 // -update write target, and the name reported in messages. The //go:embed
@@ -36,13 +34,37 @@ import (
 // const.
 const tagShadowAllowlistFile = "tagshadow_allowlist.txt"
 
+// The noun this guard reports itself by, and the flags that update or bypass it.
+const (
+	tagShadowNoun       = "duplicate-JSON-tag"
+	tagShadowUpdateFlag = "-update-tagshadow-allowlist"
+	tagShadowAllowFlag  = "-allow-unlisted-tagshadow"
+)
+
 // embeddedTagShadowAllowlist is the checked-in allowlist compiled into the
 // binary, so the check enforces the same set regardless of the process working
 // directory. Disk reads happen only for an explicit override (see
-// TagShadowConfig.AllowlistPath).
+// AllowlistConfig.AllowlistPath).
 //
 //go:embed tagshadow_allowlist.txt
 var embeddedTagShadowAllowlist []byte
+
+// tagShadowAllowlistHeader is the comment block [writeAllowlistFile] writes
+// above the entries.
+const tagShadowAllowlistHeader = "# osgen duplicate-JSON-tag allowlist - DO NOT EDIT BY HAND.\n" +
+	"# Regenerate by re-running `cmd/osgen` with `-update-tagshadow-allowlist`.\n" +
+	"#\n" +
+	"# Each line is a permitted tag shadow, keyed\n" +
+	"# \"OuterGoType/jsonTag/DeclaringGoType\": OuterGoType declares jsonTag, and so\n" +
+	"# does DeclaringGoType, which OuterGoType reaches through an embed. encoding/json\n" +
+	"# resolves the duplicate in favor of the shallower field, so OuterGoType's\n" +
+	"# declaration wins and DeclaringGoType's is never populated.\n" +
+	"# The trailing comment is informational and ignored on load.\n" +
+	"#\n" +
+	"# A narrowing entry is the deliberate case: the winning field names a more\n" +
+	"# specific type than the one it hides. An entry that erases a typed payload\n" +
+	"# makes every field of the hidden type unreachable; confirm that is intended\n" +
+	"# before adding one.\n"
 
 // shadowKind classifies what the shallower declaration does to the payload of
 // the embedded declaration it hides. It is not part of the allowlist key; it
@@ -87,7 +109,8 @@ func (k shadowKind) String() string {
 }
 
 // tagShadow is one occurrence of a JSON tag declared on a struct that is also
-// reachable through one of that struct's embedded types.
+// reachable through one of that struct's embedded types. It satisfies
+// [allowlistEntry].
 type tagShadow struct {
 	// Outer is the Go type declaring the shallower (winning) field.
 	Outer string
@@ -114,27 +137,12 @@ type tagShadow struct {
 // inheriting the old approval.
 func (s tagShadow) key() string { return s.Outer + "/" + s.JSONName + "/" + s.Declaring }
 
-// TagShadowConfig controls the duplicate-JSON-tag shadowing guard.
-type TagShadowConfig struct {
-	// AllowlistPath overrides the embedded allowlist with a file, relative to
-	// cwd. Empty (the default) checks against embeddedTagShadowAllowlist. Under
-	// Update it is the write target, defaulting to tagShadowAllowlistFile in cwd
-	// when empty.
-	AllowlistPath string
-	// Update rewrites the allowlist file from the current output instead of
-	// checking against it.
-	Update bool
-	// AllowUnlisted downgrades the fatal check to a warning.
-	AllowUnlisted bool
-}
+// groupName is the schema group the entry is banner-grouped under.
+func (s tagShadow) groupName() string { return s.group }
 
-// allowlistSource names the allowlist the check consulted, for messages.
-func (c TagShadowConfig) allowlistSource() string {
-	if c.AllowlistPath == "" {
-		return "embedded " + tagShadowAllowlistFile
-	}
-	return fmt.Sprintf("%q", c.AllowlistPath)
-}
+// comment records what the shadow does beside the key, so a reviewer can tell a
+// deliberate narrowing from an erasure without rereading the spec.
+func (s tagShadow) comment() string { return s.detail() }
 
 // shadowedField is a field reachable through an embed chain, along with the type
 // that declares it and the chain that reaches it.
@@ -246,8 +254,8 @@ func classifyShadow(outerGoType, shadowedGoType string) shadowKind {
 }
 
 // collectTagShadows walks the IR and returns every duplicate-tag shadow,
-// deduplicated by key. It reads the IR rather than the emitted text, so a shadow
-// is caught before any file is written.
+// deduplicated by key and sorted for grouped output. It reads the IR rather than
+// the emitted text, so a shadow is caught before any file is written.
 //
 // Only a tag declared on the outer struct itself can shadow: encoding/json
 // resolves a duplicate at differing depths in favor of the shallower field, and
@@ -314,18 +322,8 @@ func collectTagShadows(spec *ir.Spec) []tagShadow {
 		}
 	}
 
-	sortTagShadows(shadows)
+	sortAllowlistEntries(shadows)
 	return shadows
-}
-
-// sortTagShadows orders shadows by group then key for stable, grouped output.
-func sortTagShadows(shadows []tagShadow) {
-	sort.Slice(shadows, func(i, j int) bool {
-		if shadows[i].group != shadows[j].group {
-			return shadows[i].group < shadows[j].group
-		}
-		return shadows[i].key() < shadows[j].key()
-	})
 }
 
 // detail renders the human-readable half of an entry: what the winning field
@@ -339,76 +337,6 @@ func (s tagShadow) detail() string {
 	return b.String()
 }
 
-// parseTagShadowAllowlist parses allowlist bytes into a set of keys. Lines are
-// trimmed, '#' comments (whole-line or trailing) are stripped, and blank lines
-// are ignored. The key is the first whitespace-delimited token on each line.
-func parseTagShadowAllowlist(data []byte) set[string] {
-	allowed := make(set[string])
-	for line := range strings.SplitSeq(string(data), "\n") {
-		if i := strings.IndexByte(line, '#'); i >= 0 {
-			line = line[:i]
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		allowed.add(strings.Fields(line)[0])
-	}
-	return allowed
-}
-
-// loadTagShadowAllowlist reads an allowlist file and parses it. Used only for an
-// explicit AllowlistPath override; the default check parses
-// embeddedTagShadowAllowlist and cannot fail.
-func loadTagShadowAllowlist(path string) (set[string], error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("duplicate-JSON-tag allowlist %q not found; run with -update-tagshadow-allowlist to create it: %w", path, err)
-		}
-		return nil, fmt.Errorf("reading allowlist %q: %w", path, err)
-	}
-	return parseTagShadowAllowlist(data), nil
-}
-
-// writeTagShadowAllowlist rewrites the allowlist file from shadows, grouped by
-// group with sorted keys for minimal diffs. shadows is assumed pre-sorted by
-// sortTagShadows (collectTagShadows guarantees this).
-func writeTagShadowAllowlist(path string, shadows []tagShadow) (bool, error) {
-	var b strings.Builder
-	b.WriteString("# osgen duplicate-JSON-tag allowlist - DO NOT EDIT BY HAND.\n")
-	b.WriteString("# Regenerate by re-running `cmd/osgen` with `-update-tagshadow-allowlist`.\n")
-	b.WriteString("#\n")
-	b.WriteString("# Each line is a permitted tag shadow, keyed\n")
-	b.WriteString("# \"OuterGoType/jsonTag/DeclaringGoType\": OuterGoType declares jsonTag, and so\n")
-	b.WriteString("# does DeclaringGoType, which OuterGoType reaches through an embed. encoding/json\n")
-	b.WriteString("# resolves the duplicate in favor of the shallower field, so OuterGoType's\n")
-	b.WriteString("# declaration wins and DeclaringGoType's is never populated.\n")
-	b.WriteString("# The trailing comment is informational and ignored on load.\n")
-	b.WriteString("#\n")
-	b.WriteString("# A narrowing entry is the deliberate case: the winning field names a more\n")
-	b.WriteString("# specific type than the one it hides. An entry that erases a typed payload\n")
-	b.WriteString("# makes every field of the hidden type unreachable; confirm that is intended\n")
-	b.WriteString("# before adding one.\n")
-
-	var group string
-	first := true
-	for _, s := range shadows {
-		if first || s.group != group {
-			group = s.group
-			first = false
-			label := group
-			if label == "" {
-				label = "(ungrouped)"
-			}
-			fmt.Fprintf(&b, "\n# --- %s ---\n", label)
-		}
-		fmt.Fprintf(&b, "%s # %s\n", s.key(), s.detail())
-	}
-
-	return writeIfChanged(path, []byte(b.String()))
-}
-
 // guardTagShadows enforces the duplicate-JSON-tag allowlist against the IR.
 //
 // With cfg.Update it rewrites the allowlist from the current output and returns
@@ -417,9 +345,8 @@ func writeTagShadowAllowlist(path string, shadows []tagShadow) (bool, error) {
 // cfg.AllowlistPath, when set - reports any unlisted shadows to w, and returns a
 // non-nil error (aborting generation) unless cfg.AllowUnlisted is set, in which
 // case the offenders are a warning only. Stale entries (listed but no longer
-// emitted) are always a non-fatal warning, since they permit nothing and failing
-// on them would break unrelated spec edits.
-func guardTagShadows(w io.Writer, spec *ir.Spec, cfg TagShadowConfig) error {
+// emitted) are always a non-fatal warning; see [reportStaleAllowlist].
+func guardTagShadows(w io.Writer, spec *ir.Spec, cfg AllowlistConfig) error {
 	shadows := collectTagShadows(spec)
 
 	if cfg.Update {
@@ -427,78 +354,42 @@ func guardTagShadows(w io.Writer, spec *ir.Spec, cfg TagShadowConfig) error {
 		if path == "" {
 			path = tagShadowAllowlistFile
 		}
-		changed, err := writeTagShadowAllowlist(path, shadows)
+		changed, err := writeAllowlistFile(path, tagShadowAllowlistHeader, shadows)
 		if err != nil {
 			return err
 		}
 		if changed {
-			fmt.Fprintf(w, "osgen: wrote duplicate-JSON-tag allowlist %q (%d entries)\n", path, len(shadows))
+			fmt.Fprintf(w, "osgen: wrote %s allowlist %q (%d entries)\n", tagShadowNoun, path, len(shadows))
 		}
 		return nil
 	}
 
-	var allowed set[string]
-	if cfg.AllowlistPath == "" {
-		allowed = parseTagShadowAllowlist(embeddedTagShadowAllowlist)
-	} else {
-		loaded, err := loadTagShadowAllowlist(cfg.AllowlistPath)
-		switch {
-		// Under AllowUnlisted the check is advisory, so a missing file is not
-		// fatal: treat the allowlist as empty and let every shadow fall through to
-		// the warning path below.
-		case cfg.AllowUnlisted && errors.Is(err, fs.ErrNotExist):
-			allowed = set[string]{}
-		case err != nil:
-			return err
-		default:
-			allowed = loaded
-		}
+	allowed, err := resolveAllowlist(cfg, embeddedTagShadowAllowlist, tagShadowNoun, tagShadowUpdateFlag)
+	if err != nil {
+		return err
 	}
 
-	var offenders []tagShadow
-	for _, s := range shadows {
-		if !allowed.has(s.key()) {
-			offenders = append(offenders, s)
-		}
-	}
+	reportStaleAllowlist(w, allowed, shadows, tagShadowNoun, tagShadowUpdateFlag)
 
-	found := make(set[string], len(shadows))
-	for _, s := range shadows {
-		found.add(s.key())
-	}
-	var stale []string
-	for k := range allowed {
-		if !found.has(k) {
-			stale = append(stale, k)
-		}
-	}
-	if len(stale) > 0 {
-		sort.Strings(stale)
-		fmt.Fprintf(w, "NOTE: %d duplicate-JSON-tag allowlist entr%s no longer present in output; run -update-tagshadow-allowlist to prune:\n",
-			len(stale), plural(len(stale), "y is", "ies are"))
-		for _, k := range stale {
-			fmt.Fprintf(w, "  - %s\n", k)
-		}
-	}
-
+	offenders := unlistedEntries(shadows, allowed)
 	if len(offenders) == 0 {
 		return nil
 	}
 
+	source := cfg.allowlistSource(tagShadowAllowlistFile)
 	fmt.Fprintf(w, "WARNING: osgen emitted %d duplicate JSON tag(s) across an embed boundary, not in the allowlist %s.\n",
-		len(offenders), cfg.allowlistSource())
+		len(offenders), source)
 	fmt.Fprintln(w, "In each case the outer struct's field wins and the embedded declaration is never populated.")
 	for _, s := range offenders {
 		fmt.Fprintf(w, "  - %s (%s)\n", s.key(), s.detail())
 	}
-	fmt.Fprintln(w, "Investigate the shadow. If it is intended, add the key(s) via -update-tagshadow-allowlist.")
+	fmt.Fprintf(w, "Investigate the shadow. If it is intended, add the key(s) via %s.\n", tagShadowUpdateFlag)
 
 	if cfg.AllowUnlisted {
-		fmt.Fprintf(w, "osgen: continuing despite %d unlisted duplicate JSON tag(s) (-allow-unlisted-tagshadow)\n", len(offenders))
+		fmt.Fprintf(w, "osgen: continuing despite %d unlisted duplicate JSON tag(s) (%s)\n", len(offenders), tagShadowAllowFlag)
 		return nil
 	}
 	return fmt.Errorf(
-		"%d unlisted duplicate JSON tag(s) against %s; add them with -update-tagshadow-allowlist "+
-			"or pass -allow-unlisted-tagshadow",
-		len(offenders), cfg.allowlistSource())
+		"%d unlisted duplicate JSON tag(s) against %s; add them with %s or pass %s",
+		len(offenders), source, tagShadowUpdateFlag, tagShadowAllowFlag)
 }

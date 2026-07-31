@@ -19,6 +19,17 @@ import (
 // generateSuiteMu serializes suites that mutate the global repoRoot.
 var generateSuiteMu sync.Mutex
 
+// allowUnlistedGuards downgrades both generation guards to warnings. The test
+// specs are minimal fixtures rather than the real spec, so they do not match the
+// checked-in allowlists; without this every generateAPI call would abort on the
+// first unlisted entry instead of exercising the path under test.
+func allowUnlistedGuards() guardConfig {
+	return guardConfig{
+		RawMessage: AllowlistConfig{AllowUnlisted: true},
+		TagShadow:  AllowlistConfig{AllowUnlisted: true},
+	}
+}
+
 // GenerateSuite tests the generatePaths and generateAPI functions with
 // repoRoot overridden to point at a temporary directory.
 type GenerateSuite struct {
@@ -97,7 +108,7 @@ func (s *GenerateSuite) TestGenerateAPI() {
 	pluginsDir := filepath.Join(s.tmpDir, "plugins")
 
 	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
+		CompatConfig{V4Compat: true}, allowUnlistedGuards(), DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -123,7 +134,7 @@ func (s *GenerateSuite) TestGenerateAPI_Filter() {
 
 	filter := map[string]bool{"cluster.health": true}
 	err := generateAPI(specPath, filter, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
+		CompatConfig{V4Compat: true}, allowUnlistedGuards(), DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	entries, err := os.ReadDir(outDir)
@@ -147,8 +158,7 @@ func (s *GenerateSuite) TestGenerateAPI_InvalidSpec() {
 		VersionRange{},
 		BreadcrumbConfig{},
 		CompatConfig{V4Compat: true},
-		RawMessageConfig{AllowUnlisted: true},
-		TagShadowConfig{AllowUnlisted: true},
+		allowUnlistedGuards(),
 		DescriptionReportConfig{})
 	s.Require().Error(err)
 }
@@ -159,7 +169,7 @@ func (s *GenerateSuite) TestGenerateAPI_WithPlugins() {
 	pluginsDir := filepath.Join(s.tmpDir, "plugins-with")
 
 	err := generateAPI(specPath, nil, outDir, pluginsDir, opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
+		CompatConfig{V4Compat: true}, allowUnlistedGuards(), DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	pluginDir := filepath.Join(pluginsDir, "knn")
@@ -186,7 +196,7 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 	s.Require().NoError(maybe.WriteFile(staleFile, []byte("package "+opensearchAPIPkgName+"\n"), 0o600))
 
 	err := generateAPI(specPath, nil, outDir, "", opensearchAPIPkgName, VersionRange{}, BreadcrumbConfig{},
-		CompatConfig{V4Compat: true}, RawMessageConfig{AllowUnlisted: true}, TagShadowConfig{AllowUnlisted: true}, DescriptionReportConfig{})
+		CompatConfig{V4Compat: true}, allowUnlistedGuards(), DescriptionReportConfig{})
 	s.Require().NoError(err)
 
 	// Stale file should be removed.
