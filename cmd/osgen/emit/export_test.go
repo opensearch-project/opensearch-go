@@ -11,6 +11,7 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 // Test bridges for unexported helpers used by black-box tests.
 var (
 	LowerFirst              = lowerFirst
+	QualifyType             = qualifyType
 	SplitFirstLine          = splitFirstLine
 	SplitUnionsFromSiblings = splitUnionsFromSiblings
 

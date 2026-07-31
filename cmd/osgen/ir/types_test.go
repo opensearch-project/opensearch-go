@@ -178,3 +178,99 @@ func TestTokenClassConstants(t *testing.T) {
 		require.Equal(t, i, int(classes[i]), "TokenClass constants must keep their iota order")
 	}
 }
+
+// TestRegistryAccessors covers the query methods the emit phase uses to decide
+// what goes in which file.
+func TestRegistryAccessors(t *testing.T) {
+	t.Parallel()
+
+	reg := ir.NewTypeRegistry(ir.DefaultCorePkgName, ir.DefaultCoreImportPath)
+
+	shared := &ir.Type{
+		Name: "ShardStatistics", SchemaRef: "_common___ShardStatistics",
+		Kind: ir.TypeStruct, Scope: ir.ScopeShared, ImportPath: ir.DefaultCoreImportPath,
+	}
+	union := &ir.Type{
+		Name: "StringOrStringArray", SchemaRef: "_common___StringOrStringArray",
+		Kind: ir.TypeUnion, Scope: ir.ScopeShared, ImportPath: ir.DefaultCoreImportPath,
+	}
+	ambiguous := &ir.Type{
+		Name: "CommonAggregationsAggregate", SchemaRef: "_common.aggregations___Aggregate",
+		Kind: ir.TypeAmbiguousWire, Scope: ir.ScopeShared, ImportPath: ir.DefaultCoreImportPath,
+	}
+	localCat := &ir.Type{
+		Name: "CatCountRecord", SchemaRef: "cat.count___Record",
+		Kind: ir.TypeStruct, Scope: ir.ScopeLocal, OwnerGroup: "cat.count",
+		ImportPath: "example.com/plugins/cat",
+	}
+	localSearch := &ir.Type{
+		Name: "SearchProfile", SchemaRef: "_core.search___Profile",
+		Kind: ir.TypeStruct, Scope: ir.ScopeLocal, OwnerGroup: "search",
+	}
+
+	for _, t2 := range []*ir.Type{shared, union, ambiguous, localCat, localSearch} {
+		if _, ok := reg.Register(t2); !ok {
+			t.Fatalf("Register(%s) failed", t2.Name)
+		}
+	}
+
+	t.Run("All preserves insertion order", func(t *testing.T) {
+		t.Parallel()
+		all := reg.All()
+		got := make([]string, 0, len(all))
+		for _, tt := range all {
+			got = append(got, tt.Name)
+		}
+		want := []string{
+			"ShardStatistics", "StringOrStringArray", "CommonAggregationsAggregate",
+			"CatCountRecord", "SearchProfile",
+		}
+		if len(got) != len(want) {
+			t.Fatalf("All() = %v, want %v", got, want)
+		}
+		for i := range want {
+			if got[i] != want[i] {
+				t.Errorf("All()[%d] = %q, want %q", i, got[i], want[i])
+			}
+		}
+	})
+
+	// Both union kinds are returned: the decode strategy differs but both need
+	// a union fragment emitted.
+	t.Run("Unions covers both decode strategies, sorted", func(t *testing.T) {
+		t.Parallel()
+		unions := reg.Unions()
+		got := make([]string, 0, len(unions))
+		for _, tt := range unions {
+			got = append(got, tt.Name)
+		}
+		want := []string{"CommonAggregationsAggregate", "StringOrStringArray"}
+		if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+			t.Errorf("Unions() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("ForOperation selects local types by owner", func(t *testing.T) {
+		t.Parallel()
+		got := reg.ForOperation("cat.count")
+		if len(got) != 1 || got[0].Name != "CatCountRecord" {
+			t.Errorf("ForOperation(cat.count) = %v, want [CatCountRecord]", got)
+		}
+		if got := reg.ForOperation("nope"); len(got) != 0 {
+			t.Errorf("ForOperation(nope) = %v, want empty", got)
+		}
+	})
+
+	t.Run("PackageFor", func(t *testing.T) {
+		t.Parallel()
+		if got := reg.PackageFor("CatCountRecord"); got != "example.com/plugins/cat" {
+			t.Errorf("PackageFor(CatCountRecord) = %q", got)
+		}
+		if got := reg.PackageFor("ShardStatistics"); got != ir.DefaultCoreImportPath {
+			t.Errorf("PackageFor(ShardStatistics) = %q", got)
+		}
+		if got := reg.PackageFor("string"); got != "" {
+			t.Errorf("PackageFor(string) = %q, want empty for an unknown name", got)
+		}
+	})
+}
