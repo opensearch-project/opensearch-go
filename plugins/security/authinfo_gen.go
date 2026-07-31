@@ -102,47 +102,50 @@ func (r AuthinfoParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type AuthinfoResp struct {
-	// The backend roles associated with the user.
+	// BackendRoles is the backend roles associated with the user.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The name of the attributes associated with the user.
+	// CustomAttributeNames is the name of the attributes associated with the
+	// user.
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
-	// The number of peer certificates related to the user.
+	// PeerCertificates is the number of peer certificates related to the user.
 	PeerCertificates json.RawMessage `json:"peer_certificates"`
 
-	// The user's principal.
+	// Principal is the user's principal.
 	Principal *string `json:"principal"`
 
-	// The IP address of remote user.
+	// RemoteAddress is the IP address of remote user.
 	RemoteAddress *string `json:"remote_address"`
 
-	// The roles associated with the user.
+	// Roles is the roles associated with the user.
 	Roles []string `json:"roles,omitempty"`
 
-	// The size of the user's backend roles in bytes.
+	// SizeOfBackendroles is the size of the user's backend roles in bytes.
 	SizeOfBackendroles *string `json:"size_of_backendroles,omitempty"`
 
-	// The size of the user's custom attributes in bytes.
+	// SizeOfCustomAttributes is the size of the user's custom attributes in
+	// bytes.
 	SizeOfCustomAttributes *string `json:"size_of_custom_attributes,omitempty"`
 
-	// The size of user contained in memory.
+	// SizeOfUser is the size of user contained in memory.
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
-	// The logout URL.
+	// SsoLogoutURL is the logout URL.
 	SsoLogoutURL *string `json:"sso_logout_url"`
 
-	// The tenants the user has access to with `read-write` or `read-only`
-	// access indicators.
+	// Tenants is the tenants the user has access to with `read-write` or
+	// `read-only` access indicators.
 	Tenants map[string]bool `json:"tenants,omitempty"`
 
-	// A user object as a string.
+	// User is a user object as a string.
 	User *string `json:"user,omitempty"`
 
-	// The username.
+	// UserName is the username.
 	UserName *string `json:"user_name,omitempty"`
 
-	// The name of the tenant the user would like to switch to.
+	// UserRequestedTenant is the name of the tenant the user would like to
+	// switch to.
 	UserRequestedTenant *string `json:"user_requested_tenant"`
 
 	response *opensearch.Response

@@ -93,11 +93,11 @@ func (r DeleteTenantParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/api/#delete-action-group
 type DeleteTenantResp struct {
-	// The message returned as part of an `OK` response.
+	// Message is the message returned as part of an `OK` response.
 	Message *string `json:"message,omitempty"`
 
-	// The HTTP status of the response, as a RestStatus enum name (e.g. "OK",
-	// "CREATED").
+	// Status is the HTTP status of the response, as a RestStatus enum name
+	// (e.g. "OK", "CREATED").
 	Status *opensearchapi.RestStatus `json:"status,omitempty"`
 
 	response *opensearch.Response

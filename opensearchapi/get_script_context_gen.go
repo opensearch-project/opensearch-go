@@ -110,13 +110,13 @@ func (r GetScriptContextResp) RawBody() io.Reader {
 type GetScriptContextContext struct {
 	Methods []GetScriptContextContextMethod `json:"methods"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
 // GetScriptContextContextMethod is a typed component of the get_script_context operation.
 type GetScriptContextContextMethod struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
 	Params     []GetScriptContextContextMethodParam `json:"params"`
@@ -125,7 +125,7 @@ type GetScriptContextContextMethod struct {
 
 // GetScriptContextContextMethodParam is a typed component of the get_script_context operation.
 type GetScriptContextContextMethodParam struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
 	Type string `json:"type"`

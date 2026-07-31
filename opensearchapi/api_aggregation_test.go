@@ -59,20 +59,20 @@ func TestManual_Aggregation(t *testing.T) {
 
 	// Each case drives a real aggregation against the cluster and decodes the
 	// result through its As<T>() accessor, asserting the decoded shape. This
-	// exercises the SearchResultAggregationsValue union surface (the response
+	// exercises the CommonAggregationsAggregate union surface (the response
 	// half, which a request can't cover) and validates that the running server
 	// version returns what the generated client can decode.
 	tests := []struct {
 		name  string
 		key   string
 		query string
-		check func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue)
+		check func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate)
 	}{
 		{
 			name:  "terms (string) decodes via AsSTerms",
 			key:   "by_category",
 			query: `{"size":0,"aggs":{"by_category":{"terms":{"field":"category"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsSTerms()
 				require.NoError(t, err)
@@ -91,7 +91,7 @@ func TestManual_Aggregation(t *testing.T) {
 			key:  "by_month",
 			query: `{"size":0,"aggs":{"by_month":{"date_histogram":` +
 				`{"field":"timestamp","calendar_interval":"month"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsDateHistogram()
 				require.NoError(t, err)
@@ -102,7 +102,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "stats decodes via AsStats",
 			key:   "price_stats",
 			query: `{"size":0,"aggs":{"price_stats":{"stats":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsStats()
 				require.NoError(t, err)
@@ -118,7 +118,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "avg decodes via AsAvg",
 			key:   "price_avg",
 			query: `{"size":0,"aggs":{"price_avg":{"avg":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsAvg()
 				require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "sum decodes via AsSum",
 			key:   "price_sum",
 			query: `{"size":0,"aggs":{"price_sum":{"sum":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsSum()
 				require.NoError(t, err)
@@ -142,7 +142,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "min decodes via AsMin",
 			key:   "price_min",
 			query: `{"size":0,"aggs":{"price_min":{"min":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsMin()
 				require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "max decodes via AsMax",
 			key:   "price_max",
 			query: `{"size":0,"aggs":{"price_max":{"max":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsMax()
 				require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "value_count decodes via AsValueCount",
 			key:   "price_count",
 			query: `{"size":0,"aggs":{"price_count":{"value_count":{"field":"price"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsValueCount()
 				require.NoError(t, err)
@@ -178,7 +178,7 @@ func TestManual_Aggregation(t *testing.T) {
 			name:  "cardinality decodes via AsCardinality",
 			key:   "distinct_categories",
 			query: `{"size":0,"aggs":{"distinct_categories":{"cardinality":{"field":"category"}}}}`,
-			check: func(t *testing.T, agg opensearchapi.SearchResultAggregationsValue) {
+			check: func(t *testing.T, agg opensearchapi.CommonAggregationsAggregate) {
 				t.Helper()
 				v, err := agg.AsCardinality()
 				require.NoError(t, err)

@@ -36,10 +36,8 @@ func TestUnionUnmarshalResetsStaleState(t *testing.T) {
 			name: "lazy union reuse decodes fresh raw",
 			check: func(t *testing.T) {
 				t.Helper()
-				u := opensearchapi.NewSearchResultAggregationsValueFromAvg(
-					opensearchapi.CommonAggregationsAvgAggregate{
-						CommonAggregationsSingleMetricAggregateBase: opensearchapi.CommonAggregationsSingleMetricAggregateBase{Value: &staleAvg},
-					},
+				u := opensearchapi.NewCommonAggregationsAggregateFromAvg(
+					opensearchapi.CommonAggregationsSingleMetricAggregateBase{Value: &staleAvg},
 				)
 				require.NoError(t, json.Unmarshal([]byte(`{"value":2.5}`), &u))
 				got, err := u.AsAvg()
@@ -54,13 +52,15 @@ func TestUnionUnmarshalResetsStaleState(t *testing.T) {
 			name: "merged union reuse switches branch",
 			check: func(t *testing.T) {
 				t.Helper()
-				u := opensearchapi.NewMGetRespBodyDocsItemFromMGetMultiGetError(
+				u := opensearchapi.NewMGetRespItemFromMultiGetError(
 					opensearchapi.MGetMultiGetError{ID: "1", Index: "i"},
 				)
 				require.NoError(t, json.Unmarshal(
 					[]byte(`{"_index":"i","_id":"1","found":true}`), &u))
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, u.Type())
-				require.True(t, u.GetResult().Found)
+				require.Equal(t, opensearchapi.MGetRespItemGetResultType, u.Type())
+				gr, err := u.GetResult()
+				require.NoError(t, err)
+				require.True(t, gr.Found)
 			},
 		},
 		{
@@ -68,13 +68,13 @@ func TestUnionUnmarshalResetsStaleState(t *testing.T) {
 			name: "merged union null payload clears prior branch",
 			check: func(t *testing.T) {
 				t.Helper()
-				var u opensearchapi.MGetRespBodyDocsItem
+				var u opensearchapi.MGetRespItem
 				require.NoError(t, json.Unmarshal(
 					[]byte(`{"_index":"i","_id":"1","found":true}`), &u))
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemGetResultType, u.Type())
+				require.Equal(t, opensearchapi.MGetRespItemGetResultType, u.Type())
 
 				require.NoError(t, json.Unmarshal([]byte(`null`), &u))
-				require.Equal(t, opensearchapi.MGetRespBodyDocsItemUnknownType, u.Type())
+				require.Equal(t, opensearchapi.MGetRespItemUnknownType, u.Type())
 
 				b, err := u.MarshalJSON()
 				require.NoError(t, err)

@@ -161,9 +161,9 @@ func (r FieldCapsParams) get() map[string]string {
 type FieldCapsResp struct {
 	Fields map[string]map[string]FieldCapsFieldCapability `json:"fields"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices"`
 
 	response *opensearch.Response
@@ -185,30 +185,32 @@ func (r FieldCapsResp) RawBody() io.Reader {
 
 // FieldCapsFieldCapability is a typed component of the field_caps operation.
 type FieldCapsFieldCapability struct {
-	// Whether this field can be aggregated on all indexes.
+	// Aggregatable. Whether this field can be aggregated on all indexes.
 	Aggregatable bool `json:"aggregatable"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
 	Meta map[string][]string `json:"meta,omitempty"`
 
-	// Whether this field is registered as a metadata field.
+	// MetadataField. Whether this field is registered as a metadata field.
 	MetadataField *bool `json:"metadata_field,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// NonAggregatableIndices is a comma-separated list of data streams,
+	// indexes, and aliases used to limit the request. Supports wildcards
+	// (`*`). To target all data streams and indexes, omit this parameter or
+	// use `*` or `_all`.
 	NonAggregatableIndices []string `json:"non_aggregatable_indices,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// NonSearchableIndices is a comma-separated list of data streams, indexes,
+	// and aliases used to limit the request. Supports wildcards (`*`). To
+	// target all data streams and indexes, omit this parameter or use `*` or
+	// `_all`.
 	NonSearchableIndices []string `json:"non_searchable_indices,omitempty"`
 
-	// Whether this field is indexed for search on all indexes.
+	// Searchable. Whether this field is indexed for search on all indexes.
 	Searchable bool `json:"searchable"`
 
 	Type string `json:"type"`
@@ -218,10 +220,10 @@ type FieldCapsFieldCapability struct {
 //
 // An index filter specified with the Query DSL
 type FieldCapsBody struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Fields is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Fields *string `json:"fields,omitempty"`
 
 	IndexFilter *CommonQueryDSLQueryContainer `json:"index_filter,omitempty"`

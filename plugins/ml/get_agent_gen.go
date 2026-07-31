@@ -87,24 +87,24 @@ func (r GetAgentParams) get() map[string]string {
 //
 // Available: >= 2.13.0.
 type GetAgentResp struct {
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The agent description.
+	// Description is the agent description.
 	Description *string `json:"description,omitempty"`
 
-	// Whether the agent is hidden.
+	// IsHidden. Whether the agent is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Tools []opensearchapi.MLToolItems `json:"tools,omitempty"`
 
-	// The agent type.
+	// Type is the agent type.
 	Type *string `json:"type,omitempty"`
 
 	response *opensearch.Response

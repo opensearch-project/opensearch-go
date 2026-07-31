@@ -124,22 +124,22 @@ func (r QueryParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/sql-ppl-api/
 type QueryResp struct {
-	// The cursor identifier for pagination.
+	// Cursor is the cursor identifier for pagination.
 	Cursor *string `json:"cursor,omitempty"`
 
-	// The rows of data returned by the query.
+	// Datarows is the rows of data returned by the query.
 	Datarows [][]json.RawMessage `json:"datarows,omitempty"`
 
-	// The schema of the query result.
+	// Schema is the schema of the query result.
 	Schema []json.RawMessage `json:"schema,omitempty"`
 
-	// The number of rows in the current response.
+	// Size is the number of rows in the current response.
 	Size *int `json:"size,omitempty"`
 
-	// The status code of the response.
+	// Status is the status code of the response.
 	Status *int `json:"status,omitempty"`
 
-	// The total number of hits.
+	// Total is the total number of hits.
 	Total *int `json:"total,omitempty"`
 
 	response *opensearch.Response

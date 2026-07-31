@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -211,7 +210,7 @@ func (r UpdateParams) get() map[string]string {
 type UpdateResp struct {
 	WriteRespBase
 
-	// The result of an inline get operation.
+	// Get is the result of an inline get operation.
 	Get *InlineGet `json:"get,omitempty"`
 
 	response *opensearch.Response
@@ -235,266 +234,31 @@ func (r UpdateResp) RawBody() io.Reader {
 //
 // The request definition requires either `script` or partial `doc`
 type UpdateBody struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
-	Source *UpdateBodySource `json:"_source,omitempty"`
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	// Set to `false` to disable setting `result` in the response to `noop` if
-	// no change to the document occurred.
+	// DetectNoop. Set to `false` to disable setting `result` in the response
+	// to `noop` if no change to the document occurred.
 	DetectNoop *bool `json:"detect_noop,omitempty"`
 
-	// A partial update to an existing document.
+	// Doc is a partial update to an existing document.
 	Doc json.RawMessage `json:"doc"`
 
-	// Set to `true` to use the contents of 'doc' as the value of 'upsert'
+	// DocAsUpsert. Set to `true` to use the contents of 'doc' as the value of
+	// 'upsert'
 	DocAsUpsert *bool `json:"doc_as_upsert,omitempty"`
 
-	Script *UpdateBodyScript `json:"script,omitempty"`
+	Script *Script `json:"script,omitempty"`
 
-	// Set to `true` to execute the script whether or not the document exists.
+	// ScriptedUpsert. Set to `true` to execute the script whether or not the
+	// document exists.
 	ScriptedUpsert *bool `json:"scripted_upsert,omitempty"`
 
-	// If the document does not already exist, the contents of 'upsert' are
-	// inserted as a new document. If the document exists, the 'script' is
+	// Upsert. If the document does not already exist, the contents of 'upsert'
+	// are inserted as a new document. If the document exists, the 'script' is
 	// executed.
 	Upsert json.RawMessage `json:"upsert"`
-}
-
-// UpdateBodySourceExcludesIncludes is a typed component of the update operation.
-type UpdateBodySourceExcludesIncludes struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
-// UpdateBodySource is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type UpdateBodySource struct {
-	typ   UpdateBodySourceType
-	raw   json.RawMessage
-	value any
-}
-
-// UpdateBodySourceType discriminates the branches of UpdateBodySource.
-type UpdateBodySourceType int
-
-const (
-	UpdateBodySourceUnknownType UpdateBodySourceType = iota
-	UpdateBodySourceStringType
-	UpdateBodySourceExcludesIncludesType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns UpdateBodySourceUnknownType if the value has not been decoded.
-func (u *UpdateBodySource) Type() UpdateBodySourceType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *UpdateBodySource) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewUpdateBodySourceFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *UpdateBodySource) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = UpdateBodySourceUnknownType
-}
-
-// String returns the string branch value.
-func (u *UpdateBodySource) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewUpdateBodySourceFromString returns a UpdateBodySource populated with v
-// on the String branch.
-func NewUpdateBodySourceFromString(v string) UpdateBodySource {
-	return UpdateBodySource{
-		typ:   UpdateBodySourceStringType,
-		value: &v,
-	}
-}
-
-// ExcludesIncludes returns the UpdateBodySourceExcludesIncludes branch value.
-func (u *UpdateBodySource) ExcludesIncludes() UpdateBodySourceExcludesIncludes {
-	if v, ok := u.value.(*UpdateBodySourceExcludesIncludes); ok {
-		return *v
-	}
-	var zero UpdateBodySourceExcludesIncludes
-	return zero
-}
-
-// NewUpdateBodySourceFromExcludesIncludes returns a UpdateBodySource populated with v
-// on the ExcludesIncludes branch.
-func NewUpdateBodySourceFromExcludesIncludes(v UpdateBodySourceExcludesIncludes) UpdateBodySource {
-	return UpdateBodySource{
-		typ:   UpdateBodySourceExcludesIncludesType,
-		value: &v,
-	}
-}
-
-func (u *UpdateBodySource) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = UpdateBodySourceUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateBodySourceStringType
-		u.value = &v
-	case data[0] == '{':
-		var v UpdateBodySourceExcludesIncludes
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateBodySourceExcludesIncludesType
-		u.value = &v
-	default:
-		return fmt.Errorf("UpdateBodySource: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u UpdateBodySource) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// UpdateBodyScript is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type UpdateBodyScript struct {
-	typ   UpdateBodyScriptType
-	raw   json.RawMessage
-	value any
-}
-
-// UpdateBodyScriptType discriminates the branches of UpdateBodyScript.
-type UpdateBodyScriptType int
-
-const (
-	UpdateBodyScriptUnknownType UpdateBodyScriptType = iota
-	UpdateBodyScriptStringType
-	UpdateBodyScriptStoredType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns UpdateBodyScriptUnknownType if the value has not been decoded.
-func (u *UpdateBodyScript) Type() UpdateBodyScriptType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *UpdateBodyScript) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewUpdateBodyScriptFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *UpdateBodyScript) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = UpdateBodyScriptUnknownType
-}
-
-// String returns the string branch value.
-func (u *UpdateBodyScript) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewUpdateBodyScriptFromString returns a UpdateBodyScript populated with v
-// on the String branch.
-func NewUpdateBodyScriptFromString(v string) UpdateBodyScript {
-	return UpdateBodyScript{
-		typ:   UpdateBodyScriptStringType,
-		value: &v,
-	}
-}
-
-// Stored returns the StoredScriptID branch value.
-func (u *UpdateBodyScript) Stored() StoredScriptID {
-	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
-	}
-	var zero StoredScriptID
-	return zero
-}
-
-// NewUpdateBodyScriptFromStored returns a UpdateBodyScript populated with v
-// on the Stored branch.
-func NewUpdateBodyScriptFromStored(v StoredScriptID) UpdateBodyScript {
-	return UpdateBodyScript{
-		typ:   UpdateBodyScriptStoredType,
-		value: &v,
-	}
-}
-
-func (u *UpdateBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = UpdateBodyScriptUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateBodyScriptStringType
-		u.value = &v
-	case data[0] == '{':
-		var v StoredScriptID
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = UpdateBodyScriptStoredType
-		u.value = &v
-	default:
-		return fmt.Errorf("UpdateBodyScript: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u UpdateBodyScript) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // WriteShardFailures detects replica-shard failures on a UpdateResp.

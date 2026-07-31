@@ -432,17 +432,23 @@ func TestWalkerOneOfUnion(t *testing.T) {
 	require.Equal(t, "Int", registered.Branches[1].Name)
 }
 
-// TestWalkerParentScopedUnionNameCollision pins the fix for the tasks.list bug:
-// a struct with a oneOf field whose parent-scoped union name would equal the
-// parent struct's own Go name must NOT drop the parent struct. The union is
-// re-keyed by the referenced schema only in that collision case; otherwise it
-// keeps its parent-scoped name (the default), so the fix stays narrow.
+// TestWalkerRefUnionNameCollision pins the key a $ref'd oneOf union registers
+// under, across the three cases resolveRefUnion distinguishes.
 //
-// The collision check compares the field's parent-scoped union name against the
-// parent name in BOTH its non-resp (schemaTypeName(_, false)) and resp-body
-// (schemaTypeName(_, true)) forms, because for non-_common keys those two forms
-// differ. The cases below exercise each operand of that OR.
-func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
+// The default is the REFERENCED schema's own key: a $ref'd schema is a named
+// schema with its own identity, and keying it by the caller's field path both
+// mangled the name (_common.analysis___Analyzer emitted as
+// IndicesIndexSettingsAnalysisAnalyzerValue) and discarded the identity carrying
+// the schema's discriminator.
+//
+// The parent-scoped key is the fallback for a name clash, and it in turn falls
+// back to the referenced key when it would collide with the PARENT struct's own
+// name -- the tasks.list bug, where the union registers first and the parent is
+// then silently dropped, degrading the whole parent response to json.RawMessage.
+// The parent-name check compares BOTH the non-resp (schemaTypeName(_, false)) and
+// resp-body (schemaTypeName(_, true)) forms, because for non-_common keys those
+// differ; the cases below exercise each operand.
+func TestWalkerRefUnionNameCollision(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -456,8 +462,11 @@ func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
 		parentKey string
 		// field is the parent property name holding the $ref to the oneOf.
 		field string
-		// matchForm records which parent-name form the union name collides with:
-		// "false" (non-resp), "true" (resp-body), or "none".
+		// preRegisterName, when non-empty, is a Go type name to occupy before the
+		// walk, forcing the referenced schema's own key to be unavailable.
+		preRegisterName string
+		// matchForm records which parent-name form the parent-scoped union name
+		// collides with: "false" (non-resp), "true" (resp-body), or "none".
 		matchForm string
 		// wantParentName is the parent struct's resolved Go name.
 		wantParentName string
@@ -467,38 +476,59 @@ func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
 		wantFieldType string
 	}{
 		{
-			// _common parent: both name forms are equal, so the FIRST OR operand
-			// (false-form) matches. Union re-keyed to the referenced schema.
-			name:           "collision on non-resp form re-keys union",
-			parentKey:      "tasks._common___TaskListResponseBase",
-			field:          "tasks",
-			matchForm:      "false",
-			wantParentName: "TasksTaskListRespBase",
-			wantUnionKey:   infosKey,
-			wantFieldType:  "*TasksTaskInfos",
-		},
-		{
-			// Non-_common parent: the two name forms differ (TasksResponse vs
-			// TasksResp), and the union name (TasksResp) matches ONLY the resp-body
-			// form, isolating the SECOND OR operand. Without that operand the
-			// parent would be silently dropped.
-			name:           "collision on resp-body form re-keys union",
-			parentKey:      "tasks___Response",
-			field:          "tasks",
-			matchForm:      "true",
-			wantParentName: "TasksResp",
-			wantUnionKey:   infosKey,
-			wantFieldType:  "*TasksTaskInfos",
-		},
-		{
-			// No collision: union keeps its default parent-scoped key and name.
-			name:           "no collision keeps parent-scoped union",
+			// The default: the referenced schema keeps its own identity, so the
+			// union is named for the schema rather than for the field that
+			// referenced it. The parent-scoped name would not have collided here,
+			// which is exactly the case that used to take it.
+			name:           "ref key is the default",
 			parentKey:      "tasks._common___TaskListResponseBase",
 			field:          "result",
 			matchForm:      "none",
 			wantParentName: "TasksTaskListRespBase",
-			wantUnionKey:   "tasks._common___TaskListResponseBase.result",
-			wantFieldType:  "*TasksTaskListRespBaseResult",
+			wantUnionKey:   infosKey,
+			wantFieldType:  "*TasksTaskInfos",
+		},
+		{
+			// The referenced schema's name is taken by an unrelated schema, so
+			// registering under it would be dropped by the registry and the union
+			// would degrade to json.RawMessage. Fall back to the parent-scoped key,
+			// which here does not collide with the parent's own name.
+			name:            "taken ref name falls back to parent-scoped key",
+			parentKey:       "tasks._common___TaskListResponseBase",
+			field:           "result",
+			preRegisterName: "TasksTaskInfos",
+			matchForm:       "none",
+			wantParentName:  "TasksTaskListRespBase",
+			wantUnionKey:    "tasks._common___TaskListResponseBase.result",
+			wantFieldType:   "*TasksTaskListRespBaseResult",
+		},
+		{
+			// Ref name taken AND the parent-scoped name equals the parent struct's
+			// own name in its non-resp form (a _common parent, where both forms are
+			// equal): the FIRST operand of the parent-name check. Taking the
+			// parent-scoped key would drop the parent, so the referenced key is used
+			// despite being taken -- the union is lost rather than the parent.
+			name:            "taken ref name plus non-resp parent collision keeps ref key",
+			parentKey:       "tasks._common___TaskListResponseBase",
+			field:           "tasks",
+			preRegisterName: "TasksTaskInfos",
+			matchForm:       "false",
+			wantParentName:  "TasksTaskListRespBase",
+			wantUnionKey:    infosKey,
+			wantFieldType:   "*TasksTaskInfos",
+		},
+		{
+			// Same, isolating the SECOND operand: a non-_common parent whose two name
+			// forms differ (TasksResponse vs TasksResp), where the parent-scoped
+			// union name (TasksResp) matches ONLY the resp-body form.
+			name:            "taken ref name plus resp-body parent collision keeps ref key",
+			parentKey:       "tasks___Response",
+			field:           "tasks",
+			preRegisterName: "TasksTaskInfos",
+			matchForm:       "true",
+			wantParentName:  "TasksResp",
+			wantUnionKey:    infosKey,
+			wantFieldType:   "*TasksTaskInfos",
 		},
 	}
 
@@ -508,7 +538,7 @@ func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
 
 			// Verify the precondition so each case is a real regression test
 			// rather than a tautology: confirm which name form (if any) the
-			// union name actually collides with.
+			// parent-scoped union name actually collides with.
 			unionName := schemaTypeName(tt.parentKey+"."+tt.field, false)
 			matchFalse := unionName == schemaTypeName(tt.parentKey, false)
 			matchTrue := unionName == schemaTypeName(tt.parentKey, true)
@@ -550,6 +580,10 @@ func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
 			}}}
 
 			reg := newTypeRegistry(opensearchAPIPkgName)
+			if tt.preRegisterName != "" {
+				_, ok := reg.register(&goType{Name: tt.preRegisterName, SchemaRef: "unrelated___Squatter"})
+				require.True(t, ok, "pre-registration must succeed")
+			}
 			w := &walker{registry: reg, spec: spec, inFlight: make(map[string]struct{})}
 
 			parentName := w.walkSchema(spec.Components.Schemas[tt.parentKey], tt.parentKey, group, true)
@@ -561,16 +595,20 @@ func TestWalkerParentScopedUnionNameCollision(t *testing.T) {
 			require.False(t, parentType.IsUnion)
 			require.Len(t, parentType.Fields, 1)
 
-			// The field is typed and the union registered under the expected key.
+			// The field is typed and the union keyed as expected.
 			field := parentType.Fields[0]
 			require.Equal(t, tt.field, field.JSONName)
 			require.Equal(t, tt.wantFieldType, field.GoType)
+
+			if tt.preRegisterName != "" && tt.matchForm != "none" {
+				// The union lost the name race to the squatter, which is the lesser
+				// evil: the parent struct survives. The registry records the loss.
+				require.NotEmpty(t, reg.collisions, "the dropped union must be reported")
+				return
+			}
 			unionType, ok := reg.lookup(tt.wantUnionKey)
 			require.True(t, ok, "union must be registered under %q", tt.wantUnionKey)
 			require.True(t, unionType.IsUnion)
-
-			// No collision is ever recorded: colliding cases are re-keyed and the
-			// non-colliding case never clashed.
 			require.Empty(t, reg.collisions)
 		})
 	}

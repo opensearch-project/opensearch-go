@@ -93,15 +93,15 @@ func (r StatusParams) get() map[string]string {
 type StatusResp struct {
 	FollowerIndex *string `json:"follower_index,omitempty"`
 
-	// The name of an index alias.
+	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
 
 	LeaderIndex *string `json:"leader_index,omitempty"`
 
-	// The reason for the current replication status.
+	// Reason is the reason for the current replication status.
 	Reason *string `json:"reason,omitempty"`
 
-	// The current status of the replication process.
+	// Status is the current status of the replication process.
 	Status *string `json:"status,omitempty"`
 
 	SyncingDetails *opensearchapi.ReplicationSyncingDetails `json:"syncing_details,omitempty"`

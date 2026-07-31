@@ -87,27 +87,29 @@ func (r GetJudgmentsParams) get() map[string]string {
 //
 // Available: >= 3.1.0.
 type GetJudgmentsResp struct {
-	Clusters        *opensearchapi.ClusterStatistics                       `json:"_clusters,omitempty"`
-	ScrollID        *string                                                `json:"_scroll_id,omitempty"`
-	Shards          opensearchapi.ShardStatistics                          `json:"_shards"`
-	Aggregations    map[string]opensearchapi.SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            opensearchapi.SearchResultHits                         `json:"hits"`
-	NumReducePhases *int                                                   `json:"num_reduce_phases,omitempty"`
+	Clusters        *opensearchapi.ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                              `json:"_scroll_id,omitempty"`
+	Shards          opensearchapi.ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]opensearchapi.CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            opensearchapi.SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                                 `json:"num_reduce_phases,omitempty"`
 
-	// The time taken by different phases of the search.
+	// PhaseTook is the time taken by different phases of the search.
+	//
+	// Available: >= 2.12.0.
 	PhaseTook *opensearchapi.PhaseTook `json:"phase_took,omitempty"`
 
-	// The unique identifier for a resource.
+	// PITID is the unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
 	ProcessorResults []opensearchapi.SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *opensearchapi.SearchProfileResult                      `json:"profile,omitempty"`
-	Suggest         map[string][]opensearchapi.SearchResultSuggestValueItem `json:"suggest,omitempty"`
-	TerminatedEarly *bool                                                   `json:"terminated_early,omitempty"`
-	TimedOut        bool                                                    `json:"timed_out"`
-	Took            int64                                                   `json:"took"`
+	Profile         *opensearchapi.SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]opensearchapi.SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                                    `json:"terminated_early,omitempty"`
+	TimedOut        bool                                     `json:"timed_out"`
+	Took            int64                                    `json:"took"`
 
 	response *opensearch.Response
 }

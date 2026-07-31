@@ -199,7 +199,7 @@ type SearchShardsShardStoreIndex struct {
 
 // SearchShardsBody is a typed component of the search_shards operation.
 type SearchShardsBody struct {
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 

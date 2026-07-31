@@ -53,7 +53,7 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	types := []*ir.Type{
 		{
 			Name: "TryEachValue",
-			Kind: ir.TypeLazyUnion,
+			Kind: ir.TypeAmbiguousWire,
 			Branches: []ir.UnionBranch{
 				{Name: "AsMap", GoType: "map[string]any", TokenClass: ir.TokenObject},
 				{Name: "AsSlice", GoType: "[]any", TokenClass: ir.TokenArray},
@@ -69,7 +69,8 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "type TryEachValue struct")
 	require.Contains(t, body, "value any")
 	require.Contains(t, body, "TryEachValueType")
-	require.Contains(t, body, "func (u *TryEachValue) AsMap() map[string]any")
+	require.Contains(t, body, "func (u *TryEachValue) AsMap() (map[string]any, error)")
+	require.Contains(t, body, "&UnionBranchError{Union: \"TryEachValue\", Want: \"AsMap\"")
 	require.Contains(t, body, "u.value.(*map[string]any)")
 	require.Contains(t, body, "if err := json.Unmarshal(data, &v); err == nil")
 	require.Contains(t, body, "RawJSON")
@@ -81,7 +82,7 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	types := []*ir.Type{
 		{
 			Name: "DocsItem",
-			Kind: ir.TypeLazyUnion,
+			Kind: ir.TypeAmbiguousWire,
 			Branches: []ir.UnionBranch{
 				{Name: "GetResult", GoType: "GetResult", TokenClass: ir.TokenObject},
 				{Name: "MultiGetError", GoType: "MultiGetError", TokenClass: ir.TokenObject, Required: []string{"error"}},
@@ -113,14 +114,14 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	require.Contains(t, body, "u.raw = data")
 }
 
-func TestUnionFragment_LazyAccessors(t *testing.T) {
+func TestUnionFragment_RequestSelected(t *testing.T) {
 	t.Parallel()
 
 	types := []*ir.Type{
 		{
-			Name:          "AggValue",
-			Kind:          ir.TypeLazyUnion,
-			LazyAccessors: true,
+			Name:            "AggValue",
+			Kind:            ir.TypeAmbiguousWire,
+			RequestSelected: true,
 			Branches: []ir.UnionBranch{
 				{Name: "Avg", GoType: "AvgAggregate", TokenClass: ir.TokenObject},
 				{Name: "Sum", GoType: "SumAggregate", TokenClass: ir.TokenObject},
@@ -131,7 +132,7 @@ func TestUnionFragment_LazyAccessors(t *testing.T) {
 	body, err := (&emit.UnionFragment{Types: types}).Body()
 	require.NoError(t, err)
 
-	// Lazy: UnmarshalJSON only aliases raw; per-branch As<T>() decode on demand.
+	// Request-selected: UnmarshalJSON only aliases raw; per-branch As<T>() decode on demand.
 	require.Contains(t, body, "func (u *AggValue) AsAvg() (AvgAggregate, error)")
 	require.Contains(t, body, "func (u *AggValue) AsSum() (SumAggregate, error)")
 	require.Contains(t, body, "err := json.Unmarshal(u.raw, &v)")
@@ -170,7 +171,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 		},
 		{
 			name:    "try-each needs fmt",
-			types:   []*ir.Type{{Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{{TokenClass: ir.TokenObject}}}},
+			types:   []*ir.Type{{Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{{TokenClass: ir.TokenObject}}}},
 			wantFmt: true,
 		},
 		{
@@ -230,29 +231,6 @@ func TestUnionFragment_Imports(t *testing.T) {
 			require.True(t, hasJSON, "all union fragments need encoding/json")
 			require.Equal(t, tt.wantFmt, hasFmt, "fmt import mismatch")
 			require.Equal(t, tt.wantCoreImport, hasCore, "core import mismatch")
-		})
-	}
-}
-
-func TestTokenClassStr(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		tc   ir.TokenClass
-		want string
-	}{
-		{ir.TokenObject, "object"},
-		{ir.TokenArray, "array"},
-		{ir.TokenString, "string"},
-		{ir.TokenNumber, "number"},
-		{ir.TokenBool, "bool"},
-		{ir.TokenClass(99), "unknown"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.want, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, emit.TokenClassStr(tt.tc))
 		})
 	}
 }

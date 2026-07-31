@@ -142,8 +142,8 @@ type ClusterRerouteResp struct {
 	AcknowledgedRespBase
 	Explanations []ClusterRerouteExplanation `json:"explanations,omitempty"`
 
-	// Shows the internal representation of the structure, which can differ
-	// from the external representation.
+	// State. Shows the internal representation of the structure, which can
+	// differ from the external representation.
 	State json.RawMessage `json:"state"`
 
 	response *opensearch.Response
@@ -181,17 +181,17 @@ type ClusterRerouteDecision struct {
 type ClusterRerouteParameters struct {
 	AllowPrimary bool `json:"allow_primary"`
 
-	// The name of the node.
+	// FromNode is the name of the node.
 	FromNode *string `json:"from_node,omitempty"`
 
 	Index string `json:"index"`
 
-	// The name of the node.
+	// Node is the name of the node.
 	Node string `json:"node"`
 
 	Shard int `json:"shard"`
 
-	// The name of the node.
+	// ToNode is the name of the node.
 	ToNode *string `json:"to_node,omitempty"`
 }
 
@@ -199,36 +199,37 @@ type ClusterRerouteParameters struct {
 //
 // The definition of `commands` to perform (`move`, `cancel`, `allocate`)
 type ClusterRerouteBody struct {
-	// Defines the reroute commands to perform, either `move`, `cancel`, or
-	// `allocate`.
+	// Commands. Defines the reroute commands to perform, either `move`,
+	// `cancel`, or `allocate`.
 	Commands []ClusterRerouteCommand `json:"commands,omitempty"`
 }
 
 // ClusterRerouteCommand is a typed component of the cluster.reroute operation.
 type ClusterRerouteCommand struct {
-	// Allocate an empty primary shard to a node. Accepts `index` and `shard`
-	// for index name and shard number, and `node` to allocate the shard to.
-	// Using this command leads to a complete loss of all data that was indexed
-	// into this shard, if it was previously started. If a node which has a
-	// copy of the data rejoins the cluster later on, that data will be
-	// deleted. To ensure that these implications are well-understood, this
-	// command requires the flag `accept_data_loss` to be explicitly set to
-	// true.
+	// AllocateEmptyPrimary. Allocate an empty primary shard to a node. Accepts
+	// `index` and `shard` for index name and shard number, and `node` to
+	// allocate the shard to. Using this command leads to a complete loss of
+	// all data that was indexed into this shard, if it was previously started.
+	// If a node which has a copy of the data rejoins the cluster later on,
+	// that data will be deleted. To ensure that these implications are
+	// well-understood, this command requires the flag `accept_data_loss` to be
+	// explicitly set to true.
 	AllocateEmptyPrimary *ClusterRerouteCommandAllocatePrimaryAction `json:"allocate_empty_primary,omitempty"`
 
-	// Allocate an unassigned replica shard to a node. Accepts `index` and
-	// `shard` for index name and shard number, and `node` to allocate the
-	// shard to. Takes allocation deciders into account.
+	// AllocateReplica. Allocate an unassigned replica shard to a node. Accepts
+	// `index` and `shard` for index name and shard number, and `node` to
+	// allocate the shard to. Takes allocation deciders into account.
 	AllocateReplica *ClusterRerouteCommandAllocateReplicaAction `json:"allocate_replica,omitempty"`
 
-	// Allocate a primary shard to a node that holds a stale copy. Accepts
-	// `index` and `shard` for index name and shard number, and `node` to
-	// allocate the shard to. Using this command may lead to data loss for the
-	// provided shard id. If a node which has the good copy of the data rejoins
-	// the cluster later on, that data will be deleted or overwritten with the
-	// data of the stale copy that was forcefully allocated with this command.
-	// To ensure that these implications are well-understood, this command
-	// requires the flag `accept_data_loss` to be explicitly set to true.
+	// AllocateStalePrimary. Allocate a primary shard to a node that holds a
+	// stale copy. Accepts `index` and `shard` for index name and shard number,
+	// and `node` to allocate the shard to. Using this command may lead to data
+	// loss for the provided shard id. If a node which has the good copy of the
+	// data rejoins the cluster later on, that data will be deleted or
+	// overwritten with the data of the stale copy that was forcefully
+	// allocated with this command. To ensure that these implications are
+	// well-understood, this command requires the flag `accept_data_loss` to be
+	// explicitly set to true.
 	AllocateStalePrimary *ClusterRerouteCommandAllocatePrimaryAction `json:"allocate_stale_primary,omitempty"`
 
 	// Cancel allocation of a shard (or recovery). Accepts `index` and `shard`
@@ -257,10 +258,10 @@ type ClusterRerouteCommand struct {
 // implications are well-understood, this command requires the flag
 // `accept_data_loss` to be explicitly set to true.
 type ClusterRerouteCommandAllocatePrimaryAction struct {
-	// If a node which has a copy of the data rejoins the cluster later on,
-	// that data will be deleted. To ensure that these implications are
-	// well-understood, this command requires the flag `accept_data_loss` to be
-	// explicitly set to `true`.
+	// AcceptDataLoss. If a node which has a copy of the data rejoins the
+	// cluster later on, that data will be deleted. To ensure that these
+	// implications are well-understood, this command requires the flag
+	// `accept_data_loss` to be explicitly set to `true`.
 	AcceptDataLoss bool `json:"accept_data_loss"`
 
 	Index string `json:"index"`
@@ -302,13 +303,13 @@ type ClusterRerouteCommandCancelAction struct {
 // for index name and shard number, `from_node` for the node to move the shard
 // from, and `to_node` for the node to move the shard to.
 type ClusterRerouteCommandMoveAction struct {
-	// The node to move the shard from
+	// FromNode is the node to move the shard from
 	FromNode string `json:"from_node"`
 
 	Index string `json:"index"`
 	Shard int    `json:"shard"`
 
-	// The node to move the shard to
+	// ToNode is the node to move the shard to
 	ToNode string `json:"to_node"`
 }
 

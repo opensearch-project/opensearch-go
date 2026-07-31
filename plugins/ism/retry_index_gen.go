@@ -113,13 +113,13 @@ func (r RetryIndexParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#retry-failed-index
 type RetryIndexResp struct {
-	// The list of indices that failed to update.
+	// FailedIndices is the list of indices that failed to update.
 	FailedIndices []opensearchapi.ISMFailedIndex `json:"failed_indices,omitempty"`
 
-	// Whether there were any failures.
+	// Failures. Whether there were any failures.
 	Failures *bool `json:"failures,omitempty"`
 
-	// The number of updated indices.
+	// UpdatedIndices is the number of updated indices.
 	UpdatedIndices *float64 `json:"updated_indices,omitempty"`
 
 	response *opensearch.Response

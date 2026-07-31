@@ -235,6 +235,49 @@ func (e *ShardFailureError) Error() string {
 // IsPartial implements [PartialFailureError].
 func (e *ShardFailureError) IsPartial() bool { return true }
 
+// UnionBranchError is returned by a generated union's branch accessor when the
+// accessor cannot deliver the branch the caller asked for.
+//
+// It covers two cases, distinguished by Err:
+//
+// On a union whose branch the wire names (one with a Type() method), it means the
+// union holds a DIFFERENT branch, and Err is nil. The accessor also returns the
+// zero value of the branch type, which is indistinguishable from a decoded one --
+// a zero GetResult reads as a found=false document -- so the error is the only
+// signal that the branch was not the one on the wire.
+//
+// On a request-selected union (no Type(); the branch is chosen by the request and
+// echoed only in the enclosing map's key), it means the retained bytes cannot
+// decode as the requested branch at all, and Err wraps the decode failure. It
+// does NOT fire when a different branch happens to share the requested branch's
+// wire shape -- several metric aggregates all serialize as {"value": N} -- since
+// nothing in the payload could tell those apart.
+//
+// Recover it with [errors.As] and compare Union when a call chain touches more
+// than one union.
+//
+// Union, Want, and Got are branch and type names rather than typed enums: the
+// alternative is one error type per generated union (122 of them), all
+// structurally identical. Compare Got against the union's Type enum via its
+// String method when a switch is needed.
+type UnionBranchError struct {
+	Union string // generated union type name, e.g. "MGetRespItem"
+	Want  string // branch the caller asked for, e.g. "GetResult"
+	Got   string // branch actually decoded, "unknown" if never decoded, or "incompatible payload" when Err is set
+	Err   error  // the underlying decode failure on a request-selected union; nil otherwise
+}
+
+func (e *UnionBranchError) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("%s: payload is not branch %s: %v", e.Union, e.Want, e.Err)
+	}
+	return fmt.Sprintf("%s: holds branch %s, not %s", e.Union, e.Got, e.Want)
+}
+
+// Unwrap returns the decode failure this error wraps, or nil when the union
+// simply held a different branch.
+func (e *UnionBranchError) Unwrap() error { return e.Err }
+
 // ---------------------------------------------------------------------------
 // Helper functions
 // ---------------------------------------------------------------------------

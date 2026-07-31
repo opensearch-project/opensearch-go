@@ -24,6 +24,10 @@
     - [Latency Profiles](#latency-profiles)
     - [Inspecting and Clearing Latency](#inspecting-and-clearing-latency)
   - [Code Generation](#code-generation)
+    - [Partial-failure error generation](#partial-failure-error-generation)
+    - [Version-Scoped Generation](#version-scoped-generation)
+    - [Contributing Spec Fixes Upstream](#contributing-spec-fixes-upstream)
+    - [Generation Guards](#generation-guards)
   - [Demo](#demo)
   - [Verification Matrix](#verification-matrix)
     - [Individual Verifications](#individual-verifications)
@@ -492,6 +496,44 @@ make gen GEN_MAX_VERSION="<3.0.0"
 Version flags accept an optional operator prefix (`>=`, `>`, `<=`, `<`). When omitted, `--min-version` defaults to `>=` and `--max-version` defaults to `<=`. The magic values `epoch` (no floor) and `latest` (no ceiling) mean "include everything".
 
 When items are excluded by version filtering, breadcrumb comments are left in the generated code explaining the reason (e.g., `// cat.masterPath: deprecated in OpenSearch 2.0.0 (treated as removed).`). Breadcrumb visibility is configurable per category via `-version-breadcrumb-*` flags.
+
+### Contributing Spec Fixes Upstream
+
+Most generated code defects are not generator bugs. The spec is the input, so a missing doc comment, a wrong type, or an absent version annotation usually has to be fixed in [`opensearch-api-specification`](https://github.com/opensearch-project/opensearch-api-specification) to benefit every language client.
+
+Missing doc comments are the common case. Generated types and fields carry the `description` from their schema, and the generator emits 3,060 of the 3,187 property descriptions the spec provides; the remainder simply have none upstream. To see the gaps:
+
+```
+make report-missing-descriptions
+```
+
+This generates into a temporary directory and prints a report to stderr, so the checked-in generated files are untouched. Output is grouped into types, struct fields, and string-enum members, with the spec component key in brackets:
+
+```
+  - SearchProcessorExecutionDetail [_core.search___ProcessorExecutionDetail]
+  - ScrollResp.ProcessorResults json:"processor_results" [_core.search___SearchResponse]
+
+SUMMARY: 1274 types, 3471 fields, 20 enum members; 4765 total
+```
+
+The bracketed key is what to search for upstream. A gap is reported at both the reference site and the `$ref` target, so adding a description to one shared schema often resolves many lines at once.
+
+> **Editing `opensearch-openapi.yaml` locally.** The vendored spec may be edited for correctness (a wrong type, a missing required field), but changes are visible to every client generated from it, so renames and cosmetic edits belong upstream rather than here. Send a corresponding PR to `opensearch-api-specification` for anything kept locally.
+
+### Generation Guards
+
+Two checks run before any file is written, so a regression aborts generation instead of landing in the tree. Each pins its permitted set in a reviewed, checked-in allowlist:
+
+| Guard              | Allowlist                            | What it catches                                                       |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------------- |
+| `json.RawMessage`  | `cmd/osgen/rawmessage_allowlist.txt` | A type the generator could not resolve, widening the raw-JSON surface |
+| Duplicate JSON tag | `cmd/osgen/tagshadow_allowlist.txt`  | A struct redeclaring a JSON tag its embedded type already carries     |
+
+The duplicate-tag guard covers a defect nothing else catches. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so an outer redeclaration wins and the embedded declaration is never populated -- which is how the per-hit search envelope (`_id`, `_seq_no`, `sort`) became unreachable. `go vet`'s `structtag` analyzer only checks duplicates within one struct, and `golangci-lint` relaxes generated files.
+
+When a guard fails, read the offender it names and decide whether the change is intended. If it is, add the entry with `-update-tagshadow-allowlist` (or `-update-raw-message-allowlist`) and review the resulting allowlist diff as part of the change: adding an entry asserts the shadow is deliberate.
+
+> **`make regen` deletes generated files before writing.** An aborted generation therefore leaves the tree empty. Recover with `git checkout -- opensearchapi/ plugins/ internal/`.
 
 See [`cmd/osgen/README.md`](cmd/osgen/README.md) for the full flag reference and subcommand details.
 

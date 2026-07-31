@@ -91,7 +91,8 @@ func (r GetAllowlistParams) get() map[string]string {
 type GetAllowlistResp struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// An object with APIs as key and array of HTTP methods as values.
+	// Requests is an object with APIs as key and array of HTTP methods as
+	// values.
 	Requests map[string][]string `json:"requests,omitempty"`
 
 	response *opensearch.Response

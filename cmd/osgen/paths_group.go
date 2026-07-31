@@ -214,16 +214,16 @@ func isArrayParam(p *openapi3.Parameter) bool {
 }
 
 func schemaIsArray(s *openapi3.Schema) bool {
-	if s.Type != nil && s.Type.Is("array") {
+	if s.Type != nil && s.Type.Is(openapi3.TypeArray) {
 		return true
 	}
 	for _, ref := range s.OneOf {
-		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is("array") {
+		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is(openapi3.TypeArray) {
 			return true
 		}
 	}
 	for _, ref := range s.AnyOf {
-		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is("array") {
+		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is(openapi3.TypeArray) {
 			return true
 		}
 	}

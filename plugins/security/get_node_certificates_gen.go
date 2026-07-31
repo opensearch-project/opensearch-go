@@ -98,7 +98,7 @@ func (r GetNodeCertificatesParams) get() map[string]string {
 type GetNodeCertificatesResp struct {
 	opensearchapi.NodesRespBase
 
-	// Name of this cluster.
+	// ClusterName. Name of this cluster.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Nodes map[string]opensearchapi.SecurityCertificatesPerNode `json:"nodes,omitempty"`

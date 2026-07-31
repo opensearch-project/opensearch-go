@@ -100,10 +100,10 @@ func (r SettingsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/settings/
 type SettingsResp struct {
-	// Whether the settings were acknowledged.
+	// Acknowledged. Whether the settings were acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
-	// The permanent settings that persist through restarts.
+	// Persistent is the permanent settings that persist through restarts.
 	Persistent json.RawMessage `json:"persistent"`
 
 	Transient *opensearchapi.SQLTransient `json:"transient,omitempty"`
@@ -125,16 +125,20 @@ func (r SettingsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SQLSettingsBody is a discriminated union type (try-each, newest version first).
+// SQLSettingsBody is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type SQLSettingsBody struct {
 	typ   SQLSettingsBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// SQLSettingsBodyType discriminates the branches of SQLSettingsBody.
+// SQLSettingsBodyType names which branch of SQLSettingsBody is set.
 type SQLSettingsBodyType int
 
 const (
@@ -142,6 +146,19 @@ const (
 	SQLSettingsBodySQLSettingsPlainType
 	SQLSettingsBodySQLSettingsType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SQLSettingsBodyType) String() string {
+	switch t {
+	case SQLSettingsBodySQLSettingsPlainType:
+		return "SQLSettingsPlain"
+	case SQLSettingsBodySQLSettingsType:
+		return "SQLSettings"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns SQLSettingsBodyUnknownType if the value has not been decoded.
@@ -162,13 +179,16 @@ func (u *SQLSettingsBody) SetRaw(raw json.RawMessage) {
 	u.typ = SQLSettingsBodyUnknownType
 }
 
-// SQLSettingsPlain returns the opensearchapi.SQLSettingsPlain branch value.
-func (u *SQLSettingsBody) SQLSettingsPlain() opensearchapi.SQLSettingsPlain {
+// SQLSettingsPlain returns the opensearchapi.SQLSettingsPlain branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SQLSettingsPlain in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SQLSettingsBody) SQLSettingsPlain() (opensearchapi.SQLSettingsPlain, error) {
 	if v, ok := u.value.(*opensearchapi.SQLSettingsPlain); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SQLSettingsPlain
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "SQLSettingsBody", Want: "SQLSettingsPlain", Got: u.typ.String()}
 }
 
 // NewSQLSettingsBodyFromSQLSettingsPlain returns a SQLSettingsBody populated with v
@@ -180,13 +200,16 @@ func NewSQLSettingsBodyFromSQLSettingsPlain(v opensearchapi.SQLSettingsPlain) SQ
 	}
 }
 
-// SQLSettings returns the opensearchapi.SQLSettings branch value.
-func (u *SQLSettingsBody) SQLSettings() opensearchapi.SQLSettings {
+// SQLSettings returns the opensearchapi.SQLSettings branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SQLSettings in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SQLSettingsBody) SQLSettings() (opensearchapi.SQLSettings, error) {
 	if v, ok := u.value.(*opensearchapi.SQLSettings); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SQLSettings
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "SQLSettingsBody", Want: "SQLSettings", Got: u.typ.String()}
 }
 
 // NewSQLSettingsBodyFromSQLSettings returns a SQLSettingsBody populated with v
@@ -205,12 +228,12 @@ func (u *SQLSettingsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
 	{
 		var v opensearchapi.SQLSettingsPlain
 		if err := json.Unmarshal(data, &v); err == nil {

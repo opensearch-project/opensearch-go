@@ -87,7 +87,7 @@ func (r DeleteMemoryParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type DeleteMemoryResp struct {
-	// Whether the memory was deleted successfully.
+	// Success. Whether the memory was deleted successfully.
 	Success bool `json:"success"`
 
 	response *opensearch.Response

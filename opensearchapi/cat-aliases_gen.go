@@ -146,21 +146,21 @@ func (r CatAliasesResp) RawBody() io.Reader {
 
 // CatAliasesRecord is a typed component of the cat.aliases operation.
 type CatAliasesRecord struct {
-	// alias name
+	// Alias. Alias name
 	Alias *string `json:"alias,omitempty"`
 
-	// filter
+	// Filter. Filter
 	Filter *string `json:"filter,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// write index
+	// IsWriteIndex. Write index
 	IsWriteIndex *string `json:"is_write_index,omitempty"`
 
-	// index routing
+	// RoutingIndex. Index routing
 	RoutingIndex *string `json:"routing.index,omitempty"`
 
-	// search routing
+	// RoutingSearch. Search routing
 	RoutingSearch *string `json:"routing.search,omitempty"`
 }
 

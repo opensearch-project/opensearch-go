@@ -98,7 +98,7 @@ type StatsResp struct {
 	opensearchapi.NodesRespBase
 	CircuitBreakerTriggered *bool `json:"circuit_breaker_triggered,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	ModelIndexStatus *string                               `json:"model_index_status"`

@@ -241,7 +241,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
       Indices: []string{"logs-*"},
       Body:  &opensearchapi.SearchBody{
           Query: &opensearchapi.CommonQueryDSLQueryContainer{
-              MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
+              MatchAll: &opensearchapi.CommonQueryDSLQueryBase{},
           },
       },
       Params: &opensearchapi.SearchParams{

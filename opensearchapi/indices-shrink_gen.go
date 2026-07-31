@@ -181,10 +181,11 @@ func (r IndicesShrinkResp) RawBody() io.Reader {
 //
 // The configuration for the target index (`settings` and `aliases`)
 type IndicesShrinkBody struct {
-	// The key is the alias name. Index alias names support date math.
+	// Aliases is the key is the alias name. Index alias names support date
+	// math.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Configuration options for the target index.
+	// Settings. Configuration options for the target index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 

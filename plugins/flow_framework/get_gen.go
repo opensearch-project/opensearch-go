@@ -92,30 +92,30 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/get-workflow/
 type GetResp struct {
-	// When the workflow was created.
+	// CreatedTime. When the workflow was created.
 	CreatedTime *int `json:"created_time,omitempty"`
 
-	// The description of the workflow.
+	// Description is the description of the workflow.
 	Description *string `json:"description,omitempty"`
 
-	// When the workflow was last provisioned.
+	// LastProvisionedTime. When the workflow was last provisioned.
 	LastProvisionedTime *float64 `json:"last_provisioned_time,omitempty"`
 
-	// When the workflow was last updated.
+	// LastUpdatedTime. When the workflow was last updated.
 	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
 
-	// The name of the workflow.
+	// Name is the name of the workflow.
 	Name *string `json:"name,omitempty"`
 
-	// A use case ID, which can be used with the Search Workflow API to find
-	// related workflows.
+	// UseCase is a use case ID, which can be used with the Search Workflow API
+	// to find related workflows.
 	UseCase *string `json:"use_case,omitempty"`
 
 	User *FlowFrameworkCommonUser `json:"user,omitempty"`
 
-	// A key-value map with two fields, template, which identifies the template
-	// version, and compatibility, which identifies a list of minimum required
-	// OpenSearch versions.
+	// Version is a key-value map with two fields, template, which identifies
+	// the template version, and compatibility, which identifies a list of
+	// minimum required OpenSearch versions.
 	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
 
 	Workflows json.RawMessage `json:"workflows"`
@@ -139,19 +139,20 @@ func (r GetResp) RawBody() io.Reader {
 
 // FlowFrameworkCommonUser is a typed component of the flow_framework.get operation.
 type FlowFrameworkCommonUser struct {
-	// The list of backend roles assigned to the user.
+	// BackendRoles is the list of backend roles assigned to the user.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The list of custom attributes associated with the user.
+	// CustomAttributeNames is the list of custom attributes associated with
+	// the user.
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
-	// The name of the user.
+	// Name is the name of the user.
 	Name *string `json:"name,omitempty"`
 
-	// The list of roles assigned to the user.
+	// Roles is the list of roles assigned to the user.
 	Roles []string `json:"roles,omitempty"`
 
-	// The tenant requested by the user.
+	// UserRequestedTenant is the tenant requested by the user.
 	UserRequestedTenant *string `json:"user_requested_tenant,omitempty"`
 }
 
@@ -159,9 +160,9 @@ type FlowFrameworkCommonUser struct {
 //
 // A key-value map with two fields, template, which identifies the template version, and compatibility, which identifies a list of minimum required OpenSearch versions.
 type FlowFrameworkCommonVersion struct {
-	// A list of minimum required OpenSearch versions.
+	// Compatibility is a list of minimum required OpenSearch versions.
 	Compatibility []string `json:"compatibility,omitempty"`
 
-	// The template version of the workflow.
+	// Template is the template version of the workflow.
 	Template *string `json:"template,omitempty"`
 }

@@ -113,7 +113,7 @@ func (r ChunkModelParams) get() map[string]string {
 //
 // Deprecated: since 2.7.0. Use `upload_chunk` instead.
 type ChunkModelResp struct {
-	// The status of the chunk upload operation.
+	// Status is the status of the chunk upload operation.
 	Status string `json:"status"`
 
 	response *opensearch.Response
@@ -135,6 +135,6 @@ func (r ChunkModelResp) RawBody() io.Reader {
 
 // MLChunkModelBody is a typed component of the ml.chunk_model operation.
 type MLChunkModelBody struct {
-	// The model chunk.
+	// Chunk is the model chunk.
 	Chunk string `json:"chunk"`
 }

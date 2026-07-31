@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"go/token"
+	"io"
 	"os"
 	"slices"
 	"sort"
@@ -19,6 +20,13 @@ import (
 
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
+
+// goTypeRawMessage is the Go type expression the walker returns when a schema
+// cannot be resolved to a named type: an unresolvable $ref, an untyped or empty
+// schema, or a generic type parameter. Callers test against it to decide whether a
+// schema resolved to something typed, so it is a sentinel and not merely the name
+// of a type -- keep the spelling in one place rather than comparing bare literals.
+const goTypeRawMessage = "json.RawMessage"
 
 type walker struct {
 	registry *typeRegistry
@@ -32,6 +40,10 @@ type walker struct {
 	// to disambiguate the same type appearing on both sides of a request.
 	excludedFields []ir.Exclusion
 	excSeen        map[string]bool // dedupe key: qualified field name
+
+	// warnOut receives generator diagnostics. Nil discards them, which keeps
+	// tests quiet unless they assert on the output.
+	warnOut io.Writer
 }
 
 // walkSchema resolves a SchemaRef and returns the Go type expression.
@@ -39,7 +51,7 @@ type walker struct {
 // a primitive or composite type string.
 func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, isRespBody bool) string {
 	if ref == nil {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	if ref.Ref != "" {
@@ -48,7 +60,7 @@ func (w *walker) walkSchema(ref *openapi3.SchemaRef, schemaKey, group string, is
 
 	// Inline schema.
 	if ref.Value == nil {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 	return w.resolveInlineSchema(ref.Value, schemaKey, group, isRespBody)
 }
@@ -71,28 +83,36 @@ func (w *walker) walkRef(ref *openapi3.SchemaRef, schemaKey, group string, isRes
 		return name
 	}
 
-	if resolved, ok := w.resolveParentScopedUnion(ref, schemaKey, group); ok {
+	if resolved, ok := w.resolveRefUnion(ref, schemaKey, group); ok {
 		return resolved
 	}
 
 	return w.resolveNamedSchema(key, ref.Value, group, isRespBody)
 }
 
-// resolveParentScopedUnion handles the case where a $ref points to a pure
-// oneOf/anyOf schema (no properties). Such a schema would otherwise be routed
-// to resolveNamedSchema and registered as an empty struct (it has no
-// properties to collect), so it is sent to resolveUnionType instead.
+// resolveRefUnion handles the case where a $ref points to a pure oneOf/anyOf
+// schema (no properties). Such a schema would otherwise be routed to
+// resolveNamedSchema and registered as an empty struct (it has no properties to
+// collect), so it is sent to resolveUnionType instead.
 //
-// By default the union is keyed by the CALLER's schemaKey so it attaches to its
-// parent field context. There is one exception: if that parent-scoped key would
-// derive a Go type name identical to the parent struct's own name, the union
-// registers first and the parent struct is then silently dropped by the
-// registry (its name is already taken), degrading the parent response to raw
-// json.RawMessage. In that case the union is re-keyed by the REFERENCED
-// schema's own canonical key (e.g. tasks._common___TaskInfos -> TasksTaskInfos)
-// so it owns a distinct name and the parent struct survives. Every other
-// parent-scoped union keeps its existing name, keeping this fix narrow.
-func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
+// The union is keyed by the REFERENCED schema's own canonical key
+// (_common.analysis___Analyzer -> CommonAnalysisAnalyzer), not by the caller's
+// field path. A $ref'd schema is a named schema with its own identity: keying it
+// by whichever field happened to reference it produced names like
+// IndicesIndexSettingsAnalysisAnalyzerValue for a schema the spec calls Analyzer,
+// and discarded the identity that carries the schema's `discriminator`. Only a
+// genuinely inline union is parent-scoped, which resolveInlineSchema handles.
+//
+// There is one exception, which the parent-scoped key still serves: if the
+// referenced schema's own key derives a Go type name already held by a DIFFERENT
+// schema, registering under it would be dropped by the registry's collision
+// guard and the union would silently degrade to json.RawMessage. In that case it
+// falls back to the caller's parent-scoped key -- unless that name would in turn
+// equal the parent struct's own name, which would drop the PARENT instead (the
+// tasks.list bug: see TestWalkerRefUnionNameCollision). Both operands of that
+// parent-name check matter, because for non-_common keys the resp-body and
+// non-resp-body name forms differ.
+func (w *walker) resolveRefUnion(ref *openapi3.SchemaRef, schemaKey, group string) (string, bool) {
 	if ref.Value == nil || len(ref.Value.Properties) != 0 {
 		return "", false
 	}
@@ -103,29 +123,57 @@ func (w *walker) resolveParentScopedUnion(ref *openapi3.SchemaRef, schemaKey, gr
 		return resolvedGoType, true
 	}
 
-	unionKey := schemaKey
-	// schemaKey is the parent field key "<parentKey>.<field>". If the union's
-	// parent-scoped Go name would equal the parent struct's own name (in either
-	// its resp- or non-resp-bodied form), re-key by the referenced schema to
-	// avoid the collision that would drop the parent struct.
-	if dot := strings.LastIndexByte(schemaKey, '.'); dot >= 0 {
-		parentKey := schemaKey[:dot]
-		unionName := schemaTypeName(schemaKey, false)
-		if unionName == schemaTypeName(parentKey, false) || unionName == schemaTypeName(parentKey, true) {
-			if k := refToSchemaKey(ref.Ref); k != "" {
-				unionKey = k
-			}
-		}
+	unionKey := refToSchemaKey(ref.Ref)
+	if unionKey == "" || w.nameTakenByOtherSchema(unionKey) {
+		unionKey = w.parentScopedUnionKey(ref, schemaKey)
 	}
 	return w.resolveUnionType(ref.Value, unionKey, group), true
 }
 
+// nameTakenByOtherSchema reports whether the Go type name unionKey derives is
+// already registered to a different schema ref. Registering under a taken name is
+// dropped by the registry (see typeRegistry.register), which would degrade the
+// union to json.RawMessage, so the caller keys it differently instead.
+func (w *walker) nameTakenByOtherSchema(unionKey string) bool {
+	existing, ok := w.registry.lookupByName(schemaTypeName(unionKey, false))
+	return ok && existing.SchemaRef != unionKey
+}
+
+// parentScopedUnionKey returns the caller-field-scoped key for a union
+// (<parentKey>.<field>), or the referenced schema's own key when the
+// parent-scoped name would collide with the parent struct's own name.
+//
+// That collision is the case resolveRefUnion's doc comment calls out: the union
+// registers first, the parent struct's name is then already taken, and the parent
+// is silently dropped -- degrading the whole parent response to json.RawMessage.
+func (w *walker) parentScopedUnionKey(ref *openapi3.SchemaRef, schemaKey string) string {
+	dot := strings.LastIndexByte(schemaKey, '.')
+	if dot < 0 {
+		return schemaKey
+	}
+	parentKey := schemaKey[:dot]
+	unionName := schemaTypeName(schemaKey, false)
+	if unionName != schemaTypeName(parentKey, false) && unionName != schemaTypeName(parentKey, true) {
+		return schemaKey
+	}
+	if k := refToSchemaKey(ref.Ref); k != "" {
+		return k
+	}
+	return schemaKey
+}
+
 func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group string, isRespBody bool) string {
 	if schema != nil && extensionBool(schema.Extensions, extGenericTypeParam) {
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	if got, ok := w.resolvePropertylessSchema(schema, key, group, isRespBody); ok {
+		return got
+	}
+
+	// An allOf that adds nothing to its base describes the same shape as the base:
+	// resolve to it rather than emitting a wrapper that only embeds it.
+	if got, ok := w.resolveCollapsedBase(schema, key, group, isRespBody); ok {
 		return got
 	}
 
@@ -163,8 +211,13 @@ func (w *walker) resolveNamedSchema(key string, schema *openapi3.Schema, group s
 }
 
 func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
-	// allOf: flatten into a single struct.
+	// allOf: flatten into a single struct, unless the merge is really a narrowed
+	// union (see narrowedUnionMember), in which case the narrowing member is the
+	// only informative one and a struct merge would discard it.
 	if len(schema.AllOf) > 0 {
+		if narrowed, ok := narrowedUnionMember(schema); ok {
+			return w.resolveInlineSchema(narrowed, schemaKey, group, isRespBody)
+		}
 		return w.resolveAllOf(schema, schemaKey, group, isRespBody)
 	}
 
@@ -180,7 +233,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		if len(schema.Properties) > 0 {
 			return w.resolveObjectSchema(schema, schemaKey, group, isRespBody)
 		}
-		return "json.RawMessage"
+		return goTypeRawMessage
 	}
 
 	// Primitive types.
@@ -202,7 +255,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 
 	// Array.
 	if schema.Type.Is(openapi3.TypeArray) {
-		elemType := "json.RawMessage"
+		elemType := goTypeRawMessage
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, schemaKey+"Item", group, false)
 		}
@@ -221,7 +274,7 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		return gt
 	}
 
-	return "json.RawMessage"
+	return goTypeRawMessage
 }
 
 func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
@@ -255,10 +308,16 @@ func (w *walker) resolveObjectSchema(schema *openapi3.Schema, schemaKey, group s
 		return "map[string]json.RawMessage"
 	}
 
-	return "json.RawMessage"
+	return goTypeRawMessage
 }
 
 func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, isRespBody bool) string {
+	// An allOf that adds nothing to its base describes the same shape as the base:
+	// resolve to it rather than emitting a wrapper that only embeds it.
+	if got, ok := w.resolveCollapsedBase(schema, schemaKey, group, isRespBody); ok {
+		return got
+	}
+
 	name := schemaTypeName(schemaKey, isRespBody)
 	shared := isSharedSchema(schemaKey)
 
@@ -275,10 +334,11 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 	defer delete(w.inFlight, schemaKey)
 
 	seen := make(map[string]bool)
+	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
 			goTypeName := w.walkSchema(sub, schemaKey, group, false)
-			if goTypeName != "json.RawMessage" {
+			if goTypeName != goTypeRawMessage {
 				t.Fields = append(t.Fields, goField{
 					GoType:  goTypeName,
 					IsEmbed: true,
@@ -294,6 +354,9 @@ func (w *walker) resolveAllOf(schema *openapi3.Schema, schemaKey, group string, 
 			continue
 		}
 		for _, f := range w.walkProperties(subSchema, schemaKey, group, name, isRespBody) {
+			if redundant[f.JSONName] {
+				continue
+			}
 			if !seen[f.JSONName] {
 				seen[f.JSONName] = true
 				t.Fields = append(t.Fields, f)
@@ -381,7 +444,7 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 
 		// json.RawMessage is inherently nullable (nil means absent/null),
 		// so a pointer wrapper + omitempty loses null values on roundtrip.
-		if goType == "json.RawMessage" {
+		if goType == goTypeRawMessage {
 			isPointer = false
 			omitEmpty = false
 		}
@@ -393,15 +456,12 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 		var comment, versionAdded, versionDeprecated, deprecMsg string
 		if propRef != nil && propRef.Value != nil {
 			comment = propRef.Value.Description
-			versionAdded = extensionString(propRef.Value.Extensions, extVersionAdded)
-			versionDeprecated = extensionString(propRef.Value.Extensions, extVersionDeprecated)
-			deprecMsg = extensionString(propRef.Value.Extensions, extDeprecationMessage)
 		}
+		versionAdded = refExtensionString(propRef, extVersionAdded)
+		versionDeprecated = refExtensionString(propRef, extVersionDeprecated)
+		deprecMsg = refExtensionString(propRef, extDeprecationMessage)
 
-		vRemoved := ""
-		if propRef != nil && propRef.Value != nil {
-			vRemoved = extensionString(propRef.Value.Extensions, extVersionRemoved)
-		}
+		vRemoved := refExtensionString(propRef, extVersionRemoved)
 		if !w.vrange.Includes(versionAdded, vRemoved, versionDeprecated) { //nolint:nestif // version-filter branching is intentional
 			side := "(resp)"
 			if !isRespBody {
@@ -776,9 +836,10 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 
 	var fields []goField
 	seen := make(map[string]bool)
+	redundant := w.redundantOverrideTags(schema)
 	for _, sub := range schema.AllOf {
 		if sub.Ref != "" {
-			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != "json.RawMessage" {
+			if goTypeName := w.walkSchema(sub, key, group, false); goTypeName != goTypeRawMessage {
 				fields = append(fields, goField{GoType: goTypeName, IsEmbed: true})
 				continue
 			}
@@ -787,6 +848,9 @@ func (w *walker) collectFields(schema *openapi3.Schema, key, group, parentTypeNa
 			continue
 		}
 		for _, f := range w.walkProperties(sub.Value, key, group, parentTypeName, isRespBody) {
+			if redundant[f.JSONName] {
+				continue
+			}
 			if !seen[f.JSONName] {
 				seen[f.JSONName] = true
 				fields = append(fields, f)
@@ -819,7 +883,7 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 		return goType, true
 	}
 	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
-		elemType := "json.RawMessage"
+		elemType := goTypeRawMessage
 		if schema.Items != nil {
 			elemType = w.walkSchema(schema.Items, key+"Item", group, false)
 		}

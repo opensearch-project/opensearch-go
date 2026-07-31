@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -159,289 +158,60 @@ func (r CatSnapshotsResp) RawBody() io.Reader {
 
 // CatSnapshotsRecord is a typed component of the cat.snapshots operation.
 type CatSnapshotsRecord struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Duration is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Duration *string `json:"duration,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// EndEpoch. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	EndEpoch *CatSnapshotsRecordEndEpoch `json:"end_epoch,omitempty"`
+	EndEpoch *StringifiedEpochTimeUnitSeconds `json:"end_epoch,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// EndTime. Time of day, expressed as HH:MM:SS.
 	EndTime *string `json:"end_time,omitempty"`
 
-	// The number of failed shards in the snapshot.
+	// FailedShards is the number of failed shards in the snapshot.
 	FailedShards *string `json:"failed_shards,omitempty"`
 
-	// The unique identifier for the snapshot.
+	// ID is the unique identifier for the snapshot.
 	ID *string `json:"id,omitempty"`
 
-	// The number of indexes in the snapshot.
+	// Indices is the number of indexes in the snapshot.
 	Indices *string `json:"indices,omitempty"`
 
-	// The reason for any snapshot failures.
+	// Reason is the reason for any snapshot failures.
 	Reason *string `json:"reason,omitempty"`
 
-	// The repository name.
+	// Repository is the repository name.
 	Repository *string `json:"repository,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// StartEpoch. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	StartEpoch *CatSnapshotsRecordStartEpoch `json:"start_epoch,omitempty"`
+	StartEpoch *StringifiedEpochTimeUnitSeconds `json:"start_epoch,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// StartTime. Time of day, expressed as HH:MM:SS.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The state of the snapshot process. Returned values include: `FAILED`:
-	// The snapshot process failed. `INCOMPATIBLE`: The snapshot process is
-	// incompatible with the current cluster version. `IN_PROGRESS`: The
-	// snapshot process started but has not completed. `PARTIAL`: The snapshot
-	// process completed with a partial success. `SUCCESS`: The snapshot
-	// process completed with a full success.
+	// Status is the state of the snapshot process. Returned values include:
+	// `FAILED`: The snapshot process failed. `INCOMPATIBLE`: The snapshot
+	// process is incompatible with the current cluster version. `IN_PROGRESS`:
+	// The snapshot process started but has not completed. `PARTIAL`: The
+	// snapshot process completed with a partial success. `SUCCESS`: The
+	// snapshot process completed with a full success.
 	Status *string `json:"status,omitempty"`
 
-	// The number of successful shards in the snapshot.
+	// SuccessfulShards is the number of successful shards in the snapshot.
 	SuccessfulShards *string `json:"successful_shards,omitempty"`
 
-	// The total number of shards in the snapshot.
+	// TotalShards is the total number of shards in the snapshot.
 	TotalShards *string `json:"total_shards,omitempty"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatSnapshotsRecordEndEpoch struct {
-	typ   CatSnapshotsRecordEndEpochType
-	raw   json.RawMessage
-	value any
-}
-
-// CatSnapshotsRecordEndEpochType discriminates the branches of CatSnapshotsRecordEndEpoch.
-type CatSnapshotsRecordEndEpochType int
-
-const (
-	CatSnapshotsRecordEndEpochUnknownType CatSnapshotsRecordEndEpochType = iota
-	CatSnapshotsRecordEndEpochInt64Type
-	CatSnapshotsRecordEndEpochStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatSnapshotsRecordEndEpochUnknownType if the value has not been decoded.
-func (u *CatSnapshotsRecordEndEpoch) Type() CatSnapshotsRecordEndEpochType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatSnapshotsRecordEndEpoch) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordEndEpochFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatSnapshotsRecordEndEpoch) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatSnapshotsRecordEndEpochUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatSnapshotsRecordEndEpoch) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatSnapshotsRecordEndEpochFromInt64 returns a CatSnapshotsRecordEndEpoch populated with v
-// on the Int64 branch.
-func NewCatSnapshotsRecordEndEpochFromInt64(v int64) CatSnapshotsRecordEndEpoch {
-	return CatSnapshotsRecordEndEpoch{
-		typ:   CatSnapshotsRecordEndEpochInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatSnapshotsRecordEndEpoch) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatSnapshotsRecordEndEpochFromString returns a CatSnapshotsRecordEndEpoch populated with v
-// on the String branch.
-func NewCatSnapshotsRecordEndEpochFromString(v string) CatSnapshotsRecordEndEpoch {
-	return CatSnapshotsRecordEndEpoch{
-		typ:   CatSnapshotsRecordEndEpochStringType,
-		value: &v,
-	}
-}
-
-func (u *CatSnapshotsRecordEndEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatSnapshotsRecordEndEpochUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatSnapshotsRecordEndEpochInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatSnapshotsRecordEndEpochStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatSnapshotsRecordEndEpoch: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatSnapshotsRecordEndEpoch) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatSnapshotsRecordStartEpoch struct {
-	typ   CatSnapshotsRecordStartEpochType
-	raw   json.RawMessage
-	value any
-}
-
-// CatSnapshotsRecordStartEpochType discriminates the branches of CatSnapshotsRecordStartEpoch.
-type CatSnapshotsRecordStartEpochType int
-
-const (
-	CatSnapshotsRecordStartEpochUnknownType CatSnapshotsRecordStartEpochType = iota
-	CatSnapshotsRecordStartEpochInt64Type
-	CatSnapshotsRecordStartEpochStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatSnapshotsRecordStartEpochUnknownType if the value has not been decoded.
-func (u *CatSnapshotsRecordStartEpoch) Type() CatSnapshotsRecordStartEpochType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatSnapshotsRecordStartEpoch) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatSnapshotsRecordStartEpochFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatSnapshotsRecordStartEpoch) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatSnapshotsRecordStartEpochUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatSnapshotsRecordStartEpoch) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatSnapshotsRecordStartEpochFromInt64 returns a CatSnapshotsRecordStartEpoch populated with v
-// on the Int64 branch.
-func NewCatSnapshotsRecordStartEpochFromInt64(v int64) CatSnapshotsRecordStartEpoch {
-	return CatSnapshotsRecordStartEpoch{
-		typ:   CatSnapshotsRecordStartEpochInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatSnapshotsRecordStartEpoch) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatSnapshotsRecordStartEpochFromString returns a CatSnapshotsRecordStartEpoch populated with v
-// on the String branch.
-func NewCatSnapshotsRecordStartEpochFromString(v string) CatSnapshotsRecordStartEpoch {
-	return CatSnapshotsRecordStartEpoch{
-		typ:   CatSnapshotsRecordStartEpochStringType,
-		value: &v,
-	}
-}
-
-func (u *CatSnapshotsRecordStartEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatSnapshotsRecordStartEpochUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatSnapshotsRecordStartEpochInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatSnapshotsRecordStartEpochStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatSnapshotsRecordStartEpoch: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatSnapshotsRecordStartEpoch) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Snapshots lists all of the snapshots stored in a specific repository.

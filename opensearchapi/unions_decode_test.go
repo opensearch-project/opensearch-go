@@ -24,24 +24,28 @@ import (
 func TestUnionDecodeRoundTrip(t *testing.T) {
 	t.Parallel()
 
-	t.Run("ErrorCauseHeaderValue string branch", func(t *testing.T) {
+	t.Run("StringOrStringArray string branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.ErrorCauseHeaderValue
+		var u opensearchapi.StringOrStringArray
 		require.NoError(t, json.Unmarshal([]byte(`"boom"`), &u))
-		require.Equal(t, opensearchapi.ErrorCauseHeaderValueStringType, u.Type())
-		require.Equal(t, "boom", u.String())
+		require.Equal(t, opensearchapi.StringOrStringArrayStringType, u.Type())
+		s, err := u.String()
+		require.NoError(t, err)
+		require.Equal(t, "boom", s)
 		require.JSONEq(t, `"boom"`, string(u.RawJSON()))
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `"boom"`, string(out))
 	})
 
-	t.Run("ErrorCauseHeaderValue array branch", func(t *testing.T) {
+	t.Run("StringOrStringArray array branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.ErrorCauseHeaderValue
+		var u opensearchapi.StringOrStringArray
 		require.NoError(t, json.Unmarshal([]byte(`["a","b"]`), &u))
-		require.Equal(t, opensearchapi.ErrorCauseHeaderValueArrayType, u.Type())
-		require.Equal(t, []string{"a", "b"}, u.Array())
+		require.Equal(t, opensearchapi.StringOrStringArrayArrayType, u.Type())
+		arr, err := u.Array()
+		require.NoError(t, err)
+		require.Equal(t, []string{"a", "b"}, arr)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `["a","b"]`, string(out))
@@ -49,10 +53,12 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 
 	t.Run("scalar union bool branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
+		var u opensearchapi.FieldValue
 		require.NoError(t, json.Unmarshal([]byte(`true`), &u))
-		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueBoolType, u.Type())
-		require.True(t, u.Bool())
+		require.Equal(t, opensearchapi.FieldValueBoolType, u.Type())
+		b, err := u.Bool()
+		require.NoError(t, err)
+		require.True(t, b)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `true`, string(out))
@@ -60,10 +66,12 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 
 	t.Run("scalar union float64 branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
+		var u opensearchapi.FieldValue
 		require.NoError(t, json.Unmarshal([]byte(`42.5`), &u))
-		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueFloat64Type, u.Type())
-		require.InEpsilon(t, 42.5, u.Float64(), 1e-9)
+		require.Equal(t, opensearchapi.FieldValueFloat64Type, u.Type())
+		f, err := u.Float64()
+		require.NoError(t, err)
+		require.InEpsilon(t, 42.5, f, 1e-9)
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `42.5`, string(out))
@@ -71,10 +79,12 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 
 	t.Run("scalar union string branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.CommonAggregationsCompositeAggregateKeyValue
+		var u opensearchapi.FieldValue
 		require.NoError(t, json.Unmarshal([]byte(`"k"`), &u))
-		require.Equal(t, opensearchapi.CommonAggregationsCompositeAggregateKeyValueStringType, u.Type())
-		require.Equal(t, "k", u.String())
+		require.Equal(t, opensearchapi.FieldValueStringType, u.Type())
+		k, err := u.String()
+		require.NoError(t, err)
+		require.Equal(t, "k", k)
 	})
 
 	t.Run("bucket union map branch", func(t *testing.T) {
@@ -82,7 +92,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsMultiBucketAggregateBaseBuckets
 		require.NoError(t, json.Unmarshal([]byte(`{"a":{"doc_count":1}}`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsMultiBucketAggregateBaseBucketsMapType, u.Type())
-		require.Contains(t, u.Map(), "a")
+		m, err := u.Map()
+		require.NoError(t, err)
+		require.Contains(t, m, "a")
 	})
 
 	t.Run("bucket union array branch", func(t *testing.T) {
@@ -90,7 +102,9 @@ func TestUnionDecodeRoundTrip(t *testing.T) {
 		var u opensearchapi.CommonAggregationsMultiBucketAggregateBaseBuckets
 		require.NoError(t, json.Unmarshal([]byte(`[{"doc_count":1}]`), &u))
 		require.Equal(t, opensearchapi.CommonAggregationsMultiBucketAggregateBaseBucketsArrayType, u.Type())
-		require.Len(t, u.Array(), 1)
+		buckets, err := u.Array()
+		require.NoError(t, err)
+		require.Len(t, buckets, 1)
 	})
 }
 
@@ -101,9 +115,9 @@ func TestUnionDecodeNullAndErrors(t *testing.T) {
 
 	t.Run("null decodes to unknown branch", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.ErrorCauseHeaderValue
+		var u opensearchapi.StringOrStringArray
 		require.NoError(t, json.Unmarshal([]byte(`null`), &u))
-		require.Equal(t, opensearchapi.ErrorCauseHeaderValueUnknownType, u.Type())
+		require.Equal(t, opensearchapi.StringOrStringArrayUnknownType, u.Type())
 		out, err := json.Marshal(&u)
 		require.NoError(t, err)
 		require.JSONEq(t, `null`, string(out))
@@ -111,14 +125,14 @@ func TestUnionDecodeNullAndErrors(t *testing.T) {
 
 	t.Run("unexpected token errors", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.ErrorCauseHeaderValue
+		var u opensearchapi.StringOrStringArray
 		// A JSON object matches neither the string nor the array branch.
 		require.Error(t, json.Unmarshal([]byte(`{"unexpected":true}`), &u))
 	})
 
 	t.Run("malformed array payload errors", func(t *testing.T) {
 		t.Parallel()
-		var u opensearchapi.ErrorCauseHeaderValue
+		var u opensearchapi.StringOrStringArray
 		require.Error(t, json.Unmarshal([]byte(`[`), &u))
 	})
 }
@@ -129,17 +143,17 @@ func TestUnionDecodeNullAndErrors(t *testing.T) {
 func TestUnionSetRawMarshals(t *testing.T) {
 	t.Parallel()
 
-	var u opensearchapi.ErrorCauseHeaderValue
+	var u opensearchapi.StringOrStringArray
 	u.SetRaw(json.RawMessage(`"staged"`))
-	require.Equal(t, opensearchapi.ErrorCauseHeaderValueUnknownType, u.Type())
+	require.Equal(t, opensearchapi.StringOrStringArrayUnknownType, u.Type())
 	out, err := json.Marshal(&u)
 	require.NoError(t, err)
 	require.JSONEq(t, `"staged"`, string(out))
 
 	// Setting raw after a typed branch clears the typed value.
-	typed := opensearchapi.NewErrorCauseHeaderValueFromString("typed")
+	typed := opensearchapi.NewStringOrStringArrayFromString("typed")
 	typed.SetRaw(json.RawMessage(`["raw"]`))
-	require.Equal(t, opensearchapi.ErrorCauseHeaderValueUnknownType, typed.Type())
+	require.Equal(t, opensearchapi.StringOrStringArrayUnknownType, typed.Type())
 	out, err = json.Marshal(&typed)
 	require.NoError(t, err)
 	require.JSONEq(t, `["raw"]`, string(out))

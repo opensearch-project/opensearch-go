@@ -146,33 +146,33 @@ func (r ExecuteAlgorithmResp) RawBody() io.Reader {
 type MLExecuteAlgorithmBody struct {
 	Aggregations []opensearchapi.MLAggregation `json:"aggregations,omitempty"`
 
-	// The attribute field names
+	// AttributeFieldNames is the attribute field names
 	AttributeFieldNames []string `json:"attribute_field_names,omitempty"`
 
-	// The end time.
+	// EndTime is the end time.
 	EndTime *int64 `json:"end_time,omitempty"`
 
-	// The index name.
+	// IndexName is the index name.
 	IndexName *string `json:"index_name,omitempty"`
 
-	// The input data.
+	// InputData is the input data.
 	InputData []float64 `json:"input_data,omitempty"`
 
-	// The metrics input.
+	// Metrics is the metrics input.
 	Metrics [][]float64 `json:"metrics,omitempty"`
 
-	// The minimum time interval.
+	// MinTimeInterval is the minimum time interval.
 	MinTimeInterval *int64 `json:"min_time_interval,omitempty"`
 
-	// The number of outputs.
+	// NumOutputs is the number of outputs.
 	NumOutputs *int64 `json:"num_outputs,omitempty"`
 
-	// The calculator operation.
+	// Operation is the calculator operation.
 	Operation *string `json:"operation,omitempty"`
 
-	// The start time.
+	// StartTime is the start time.
 	StartTime *int64 `json:"start_time,omitempty"`
 
-	// The time field name.
+	// TimeFieldName is the time field name.
 	TimeFieldName *string `json:"time_field_name,omitempty"`
 }

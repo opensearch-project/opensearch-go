@@ -202,8 +202,8 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 }
 
 // splitUnionsFromSiblings partitions a sibling-types list into struct-shape
-// types and discriminated unions. Unions need the UnionFragment template
-// (which renders Type/branch accessors and try-each unmarshal); structs go
+// types and unions. Unions need the UnionFragment template
+// (which renders Type/branch accessors and the decode strategy); structs go
 // through SiblingTypesFragment. Without this split, a union sibling
 // rendered as a struct emits as `type Foo struct {}` because its Branches
 // aren't Fields.
@@ -212,7 +212,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 func splitUnionsFromSiblings(types []*ir.Type) ([]*ir.Type, []*ir.Type) {
 	var structs, unions []*ir.Type
 	for _, st := range types {
-		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeLazyUnion {
+		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeAmbiguousWire {
 			unions = append(unions, st)
 		} else {
 			structs = append(structs, st)

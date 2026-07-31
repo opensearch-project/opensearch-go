@@ -172,7 +172,7 @@ func (r IndicesGetFieldMappingResp) RawBody() io.Reader {
 //
 // The field mapping configuration for a type.
 type IndicesGetFieldMappingTypeFieldMappings struct {
-	// The map of field names to their mapping definitions.
+	// Mappings is the map of field names to their mapping definitions.
 	Mappings map[string]CommonMappingField `json:"mappings"`
 }
 
