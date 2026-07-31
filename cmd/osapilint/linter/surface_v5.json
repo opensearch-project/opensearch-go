@@ -469,7 +469,7 @@
         },
         {
           "name": "DocvalueFields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.AsynchronousSearchSearchDocvalueFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "docvalue_fields,omitempty"
         },
         {
@@ -484,7 +484,7 @@
         },
         {
           "name": "Fields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.AsynchronousSearchSearchFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -534,7 +534,7 @@
         },
         {
           "name": "SearchAfter",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SortResultsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "search_after,omitempty"
         },
         {
@@ -554,12 +554,12 @@
         },
         {
           "name": "Sort",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.AsynchronousSearchSearchSort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
           "jsonTag": "sort,omitempty"
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.AsynchronousSearchSearchSource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -594,7 +594,7 @@
         },
         {
           "name": "TrackTotalHits",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.AsynchronousSearchSearchTrackTotalHits",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchTrackHits",
           "jsonTag": "track_total_hits,omitempty"
         },
         {
@@ -603,84 +603,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchDocvalueFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchDocvalueFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchSort",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchSortItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchSource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchSourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "AsynchronousSearchSearchTrackTotalHits",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -792,6 +714,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "BulkByScrollFailure",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "BulkByScrollRespBase",
       "fields": [
         {
@@ -816,7 +743,7 @@
         },
         {
           "name": "Failures",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollRespBaseFailuresItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollFailure",
           "jsonTag": "failures"
         },
         {
@@ -841,7 +768,7 @@
         },
         {
           "name": "Slices",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollTaskStatusSlicesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollTaskStatusOrException",
           "jsonTag": "slices,omitempty"
         },
         {
@@ -893,11 +820,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "BulkByScrollRespBaseFailuresItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "BulkByScrollTaskStatus",
       "fields": [
         {
@@ -942,7 +864,7 @@
         },
         {
           "name": "Slices",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollTaskStatusSlicesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollTaskStatusOrException",
           "jsonTag": "slices,omitempty"
         },
         {
@@ -984,7 +906,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "BulkByScrollTaskStatusSlicesItem",
+      "name": "BulkByScrollTaskStatusOrException",
       "fields": null
     },
     {
@@ -1587,7 +1509,7 @@
         },
         {
           "name": "Epoch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatCountRecordEpoch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitSeconds",
           "jsonTag": "epoch,omitempty"
         },
         {
@@ -1596,11 +1518,6 @@
           "jsonTag": "timestamp,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatCountRecordEpoch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -1750,7 +1667,7 @@
         },
         {
           "name": "Epoch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatHealthRecordEpoch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitSeconds",
           "jsonTag": "epoch,omitempty"
         },
         {
@@ -1809,11 +1726,6 @@
           "jsonTag": "unassign,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatHealthRecordEpoch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -3680,7 +3592,7 @@
         },
         {
           "name": "StartTimeMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatRecoveryRecordStartTimeMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "start_time_millis,omitempty"
         },
         {
@@ -3690,7 +3602,7 @@
         },
         {
           "name": "StopTimeMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatRecoveryRecordStopTimeMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "stop_time_millis,omitempty"
         },
         {
@@ -3729,16 +3641,6 @@
           "jsonTag": "type,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatRecoveryRecordStartTimeMillis",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatRecoveryRecordStopTimeMillis",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -4657,7 +4559,7 @@
         },
         {
           "name": "EndEpoch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatSnapshotsRecordEndEpoch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitSeconds",
           "jsonTag": "end_epoch,omitempty"
         },
         {
@@ -4692,7 +4594,7 @@
         },
         {
           "name": "StartEpoch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CatSnapshotsRecordStartEpoch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitSeconds",
           "jsonTag": "start_epoch,omitempty"
         },
         {
@@ -4716,16 +4618,6 @@
           "jsonTag": "total_shards,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatSnapshotsRecordEndEpoch",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CatSnapshotsRecordStartEpoch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -5123,15 +5015,10 @@
       "fields": [
         {
           "name": "ScrollID",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ClearScrollBodyScrollID",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ScrollIDs",
           "jsonTag": "scroll_id,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ClearScrollBodyScrollID",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -6805,6 +6692,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "ClusterRemoteInfoCluster",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "ClusterRemoteInfoClusterRemoteProxyInfo",
       "fields": [
         {
@@ -6915,15 +6807,10 @@
       "fields": [
         {
           "name": "Entries",
-          "type": "map[string]encoding/json.RawMessage",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.ClusterRemoteInfoCluster",
           "jsonTag": "-"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ClusterRemoteInfoRespBodyValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -8313,6 +8200,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAggregationsAggregate",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsAggregateBase",
       "fields": [
         {
@@ -8520,7 +8412,7 @@
       "fields": [
         {
           "name": "AfterKey",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeAggregateKeyValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "after_key,omitempty"
         },
         {
@@ -8542,11 +8434,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAggregationsCompositeAggregateKeyValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAggregationsCompositeBucket",
       "fields": [
         {
@@ -8556,7 +8443,7 @@
         },
         {
           "name": "Key",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsCompositeAggregateKeyValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "key"
         }
       ]
@@ -8875,7 +8762,7 @@
       "fields": [
         {
           "name": "Bounds",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoBoundsAggregateBounds",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoBounds",
           "jsonTag": "bounds,omitempty"
         },
         {
@@ -8884,11 +8771,6 @@
           "jsonTag": "meta,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAggregationsGeoBoundsAggregateBounds",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -8901,7 +8783,7 @@
         },
         {
           "name": "Location",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsGeoCentroidAggregateLocation",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "location,omitempty"
         },
         {
@@ -8910,11 +8792,6 @@
           "jsonTag": "meta,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAggregationsGeoCentroidAggregateLocation",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -9416,7 +9293,7 @@
         },
         {
           "name": "Key",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsMultiTermsBucketKeyItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "key"
         },
         {
@@ -9428,7 +9305,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAggregationsMultiTermsBucketKeyItem",
+      "name": "CommonAggregationsPercentiles",
       "fields": null
     },
     {
@@ -9442,15 +9319,10 @@
         },
         {
           "name": "Values",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentilesAggregateBaseValues",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsPercentiles",
           "jsonTag": "values"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAggregationsPercentilesAggregateBaseValues",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10253,6 +10125,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisAnalyzer",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAnalysisAsciiFoldingTokenFilter",
       "fields": [
         {
@@ -10278,7 +10155,7 @@
       "fields": [
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisCJKAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -10295,7 +10172,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisCJKAnalyzerStopwords",
+      "name": "CommonAnalysisCharFilter",
       "fields": null
     },
     {
@@ -10308,6 +10185,11 @@
           "jsonTag": "version,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisCharFilterDefinition",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10428,7 +10310,7 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisConditionTokenFilterScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         },
         {
@@ -10442,11 +10324,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisConditionTokenFilterScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10588,7 +10465,7 @@
       "fields": [
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisDutchAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -10597,11 +10474,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisDutchAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -10727,7 +10599,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisFingerprintAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -10746,11 +10618,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisFingerprintAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11416,7 +11283,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisLanguageAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -11435,11 +11302,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisLanguageAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -11766,6 +11628,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisNormalizer",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAnalysisPathHierarchyTokenizer",
       "fields": [
         {
@@ -11826,7 +11693,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisPatternAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -11840,11 +11707,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisPatternAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12097,7 +11959,7 @@
       "fields": [
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisPredicateTokenFilterScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         },
         {
@@ -12111,11 +11973,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisPredicateTokenFilterScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12307,7 +12164,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisSnowballAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -12321,11 +12178,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisSnowballAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12359,7 +12211,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStandardAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -12368,11 +12220,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisStandardAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12448,7 +12295,7 @@
       "fields": [
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopAnalyzerStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -12467,11 +12314,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisStopAnalyzerStopwords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12489,7 +12331,7 @@
         },
         {
           "name": "Stopwords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopTokenFilterStopwords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stopwords,omitempty"
         },
         {
@@ -12511,7 +12353,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonAnalysisStopTokenFilterStopwords",
+      "name": "CommonAnalysisStopWords",
       "fields": null
     },
     {
@@ -12618,6 +12460,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisTokenFilter",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAnalysisTokenFilterBase",
       "fields": [
         {
@@ -12629,6 +12476,16 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisTokenFilterDefinition",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisTokenizer",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonAnalysisTokenizerBase",
       "fields": [
         {
@@ -12637,6 +12494,11 @@
           "jsonTag": "version,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonAnalysisTokenizerDefinition",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -12953,12 +12815,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -12978,7 +12840,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13060,12 +12922,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13080,7 +12942,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13121,7 +12983,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -13131,7 +12993,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13156,7 +13018,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13202,12 +13064,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13237,7 +13099,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13283,12 +13145,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13318,7 +13180,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13349,12 +13211,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13369,7 +13231,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13395,12 +13257,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13415,7 +13277,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13462,12 +13324,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13507,7 +13369,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13548,7 +13410,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -13558,7 +13420,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13603,7 +13465,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13649,12 +13511,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13679,7 +13541,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13715,12 +13577,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13735,7 +13597,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13776,12 +13638,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13811,7 +13673,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13857,12 +13719,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13882,7 +13744,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -13901,6 +13763,11 @@
           "jsonTag": "type"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonMappingDynamic",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -13965,12 +13832,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -13990,7 +13857,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14022,12 +13889,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14042,7 +13909,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14083,12 +13950,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14118,7 +13985,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14164,12 +14031,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14189,7 +14056,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14225,12 +14092,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14255,12 +14122,12 @@
         },
         {
           "name": "NullValue",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingGeoPointPropertyNullValue",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "null_value,omitempty"
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14279,11 +14146,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingGeoPointPropertyNullValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -14311,12 +14173,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14346,7 +14208,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14397,12 +14259,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14432,7 +14294,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14458,12 +14320,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14483,7 +14345,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14534,12 +14396,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14579,7 +14441,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14635,12 +14497,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14670,7 +14532,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14716,12 +14578,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14741,7 +14603,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14798,12 +14660,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14833,7 +14695,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14879,12 +14741,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14904,7 +14766,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -14930,7 +14792,7 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -14940,7 +14802,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -14955,7 +14817,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15032,12 +14894,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15067,7 +14929,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15113,7 +14975,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -15123,7 +14985,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15163,7 +15025,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15214,12 +15076,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15249,7 +15111,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15295,12 +15157,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15320,7 +15182,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15351,7 +15213,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingMatchOnlyTextPropertyFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15365,11 +15227,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingMatchOnlyTextPropertyFieldsValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -15387,12 +15244,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15407,7 +15264,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15438,7 +15295,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -15448,7 +15305,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15473,7 +15330,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15519,12 +15376,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15549,7 +15406,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15575,7 +15432,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -15585,7 +15442,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15600,7 +15457,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15626,12 +15483,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15646,7 +15503,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15667,12 +15524,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15687,25 +15544,10 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingPropertyBaseDynamic",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingPropertyBaseFieldsValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingPropertyBasePropertiesValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -15733,12 +15575,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15758,7 +15600,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15779,12 +15621,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15804,7 +15646,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15820,12 +15662,12 @@
       "fields": [
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15840,7 +15682,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15887,12 +15729,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -15922,7 +15764,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -15963,12 +15805,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16003,7 +15845,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16183,12 +16025,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16218,7 +16060,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16348,7 +16190,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -16368,7 +16210,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16413,7 +16255,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16474,7 +16316,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -16484,7 +16326,7 @@
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16509,7 +16351,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16550,7 +16392,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingTypeDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -16612,11 +16454,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingTypeDynamic",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonMappingUnsignedLongNumberProperty",
       "fields": [
         {
@@ -16641,12 +16478,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16676,7 +16513,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16712,12 +16549,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16732,7 +16569,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16768,12 +16605,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16798,7 +16635,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16834,12 +16671,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16864,12 +16701,12 @@
         },
         {
           "name": "NullValue",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingXYPointPropertyNullValue",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.XYLocation",
           "jsonTag": "null_value,omitempty"
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -16888,11 +16725,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonMappingXYPointPropertyNullValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -16915,12 +16747,12 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
           "name": "Fields",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBaseFieldsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -16950,7 +16782,7 @@
         },
         {
           "name": "Properties",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingPropertyBasePropertiesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingProperty",
           "jsonTag": "properties,omitempty"
         },
         {
@@ -17022,7 +16854,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLBoolQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -17050,11 +16882,6 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonQueryDSLBoolQueryFilter",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLBoolQueryMinimumShouldMatch",
       "fields": null
     },
     {
@@ -17124,7 +16951,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -17148,11 +16975,6 @@
           "jsonTag": "zero_terms_query,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -17312,6 +17134,27 @@
           "name": "Name",
           "type": "*string",
           "jsonTag": "_name,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonQueryDSLFieldAndFormat",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonQueryDSLFieldAndFormatField",
+      "fields": [
+        {
+          "name": "Field",
+          "type": "string",
+          "jsonTag": "field"
+        },
+        {
+          "name": "Format",
+          "type": "*string",
+          "jsonTag": "format,omitempty"
         }
       ]
     },
@@ -17820,15 +17663,10 @@
         },
         {
           "name": "Script",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLIntervalsFilterScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLIntervalsFilterScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -18053,6 +17891,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonQueryDSLLike",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonQueryDSLLikeDocument",
       "fields": [
         {
@@ -18173,7 +18016,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -18193,7 +18036,7 @@
         },
         {
           "name": "StopWords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLMoreLikeThisQueryStopWords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stop_words,omitempty"
         },
         {
@@ -18220,27 +18063,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLMoreLikeThisQueryLikeItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLMoreLikeThisQueryStopWords",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonQueryDSLMoreLikeThisQueryUnlike",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLMoreLikeThisQueryUnlikeItem",
       "fields": null
     },
     {
@@ -18299,7 +18122,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLMultiMatchQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -18343,11 +18166,6 @@
           "jsonTag": "zero_terms_query,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLMultiMatchQueryMinimumShouldMatch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -18681,7 +18499,7 @@
         },
         {
           "name": "Fuzzy",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainerFuzzyValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "fuzzy,omitempty"
         },
         {
@@ -18736,7 +18554,7 @@
         },
         {
           "name": "Match",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainerMatchValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "match,omitempty"
         },
         {
@@ -18806,7 +18624,7 @@
         },
         {
           "name": "Range",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainerRangeValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLRangeQuery",
           "jsonTag": "range,omitempty"
         },
         {
@@ -18881,7 +18699,7 @@
         },
         {
           "name": "Term",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainerTermValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "term,omitempty"
         },
         {
@@ -18915,26 +18733,6 @@
           "jsonTag": "xy_shape,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLQueryContainerFuzzyValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLQueryContainerMatchValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLQueryContainerRangeValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLQueryContainerTermValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -19027,7 +18825,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryStringQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -19079,11 +18877,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLQueryStringQueryMinimumShouldMatch",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonQueryDSLRandomScoreFunction",
       "fields": [
         {
@@ -19101,6 +18894,11 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "CommonQueryDSLRandomScoreFunctionSeed",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "CommonQueryDSLRangeQuery",
       "fields": null
     },
     {
@@ -19235,15 +19033,10 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLScriptQueryScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLScriptQueryScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -19251,15 +19044,10 @@
       "fields": [
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLScriptScoreFunctionScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLScriptScoreFunctionScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -19287,15 +19075,10 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLScriptScoreQueryScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLScriptScoreQueryScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -19358,7 +19141,7 @@
         },
         {
           "name": "MinimumShouldMatch",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MinimumShouldMatch",
           "jsonTag": "minimum_should_match,omitempty"
         },
         {
@@ -19377,11 +19160,6 @@
           "jsonTag": "quote_field_suffix,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -19694,7 +19472,7 @@
         },
         {
           "name": "MinimumShouldMatchScript",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLTermsSetQueryMinimumShouldMatchScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "minimum_should_match_script,omitempty"
         },
         {
@@ -19708,11 +19486,6 @@
           "jsonTag": "terms"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "CommonQueryDSLTermsSetQueryMinimumShouldMatchScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -20797,7 +20570,7 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.DerivedFieldScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         },
         {
@@ -20806,11 +20579,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "DerivedFieldScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -20905,7 +20673,7 @@
         },
         {
           "name": "Header",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.ErrorCauseHeaderValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "header,omitempty"
         },
         {
@@ -20984,11 +20752,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ErrorCauseHeaderValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -21493,7 +21256,7 @@
       "fields": [
         {
           "name": "Missing",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldSortMissing",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "missing"
         },
         {
@@ -21525,7 +21288,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "FieldSortMissing",
+      "name": "FieldValue",
       "fields": null
     },
     {
@@ -21582,6 +21345,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "GeoBounds",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "GeoDistanceSort",
       "fields": [
         {
@@ -21631,6 +21399,11 @@
           "jsonTag": "geohash"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "GeoLocation",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -21710,7 +21483,7 @@
       "fields": [
         {
           "name": "Geometry",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeospatialGeoJSONDataGeometry",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeospatialGeometry",
           "jsonTag": "geometry"
         },
         {
@@ -21724,11 +21497,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "GeospatialGeoJSONDataGeometry",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -21755,6 +21523,11 @@
           "jsonTag": "type"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "GeospatialGeoShapes",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -21805,11 +21578,16 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "GeospatialGeometry",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "GeospatialGeometryCollection",
       "fields": [
         {
           "name": "Geometries",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeospatialGeometryCollectionGeometriesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeospatialGeometry",
           "jsonTag": "geometries"
         },
         {
@@ -21818,11 +21596,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "GeospatialGeometryCollectionGeometriesItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -22558,11 +22331,6 @@
           "jsonTag": "total"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "HTTPHeadersValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -23640,7 +23408,7 @@
         },
         {
           "name": "CharFilter",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesAnalyzeBodyCharFilterItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisCharFilter",
           "jsonTag": "char_filter,omitempty"
         },
         {
@@ -23655,7 +23423,7 @@
         },
         {
           "name": "Filter",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesAnalyzeBodyFilterItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisTokenFilter",
           "jsonTag": "filter,omitempty"
         },
         {
@@ -23665,35 +23433,15 @@
         },
         {
           "name": "Text",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesAnalyzeBodyText",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesAnalyzeTextTo",
           "jsonTag": "text,omitempty"
         },
         {
           "name": "Tokenizer",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesAnalyzeBodyTokenizer",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisTokenizer",
           "jsonTag": "tokenizer,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesAnalyzeBodyCharFilterItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesAnalyzeBodyFilterItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesAnalyzeBodyText",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesAnalyzeBodyTokenizer",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -23844,6 +23592,11 @@
           "jsonTag": "tokens,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "IndicesAnalyzeTextTo",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -25781,7 +25534,7 @@
         },
         {
           "name": "CreationDate",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsCreationDate",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "creation_date,omitempty"
         },
         {
@@ -26006,7 +25759,7 @@
         },
         {
           "name": "RoutingPath",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsRoutingPath",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "routing_path,omitempty"
         },
         {
@@ -26092,55 +25845,30 @@
       "fields": [
         {
           "name": "Analyzer",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsAnalysisAnalyzerValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisAnalyzer",
           "jsonTag": "analyzer,omitempty"
         },
         {
           "name": "CharFilter",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsAnalysisCharFilterValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisCharFilter",
           "jsonTag": "char_filter,omitempty"
         },
         {
           "name": "Filter",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsAnalysisFilterValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisTokenFilter",
           "jsonTag": "filter,omitempty"
         },
         {
           "name": "Normalizer",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsAnalysisNormalizerValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisNormalizer",
           "jsonTag": "normalizer,omitempty"
         },
         {
           "name": "Tokenizer",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsAnalysisTokenizerValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisTokenizer",
           "jsonTag": "tokenizer,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsAnalysisAnalyzerValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsAnalysisCharFilterValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsAnalysisFilterValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsAnalysisNormalizerValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsAnalysisTokenizerValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -26152,11 +25880,6 @@
           "jsonTag": "max_token_count,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsCreationDate",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -26196,7 +25919,7 @@
         },
         {
           "name": "OriginationDate",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsLifecycleOriginationDate",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "origination_date,omitempty"
         },
         {
@@ -26215,11 +25938,6 @@
           "jsonTag": "step,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsLifecycleOriginationDate",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -26543,11 +26261,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsRoutingPath",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "IndicesIndexSettingsSearch",
       "fields": [
         {
@@ -26798,7 +26511,7 @@
       "fields": [
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesIndexSettingsSimilarityScriptedTFIDFScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         },
         {
@@ -26807,11 +26520,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesIndexSettingsSimilarityScriptedTFIDFScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -27598,7 +27306,7 @@
         },
         {
           "name": "Dynamic",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesPutMappingBodyDynamic",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonMappingDynamic",
           "jsonTag": "dynamic,omitempty"
         },
         {
@@ -27642,11 +27350,6 @@
           "jsonTag": "_source,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesPutMappingBodyDynamic",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -27791,7 +27494,7 @@
         },
         {
           "name": "IndexPatterns",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IndicesPutTemplateBodyIndexPatterns",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "index_patterns,omitempty"
         },
         {
@@ -27815,11 +27518,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IndicesPutTemplateBodyIndexPatterns",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -29075,7 +28773,7 @@
         },
         {
           "name": "Header",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.ErrorCauseHeaderValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "header,omitempty"
         },
         {
@@ -32006,7 +31704,7 @@
         },
         {
           "name": "Script",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IngestProcessorContainerScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script,omitempty"
         },
         {
@@ -32055,11 +31753,6 @@
           "jsonTag": "user_agent,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IngestProcessorContainerScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -32421,7 +32114,7 @@
         },
         {
           "name": "Version",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.IngestSimulateDocumentSimulationVersion",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedVersionNumber",
           "jsonTag": "_version,omitempty"
         },
         {
@@ -32430,11 +32123,6 @@
           "jsonTag": "_version_type,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "IngestSimulateDocumentSimulationVersion",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -33159,7 +32847,7 @@
         },
         {
           "name": "DocvalueFields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.InsightsSourceDocvalueFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "docvalue_fields,omitempty"
         },
         {
@@ -33174,7 +32862,7 @@
         },
         {
           "name": "Fields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.InsightsSourceFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -33224,7 +32912,7 @@
         },
         {
           "name": "SearchAfter",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SortResultsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "search_after,omitempty"
         },
         {
@@ -33244,12 +32932,12 @@
         },
         {
           "name": "Sort",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.InsightsSourceSort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
           "jsonTag": "sort,omitempty"
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.InsightsSourceSource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -33284,7 +32972,7 @@
         },
         {
           "name": "TrackTotalHits",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.InsightsSourceTrackTotalHits",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchTrackHits",
           "jsonTag": "track_total_hits,omitempty"
         },
         {
@@ -33293,84 +32981,6 @@
           "jsonTag": "version,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceDocvalueFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceDocvalueFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceSort",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceSortItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceSource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceSourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "InsightsSourceTrackTotalHits",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -34406,7 +34016,7 @@
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetOperationSource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -34423,27 +34033,6 @@
           "name": "VersionType",
           "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.VersionType",
           "jsonTag": "version_type,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MGetOperationSource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MGetOperationSourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
         }
       ]
     },
@@ -34517,14 +34106,14 @@
       "fields": [
         {
           "name": "Docs",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetRespBodyDocsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MGetRespItem",
           "jsonTag": "docs"
         }
       ]
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MGetRespBodyDocsItem",
+      "name": "MGetRespItem",
       "fields": null
     },
     {
@@ -34795,11 +34384,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLDeleteAgenticMemoryRespFailuresItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "MLDeleteAgenticMemoryResponse",
       "fields": [
         {
@@ -34819,7 +34403,7 @@
         },
         {
           "name": "Failures",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLDeleteAgenticMemoryRespFailuresItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.BulkByScrollFailure",
           "jsonTag": "failures,omitempty"
         },
         {
@@ -35286,7 +34870,7 @@
         },
         {
           "name": "StopWords",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLGuardrailsStopWords",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAnalysisStopWords",
           "jsonTag": "stop_words,omitempty"
         },
         {
@@ -35311,11 +34895,6 @@
           "jsonTag": "response_validation_regex,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLGuardrailsStopWords",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -35849,7 +35428,7 @@
         },
         {
           "name": "TargetWorkerNodes",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLModelProfileTargetWorkerNodesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodeIDs",
           "jsonTag": "target_worker_nodes,omitempty"
         },
         {
@@ -35869,20 +35448,10 @@
         },
         {
           "name": "WorkerNodes",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLModelProfileWorkerNodesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodeIDs",
           "jsonTag": "worker_nodes,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLModelProfileTargetWorkerNodesItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLModelProfileWorkerNodesItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -36619,7 +36188,7 @@
         },
         {
           "name": "PlanningWorkerNodes",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLSourcePlanningWorkerNodesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodeIDs",
           "jsonTag": "planning_worker_nodes,omitempty"
         },
         {
@@ -36689,7 +36258,7 @@
         },
         {
           "name": "WorkerNode",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLSourceWorkerNodeItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodeIDs",
           "jsonTag": "worker_node,omitempty"
         }
       ]
@@ -36697,16 +36266,6 @@
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "MLSourceCreateTime",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLSourcePlanningWorkerNodesItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLSourceWorkerNodeItem",
       "fields": null
     },
     {
@@ -36812,15 +36371,10 @@
         },
         {
           "name": "WorkerNode",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MLTaskWorkerNodeItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodeIDs",
           "jsonTag": "worker_node,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MLTaskWorkerNodeItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -37018,7 +36572,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -37073,7 +36627,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -37092,11 +36646,6 @@
           "jsonTag": "took"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "MSearchMultiSearchResultResponsesItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -37164,7 +36713,7 @@
       "fields": [
         {
           "name": "Responses",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MSearchMultiSearchResultResponsesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MSearchRespItem",
           "jsonTag": "responses"
         },
         {
@@ -37173,6 +36722,11 @@
           "jsonTag": "took"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MSearchRespItem",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -37233,7 +36787,7 @@
       "fields": [
         {
           "name": "Responses",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MSearchMultiSearchResultResponsesItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.MSearchRespItem",
           "jsonTag": "responses"
         },
         {
@@ -37562,6 +37116,11 @@
           "jsonTag": "unreferenced_file_cleanups_performed,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "MinimumShouldMatch",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -38447,6 +38006,11 @@
           "jsonTag": "transport_address"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "NodeIDs",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -39383,12 +38947,12 @@
         },
         {
           "name": "InitialClusterManagerNodes",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsClusterInitialClusterManagerNodes",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "initial_cluster_manager_nodes,omitempty"
         },
         {
           "name": "InitialMasterNodes",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsClusterInitialMasterNodes",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "initial_master_nodes,omitempty"
         },
         {
@@ -39416,16 +38980,6 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsClusterInitialClusterManagerNodes",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsClusterInitialMasterNodes",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "NodesInfoNodeSettingsDeprecationIndexing",
       "fields": [
         {
@@ -39446,7 +39000,7 @@
         },
         {
           "name": "Host",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsHTTPHost",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "host,omitempty"
         },
         {
@@ -39456,7 +39010,7 @@
         },
         {
           "name": "PublishHost",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsHTTPPublishHost",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "publish_host,omitempty"
         },
         {
@@ -39475,16 +39029,6 @@
           "jsonTag": "type.default,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsHTTPHost",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsHTTPPublishHost",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -39754,15 +39298,10 @@
         },
         {
           "name": "Roles",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsNodeRoles",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "roles,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsNodeRoles",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -39770,7 +39309,7 @@
       "fields": [
         {
           "name": "Host",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesInfoNodeSettingsTransportHost",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "host,omitempty"
         },
         {
@@ -39784,11 +39323,6 @@
           "jsonTag": "type.default,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesInfoNodeSettingsTransportHost",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -39966,6 +39500,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "NodesReloadSecureSettingsNodeReloadResult",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "NodesReloadSecureSettingsParams",
       "fields": null
     },
@@ -40011,15 +39550,10 @@
         },
         {
           "name": "Nodes",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesReloadSecureSettingsRespBodyNodesValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.NodesReloadSecureSettingsNodeReloadResult",
           "jsonTag": "nodes"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "NodesReloadSecureSettingsRespBodyNodesValue",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -44517,7 +44051,7 @@
         },
         {
           "name": "Script",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReindexBodyScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script,omitempty"
         },
         {
@@ -44531,11 +44065,6 @@
           "jsonTag": "source"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReindexBodyScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -44839,7 +44368,7 @@
         },
         {
           "name": "Headers",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.HTTPHeadersValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringOrStringArray",
           "jsonTag": "headers"
         },
         {
@@ -44939,7 +44468,7 @@
         },
         {
           "name": "Sort",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReindexSourceSort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
           "jsonTag": "sort,omitempty"
         },
         {
@@ -44948,11 +44477,6 @@
           "jsonTag": "_source,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReindexSourceSort",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -45548,15 +45072,10 @@
         },
         {
           "name": "TotalWriteTimeMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationFollowerStatusTotalWriteTimeMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_write_time_millis,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationFollowerStatusTotalWriteTimeMillis",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -45604,15 +45123,10 @@
         },
         {
           "name": "TotalWriteTimeMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationIndexFollowerStatusTotalWriteTimeMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_write_time_millis,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationIndexFollowerStatusTotalWriteTimeMillis",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -45656,12 +45170,12 @@
         },
         {
           "name": "TotalReadTimeLuceneMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationIndexStatusTotalReadTimeLuceneMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_read_time_lucene_millis,omitempty"
         },
         {
           "name": "TotalReadTimeTranslogMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationIndexStatusTotalReadTimeTranslogMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_read_time_translog_millis,omitempty"
         },
         {
@@ -45670,16 +45184,6 @@
           "jsonTag": "translog_size_bytes,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationIndexStatusTotalReadTimeLuceneMillis",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationIndexStatusTotalReadTimeTranslogMillis",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -45717,12 +45221,12 @@
         },
         {
           "name": "TotalReadTimeLuceneMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationLeaderStatusTotalReadTimeLuceneMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_read_time_lucene_millis,omitempty"
         },
         {
           "name": "TotalReadTimeTranslogMillis",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.ReplicationLeaderStatusTotalReadTimeTranslogMillis",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.StringifiedEpochTimeUnitMillis",
           "jsonTag": "total_read_time_translog_millis,omitempty"
         },
         {
@@ -45731,16 +45235,6 @@
           "jsonTag": "translog_size_bytes,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationLeaderStatusTotalReadTimeLuceneMillis",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ReplicationLeaderStatusTotalReadTimeTranslogMillis",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -47194,6 +46688,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "Script",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "ScriptBase",
       "fields": [
         {
@@ -47214,15 +46713,10 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.ScriptFieldScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ScriptFieldScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -47245,7 +46739,7 @@
         },
         {
           "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.ScriptSortScript",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script"
         },
         {
@@ -47254,11 +46748,6 @@
           "jsonTag": "type,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "ScriptSortScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -47363,6 +46852,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "ScrollIDs",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "ScrollParams",
       "fields": [
         {
@@ -47411,7 +46905,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -47461,7 +46955,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -47818,7 +47312,7 @@
         },
         {
           "name": "DocvalueFields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBodyDocvalueFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "docvalue_fields,omitempty"
         },
         {
@@ -47833,7 +47327,7 @@
         },
         {
           "name": "Fields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBodyFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -47893,7 +47387,7 @@
         },
         {
           "name": "SearchAfter",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SortResultsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "search_after,omitempty"
         },
         {
@@ -47918,12 +47412,12 @@
         },
         {
           "name": "Sort",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBodySort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
           "jsonTag": "sort,omitempty"
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBodySource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -47958,7 +47452,7 @@
         },
         {
           "name": "TrackTotalHits",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchBodyTrackTotalHits",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchTrackHits",
           "jsonTag": "track_total_hits,omitempty"
         },
         {
@@ -47975,80 +47469,7 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodyDocvalueFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodyDocvalueFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodyFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodyFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchBodyRescore",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodySort",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodySource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodySourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchBodyTrackTotalHits",
       "fields": null
     },
     {
@@ -48655,7 +48076,7 @@
         },
         {
           "name": "Sort",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SortResultsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.FieldValue",
           "jsonTag": "sort,omitempty"
         },
         {
@@ -48717,7 +48138,7 @@
         },
         {
           "name": "DocvalueFields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchInnerHitsDocvalueFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "docvalue_fields,omitempty"
         },
         {
@@ -48727,7 +48148,7 @@
         },
         {
           "name": "Fields",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchInnerHitsFieldsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLFieldAndFormat",
           "jsonTag": "fields,omitempty"
         },
         {
@@ -48767,12 +48188,12 @@
         },
         {
           "name": "Sort",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchInnerHitsSort",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Sort",
           "jsonTag": "sort,omitempty"
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchInnerHitsSource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
@@ -48794,80 +48215,12 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsDocvalueFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsDocvalueFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsFieldsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsFieldsItemField",
-      "fields": [
-        {
-          "name": "Field",
-          "type": "string",
-          "jsonTag": "field"
-        },
-        {
-          "name": "Format",
-          "type": "*string",
-          "jsonTag": "format,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchInnerHitsResult",
       "fields": [
         {
           "name": "Hits",
           "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchHitsMetadata",
           "jsonTag": "hits"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsSort",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsSource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchInnerHitsSourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
         }
       ]
     },
@@ -49477,6 +48830,33 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelinePhaseResultsProcessor",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelinePhaseResultsProcessorNormalizationProcessor",
+      "fields": [
+        {
+          "name": "NormalizationProcessor",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineNormalizationPhaseResultsProcessor",
+          "jsonTag": "normalization-processor"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelinePhaseResultsProcessorScoreRankerProcessor",
+      "fields": [
+        {
+          "name": "ScoreRankerProcessor",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineScoreRankerPhaseResultsProcessor",
+          "jsonTag": "score-ranker-processor"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchPipelinePutParams",
       "fields": null
     },
@@ -49550,6 +48930,66 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessor",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessorAgenticQueryTranslator",
+      "fields": [
+        {
+          "name": "AgenticQueryTranslator",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineAgenticQueryTranslatorRequestProcessor",
+          "jsonTag": "agentic_query_translator"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessorFilterQuery",
+      "fields": [
+        {
+          "name": "FilterQuery",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineFilterQueryRequestProcessor",
+          "jsonTag": "filter_query"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessorNeuralQueryEnricher",
+      "fields": [
+        {
+          "name": "NeuralQueryEnricher",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineNeuralQueryEnricherRequestProcessor",
+          "jsonTag": "neural_query_enricher"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessorOversample",
+      "fields": [
+        {
+          "name": "Oversample",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineOversampleRequestProcessor",
+          "jsonTag": "oversample"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRequestProcessorScript",
+      "fields": [
+        {
+          "name": "Script",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSearchScriptRequestProcessor",
+          "jsonTag": "script"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchPipelineRerankContext",
       "fields": [
         {
@@ -49587,6 +49027,110 @@
           "name": "Tag",
           "type": "*string",
           "jsonTag": "tag,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessor",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorAgenticContext",
+      "fields": [
+        {
+          "name": "AgenticContext",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineAgenticContextRespProcessor",
+          "jsonTag": "agentic_context"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorCollapse",
+      "fields": [
+        {
+          "name": "Collapse",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineCollapseRespProcessor",
+          "jsonTag": "collapse"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorPersonalizeSearchRanking",
+      "fields": [
+        {
+          "name": "PersonalizeSearchRanking",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelinePersonalizeSearchRankingRespProcessor",
+          "jsonTag": "personalize_search_ranking"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorRenameField",
+      "fields": [
+        {
+          "name": "RenameField",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRenameFieldRespProcessor",
+          "jsonTag": "rename_field"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorRerank",
+      "fields": [
+        {
+          "name": "Rerank",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRerankRespProcessor",
+          "jsonTag": "rerank"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorRetrievalAugmentedGeneration",
+      "fields": [
+        {
+          "name": "RetrievalAugmentedGeneration",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRetrievalAugmentedGenerationRespProcessor",
+          "jsonTag": "retrieval_augmented_generation"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorSort",
+      "fields": [
+        {
+          "name": "Sort",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSortRespProcessor",
+          "jsonTag": "sort"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorSplit",
+      "fields": [
+        {
+          "name": "Split",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSplitRespProcessor",
+          "jsonTag": "split"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchPipelineRespProcessorTruncateHits",
+      "fields": [
+        {
+          "name": "TruncateHits",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineTruncateHitsRespProcessor",
+          "jsonTag": "truncate_hits"
         }
       ]
     },
@@ -49810,214 +49354,23 @@
         },
         {
           "name": "PhaseResultsProcessors",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineStructurePhaseResultsProcessorsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelinePhaseResultsProcessor",
           "jsonTag": "phase_results_processors,omitempty"
         },
         {
           "name": "RequestProcessors",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineStructureRequestProcessorsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRequestProcessor",
           "jsonTag": "request_processors,omitempty"
         },
         {
           "name": "RespProcessors",
-          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineStructureRespProcessorsItem",
+          "type": "[]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRespProcessor",
           "jsonTag": "response_processors,omitempty"
         },
         {
           "name": "Version",
           "type": "*int",
           "jsonTag": "version,omitempty"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructurePhaseResultsProcessorsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructurePhaseResultsProcessorsItemNormalizationProcessor",
-      "fields": [
-        {
-          "name": "NormalizationProcessor",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineNormalizationPhaseResultsProcessor",
-          "jsonTag": "normalization-processor"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructurePhaseResultsProcessorsItemScoreRankerProcessor",
-      "fields": [
-        {
-          "name": "ScoreRankerProcessor",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineScoreRankerPhaseResultsProcessor",
-          "jsonTag": "score-ranker-processor"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItemAgenticQueryTranslator",
-      "fields": [
-        {
-          "name": "AgenticQueryTranslator",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineAgenticQueryTranslatorRequestProcessor",
-          "jsonTag": "agentic_query_translator"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItemFilterQuery",
-      "fields": [
-        {
-          "name": "FilterQuery",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineFilterQueryRequestProcessor",
-          "jsonTag": "filter_query"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItemNeuralQueryEnricher",
-      "fields": [
-        {
-          "name": "NeuralQueryEnricher",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineNeuralQueryEnricherRequestProcessor",
-          "jsonTag": "neural_query_enricher"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItemOversample",
-      "fields": [
-        {
-          "name": "Oversample",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineOversampleRequestProcessor",
-          "jsonTag": "oversample"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRequestProcessorsItemScript",
-      "fields": [
-        {
-          "name": "Script",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSearchScriptRequestProcessor",
-          "jsonTag": "script"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItem",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemAgenticContext",
-      "fields": [
-        {
-          "name": "AgenticContext",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineAgenticContextRespProcessor",
-          "jsonTag": "agentic_context"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemCollapse",
-      "fields": [
-        {
-          "name": "Collapse",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineCollapseRespProcessor",
-          "jsonTag": "collapse"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemPersonalizeSearchRanking",
-      "fields": [
-        {
-          "name": "PersonalizeSearchRanking",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelinePersonalizeSearchRankingRespProcessor",
-          "jsonTag": "personalize_search_ranking"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemRenameField",
-      "fields": [
-        {
-          "name": "RenameField",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRenameFieldRespProcessor",
-          "jsonTag": "rename_field"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemRerank",
-      "fields": [
-        {
-          "name": "Rerank",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRerankRespProcessor",
-          "jsonTag": "rerank"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemRetrievalAugmentedGeneration",
-      "fields": [
-        {
-          "name": "RetrievalAugmentedGeneration",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineRetrievalAugmentedGenerationRespProcessor",
-          "jsonTag": "retrieval_augmented_generation"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemSort",
-      "fields": [
-        {
-          "name": "Sort",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSortRespProcessor",
-          "jsonTag": "sort"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemSplit",
-      "fields": [
-        {
-          "name": "Split",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineSplitRespProcessor",
-          "jsonTag": "split"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchPipelineStructureRespProcessorsItemTruncateHits",
-      "fields": [
-        {
-          "name": "TruncateHits",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchPipelineTruncateHitsRespProcessor",
-          "jsonTag": "truncate_hits"
         }
       ]
     },
@@ -50723,7 +50076,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -50773,7 +50126,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -50799,7 +50152,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -50849,7 +50202,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -50871,16 +50224,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchResultAggregationsValue",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SearchResultJSONValue",
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -50930,7 +50278,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -50997,11 +50345,6 @@
           "jsonTag": "_source"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SearchResultSuggestValueItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -51130,6 +50473,32 @@
           "name": "Filter",
           "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonQueryDSLQueryContainer",
           "jsonTag": "filter,omitempty"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchSourceConfig",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchSourceFilter",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchSourceFilterExcludesIncludes",
+      "fields": [
+        {
+          "name": "Excludes",
+          "type": "*string",
+          "jsonTag": "excludes,omitempty"
+        },
+        {
+          "name": "Includes",
+          "type": "*string",
+          "jsonTag": "includes,omitempty"
         }
       ]
     },
@@ -51283,6 +50652,11 @@
           "jsonTag": "suggest_total"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchSuggest",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -51445,7 +50819,7 @@
       "fields": [
         {
           "name": "Aggregations",
-          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultAggregationsValue",
+          "type": "map[string]github.com/opensearch-project/opensearch-go/v5/opensearchapi.CommonAggregationsAggregate",
           "jsonTag": "aggregations,omitempty"
         },
         {
@@ -51500,7 +50874,7 @@
         },
         {
           "name": "Suggest",
-          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchResultSuggestValueItem",
+          "type": "map[string][]github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSuggest",
           "jsonTag": "suggest,omitempty"
         },
         {
@@ -51597,6 +50971,11 @@
           "jsonTag": "value"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SearchTrackHits",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -52774,6 +52153,53 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SegmentReplicationStats",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SegmentReplicationStatsObject0",
+      "fields": [
+        {
+          "name": "MaxBytesBehind",
+          "type": "string",
+          "jsonTag": "max_bytes_behind"
+        },
+        {
+          "name": "MaxReplicationLag",
+          "type": "string",
+          "jsonTag": "max_replication_lag"
+        },
+        {
+          "name": "TotalBytesBehind",
+          "type": "string",
+          "jsonTag": "total_bytes_behind"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SegmentReplicationStatsObject1",
+      "fields": [
+        {
+          "name": "MaxBytesBehind",
+          "type": "int64",
+          "jsonTag": "max_bytes_behind"
+        },
+        {
+          "name": "MaxReplicationLag",
+          "type": "int64",
+          "jsonTag": "max_replication_lag"
+        },
+        {
+          "name": "TotalBytesBehind",
+          "type": "int64",
+          "jsonTag": "total_bytes_behind"
+        }
+      ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SegmentsStats",
       "fields": [
         {
@@ -52863,7 +52289,7 @@
         },
         {
           "name": "SegmentReplication",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SegmentsStatsSegmentReplication",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SegmentReplicationStats",
           "jsonTag": "segment_replication,omitempty"
         },
         {
@@ -52905,53 +52331,6 @@
           "name": "VersionMapMemoryInBytes",
           "type": "int64",
           "jsonTag": "version_map_memory_in_bytes"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SegmentsStatsSegmentReplication",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SegmentsStatsSegmentReplicationObject0",
-      "fields": [
-        {
-          "name": "MaxBytesBehind",
-          "type": "string",
-          "jsonTag": "max_bytes_behind"
-        },
-        {
-          "name": "MaxReplicationLag",
-          "type": "string",
-          "jsonTag": "max_replication_lag"
-        },
-        {
-          "name": "TotalBytesBehind",
-          "type": "string",
-          "jsonTag": "total_bytes_behind"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SegmentsStatsSegmentReplicationObject1",
-      "fields": [
-        {
-          "name": "MaxBytesBehind",
-          "type": "int64",
-          "jsonTag": "max_bytes_behind"
-        },
-        {
-          "name": "MaxReplicationLag",
-          "type": "int64",
-          "jsonTag": "max_replication_lag"
-        },
-        {
-          "name": "TotalBytesBehind",
-          "type": "int64",
-          "jsonTag": "total_bytes_behind"
         }
       ]
     },
@@ -54228,6 +53607,16 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "Sort",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "SortCombinations",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "SortOptions",
       "fields": [
         {
@@ -54246,11 +53635,6 @@
           "jsonTag": "_script,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "SortResultsItem",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -54314,6 +53698,26 @@
           "jsonTag": "params,omitempty"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "StringOrStringArray",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "StringifiedEpochTimeUnitMillis",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "StringifiedEpochTimeUnitSeconds",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "StringifiedVersionNumber",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -54560,6 +53964,11 @@
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "TasksStatus",
+      "fields": null
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
       "name": "TasksTaskExecutingNode",
       "fields": [
         {
@@ -54670,7 +54079,7 @@
         },
         {
           "name": "Status",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.TasksTaskInfoStatus",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.TasksStatus",
           "jsonTag": "status,omitempty"
         },
         {
@@ -54679,11 +54088,6 @@
           "jsonTag": "type"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "TasksTaskInfoStatus",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -55015,25 +54419,15 @@
       "fields": [
         {
           "name": "BottomRight",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.TopLeftBottomRightGeoBoundsBottomRight",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "bottom_right"
         },
         {
           "name": "TopLeft",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.TopLeftBottomRightGeoBoundsTopLeft",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "top_left"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "TopLeftBottomRightGeoBoundsBottomRight",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "TopLeftBottomRightGeoBoundsTopLeft",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -55041,25 +54435,15 @@
       "fields": [
         {
           "name": "BottomLeft",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.TopRightBottomLeftGeoBoundsBottomLeft",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "bottom_left"
         },
         {
           "name": "TopRight",
-          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.TopRightBottomLeftGeoBoundsTopRight",
+          "type": "github.com/opensearch-project/opensearch-go/v5/opensearchapi.GeoLocation",
           "jsonTag": "top_right"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "TopRightBottomLeftGeoBoundsBottomLeft",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "TopRightBottomLeftGeoBoundsTopRight",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -55503,6 +54887,10 @@
       "name": "UnionBranchError",
       "fields": [
         {
+          "name": "Err",
+          "type": "error"
+        },
+        {
           "name": "Got",
           "type": "string"
         },
@@ -55547,7 +54935,7 @@
         },
         {
           "name": "Script",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.UpdateBodyScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script,omitempty"
         },
         {
@@ -55557,39 +54945,13 @@
         },
         {
           "name": "Source",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.UpdateBodySource",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.SearchSourceConfig",
           "jsonTag": "_source,omitempty"
         },
         {
           "name": "Upsert",
           "type": "encoding/json.RawMessage",
           "jsonTag": "upsert"
-        }
-      ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "UpdateBodyScript",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "UpdateBodySource",
-      "fields": null
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "UpdateBodySourceExcludesIncludes",
-      "fields": [
-        {
-          "name": "Excludes",
-          "type": "*string",
-          "jsonTag": "excludes,omitempty"
-        },
-        {
-          "name": "Includes",
-          "type": "*string",
-          "jsonTag": "includes,omitempty"
         }
       ]
     },
@@ -55614,7 +54976,7 @@
         },
         {
           "name": "Script",
-          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.UpdateByQueryBodyScript",
+          "type": "*github.com/opensearch-project/opensearch-go/v5/opensearchapi.Script",
           "jsonTag": "script,omitempty"
         },
         {
@@ -55623,11 +54985,6 @@
           "jsonTag": "slice,omitempty"
         }
       ]
-    },
-    {
-      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
-      "name": "UpdateByQueryBodyScript",
-      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
@@ -56307,6 +55664,11 @@
           "jsonTag": "y"
         }
       ]
+    },
+    {
+      "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchapi",
+      "name": "XYLocation",
+      "fields": null
     },
     {
       "pkgPath": "github.com/opensearch-project/opensearch-go/v5/opensearchtransport",
