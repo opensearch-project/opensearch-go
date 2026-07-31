@@ -283,7 +283,7 @@ func bulkInnerItemType(resp *ir.Type, reg *ir.TypeRegistry) (string, bool) {
 // is whichever branch carries a Shards field (recursively); the error
 // branch matches the spec's ErrorRespBase shape (Status + Error).
 type unionShape struct {
-	unionName   string // e.g. "MSearchMultiSearchResultResponsesItem"
+	unionName   string // e.g. "MSearchRespItem"
 	success     string // success branch accessor Name (Shards-bearing), or ""
 	errorBranch string // error branch accessor Name (Status + Error), or ""
 }

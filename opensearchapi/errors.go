@@ -257,11 +257,11 @@ func (e *ShardFailureError) IsPartial() bool { return true }
 // than one union.
 //
 // Union, Want, and Got are branch and type names rather than typed enums: the
-// alternative is one error type per generated union (148 of them), all
+// alternative is one error type per generated union (122 of them), all
 // structurally identical. Compare Got against the union's Type enum via its
 // String method when a switch is needed.
 type UnionBranchError struct {
-	Union string // generated union type name, e.g. "MGetRespBodyDocsItem"
+	Union string // generated union type name, e.g. "MGetRespItem"
 	Want  string // branch the caller asked for, e.g. "GetResult"
 	Got   string // branch actually decoded, "unknown" if never decoded, or "incompatible payload" when Err is set
 	Err   error  // the underlying decode failure on a request-selected union; nil otherwise
