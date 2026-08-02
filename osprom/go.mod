@@ -1,6 +1,6 @@
 module github.com/opensearch-project/opensearch-go/v5/osprom
 
-go 1.25.9
+go 1.25.12
 
 require (
 	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc4
