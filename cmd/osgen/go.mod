@@ -1,6 +1,6 @@
 module github.com/opensearch-project/opensearch-go/v4/cmd/osgen
 
-go 1.25.9
+go 1.25.12
 
 require (
 	github.com/getkin/kin-openapi v0.145.0
