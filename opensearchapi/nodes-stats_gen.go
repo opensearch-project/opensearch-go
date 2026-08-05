@@ -220,7 +220,7 @@ type NodesStatsStats struct {
 	// Available: >= 3.7.0.
 	NativeMemory *NodesStatsNativeMemory `json:"native_memory,omitempty"`
 
-	Os                 *NodesStatsOperatingSystem                    `json:"os,omitempty"`
+	OS                 *NodesStatsOperatingSystem                    `json:"os,omitempty"`
 	Process            *NodesStatsProcess                            `json:"process,omitempty"`
 	RemoteStore        *NodesStatsRemoteStore                        `json:"remote_store,omitempty"`
 	Repositories       []NodesStatsRepositorySnapshot                `json:"repositories,omitempty"`
@@ -290,7 +290,7 @@ type NodesStatsAdaptiveSelection struct {
 // NodesStatsShardAdmissionControl is a typed component of the nodes.stats operation.
 type NodesStatsShardAdmissionControl struct {
 	GlobalCPUUsage *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
-	GlobalIoUsage  *NodesStatsUsage `json:"global_io_usage,omitempty"`
+	GlobalIOUsage  *NodesStatsUsage `json:"global_io_usage,omitempty"`
 
 	// Available: >= 3.7.0.
 	GlobalNativeMemoryUsage *NodesStatsUsage `json:"global_native_memory_usage,omitempty"`
@@ -416,7 +416,7 @@ type NodesStatsFileSystem struct {
 	// Data. List of all file stores.
 	Data []NodesStatsDataPath `json:"data,omitempty"`
 
-	IoStats *NodesStatsIo `json:"io_stats,omitempty"`
+	IOStats *NodesStatsIO `json:"io_stats,omitempty"`
 
 	// Timestamp. Last time the file stores statistics were refreshed. Recorded
 	// in milliseconds since the Unix Epoch.
@@ -469,23 +469,23 @@ type NodesStatsDataPath struct {
 	Type *string `json:"type,omitempty"`
 }
 
-// NodesStatsIo is a typed component of the nodes.stats operation.
-type NodesStatsIo struct {
+// NodesStatsIO is a typed component of the nodes.stats operation.
+type NodesStatsIO struct {
 	// Devices. Array of disk metrics for each device that is backing an
 	// OpenSearch data path. These disk metrics are probed periodically and
 	// averages between the last probe and the current probe are computed.
-	Devices []NodesStatsIoStatDevice `json:"devices,omitempty"`
+	Devices []NodesStatsIOStatDevice `json:"devices,omitempty"`
 
-	Total *NodesStatsIoStatDevice `json:"total,omitempty"`
+	Total *NodesStatsIOStatDevice `json:"total,omitempty"`
 }
 
-// NodesStatsIoStatDevice is a typed component of the nodes.stats operation.
-type NodesStatsIoStatDevice struct {
+// NodesStatsIOStatDevice is a typed component of the nodes.stats operation.
+type NodesStatsIOStatDevice struct {
 	// DeviceName is the Linux device name.
 	DeviceName *string `json:"device_name,omitempty"`
 
-	// IoTimeInMillis is the time unit for milliseconds.
-	IoTimeInMillis *int64 `json:"io_time_in_millis,omitempty"`
+	// IOTimeInMillis is the time unit for milliseconds.
+	IOTimeInMillis *int64 `json:"io_time_in_millis,omitempty"`
 
 	// Operations is the total number of read and write operations for the
 	// device completed since starting OpenSearch.
@@ -932,15 +932,15 @@ type NodesStatsCgroup struct {
 
 // NodesStatsCgroupCPU is a typed component of the nodes.stats operation.
 type NodesStatsCgroupCPU struct {
-	// CfsPeriodMicros is the period of time, in microseconds, for how
+	// CFSPeriodMicros is the period of time, in microseconds, for how
 	// regularly all tasks in the same cgroup as the OpenSearch process should
 	// have their access to CPU resources reallocated.
-	CfsPeriodMicros *int64 `json:"cfs_period_micros,omitempty"`
+	CFSPeriodMicros *int64 `json:"cfs_period_micros,omitempty"`
 
-	// CfsQuotaMicros is the total amount of time, in microseconds, for which
+	// CFSQuotaMicros is the total amount of time, in microseconds, for which
 	// all tasks in the same cgroup as the OpenSearch process can run during
 	// one period `cfs_period_micros`.
-	CfsQuotaMicros *int64 `json:"cfs_quota_micros,omitempty"`
+	CFSQuotaMicros *int64 `json:"cfs_quota_micros,omitempty"`
 
 	// ControlGroup is the `cpu` control group to which the OpenSearch process
 	// belongs.
@@ -1123,7 +1123,7 @@ type NodesStatsShardResourceUsageDetail struct {
 	// CPUUtilizationPercent is the percentage value as a string.
 	CPUUtilizationPercent *string `json:"cpu_utilization_percent,omitempty"`
 
-	IoUsageStats *NodesStatsShardResourceUsageIoUsageStats `json:"io_usage_stats,omitempty"`
+	IOUsageStats *NodesStatsShardResourceUsageIOUsageStats `json:"io_usage_stats,omitempty"`
 
 	// MemoryUtilizationPercent is the percentage value as a string.
 	MemoryUtilizationPercent *string `json:"memory_utilization_percent,omitempty"`
@@ -1137,10 +1137,10 @@ type NodesStatsShardResourceUsageDetail struct {
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
-// NodesStatsShardResourceUsageIoUsageStats is a typed component of the nodes.stats operation.
-type NodesStatsShardResourceUsageIoUsageStats struct {
-	// MaxIoUtilizationPercent is the percentage value as a string.
-	MaxIoUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
+// NodesStatsShardResourceUsageIOUsageStats is a typed component of the nodes.stats operation.
+type NodesStatsShardResourceUsageIOUsageStats struct {
+	// MaxIOUtilizationPercent is the percentage value as a string.
+	MaxIOUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
 }
 
 // NodesStatsScript is a typed component of the nodes.stats operation.

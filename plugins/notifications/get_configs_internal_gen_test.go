@@ -151,12 +151,12 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ses_account.role_arn",
-			params: GetConfigsParams{SesAccountRoleArn: "test-value"},
+			params: GetConfigsParams{SesAccountRoleARN: "test-value"},
 			want:   map[string]string{"ses_account.role_arn": "test-value"},
 		},
 		{
 			name:   "ses_account.role_arn.keyword",
-			params: GetConfigsParams{SesAccountRoleArnKeyword: "test-value"},
+			params: GetConfigsParams{SesAccountRoleARNKeyword: "test-value"},
 			want:   map[string]string{"ses_account.role_arn.keyword": "test-value"},
 		},
 		{
@@ -196,22 +196,22 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "sns.role_arn",
-			params: GetConfigsParams{SNSRoleArn: "test-value"},
+			params: GetConfigsParams{SNSRoleARN: "test-value"},
 			want:   map[string]string{"sns.role_arn": "test-value"},
 		},
 		{
 			name:   "sns.role_arn.keyword",
-			params: GetConfigsParams{SNSRoleArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSRoleARNKeyword: "test-value"},
 			want:   map[string]string{"sns.role_arn.keyword": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn",
-			params: GetConfigsParams{SNSTopicArn: "test-value"},
+			params: GetConfigsParams{SNSTopicARN: "test-value"},
 			want:   map[string]string{"sns.topic_arn": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn.keyword",
-			params: GetConfigsParams{SNSTopicArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSTopicARNKeyword: "test-value"},
 			want:   map[string]string{"sns.topic_arn.keyword": "test-value"},
 		},
 		{

@@ -131,8 +131,8 @@ type AuthinfoResp struct {
 	// SizeOfUser is the size of user contained in memory.
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
-	// SsoLogoutURL is the logout URL.
-	SsoLogoutURL *string `json:"sso_logout_url"`
+	// SSOLogoutURL is the logout URL.
+	SSOLogoutURL *string `json:"sso_logout_url"`
 
 	// Tenants is the tenants the user has access to with `read-write` or
 	// `read-only` access indicators.

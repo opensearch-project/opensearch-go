@@ -63,7 +63,7 @@ type GetSslinfoParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Whether to include all domain names in the response.
-	ShowDn string
+	ShowDN string
 }
 
 func (r GetSslinfoParams) get() map[string]string {
@@ -77,8 +77,8 @@ func (r GetSslinfoParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if r.ShowDn != "" {
-		set("show_dn", r.ShowDn)
+	if r.ShowDN != "" {
+		set("show_dn", r.ShowDN)
 	}
 
 	return params

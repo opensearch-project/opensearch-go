@@ -5232,7 +5232,7 @@ type IndicesIndexSettingsMergeLogByteSizePolicy struct {
 	// MinMerge is the unique identifier of a node.
 	MinMerge *string `json:"min_merge,omitempty"`
 
-	NoCfsRatio *string `json:"no_cfs_ratio,omitempty"`
+	NoCFSRatio *string `json:"no_cfs_ratio,omitempty"`
 }
 
 // The configuration for tiered merge policy.
@@ -9509,7 +9509,7 @@ type MLMessages struct {
 }
 
 type MLParameters struct {
-	LlmInterface *string      `json:"_llm_interface,omitempty"`
+	LLMInterface *string      `json:"_llm_interface,omitempty"`
 	Inputs       *string      `json:"inputs,omitempty"`
 	Messages     []MLMessages `json:"messages,omitempty"`
 	Question     *string      `json:"question,omitempty"`
@@ -9742,12 +9742,12 @@ type MLIndexSettings struct {
 }
 
 type MLStrategyConfiguration struct {
-	// LlmID is the LLM ID for strategy.
-	LlmID *string `json:"llm_id,omitempty"`
+	// LLMID is the LLM ID for strategy.
+	LLMID *string `json:"llm_id,omitempty"`
 
-	// LlmResultPath. JSONPath expression for extracting LLM results from
+	// LLMResultPath. JSONPath expression for extracting LLM results from
 	// responses.
-	LlmResultPath *string `json:"llm_result_path,omitempty"`
+	LLMResultPath *string `json:"llm_result_path,omitempty"`
 
 	// SystemPrompt. Custom system prompt to override default strategy prompt.
 	SystemPrompt *string `json:"system_prompt,omitempty"`
@@ -9790,8 +9790,8 @@ type MLMemoryContainerConfiguration struct {
 
 	IndexSettings *MLIndexSettings `json:"index_settings,omitempty"`
 
-	// LlmID is the LLM ID.
-	LlmID *string `json:"llm_id,omitempty"`
+	// LLMID is the LLM ID.
+	LLMID *string `json:"llm_id,omitempty"`
 
 	// MaxInferSize is the maximum number of similar memories retrieved during
 	// consolidation.
@@ -10413,7 +10413,7 @@ type NeuralNestedNodeStatsProcessorsSearchHybrid struct {
 	CombHarmonicExecutions *int `json:"comb_harmonic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombRrfExecutions *int `json:"comb_rrf_executions,omitempty"`
+	CombRRFExecutions *int `json:"comb_rrf_executions,omitempty"`
 
 	// Available: >= 3.1.0.
 	NormL2Executions *int `json:"norm_l2_executions,omitempty"`
@@ -10539,7 +10539,7 @@ type NeuralNestedInfoStatsProcessorsSearchHybrid struct {
 	CombHarmonicProcessors *int `json:"comb_harmonic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombRrfProcessors *int `json:"comb_rrf_processors,omitempty"`
+	CombRRFProcessors *int `json:"comb_rrf_processors,omitempty"`
 
 	// Available: >= 3.1.0.
 	NormL2Processors *int `json:"norm_l2_processors,omitempty"`
@@ -10634,7 +10634,7 @@ type NeuralFlatNodeStats struct {
 	ProcessorsSearchHybridCombHarmonicExecutions *int `json:"processors.search.hybrid.comb_harmonic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombRrfExecutions *int `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
+	ProcessorsSearchHybridCombRRFExecutions *int `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
 
 	// Available: >= 3.1.0.
 	ProcessorsSearchHybridNormL2Executions *int `json:"processors.search.hybrid.norm_l2_executions,omitempty"`
@@ -10732,7 +10732,7 @@ type NeuralFlatInfoStats struct {
 	ProcessorsSearchHybridCombHarmonicProcessors *int `json:"processors.search.hybrid.comb_harmonic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombRrfProcessors *int `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
+	ProcessorsSearchHybridCombRRFProcessors *int `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
 
 	// Available: >= 3.1.0.
 	ProcessorsSearchHybridNormL2Processors *int `json:"processors.search.hybrid.norm_l2_processors,omitempty"`
@@ -10799,7 +10799,7 @@ type NotificationsMicrosoftTeamsItem struct {
 type NotificationsSesAccount struct {
 	FromAddress string  `json:"from_address"`
 	Region      string  `json:"region"`
-	RoleArn     *string `json:"role_arn,omitempty"`
+	RoleARN     *string `json:"role_arn,omitempty"`
 }
 
 type NotificationsSlackItem struct {
@@ -10814,8 +10814,8 @@ type NotificationsSMTPAccount struct {
 }
 
 type NotificationsSNSItem struct {
-	RoleArn  *string `json:"role_arn,omitempty"`
-	TopicArn string  `json:"topic_arn"`
+	RoleARN  *string `json:"role_arn,omitempty"`
+	TopicARN string  `json:"topic_arn"`
 }
 
 type NotificationsWebhook struct {
@@ -11770,9 +11770,9 @@ type SearchPipelineRespProcessorAgenticContext struct {
 }
 
 type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
-	CampaignArn   string  `json:"campaign_arn"`
+	CampaignARN   string  `json:"campaign_arn"`
 	Description   *string `json:"description,omitempty"`
-	IamRoleArn    *string `json:"iam_role_arn,omitempty"`
+	IAMRoleARN    *string `json:"iam_role_arn,omitempty"`
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
 	ItemIDField   *string `json:"item_id_field,omitempty"`
 	Recipe        string  `json:"recipe"`
@@ -11997,8 +11997,8 @@ type SecurityAuthInfo struct {
 	// SizeOfUser is the size of user contained in memory.
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
-	// SsoLogoutURL is the logout URL.
-	SsoLogoutURL *string `json:"sso_logout_url"`
+	// SSOLogoutURL is the logout URL.
+	SSOLogoutURL *string `json:"sso_logout_url"`
 
 	// Tenants is the tenants the user has access to with `read-write` or
 	// `read-only` access indicators.
@@ -12089,11 +12089,11 @@ type SecurityActionGroup struct {
 }
 
 type SecurityCertificatesDetail struct {
-	IssuerDn  *string `json:"issuer_dn,omitempty"`
+	IssuerDN  *string `json:"issuer_dn,omitempty"`
 	NotAfter  *string `json:"not_after,omitempty"`
 	NotBefore *string `json:"not_before,omitempty"`
 	San       *string `json:"san,omitempty"`
-	SubjectDn *string `json:"subject_dn,omitempty"`
+	SubjectDN *string `json:"subject_dn,omitempty"`
 }
 
 type SecurityCertificateTypes struct {
@@ -12228,7 +12228,7 @@ type SecurityDashboardsInfo struct {
 }
 
 type SecurityDistinguishedNames struct {
-	NodesDn []string `json:"nodes_dn,omitempty"`
+	NodesDN []string `json:"nodes_dn,omitempty"`
 }
 
 type SecurityPermissionsInfo struct {
@@ -12353,7 +12353,7 @@ type SecurityHealthInfo struct {
 }
 
 type SecurityWhoAmI struct {
-	Dn                       *string `json:"dn"`
+	DN                       *string `json:"dn"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 }

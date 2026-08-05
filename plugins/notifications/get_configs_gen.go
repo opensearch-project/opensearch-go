@@ -136,9 +136,9 @@ type GetConfigsParams struct {
 
 	SesAccountRegion string
 
-	SesAccountRoleArn string
+	SesAccountRoleARN string
 
-	SesAccountRoleArnKeyword string
+	SesAccountRoleARNKeyword string
 
 	SlackURL string
 
@@ -154,13 +154,13 @@ type GetConfigsParams struct {
 
 	SMTPAccountMethod string
 
-	SNSRoleArn string
+	SNSRoleARN string
 
-	SNSRoleArnKeyword string
+	SNSRoleARNKeyword string
 
-	SNSTopicArn string
+	SNSTopicARN string
 
-	SNSTopicArnKeyword string
+	SNSTopicARNKeyword string
 
 	TextQuery string
 
@@ -276,12 +276,12 @@ func (r GetConfigsParams) get() map[string]string {
 		set("ses_account.region", r.SesAccountRegion)
 	}
 
-	if r.SesAccountRoleArn != "" {
-		set("ses_account.role_arn", r.SesAccountRoleArn)
+	if r.SesAccountRoleARN != "" {
+		set("ses_account.role_arn", r.SesAccountRoleARN)
 	}
 
-	if r.SesAccountRoleArnKeyword != "" {
-		set("ses_account.role_arn.keyword", r.SesAccountRoleArnKeyword)
+	if r.SesAccountRoleARNKeyword != "" {
+		set("ses_account.role_arn.keyword", r.SesAccountRoleARNKeyword)
 	}
 
 	if r.SlackURL != "" {
@@ -312,20 +312,20 @@ func (r GetConfigsParams) get() map[string]string {
 		set("smtp_account.method", r.SMTPAccountMethod)
 	}
 
-	if r.SNSRoleArn != "" {
-		set("sns.role_arn", r.SNSRoleArn)
+	if r.SNSRoleARN != "" {
+		set("sns.role_arn", r.SNSRoleARN)
 	}
 
-	if r.SNSRoleArnKeyword != "" {
-		set("sns.role_arn.keyword", r.SNSRoleArnKeyword)
+	if r.SNSRoleARNKeyword != "" {
+		set("sns.role_arn.keyword", r.SNSRoleARNKeyword)
 	}
 
-	if r.SNSTopicArn != "" {
-		set("sns.topic_arn", r.SNSTopicArn)
+	if r.SNSTopicARN != "" {
+		set("sns.topic_arn", r.SNSTopicARN)
 	}
 
-	if r.SNSTopicArnKeyword != "" {
-		set("sns.topic_arn.keyword", r.SNSTopicArnKeyword)
+	if r.SNSTopicARNKeyword != "" {
+		set("sns.topic_arn.keyword", r.SNSTopicARNKeyword)
 	}
 
 	if r.TextQuery != "" {
