@@ -60,6 +60,7 @@ func TestSeedURLsWithDiscovery(t *testing.T) {
 		// Create transport
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Make initial request (should use seed URLs as coordinating_only since they have no roles yet)
 		req, err := http.NewRequest(http.MethodGet, "/", nil)

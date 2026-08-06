@@ -57,6 +57,7 @@ func TestCompleteDiscoveryFlow(t *testing.T) {
 
 	transport, err := opensearchtransport.New(cfg)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = transport.Close() })
 
 	// REQUIREMENT 2: Initial URLs used for queries are these seed URLs
 	req1, err := http.NewRequest(http.MethodGet, "/", nil)

@@ -70,6 +70,7 @@ func TestStreamFiresStreamResponseEvent(t *testing.T) {
 	obs := newRecordingObserver()
 	tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL)}, Observer: obs})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
@@ -101,6 +102,7 @@ func TestRequestFiresRequestResponseEvent(t *testing.T) {
 	obs := newRecordingObserver()
 	tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL)}, Observer: obs})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
@@ -135,6 +137,7 @@ func TestRequestBuffersEmptyBody(t *testing.T) {
 	obs := newRecordingObserver()
 	tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL)}, Observer: obs})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
@@ -207,6 +210,7 @@ func TestRequestEventIdentityFields(t *testing.T) {
 			obs := newRecordingObserver()
 			tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL)}, Observer: obs})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			req, err := http.NewRequest(tc.method, ts.URL+tc.path, nil)
 			require.NoError(t, err)
@@ -240,6 +244,7 @@ func TestRequestEventIdentityIgnoresBasePath(t *testing.T) {
 	// Connection URL carries a base path prefix.
 	tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL + "/os")}, Observer: obs})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/logs/_doc/1", nil)
 	require.NoError(t, err)
@@ -288,6 +293,7 @@ func TestConfigOperationClassifierWiring(t *testing.T) {
 		OperationClassifier: custom,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	require.Same(t, custom, tp.classifier, "Config.OperationClassifier is stored on the transport")
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/logs/_search", nil)
@@ -361,6 +367,7 @@ func TestTracingHooksLifecycle(t *testing.T) {
 	obs := &tracingObserver{}
 	tp, err := New(Config{URLs: []*url.URL{mustParseURL(ts.URL)}, Observer: obs})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL+"/logs/_search", nil)
 	require.NoError(t, err)

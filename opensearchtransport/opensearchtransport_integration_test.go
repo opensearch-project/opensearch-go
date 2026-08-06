@@ -63,6 +63,7 @@ func TestTransportRetries(t *testing.T) {
 	serverURL, _ := url.Parse(server.URL)
 
 	transport, _ := opensearchtransport.New(opensearchtransport.Config{URLs: []*url.URL{serverURL}})
+	t.Cleanup(func() { _ = transport.Close() })
 
 	bodies := []io.Reader{
 		strings.NewReader(`FAKE`),
@@ -127,6 +128,7 @@ func TestTransportHeaders(t *testing.T) {
 		Password:  config.Client.Password,
 		Transport: config.Client.Transport,
 	})
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Stream(req)
@@ -169,6 +171,7 @@ func TestTransportBodyClose(t *testing.T) {
 		Password:  config.Client.Password,
 		Transport: config.Client.Transport,
 	})
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/", nil)
 	res, err := tp.Stream(req)
@@ -222,6 +225,7 @@ func TestTransportCompression(t *testing.T) {
 		Password:            config.Client.Password,
 		Transport:           config.Client.Transport,
 	})
+	t.Cleanup(func() { _ = transport.Close() })
 
 	// Use unique index name for this test
 	indexName := testutil.MustUniqueString(t, "/transport-compression-test")

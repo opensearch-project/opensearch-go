@@ -85,6 +85,7 @@ func TestTransportSelector(t *testing.T) {
 			},
 			Transport: testutil.GetTestTransport(t),
 		})
+		t.Cleanup(func() { _ = transport.Close() })
 
 		node = NodeName(t, transport)
 		if node != "opensearch-node1" {

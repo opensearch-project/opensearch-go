@@ -321,6 +321,7 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Run discovery to find all 3 nodes (seeds only have 2).
 		// Discovery also enforces the active cap and runs rotation.
@@ -390,6 +391,7 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Initial discovery -- establishes 1 active + 2 standby.
 		// Cap enforcement during this phase fires OnStandbyDemote for the 2
@@ -551,6 +553,7 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Initial discovery -- wait for 2 standby
 		discoverWithStandby(t, transport)

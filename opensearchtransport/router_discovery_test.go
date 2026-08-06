@@ -57,6 +57,7 @@ func TestRouterWithDiscovery(t *testing.T) {
 		// Create transport
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Phase 1: Before discovery, seed URLs should be available as coordinating_only nodes.
 		req1, err := http.NewRequest(http.MethodGet, "/", nil)
@@ -98,6 +99,7 @@ func TestRouterWithDiscovery(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Initial request using seed URL.
 		req1, err := http.NewRequest(http.MethodGet, "/", nil)
