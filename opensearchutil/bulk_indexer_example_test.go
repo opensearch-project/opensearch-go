@@ -64,6 +64,7 @@ func ExampleNewBulkIndexer() {
 	if err != nil {
 		log.Fatalf("Error creating the client: %s", err)
 	}
+	defer func() { _ = client.Close() }()
 
 	// Create the indexer
 	//

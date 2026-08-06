@@ -61,6 +61,7 @@ func TestRegistryRecordsRequestResponse(t *testing.T) {
 		Observer: reg,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 	require.NoError(t, err)
