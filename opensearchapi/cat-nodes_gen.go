@@ -284,8 +284,8 @@ type CatNodesRecord struct {
 	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// Jdk is the Java version.
-	Jdk *string `json:"jdk,omitempty"`
+	// JDK is the Java version.
+	JDK *string `json:"jdk,omitempty"`
 
 	// Load15m is the load average for the last fifteen minutes.
 	Load15m *string `json:"load_15m,omitempty"`
@@ -341,8 +341,8 @@ type CatNodesRecord struct {
 	// `-`(coordinating node only).
 	NodeRoles *string `json:"node.roles,omitempty"`
 
-	// Pid is the process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
 	// Port is the bound transport port.
 	Port *string `json:"port,omitempty"`

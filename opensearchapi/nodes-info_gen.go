@@ -170,8 +170,8 @@ type NodesInfoNode struct {
 	// Network. Provides network-related information for the node.
 	Network *NodesInfoNodeNetwork `json:"network,omitempty"`
 
-	// Os. Provides operating system information for the node.
-	Os *NodesInfoNodeOperatingSystem `json:"os,omitempty"`
+	// OS. Provides operating system information for the node.
+	OS *NodesInfoNodeOperatingSystem `json:"os,omitempty"`
 
 	// Plugins is the list of plugins installed on the node.
 	Plugins []PluginStats `json:"plugins,omitempty"`
@@ -253,8 +253,8 @@ type NodesInfoNodeIngestProcessor struct {
 //
 // Provides JVM-specific information for the node.
 type NodesInfoNodeJVM struct {
-	// BundledJdk. Whether the JDK is bundled with OpenSearch.
-	BundledJdk bool `json:"bundled_jdk"`
+	// BundledJDK. Whether the JDK is bundled with OpenSearch.
+	BundledJDK bool `json:"bundled_jdk"`
 
 	// GCCollectors is the garbage collectors enabled in the JVM.
 	GCCollectors []string `json:"gc_collectors,omitempty"`
@@ -268,8 +268,8 @@ type NodesInfoNodeJVM struct {
 	// MemoryPools is the memory pools available to the JVM.
 	MemoryPools []string `json:"memory_pools,omitempty"`
 
-	// Pid is the process identifier of the JVM.
-	Pid int `json:"pid"`
+	// PID is the process identifier of the JVM.
+	PID int `json:"pid"`
 
 	// StartTime is a date and time, either as a string whose format depends on
 	// the context (defaulting to ISO_8601) or the number of milliseconds since
@@ -280,8 +280,8 @@ type NodesInfoNodeJVM struct {
 	// StartTimeInMillis is the time unit for milliseconds.
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
-	// UsingBundledJdk. Whether the node is using the bundled JDK.
-	UsingBundledJdk *bool `json:"using_bundled_jdk"`
+	// UsingBundledJDK. Whether the node is using the bundled JDK.
+	UsingBundledJDK *bool `json:"using_bundled_jdk"`
 
 	// UsingCompressedOrdinaryObjectPointers. Certain APIs may return values,
 	// including numbers such as epoch timestamps, as strings. This setting
@@ -292,13 +292,13 @@ type NodesInfoNodeJVM struct {
 
 	Version *string `json:"version,omitempty"`
 
-	// VmName is the name of a resource or configuration element.
-	VmName *string `json:"vm_name,omitempty"`
+	// VMName is the name of a resource or configuration element.
+	VMName *string `json:"vm_name,omitempty"`
 
-	// VmVendor is the vendor of the JVM.
-	VmVendor *string `json:"vm_vendor,omitempty"`
+	// VMVendor is the vendor of the JVM.
+	VMVendor *string `json:"vm_vendor,omitempty"`
 
-	VmVersion *string `json:"vm_version,omitempty"`
+	VMVersion *string `json:"vm_version,omitempty"`
 }
 
 // NodesInfoNodeJVMMemory is a typed component of the nodes.info operation.
@@ -354,8 +354,8 @@ type NodesInfoNodeNetworkInterface struct {
 	// Address is the IP address of the interface.
 	Address string `json:"address"`
 
-	// MacAddress is the MAC address of the interface.
-	MacAddress string `json:"mac_address"`
+	// MACAddress is the MAC address of the interface.
+	MACAddress string `json:"mac_address"`
 
 	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
@@ -418,8 +418,8 @@ type NodesInfoNodeOSCPU struct {
 	// CoresPerSocket is the number of cores per CPU socket.
 	CoresPerSocket int `json:"cores_per_socket"`
 
-	// Mhz is the CPU clock speed in MHz.
-	Mhz int `json:"mhz"`
+	// MHz is the CPU clock speed in MHz.
+	MHz int `json:"mhz"`
 
 	// Model is the CPU model name.
 	Model string `json:"model"`

@@ -126,7 +126,7 @@ func (r RegisterAgentsResp) RawBody() io.Reader {
 type MLRegisterAgentsBody struct {
 	AppType     *string                     `json:"app_type,omitempty"`
 	Description *string                     `json:"description,omitempty"`
-	Llm         *opensearchapi.MLLLM        `json:"llm,omitempty"`
+	LLM         *opensearchapi.MLLLM        `json:"llm,omitempty"`
 	Memory      *opensearchapi.MLMemory     `json:"memory,omitempty"`
 	Name        string                      `json:"name"`
 	Parameters  *opensearchapi.MLParameters `json:"parameters,omitempty"`

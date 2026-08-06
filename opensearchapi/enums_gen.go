@@ -475,8 +475,8 @@ const (
 	// IBLambdaDf. The document frequency Lambda.
 	IBLambdaDf IBLambda = "df"
 
-	// IBLambdaTtf. The total term frequency Lambda.
-	IBLambdaTtf IBLambda = "ttf"
+	// IBLambdaTTF. The total term frequency Lambda.
+	IBLambdaTTF IBLambda = "ttf"
 )
 
 // The type of file system lock.

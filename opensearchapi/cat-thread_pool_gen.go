@@ -187,8 +187,8 @@ type CatThreadPoolRecord struct {
 	// NodeName is the node name.
 	NodeName *string `json:"node_name,omitempty"`
 
-	// Pid is the process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
 	// PoolSize is the number of threads in the current thread pool.
 	PoolSize *string `json:"pool_size,omitempty"`

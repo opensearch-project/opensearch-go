@@ -152,8 +152,8 @@ type CatNodeattrsNodeAttributesRecord struct {
 	// Node is the node name.
 	Node *string `json:"node,omitempty"`
 
-	// Pid is the process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
 	// Port is the bound transport port.
 	Port *string `json:"port,omitempty"`

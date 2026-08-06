@@ -263,7 +263,7 @@ type TermVectorsTermVector struct {
 type TermVectorsFieldStatistics struct {
 	DocCount   int   `json:"doc_count"`
 	SumDocFreq int64 `json:"sum_doc_freq"`
-	SumTtf     int64 `json:"sum_ttf"`
+	SumTTF     int64 `json:"sum_ttf"`
 }
 
 // TermVectorsTerm is a typed component of the mtermvectors operation.
@@ -272,7 +272,7 @@ type TermVectorsTerm struct {
 	Score    *float64           `json:"score,omitempty"`
 	TermFreq int                `json:"term_freq"`
 	Tokens   []TermVectorsToken `json:"tokens,omitempty"`
-	Ttf      *int               `json:"ttf,omitempty"`
+	TTF      *int               `json:"ttf,omitempty"`
 }
 
 // TermVectorsToken is a typed component of the mtermvectors operation.

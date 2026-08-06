@@ -130,15 +130,15 @@ type GetConfigsParams struct {
 
 	Query string
 
-	SesAccountFromAddress string
+	SESAccountFromAddress string
 
-	SesAccountFromAddressKeyword string
+	SESAccountFromAddressKeyword string
 
-	SesAccountRegion string
+	SESAccountRegion string
 
-	SesAccountRoleArn string
+	SESAccountRoleARN string
 
-	SesAccountRoleArnKeyword string
+	SESAccountRoleARNKeyword string
 
 	SlackURL string
 
@@ -154,13 +154,13 @@ type GetConfigsParams struct {
 
 	SMTPAccountMethod string
 
-	SNSRoleArn string
+	SNSRoleARN string
 
-	SNSRoleArnKeyword string
+	SNSRoleARNKeyword string
 
-	SNSTopicArn string
+	SNSTopicARN string
 
-	SNSTopicArnKeyword string
+	SNSTopicARNKeyword string
 
 	TextQuery string
 
@@ -264,24 +264,24 @@ func (r GetConfigsParams) get() map[string]string {
 		set("query", r.Query)
 	}
 
-	if r.SesAccountFromAddress != "" {
-		set("ses_account.from_address", r.SesAccountFromAddress)
+	if r.SESAccountFromAddress != "" {
+		set("ses_account.from_address", r.SESAccountFromAddress)
 	}
 
-	if r.SesAccountFromAddressKeyword != "" {
-		set("ses_account.from_address.keyword", r.SesAccountFromAddressKeyword)
+	if r.SESAccountFromAddressKeyword != "" {
+		set("ses_account.from_address.keyword", r.SESAccountFromAddressKeyword)
 	}
 
-	if r.SesAccountRegion != "" {
-		set("ses_account.region", r.SesAccountRegion)
+	if r.SESAccountRegion != "" {
+		set("ses_account.region", r.SESAccountRegion)
 	}
 
-	if r.SesAccountRoleArn != "" {
-		set("ses_account.role_arn", r.SesAccountRoleArn)
+	if r.SESAccountRoleARN != "" {
+		set("ses_account.role_arn", r.SESAccountRoleARN)
 	}
 
-	if r.SesAccountRoleArnKeyword != "" {
-		set("ses_account.role_arn.keyword", r.SesAccountRoleArnKeyword)
+	if r.SESAccountRoleARNKeyword != "" {
+		set("ses_account.role_arn.keyword", r.SESAccountRoleARNKeyword)
 	}
 
 	if r.SlackURL != "" {
@@ -312,20 +312,20 @@ func (r GetConfigsParams) get() map[string]string {
 		set("smtp_account.method", r.SMTPAccountMethod)
 	}
 
-	if r.SNSRoleArn != "" {
-		set("sns.role_arn", r.SNSRoleArn)
+	if r.SNSRoleARN != "" {
+		set("sns.role_arn", r.SNSRoleARN)
 	}
 
-	if r.SNSRoleArnKeyword != "" {
-		set("sns.role_arn.keyword", r.SNSRoleArnKeyword)
+	if r.SNSRoleARNKeyword != "" {
+		set("sns.role_arn.keyword", r.SNSRoleARNKeyword)
 	}
 
-	if r.SNSTopicArn != "" {
-		set("sns.topic_arn", r.SNSTopicArn)
+	if r.SNSTopicARN != "" {
+		set("sns.topic_arn", r.SNSTopicARN)
 	}
 
-	if r.SNSTopicArnKeyword != "" {
-		set("sns.topic_arn.keyword", r.SNSTopicArnKeyword)
+	if r.SNSTopicARNKeyword != "" {
+		set("sns.topic_arn.keyword", r.SNSTopicARNKeyword)
 	}
 
 	if r.TextQuery != "" {

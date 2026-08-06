@@ -321,9 +321,9 @@ type ClusterStatsClusterNodes struct {
 	// used by selected nodes.
 	NetworkTypes *ClusterStatsClusterNetworkTypes `json:"network_types,omitempty"`
 
-	// Os. Contains statistics about the operating systems used by selected
+	// OS. Contains statistics about the operating systems used by selected
 	// nodes.
-	Os *ClusterStatsClusterOperatingSystem `json:"os,omitempty"`
+	OS *ClusterStatsClusterOperatingSystem `json:"os,omitempty"`
 
 	// PackagingTypes. Contains statistics about OpenSearch distributions
 	// installed on selected nodes.
@@ -521,25 +521,25 @@ type ClusterStatsClusterJVMMemory struct {
 
 // ClusterStatsClusterJVMVersion is a typed component of the cluster.stats operation.
 type ClusterStatsClusterJVMVersion struct {
-	// BundledJdk. Always `true`. All distributions come with a bundled Java
+	// BundledJDK. Always `true`. All distributions come with a bundled Java
 	// Development Kit (JDK).
-	BundledJdk bool `json:"bundled_jdk"`
+	BundledJDK bool `json:"bundled_jdk"`
 
 	// Count. Total number of selected nodes using JVM.
 	Count int `json:"count"`
 
-	// UsingBundledJdk. If `true`, a bundled JDK is in use by JVM.
-	UsingBundledJdk bool `json:"using_bundled_jdk"`
+	// UsingBundledJDK. If `true`, a bundled JDK is in use by JVM.
+	UsingBundledJDK bool `json:"using_bundled_jdk"`
 
 	Version string `json:"version"`
 
-	// VmName. Name of the JVM.
-	VmName string `json:"vm_name"`
+	// VMName. Name of the JVM.
+	VMName string `json:"vm_name"`
 
-	// VmVendor. Vendor of the JVM.
-	VmVendor string `json:"vm_vendor"`
+	// VMVendor. Vendor of the JVM.
+	VMVendor string `json:"vm_vendor"`
 
-	VmVersion string `json:"vm_version"`
+	VMVersion string `json:"vm_version"`
 }
 
 // ClusterStatsClusterNetworkTypes is a typed component of the cluster.stats operation.
