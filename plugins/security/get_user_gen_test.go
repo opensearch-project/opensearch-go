@@ -74,6 +74,7 @@ func TestGetUser_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := security.NewClient(osClient)
 
 		resp, err := client.GetUser(t.Context(), security.GetUserReq{Username: "test"})
@@ -92,6 +93,7 @@ func TestGetUser_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := security.NewClient(osClient)
 
 		resp, err := errClient.GetUser(t.Context(), security.GetUserReq{Username: "test"})

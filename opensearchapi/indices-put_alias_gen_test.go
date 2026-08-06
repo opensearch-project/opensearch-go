@@ -77,6 +77,7 @@ func TestIndicesPutAlias_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Index.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -96,6 +97,7 @@ func TestIndicesPutAlias_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Index.PutAlias(t.Context(), opensearchapi.IndicesPutAliasReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)

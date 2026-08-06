@@ -74,6 +74,7 @@ func TestGetState_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ingestion.NewClient(osClient)
 
 		resp, err := client.GetState(t.Context(), ingestion.GetStateReq{Index: "test"})
@@ -92,6 +93,7 @@ func TestGetState_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ingestion.NewClient(osClient)
 
 		resp, err := errClient.GetState(t.Context(), ingestion.GetStateReq{Index: "test"})

@@ -75,6 +75,7 @@ func TestUpdatePolicy_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := sm.NewClient(osClient)
 
 		resp, err := client.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{PolicyName: "test", BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestUpdatePolicy_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := sm.NewClient(osClient)
 
 		resp, err := errClient.UpdatePolicy(t.Context(), sm.UpdatePolicyReq{PolicyName: "test", BodyReader: strings.NewReader("{}")})

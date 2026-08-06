@@ -70,6 +70,7 @@ func TestDeletePIT_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -89,6 +90,7 @@ func TestDeletePIT_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)

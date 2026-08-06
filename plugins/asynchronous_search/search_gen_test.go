@@ -68,6 +68,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := asynchronous_search.NewClient(osClient)
 
 		resp, err := client.Search(t.Context(), &asynchronous_search.SearchReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := asynchronous_search.NewClient(osClient)
 
 		resp, err := errClient.Search(t.Context(), &asynchronous_search.SearchReq{BodyReader: strings.NewReader("{}")})

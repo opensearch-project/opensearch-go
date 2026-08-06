@@ -75,6 +75,7 @@ func TestPatchRoleMapping_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := security.NewClient(osClient)
 
 		resp, err := client.PatchRoleMapping(t.Context(), security.PatchRoleMappingReq{Role: "test", Body: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestPatchRoleMapping_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := security.NewClient(osClient)
 
 		resp, err := errClient.PatchRoleMapping(t.Context(), security.PatchRoleMappingReq{Role: "test", Body: strings.NewReader("{}")})

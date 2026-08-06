@@ -74,6 +74,7 @@ func TestDelete_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := transforms.NewClient(osClient)
 
 		resp, err := client.Delete(t.Context(), transforms.DeleteReq{ID: "test"})
@@ -92,6 +93,7 @@ func TestDelete_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := transforms.NewClient(osClient)
 
 		resp, err := errClient.Delete(t.Context(), transforms.DeleteReq{ID: "test"})

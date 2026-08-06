@@ -76,6 +76,7 @@ func TestCatTemplates_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestCatTemplates_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Cat.Templates(t.Context(), opensearchapi.CatTemplatesReq{})
 		require.Error(t, err)

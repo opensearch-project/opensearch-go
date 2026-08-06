@@ -74,6 +74,7 @@ func TestAddFeaturesToSetByQuery_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ltr.NewClient(osClient)
 
 		resp, err := client.AddFeaturesToSetByQuery(t.Context(), ltr.AddFeaturesToSetByQueryReq{Name: "test", Query: "test"})
@@ -92,6 +93,7 @@ func TestAddFeaturesToSetByQuery_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ltr.NewClient(osClient)
 
 		resp, err := errClient.AddFeaturesToSetByQuery(t.Context(), ltr.AddFeaturesToSetByQueryReq{Name: "test", Query: "test"})

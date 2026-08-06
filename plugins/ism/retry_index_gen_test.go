@@ -75,6 +75,7 @@ func TestRetryIndex_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ism.NewClient(osClient)
 
 		resp, err := client.RetryIndex(t.Context(), &ism.RetryIndexReq{BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestRetryIndex_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ism.NewClient(osClient)
 
 		resp, err := errClient.RetryIndex(t.Context(), &ism.RetryIndexReq{BodyReader: strings.NewReader("{}")})
