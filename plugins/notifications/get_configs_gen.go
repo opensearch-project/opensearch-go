@@ -130,15 +130,15 @@ type GetConfigsParams struct {
 
 	Query string
 
-	SesAccountFromAddress string
+	SESAccountFromAddress string
 
-	SesAccountFromAddressKeyword string
+	SESAccountFromAddressKeyword string
 
-	SesAccountRegion string
+	SESAccountRegion string
 
-	SesAccountRoleARN string
+	SESAccountRoleARN string
 
-	SesAccountRoleARNKeyword string
+	SESAccountRoleARNKeyword string
 
 	SlackURL string
 
@@ -264,24 +264,24 @@ func (r GetConfigsParams) get() map[string]string {
 		set("query", r.Query)
 	}
 
-	if r.SesAccountFromAddress != "" {
-		set("ses_account.from_address", r.SesAccountFromAddress)
+	if r.SESAccountFromAddress != "" {
+		set("ses_account.from_address", r.SESAccountFromAddress)
 	}
 
-	if r.SesAccountFromAddressKeyword != "" {
-		set("ses_account.from_address.keyword", r.SesAccountFromAddressKeyword)
+	if r.SESAccountFromAddressKeyword != "" {
+		set("ses_account.from_address.keyword", r.SESAccountFromAddressKeyword)
 	}
 
-	if r.SesAccountRegion != "" {
-		set("ses_account.region", r.SesAccountRegion)
+	if r.SESAccountRegion != "" {
+		set("ses_account.region", r.SESAccountRegion)
 	}
 
-	if r.SesAccountRoleARN != "" {
-		set("ses_account.role_arn", r.SesAccountRoleARN)
+	if r.SESAccountRoleARN != "" {
+		set("ses_account.role_arn", r.SESAccountRoleARN)
 	}
 
-	if r.SesAccountRoleARNKeyword != "" {
-		set("ses_account.role_arn.keyword", r.SesAccountRoleARNKeyword)
+	if r.SESAccountRoleARNKeyword != "" {
+		set("ses_account.role_arn.keyword", r.SESAccountRoleARNKeyword)
 	}
 
 	if r.SlackURL != "" {

@@ -136,27 +136,27 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ses_account.from_address",
-			params: GetConfigsParams{SesAccountFromAddress: "test-value"},
+			params: GetConfigsParams{SESAccountFromAddress: "test-value"},
 			want:   map[string]string{"ses_account.from_address": "test-value"},
 		},
 		{
 			name:   "ses_account.from_address.keyword",
-			params: GetConfigsParams{SesAccountFromAddressKeyword: "test-value"},
+			params: GetConfigsParams{SESAccountFromAddressKeyword: "test-value"},
 			want:   map[string]string{"ses_account.from_address.keyword": "test-value"},
 		},
 		{
 			name:   "ses_account.region",
-			params: GetConfigsParams{SesAccountRegion: "test-value"},
+			params: GetConfigsParams{SESAccountRegion: "test-value"},
 			want:   map[string]string{"ses_account.region": "test-value"},
 		},
 		{
 			name:   "ses_account.role_arn",
-			params: GetConfigsParams{SesAccountRoleARN: "test-value"},
+			params: GetConfigsParams{SESAccountRoleARN: "test-value"},
 			want:   map[string]string{"ses_account.role_arn": "test-value"},
 		},
 		{
 			name:   "ses_account.role_arn.keyword",
-			params: GetConfigsParams{SesAccountRoleARNKeyword: "test-value"},
+			params: GetConfigsParams{SESAccountRoleARNKeyword: "test-value"},
 			want:   map[string]string{"ses_account.role_arn.keyword": "test-value"},
 		},
 		{

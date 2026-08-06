@@ -10796,7 +10796,7 @@ type NotificationsMicrosoftTeamsItem struct {
 	URL string `json:"url"`
 }
 
-type NotificationsSesAccount struct {
+type NotificationsSESAccount struct {
 	FromAddress string  `json:"from_address"`
 	Region      string  `json:"region"`
 	RoleARN     *string `json:"role_arn,omitempty"`
@@ -10836,7 +10836,7 @@ type NotificationsConfigItem struct {
 	IsEnabled      *bool                            `json:"is_enabled,omitempty"`
 	MicrosoftTeams *NotificationsMicrosoftTeamsItem `json:"microsoft_teams,omitempty"`
 	Name           string                           `json:"name"`
-	SesAccount     *NotificationsSesAccount         `json:"ses_account,omitempty"`
+	SESAccount     *NotificationsSESAccount         `json:"ses_account,omitempty"`
 	Slack          *NotificationsSlackItem          `json:"slack,omitempty"`
 	SMTPAccount    *NotificationsSMTPAccount        `json:"smtp_account,omitempty"`
 	SNS            *NotificationsSNSItem            `json:"sns,omitempty"`
