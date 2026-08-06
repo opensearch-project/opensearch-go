@@ -202,6 +202,7 @@ var acronyms = map[string]string{
 	"pits":   "PITs",
 	"ppl":    "PPL", // Piped Processing Language
 	"rrf":    "RRF", // Reciprocal Rank Fusion
+	"ses":    "SES", // Simple Email Service
 	"sm":     "SM",  // Snapshot Management
 	"smtp":   "SMTP",
 	"sns":    "SNS", // Simple Notification Service
