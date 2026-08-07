@@ -1117,3 +1117,48 @@ func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, 
 }
 
 func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
+
+func TestBulkIndexer_ConsistentRouting(t *testing.T) {
+	numWorkers := 5
+
+	docRouter, err := opensearchtransport.NewDocRouter()
+	require.NoError(t, err, "Unexpected error creating DocRouter")
+
+	// Manually initialize the indexer without calling init()
+	// so background workers don't drain the queues during the test.
+	bi := &bulkIndexer{
+		config:    BulkIndexerConfig{NumWorkers: numWorkers},
+		rrQueues:  make([]chan BulkIndexerItem, numWorkers),
+		stats:     &bulkIndexerStats{},
+		docRouter: docRouter,
+	}
+	bi.queues.m = make(map[*opensearchtransport.Connection]chan BulkIndexerItem)
+
+	for i := range numWorkers {
+		bi.rrQueues[i] = make(chan BulkIndexerItem, 100)
+	}
+
+	targetDocID := "user_123"
+	numItems := 100
+
+	for range numItems {
+		item := BulkIndexerItem{
+			Action:     "update",
+			DocumentID: targetDocID,
+		}
+		err := bi.Add(context.Background(), item)
+		require.NoError(t, err, "Unexpected error during Add")
+	}
+
+	populatedChannels := 0
+	// Check rrQueues since the map dynamically points to these channels
+	for i, q := range bi.rrQueues {
+		if len(q) == numItems {
+			populatedChannels++
+		} else {
+			require.Empty(t, q, "Expected queue %d to have 0 items", i)
+		}
+	}
+
+	require.Equal(t, 1, populatedChannels, "Expected exactly 1 channel to receive all items for the same ID")
+}
