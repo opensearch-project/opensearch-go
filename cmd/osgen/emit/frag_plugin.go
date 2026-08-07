@@ -310,6 +310,7 @@ func NewClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
@@ -337,6 +338,7 @@ func CreateFailingClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
