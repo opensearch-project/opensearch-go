@@ -31,6 +31,7 @@ func NewClient(t *testing.T) (*ism.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return ism.NewClient(osClient), nil
 }
 
@@ -58,6 +59,7 @@ func CreateFailingClient(t *testing.T) (*ism.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return ism.NewClient(osClient), nil
 }
 

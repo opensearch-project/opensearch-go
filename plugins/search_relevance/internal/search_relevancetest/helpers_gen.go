@@ -31,6 +31,7 @@ func NewClient(t *testing.T) (*search_relevance.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return search_relevance.NewClient(osClient), nil
 }
 
@@ -58,6 +59,7 @@ func CreateFailingClient(t *testing.T) (*search_relevance.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return search_relevance.NewClient(osClient), nil
 }
 

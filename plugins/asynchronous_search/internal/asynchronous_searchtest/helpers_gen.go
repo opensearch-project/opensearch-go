@@ -31,6 +31,7 @@ func NewClient(t *testing.T) (*asynchronous_search.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return asynchronous_search.NewClient(osClient), nil
 }
 
@@ -58,6 +59,7 @@ func CreateFailingClient(t *testing.T) (*asynchronous_search.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return asynchronous_search.NewClient(osClient), nil
 }
 
