@@ -33,6 +33,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify the client was created successfully
 		if len(client.URLs()) == 0 {
@@ -56,6 +57,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify the client was created successfully
 		if len(client.URLs()) == 0 {
@@ -110,6 +112,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify the client was created successfully
 		if len(client.URLs()) == 0 {
@@ -133,6 +136,7 @@ func TestHealthCheckConfiguration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Test the failing health check
 		if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {

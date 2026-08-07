@@ -52,10 +52,11 @@ func ExampleNewDefaultClient() {
 	if err != nil {
 		log.Fatalf("Error creating the client: %s\n", err)
 	}
+	defer func() { _ = client.Close() }()
 
 	_, err = client.Info(ctx, nil)
 	if err != nil {
-		log.Fatalf("Error getting the response: %s\n", err)
+		log.Panicf("Error getting the response: %s\n", err)
 	}
 
 	log.Print(client.Client.Transport.(*opensearchtransport.Transport).URLs())
@@ -82,6 +83,7 @@ func ExampleNewClient() {
 	}
 
 	client, _ := opensearchapi.NewClient(cfg)
+	defer func() { _ = client.Close() }()
 	log.Print(client.Client.Transport.(*opensearchtransport.Transport).URLs())
 }
 
@@ -99,5 +101,6 @@ func ExampleNewClient_logger() {
 		},
 	}
 
-	opensearchapi.NewClient(cfg)
+	client, _ := opensearchapi.NewClient(cfg)
+	defer func() { _ = client.Close() }()
 }

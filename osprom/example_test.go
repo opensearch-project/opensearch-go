@@ -46,7 +46,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	_ = client
+	defer func() { _ = client.Close() }()
 
 	// Expose the metrics for scraping.
 	http.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

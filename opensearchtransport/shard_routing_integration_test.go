@@ -49,6 +49,7 @@ func TestMurmur3ShardRouting_Integration(t *testing.T) {
 	cfg, obs := getTestConfigWithReadiness(t, []*url.URL{u})
 	transport, err := New(cfg)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = transport.Close() })
 
 	ctx, cancel := context.WithTimeout(t.Context(), 60*time.Second)
 	defer cancel()
@@ -274,6 +275,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 
 	transport, err := New(cfg)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = transport.Close() })
 
 	ctx, cancel := context.WithTimeout(t.Context(), 90*time.Second)
 	defer cancel()
@@ -377,6 +379,7 @@ func TestShardExactRouting_FullPipeline_Integration(t *testing.T) {
 	plainCfg := getTestConfig(t, []*url.URL{u})
 	plainTransport, err := New(plainCfg)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = plainTransport.Close() })
 
 	// Per-routing ground truth is fetched fresh inside each subtest below.
 	// A pre-loop snapshot would race against allocator-driven shard movement

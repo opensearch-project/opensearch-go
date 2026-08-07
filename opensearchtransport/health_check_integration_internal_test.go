@@ -50,6 +50,7 @@ func TestHealthCheckIntegration(t *testing.T) {
 
 	client, err := New(cfg)
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
 
 	urls := client.URLs()
 	require.NotEmpty(t, urls, "Expected at least one URL after health validation")
