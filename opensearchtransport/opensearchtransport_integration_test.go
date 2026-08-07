@@ -30,6 +30,7 @@ package opensearchtransport_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -273,5 +274,76 @@ func TestTransportCompression(t *testing.T) {
 	}
 	if res != nil && res.Body != nil {
 		res.Body.Close()
+	}
+}
+
+func TestTransportAPIKeyAuth(t *testing.T) {
+	// API key creation requires the security plugin, which is only present in
+	// secure (HTTPS) integration environments.
+	if !testutil.IsSecure(t) {
+		t.Skip("TestTransportAPIKeyAuth requires SECURE_INTEGRATION=true (security plugin)")
+	}
+
+	tptestutil.SkipIfVersion(t, "<", "2.0.0", "API key support requires OpenSearch 2.x+")
+
+	config := testutil.ClientConfig(t)
+	u := mockhttp.GetOpenSearchURL(t)
+
+	// Step 1: create an API key using admin credentials.
+	adminTP, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		Username:  config.Client.Username,
+		Password:  config.Client.Password,
+		Transport: config.Client.Transport,
+	})
+	if err != nil {
+		t.Fatalf("failed to create admin transport: %s", err)
+	}
+
+	createBody := strings.NewReader(`{"name":"go-client-test-key"}`)
+	createReq, _ := http.NewRequest(http.MethodPost, "/_security/api_key", createBody)
+	createReq.Header.Set("Content-Type", "application/json")
+	createRes, err := adminTP.Stream(createReq)
+	if err != nil {
+		t.Fatalf("failed to call /_security/api_key: %s", err)
+	}
+	defer createRes.Body.Close()
+
+	if createRes.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(createRes.Body)
+		t.Fatalf("unexpected status %d creating API key: %s", createRes.StatusCode, body)
+	}
+
+	var keyResp struct {
+		Encoded string `json:"encoded"`
+	}
+	if err := json.NewDecoder(createRes.Body).Decode(&keyResp); err != nil {
+		t.Fatalf("failed to decode API key response: %s", err)
+	}
+	if keyResp.Encoded == "" {
+		t.Fatal("API key response missing 'encoded' field")
+	}
+
+	// Step 2: build a transport that authenticates solely with the API key.
+	keyTP, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		APIKey:    keyResp.Encoded,
+		Transport: config.Client.Transport,
+	})
+	if err != nil {
+		t.Fatalf("failed to create API key transport: %s", err)
+	}
+
+	// Step 3: verify the API key grants access to GET /.
+	infoReq, _ := http.NewRequest(http.MethodGet, "/", nil)
+	infoRes, err := keyTP.Stream(infoReq)
+	if err != nil {
+		t.Fatalf("GET / with API key failed: %s", err)
+	}
+	defer infoRes.Body.Close()
+	io.ReadAll(infoRes.Body) //nolint:errcheck // We dont need values here, just run this as side effect.
+
+	if infoRes.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 from GET / with API key, got %d", infoRes.StatusCode)
 	}
 }
