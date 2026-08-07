@@ -4,6 +4,8 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
+//go:build !integration
+
 package opensearchtransport
 
 import (
@@ -47,8 +49,10 @@ func goroutineDumpHas(frame string) bool {
 // Close stops reaping these goroutines, this test fails directly instead of
 // surfacing as an unrelated flake.
 //
-// Deliberately not parallel: it reads the process-wide goroutine dump, which is
-// only quiet while no parallel sibling is running.
+// The post-Close assertion reads the process-wide goroutine dump, so it only
+// holds in a binary where no other live transport is polling. The !integration
+// constraint on this file keeps it out of the live-cluster binaries, and the
+// absence of t.Parallel keeps siblings in this one from overlapping with it.
 func TestCloseReapsBackgroundPollers(t *testing.T) {
 	pollers := []struct {
 		name  string
