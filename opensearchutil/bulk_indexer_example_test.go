@@ -75,7 +75,7 @@ func ExampleNewBulkIndexer() {
 		FlushBytes: 5e+6,       // The flush threshold in bytes (default: 5M)
 	})
 	if err != nil {
-		log.Fatalf("Error creating the indexer: %s", err)
+		log.Panicf("Error creating the indexer: %s", err)
 	}
 
 	// Add an item to the indexer
@@ -116,20 +116,20 @@ func ExampleNewBulkIndexer() {
 		},
 	)
 	if err != nil {
-		log.Fatalf("Unexpected error: %s", err)
+		log.Panicf("Unexpected error: %s", err)
 	}
 
 	// Close the indexer channel and flush remaining items
 	//
 	if err := indexer.Close(context.Background()); err != nil {
-		log.Fatalf("Unexpected error: %s", err)
+		log.Panicf("Unexpected error: %s", err)
 	}
 
 	// Report the indexer statistics
 	//
 	stats := indexer.Stats()
 	if stats.NumFailed > 0 {
-		log.Fatalf("Indexed [%d] documents with [%d] errors", stats.NumFlushed, stats.NumFailed)
+		log.Panicf("Indexed [%d] documents with [%d] errors", stats.NumFlushed, stats.NumFailed)
 	}
 	log.Printf("Successfully indexed [%d] documents", stats.NumFlushed)
 

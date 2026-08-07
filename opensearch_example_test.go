@@ -56,7 +56,7 @@ func ExampleNewDefaultClient() {
 
 	_, err = client.Info(ctx, nil)
 	if err != nil {
-		log.Fatalf("Error getting the response: %s\n", err)
+		log.Panicf("Error getting the response: %s\n", err)
 	}
 
 	log.Print(client.Client.Transport.(*opensearchtransport.Transport).URLs())
