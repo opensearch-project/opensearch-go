@@ -75,6 +75,7 @@ func TestUnloadModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ml.NewClient(osClient)
 
 		resp, err := client.UnloadModel(t.Context(), ml.UnloadModelReq{BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestUnloadModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ml.NewClient(osClient)
 
 		resp, err := errClient.UnloadModel(t.Context(), ml.UnloadModelReq{BodyReader: strings.NewReader("{}")})

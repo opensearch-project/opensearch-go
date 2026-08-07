@@ -76,6 +76,7 @@ func TestGetScript_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.GetScript(t.Context(), opensearchapi.GetScriptReq{ID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestGetScript_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.GetScript(t.Context(), opensearchapi.GetScriptReq{ID: "test"})
 		require.Error(t, err)

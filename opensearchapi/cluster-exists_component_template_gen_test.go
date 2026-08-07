@@ -75,6 +75,7 @@ func TestClusterExistsComponentTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Cluster.ExistsComponentTemplate(t.Context(), opensearchapi.ClusterExistsComponentTemplateReq{Name: "test"})
 		require.NoError(t, err)
@@ -94,6 +95,7 @@ func TestClusterExistsComponentTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Cluster.ExistsComponentTemplate(t.Context(), opensearchapi.ClusterExistsComponentTemplateReq{Name: "test"})
 		require.Error(t, err)

@@ -68,6 +68,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := flow_framework.NewClient(osClient)
 
 		resp, err := client.Create(t.Context(), &flow_framework.CreateReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := flow_framework.NewClient(osClient)
 
 		resp, err := errClient.Create(t.Context(), &flow_framework.CreateReq{BodyReader: strings.NewReader("{}")})

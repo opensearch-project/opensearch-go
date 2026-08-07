@@ -68,6 +68,7 @@ func TestClose_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := sql.NewClient(osClient)
 
 		resp, err := client.Close(t.Context(), &sql.CloseReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestClose_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := sql.NewClient(osClient)
 
 		resp, err := errClient.Close(t.Context(), &sql.CloseReq{BodyReader: strings.NewReader("{}")})

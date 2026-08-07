@@ -74,6 +74,7 @@ func TestShards_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := list.NewClient(osClient)
 
 		resp, err := client.Shards(t.Context(), nil)
@@ -92,6 +93,7 @@ func TestShards_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := list.NewClient(osClient)
 
 		resp, err := errClient.Shards(t.Context(), nil)

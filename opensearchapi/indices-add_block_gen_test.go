@@ -76,6 +76,7 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Index.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Indices: []string{"test"}, Block: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestIndicesAddBlock_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Index.AddBlock(t.Context(), opensearchapi.IndicesAddBlockReq{Indices: []string{"test"}, Block: "test"})
 		require.Error(t, err)

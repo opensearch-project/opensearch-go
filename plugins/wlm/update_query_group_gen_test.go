@@ -75,6 +75,7 @@ func TestUpdateQueryGroup_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := wlm.NewClient(osClient)
 
 		resp, err := client.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: "test", BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestUpdateQueryGroup_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := wlm.NewClient(osClient)
 
 		resp, err := errClient.UpdateQueryGroup(t.Context(), wlm.UpdateQueryGroupReq{Name: "test", BodyReader: strings.NewReader("{}")})

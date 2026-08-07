@@ -75,6 +75,7 @@ func TestCreateTenant_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := security.NewClient(osClient)
 
 		resp, err := client.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: "test", BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestCreateTenant_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := security.NewClient(osClient)
 
 		resp, err := errClient.CreateTenant(t.Context(), security.CreateTenantReq{Tenant: "test", BodyReader: strings.NewReader("{}")})

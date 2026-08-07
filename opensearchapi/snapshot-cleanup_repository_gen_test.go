@@ -76,6 +76,7 @@ func TestSnapshotCleanupRepository_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Snapshot.CleanupRepository(t.Context(), opensearchapi.SnapshotCleanupRepositoryReq{Repository: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestSnapshotCleanupRepository_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Snapshot.CleanupRepository(t.Context(), opensearchapi.SnapshotCleanupRepositoryReq{Repository: "test"})
 		require.Error(t, err)

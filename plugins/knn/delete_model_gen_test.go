@@ -74,6 +74,7 @@ func TestDeleteModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := knn.NewClient(osClient)
 
 		resp, err := client.DeleteModel(t.Context(), knn.DeleteModelReq{ModelID: "test"})
@@ -92,6 +93,7 @@ func TestDeleteModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := knn.NewClient(osClient)
 
 		resp, err := errClient.DeleteModel(t.Context(), knn.DeleteModelReq{ModelID: "test"})

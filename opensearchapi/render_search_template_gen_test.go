@@ -83,6 +83,7 @@ func TestRenderSearchTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.RenderSearchTemplate(t.Context(), opensearchapi.RenderSearchTemplateReq{})
 		require.NoError(t, err)
@@ -102,6 +103,7 @@ func TestRenderSearchTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.RenderSearchTemplate(t.Context(), opensearchapi.RenderSearchTemplateReq{})
 		require.Error(t, err)
