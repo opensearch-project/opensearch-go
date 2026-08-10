@@ -173,7 +173,23 @@ params := opensearchapi.SomeParams{
 
 OpenSearch returns HTTP 200 even when a request only partially succeeded: bulk operations whose items failed individually, searches that lost some shards, writes whose replica shards rejected the request. `opensearchapi` turns those partial failures into typed Go errors so they surface through the idiomatic `if err != nil` path.
 
-By default (`Config.Errors == nil` resolves to `errmask.Empty`) every category is reported; set `Config.Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to mask categories. Dispatch on the typed errors with a `for`/`switch` over `opensearchapi.Errors(err)`.
+By default (`Config.Errors == nil` resolves to `errmask.Empty`) every category is reported; set `Config.Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to mask categories. Dispatch on the typed errors with a `for`/`switch` over `opensearchapi.Errors(err)`:
+
+```go
+resp, err := client.MSearch(ctx, req)
+for _, sub := range opensearchapi.Errors(err) {
+    switch e := sub.(type) {
+    case *opensearchapi.PartialSearchError:
+        log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
+    case *opensearchapi.MultiSearchItemError:
+        log.Printf("%d sub-queries failed", len(e.Items))
+    default:
+        // transport / HTTP / decoding error
+        return err
+    }
+}
+// resp is fully populated; use it regardless of partial failure.
+```
 
 [`guides/usage-error_handling.md`](../guides/usage-error_handling.md) is the canonical reference for the full model: the error-mask configuration and env-var override, the [error type reference table](../guides/usage-error_handling.md#error-type-reference), the recommended `for`/`switch` pattern, the `IsPartialFailure`/`ToleratePartialFailures`/`RequireSuccessRate` helpers, and why a type switch is preferred over `errors.As`/`Has` or per-Resp helpers. The exhaustive `OPENSEARCH_GO_ERROR_MASK` token list lives in [`guides/config-envvars.md`](../guides/config-envvars.md#opensearch_go_error_mask-tokens).
 
