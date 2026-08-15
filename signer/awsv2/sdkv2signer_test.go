@@ -249,6 +249,37 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 		require.Error(t, err)
 		require.True(t, body.closed, "request body must be closed even when the read fails")
 	})
+
+	t.Run("honors a cancelled request context for credential retrieval", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		cancel()
+
+		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion("us-west-2"),
+			config.WithCredentialsProvider(
+				aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+					if err := ctx.Err(); err != nil {
+						return aws.Credentials{}, err
+					}
+					return aws.Credentials{
+						AccessKeyID:     "AKID",
+						SecretAccessKey: "SECRET_KEY",
+					}, nil
+				}),
+			),
+		)
+		require.NoError(t, err)
+
+		s, err := awsv2.NewSigner(awsCfg)
+		require.NoError(t, err)
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://localhost:9200", nil)
+		require.NoError(t, err)
+
+		err = s.SignRequest(req)
+		require.Error(t, err)
+		require.ErrorIs(t, err, context.Canceled)
+	})
 }
 
 // brokenReadCloser fails on Read and records whether Close was called, so a

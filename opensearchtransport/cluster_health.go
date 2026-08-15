@@ -198,12 +198,8 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 		return sample, false
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
-
-	if c.healthCheckRequestModifier != nil {
-		c.healthCheckRequestModifier(req)
+	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
+		return sample, false
 	}
 
 	res, err := c.transport.RoundTrip(req)

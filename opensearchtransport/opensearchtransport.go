@@ -2050,6 +2050,29 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 	}
 }
 
+// prepareInternalRequest applies the same decoration the stream() path
+// uses -- URL rewrite, basic auth, User-Agent, Config.Header, and the
+// configured Signer -- to a request that will be dispatched via raw
+// RoundTrip rather than stream(). Background health-check, discovery,
+// and node-stats pollers must go through this so SigV4 (and Config.Header)
+// apply to them the same way they apply to user traffic.
+//
+// applyModifier, if non-nil, runs after header injection and before
+// signing so any headers it adds are included in the signature.
+func (c *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
+	c.setReqURL(u, req)
+	c.setReqAuth(u, req)
+	c.setReqUserAgent(req)
+	c.setReqGlobalHeader(req)
+	if applyModifier != nil {
+		applyModifier(req)
+	}
+	if err := c.signRequest(req); err != nil {
+		return fmt.Errorf("failed to sign request: %w", err)
+	}
+	return nil
+}
+
 func (c *Transport) signRequest(req *http.Request) error {
 	if c.signer != nil {
 		return c.signer.SignRequest(req)
@@ -2210,12 +2233,8 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2289,12 +2308,8 @@ func (c *Transport) hardwareInfoHealthCheck(
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2421,12 +2436,8 @@ func (c *Transport) fetchClusterHealth(
 
 	req.URL.RawQuery = "local=true"
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, 0, err
 	}
 
 	res, err := c.transport.RoundTrip(req)
