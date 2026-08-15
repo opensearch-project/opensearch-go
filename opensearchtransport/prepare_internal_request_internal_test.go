@@ -127,7 +127,9 @@ func (t *captureTripper) last() capturedReq {
 	return t.reqs[len(t.reqs)-1]
 }
 
-func newInternalReqTransport(t *testing.T, rec *recordingSigner, header http.Header, rt http.RoundTripper) (*Transport, *url.URL, *Connection) {
+func newInternalReqTransport(
+	t *testing.T, rec *recordingSigner, header http.Header, rt http.RoundTripper,
+) (*Transport, *url.URL, *Connection) {
 	t.Helper()
 	u, err := url.Parse("http://node1:9200")
 	require.NoError(t, err)
@@ -357,8 +359,12 @@ func TestBackgroundPollersSignRequests(t *testing.T) {
 		rt := &captureTripper{body: rootBody}
 		tp, u, _ := newInternalReqTransport(t, sig, nil, rt)
 
-		_, err := tp.baselineHealthCheck(t.Context(), u, nil)
+		res, err := tp.baselineHealthCheck(t.Context(), u, nil)
+		if res != nil && res.Body != nil {
+			require.NoError(t, res.Body.Close())
+		}
 		require.Error(t, err)
+		require.Nil(t, res)
 		require.ErrorIs(t, err, errHealthCheckFailed)
 		require.ErrorContains(t, err, "failed to sign request")
 		require.Empty(t, rt.reqs, "unsigned request must not leave the process")
