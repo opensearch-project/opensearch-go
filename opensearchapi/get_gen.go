@@ -207,7 +207,7 @@ type GetResult struct {
 	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 
 	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`

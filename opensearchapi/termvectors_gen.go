@@ -248,7 +248,7 @@ func (r TermVectorsResp) RawBody() io.Reader {
 type TermVectorsBody struct {
 	// Doc is an artificial document (a document not present in the index) for
 	// which you want to retrieve term vectors.
-	Doc json.RawMessage `json:"doc"`
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	Filter *TermVectorsFilter `json:"filter,omitempty"`
 

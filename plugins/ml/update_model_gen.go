@@ -147,7 +147,7 @@ func (r UpdateModelResp) RawBody() io.Reader {
 // MLUpdateModelBody is a typed component of the ml.update_model operation.
 type MLUpdateModelBody struct {
 	// Connector is the connector to use for the model.
-	Connector json.RawMessage `json:"connector"`
+	Connector json.RawMessage `json:"connector,omitempty"`
 
 	// ConnectorID is the connector ID.
 	ConnectorID *string `json:"connector_id,omitempty"`
@@ -158,7 +158,7 @@ type MLUpdateModelBody struct {
 	Guardrails *opensearchapi.MLGuardrails `json:"guardrails,omitempty"`
 
 	// Interface is the model interface.
-	Interface json.RawMessage `json:"interface"`
+	Interface json.RawMessage `json:"interface,omitempty"`
 
 	// IsEnabled. Whether the model is enabled.
 	IsEnabled *bool `json:"is_enabled,omitempty"`

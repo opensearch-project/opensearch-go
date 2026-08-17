@@ -243,7 +243,7 @@ type UpdateBody struct {
 	DetectNoop *bool `json:"detect_noop,omitempty"`
 
 	// Doc is a partial update to an existing document.
-	Doc json.RawMessage `json:"doc"`
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	// DocAsUpsert. Set to `true` to use the contents of 'doc' as the value of
 	// 'upsert'
@@ -258,7 +258,7 @@ type UpdateBody struct {
 	// Upsert. If the document does not already exist, the contents of 'upsert'
 	// are inserted as a new document. If the document exists, the 'script' is
 	// executed.
-	Upsert json.RawMessage `json:"upsert"`
+	Upsert json.RawMessage `json:"upsert,omitempty"`
 }
 
 // WriteShardFailures detects replica-shard failures on a UpdateResp.

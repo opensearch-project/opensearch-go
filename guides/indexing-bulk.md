@@ -374,16 +374,17 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 		return err
 	}
 
-	discoverOnStart := true
-	bulkClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+	bulkClient, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{"http://localhost:9200"},
 
-		// Enable node discovery
-		DiscoverNodesOnStart:  &discoverOnStart,
-		DiscoverNodesInterval: 5 * time.Minute,
+			// Enable node discovery
+			DiscoverNodesOnStart:  opensearch.ToPointer(true),
+			DiscoverNodesInterval: 5 * time.Minute,
 
-		// Use default router for automatic operation routing (recommended)
-		Router: router,
+			// Use default router for automatic operation routing (recommended)
+			Router: router,
+		},
 	})
 	if err != nil {
 		return err
@@ -452,9 +453,9 @@ To clean up the resources created in this guide, delete the `movies` and `books`
 ```go
 	delResp, err := client.Indices.Delete(
 		ctx,
-		opensearchapi.IndicesDeleteReq{
-			Indices:  []string{"movies", "books"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+		&opensearchapi.IndicesDeleteReq{
+			Indices: []string{"movies", "books"},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 		},
 	)
 	if err != nil {

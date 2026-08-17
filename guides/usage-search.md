@@ -145,6 +145,25 @@ The search API allows you to search for documents in an index. The following exa
 	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
 ```
 
+#### Hit counts
+
+`Hits.Total` reports the number of documents matching the query. It is a union rather than a plain integer, because a numeric `track_total_hits` caps the counting effort and the server then reports a lower bound (`"relation": "gte"`) in place of an exact count (`"relation": "eq"`). Unwrap it with `TotalHits()`.
+
+The field is also a pointer, and pointer-typed response fields are conditional on the request that produced them: `track_total_hits` defaults to `true`, so `Hits.Total` is populated for a default search, but a request that sets `SearchParams.TrackTotalHits: "false"` omits the field and a dereference then panics. Requests constructed at the call site that do not disable it may read `Hits.Total` directly, as the examples in this guide do; requests assembled elsewhere, or whose parameters are not known locally, require a nil check.
+
+```go
+	if searchResp.Hits.Total == nil {
+		return fmt.Errorf("hit count unavailable: the request disabled track_total_hits")
+	}
+	total, err := searchResp.Hits.Total.TotalHits()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Found %d documents (%s)\n", total.Value, total.Relation)
+```
+
+See [`track_total_hits`](https://docs.opensearch.org/latest/api-reference/search-apis/search/) for the parameter and its `eq`/`gte` semantics, and [`SearchHitsMetadataTotal`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#SearchHitsMetadataTotal) for the union's accessors.
+
 You can also search for documents that match a specific query. The following example searches for documents that match the query `dark knight`:
 
 ```go
@@ -178,7 +197,7 @@ The search API allows you to paginate through the search results. The following 
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
-				Size: 2,
+				Size: opensearch.ToPointer(2),
 				From: 5,
 				Sort: []string{"year:desc"},
 			},
@@ -205,7 +224,7 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:      `title: "dark knight"`,
-				Size:   2,
+				Size:   opensearch.ToPointer(2),
 				Sort:   []string{"year:desc"},
 				Scroll: time.Minute,
 			},
@@ -247,7 +266,7 @@ The scroll example above has one weakness: if the index is updated while you are
 				},
 			}),
 			Params: &opensearchapi.SearchParams{
-				Size: 5,
+				Size: opensearch.ToPointer(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -272,7 +291,7 @@ The scroll example above has one weakness: if the index is updated while you are
 				"search_after": []string{"1994"},
 			}),
 			Params: &opensearchapi.SearchParams{
-				Size: 5,
+				Size: opensearch.ToPointer(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -302,22 +321,23 @@ For production search workloads, you can optimize performance by ensuring search
 
 ```go
 	// Create a search-optimized client
-	discoverOnStart := true
-	optimizedSearchClient, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+	optimizedSearchClient, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{"http://localhost:9200"},
 
-		// Enable node discovery
-		DiscoverNodesOnStart:  &discoverOnStart,
-		DiscoverNodesInterval: 5 * time.Minute,
+			// Enable node discovery
+			DiscoverNodesOnStart:  opensearch.ToPointer(true),
+			DiscoverNodesInterval: 5 * time.Minute,
 
-		// Use data-preferred router for search optimization
-		Router: opensearchtransport.NewRouter(
-			func() opensearchtransport.Policy {
-				policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
-				return policy
-			}(),
-			opensearchtransport.NewRoundRobinPolicy(),
-		),
+			// Use data-preferred router for search optimization
+			Router: opensearchtransport.NewRouter(
+				func() opensearchtransport.Policy {
+					policy, _ := opensearchtransport.NewRolePolicy(opensearchtransport.RoleData)
+					return policy
+				}(),
+				opensearchtransport.NewRoundRobinPolicy(),
+			),
+		},
 	})
 	if err != nil {
 		return err
@@ -330,14 +350,19 @@ For production search workloads, you can optimize performance by ensuring search
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
-				Size: 10,
+				Size: opensearch.ToPointer(10),
 			},
 		},
 	)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Optimized search found %d documents\n", searchResp.Hits.Total.Value)
+	// Hits.Total is a union; TotalHits() unwraps the {value, relation} form.
+	total, err := searchResp.Hits.Total.TotalHits()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Optimized search found %d documents\n", total.Value)
 ```
 
 ### Routing for Mixed Workloads
@@ -351,21 +376,22 @@ The router automatically detects operation types and routes them to the most app
 		return err
 	}
 
-	discoverOnStart := true
-	client, err := opensearch.NewClient(opensearch.Config{
-		Addresses: []string{"http://localhost:9200"},
+	routedClient, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{"http://localhost:9200"},
 
-		DiscoverNodesOnStart:  &discoverOnStart,
-		DiscoverNodesInterval: 5 * time.Minute,
+			DiscoverNodesOnStart:  opensearch.ToPointer(true),
+			DiscoverNodesInterval: 5 * time.Minute,
 
-		Router: router,
+			Router: router,
+		},
 	})
 	if err != nil {
 		return err
 	}
 
 	// Search operations automatically route to data nodes
-	_, err = client.Search(ctx, &opensearchapi.SearchReq{
+	_, err = routedClient.Search(ctx, &opensearchapi.SearchReq{
 		Indices: []string{exampleIndex},
 	})
 	if err != nil {
@@ -373,7 +399,7 @@ The router automatically detects operation types and routes them to the most app
 	}
 
 	// Multi-search operations also route to data nodes
-	_, err = client.MSearch(ctx, opensearchapi.MSearchReq{
+	_, err = routedClient.MSearch(ctx, &opensearchapi.MSearchReq{
 		Body: strings.NewReader(`{}
 {"query": {"match_all": {}}}
 `),
