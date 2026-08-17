@@ -110,7 +110,7 @@ type AuthinfoResp struct {
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
 	// PeerCertificates is the number of peer certificates related to the user.
-	PeerCertificates json.RawMessage `json:"peer_certificates"`
+	PeerCertificates json.RawMessage `json:"peer_certificates,omitempty"`
 
 	// Principal is the user's principal.
 	Principal *string `json:"principal"`

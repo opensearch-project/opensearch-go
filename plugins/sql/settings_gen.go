@@ -104,7 +104,7 @@ type SettingsResp struct {
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
 	// Persistent is the permanent settings that persist through restarts.
-	Persistent json.RawMessage `json:"persistent"`
+	Persistent json.RawMessage `json:"persistent,omitempty"`
 
 	Transient *opensearchapi.SQLTransient `json:"transient,omitempty"`
 

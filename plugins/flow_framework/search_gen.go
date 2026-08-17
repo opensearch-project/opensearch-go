@@ -209,7 +209,7 @@ type FlowFrameworkCommonGetResp struct {
 	// minimum required OpenSearch versions.
 	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
 
-	Workflows json.RawMessage `json:"workflows"`
+	Workflows json.RawMessage `json:"workflows,omitempty"`
 }
 
 // FlowFrameworkCommonTotal is a typed component of the flow_framework.search operation.

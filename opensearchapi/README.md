@@ -47,16 +47,23 @@ _, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
 
 // Search
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match":{"name":"Widget"}}}`),
 })
-fmt.Println(resp.Hits.Total.Value) // 1
+
+// Hits.Total is a union; TotalHits() unwraps the {value, relation} form. Its
+// population is conditional on SearchParams.TrackTotalHits (default true).
+if total, err := resp.Hits.Total.TotalHits(); err == nil {
+    fmt.Println(total.Value) // 1
+}
 
 // Delete the index
 _, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
 })
 ```
+
+Some response fields are unions rather than plain values. `Hits.Total` is one such field: OpenSearch reports either an exact count or a lower bound, so it is unwrapped through [`TotalHits()`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#SearchHitsMetadataTotal) rather than read directly. Pointer-typed response fields are also conditional on the request; see [the search guide](../guides/usage-search.md) for the cases in which `Hits.Total` is nil.
 
 ### Pointer vs value receivers
 
@@ -105,7 +112,7 @@ Every response struct exposes typed fields plus an `Inspect()` method for raw ac
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 })
 if err != nil {
@@ -143,14 +150,14 @@ Optional query parameters go in the `Params` struct on each Req:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
     Params: &opensearchapi.SearchParams{
-        Size:            20,
-        From:            40,
-        Timeout:         5 * time.Second,
-        TrackTotalHits:  "true",
-        SourceIncludes:  []string{"name", "price"},
+        Size:           opensearch.ToPointer(20),
+        From:           40,
+        Timeout:        5 * time.Second,
+        TrackTotalHits: "true",
+        SourceIncludes: []string{"name", "price"},
     },
 })
 ```
@@ -173,7 +180,23 @@ params := opensearchapi.SomeParams{
 
 OpenSearch returns HTTP 200 even when a request only partially succeeded: bulk operations whose items failed individually, searches that lost some shards, writes whose replica shards rejected the request. `opensearchapi` turns those partial failures into typed Go errors so they surface through the idiomatic `if err != nil` path.
 
-By default (`Config.Errors == nil` resolves to `errmask.Empty`) every category is reported; set `Config.Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to mask categories. Dispatch on the typed errors with a `for`/`switch` over `opensearchapi.Errors(err)`.
+By default (`Config.Errors == nil` resolves to `errmask.Empty`) every category is reported; set `Config.Errors: errmask.New(errmask.All)` or `OPENSEARCH_GO_ERROR_MASK` to mask categories. Dispatch on the typed errors with a `for`/`switch` over `opensearchapi.Errors(err)`:
+
+```go
+resp, err := client.MSearch(ctx, req)
+for _, sub := range opensearchapi.Errors(err) {
+    switch e := sub.(type) {
+    case *opensearchapi.PartialSearchError:
+        log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
+    case *opensearchapi.MultiSearchItemError:
+        log.Printf("%d sub-queries failed", len(e.Items))
+    default:
+        // transport / HTTP / decoding error
+        return err
+    }
+}
+// resp is fully populated; use it regardless of partial failure.
+```
 
 [`guides/usage-error_handling.md`](../guides/usage-error_handling.md) is the canonical reference for the full model: the error-mask configuration and env-var override, the [error type reference table](../guides/usage-error_handling.md#error-type-reference), the recommended `for`/`switch` pattern, the `IsPartialFailure`/`ToleratePartialFailures`/`RequireSuccessRate` helpers, and why a type switch is preferred over `errors.As`/`Has` or per-Resp helpers. The exhaustive `OPENSEARCH_GO_ERROR_MASK` token list lives in [`guides/config-envvars.md`](../guides/config-envvars.md#opensearch_go_error_mask-tokens).
 

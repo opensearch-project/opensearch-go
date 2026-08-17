@@ -652,7 +652,7 @@ type SearchHit struct {
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Shard  *string         `json:"_shard,omitempty"`
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 
 	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
@@ -780,8 +780,8 @@ type PhaseTook struct {
 type SearchProcessorExecutionDetail struct {
 	DurationMillis *int64          `json:"duration_millis,omitempty"`
 	Error          *string         `json:"error,omitempty"`
-	InputData      json.RawMessage `json:"input_data"`
-	OutputData     json.RawMessage `json:"output_data"`
+	InputData      json.RawMessage `json:"input_data,omitempty"`
+	OutputData     json.RawMessage `json:"output_data,omitempty"`
 	ProcessorName  *string         `json:"processor_name,omitempty"`
 	Status         *string         `json:"status,omitempty"`
 	Tag            *string         `json:"tag,omitempty"`
@@ -2680,7 +2680,7 @@ type CommonQueryDSLLikeDocument struct {
 	Type *string `json:"_type,omitempty"`
 
 	// Doc is a document not present in the index.
-	Doc json.RawMessage `json:"doc"`
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	Fields           []string          `json:"fields,omitempty"`
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
@@ -2875,7 +2875,7 @@ type CommonQueryDSLPercolateQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Document is the source of the document being percolated.
-	Document json.RawMessage `json:"document"`
+	Document json.RawMessage `json:"document,omitempty"`
 
 	// Documents is an array of sources of the documents being percolated.
 	Documents []json.RawMessage `json:"documents,omitempty"`
@@ -3211,7 +3211,7 @@ type CommonQueryDSLQueryContainer struct {
 	Common           map[string]string                    `json:"common,omitempty"`
 	ConstantScore    *CommonQueryDSLConstantScoreQuery    `json:"constant_score,omitempty"`
 	DisMax           *CommonQueryDSLDisMaxQuery           `json:"dis_max,omitempty"`
-	DistanceFeature  json.RawMessage                      `json:"distance_feature"`
+	DistanceFeature  json.RawMessage                      `json:"distance_feature,omitempty"`
 	Exists           *CommonQueryDSLExistsQuery           `json:"exists,omitempty"`
 	FieldMaskingSpan *CommonQueryDSLSpanFieldMaskingQuery `json:"field_masking_span,omitempty"`
 	FunctionScore    *CommonQueryDSLFunctionScoreQuery    `json:"function_score,omitempty"`
@@ -3601,7 +3601,7 @@ type CommonMappingCompletionProperty struct {
 type CommonMappingConstantKeywordProperty struct {
 	CommonMappingPropertyBase
 	Type  string          `json:"type"`
-	Value json.RawMessage `json:"value"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type CommonMappingFieldAliasProperty struct {
@@ -6780,7 +6780,7 @@ type InlineGet struct {
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	// Source is the source of the document.
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 
 	// Fields is the fields retrieved from the document.
 	Fields map[string]json.RawMessage `json:"fields,omitempty"`
@@ -7837,7 +7837,7 @@ type IngestCSVProcessor struct {
 	// EmptyValue. Value used to fill empty fields. Empty fields are skipped if
 	// this is not provided. An empty field is one with no value (2 consecutive
 	// separators) or empty quotes (`""`).
-	EmptyValue json.RawMessage `json:"empty_value"`
+	EmptyValue json.RawMessage `json:"empty_value,omitempty"`
 
 	// Field is the path to a field or an array of paths. Some APIs support
 	// wildcards in the path, which allows you to select multiple fields.
@@ -8232,7 +8232,7 @@ type IngestSetProcessor struct {
 
 	// Value is the value to be set for the field. Supports template snippets.
 	// May specify only one of `value` or `copy_from`.
-	Value json.RawMessage `json:"value"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type IngestSetSecurityUserProcessor struct {
@@ -8545,7 +8545,7 @@ type InsightsSource struct {
 
 	// Aggregations. Defines the aggregations that are run as part of the
 	// search request.
-	Aggregations json.RawMessage `json:"aggregations"`
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 
 	Collapse *SearchFieldCollapse `json:"collapse,omitempty"`
 
@@ -8685,14 +8685,14 @@ type InsightsTopQuery struct {
 	Indices []string `json:"indices,omitempty"`
 
 	// Labels. Additional labels for the query.
-	Labels json.RawMessage `json:"labels"`
+	Labels json.RawMessage `json:"labels,omitempty"`
 
 	Measurements *InsightsMeasurements `json:"measurements,omitempty"`
 
 	// NodeID is the node ID associated with the query.
 	NodeID *string `json:"node_id,omitempty"`
 
-	PhaseLatencyMap json.RawMessage `json:"phase_latency_map"`
+	PhaseLatencyMap json.RawMessage `json:"phase_latency_map,omitempty"`
 
 	// QueryHashcode is the hash code of the query.
 	QueryHashcode *string `json:"query_hashcode,omitempty"`
@@ -8891,7 +8891,7 @@ type ISMActionSnapshot struct {
 // The amount of time to wait before the action fails.
 type ISMActionTimeout struct {
 	// Timeout is the timeout configuration for the action.
-	Timeout json.RawMessage `json:"timeout"`
+	Timeout json.RawMessage `json:"timeout,omitempty"`
 }
 
 // An action to perform.
@@ -9049,11 +9049,11 @@ type KNNDeletedModel struct {
 }
 
 type SearchResultJSONValueSuggestValueItemCompletionOptionsSource struct {
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 }
 
 type SearchResultJSONValueSuggestValueItemCompletionOptionsItem struct {
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 }
 
 type SearchResultJSONValueSuggestValueItemCompletion struct {
@@ -9253,7 +9253,7 @@ type LTRCacheStatsResponse struct {
 	Nodes map[string]LTRNodeDetails `json:"nodes,omitempty"`
 
 	// Stores. Cache statistics by store.
-	Stores json.RawMessage `json:"stores"`
+	Stores json.RawMessage `json:"stores,omitempty"`
 }
 
 type LTRAcknowledgedResponse struct {
@@ -9275,7 +9275,7 @@ type LTRStoreExistsResponse struct {
 
 type LTRStoreDetails struct {
 	// Counts. Count statistics for this store.
-	Counts json.RawMessage `json:"counts"`
+	Counts json.RawMessage `json:"counts,omitempty"`
 
 	// Index is the index name for this store.
 	Index *string `json:"index,omitempty"`
@@ -11083,7 +11083,7 @@ type SQLExplainBody struct {
 	Children []SQLExplainBody `json:"children,omitempty"`
 
 	// Description is the details about the execution step.
-	Description json.RawMessage `json:"description"`
+	Description json.RawMessage `json:"description,omitempty"`
 
 	// Name is the name of the execution step.
 	Name *string `json:"name,omitempty"`
@@ -11511,19 +11511,19 @@ type RollupsDimensionsConfigItem struct {
 // Specifies a metric aggregation type to calculate.
 type RollupsMetricsConfigMetrics struct {
 	// Avg. Calculates the average value of a field.
-	Avg json.RawMessage `json:"avg"`
+	Avg json.RawMessage `json:"avg,omitempty"`
 
 	// Max. Finds the maximum value of a field.
-	Max json.RawMessage `json:"max"`
+	Max json.RawMessage `json:"max,omitempty"`
 
 	// Min. Finds the minimum value of a field.
-	Min json.RawMessage `json:"min"`
+	Min json.RawMessage `json:"min,omitempty"`
 
 	// Sum. Calculates the sum of values for a field.
-	Sum json.RawMessage `json:"sum"`
+	Sum json.RawMessage `json:"sum,omitempty"`
 
 	// ValueCount. Counts the number of values for a field.
-	ValueCount json.RawMessage `json:"value_count"`
+	ValueCount json.RawMessage `json:"value_count,omitempty"`
 }
 
 // Defines metric aggregations for a field in a rollup job.
@@ -11976,7 +11976,7 @@ type SecurityAuthInfo struct {
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
 	// PeerCertificates is the number of peer certificates related to the user.
-	PeerCertificates json.RawMessage `json:"peer_certificates"`
+	PeerCertificates json.RawMessage `json:"peer_certificates,omitempty"`
 
 	// Principal is the user's principal.
 	Principal *string `json:"principal"`
@@ -12138,7 +12138,7 @@ type SecurityComplianceConfig struct {
 	InternalConfig      *bool           `json:"internal_config,omitempty"`
 	ReadIgnoreUsers     []string        `json:"read_ignore_users,omitempty"`
 	ReadMetadataOnly    *bool           `json:"read_metadata_only,omitempty"`
-	ReadWatchedFields   json.RawMessage `json:"read_watched_fields"`
+	ReadWatchedFields   json.RawMessage `json:"read_watched_fields,omitempty"`
 	WriteIgnoreUsers    []string        `json:"write_ignore_users,omitempty"`
 	WriteLogDiffs       *bool           `json:"write_log_diffs,omitempty"`
 	WriteMetadataOnly   *bool           `json:"write_metadata_only,omitempty"`
@@ -12162,20 +12162,20 @@ type SecurityGetCertificates struct {
 }
 
 type SecurityDynamicOptions struct {
-	AuthFailureListeners         json.RawMessage `json:"auth_failure_listeners"`
-	Authc                        json.RawMessage `json:"authc"`
-	Authz                        json.RawMessage `json:"authz"`
+	AuthFailureListeners         json.RawMessage `json:"auth_failure_listeners,omitempty"`
+	Authc                        json.RawMessage `json:"authc,omitempty"`
+	Authz                        json.RawMessage `json:"authz,omitempty"`
 	DisableIntertransportAuth    *bool           `json:"disable_intertransport_auth,omitempty"`
 	DisableRestAuth              *bool           `json:"disable_rest_auth,omitempty"`
 	DoNotFailOnForbidden         *bool           `json:"do_not_fail_on_forbidden,omitempty"`
 	DoNotFailOnForbiddenEmpty    *bool           `json:"do_not_fail_on_forbidden_empty,omitempty"`
 	FilteredAliasMode            *string         `json:"filtered_alias_mode,omitempty"`
 	HostsResolverMode            *string         `json:"hosts_resolver_mode,omitempty"`
-	HTTP                         json.RawMessage `json:"http"`
-	Kibana                       json.RawMessage `json:"kibana"`
+	HTTP                         json.RawMessage `json:"http,omitempty"`
+	Kibana                       json.RawMessage `json:"kibana,omitempty"`
 	MultiRolespanEnabled         *bool           `json:"multi_rolespan_enabled,omitempty"`
-	OnBehalfOf                   json.RawMessage `json:"on_behalf_of"`
-	OpensearchDashboards         json.RawMessage `json:"opensearch-dashboards"`
+	OnBehalfOf                   json.RawMessage `json:"on_behalf_of,omitempty"`
+	OpensearchDashboards         json.RawMessage `json:"opensearch-dashboards,omitempty"`
 	RespectRequestIndicesOptions *bool           `json:"respect_request_indices_options,omitempty"`
 }
 
@@ -12304,7 +12304,7 @@ type SecuritySSLInfo struct {
 	SSLOpensslSupportsKeyManagerFactory *bool `json:"ssl_openssl_supports_key_manager_factory,omitempty"`
 
 	// SSLOpensslVersion. Version of OpenSSL.
-	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
+	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version,omitempty"`
 
 	// SSLOpensslVersionString is the full version string for the OpenSSL
 	// version.
@@ -12875,7 +12875,7 @@ type SQLSettingsResponse struct {
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
 	// Persistent is the permanent settings that persist through restarts.
-	Persistent json.RawMessage `json:"persistent"`
+	Persistent json.RawMessage `json:"persistent,omitempty"`
 
 	Transient *SQLTransient `json:"transient,omitempty"`
 }
@@ -13192,7 +13192,7 @@ type GeospatialGeometryCollection struct {
 
 type GeospatialGeoJSONData struct {
 	Geometry   GeospatialGeometry `json:"geometry"`
-	Properties json.RawMessage    `json:"properties"`
+	Properties json.RawMessage    `json:"properties,omitempty"`
 	Type       string             `json:"type"`
 }
 
@@ -13361,7 +13361,7 @@ type MLGuardrails struct {
 	OutputGuardrail *MLGuardrailsInputOutput `json:"output_guardrail,omitempty"`
 
 	// Regex is the regex used for input/output validation.
-	Regex json.RawMessage `json:"regex"`
+	Regex json.RawMessage `json:"regex,omitempty"`
 
 	// RespFilter is the response filter.
 	RespFilter *string `json:"response_filter,omitempty"`
@@ -13395,7 +13395,7 @@ type SQLExplain struct {
 	FetchSize *int `json:"fetch_size,omitempty"`
 
 	// Filter is the filter to apply when explaining the query.
-	Filter json.RawMessage `json:"filter"`
+	Filter json.RawMessage `json:"filter,omitempty"`
 
 	// Query is the SQL query to explain.
 	Query *string `json:"query,omitempty"`
@@ -13406,7 +13406,7 @@ type SQLQuery struct {
 	FetchSize *int `json:"fetch_size,omitempty"`
 
 	// Filter is the filter to apply to query results.
-	Filter json.RawMessage `json:"filter"`
+	Filter json.RawMessage `json:"filter,omitempty"`
 
 	// Query is the SQL query string to execute.
 	Query *string `json:"query,omitempty"`
@@ -13482,7 +13482,7 @@ type DerivedField struct {
 	IgnoreMalformed *bool           `json:"ignore_malformed,omitempty"`
 	Name            string          `json:"name"`
 	PrefilterField  *string         `json:"prefilter_field,omitempty"`
-	Properties      json.RawMessage `json:"properties"`
+	Properties      json.RawMessage `json:"properties,omitempty"`
 	Script          Script          `json:"script"`
 	Type            string          `json:"type"`
 }
@@ -13611,7 +13611,7 @@ type SecurityPatchOperation struct {
 	Path string `json:"path"`
 
 	// Value is the new values used for the update.
-	Value json.RawMessage `json:"value"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type SMCreateUpdatePolicyRequest struct {
