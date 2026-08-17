@@ -442,11 +442,15 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 		isPointer := (!isRequired || nullable) && !isCollectionType(goType)
 		omitEmpty := !isRequired && !nullable
 
-		// json.RawMessage is inherently nullable (nil means absent/null),
-		// so a pointer wrapper + omitempty loses null values on roundtrip.
+		// json.RawMessage already encodes absent as nil, so a pointer wrapper is
+		// redundant. omitempty stays spec-driven: RawMessage is a []byte, so an
+		// absent (nil, len 0) field is dropped while an explicit
+		// json.RawMessage("null") has len 4 and is still emitted as null.
+		// Forcing omitempty off is what loses that distinction - it collapses
+		// absent and null into the same wire `null`, which OpenSearch rejects
+		// for object-typed fields (ValueType.OBJECT accepts START_OBJECT only).
 		if goType == goTypeRawMessage {
 			isPointer = false
-			omitEmpty = false
 		}
 
 		if isPointer {

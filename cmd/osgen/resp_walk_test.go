@@ -7,6 +7,7 @@
 package main
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -649,6 +650,104 @@ func TestWalkerCollectionNotPointer(t *testing.T) {
 	require.False(t, fieldMap["names"].IsPointer)
 	require.Equal(t, "map[string]int", fieldMap["counts"].GoType)
 	require.False(t, fieldMap["counts"].IsPointer)
+}
+
+// A json.RawMessage field must never be a pointer - nil already encodes absent
+// - but its omitempty must still follow the spec. Forcing omitempty off makes an
+// unset field marshal to an explicit `null`, and OpenSearch's ObjectParser
+// declares object-typed fields ValueType.OBJECT (START_OBJECT only), so that
+// null is a 400 rather than an omission. See the `upsert` field of _update.
+func TestWalkerRawMessageOmitEmpty(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		schema        *openapi3.Schema
+		required      bool
+		wantOmitEmpty bool
+	}{
+		{
+			name:          "non-required object omits",
+			schema:        openapi3.NewObjectSchema(),
+			wantOmitEmpty: true,
+		},
+		{
+			name:          "required object always emitted",
+			schema:        openapi3.NewObjectSchema(),
+			required:      true,
+			wantOmitEmpty: false,
+		},
+		{
+			// A genuine multi-type union also lands on RawMessage.
+			name:          "non-required multi-type union omits",
+			schema:        &openapi3.Schema{Type: &openapi3.Types{"number", "string"}},
+			wantOmitEmpty: true,
+		},
+		{
+			// nullable means the server may legitimately send null, so the key
+			// is always emitted and the null is preserved.
+			name:          "nullable object always emitted",
+			schema:        &openapi3.Schema{Type: &openapi3.Types{"null", "object"}},
+			wantOmitEmpty: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			schema := openapi3.NewObjectSchema()
+			schema.Properties = openapi3.Schemas{"field": {Value: tt.schema}}
+			if tt.required {
+				schema.Required = []string{"field"}
+			}
+
+			w.walkSchema(&openapi3.SchemaRef{Value: schema}, "test___RawHolder", "test", false)
+
+			registered, ok := reg.lookupByName("TestRawHolder")
+			require.True(t, ok)
+			require.Len(t, registered.Fields, 1)
+
+			got := registered.Fields[0]
+			require.Equal(t, goTypeRawMessage, got.GoType)
+			require.False(t, got.IsPointer, "RawMessage must not be wrapped in a pointer")
+			require.Equal(t, tt.wantOmitEmpty, got.OmitEmpty)
+		})
+	}
+}
+
+// omitempty on a json.RawMessage does not lose an explicit null: nil is len 0
+// and dropped, while `null` is len 4 and survives. Omitting omitempty is what
+// conflates the two. This pins the encoding/json behaviour the tag decision in
+// walkProperties relies on.
+func TestRawMessageOmitEmptyPreservesExplicitNull(t *testing.T) {
+	t.Parallel()
+
+	type holder struct {
+		Field json.RawMessage `json:"field,omitempty"`
+	}
+
+	tests := []struct {
+		name string
+		raw  json.RawMessage
+		want string
+	}{
+		{name: "absent", raw: nil, want: `{}`},
+		{name: "explicit null preserved", raw: json.RawMessage("null"), want: `{"field":null}`},
+		{name: "value preserved", raw: json.RawMessage(`{"a":1}`), want: `{"field":{"a":1}}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := json.Marshal(holder{Field: tt.raw})
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
 }
 
 func TestWalkerCycleDetection(t *testing.T) {
