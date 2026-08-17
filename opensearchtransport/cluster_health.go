@@ -199,6 +199,9 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 	}
 
 	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Stats poll failed for %q: %v\n", conn.URL, err)
+		}
 		return sample, false
 	}
 
