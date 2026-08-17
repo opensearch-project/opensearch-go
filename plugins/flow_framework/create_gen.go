@@ -183,5 +183,5 @@ type FlowFrameworkCommonFlowFrameworkCreate struct {
 	// Workflows is a map of workflows. Presently, only the provision key is
 	// supported. The value for the workflow key is a key-value map that
 	// includes fields for `user_params` and lists of nodes and edges.
-	Workflows json.RawMessage `json:"workflows"`
+	Workflows json.RawMessage `json:"workflows,omitempty"`
 }

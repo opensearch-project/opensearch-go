@@ -118,7 +118,7 @@ type GetResp struct {
 	// minimum required OpenSearch versions.
 	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
 
-	Workflows json.RawMessage `json:"workflows"`
+	Workflows json.RawMessage `json:"workflows,omitempty"`
 
 	response *opensearch.Response
 }

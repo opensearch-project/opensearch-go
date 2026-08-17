@@ -304,7 +304,7 @@ type MTermVectorsOperation struct {
 
 	// Doc is an artificial document for which you want to retrieve term
 	// vectors.
-	Doc json.RawMessage `json:"doc"`
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	// FieldStatistics. When `true`, the response includes the document count,
 	// the sum of the document frequencies, and the sum of the term

@@ -119,7 +119,7 @@ type GetSslinfoResp struct {
 	SSLOpensslSupportsKeyManagerFactory *bool `json:"ssl_openssl_supports_key_manager_factory,omitempty"`
 
 	// SSLOpensslVersion. Version of OpenSSL.
-	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
+	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version,omitempty"`
 
 	// SSLOpensslVersionString is the full version string for the OpenSSL
 	// version.

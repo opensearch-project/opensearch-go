@@ -96,7 +96,7 @@ type CacheStatsResp struct {
 	Nodes map[string]opensearchapi.LTRNodeDetails `json:"nodes,omitempty"`
 
 	// Stores. Cache statistics by store.
-	Stores json.RawMessage `json:"stores"`
+	Stores json.RawMessage `json:"stores,omitempty"`
 
 	response *opensearch.Response
 }

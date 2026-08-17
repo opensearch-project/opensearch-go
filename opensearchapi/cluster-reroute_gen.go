@@ -144,7 +144,7 @@ type ClusterRerouteResp struct {
 
 	// State. Shows the internal representation of the structure, which can
 	// differ from the external representation.
-	State json.RawMessage `json:"state"`
+	State json.RawMessage `json:"state,omitempty"`
 
 	response *opensearch.Response
 }
