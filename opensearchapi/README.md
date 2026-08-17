@@ -47,16 +47,23 @@ _, err = client.Doc.Index(ctx, opensearchapi.IndexReq{
 
 // Search
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match":{"name":"Widget"}}}`),
 })
-fmt.Println(resp.Hits.Total.Value) // 1
+
+// Hits.Total is a union; TotalHits() unwraps the {value, relation} form. Its
+// population is conditional on SearchParams.TrackTotalHits (default true).
+if total, err := resp.Hits.Total.TotalHits(); err == nil {
+    fmt.Println(total.Value) // 1
+}
 
 // Delete the index
 _, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
-    Index: []string{"products"},
+    Indices: []string{"products"},
 })
 ```
+
+Some response fields are unions rather than plain values. `Hits.Total` is one such field: OpenSearch reports either an exact count or a lower bound, so it is unwrapped through [`TotalHits()`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi#SearchHitsMetadataTotal) rather than read directly. Pointer-typed response fields are also conditional on the request; see [the search guide](../guides/usage-search.md) for the cases in which `Hits.Total` is nil.
 
 ### Pointer vs value receivers
 
@@ -105,7 +112,7 @@ Every response struct exposes typed fields plus an `Inspect()` method for raw ac
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
 })
 if err != nil {
@@ -143,14 +150,14 @@ Optional query parameters go in the `Params` struct on each Req:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index:      []string{"products"},
+    Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
     Params: &opensearchapi.SearchParams{
-        Size:            20,
-        From:            40,
-        Timeout:         5 * time.Second,
-        TrackTotalHits:  "true",
-        SourceIncludes:  []string{"name", "price"},
+        Size:           opensearch.ToPointer(20),
+        From:           40,
+        Timeout:        5 * time.Second,
+        TrackTotalHits: "true",
+        SourceIncludes: []string{"name", "price"},
     },
 })
 ```
