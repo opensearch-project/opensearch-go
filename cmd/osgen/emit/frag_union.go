@@ -108,7 +108,6 @@ func (f *UnionFragment) Body() (string, error) {
 		"comment":     CommentWrap,
 		"constName":   unionConstNameIR,
 		"isTryEach":   func(k ir.TypeKind) bool { return k == ir.TypeAmbiguousWire },
-		"join":        strings.Join,
 		"qualify":     qualify,
 		"quotedKeys":  quotedKeys,
 		"embedField":  embedFieldName,
@@ -513,10 +512,14 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 // the corresponding accessor.
 {{- if $t.ShadowedBranches}}
 //
-// Decoding cannot reach {{join $t.ShadowedBranches ", "}}: the spec declares the
-// same required keys on an earlier branch, so the key probe always selects that
-// one and Type() never reports this branch. Constructing and marshaling it is
-// unaffected; read RawJSON() when you need the payload exactly as it arrived.
+// Decoding cannot reach the branches below. Each declares the same required keys
+// as an earlier branch, so the key probe always selects that earlier one and
+// Type() never reports these. Constructing and marshaling them is unaffected;
+// read RawJSON() when you need the payload exactly as it arrived.
+//
+{{- range $t.ShadowedBranches}}
+//   - {{.}}
+{{- end}}
 {{- end}}
 {{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {

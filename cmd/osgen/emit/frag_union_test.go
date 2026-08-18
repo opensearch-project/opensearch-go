@@ -76,6 +76,61 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "RawJSON")
 }
 
+// A try-each union carrying ShadowedBranches must say so on the type it
+// documents, since the branch stays constructible and only decoding is affected.
+// The generator computes the list; without this the whole feature can be deleted
+// with the suite still green.
+func TestUnionFragment_TryEachDocumentsShadowedBranches(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{
+			Name: "ShadowedValue",
+			Kind: ir.TypeAmbiguousWire,
+			Branches: []ir.UnionBranch{
+				{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{"field"}},
+				{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{"field"}},
+			},
+			ShadowedBranches: []string{"Second (shadowed by First)"},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: types}).Body()
+	require.NoError(t, err)
+
+	require.Contains(t, body, "// Decoding cannot reach the branches below.")
+	// Rendered as a godoc list item, not interpolated into the prose line.
+	require.Contains(t, body, "//   - Second (shadowed by First)")
+	require.Contains(t, body, "read RawJSON() when you need the payload exactly as it arrived.")
+
+	// The caveat sits in the doc block, so it must stay attached to the type.
+	require.Contains(t, body, "//   - Second (shadowed by First)\ntype ShadowedValue struct")
+
+	// Both branches keep their full surface: only Type() is affected.
+	require.Contains(t, body, "func NewShadowedValueFromSecond(v SecondShape) ShadowedValue")
+	require.Contains(t, body, "func (u *ShadowedValue) Second() (SecondShape, error)")
+}
+
+// A union with no shadowed branches must not carry the caveat.
+func TestUnionFragment_TryEachOmitsCaveatWhenUnshadowed(t *testing.T) {
+	t.Parallel()
+
+	types := []*ir.Type{
+		{
+			Name: "PlainValue",
+			Kind: ir.TypeAmbiguousWire,
+			Branches: []ir.UnionBranch{
+				{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{"a"}},
+				{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{"b"}},
+			},
+		},
+	}
+
+	body, err := (&emit.UnionFragment{Types: types}).Body()
+	require.NoError(t, err)
+	require.NotContains(t, body, "Decoding cannot reach")
+}
+
 func TestUnionFragment_MergedDecode(t *testing.T) {
 	t.Parallel()
 

@@ -444,9 +444,12 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 // isObjectShaped reports whether an inline branch schema describes an object: it
 // either declares `type: object`, or it declares no type at all and composes its
 // shape with allOf, which is how the spec writes a branch that extends a base.
-// The allOf members are not inspected, so a composed branch whose members resolve
-// to something other than an object reaches classifyObjectBranch and lands on its
-// raw-map fallback rather than that type.
+//
+// The allOf members are not inspected. Every composed branch in the vendored spec
+// merges to an object, so the shortcut holds today; a branch whose members
+// resolved to a scalar would still be classified TokenObject by
+// classifyObjectBranch, which is why this predicate is the place to tighten if
+// that ever appears.
 func isObjectShaped(s *openapi3.Schema) bool {
 	if s.Type != nil {
 		return s.Type.Is(openapi3.TypeObject)
@@ -513,17 +516,24 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 // required (e.g. NodeReloadError adding required reload_exception) carries that
 // requirement on an allOf member rather than at the root. Union discrimination
 // needs the full set to find a branch's distinguishing keys.
+//
+// The kin-openapi loader resolves each allOf member's $ref in place, so a cyclic
+// allOf would recurse forever; visited holds the schemas already on the current
+// path, matching findStringFieldByJSONName, reachableTags, and flattenJSONTags.
+// seen dedupes the KEYS being collected and cannot serve that purpose.
 func flattenRequired(s *openapi3.Schema) []string {
 	if s == nil {
 		return nil
 	}
 	seen := make(set[string])
+	visited := make(map[*openapi3.Schema]bool)
 	var out []string
 	var walk func(*openapi3.Schema)
 	walk = func(sch *openapi3.Schema) {
-		if sch == nil {
+		if sch == nil || visited[sch] {
 			return
 		}
+		visited[sch] = true
 		for _, k := range sch.Required {
 			if !seen.has(k) {
 				seen.add(k)

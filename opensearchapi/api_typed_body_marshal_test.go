@@ -127,6 +127,45 @@ func TestQueryContainerOmitsUnsetBranches(t *testing.T) {
 			want: `{"match":{"title":{"query":"hello","operator":"and"}}}`,
 		},
 		{
+			// Every remaining field-scoped clause the CHANGELOG names, in its
+			// shorthand form. Each must marshal to the bare value it did before the
+			// clause became a union, which is what "no wire-format change for
+			// equivalent code" means.
+			name: "map branches, shorthand form: the remaining clauses",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				Term: map[string]opensearchapi.CommonQueryDSLTermQuery{
+					"a": opensearchapi.NewCommonQueryDSLTermQueryFromFieldValue(opensearchapi.NewFieldValueFromString("t")),
+				},
+				Fuzzy: map[string]opensearchapi.CommonQueryDSLFuzzyQuery{
+					"b": opensearchapi.NewCommonQueryDSLFuzzyQueryFromFieldValue(opensearchapi.NewFieldValueFromString("f")),
+				},
+				Prefix: map[string]opensearchapi.CommonQueryDSLPrefixQuery{
+					"c": opensearchapi.NewCommonQueryDSLPrefixQueryFromString("p"),
+				},
+				Wildcard: map[string]opensearchapi.CommonQueryDSLWildcardQuery{
+					"d": opensearchapi.NewCommonQueryDSLWildcardQueryFromString("w*"),
+				},
+				Regexp: map[string]opensearchapi.CommonQueryDSLRegexpQuery{
+					"e": opensearchapi.NewCommonQueryDSLRegexpQueryFromString("r.*"),
+				},
+				SpanTerm: map[string]opensearchapi.CommonQueryDSLSpanTermQuery{
+					"f": opensearchapi.NewCommonQueryDSLSpanTermQueryFromString("s"),
+				},
+				Common: map[string]opensearchapi.CommonQueryDSLCommonTermsQuery{
+					"g": opensearchapi.NewCommonQueryDSLCommonTermsQueryFromString("c"),
+				},
+				MatchBoolPrefix: map[string]opensearchapi.CommonQueryDSLMatchBoolPrefixQuery{
+					"h": opensearchapi.NewCommonQueryDSLMatchBoolPrefixQueryFromString("mbp"),
+				},
+				MatchPhrasePrefix: map[string]opensearchapi.CommonQueryDSLMatchPhrasePrefixQuery{
+					"i": opensearchapi.NewCommonQueryDSLMatchPhrasePrefixQueryFromString("mpp"),
+				},
+			},
+			want: `{"term":{"a":"t"},"fuzzy":{"b":"f"},"prefix":{"c":"p"},"wildcard":{"d":"w*"},` +
+				`"regexp":{"e":"r.*"},"span_term":{"f":"s"},"common":{"g":"c"},` +
+				`"match_bool_prefix":{"h":"mbp"},"match_phrase_prefix":{"i":"mpp"}}`,
+		},
+		{
 			name: "union branch set is emitted: distance_feature",
 			container: func() opensearchapi.CommonQueryDSLQueryContainer {
 				q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
@@ -191,4 +230,69 @@ func TestDistanceFeatureDecodesAsGeoForm(t *testing.T) {
 			require.JSONEq(t, tt.body, string(q.RawJSON()))
 		})
 	}
+}
+
+// A clause union built without one of its From* constructors carries no branch, so
+// it marshals as null: the same shape #1066 reported, reachable from the caller's
+// side instead of the generator's. UPGRADING_V5.md documents it. This pins the
+// current behavior so that making an unset union marshal to an error is a
+// deliberate, visible change rather than a silent one.
+func TestUnsetClauseUnionMarshalsNull(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		container opensearchapi.CommonQueryDSLQueryContainer
+		want      string
+	}{
+		{
+			name: "zero value as a map entry",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}},
+			},
+			want: `{"match_phrase":{"title":null}}`,
+		},
+		{
+			name: "zero value behind a pointer field",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				DistanceFeature: &opensearchapi.CommonQueryDSLDistanceFeatureQuery{},
+			},
+			want: `{"distance_feature":null}`,
+		},
+		{
+			// A nil map is absent, which is the case the reported bug was about.
+			name:      "nil map is omitted",
+			container: opensearchapi.CommonQueryDSLQueryContainer{},
+			want:      `{}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := json.Marshal(tt.container)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
+}
+
+// Script and ScriptsPainlessExecuteBody.Script are two different migrations that
+// UPGRADING_V5.md documents together: an update body takes the Script union, while
+// painless takes the InlineScript union directly. Both snippets are exercised here
+// because the guides are not compiled by CI.
+func TestScriptBodiesMarshalDocumentedShapes(t *testing.T) {
+	t.Parallel()
+
+	src := "ctx._source.count += 1"
+
+	script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString(src))
+	update, err := json.Marshal(opensearchapi.UpdateBody{Script: &script})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"script":"`+src+`"}`, string(update))
+
+	inline := opensearchapi.NewInlineScriptFromString(src)
+	painless, err := json.Marshal(opensearchapi.ScriptsPainlessExecuteBody{Script: &inline})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"script":"`+src+`"}`, string(painless))
 }

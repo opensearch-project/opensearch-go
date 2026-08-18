@@ -305,6 +305,25 @@ MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
 },
 ```
 
+Which constructor depends on what the clause's shorthand was. A clause whose shorthand was a `string` takes `From*String`; `term` and `fuzzy` carried a `FieldValue`, so they take `From*FieldValue`:
+
+| Clause                                                                                                            | Shorthand constructor       |
+| ----------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `match_phrase`, `match_phrase_prefix`, `match_bool_prefix`, `prefix`, `regexp`, `wildcard`, `span_term`, `common` | `New<Clause>FromString`     |
+| `match`, `term`, `fuzzy`                                                                                          | `New<Clause>FromFieldValue` |
+
+`CommonQueryDSLSpanQuery.SpanTerm` changes the same way as the container's `span_term`, and takes the same constructor:
+
+```go
+// Before
+SpanTerm: map[string]string{"title": "hello"},
+
+// After
+SpanTerm: map[string]opensearchapi.CommonQueryDSLSpanTermQuery{
+    "title": opensearchapi.NewCommonQueryDSLSpanTermQueryFromString("hello"),
+},
+```
+
 The full form is a second branch, named for the key it requires, which the shorthand-only type could not express:
 
 ```go
@@ -334,7 +353,7 @@ Query: &opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: &q},
 
 Both `distance_feature` forms marshal correctly, but only `Object0` is reachable when decoding one: the two forms declare the same required keys (`field`, `origin`, `pivot`) and differ only in leaf types a JSON key probe cannot see, since `Origin GeoLocation` accepts a bare string and both `Pivot` types are strings. `Type()` on a decoded clause therefore always reports `Object0`. Use `RawJSON()` when you need the bytes as sent. Generation reports the collision on stderr rather than dropping the branch, because the date form is still the one to construct when sending that query.
 
-An inline script is its own union now, so a bare source string goes through it. `ScriptsPainlessExecuteBody.Script` changes from `*string` to `*InlineScript` for the same reason:
+An inline script is its own union now, so a bare source string goes through it. `UpdateBody.Script` still takes the `Script` union:
 
 ```go
 // Before
@@ -344,6 +363,31 @@ script := opensearchapi.NewScriptFromString("ctx._source.count += 1")
 script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
 ```
 
+`ScriptsPainlessExecuteBody.Script` is a different migration that happens to share the cause: it changes from `*string` to `*InlineScript`, so it takes the inner union directly and a `Script` will not compile there:
+
+```go
+// Before
+body := opensearchapi.ScriptsPainlessExecuteBody{Script: &src} // src was a string
+
+// After
+inline := opensearchapi.NewInlineScriptFromString("ctx._source.count += 1")
+body := opensearchapi.ScriptsPainlessExecuteBody{Script: &inline}
+```
+
+`Script`'s own surface changes with it: the `ScriptStringType` const becomes `ScriptInlineType`, and `(*Script).String()` is gone. Reach the source through the inline branch:
+
+```go
+// Before
+src, err := script.String()
+
+// After
+inline, err := script.Inline()
+if err != nil {
+    return err
+}
+src, err := inline.String()
+```
+
 A clause you construct without its `From*` constructor marshals as `null`, which the server rejects the same way it rejected the old unset `distance_feature`. The zero value is not a usable clause:
 
 ```go
@@ -351,4 +395,6 @@ A clause you construct without its `From*` constructor marshals as `null`, which
 MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}},
 ```
 
-On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor, so `stat.Int()` returns the value the plain field used to hold, plus an error when the response carried the object form instead.
+`SearchSuggestCompletion` narrows the inherited `options` field to `*SearchSuggestCompletionOptions`, so a field the spec marks required is now omitted when unset; read it through `AsCompletion()`.
+
+On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor: `Int()` on `NeuralInfoCounterStat` and `NeuralTimestampedEventCounterStat`, and `String()` on `NeuralInfoStringStat`, which is the one that replaced a `*string`. The accessor returns the value the plain field used to hold, plus an error when the response carried the object form instead.

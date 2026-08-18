@@ -8837,10 +8837,12 @@ func (u CommonQueryDSLCommonTermsQuery) MarshalJSON() ([]byte, error) {
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 //
-// Decoding cannot reach Object1 (shadowed by Object0): the spec declares the
-// same required keys on an earlier branch, so the key probe always selects that
-// one and Type() never reports this branch. Constructing and marshaling it is
-// unaffected; read RawJSON() when you need the payload exactly as it arrived.
+// Decoding cannot reach the branches below. Each declares the same required keys
+// as an earlier branch, so the key probe always selects that earlier one and
+// Type() never reports these. Constructing and marshaling them is unaffected;
+// read RawJSON() when you need the payload exactly as it arrived.
+//
+//   - Object1 (shadowed by Object0)
 type CommonQueryDSLDistanceFeatureQuery struct {
 	typ   CommonQueryDSLDistanceFeatureQueryType
 	raw   json.RawMessage
@@ -19960,10 +19962,12 @@ func (u IndicesIndexSegmentSortOrder) MarshalJSON() ([]byte, error) {
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 //
-// Decoding cannot reach Object0 (shadowed by Object1): the spec declares the
-// same required keys on an earlier branch, so the key probe always selects that
-// one and Type() never reports this branch. Constructing and marshaling it is
-// unaffected; read RawJSON() when you need the payload exactly as it arrived.
+// Decoding cannot reach the branches below. Each declares the same required keys
+// as an earlier branch, so the key probe always selects that earlier one and
+// Type() never reports these. Constructing and marshaling them is unaffected;
+// read RawJSON() when you need the payload exactly as it arrived.
+//
+//   - Object0 (shadowed by Object1)
 type SegmentReplicationStats struct {
 	typ   SegmentReplicationStatsType
 	raw   json.RawMessage
@@ -24229,6 +24233,17 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+//
+// Decoding cannot reach the branches below. Each declares the same required keys
+// as an earlier branch, so the key probe always selects that earlier one and
+// Type() never reports these. Constructing and marshaling them is unaffected;
+// read RawJSON() when you need the payload exactly as it arrived.
+//
+//   - MultiPoint (shadowed by Point)
+//   - LineString (shadowed by Point)
+//   - MultiLineString (shadowed by Point)
+//   - Polygon (shadowed by Point)
+//   - MultiPolygon (shadowed by Point)
 type GeospatialGeoShapes struct {
 	typ   GeospatialGeoShapesType
 	raw   json.RawMessage

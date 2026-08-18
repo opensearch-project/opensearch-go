@@ -63,16 +63,11 @@ func classifyUnions(spec *ir.Spec) {
 			continue
 		}
 
-		// Keyed by name AND message, because the two conditions below are
-		// independent: keying on the name alone would let whichever fired first
-		// swallow the other. The format string is the message's identity, so the key
-		// cannot drift from the diagnostic it guards.
 		warn := func(format string, args ...any) {
-			key := t.Name + ":" + format
-			if warned.has(key) {
+			if warned.has(t.Name) {
 				return
 			}
-			warned.add(key)
+			warned.add(t.Name)
 			log.Printf(format, args...)
 		}
 
@@ -121,25 +116,62 @@ func classifyUnions(spec *ir.Spec) {
 				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
 
-		// Branches declaring the same required keys share one presence probe, so a
-		// try-each decoder can only ever reach the first of them: the sibling stays
-		// constructible (its From<Branch> constructor and MarshalJSON are correct)
-		// but Type() can never report it. That is a property of the schema rather
-		// than a repairable defect -- DistanceFeatureQuery's geo and date forms both
-		// require field/origin/pivot and differ only in leaf types a JSON key probe
-		// cannot see -- so report it instead of dropping a branch a caller needs in
-		// order to send that form.
-		if shadowed := branchesSharingRequiredKeys(t); len(shadowed) > 0 {
-			t.ShadowedBranches = shadowed
-			warn("osgen: union %q decodes to its first matching branch only; "+
-				"no key probe can select these, which declare the same required keys as an earlier "+
-				"branch: %s", t.Name, strings.Join(shadowed, ", "))
-		}
 	}
 
 	// Every union has now reached its terminal decode strategy, so branch
 	// reachability is decidable.
 	dropUnreachableBranches(allTypes)
+
+	// Probe collisions are reported last, over the branches that survive, and
+	// deliberately outside the loop above: that loop gates on allObjectBranches,
+	// which is a precondition for MERGE analysis rather than for probing. A
+	// try-each union with one non-object branch still emits a key probe per object
+	// branch, so gating the report the same way hid GeospatialGeoShapes, whose six
+	// object branches all require the same two keys alongside a permissive array
+	// branch.
+	reportProbeCollisions(allTypes)
+}
+
+// reportProbeCollisions records and reports, for every union the emitter renders
+// with the try-each decoder, the branches whose required-key set duplicates an
+// earlier branch's. The decoder probes those keys in branch order, so such a
+// branch is unreachable on decode: it stays constructible and marshals correctly,
+// but Type() can never report it. That is a property of the schema rather than a
+// repairable defect (DistanceFeatureQuery's geo and date forms both require
+// field/origin/pivot and differ only in leaf types a key probe cannot see), so it
+// is reported and documented on the type rather than dropped, since the branch is
+// still the one a caller constructs to send that form.
+//
+// It runs after dropUnreachableBranches so a branch that is reported can never be
+// one the emitter has already removed.
+func reportProbeCollisions(types []*ir.Type) {
+	warned := set[string]{}
+	for _, t := range types {
+		if !rendersAsTryEach(t) {
+			continue
+		}
+		shadowed := branchesSharingRequiredKeys(t)
+		if len(shadowed) == 0 {
+			continue
+		}
+		t.ShadowedBranches = shadowed
+		if warned.has(t.Name) {
+			continue
+		}
+		warned.add(t.Name)
+		log.Printf("osgen: union %q decodes to its first matching branch only; no key probe can "+
+			"select these, which declare the same required keys as an earlier branch: %s",
+			t.Name, strings.Join(shadowed, ", "))
+	}
+}
+
+// rendersAsTryEach reports whether the emitter will decode this union by
+// attempting each branch in turn, which is the only strategy that probes required
+// keys. The stronger strategies are checked in the same precedence the template
+// applies: a spec discriminator, then a key-presence merge, then request
+// selection.
+func rendersAsTryEach(t *ir.Type) bool {
+	return t.Kind == ir.TypeAmbiguousWire && t.Discriminator == nil && t.Merge == nil && !t.RequestSelected
 }
 
 // branchesSharingRequiredKeys returns the names of branches whose required-key

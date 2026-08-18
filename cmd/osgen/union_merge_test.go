@@ -441,3 +441,83 @@ func TestClassifyUnionsReportsBothDiagnostics(t *testing.T) {
 	require.Contains(t, out, `union "BothDiagnostics" left on try-each`)
 	require.Contains(t, out, `Second (shadowed by First)`)
 }
+
+// TestReportProbeCollisionsPopulatesIR pins the two halves the emitter depends on:
+// the shadowed branch names land on the IR type (the template renders them), and
+// the report is not gated on every branch being an object. GeospatialGeoShapes is
+// the real case that gate hid: six object branches all requiring
+// {coordinates,type} alongside a permissive array branch.
+func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		setup func() *ir.Type
+		want  []string
+	}{
+		{
+			name: "object branches only",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+					{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+				}}
+			},
+			want: []string{"Second (shadowed by First)"},
+		},
+		{
+			name: "a non-object branch does not suppress the report",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "GeoShapes", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "Point", GoType: "Point", TokenClass: ir.TokenObject, Required: []string{"coordinates", "type"}},
+					{Name: "MultiPoint", GoType: "MultiPoint", TokenClass: ir.TokenObject, Required: []string{"coordinates", "type"}},
+					{Name: "Array", GoType: "[][]float64", TokenClass: ir.TokenArray},
+				}}
+			},
+			want: []string{"MultiPoint (shadowed by Point)"},
+		},
+		{
+			name: "distinct required sets report nothing",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "Distinct", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "Doc", GoType: "Doc", TokenClass: ir.TokenObject, Required: []string{"doc"}},
+					{Name: "Script", GoType: "Script", TokenClass: ir.TokenObject, Required: []string{"script"}},
+				}}
+			},
+		},
+		{
+			name: "a discriminated union names its branch, so probes are irrelevant",
+			setup: func() *ir.Type {
+				return &ir.Type{
+					Name: "Discriminated", Kind: ir.TypeAmbiguousWire,
+					Discriminator: &ir.UnionDiscriminator{PropertyName: "type"},
+					Branches: []ir.UnionBranch{
+						{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+						{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+					},
+				}
+			},
+		},
+		{
+			name: "a request-selected union is chosen by the caller, not by probe",
+			setup: func() *ir.Type {
+				return &ir.Type{
+					Name: "RequestPicked", Kind: ir.TypeAmbiguousWire, RequestSelected: true,
+					Branches: []ir.UnionBranch{
+						{Name: "Avg", GoType: "Avg", TokenClass: ir.TokenObject, Required: []string{"value"}},
+						{Name: "Sum", GoType: "Sum", TokenClass: ir.TokenObject, Required: []string{"value"}},
+					},
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			typ := tt.setup()
+			reportProbeCollisions([]*ir.Type{typ})
+			require.Equal(t, tt.want, typ.ShadowedBranches)
+		})
+	}
+}
