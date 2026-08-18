@@ -7,6 +7,9 @@
 package main
 
 import (
+	"bytes"
+	"log"
+	"os"
 	"slices"
 	"testing"
 
@@ -402,4 +405,39 @@ func TestBranchesSharingRequiredKeys(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// TestClassifyUnionsReportsBothDiagnostics covers the warn key: the try-each and
+// shared-required-keys conditions are independent, so a union hitting both must
+// print both. Keying the dedupe on the union name alone let the first swallow the
+// second. Not parallel: it captures the process-wide log writer.
+func TestClassifyUnionsReportsBothDiagnostics(t *testing.T) {
+	permissive := structType("Permissive", field("Note", "note", "string"))
+	first := structType("First", field("Field", "field", "string"))
+	second := structType("Second", field("Field", "field", "string"))
+
+	// One embeddable permissive branch plus two branches whose required sets are
+	// identical: the first condition fires on the permissive branch, the second on
+	// the duplicated probe.
+	union := &ir.Type{Name: "BothDiagnostics", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+		{Name: "Permissive", GoType: "Permissive", TokenClass: ir.TokenObject},
+		{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+		{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+	}}
+	resp := structType("BothResp", field("Body", "body", "BothDiagnostics"))
+
+	var buf bytes.Buffer
+	flags := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(flags)
+	})
+
+	classifyUnions(newClassifySpec(permissive, first, second, union, resp))
+
+	out := buf.String()
+	require.Contains(t, out, `union "BothDiagnostics" left on try-each`)
+	require.Contains(t, out, `Second (shadowed by First)`)
 }

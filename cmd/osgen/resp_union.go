@@ -656,10 +656,25 @@ func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) 
 		if unionName+b.Name != branchType {
 			continue
 		}
-		if replacement := schemaLocalGoName(b.SchemaKey); replacement != "" && replacement != b.Name {
-			b.Name = replacement
-		}
+		renameToSchemaLocal(b)
 	}
+}
+
+// renameToSchemaLocal renames a $ref branch to the schema it references, which is
+// the name deriveBranchName would have chosen had the spec not supplied a title.
+// Reports whether the name changed. Callers use it to break a collision the title
+// caused: the referenced schema's own name is the half that does not depend on
+// what the spec chose to call the branch at this site.
+func renameToSchemaLocal(b *unionBranch) bool {
+	if !b.IsRef || b.SchemaKey == "" {
+		return false
+	}
+	replacement := schemaLocalGoName(b.SchemaKey)
+	if replacement == "" || replacement == b.Name {
+		return false
+	}
+	b.Name = replacement
+	return true
 }
 
 // deduplicateAccessorNames renames branches that share the same Name.
@@ -676,26 +691,22 @@ func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) 
 // this function was written for: two map branches both named "Map" become
 // "StringMap" and "FieldSortMap" based on their value type.
 func deduplicateAccessorNames(branches []unionBranch) {
-	colliding := func() map[string]int {
-		count := make(map[string]int, len(branches))
+	nameCounts := func() map[string]int {
+		counts := make(map[string]int, len(branches))
 		for _, b := range branches {
-			count[b.Name]++
+			counts[b.Name]++
 		}
-		return count
+		return counts
 	}
 
-	count := colliding()
+	count := nameCounts()
 	for i := range branches {
-		b := &branches[i]
-		if count[b.Name] < 2 || !b.IsRef || b.SchemaKey == "" {
-			continue
-		}
-		if local := schemaLocalGoName(b.SchemaKey); local != "" && local != b.Name {
-			b.Name = local
+		if count[branches[i].Name] > 1 {
+			renameToSchemaLocal(&branches[i])
 		}
 	}
 
-	count = colliding()
+	count = nameCounts()
 	for i := range branches {
 		if count[branches[i].Name] > 1 {
 			branches[i].Name = mapValueTypeName(branches[i].GoType) + branches[i].Name

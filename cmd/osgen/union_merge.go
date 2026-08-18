@@ -63,11 +63,12 @@ func classifyUnions(spec *ir.Spec) {
 			continue
 		}
 
-		// Keyed by name AND diagnostic kind: the two conditions below are
-		// independent, and keying on the name alone would let whichever fired first
-		// swallow the other.
-		warn := func(kind, format string, args ...any) {
-			key := t.Name + ":" + kind
+		// Keyed by name AND message, because the two conditions below are
+		// independent: keying on the name alone would let whichever fired first
+		// swallow the other. The format string is the message's identity, so the key
+		// cannot drift from the diagnostic it guards.
+		warn := func(format string, args ...any) {
+			key := t.Name + ":" + format
 			if warned.has(key) {
 				return
 			}
@@ -116,7 +117,7 @@ func classifyUnions(spec *ir.Spec) {
 			}
 		}
 		if permissive == 1 && embeddablePermissive == 1 {
-			warn("try-each", "osgen: union %q left on try-each: one permissive branch plus "+
+			warn("osgen: union %q left on try-each: one permissive branch plus "+
 				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
 
@@ -129,7 +130,8 @@ func classifyUnions(spec *ir.Spec) {
 		// cannot see -- so report it instead of dropping a branch a caller needs in
 		// order to send that form.
 		if shadowed := branchesSharingRequiredKeys(t); len(shadowed) > 0 {
-			warn("shared-required-keys", "osgen: union %q decodes to its first matching branch only; "+
+			t.ShadowedBranches = shadowed
+			warn("osgen: union %q decodes to its first matching branch only; "+
 				"no key probe can select these, which declare the same required keys as an earlier "+
 				"branch: %s", t.Name, strings.Join(shadowed, ", "))
 		}

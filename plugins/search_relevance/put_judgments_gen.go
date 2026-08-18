@@ -113,7 +113,6 @@ func (r PutJudgmentsResp) RawBody() io.Reader {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchRelevancePutJudgmentsBody struct {
 	typ   SearchRelevancePutJudgmentsBodyType
 	raw   json.RawMessage

@@ -230,6 +230,13 @@ type Type struct {
 	// decode the branch the caller asks for, on demand.
 	RequestSelected bool
 
+	// ShadowedBranches names the branches a try-each decoder can never select,
+	// because each declares the same required keys as an earlier branch and the
+	// decoder picks by probing those keys. Such a branch is still constructible and
+	// marshals correctly -- only Type() can never report it -- so it is documented
+	// on the generated type rather than dropped. Set by classifyUnions.
+	ShadowedBranches []string
+
 	// EnumMembers holds the members of a TypeEnum (int-backed iota enum) or
 	// TypeStringEnum (string-backed enum): each pairs the Go const identifier
 	// with its wire value. Empty for all other kinds.

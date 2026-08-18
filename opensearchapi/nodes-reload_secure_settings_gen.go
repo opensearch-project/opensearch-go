@@ -154,7 +154,6 @@ type NodesReloadSecureSettingsNodeReloadError struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodesReloadSecureSettingsNodeReloadResult struct {
 	typ   NodesReloadSecureSettingsNodeReloadResultType
 	raw   json.RawMessage

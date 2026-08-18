@@ -214,7 +214,6 @@ type FlowFrameworkCommonResourcesCreated struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type FlowFrameworkCommonSearchStateRespResourcesCreated struct {
 	typ   FlowFrameworkCommonSearchStateRespResourcesCreatedType
 	raw   json.RawMessage

@@ -240,7 +240,6 @@ type IndicesSegmentsSegment struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesSegmentsIndexSegmentShardsValue struct {
 	typ   IndicesSegmentsIndexSegmentShardsValueType
 	raw   json.RawMessage

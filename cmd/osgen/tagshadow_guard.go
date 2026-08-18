@@ -65,7 +65,9 @@ const tagShadowAllowlistHeader = "# osgen duplicate-JSON-tag allowlist - DO NOT 
 	"# specific type than the one it hides. An entry that erases a typed payload\n" +
 	"# makes every field of the hidden type unreachable; an entry that widens the\n" +
 	"# hidden field to a pointer makes a value the embed declares required optional\n" +
-	"# on the winning declaration. Confirm either is intended before adding one.\n"
+	"# on the winning declaration. An entry noting it makes a required field\n" +
+	"# optional can omit the key entirely, whatever else it does to the type.\n" +
+	"# Confirm any of these is intended before adding one.\n"
 
 // shadowKind classifies what the shallower declaration does to the payload of
 // the embedded declaration it hides. It is not part of the allowlist key; it
@@ -136,7 +138,12 @@ type tagShadow struct {
 	OuterGoType    string
 	ShadowedGoType string
 	Kind           shadowKind
-	group          string // schema group, for grouped output only (not part of the key)
+	// MakesOptional records that the winning declaration accepts absence where
+	// the field it hides did not. It is orthogonal to Kind: a narrowing can also
+	// make a required value optional, and that half is what a reviewer needs to
+	// see, because the hidden field is the one the spec marked required.
+	MakesOptional bool
+	group         string // schema group, for grouped output only (not part of the key)
 }
 
 // key is the allowlist line key: "OuterType/jsonTag/DeclaringType". The
@@ -265,6 +272,16 @@ func classifyShadow(outerGoType, shadowedGoType string) shadowKind {
 	return shadowNarrowing
 }
 
+// makesRequiredOptional reports whether the winning declaration accepts absence
+// where the declaration it hides did not. A field the spec marks required is
+// emitted as a plain value with no omitempty, so a pointer or an omitempty tag on
+// the winner means the key can now be missing from the payload entirely -- which
+// the Kind label alone does not convey, since a genuine narrowing may do it too.
+func makesRequiredOptional(outer, shadowed ir.Field) bool {
+	shadowedRequired := !shadowed.IsPointer && !shadowed.OmitEmpty
+	return shadowedRequired && (outer.IsPointer || outer.OmitEmpty)
+}
+
 // collectTagShadows walks the IR and returns every duplicate-tag shadow,
 // deduplicated by key and sorted for grouped output. It reads the IR rather than
 // the emitted text, so a shadow is caught before any file is written.
@@ -323,6 +340,7 @@ func collectTagShadows(spec *ir.Spec) []tagShadow {
 					OuterGoType:    f.GoType,
 					ShadowedGoType: sf.Field.GoType,
 					Kind:           classifyShadow(f.GoType, sf.Field.GoType),
+					MakesOptional:  makesRequiredOptional(f, sf.Field),
 					group:          schemaGroup(t.SchemaRef),
 				}
 				if seen.has(s.key()) {
@@ -345,6 +363,11 @@ func (s tagShadow) detail() string {
 	fmt.Fprintf(&b, "%s: %s shadows %s.%s %s", s.Kind, s.OuterGoType, s.Declaring, s.JSONName, s.ShadowedGoType)
 	if len(s.Chain) > 1 {
 		fmt.Fprintf(&b, " (via %s)", strings.Join(s.Chain[:len(s.Chain)-1], " -> "))
+	}
+	// shadowWidened already says the winner is a pointer, so the clause would
+	// restate it; every other kind can hide the change and needs it spelled out.
+	if s.MakesOptional && s.Kind != shadowWidened {
+		b.WriteString("; makes a required field optional")
 	}
 	return b.String()
 }

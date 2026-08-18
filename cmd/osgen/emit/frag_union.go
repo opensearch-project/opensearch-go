@@ -108,6 +108,7 @@ func (f *UnionFragment) Body() (string, error) {
 		"comment":     CommentWrap,
 		"constName":   unionConstNameIR,
 		"isTryEach":   func(k ir.TypeKind) bool { return k == ir.TypeAmbiguousWire },
+		"join":        strings.Join,
 		"qualify":     qualify,
 		"quotedKeys":  quotedKeys,
 		"embedField":  embedFieldName,
@@ -302,7 +303,7 @@ func (u {{.Name}}) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -354,7 +355,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -510,7 +511,14 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- if $t.ShadowedBranches}}
+//
+// Decoding cannot reach {{join $t.ShadowedBranches ", "}}: the spec declares the
+// same required keys on an earlier branch, so the key probe always selects that
+// one and Type() never reports this branch. Constructing and marshaling it is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived.
+{{- end}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -564,7 +572,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil

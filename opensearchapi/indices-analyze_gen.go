@@ -287,7 +287,6 @@ type IndicesAnalyzeBody struct {
 	Tokenizer *CommonAnalysisTokenizer `json:"tokenizer,omitempty"`
 }
 
-//
 // The text or array of text to analyze.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -295,7 +294,6 @@ type IndicesAnalyzeBody struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesAnalyzeTextTo struct {
 	typ   IndicesAnalyzeTextToType
 	raw   json.RawMessage

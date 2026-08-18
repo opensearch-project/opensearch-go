@@ -433,6 +433,29 @@ func TestDeduplicateAccessorNames(t *testing.T) {
 			},
 			want: []string{"StringArray", "IntArray"},
 		},
+		{
+			// The spec titles a shorthand $ref branch for the very key the
+			// full-form sibling requires, so both derive the same name. The $ref
+			// branch is renamed to the schema it references, which leaves the
+			// inline branch its content name -- qualifying both by Go type would
+			// stutter the union prefix into CommonQueryDSLMatchQueryQueryQuery.
+			name: "titled ref branch yields to its schema name",
+			branches: []unionBranch{
+				{Name: "Query", GoType: "FieldValue", IsRef: true, SchemaKey: "_common___FieldValue"},
+				{Name: "Query", GoType: "CommonQueryDSLMatchQueryQuery"},
+			},
+			want: []string{"FieldValue", "Query"},
+		},
+		{
+			// Neither branch can be renamed from a schema key, so both keep the
+			// GoType qualifier.
+			name: "inline collisions still fall back to the GoType qualifier",
+			branches: []unionBranch{
+				{Name: "Field", GoType: "AObject0"},
+				{Name: "Field", GoType: "AObject1"},
+			},
+			want: []string{"AObject0Field", "AObject1Field"},
+		},
 	}
 
 	for _, tt := range tests {

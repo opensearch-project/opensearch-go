@@ -131,7 +131,6 @@ func (r SettingsResp) RawBody() io.Reader {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLSettingsBody struct {
 	typ   SQLSettingsBodyType
 	raw   json.RawMessage

@@ -23,7 +23,6 @@ import (
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringOrStringArray struct {
 	typ   StringOrStringArrayType
 	raw   json.RawMessage
@@ -158,7 +157,6 @@ func (u StringOrStringArray) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseBucketsType
 	raw   json.RawMessage
@@ -295,7 +293,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsAdjacencyMatrixAggregateBuckets struct {
 	typ   CommonAggregationsAdjacencyMatrixAggregateBucketsType
 	raw   json.RawMessage
@@ -432,7 +429,6 @@ func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsDateHistogramAggregateBuckets struct {
 	typ   CommonAggregationsDateHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -562,7 +558,6 @@ func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, 
 	return build.NullJSON, nil
 }
 
-//
 // A field value.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -570,7 +565,6 @@ func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type FieldValue struct {
 	typ   FieldValueType
 	raw   json.RawMessage
@@ -736,7 +730,6 @@ func (u FieldValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsType
 	raw   json.RawMessage
@@ -875,7 +868,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Marsha
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsType
 	raw   json.RawMessage
@@ -1014,7 +1006,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSO
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsFiltersAggregateBuckets struct {
 	typ   CommonAggregationsFiltersAggregateBucketsType
 	raw   json.RawMessage
@@ -1144,14 +1135,12 @@ func (u CommonAggregationsFiltersAggregateBuckets) MarshalJSON() ([]byte, error)
 	return build.NullJSON, nil
 }
 
-//
 // The lower-right corner coordinates.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeoLocation struct {
 	typ   GeoLocationType
 	raw   json.RawMessage
@@ -1347,19 +1336,18 @@ func (u GeoLocation) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A geo-bounding box. It can be represented in the following ways:
-//  - As 4 top/bottom/left/right coordinates.
-//  - As 2 top_left/bottom_right points.
-//  - As 2 top_right/bottom_left points.
-//  - As a Well Known Text (WKT) bounding box.
+//   - As 4 top/bottom/left/right coordinates.
+//   - As 2 top_left/bottom_right points.
+//   - As 2 top_right/bottom_left points.
+//   - As a Well Known Text (WKT) bounding box.
+//
 // The spec declares no discriminator, but each branch requires a JSON key the
 // others lack, so one decode both populates the common branch and detects the
 // others by key presence.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeoBounds struct {
 	typ   GeoBoundsType
 	raw   json.RawMessage
@@ -1566,7 +1554,6 @@ func (u GeoBounds) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsGeoHashGridAggregateBuckets struct {
 	typ   CommonAggregationsGeoHashGridAggregateBucketsType
 	raw   json.RawMessage
@@ -1703,7 +1690,6 @@ func (u CommonAggregationsGeoHashGridAggregateBuckets) MarshalJSON() ([]byte, er
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsGeoTileGridAggregateBuckets struct {
 	typ   CommonAggregationsGeoTileGridAggregateBucketsType
 	raw   json.RawMessage
@@ -1840,7 +1826,6 @@ func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSON() ([]byte, er
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsKeyedPercentilesValue struct {
 	typ   CommonAggregationsKeyedPercentilesValueType
 	raw   json.RawMessage
@@ -1977,7 +1962,6 @@ func (u CommonAggregationsKeyedPercentilesValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsPercentiles struct {
 	typ   CommonAggregationsPercentilesType
 	raw   json.RawMessage
@@ -2112,7 +2096,6 @@ func (u CommonAggregationsPercentiles) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsHistogramAggregateBuckets struct {
 	typ   CommonAggregationsHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -2249,7 +2232,6 @@ func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSON() ([]byte, erro
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsIPRangeAggregateBuckets struct {
 	typ   CommonAggregationsIPRangeAggregateBucketsType
 	raw   json.RawMessage
@@ -2386,7 +2368,6 @@ func (u CommonAggregationsIPRangeAggregateBuckets) MarshalJSON() ([]byte, error)
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsLongRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsLongRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2523,7 +2504,6 @@ func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSON() ([]byte, 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsLongTermsBucketKey struct {
 	typ   CommonAggregationsLongTermsBucketKeyType
 	raw   json.RawMessage
@@ -2660,7 +2640,6 @@ func (u CommonAggregationsLongTermsBucketKey) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiTermsAggregateBuckets struct {
 	typ   CommonAggregationsMultiTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2797,7 +2776,6 @@ func (u CommonAggregationsMultiTermsAggregateBuckets) MarshalJSON() ([]byte, err
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsSignificantLongTermsAggregateBuckets struct {
 	typ   CommonAggregationsSignificantLongTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2936,7 +2914,6 @@ func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSON() ([
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsSignificantStringTermsAggregateBuckets struct {
 	typ   CommonAggregationsSignificantStringTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3075,7 +3052,6 @@ func (u CommonAggregationsSignificantStringTermsAggregateBuckets) MarshalJSON() 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsStringRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsStringRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3205,7 +3181,6 @@ func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte
 	return build.NullJSON, nil
 }
 
-//
 // The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3213,7 +3188,6 @@ func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHitMatchedQueries struct {
 	typ   SearchHitMatchedQueriesType
 	raw   json.RawMessage
@@ -3341,7 +3315,6 @@ func (u SearchHitMatchedQueries) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3349,7 +3322,6 @@ func (u SearchHitMatchedQueries) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHitsMetadataTotal struct {
 	typ   SearchHitsMetadataTotalType
 	raw   json.RawMessage
@@ -3484,7 +3456,6 @@ func (u SearchHitsMetadataTotal) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsUnmappedRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsUnmappedRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3621,7 +3592,6 @@ func (u CommonAggregationsUnmappedRareTermsAggregateBuckets) MarshalJSON() ([]by
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsUnmappedSignificantTermsAggregateBuckets struct {
 	typ   CommonAggregationsUnmappedSignificantTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3760,7 +3730,6 @@ func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSON(
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsVariableWidthHistogramAggregateBuckets struct {
 	typ   CommonAggregationsVariableWidthHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -6912,7 +6881,6 @@ func (u CommonAggregationsAggregate) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Text or location that we want similar documents for or a lookup to a document's field for the text.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -6920,7 +6888,6 @@ func (u CommonAggregationsAggregate) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchContext struct {
 	typ   SearchContextType
 	raw   json.RawMessage
@@ -7055,7 +7022,6 @@ func (u SearchContext) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchCompletionSuggestOptions struct {
 	typ   SearchCompletionSuggestOptionsType
 	raw   json.RawMessage
@@ -7190,7 +7156,6 @@ func (u SearchCompletionSuggestOptions) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchSuggestCompletionOptions struct {
 	typ   SearchSuggestCompletionOptionsType
 	raw   json.RawMessage
@@ -7325,7 +7290,6 @@ func (u SearchSuggestCompletionOptions) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPhraseSuggestOptions struct {
 	typ   SearchPhraseSuggestOptionsType
 	raw   json.RawMessage
@@ -7460,7 +7424,6 @@ func (u SearchPhraseSuggestOptions) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchTermSuggestOptions struct {
 	typ   SearchTermSuggestOptionsType
 	raw   json.RawMessage
@@ -7785,7 +7748,6 @@ func (u SearchSuggest) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -7797,7 +7759,6 @@ func (u SearchSuggest) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedEpochTimeUnitSeconds struct {
 	typ   StringifiedEpochTimeUnitSecondsType
 	raw   json.RawMessage
@@ -7925,7 +7886,6 @@ func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -7937,7 +7897,6 @@ func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedEpochTimeUnitMillis struct {
 	typ   StringifiedEpochTimeUnitMillisType
 	raw   json.RawMessage
@@ -8065,7 +8024,6 @@ func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must appear in matching documents.
 // However, unlike `must`, the score of the query will be ignored.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -8074,7 +8032,6 @@ func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryFilter struct {
 	typ   CommonQueryDSLBoolQueryFilterType
 	raw   json.RawMessage
@@ -8202,7 +8159,6 @@ func (u CommonQueryDSLBoolQueryFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The minimum number of terms that should match as an integer, percentage, or range.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8210,7 +8166,6 @@ func (u CommonQueryDSLBoolQueryFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MinimumShouldMatch struct {
 	typ   MinimumShouldMatchType
 	raw   json.RawMessage
@@ -8338,7 +8293,6 @@ func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must appear in matching documents and will contribute to the score.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8346,7 +8300,6 @@ func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryMust struct {
 	typ   CommonQueryDSLBoolQueryMustType
 	raw   json.RawMessage
@@ -8474,7 +8427,6 @@ func (u CommonQueryDSLBoolQueryMust) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must not appear in the matching documents.
 // Because scoring is ignored, a score of `0` is returned for all documents.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -8483,7 +8435,6 @@ func (u CommonQueryDSLBoolQueryMust) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryMustNot struct {
 	typ   CommonQueryDSLBoolQueryMustNotType
 	raw   json.RawMessage
@@ -8611,7 +8562,6 @@ func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) should appear in the matching document.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8619,7 +8569,6 @@ func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryShould struct {
 	typ   CommonQueryDSLBoolQueryShouldType
 	raw   json.RawMessage
@@ -8754,7 +8703,6 @@ func (u CommonQueryDSLBoolQueryShould) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLCommonTermsQuery struct {
 	typ   CommonQueryDSLCommonTermsQueryType
 	raw   json.RawMessage
@@ -8888,7 +8836,11 @@ func (u CommonQueryDSLCommonTermsQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
+//
+// Decoding cannot reach Object1 (shadowed by Object0): the spec declares the
+// same required keys on an earlier branch, so the key probe always selects that
+// one and Type() never reports this branch. Constructing and marshaling it is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived.
 type CommonQueryDSLDistanceFeatureQuery struct {
 	typ   CommonQueryDSLDistanceFeatureQueryType
 	raw   json.RawMessage
@@ -9029,7 +8981,6 @@ func (u CommonQueryDSLDistanceFeatureQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLSpanTermQuery struct {
 	typ   CommonQueryDSLSpanTermQueryType
 	raw   json.RawMessage
@@ -9164,7 +9115,6 @@ func (u CommonQueryDSLSpanTermQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLRandomScoreFunctionSeed struct {
 	typ   CommonQueryDSLRandomScoreFunctionSeedType
 	raw   json.RawMessage
@@ -9301,7 +9251,6 @@ func (u CommonQueryDSLRandomScoreFunctionSeed) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type InlineScript struct {
 	typ   InlineScriptType
 	raw   json.RawMessage
@@ -9435,7 +9384,6 @@ func (u InlineScript) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type Script struct {
 	typ   ScriptType
 	raw   json.RawMessage
@@ -9714,7 +9662,6 @@ func (u CommonQueryDSLFuzzyQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchSourceFilter struct {
 	typ   SearchSourceFilterType
 	raw   json.RawMessage
@@ -9842,7 +9789,6 @@ func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -9850,7 +9796,6 @@ func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchSourceConfig struct {
 	typ   SearchSourceConfigType
 	raw   json.RawMessage
@@ -9978,7 +9923,6 @@ func (u SearchSourceConfig) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of inner hits and their sort order.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -9986,7 +9930,6 @@ func (u SearchSourceConfig) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchFieldCollapseInnerHits struct {
 	typ   SearchFieldCollapseInnerHitsType
 	raw   json.RawMessage
@@ -10121,7 +10064,6 @@ func (u SearchFieldCollapseInnerHits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLFieldAndFormat struct {
 	typ   CommonQueryDSLFieldAndFormatType
 	raw   json.RawMessage
@@ -10256,7 +10198,6 @@ func (u CommonQueryDSLFieldAndFormat) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHighlightFields struct {
 	typ   SearchHighlightFieldsType
 	raw   json.RawMessage
@@ -10390,7 +10331,6 @@ func (u SearchHighlightFields) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SortCombinations struct {
 	typ   SortCombinationsType
 	raw   json.RawMessage
@@ -10593,7 +10533,6 @@ func (u SortCombinations) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type Sort struct {
 	typ   SortType
 	raw   json.RawMessage
@@ -10728,7 +10667,6 @@ func (u Sort) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLKNNQueryRescore struct {
 	typ   CommonQueryDSLKNNQueryRescoreType
 	raw   json.RawMessage
@@ -11003,7 +10941,6 @@ func (u CommonQueryDSLMatchQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMatchBoolPrefixQuery struct {
 	typ   CommonQueryDSLMatchBoolPrefixQueryType
 	raw   json.RawMessage
@@ -11140,7 +11077,6 @@ func (u CommonQueryDSLMatchBoolPrefixQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMatchPhraseQuery struct {
 	typ   CommonQueryDSLMatchPhraseQueryType
 	raw   json.RawMessage
@@ -11275,7 +11211,6 @@ func (u CommonQueryDSLMatchPhraseQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMatchPhrasePrefixQuery struct {
 	typ   CommonQueryDSLMatchPhrasePrefixQueryType
 	raw   json.RawMessage
@@ -11405,7 +11340,6 @@ func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Text that we want similar documents for or a lookup to a document's field for the text.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -11413,7 +11347,6 @@ func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLLike struct {
 	typ   CommonQueryDSLLikeType
 	raw   json.RawMessage
@@ -11541,7 +11474,6 @@ func (u CommonQueryDSLLike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Specifies free form text and/or a single or multiple documents for which you want to find similar documents.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -11549,7 +11481,6 @@ func (u CommonQueryDSLLike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMoreLikeThisQueryLike struct {
 	typ   CommonQueryDSLMoreLikeThisQueryLikeType
 	raw   json.RawMessage
@@ -11679,7 +11610,6 @@ func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Language value, such as `arabic` or `thai`. Defaults to `english`.
 // Each language value corresponds to a predefined list of stop words in Lucene. See Stop words by language for supported language values and their stop words.
 // Also accepts an array of stop words.
@@ -11689,7 +11619,6 @@ func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisStopWords struct {
 	typ   CommonAnalysisStopWordsType
 	raw   json.RawMessage
@@ -11817,7 +11746,6 @@ func (u CommonAnalysisStopWords) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Used in combination with `like` to exclude documents that match a set of terms.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -11825,7 +11753,6 @@ func (u CommonAnalysisStopWords) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMoreLikeThisQueryUnlike struct {
 	typ   CommonQueryDSLMoreLikeThisQueryUnlikeType
 	raw   json.RawMessage
@@ -11962,7 +11889,6 @@ func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLPrefixQuery struct {
 	typ   CommonQueryDSLPrefixQueryType
 	raw   json.RawMessage
@@ -12097,7 +12023,6 @@ func (u CommonQueryDSLPrefixQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLNumberRangeQueryFrom struct {
 	typ   CommonQueryDSLNumberRangeQueryFromType
 	raw   json.RawMessage
@@ -12234,7 +12159,6 @@ func (u CommonQueryDSLNumberRangeQueryFrom) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLNumberRangeQueryTo struct {
 	typ   CommonQueryDSLNumberRangeQueryToType
 	raw   json.RawMessage
@@ -12500,7 +12424,6 @@ func (u CommonQueryDSLRangeQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLRegexpQuery struct {
 	typ   CommonQueryDSLRegexpQueryType
 	raw   json.RawMessage
@@ -12775,7 +12698,6 @@ func (u CommonQueryDSLTermQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLWildcardQuery struct {
 	typ   CommonQueryDSLWildcardQueryType
 	raw   json.RawMessage
@@ -12910,7 +12832,6 @@ func (u CommonQueryDSLWildcardQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingDynamic struct {
 	typ   CommonMappingDynamicType
 	raw   json.RawMessage
@@ -13045,7 +12966,6 @@ func (u CommonMappingDynamic) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingJoinPropertyRelationsValue struct {
 	typ   CommonMappingJoinPropertyRelationsValueType
 	raw   json.RawMessage
@@ -13182,7 +13102,6 @@ func (u CommonMappingJoinPropertyRelationsValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingSuggestContextPrecision struct {
 	typ   CommonMappingSuggestContextPrecisionType
 	raw   json.RawMessage
@@ -13312,18 +13231,17 @@ func (u CommonMappingSuggestContextPrecision) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A two-dimensional Cartesian point specified by x and y coordinates. It can be represented in the following ways:
-//  - As an `{x, y}` object.
-//  - As an `[x, y]` array.
-//  - As a string in `"x, y"` or WKT point format.
+//   - As an `{x, y}` object.
+//   - As an `[x, y]` array.
+//   - As a string in `"x, y"` or WKT point format.
+//
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
 // selects one.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type XYLocation struct {
 	typ   XYLocationType
 	raw   json.RawMessage
@@ -13489,7 +13407,6 @@ func (u XYLocation) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingSemanticPropertyChunking struct {
 	typ   CommonMappingSemanticPropertyChunkingType
 	raw   json.RawMessage
@@ -13630,7 +13547,6 @@ func (u CommonMappingSemanticPropertyChunking) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonMappingProperty struct {
 	typ   CommonMappingPropertyType
 	raw   json.RawMessage
@@ -15347,7 +15263,6 @@ func (u CommonMappingProperty) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisAnalyzer struct {
 	typ   CommonAnalysisAnalyzerType
 	raw   json.RawMessage
@@ -16051,7 +15966,6 @@ func (u CommonAnalysisAnalyzer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisCharFilterDefinition struct {
 	typ   CommonAnalysisCharFilterDefinitionType
 	raw   json.RawMessage
@@ -16308,7 +16222,6 @@ func (u CommonAnalysisCharFilterDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisCharFilter struct {
 	typ   CommonAnalysisCharFilterType
 	raw   json.RawMessage
@@ -16445,7 +16358,6 @@ func (u CommonAnalysisCharFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisTokenFilterDefinition struct {
 	typ   CommonAnalysisTokenFilterDefinitionType
 	raw   json.RawMessage
@@ -18277,7 +18189,6 @@ func (u CommonAnalysisTokenFilterDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisTokenFilter struct {
 	typ   CommonAnalysisTokenFilterType
 	raw   json.RawMessage
@@ -18414,7 +18325,6 @@ func (u CommonAnalysisTokenFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisNormalizer struct {
 	typ   CommonAnalysisNormalizerType
 	raw   json.RawMessage
@@ -18566,7 +18476,6 @@ func (u CommonAnalysisNormalizer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisTokenizerDefinition struct {
 	typ   CommonAnalysisTokenizerDefinitionType
 	raw   json.RawMessage
@@ -19243,7 +19152,6 @@ func (u CommonAnalysisTokenizerDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisTokenizer struct {
 	typ   CommonAnalysisTokenizerType
 	raw   json.RawMessage
@@ -19371,7 +19279,6 @@ func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of outstanding bytes that may be consumed by indexing requests. When this limit is reached or exceeded,
 // the node will reject new coordinating and primary operations. When replica operations consume 1.5x this limit,
 // the node will reject new replica operations. Defaults to 10% of the heap.
@@ -19381,7 +19288,6 @@ func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexingPressureMemoryLimit struct {
 	typ   IndicesIndexingPressureMemoryLimitType
 	raw   json.RawMessage
@@ -19511,7 +19417,6 @@ func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The policy configuration for segment merging.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -19519,7 +19424,6 @@ func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSettingsMergePolicy struct {
 	typ   IndicesIndexSettingsMergePolicyType
 	raw   json.RawMessage
@@ -19654,7 +19558,6 @@ func (u IndicesIndexSettingsMergePolicy) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortMissing struct {
 	typ   IndicesIndexSegmentSortMissingType
 	raw   json.RawMessage
@@ -19789,7 +19692,6 @@ func (u IndicesIndexSegmentSortMissing) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortMode struct {
 	typ   IndicesIndexSegmentSortModeType
 	raw   json.RawMessage
@@ -19924,7 +19826,6 @@ func (u IndicesIndexSegmentSortMode) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortOrder struct {
 	typ   IndicesIndexSegmentSortOrderType
 	raw   json.RawMessage
@@ -20058,7 +19959,11 @@ func (u IndicesIndexSegmentSortOrder) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
+//
+// Decoding cannot reach Object0 (shadowed by Object1): the spec declares the
+// same required keys on an earlier branch, so the key probe always selects that
+// one and Type() never reports this branch. Constructing and marshaling it is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived.
 type SegmentReplicationStats struct {
 	typ   SegmentReplicationStatsType
 	raw   json.RawMessage
@@ -20197,7 +20102,6 @@ func (u SegmentReplicationStats) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type BulkByScrollTaskStatusOrException struct {
 	typ   BulkByScrollTaskStatusOrExceptionType
 	raw   json.RawMessage
@@ -20338,7 +20242,6 @@ func (u BulkByScrollTaskStatusOrException) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type BulkByScrollFailure struct {
 	typ   BulkByScrollFailureType
 	raw   json.RawMessage
@@ -20470,14 +20373,12 @@ func (u BulkByScrollFailure) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Task status information can vary wildly from task to task.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type TasksStatus struct {
 	typ   TasksStatusType
 	raw   json.RawMessage
@@ -20680,7 +20581,6 @@ func (u TasksStatus) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type TasksTaskInfos struct {
 	typ   TasksTaskInfosType
 	raw   json.RawMessage
@@ -20808,7 +20708,6 @@ func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -20820,7 +20719,6 @@ func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedVersionNumber struct {
 	typ   StringifiedVersionNumberType
 	raw   json.RawMessage
@@ -20948,7 +20846,6 @@ func (u StringifiedVersionNumber) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of hits matching the query. When `true`, the exact
 // number of hits is returned at the cost of some performance. When `false`, the
 // response does not include the total number of hits matching the query.
@@ -20959,7 +20856,6 @@ func (u StringifiedVersionNumber) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchTrackHits struct {
 	typ   SearchTrackHitsType
 	raw   json.RawMessage
@@ -21087,7 +20983,6 @@ func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The ISM template configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21095,7 +20990,6 @@ func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ISMPolicyTemplate struct {
 	typ   ISMPolicyTemplateType
 	raw   json.RawMessage
@@ -21230,7 +21124,6 @@ func (u ISMPolicyTemplate) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchResultJSONValueSuggestValueItemCompletionOptions struct {
 	typ   SearchResultJSONValueSuggestValueItemCompletionOptionsType
 	raw   json.RawMessage
@@ -21558,7 +21451,6 @@ func (u SearchResultJSONValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MLExecuteAlgorithmResponse struct {
 	typ   MLExecuteAlgorithmResponseType
 	raw   json.RawMessage
@@ -21690,7 +21582,6 @@ func (u MLExecuteAlgorithmResponse) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A comma-separated list of node IDs used to filter results. Supports [node filters](https://opensearch.org/docs/latest/api-reference/nodes-apis/index/#node-filters).
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21698,7 +21589,6 @@ func (u MLExecuteAlgorithmResponse) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodeIDs struct {
 	typ   NodeIDsType
 	raw   json.RawMessage
@@ -21826,7 +21716,6 @@ func (u NodeIDs) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The create time.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21834,7 +21723,6 @@ func (u NodeIDs) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MLSourceCreateTime struct {
 	typ   MLSourceCreateTimeType
 	raw   json.RawMessage
@@ -21969,7 +21857,6 @@ func (u MLSourceCreateTime) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralStatMetadataValue struct {
 	typ   NeuralStatMetadataValueType
 	raw   json.RawMessage
@@ -22104,7 +21991,6 @@ func (u NeuralStatMetadataValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralTimestampedEventCounterStat struct {
 	typ   NeuralTimestampedEventCounterStatType
 	raw   json.RawMessage
@@ -22241,7 +22127,6 @@ func (u NeuralTimestampedEventCounterStat) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralInfoStringStat struct {
 	typ   NeuralInfoStringStatType
 	raw   json.RawMessage
@@ -22376,7 +22261,6 @@ func (u NeuralInfoStringStat) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralInfoCounterStat struct {
 	typ   NeuralInfoCounterStatType
 	raw   json.RawMessage
@@ -22510,7 +22394,6 @@ func (u NeuralInfoCounterStat) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralStats struct {
 	typ   NeuralStatsType
 	raw   json.RawMessage
@@ -22642,7 +22525,6 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The cron schedule configuration for the rollup job.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -22650,7 +22532,6 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type RollupsIntervalCron struct {
 	typ   RollupsIntervalCronType
 	raw   json.RawMessage
@@ -22785,7 +22666,6 @@ func (u RollupsIntervalCron) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelinePhaseResultsProcessor struct {
 	typ   SearchPipelinePhaseResultsProcessorType
 	raw   json.RawMessage
@@ -22926,7 +22806,6 @@ func (u SearchPipelinePhaseResultsProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelineRequestProcessor struct {
 	typ   SearchPipelineRequestProcessorType
 	raw   json.RawMessage
@@ -23167,7 +23046,6 @@ func (u SearchPipelineRequestProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelineRespProcessor struct {
 	typ   SearchPipelineRespProcessorType
 	raw   json.RawMessage
@@ -23537,7 +23415,6 @@ func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Whether the PPL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -23545,7 +23422,6 @@ func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLPPLEnabled struct {
 	typ   SQLPPLEnabledType
 	raw   json.RawMessage
@@ -23673,7 +23549,6 @@ func (u SQLPPLEnabled) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The maximum result set size.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -23681,7 +23556,6 @@ func (u SQLPPLEnabled) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLPluginsQuerySizeLimit struct {
 	typ   SQLPluginsQuerySizeLimitType
 	raw   json.RawMessage
@@ -23809,7 +23683,6 @@ func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Whether the SQL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -23817,7 +23690,6 @@ func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLEnabled struct {
 	typ   SQLEnabledType
 	raw   json.RawMessage
@@ -23945,7 +23817,6 @@ func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The threshold in milliseconds for logging slow queries.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -23953,7 +23824,6 @@ func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLSlowlog struct {
 	typ   SQLSlowlogType
 	raw   json.RawMessage
@@ -24081,14 +23951,12 @@ func (u SQLSlowlog) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The resource limits for query requests in the query group.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type WLMQueryGroupRespResourceLimits struct {
 	typ   WLMQueryGroupRespResourceLimitsType
 	raw   json.RawMessage
@@ -24227,7 +24095,6 @@ func (u WLMQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ScrollIDs struct {
 	typ   ScrollIDsType
 	raw   json.RawMessage
@@ -24355,7 +24222,6 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // GeoJSON `geoshape` types supported by OpenSearch.
 // For more details, see: https://docs.opensearch.org/docs/latest/field-types/supported-field-types/geo-shape.
 // The spec declares no discriminator and no single key tells the branches apart,
@@ -24363,7 +24229,6 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeospatialGeoShapes struct {
 	typ   GeospatialGeoShapesType
 	raw   json.RawMessage
@@ -24661,7 +24526,6 @@ func (u GeospatialGeoShapes) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeospatialGeometry struct {
 	typ   GeospatialGeometryType
 	raw   json.RawMessage
@@ -24799,7 +24663,6 @@ func (u GeospatialGeometry) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type WLMQueryGroupCreateResourceLimits struct {
 	typ   WLMQueryGroupCreateResourceLimitsType
 	raw   json.RawMessage
