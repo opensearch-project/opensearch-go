@@ -264,7 +264,16 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	versionAdded := extensionString(s.Extensions, extVersionAdded)
 
 	if s.Type == nil {
-		return unionBranch{}
+		// A branch that composes its shape with allOf declares no `type` of its
+		// own, but an allOf of objects is an object. Classify it as one: dropping
+		// it leaves the union with only its sibling shorthand, which collapses the
+		// union to that branch's type (MatchQuery keeping FieldValue and losing the
+		// full-form object), or degrades it to json.RawMessage when every branch is
+		// composed (DistanceFeatureQuery).
+		if !isObjectShaped(s) {
+			return unionBranch{}
+		}
+		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
 	}
 
 	goType := primitiveGoType(s)
@@ -298,16 +307,18 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	return unionBranch{}
 }
 
-// classifyObjectBranch resolves an inline object oneOf/anyOf branch. An object
-// with properties becomes a named type; an open object (additionalProperties
-// only) falls back to a raw map branch. name is the branch's resolved suffix,
+// classifyObjectBranch resolves an object-shaped inline oneOf/anyOf branch,
+// either declared `type: object` or composed with allOf. An object with
+// properties becomes a named type; an open object (additionalProperties only)
+// falls back to a raw map branch. name is the branch's resolved suffix,
 // computed by the caller from branch content (see objectBranchName); the caller
 // passes "" when content naming collided with a sibling, in which case the
 // branch falls back to a positional Object<idx> suffix so the two remain
 // distinct types.
 func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group string, branchIdx int, versionAdded, name string) unionBranch {
-	// Open object (additionalProperties) with no declared properties.
-	if len(s.Properties) == 0 {
+	// Open object (additionalProperties) with no declared properties. A composed
+	// branch carries its properties on its allOf members, so it is not open.
+	if len(s.Properties) == 0 && len(s.AllOf) == 0 {
 		return unionBranch{
 			Name:         "Map",
 			GoType:       "map[string]json.RawMessage",
@@ -325,7 +336,14 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		name = fmt.Sprintf("Object%d", branchIdx)
 	}
 	childKey := fmt.Sprintf("%s.%s", parentKey, name)
-	goTypeName := w.resolveObjectSchema(s, childKey, group, false)
+	// A composed branch merges its allOf members into one struct; resolveInlineSchema
+	// routes that, including the narrowed-union case a struct merge would flatten
+	// away. A plain object registers directly.
+	resolve := w.resolveObjectSchema
+	if len(s.AllOf) > 0 {
+		resolve = w.resolveInlineSchema
+	}
+	goTypeName := resolve(s, childKey, group, false)
 	if goTypeName != "" && goTypeName != goTypeRawMessage {
 		return unionBranch{
 			Name:         name,
@@ -337,7 +355,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		}
 	}
 
-	// Properties present but unresolvable to a named type: raw map fallback.
+	// Shape declared but unresolvable to a named type: raw map fallback.
 	return unionBranch{
 		Name:         "Map",
 		GoType:       "map[string]json.RawMessage",
@@ -353,8 +371,11 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 // select it -- and a permissive branch (no required keys) is named for its
 // sorted property keys joined together. Every fragment runs through baseGoName
 // so JSON keys become valid identifier fragments (e.g. "_source" -> "Source").
-// Returns "" for an object with no properties (an open map branch, named
-// elsewhere).
+// Returns "" for an object with no properties of its own: an open map branch
+// (named elsewhere), or a branch composed with allOf, whose shorthand sibling is
+// usually titled for the same key the composed form requires -- naming it from
+// that key would collide, and the positional fallback reads better than the
+// GoType-qualified name deduplicateAccessorNames would produce.
 func objectBranchName(s *openapi3.Schema) string {
 	if s.Title != "" {
 		// baseGoName splits on '-', '_', '.' so a hyphenated title
@@ -398,7 +419,7 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 		if br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeNull) {
 			continue
 		}
-		if br.Ref == "" && br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeObject) {
+		if br.Ref == "" && br.Value != nil && isObjectShaped(br.Value) {
 			if n := objectBranchName(br.Value); n != "" {
 				names[idx] = n
 			}
@@ -415,6 +436,16 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 		}
 	}
 	return names
+}
+
+// isObjectShaped reports whether an inline branch schema describes an object,
+// either by declaring `type: object` or by composing its shape with allOf (which
+// declares no type of its own). Both classify as object branches.
+func isObjectShaped(s *openapi3.Schema) bool {
+	if s.Type != nil {
+		return s.Type.Is(openapi3.TypeObject)
+	}
+	return len(s.AllOf) > 0
 }
 
 // classifyRefBranch resolves a $ref-bearing union branch into its unionBranch.

@@ -575,6 +575,23 @@ func TestObjectBranchName(t *testing.T) {
 		{name: "permissive multi prop sorted", schema: obj("", nil, "includes", "excludes"), want: "ExcludesIncludes"},
 		// An object with no properties has no content name (open map branch).
 		{name: "no properties", schema: obj("", nil), want: ""},
+		// A composed branch declares no properties at its root, so it has no
+		// content name and falls back to the positional suffix.
+		{
+			name: "composed branch has no content name",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Value: obj("", []string{"value"}, "value", "case_insensitive")},
+			}},
+			want: "",
+		},
+		// A titled composed branch still uses its title.
+		{
+			name: "titled composed branch",
+			schema: &openapi3.Schema{Title: "completion", AllOf: openapi3.SchemaRefs{
+				{Value: obj("", nil, "options")},
+			}},
+			want: "Completion",
+		},
 	}
 
 	for _, tt := range tests {
@@ -662,6 +679,130 @@ func TestClassifyBranchInlineObject(t *testing.T) {
 			require.Equal(t, tt.wantName, b.Name)
 			require.Equal(t, tt.wantGoType, b.GoType)
 			require.Equal(t, ir.TokenObject, b.TokenClass)
+		})
+	}
+}
+
+// TestClassifyBranchInlineComposed covers an inline branch that composes its
+// shape with allOf and so carries no `type` keyword: an allOf of objects is an
+// object, and the branch must classify as one. A titled composed branch keeps
+// its title-derived name; an unnamed one falls back to the positional suffix.
+func TestClassifyBranchInlineComposed(t *testing.T) {
+	t.Parallel()
+
+	// Shaped like the spec's field-scoped queries: a $ref'd base merged with an
+	// inline object that adds the branch's own properties.
+	composed := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{
+					Ref: "#/components/schemas/_common.query_dsl___QueryBase",
+					Value: &openapi3.Schema{
+						Type:       &openapi3.Types{"object"},
+						Properties: openapi3.Schemas{"boost": {Value: openapi3.NewFloat64Schema()}},
+					},
+				},
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{"value"},
+					Properties: openapi3.Schemas{"value": {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		objName    string
+		wantName   string
+		wantGoType string
+	}{
+		{name: "content name", objName: "Value", wantName: "Value", wantGoType: "CommonQueryDSLTermQueryValue"},
+		{name: "positional fallback", objName: "", wantName: "Object1", wantGoType: "CommonQueryDSLTermQueryObject1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			b := w.classifyBranch(composed(), "_common.query_dsl___TermQuery", "_common.query_dsl", 1, tt.objName)
+			require.Equal(t, tt.wantName, b.Name)
+			require.Equal(t, tt.wantGoType, b.GoType)
+			require.Equal(t, ir.TokenObject, b.TokenClass)
+			// Required comes through the allOf members, which is what a decoder
+			// probes to tell the branch from its siblings.
+			require.Equal(t, []string{"value"}, b.Required)
+		})
+	}
+}
+
+// TestResolveUnionTypeKeepsComposedBranch covers the two unions an inline
+// composed (allOf) branch appears in: a shorthand scalar paired with the
+// full-form object, and a union whose every branch is composed. Dropping the
+// composed branch would silently collapse the first to the scalar alone and
+// degrade the second to json.RawMessage.
+func TestResolveUnionTypeKeepsComposedBranch(t *testing.T) {
+	t.Parallel()
+
+	composed := func(required string) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{required},
+					Properties: openapi3.Schemas{required: {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		schema     *openapi3.Schema
+		schemaKey  string
+		wantGoType string
+		wantBranch []string
+	}{
+		{
+			name: "scalar shorthand and composed full form",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{Title: "value", Type: &openapi3.Types{"string"}}},
+				composed("value"),
+			}},
+			schemaKey:  "_common.query_dsl___TermQuery",
+			wantGoType: "CommonQueryDSLTermQuery",
+			wantBranch: []string{"String", "Object1"},
+		},
+		{
+			name: "every branch composed",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				composed("origin"),
+				composed("pivot"),
+			}},
+			schemaKey:  "_common.query_dsl___DistanceFeatureQuery",
+			wantGoType: "CommonQueryDSLDistanceFeatureQuery",
+			wantBranch: []string{"Object0", "Object1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			got := w.resolveUnionType(tt.schema, tt.schemaKey, "_common.query_dsl")
+			require.Equal(t, tt.wantGoType, got)
+
+			registered, ok := reg.lookup(tt.schemaKey)
+			require.True(t, ok)
+			names := make([]string, 0, len(registered.Branches))
+			for _, b := range registered.Branches {
+				names = append(names, b.Name)
+			}
+			require.ElementsMatch(t, tt.wantBranch, names)
 		})
 	}
 }
