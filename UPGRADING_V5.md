@@ -288,3 +288,58 @@ b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isol
 ```
 
 To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.
+
+## Field-scoped query clauses are union-typed
+
+The field-scoped clauses on `CommonQueryDSLQueryContainer` (`match`, `match_phrase`, `term`, `prefix`, and the rest) used to carry only the shorthand value, because the generator dropped the spec branch describing the full form. They now carry the union of both forms, and `distance_feature` is a typed union rather than `json.RawMessage`.
+
+Wrap an existing shorthand value in the clause's constructor:
+
+```go
+// v5.0.0-rc5
+MatchPhrase: map[string]string{"title": "hello"},
+
+// now
+MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
+    "title": opensearchapi.NewCommonQueryDSLMatchPhraseQueryFromString("hello"),
+},
+```
+
+The full form is the `Object1` branch, which the shorthand-only type could not express:
+
+```go
+query := opensearchapi.NewFieldValueFromString("hello")
+operator := "and"
+
+Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+    "title": opensearchapi.NewCommonQueryDSLMatchQueryFromObject1(
+        opensearchapi.CommonQueryDSLMatchQueryObject1{Query: &query, Operator: &operator},
+    ),
+},
+```
+
+`distance_feature` takes a pointer to its union. Its two branches are the geo form (`Object0`) and the date form (`Object1`); the spec titles neither, so both carry positional names:
+
+```go
+q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
+    opensearchapi.CommonQueryDSLDistanceFeatureQueryObject0{
+        Field:  "location",
+        Origin: opensearchapi.NewGeoLocationFromString("52.37,4.89"),
+        Pivot:  "1km",
+    },
+)
+
+Query: &opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: &q},
+```
+
+An inline script is its own union now, so a bare source string goes through it. `ScriptsPainlessExecuteBody.Script` changes from `*string` to `*InlineScript` for the same reason:
+
+```go
+// v5.0.0-rc5
+script := opensearchapi.NewScriptFromString("ctx._source.count += 1")
+
+// now
+script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
+```
+
+On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor, so `stat.Int()` returns the value the plain field used to hold, plus an error when the response carried the object form instead.
