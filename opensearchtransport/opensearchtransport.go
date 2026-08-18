@@ -1547,7 +1547,10 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		if poolName != "" {
 			conn.addInFlight(poolName)
 		}
-		start := time.Now().UTC()
+		// Do not call UTC() here: it strips the monotonic reading, and
+		// time.Since then uses the wall clock. On Windows that clock is
+		// coarse enough that a fast localhost RoundTrip reports 0.
+		start := time.Now()
 
 		// Apply per-attempt timeout if configured. This creates a child context
 		// with a deadline so that each individual RoundTrip is bounded, preventing
@@ -1608,7 +1611,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 				//nolint:errcheck // ignored as this is only for logging
 				req.Body, _ = req.GetBody()
 			}
-			c.logRoundTrip(req, res, err, start, dur)
+			c.logRoundTrip(req, res, err, start.UTC(), dur)
 		}
 
 		if err != nil {
@@ -1879,7 +1882,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
-	start := time.Now().UTC()
+	start := time.Now()
 
 	// Apply per-attempt timeout if configured.
 	attemptReq := req
@@ -1902,7 +1905,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	dur := time.Since(start)
 
 	if c.logger != nil {
-		c.logRoundTrip(req, res, err, start, dur)
+		c.logRoundTrip(req, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {
@@ -2048,6 +2051,33 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 			return
 		}
 	}
+}
+
+// prepareInternalRequest applies the same decoration the stream() path
+// uses -- URL rewrite, User-Agent, Config.Header, basic auth, and the
+// configured Signer -- to a request that will be dispatched via raw
+// RoundTrip rather than stream(). Background health-check, discovery,
+// and node-stats pollers must go through this so SigV4 (and Config.Header)
+// apply to them the same way they apply to user traffic.
+//
+// setReqGlobalHeader runs before setReqAuth, matching stream(). Both are
+// add-if-absent, so a Config.Header Authorization wins over Transport
+// username/password or URL userinfo.
+//
+// applyModifier, if non-nil, runs after header injection and before
+// signing so any headers it adds are included in the signature.
+func (c *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
+	c.setReqURL(u, req)
+	c.setReqUserAgent(req)
+	c.setReqGlobalHeader(req)
+	c.setReqAuth(u, req)
+	if applyModifier != nil {
+		applyModifier(req)
+	}
+	if err := c.signRequest(req); err != nil {
+		return fmt.Errorf("failed to sign request: %w", err)
+	}
+	return nil
 }
 
 func (c *Transport) signRequest(req *http.Request) error {
@@ -2210,12 +2240,8 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2289,12 +2315,8 @@ func (c *Transport) hardwareInfoHealthCheck(
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2421,12 +2443,8 @@ func (c *Transport) fetchClusterHealth(
 
 	req.URL.RawQuery = "local=true"
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, 0, err
 	}
 
 	res, err := c.transport.RoundTrip(req)
