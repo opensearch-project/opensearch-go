@@ -279,20 +279,44 @@ func TestUnsetClauseUnionMarshalsNull(t *testing.T) {
 
 // Script and ScriptsPainlessExecuteBody.Script are two different migrations that
 // UPGRADING_V5.md documents together: an update body takes the Script union, while
-// painless takes the InlineScript union directly. Both snippets are exercised here
-// because the guides are not compiled by CI.
+// painless takes the InlineScript union directly, so a Script will not compile
+// there. Both documented snippets are exercised here because CI does not compile
+// the guides.
 func TestScriptBodiesMarshalDocumentedShapes(t *testing.T) {
 	t.Parallel()
 
-	src := "ctx._source.count += 1"
+	const src = "ctx._source.count += 1"
 
-	script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString(src))
-	update, err := json.Marshal(opensearchapi.UpdateBody{Script: &script})
-	require.NoError(t, err)
-	require.JSONEq(t, `{"script":"`+src+`"}`, string(update))
+	tests := []struct {
+		name string
+		body any
+		want string
+	}{
+		{
+			name: "update body takes the Script union",
+			body: func() any {
+				script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString(src))
+				return opensearchapi.UpdateBody{Script: &script}
+			}(),
+			want: `{"script":"` + src + `"}`,
+		},
+		{
+			name: "painless body takes the InlineScript union directly",
+			body: func() any {
+				inline := opensearchapi.NewInlineScriptFromString(src)
+				return opensearchapi.ScriptsPainlessExecuteBody{Script: &inline}
+			}(),
+			want: `{"script":"` + src + `"}`,
+		},
+	}
 
-	inline := opensearchapi.NewInlineScriptFromString(src)
-	painless, err := json.Marshal(opensearchapi.ScriptsPainlessExecuteBody{Script: &inline})
-	require.NoError(t, err)
-	require.JSONEq(t, `{"script":"`+src+`"}`, string(painless))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := json.Marshal(tt.body)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
 }

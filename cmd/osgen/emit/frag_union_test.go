@@ -76,59 +76,73 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "RawJSON")
 }
 
-// A try-each union carrying ShadowedBranches must say so on the type it
-// documents, since the branch stays constructible and only decoding is affected.
-// The generator computes the list; without this the whole feature can be deleted
-// with the suite still green.
-func TestUnionFragment_TryEachDocumentsShadowedBranches(t *testing.T) {
+// A try-each union decodes by probing required keys, so a branch whose key set
+// duplicates an earlier branch's is unreachable and the generator records it in
+// ShadowedBranches. The type's own doc comment has to say so: the branch stays
+// constructible and marshals correctly, only Type() can never report it. Without
+// these assertions the whole feature can be deleted with the suite still green.
+func TestUnionFragment_TryEachShadowedBranchCaveat(t *testing.T) {
 	t.Parallel()
 
-	types := []*ir.Type{
+	branches := func(firstKey, secondKey string) []ir.UnionBranch {
+		return []ir.UnionBranch{
+			{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{firstKey}},
+			{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{secondKey}},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		typ     *ir.Type
+		want    []string
+		notWant []string
+	}{
 		{
-			Name: "ShadowedValue",
-			Kind: ir.TypeAmbiguousWire,
-			Branches: []ir.UnionBranch{
-				{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{"field"}},
-				{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{"field"}},
+			name: "shadowed branch is named on the type",
+			typ: &ir.Type{
+				Name:             "ShadowedValue",
+				Kind:             ir.TypeAmbiguousWire,
+				Branches:         branches("field", "field"),
+				ShadowedBranches: []string{"Second (shadowed by First)"},
 			},
-			ShadowedBranches: []string{"Second (shadowed by First)"},
+			want: []string{
+				"// Decoding cannot reach the branches below.",
+				"read RawJSON() when you need the payload exactly as it arrived.",
+				// Rendered as a godoc list item, not interpolated into the prose line.
+				"//   - Second (shadowed by First)",
+				// The caveat sits in the doc block, so it must stay attached to the type.
+				"//   - Second (shadowed by First)\ntype ShadowedValue struct",
+				// Both branches keep their full surface: only Type() is affected.
+				"func NewShadowedValueFromSecond(v SecondShape) ShadowedValue",
+				"func (u *ShadowedValue) Second() (SecondShape, error)",
+			},
+		},
+		{
+			name: "branches with distinct required keys carry no caveat",
+			typ: &ir.Type{
+				Name:     "PlainValue",
+				Kind:     ir.TypeAmbiguousWire,
+				Branches: branches("a", "b"),
+			},
+			notWant: []string{"Decoding cannot reach"},
 		},
 	}
 
-	body, err := (&emit.UnionFragment{Types: types}).Body()
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.Contains(t, body, "// Decoding cannot reach the branches below.")
-	// Rendered as a godoc list item, not interpolated into the prose line.
-	require.Contains(t, body, "//   - Second (shadowed by First)")
-	require.Contains(t, body, "read RawJSON() when you need the payload exactly as it arrived.")
+			body, err := (&emit.UnionFragment{Types: []*ir.Type{tt.typ}}).Body()
+			require.NoError(t, err)
 
-	// The caveat sits in the doc block, so it must stay attached to the type.
-	require.Contains(t, body, "//   - Second (shadowed by First)\ntype ShadowedValue struct")
-
-	// Both branches keep their full surface: only Type() is affected.
-	require.Contains(t, body, "func NewShadowedValueFromSecond(v SecondShape) ShadowedValue")
-	require.Contains(t, body, "func (u *ShadowedValue) Second() (SecondShape, error)")
-}
-
-// A union with no shadowed branches must not carry the caveat.
-func TestUnionFragment_TryEachOmitsCaveatWhenUnshadowed(t *testing.T) {
-	t.Parallel()
-
-	types := []*ir.Type{
-		{
-			Name: "PlainValue",
-			Kind: ir.TypeAmbiguousWire,
-			Branches: []ir.UnionBranch{
-				{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{"a"}},
-				{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{"b"}},
-			},
-		},
+			for _, want := range tt.want {
+				require.Contains(t, body, want)
+			}
+			for _, notWant := range tt.notWant {
+				require.NotContains(t, body, notWant)
+			}
+		})
 	}
-
-	body, err := (&emit.UnionFragment{Types: types}).Body()
-	require.NoError(t, err)
-	require.NotContains(t, body, "Decoding cannot reach")
 }
 
 func TestUnionFragment_MergedDecode(t *testing.T) {

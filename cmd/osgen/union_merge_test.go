@@ -407,10 +407,13 @@ func TestBranchesSharingRequiredKeys(t *testing.T) {
 	}
 }
 
-// TestClassifyUnionsReportsBothDiagnostics covers the warn key: the try-each and
-// shared-required-keys conditions are independent, so a union hitting both must
-// print both. Keying the dedupe on the union name alone let the first swallow the
-// second. Not parallel: it captures the process-wide log writer.
+// TestClassifyUnionsReportsBothDiagnostics covers a union that trips both
+// diagnostics: it has one embeddable permissive branch (so no merge is safe) and
+// two branches sharing a required key (so the probe cannot separate them). They are
+// reported by separate passes, and both must reach the log for the same union.
+//
+// One scenario with no varying input, so there is no table to build, and it cannot
+// run in parallel: asserting on log output means installing a process-wide writer.
 func TestClassifyUnionsReportsBothDiagnostics(t *testing.T) {
 	permissive := structType("Permissive", field("Note", "note", "string"))
 	first := structType("First", field("Field", "field", "string"))
