@@ -263,17 +263,19 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	s := ref.Value
 	versionAdded := extensionString(s.Extensions, extVersionAdded)
 
-	if s.Type == nil {
-		// A branch that composes its shape with allOf declares no `type` of its
-		// own, but an allOf of objects is an object. Classify it as one: dropping
-		// it leaves the union with only its sibling shorthand, which collapses the
-		// union to that branch's type (MatchQuery keeping FieldValue and losing the
-		// full-form object), or degrades it to json.RawMessage when every branch is
-		// composed (DistanceFeatureQuery).
-		if !isObjectShaped(s) {
-			return unionBranch{}
-		}
+	// An object-shaped branch, whether it says so with `type: object` or composes
+	// its shape with allOf and declares no type at all. Dropping the composed form
+	// leaves the union with only its sibling shorthand, which collapses the union
+	// to that branch's type (MatchQuery keeping FieldValue and losing the
+	// full-form object), or degrades it to json.RawMessage when every branch is
+	// composed (DistanceFeatureQuery).
+	if isObjectShaped(s) {
 		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
+	}
+
+	if s.Type == nil {
+		// Neither typed nor composed: nothing to resolve.
+		return unionBranch{}
 	}
 
 	goType := primitiveGoType(s)
@@ -298,10 +300,6 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 			TokenClass:   ir.TokenArray,
 			VersionAdded: versionAdded,
 		}
-	}
-
-	if s.Type.Is(openapi3.TypeObject) {
-		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
 	}
 
 	return unionBranch{}
@@ -336,14 +334,17 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		name = fmt.Sprintf("Object%d", branchIdx)
 	}
 	childKey := fmt.Sprintf("%s.%s", parentKey, name)
-	// A composed branch merges its allOf members into one struct; resolveInlineSchema
-	// routes that, including the narrowed-union case a struct merge would flatten
-	// away. A plain object registers directly.
-	resolve := w.resolveObjectSchema
+	// A composed branch merges its allOf members into one struct, which
+	// resolveInlineSchema routes (including the narrowed-union case a struct merge
+	// would flatten away). A plain object registers directly; routing it through
+	// resolveInlineSchema too would re-read a `type: object` branch that also
+	// declares oneOf as a union rather than the object the branch says it is.
+	var goTypeName string
 	if len(s.AllOf) > 0 {
-		resolve = w.resolveInlineSchema
+		goTypeName = w.resolveInlineSchema(s, childKey, group, false)
+	} else {
+		goTypeName = w.resolveObjectSchema(s, childKey, group, false)
 	}
-	goTypeName := resolve(s, childKey, group, false)
 	if goTypeName != "" && goTypeName != goTypeRawMessage {
 		return unionBranch{
 			Name:         name,
@@ -372,10 +373,10 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 // sorted property keys joined together. Every fragment runs through baseGoName
 // so JSON keys become valid identifier fragments (e.g. "_source" -> "Source").
 // Returns "" for an object with no properties of its own: an open map branch
-// (named elsewhere), or a branch composed with allOf, whose shorthand sibling is
-// usually titled for the same key the composed form requires -- naming it from
-// that key would collide, and the positional fallback reads better than the
-// GoType-qualified name deduplicateAccessorNames would produce.
+// (named elsewhere), or an untitled branch composed with allOf, whose shorthand
+// sibling is usually titled for the same key the composed form requires -- naming
+// it from that key would collide, and the positional fallback reads better than
+// the GoType-qualified name deduplicateAccessorNames would produce.
 func objectBranchName(s *openapi3.Schema) string {
 	if s.Title != "" {
 		// baseGoName splits on '-', '_', '.' so a hyphenated title
@@ -438,9 +439,10 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 	return names
 }
 
-// isObjectShaped reports whether an inline branch schema describes an object,
-// either by declaring `type: object` or by composing its shape with allOf (which
-// declares no type of its own). Both classify as object branches.
+// isObjectShaped reports whether an inline branch schema describes an object: it
+// either declares `type: object`, or it declares no type at all and composes its
+// shape with allOf, which is how the spec writes a branch that extends a base
+// (every such branch in the spec merges to an object).
 func isObjectShaped(s *openapi3.Schema) bool {
 	if s.Type != nil {
 		return s.Type.Is(openapi3.TypeObject)

@@ -10,6 +10,8 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
@@ -336,6 +338,68 @@ func TestDropUnreachableBranches(t *testing.T) {
 			if !slices.Equal(got, tt.wantBranch) {
 				t.Errorf("branch names = %v, want %v", got, tt.wantBranch)
 			}
+		})
+	}
+}
+
+// TestBranchesSharingRequiredKeys covers the probe-collision report: a try-each
+// decoder picks a branch by the required keys present in the payload, so two
+// branches declaring the same set leave the later one unreachable on decode
+// (DistanceFeatureQuery's geo and date forms both require field/origin/pivot).
+// Key order must not matter, and permissive branches are decoded by attempt
+// rather than by probe, so they never collide.
+func TestBranchesSharingRequiredKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		branches []ir.UnionBranch
+		want     []string
+	}{
+		{
+			name: "distinct required sets do not collide",
+			branches: []ir.UnionBranch{
+				{Name: "Doc", Required: []string{"doc"}},
+				{Name: "Script", Required: []string{"script"}},
+			},
+		},
+		{
+			name: "same required set shadows the later branch",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"field", "origin", "pivot"}},
+				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
+			},
+			want: []string{"Object1 (shadowed by Object0)"},
+		},
+		{
+			name: "required key order is irrelevant",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"pivot", "field", "origin"}},
+				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
+			},
+			want: []string{"Object1 (shadowed by Object0)"},
+		},
+		{
+			name: "permissive branches never collide",
+			branches: []ir.UnionBranch{
+				{Name: "ShapeA"},
+				{Name: "ShapeB"},
+			},
+		},
+		{
+			name: "a subset is still distinguishable",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"field"}},
+				{Name: "Object1", Required: []string{"field", "origin"}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := branchesSharingRequiredKeys(&ir.Type{Name: "U", Branches: tt.branches})
+			require.Equal(t, tt.want, got)
 		})
 	}
 }

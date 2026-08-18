@@ -115,11 +115,48 @@ func classifyUnions(spec *ir.Spec) {
 			warn("osgen: union %q left on try-each: one permissive branch plus discriminated "+
 				"branch(es), but no required key distinguishes them by presence", t.Name)
 		}
+
+		// Branches declaring the same required keys share one presence probe, so a
+		// try-each decoder can only ever reach the first of them: the sibling stays
+		// constructible (its From<Branch> constructor and MarshalJSON are correct)
+		// but Type() can never report it. That is a property of the schema rather
+		// than a repairable defect -- DistanceFeatureQuery's geo and date forms both
+		// require field/origin/pivot and differ only in leaf types a JSON key probe
+		// cannot see -- so report it instead of dropping a branch a caller needs in
+		// order to send that form.
+		if shadowed := branchesSharingRequiredKeys(t); len(shadowed) > 0 {
+			warn("osgen: union %q decodes to its first matching branch only; no key probe can "+
+				"select these, which declare the same required keys as an earlier branch: %s",
+				t.Name, strings.Join(shadowed, ", "))
+		}
 	}
 
 	// Every union has now reached its terminal decode strategy, so branch
 	// reachability is decidable.
 	dropUnreachableBranches(allTypes)
+}
+
+// branchesSharingRequiredKeys returns the names of branches whose required-key
+// set equals an earlier branch's, in branch order. The emitted try-each decoder
+// probes required keys to pick a branch, so an equal set makes the later branch
+// unreachable on decode. Permissive branches (no required keys) are excluded:
+// they are decoded by attempt rather than by probe.
+func branchesSharingRequiredKeys(t *ir.Type) []string {
+	seen := make(map[string]string, len(t.Branches)) // probe key -> first branch holding it
+	var shadowed []string
+	for _, b := range t.Branches {
+		if len(b.Required) == 0 {
+			continue
+		}
+		keys := slices.Sorted(slices.Values(b.Required))
+		probe := strings.Join(keys, ",")
+		if first, ok := seen[probe]; ok {
+			shadowed = append(shadowed, fmt.Sprintf("%s (shadowed by %s)", b.Name, first))
+			continue
+		}
+		seen[probe] = b.Name
+	}
+	return shadowed
 }
 
 // dropUnreachableBranches removes branches whose Go type duplicates an earlier

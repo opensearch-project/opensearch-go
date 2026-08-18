@@ -296,10 +296,10 @@ The field-scoped clauses on `CommonQueryDSLQueryContainer` (`match`, `match_phra
 Wrap an existing shorthand value in the clause's constructor:
 
 ```go
-// v5.0.0-rc5
+// Before
 MatchPhrase: map[string]string{"title": "hello"},
 
-// now
+// After
 MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
     "title": opensearchapi.NewCommonQueryDSLMatchPhraseQueryFromString("hello"),
 },
@@ -332,13 +332,15 @@ q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
 Query: &opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: &q},
 ```
 
+Both `distance_feature` forms marshal correctly, but only `Object0` is reachable when decoding one: the two forms declare the same required keys (`field`, `origin`, `pivot`) and differ only in leaf types a JSON key probe cannot see, since `Origin GeoLocation` accepts a bare string and both `Pivot` types are strings. `Type()` on a decoded clause therefore always reports `Object0`. Use `RawJSON()` when you need the bytes as sent. Generation reports the collision on stderr rather than dropping the branch, because the date form is still the one to construct when sending that query.
+
 An inline script is its own union now, so a bare source string goes through it. `ScriptsPainlessExecuteBody.Script` changes from `*string` to `*InlineScript` for the same reason:
 
 ```go
-// v5.0.0-rc5
+// Before
 script := opensearchapi.NewScriptFromString("ctx._source.count += 1")
 
-// now
+// After
 script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
 ```
 
