@@ -292,19 +292,14 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 ```go
 // CORRECT: use the typed Body struct. The compiler enforces the schema
 // and json.Marshal escapes all values.
-//
-// CommonQueryDSLQueryContainerMatchValue is a discriminated union that
-// can be decoded but not constructed by external callers, so this
-// example uses MatchPhrase (a plain map[string]string) for the same
-// "search a field with user input" intent. Reach for BodyReader +
-// opensearchutil.NewJSONReader (below) when only the union-shaped
-// `match` form fits the query you need.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
     Body: &opensearchapi.SearchBody{
         Query: &opensearchapi.CommonQueryDSLQueryContainer{
-            MatchPhrase: map[string]string{
-                "title": userQuery,
+            Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+                "title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+                    opensearchapi.NewFieldValueFromString(userQuery),
+                ),
             },
         },
     },

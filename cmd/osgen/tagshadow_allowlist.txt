@@ -37,4 +37,10 @@ CommonAggregationsUnsignedLongTermsAggregate/buckets/CommonAggregationsMultiBuck
 CommonAggregationsVariableWidthHistogramAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsVariableWidthHistogramAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
 
 # --- _core.search ---
-SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][]SearchResultJSONValueSuggestValueItem shadows SearchResult.suggest map[string][]SearchResultSuggestValueItem
+SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][]SearchResultJSONValueSuggestValueItem shadows SearchResult.suggest map[string][]SearchSuggest
+SearchSuggestCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchSuggestCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions
+
+# --- neural._common ---
+NeuralInfoCounterStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string
+NeuralInfoStringStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string
+NeuralTimestampedEventCounterStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string

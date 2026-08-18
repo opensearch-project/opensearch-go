@@ -33,10 +33,11 @@ CommonQueryDSLKNNQuery/method_parameters # map
 CommonQueryDSLLikeDocument/doc # bare
 CommonQueryDSLPercolateQuery/document # bare
 CommonQueryDSLPercolateQuery/documents # slice
-CommonQueryDSLQueryContainer/distance_feature # bare
 CommonQueryDSLQueryContainer/template # map
 
 # --- _core.search ---
+SearchCompletionSuggestOption/_source # bare
+SearchCompletionSuggestOption/fields # map
 SearchHighlightBase/options # map
 SearchHit/_source # bare
 SearchHit/fields # map

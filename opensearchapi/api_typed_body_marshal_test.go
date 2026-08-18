@@ -54,7 +54,7 @@ func TestUpdateBodyOmitsUnsetRawFields(t *testing.T) {
 		{
 			name: "script only omits doc and upsert",
 			body: func() opensearchapi.UpdateBody {
-				s := opensearchapi.NewScriptFromString("ctx._source.count += 1")
+				s := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
 				return opensearchapi.UpdateBody{Script: &s}
 			}(),
 			want: `{"script":"ctx._source.count += 1"}`,
@@ -79,11 +79,10 @@ func TestUpdateBodyOmitsUnsetRawFields(t *testing.T) {
 }
 
 // QueryContainer is shared by ~15 request bodies (search, count, explain,
-// delete_by_query, ...). Its bare RawMessage branch, distance_feature, must not
-// leak a null into every query regardless of which other branch is set - the
-// server rejects that with "[distance_feature] query malformed, no start_object
-// after query name".
-func TestQueryContainerOmitsUnsetRawBranches(t *testing.T) {
+// delete_by_query, ...). Every branch it carries must stay absent from the wire
+// unless the caller set it: the server rejects a null query clause with
+// "[distance_feature] query malformed, no start_object after query name".
+func TestQueryContainerOmitsUnsetBranches(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -102,14 +101,44 @@ func TestQueryContainerOmitsUnsetRawBranches(t *testing.T) {
 			want:      `{"match_none":{}}`,
 		},
 		{
-			name:      "map branch: match_phrase",
-			container: opensearchapi.CommonQueryDSLQueryContainer{MatchPhrase: map[string]string{"title": "hello"}},
-			want:      `{"match_phrase":{"title":"hello"}}`,
+			name: "map branch, shorthand form: match_phrase",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
+					"title": opensearchapi.NewCommonQueryDSLMatchPhraseQueryFromString("hello"),
+				},
+			},
+			want: `{"match_phrase":{"title":"hello"}}`,
 		},
 		{
-			name:      "raw branch set is emitted",
-			container: opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: json.RawMessage(`{"field":"ts"}`)},
-			want:      `{"distance_feature":{"field":"ts"}}`,
+			// The full form of a field-scoped query, which carries the clause's
+			// options alongside the term.
+			name: "map branch, full form: match",
+			container: func() opensearchapi.CommonQueryDSLQueryContainer {
+				query := opensearchapi.NewFieldValueFromString("hello")
+				operator := "and"
+				return opensearchapi.CommonQueryDSLQueryContainer{
+					Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+						"title": opensearchapi.NewCommonQueryDSLMatchQueryFromObject1(
+							opensearchapi.CommonQueryDSLMatchQueryObject1{Query: &query, Operator: &operator},
+						),
+					},
+				}
+			}(),
+			want: `{"match":{"title":{"query":"hello","operator":"and"}}}`,
+		},
+		{
+			name: "union branch set is emitted: distance_feature",
+			container: func() opensearchapi.CommonQueryDSLQueryContainer {
+				q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
+					opensearchapi.CommonQueryDSLDistanceFeatureQueryObject0{
+						Field:  "location",
+						Origin: opensearchapi.NewGeoLocationFromString("52.37,4.89"),
+						Pivot:  "1km",
+					},
+				)
+				return opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: &q}
+			}(),
+			want: `{"distance_feature":{"field":"location","origin":"52.37,4.89","pivot":"1km"}}`,
 		},
 	}
 
