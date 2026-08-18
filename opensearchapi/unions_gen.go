@@ -7067,7 +7067,7 @@ type SearchCompletionSuggestOptionsType int
 
 const (
 	SearchCompletionSuggestOptionsUnknownType SearchCompletionSuggestOptionsType = iota
-	SearchCompletionSuggestOptionsObject0Type
+	SearchCompletionSuggestOptionsTextType
 	SearchCompletionSuggestOptionsArrayType
 )
 
@@ -7075,8 +7075,8 @@ const (
 // been decoded.
 func (t SearchCompletionSuggestOptionsType) String() string {
 	switch t {
-	case SearchCompletionSuggestOptionsObject0Type:
-		return "Object0"
+	case SearchCompletionSuggestOptionsTextType:
+		return "Text"
 	case SearchCompletionSuggestOptionsArrayType:
 		return "Array"
 	default:
@@ -7103,23 +7103,23 @@ func (u *SearchCompletionSuggestOptions) SetRaw(raw json.RawMessage) {
 	u.typ = SearchCompletionSuggestOptionsUnknownType
 }
 
-// Object0 returns the SearchCompletionSuggestOption branch value. It returns a
+// Text returns the SearchCompletionSuggestOption branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchCompletionSuggestOptions) Object0() (SearchCompletionSuggestOption, error) {
+func (u *SearchCompletionSuggestOptions) Text() (SearchCompletionSuggestOption, error) {
 	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
 		return *v, nil
 	}
 	var zero SearchCompletionSuggestOption
-	return zero, &UnionBranchError{Union: "SearchCompletionSuggestOptions", Want: "Object0", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "SearchCompletionSuggestOptions", Want: "Text", Got: u.typ.String()}
 }
 
-// NewSearchCompletionSuggestOptionsFromObject0 returns a SearchCompletionSuggestOptions populated with v
-// on the Object0 branch.
-func NewSearchCompletionSuggestOptionsFromObject0(v SearchCompletionSuggestOption) SearchCompletionSuggestOptions {
+// NewSearchCompletionSuggestOptionsFromText returns a SearchCompletionSuggestOptions populated with v
+// on the Text branch.
+func NewSearchCompletionSuggestOptionsFromText(v SearchCompletionSuggestOption) SearchCompletionSuggestOptions {
 	return SearchCompletionSuggestOptions{
-		typ:   SearchCompletionSuggestOptionsObject0Type,
+		typ:   SearchCompletionSuggestOptionsTextType,
 		value: &v,
 	}
 }
@@ -7158,7 +7158,7 @@ func (u *SearchCompletionSuggestOptions) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchCompletionSuggestOptionsObject0Type
+		u.typ = SearchCompletionSuggestOptionsTextType
 		u.value = &v
 	case data[0] == '[':
 		var v []SearchCompletionSuggestOption
@@ -7202,7 +7202,7 @@ type SearchSuggestCompletionOptionsType int
 
 const (
 	SearchSuggestCompletionOptionsUnknownType SearchSuggestCompletionOptionsType = iota
-	SearchSuggestCompletionOptionsObject0Type
+	SearchSuggestCompletionOptionsTextType
 	SearchSuggestCompletionOptionsArrayType
 )
 
@@ -7210,8 +7210,8 @@ const (
 // been decoded.
 func (t SearchSuggestCompletionOptionsType) String() string {
 	switch t {
-	case SearchSuggestCompletionOptionsObject0Type:
-		return "Object0"
+	case SearchSuggestCompletionOptionsTextType:
+		return "Text"
 	case SearchSuggestCompletionOptionsArrayType:
 		return "Array"
 	default:
@@ -7238,23 +7238,23 @@ func (u *SearchSuggestCompletionOptions) SetRaw(raw json.RawMessage) {
 	u.typ = SearchSuggestCompletionOptionsUnknownType
 }
 
-// Object0 returns the SearchCompletionSuggestOption branch value. It returns a
+// Text returns the SearchCompletionSuggestOption branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
 // that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *SearchSuggestCompletionOptions) Object0() (SearchCompletionSuggestOption, error) {
+func (u *SearchSuggestCompletionOptions) Text() (SearchCompletionSuggestOption, error) {
 	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
 		return *v, nil
 	}
 	var zero SearchCompletionSuggestOption
-	return zero, &UnionBranchError{Union: "SearchSuggestCompletionOptions", Want: "Object0", Got: u.typ.String()}
+	return zero, &UnionBranchError{Union: "SearchSuggestCompletionOptions", Want: "Text", Got: u.typ.String()}
 }
 
-// NewSearchSuggestCompletionOptionsFromObject0 returns a SearchSuggestCompletionOptions populated with v
-// on the Object0 branch.
-func NewSearchSuggestCompletionOptionsFromObject0(v SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
+// NewSearchSuggestCompletionOptionsFromText returns a SearchSuggestCompletionOptions populated with v
+// on the Text branch.
+func NewSearchSuggestCompletionOptionsFromText(v SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
 	return SearchSuggestCompletionOptions{
-		typ:   SearchSuggestCompletionOptionsObject0Type,
+		typ:   SearchSuggestCompletionOptionsTextType,
 		value: &v,
 	}
 }
@@ -7293,7 +7293,7 @@ func (u *SearchSuggestCompletionOptions) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchSuggestCompletionOptionsObject0Type
+		u.typ = SearchSuggestCompletionOptionsTextType
 		u.value = &v
 	case data[0] == '[':
 		var v []SearchCompletionSuggestOption
@@ -8767,7 +8767,7 @@ type CommonQueryDSLCommonTermsQueryType int
 const (
 	CommonQueryDSLCommonTermsQueryUnknownType CommonQueryDSLCommonTermsQueryType = iota
 	CommonQueryDSLCommonTermsQueryStringType
-	CommonQueryDSLCommonTermsQueryObject1Type
+	CommonQueryDSLCommonTermsQueryQueryType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -8776,8 +8776,8 @@ func (t CommonQueryDSLCommonTermsQueryType) String() string {
 	switch t {
 	case CommonQueryDSLCommonTermsQueryStringType:
 		return "String"
-	case CommonQueryDSLCommonTermsQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLCommonTermsQueryQueryType:
+		return "Query"
 	default:
 		return "unknown"
 	}
@@ -8823,23 +8823,23 @@ func NewCommonQueryDSLCommonTermsQueryFromString(v string) CommonQueryDSLCommonT
 	}
 }
 
-// Object1 returns the CommonQueryDSLCommonTermsQueryObject1 branch value. It returns a
+// Query returns the CommonQueryDSLCommonTermsQueryQuery branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLCommonTermsQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLCommonTermsQueryQuery in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLCommonTermsQuery) Object1() (CommonQueryDSLCommonTermsQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLCommonTermsQueryObject1); ok {
+func (u *CommonQueryDSLCommonTermsQuery) Query() (CommonQueryDSLCommonTermsQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLCommonTermsQueryQuery); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLCommonTermsQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLCommonTermsQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLCommonTermsQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLCommonTermsQuery", Want: "Query", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLCommonTermsQueryFromObject1 returns a CommonQueryDSLCommonTermsQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLCommonTermsQueryFromObject1(v CommonQueryDSLCommonTermsQueryObject1) CommonQueryDSLCommonTermsQuery {
+// NewCommonQueryDSLCommonTermsQueryFromQuery returns a CommonQueryDSLCommonTermsQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLCommonTermsQueryFromQuery(v CommonQueryDSLCommonTermsQueryQuery) CommonQueryDSLCommonTermsQuery {
 	return CommonQueryDSLCommonTermsQuery{
-		typ:   CommonQueryDSLCommonTermsQueryObject1Type,
+		typ:   CommonQueryDSLCommonTermsQueryQueryType,
 		value: &v,
 	}
 }
@@ -8860,11 +8860,11 @@ func (u *CommonQueryDSLCommonTermsQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLCommonTermsQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLCommonTermsQueryObject1
+		var v CommonQueryDSLCommonTermsQueryQuery
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLCommonTermsQueryObject1Type
+		u.typ = CommonQueryDSLCommonTermsQueryQueryType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLCommonTermsQuery: unexpected JSON token: %s", data[:1])
@@ -9042,7 +9042,7 @@ type CommonQueryDSLSpanTermQueryType int
 const (
 	CommonQueryDSLSpanTermQueryUnknownType CommonQueryDSLSpanTermQueryType = iota
 	CommonQueryDSLSpanTermQueryStringType
-	CommonQueryDSLSpanTermQueryObject1Type
+	CommonQueryDSLSpanTermQueryValueType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -9051,8 +9051,8 @@ func (t CommonQueryDSLSpanTermQueryType) String() string {
 	switch t {
 	case CommonQueryDSLSpanTermQueryStringType:
 		return "String"
-	case CommonQueryDSLSpanTermQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLSpanTermQueryValueType:
+		return "Value"
 	default:
 		return "unknown"
 	}
@@ -9098,23 +9098,23 @@ func NewCommonQueryDSLSpanTermQueryFromString(v string) CommonQueryDSLSpanTermQu
 	}
 }
 
-// Object1 returns the CommonQueryDSLSpanTermQueryObject1 branch value. It returns a
+// Value returns the CommonQueryDSLSpanTermQueryValue branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLSpanTermQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLSpanTermQueryValue in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLSpanTermQuery) Object1() (CommonQueryDSLSpanTermQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLSpanTermQueryObject1); ok {
+func (u *CommonQueryDSLSpanTermQuery) Value() (CommonQueryDSLSpanTermQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLSpanTermQueryValue); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLSpanTermQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLSpanTermQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLSpanTermQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLSpanTermQuery", Want: "Value", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLSpanTermQueryFromObject1 returns a CommonQueryDSLSpanTermQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLSpanTermQueryFromObject1(v CommonQueryDSLSpanTermQueryObject1) CommonQueryDSLSpanTermQuery {
+// NewCommonQueryDSLSpanTermQueryFromValue returns a CommonQueryDSLSpanTermQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLSpanTermQueryFromValue(v CommonQueryDSLSpanTermQueryValue) CommonQueryDSLSpanTermQuery {
 	return CommonQueryDSLSpanTermQuery{
-		typ:   CommonQueryDSLSpanTermQueryObject1Type,
+		typ:   CommonQueryDSLSpanTermQueryValueType,
 		value: &v,
 	}
 }
@@ -9135,11 +9135,11 @@ func (u *CommonQueryDSLSpanTermQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLSpanTermQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLSpanTermQueryObject1
+		var v CommonQueryDSLSpanTermQueryValue
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLSpanTermQueryObject1Type
+		u.typ = CommonQueryDSLSpanTermQueryValueType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLSpanTermQuery: unexpected JSON token: %s", data[:1])
@@ -9314,7 +9314,7 @@ type InlineScriptType int
 const (
 	InlineScriptUnknownType InlineScriptType = iota
 	InlineScriptStringType
-	InlineScriptObject1Type
+	InlineScriptSourceType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -9323,8 +9323,8 @@ func (t InlineScriptType) String() string {
 	switch t {
 	case InlineScriptStringType:
 		return "String"
-	case InlineScriptObject1Type:
-		return "Object1"
+	case InlineScriptSourceType:
+		return "Source"
 	default:
 		return "unknown"
 	}
@@ -9370,23 +9370,23 @@ func NewInlineScriptFromString(v string) InlineScript {
 	}
 }
 
-// Object1 returns the InlineScriptObject1 branch value. It returns a
+// Source returns the InlineScriptSource branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero InlineScriptObject1 in that case,
+// that is set; the returned value is the zero InlineScriptSource in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *InlineScript) Object1() (InlineScriptObject1, error) {
-	if v, ok := u.value.(*InlineScriptObject1); ok {
+func (u *InlineScript) Source() (InlineScriptSource, error) {
+	if v, ok := u.value.(*InlineScriptSource); ok {
 		return *v, nil
 	}
-	var zero InlineScriptObject1
-	return zero, &UnionBranchError{Union: "InlineScript", Want: "Object1", Got: u.typ.String()}
+	var zero InlineScriptSource
+	return zero, &UnionBranchError{Union: "InlineScript", Want: "Source", Got: u.typ.String()}
 }
 
-// NewInlineScriptFromObject1 returns a InlineScript populated with v
-// on the Object1 branch.
-func NewInlineScriptFromObject1(v InlineScriptObject1) InlineScript {
+// NewInlineScriptFromSource returns a InlineScript populated with v
+// on the Source branch.
+func NewInlineScriptFromSource(v InlineScriptSource) InlineScript {
 	return InlineScript{
-		typ:   InlineScriptObject1Type,
+		typ:   InlineScriptSourceType,
 		value: &v,
 	}
 }
@@ -9407,11 +9407,11 @@ func (u *InlineScript) UnmarshalJSON(data []byte) error {
 		u.typ = InlineScriptStringType
 		u.value = &v
 	case data[0] == '{':
-		var v InlineScriptObject1
+		var v InlineScriptSource
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = InlineScriptObject1Type
+		u.typ = InlineScriptSourceType
 		u.value = &v
 	default:
 		return fmt.Errorf("InlineScript: unexpected JSON token: %s", data[:1])
@@ -9604,7 +9604,7 @@ func (u *CommonQueryDSLFuzzyQuery) SetRaw(raw json.RawMessage) {
 // a zero value, which the As<Branch>() accessors cannot.
 func (u *CommonQueryDSLFuzzyQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
 
-// AsValue decodes the union as FieldValue, the branch the caller
+// AsFieldValue decodes the union as FieldValue, the branch the caller
 // requested. It returns (zero, nil) when the union holds nothing -- test IsZero
 // to tell that from a branch that decoded to a zero value.
 //
@@ -9616,13 +9616,61 @@ func (u *CommonQueryDSLFuzzyQuery) IsZero() bool { return u.value == nil && len(
 //
 // It cannot catch a DIFFERENT branch that shares this one's wire shape; see
 // CommonQueryDSLFuzzyQuery for why nothing in the payload could.
-func (u *CommonQueryDSLFuzzyQuery) AsValue() (FieldValue, error) {
+func (u *CommonQueryDSLFuzzyQuery) AsFieldValue() (FieldValue, error) {
 	if v, ok := u.value.(*FieldValue); ok {
 		return *v, nil
 	}
 	var v FieldValue
 	if len(u.raw) == 0 {
 		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLFuzzyQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLFuzzyQueryFromFieldValue returns a CommonQueryDSLFuzzyQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLFuzzyQueryFromFieldValue(v FieldValue) CommonQueryDSLFuzzyQuery {
+	return CommonQueryDSLFuzzyQuery{
+		value: &v,
+	}
+}
+
+// AsValue decodes the union as CommonQueryDSLFuzzyQueryValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLFuzzyQueryValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLFuzzyQuery for why nothing in the payload could.
+func (u *CommonQueryDSLFuzzyQuery) AsValue() (CommonQueryDSLFuzzyQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLFuzzyQueryValue); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLFuzzyQueryValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "value") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLFuzzyQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"value"}),
+		}
 	}
 	if err := json.Unmarshal(u.raw, &v); err != nil {
 		return v, &UnionBranchError{
@@ -9637,55 +9685,7 @@ func (u *CommonQueryDSLFuzzyQuery) AsValue() (FieldValue, error) {
 
 // NewCommonQueryDSLFuzzyQueryFromValue returns a CommonQueryDSLFuzzyQuery populated with v
 // on the Value branch.
-func NewCommonQueryDSLFuzzyQueryFromValue(v FieldValue) CommonQueryDSLFuzzyQuery {
-	return CommonQueryDSLFuzzyQuery{
-		value: &v,
-	}
-}
-
-// AsObject1 decodes the union as CommonQueryDSLFuzzyQueryObject1, the branch the caller
-// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
-// to tell that from a branch that decoded to a zero value.
-//
-// It returns a *UnionBranchError when the retained bytes cannot be a
-// CommonQueryDSLFuzzyQueryObject1: either they fail to decode, or they lack a property the
-// branch requires. encoding/json ignores unknown properties, so the required-key
-// probe is what catches a payload of the wrong shape entirely (asking a bucket
-// aggregate for a single-metric one).
-//
-// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
-// CommonQueryDSLFuzzyQuery for why nothing in the payload could.
-func (u *CommonQueryDSLFuzzyQuery) AsObject1() (CommonQueryDSLFuzzyQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLFuzzyQueryObject1); ok {
-		return *v, nil
-	}
-	var v CommonQueryDSLFuzzyQueryObject1
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	if !build.HasJSONKeys(u.raw, "value") {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLFuzzyQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err: fmt.Errorf("payload lacks required property %q",
-				[]string{"value"}),
-		}
-	}
-	if err := json.Unmarshal(u.raw, &v); err != nil {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLFuzzyQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err:   err,
-		}
-	}
-	return v, nil
-}
-
-// NewCommonQueryDSLFuzzyQueryFromObject1 returns a CommonQueryDSLFuzzyQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLFuzzyQueryFromObject1(v CommonQueryDSLFuzzyQueryObject1) CommonQueryDSLFuzzyQuery {
+func NewCommonQueryDSLFuzzyQueryFromValue(v CommonQueryDSLFuzzyQueryValue) CommonQueryDSLFuzzyQuery {
 	return CommonQueryDSLFuzzyQuery{
 		value: &v,
 	}
@@ -10893,7 +10893,7 @@ func (u *CommonQueryDSLMatchQuery) SetRaw(raw json.RawMessage) {
 // a zero value, which the As<Branch>() accessors cannot.
 func (u *CommonQueryDSLMatchQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
 
-// AsQuery decodes the union as FieldValue, the branch the caller
+// AsFieldValue decodes the union as FieldValue, the branch the caller
 // requested. It returns (zero, nil) when the union holds nothing -- test IsZero
 // to tell that from a branch that decoded to a zero value.
 //
@@ -10905,13 +10905,61 @@ func (u *CommonQueryDSLMatchQuery) IsZero() bool { return u.value == nil && len(
 //
 // It cannot catch a DIFFERENT branch that shares this one's wire shape; see
 // CommonQueryDSLMatchQuery for why nothing in the payload could.
-func (u *CommonQueryDSLMatchQuery) AsQuery() (FieldValue, error) {
+func (u *CommonQueryDSLMatchQuery) AsFieldValue() (FieldValue, error) {
 	if v, ok := u.value.(*FieldValue); ok {
 		return *v, nil
 	}
 	var v FieldValue
 	if len(u.raw) == 0 {
 		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLMatchQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLMatchQueryFromFieldValue returns a CommonQueryDSLMatchQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLMatchQueryFromFieldValue(v FieldValue) CommonQueryDSLMatchQuery {
+	return CommonQueryDSLMatchQuery{
+		value: &v,
+	}
+}
+
+// AsQuery decodes the union as CommonQueryDSLMatchQueryQuery, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLMatchQueryQuery: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLMatchQuery for why nothing in the payload could.
+func (u *CommonQueryDSLMatchQuery) AsQuery() (CommonQueryDSLMatchQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchQueryQuery); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLMatchQueryQuery
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "query") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLMatchQuery",
+			Want:  "Query",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"query"}),
+		}
 	}
 	if err := json.Unmarshal(u.raw, &v); err != nil {
 		return v, &UnionBranchError{
@@ -10926,55 +10974,7 @@ func (u *CommonQueryDSLMatchQuery) AsQuery() (FieldValue, error) {
 
 // NewCommonQueryDSLMatchQueryFromQuery returns a CommonQueryDSLMatchQuery populated with v
 // on the Query branch.
-func NewCommonQueryDSLMatchQueryFromQuery(v FieldValue) CommonQueryDSLMatchQuery {
-	return CommonQueryDSLMatchQuery{
-		value: &v,
-	}
-}
-
-// AsObject1 decodes the union as CommonQueryDSLMatchQueryObject1, the branch the caller
-// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
-// to tell that from a branch that decoded to a zero value.
-//
-// It returns a *UnionBranchError when the retained bytes cannot be a
-// CommonQueryDSLMatchQueryObject1: either they fail to decode, or they lack a property the
-// branch requires. encoding/json ignores unknown properties, so the required-key
-// probe is what catches a payload of the wrong shape entirely (asking a bucket
-// aggregate for a single-metric one).
-//
-// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
-// CommonQueryDSLMatchQuery for why nothing in the payload could.
-func (u *CommonQueryDSLMatchQuery) AsObject1() (CommonQueryDSLMatchQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLMatchQueryObject1); ok {
-		return *v, nil
-	}
-	var v CommonQueryDSLMatchQueryObject1
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	if !build.HasJSONKeys(u.raw, "query") {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLMatchQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err: fmt.Errorf("payload lacks required property %q",
-				[]string{"query"}),
-		}
-	}
-	if err := json.Unmarshal(u.raw, &v); err != nil {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLMatchQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err:   err,
-		}
-	}
-	return v, nil
-}
-
-// NewCommonQueryDSLMatchQueryFromObject1 returns a CommonQueryDSLMatchQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLMatchQueryFromObject1(v CommonQueryDSLMatchQueryObject1) CommonQueryDSLMatchQuery {
+func NewCommonQueryDSLMatchQueryFromQuery(v CommonQueryDSLMatchQueryQuery) CommonQueryDSLMatchQuery {
 	return CommonQueryDSLMatchQuery{
 		value: &v,
 	}
@@ -11016,7 +11016,7 @@ type CommonQueryDSLMatchBoolPrefixQueryType int
 const (
 	CommonQueryDSLMatchBoolPrefixQueryUnknownType CommonQueryDSLMatchBoolPrefixQueryType = iota
 	CommonQueryDSLMatchBoolPrefixQueryStringType
-	CommonQueryDSLMatchBoolPrefixQueryObject1Type
+	CommonQueryDSLMatchBoolPrefixQueryQueryType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -11025,8 +11025,8 @@ func (t CommonQueryDSLMatchBoolPrefixQueryType) String() string {
 	switch t {
 	case CommonQueryDSLMatchBoolPrefixQueryStringType:
 		return "String"
-	case CommonQueryDSLMatchBoolPrefixQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLMatchBoolPrefixQueryQueryType:
+		return "Query"
 	default:
 		return "unknown"
 	}
@@ -11074,23 +11074,23 @@ func NewCommonQueryDSLMatchBoolPrefixQueryFromString(v string) CommonQueryDSLMat
 	}
 }
 
-// Object1 returns the CommonQueryDSLMatchBoolPrefixQueryObject1 branch value. It returns a
+// Query returns the CommonQueryDSLMatchBoolPrefixQueryQuery branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLMatchBoolPrefixQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLMatchBoolPrefixQueryQuery in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLMatchBoolPrefixQuery) Object1() (CommonQueryDSLMatchBoolPrefixQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLMatchBoolPrefixQueryObject1); ok {
+func (u *CommonQueryDSLMatchBoolPrefixQuery) Query() (CommonQueryDSLMatchBoolPrefixQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchBoolPrefixQueryQuery); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLMatchBoolPrefixQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchBoolPrefixQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLMatchBoolPrefixQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchBoolPrefixQuery", Want: "Query", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLMatchBoolPrefixQueryFromObject1 returns a CommonQueryDSLMatchBoolPrefixQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLMatchBoolPrefixQueryFromObject1(v CommonQueryDSLMatchBoolPrefixQueryObject1) CommonQueryDSLMatchBoolPrefixQuery {
+// NewCommonQueryDSLMatchBoolPrefixQueryFromQuery returns a CommonQueryDSLMatchBoolPrefixQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchBoolPrefixQueryFromQuery(v CommonQueryDSLMatchBoolPrefixQueryQuery) CommonQueryDSLMatchBoolPrefixQuery {
 	return CommonQueryDSLMatchBoolPrefixQuery{
-		typ:   CommonQueryDSLMatchBoolPrefixQueryObject1Type,
+		typ:   CommonQueryDSLMatchBoolPrefixQueryQueryType,
 		value: &v,
 	}
 }
@@ -11111,11 +11111,11 @@ func (u *CommonQueryDSLMatchBoolPrefixQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLMatchBoolPrefixQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLMatchBoolPrefixQueryObject1
+		var v CommonQueryDSLMatchBoolPrefixQueryQuery
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLMatchBoolPrefixQueryObject1Type
+		u.typ = CommonQueryDSLMatchBoolPrefixQueryQueryType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLMatchBoolPrefixQuery: unexpected JSON token: %s", data[:1])
@@ -11153,7 +11153,7 @@ type CommonQueryDSLMatchPhraseQueryType int
 const (
 	CommonQueryDSLMatchPhraseQueryUnknownType CommonQueryDSLMatchPhraseQueryType = iota
 	CommonQueryDSLMatchPhraseQueryStringType
-	CommonQueryDSLMatchPhraseQueryObject1Type
+	CommonQueryDSLMatchPhraseQueryQueryType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -11162,8 +11162,8 @@ func (t CommonQueryDSLMatchPhraseQueryType) String() string {
 	switch t {
 	case CommonQueryDSLMatchPhraseQueryStringType:
 		return "String"
-	case CommonQueryDSLMatchPhraseQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLMatchPhraseQueryQueryType:
+		return "Query"
 	default:
 		return "unknown"
 	}
@@ -11209,23 +11209,23 @@ func NewCommonQueryDSLMatchPhraseQueryFromString(v string) CommonQueryDSLMatchPh
 	}
 }
 
-// Object1 returns the CommonQueryDSLMatchPhraseQueryObject1 branch value. It returns a
+// Query returns the CommonQueryDSLMatchPhraseQueryQuery branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLMatchPhraseQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLMatchPhraseQueryQuery in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLMatchPhraseQuery) Object1() (CommonQueryDSLMatchPhraseQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLMatchPhraseQueryObject1); ok {
+func (u *CommonQueryDSLMatchPhraseQuery) Query() (CommonQueryDSLMatchPhraseQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchPhraseQueryQuery); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLMatchPhraseQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhraseQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLMatchPhraseQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhraseQuery", Want: "Query", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLMatchPhraseQueryFromObject1 returns a CommonQueryDSLMatchPhraseQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLMatchPhraseQueryFromObject1(v CommonQueryDSLMatchPhraseQueryObject1) CommonQueryDSLMatchPhraseQuery {
+// NewCommonQueryDSLMatchPhraseQueryFromQuery returns a CommonQueryDSLMatchPhraseQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchPhraseQueryFromQuery(v CommonQueryDSLMatchPhraseQueryQuery) CommonQueryDSLMatchPhraseQuery {
 	return CommonQueryDSLMatchPhraseQuery{
-		typ:   CommonQueryDSLMatchPhraseQueryObject1Type,
+		typ:   CommonQueryDSLMatchPhraseQueryQueryType,
 		value: &v,
 	}
 }
@@ -11246,11 +11246,11 @@ func (u *CommonQueryDSLMatchPhraseQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLMatchPhraseQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLMatchPhraseQueryObject1
+		var v CommonQueryDSLMatchPhraseQueryQuery
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLMatchPhraseQueryObject1Type
+		u.typ = CommonQueryDSLMatchPhraseQueryQueryType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLMatchPhraseQuery: unexpected JSON token: %s", data[:1])
@@ -11288,7 +11288,7 @@ type CommonQueryDSLMatchPhrasePrefixQueryType int
 const (
 	CommonQueryDSLMatchPhrasePrefixQueryUnknownType CommonQueryDSLMatchPhrasePrefixQueryType = iota
 	CommonQueryDSLMatchPhrasePrefixQueryStringType
-	CommonQueryDSLMatchPhrasePrefixQueryObject1Type
+	CommonQueryDSLMatchPhrasePrefixQueryQueryType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -11297,8 +11297,8 @@ func (t CommonQueryDSLMatchPhrasePrefixQueryType) String() string {
 	switch t {
 	case CommonQueryDSLMatchPhrasePrefixQueryStringType:
 		return "String"
-	case CommonQueryDSLMatchPhrasePrefixQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLMatchPhrasePrefixQueryQueryType:
+		return "Query"
 	default:
 		return "unknown"
 	}
@@ -11346,23 +11346,23 @@ func NewCommonQueryDSLMatchPhrasePrefixQueryFromString(v string) CommonQueryDSLM
 	}
 }
 
-// Object1 returns the CommonQueryDSLMatchPhrasePrefixQueryObject1 branch value. It returns a
+// Query returns the CommonQueryDSLMatchPhrasePrefixQueryQuery branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLMatchPhrasePrefixQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLMatchPhrasePrefixQueryQuery in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLMatchPhrasePrefixQuery) Object1() (CommonQueryDSLMatchPhrasePrefixQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLMatchPhrasePrefixQueryObject1); ok {
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) Query() (CommonQueryDSLMatchPhrasePrefixQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchPhrasePrefixQueryQuery); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLMatchPhrasePrefixQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhrasePrefixQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLMatchPhrasePrefixQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhrasePrefixQuery", Want: "Query", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLMatchPhrasePrefixQueryFromObject1 returns a CommonQueryDSLMatchPhrasePrefixQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLMatchPhrasePrefixQueryFromObject1(v CommonQueryDSLMatchPhrasePrefixQueryObject1) CommonQueryDSLMatchPhrasePrefixQuery {
+// NewCommonQueryDSLMatchPhrasePrefixQueryFromQuery returns a CommonQueryDSLMatchPhrasePrefixQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchPhrasePrefixQueryFromQuery(v CommonQueryDSLMatchPhrasePrefixQueryQuery) CommonQueryDSLMatchPhrasePrefixQuery {
 	return CommonQueryDSLMatchPhrasePrefixQuery{
-		typ:   CommonQueryDSLMatchPhrasePrefixQueryObject1Type,
+		typ:   CommonQueryDSLMatchPhrasePrefixQueryQueryType,
 		value: &v,
 	}
 }
@@ -11383,11 +11383,11 @@ func (u *CommonQueryDSLMatchPhrasePrefixQuery) UnmarshalJSON(data []byte) error 
 		u.typ = CommonQueryDSLMatchPhrasePrefixQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLMatchPhrasePrefixQueryObject1
+		var v CommonQueryDSLMatchPhrasePrefixQueryQuery
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLMatchPhrasePrefixQueryObject1Type
+		u.typ = CommonQueryDSLMatchPhrasePrefixQueryQueryType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLMatchPhrasePrefixQuery: unexpected JSON token: %s", data[:1])
@@ -11975,7 +11975,7 @@ type CommonQueryDSLPrefixQueryType int
 const (
 	CommonQueryDSLPrefixQueryUnknownType CommonQueryDSLPrefixQueryType = iota
 	CommonQueryDSLPrefixQueryStringType
-	CommonQueryDSLPrefixQueryObject1Type
+	CommonQueryDSLPrefixQueryValueType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -11984,8 +11984,8 @@ func (t CommonQueryDSLPrefixQueryType) String() string {
 	switch t {
 	case CommonQueryDSLPrefixQueryStringType:
 		return "String"
-	case CommonQueryDSLPrefixQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLPrefixQueryValueType:
+		return "Value"
 	default:
 		return "unknown"
 	}
@@ -12031,23 +12031,23 @@ func NewCommonQueryDSLPrefixQueryFromString(v string) CommonQueryDSLPrefixQuery 
 	}
 }
 
-// Object1 returns the CommonQueryDSLPrefixQueryObject1 branch value. It returns a
+// Value returns the CommonQueryDSLPrefixQueryValue branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLPrefixQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLPrefixQueryValue in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLPrefixQuery) Object1() (CommonQueryDSLPrefixQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLPrefixQueryObject1); ok {
+func (u *CommonQueryDSLPrefixQuery) Value() (CommonQueryDSLPrefixQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLPrefixQueryValue); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLPrefixQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLPrefixQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLPrefixQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLPrefixQuery", Want: "Value", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLPrefixQueryFromObject1 returns a CommonQueryDSLPrefixQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLPrefixQueryFromObject1(v CommonQueryDSLPrefixQueryObject1) CommonQueryDSLPrefixQuery {
+// NewCommonQueryDSLPrefixQueryFromValue returns a CommonQueryDSLPrefixQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLPrefixQueryFromValue(v CommonQueryDSLPrefixQueryValue) CommonQueryDSLPrefixQuery {
 	return CommonQueryDSLPrefixQuery{
-		typ:   CommonQueryDSLPrefixQueryObject1Type,
+		typ:   CommonQueryDSLPrefixQueryValueType,
 		value: &v,
 	}
 }
@@ -12068,11 +12068,11 @@ func (u *CommonQueryDSLPrefixQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLPrefixQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLPrefixQueryObject1
+		var v CommonQueryDSLPrefixQueryValue
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLPrefixQueryObject1Type
+		u.typ = CommonQueryDSLPrefixQueryValueType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLPrefixQuery: unexpected JSON token: %s", data[:1])
@@ -12513,7 +12513,7 @@ type CommonQueryDSLRegexpQueryType int
 const (
 	CommonQueryDSLRegexpQueryUnknownType CommonQueryDSLRegexpQueryType = iota
 	CommonQueryDSLRegexpQueryStringType
-	CommonQueryDSLRegexpQueryObject1Type
+	CommonQueryDSLRegexpQueryValueType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -12522,8 +12522,8 @@ func (t CommonQueryDSLRegexpQueryType) String() string {
 	switch t {
 	case CommonQueryDSLRegexpQueryStringType:
 		return "String"
-	case CommonQueryDSLRegexpQueryObject1Type:
-		return "Object1"
+	case CommonQueryDSLRegexpQueryValueType:
+		return "Value"
 	default:
 		return "unknown"
 	}
@@ -12569,23 +12569,23 @@ func NewCommonQueryDSLRegexpQueryFromString(v string) CommonQueryDSLRegexpQuery 
 	}
 }
 
-// Object1 returns the CommonQueryDSLRegexpQueryObject1 branch value. It returns a
+// Value returns the CommonQueryDSLRegexpQueryValue branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero CommonQueryDSLRegexpQueryObject1 in that case,
+// that is set; the returned value is the zero CommonQueryDSLRegexpQueryValue in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *CommonQueryDSLRegexpQuery) Object1() (CommonQueryDSLRegexpQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLRegexpQueryObject1); ok {
+func (u *CommonQueryDSLRegexpQuery) Value() (CommonQueryDSLRegexpQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLRegexpQueryValue); ok {
 		return *v, nil
 	}
-	var zero CommonQueryDSLRegexpQueryObject1
-	return zero, &UnionBranchError{Union: "CommonQueryDSLRegexpQuery", Want: "Object1", Got: u.typ.String()}
+	var zero CommonQueryDSLRegexpQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLRegexpQuery", Want: "Value", Got: u.typ.String()}
 }
 
-// NewCommonQueryDSLRegexpQueryFromObject1 returns a CommonQueryDSLRegexpQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLRegexpQueryFromObject1(v CommonQueryDSLRegexpQueryObject1) CommonQueryDSLRegexpQuery {
+// NewCommonQueryDSLRegexpQueryFromValue returns a CommonQueryDSLRegexpQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLRegexpQueryFromValue(v CommonQueryDSLRegexpQueryValue) CommonQueryDSLRegexpQuery {
 	return CommonQueryDSLRegexpQuery{
-		typ:   CommonQueryDSLRegexpQueryObject1Type,
+		typ:   CommonQueryDSLRegexpQueryValueType,
 		value: &v,
 	}
 }
@@ -12606,11 +12606,11 @@ func (u *CommonQueryDSLRegexpQuery) UnmarshalJSON(data []byte) error {
 		u.typ = CommonQueryDSLRegexpQueryStringType
 		u.value = &v
 	case data[0] == '{':
-		var v CommonQueryDSLRegexpQueryObject1
+		var v CommonQueryDSLRegexpQueryValue
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = CommonQueryDSLRegexpQueryObject1Type
+		u.typ = CommonQueryDSLRegexpQueryValueType
 		u.value = &v
 	default:
 		return fmt.Errorf("CommonQueryDSLRegexpQuery: unexpected JSON token: %s", data[:1])
@@ -12665,7 +12665,7 @@ func (u *CommonQueryDSLTermQuery) SetRaw(raw json.RawMessage) {
 // a zero value, which the As<Branch>() accessors cannot.
 func (u *CommonQueryDSLTermQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
 
-// AsValue decodes the union as FieldValue, the branch the caller
+// AsFieldValue decodes the union as FieldValue, the branch the caller
 // requested. It returns (zero, nil) when the union holds nothing -- test IsZero
 // to tell that from a branch that decoded to a zero value.
 //
@@ -12677,13 +12677,61 @@ func (u *CommonQueryDSLTermQuery) IsZero() bool { return u.value == nil && len(u
 //
 // It cannot catch a DIFFERENT branch that shares this one's wire shape; see
 // CommonQueryDSLTermQuery for why nothing in the payload could.
-func (u *CommonQueryDSLTermQuery) AsValue() (FieldValue, error) {
+func (u *CommonQueryDSLTermQuery) AsFieldValue() (FieldValue, error) {
 	if v, ok := u.value.(*FieldValue); ok {
 		return *v, nil
 	}
 	var v FieldValue
 	if len(u.raw) == 0 {
 		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLTermQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLTermQueryFromFieldValue returns a CommonQueryDSLTermQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLTermQueryFromFieldValue(v FieldValue) CommonQueryDSLTermQuery {
+	return CommonQueryDSLTermQuery{
+		value: &v,
+	}
+}
+
+// AsValue decodes the union as CommonQueryDSLTermQueryValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLTermQueryValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLTermQuery for why nothing in the payload could.
+func (u *CommonQueryDSLTermQuery) AsValue() (CommonQueryDSLTermQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLTermQueryValue); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLTermQueryValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "value") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLTermQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"value"}),
+		}
 	}
 	if err := json.Unmarshal(u.raw, &v); err != nil {
 		return v, &UnionBranchError{
@@ -12698,55 +12746,7 @@ func (u *CommonQueryDSLTermQuery) AsValue() (FieldValue, error) {
 
 // NewCommonQueryDSLTermQueryFromValue returns a CommonQueryDSLTermQuery populated with v
 // on the Value branch.
-func NewCommonQueryDSLTermQueryFromValue(v FieldValue) CommonQueryDSLTermQuery {
-	return CommonQueryDSLTermQuery{
-		value: &v,
-	}
-}
-
-// AsObject1 decodes the union as CommonQueryDSLTermQueryObject1, the branch the caller
-// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
-// to tell that from a branch that decoded to a zero value.
-//
-// It returns a *UnionBranchError when the retained bytes cannot be a
-// CommonQueryDSLTermQueryObject1: either they fail to decode, or they lack a property the
-// branch requires. encoding/json ignores unknown properties, so the required-key
-// probe is what catches a payload of the wrong shape entirely (asking a bucket
-// aggregate for a single-metric one).
-//
-// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
-// CommonQueryDSLTermQuery for why nothing in the payload could.
-func (u *CommonQueryDSLTermQuery) AsObject1() (CommonQueryDSLTermQueryObject1, error) {
-	if v, ok := u.value.(*CommonQueryDSLTermQueryObject1); ok {
-		return *v, nil
-	}
-	var v CommonQueryDSLTermQueryObject1
-	if len(u.raw) == 0 {
-		return v, nil
-	}
-	if !build.HasJSONKeys(u.raw, "value") {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLTermQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err: fmt.Errorf("payload lacks required property %q",
-				[]string{"value"}),
-		}
-	}
-	if err := json.Unmarshal(u.raw, &v); err != nil {
-		return v, &UnionBranchError{
-			Union: "CommonQueryDSLTermQuery",
-			Want:  "Object1",
-			Got:   "incompatible payload",
-			Err:   err,
-		}
-	}
-	return v, nil
-}
-
-// NewCommonQueryDSLTermQueryFromObject1 returns a CommonQueryDSLTermQuery populated with v
-// on the Object1 branch.
-func NewCommonQueryDSLTermQueryFromObject1(v CommonQueryDSLTermQueryObject1) CommonQueryDSLTermQuery {
+func NewCommonQueryDSLTermQueryFromValue(v CommonQueryDSLTermQueryValue) CommonQueryDSLTermQuery {
 	return CommonQueryDSLTermQuery{
 		value: &v,
 	}
@@ -22117,7 +22117,7 @@ type NeuralTimestampedEventCounterStatType int
 const (
 	NeuralTimestampedEventCounterStatUnknownType NeuralTimestampedEventCounterStatType = iota
 	NeuralTimestampedEventCounterStatIntType
-	NeuralTimestampedEventCounterStatObject1Type
+	NeuralTimestampedEventCounterStatStatTypeType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -22126,8 +22126,8 @@ func (t NeuralTimestampedEventCounterStatType) String() string {
 	switch t {
 	case NeuralTimestampedEventCounterStatIntType:
 		return "Int"
-	case NeuralTimestampedEventCounterStatObject1Type:
-		return "Object1"
+	case NeuralTimestampedEventCounterStatStatTypeType:
+		return "StatType"
 	default:
 		return "unknown"
 	}
@@ -22175,23 +22175,23 @@ func NewNeuralTimestampedEventCounterStatFromInt(v int) NeuralTimestampedEventCo
 	}
 }
 
-// Object1 returns the NeuralTimestampedEventCounterStatObject1 branch value. It returns a
+// StatType returns the NeuralTimestampedEventCounterStatStatType branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero NeuralTimestampedEventCounterStatObject1 in that case,
+// that is set; the returned value is the zero NeuralTimestampedEventCounterStatStatType in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *NeuralTimestampedEventCounterStat) Object1() (NeuralTimestampedEventCounterStatObject1, error) {
-	if v, ok := u.value.(*NeuralTimestampedEventCounterStatObject1); ok {
+func (u *NeuralTimestampedEventCounterStat) StatType() (NeuralTimestampedEventCounterStatStatType, error) {
+	if v, ok := u.value.(*NeuralTimestampedEventCounterStatStatType); ok {
 		return *v, nil
 	}
-	var zero NeuralTimestampedEventCounterStatObject1
-	return zero, &UnionBranchError{Union: "NeuralTimestampedEventCounterStat", Want: "Object1", Got: u.typ.String()}
+	var zero NeuralTimestampedEventCounterStatStatType
+	return zero, &UnionBranchError{Union: "NeuralTimestampedEventCounterStat", Want: "StatType", Got: u.typ.String()}
 }
 
-// NewNeuralTimestampedEventCounterStatFromObject1 returns a NeuralTimestampedEventCounterStat populated with v
-// on the Object1 branch.
-func NewNeuralTimestampedEventCounterStatFromObject1(v NeuralTimestampedEventCounterStatObject1) NeuralTimestampedEventCounterStat {
+// NewNeuralTimestampedEventCounterStatFromStatType returns a NeuralTimestampedEventCounterStat populated with v
+// on the StatType branch.
+func NewNeuralTimestampedEventCounterStatFromStatType(v NeuralTimestampedEventCounterStatStatType) NeuralTimestampedEventCounterStat {
 	return NeuralTimestampedEventCounterStat{
-		typ:   NeuralTimestampedEventCounterStatObject1Type,
+		typ:   NeuralTimestampedEventCounterStatStatTypeType,
 		value: &v,
 	}
 }
@@ -22212,11 +22212,11 @@ func (u *NeuralTimestampedEventCounterStat) UnmarshalJSON(data []byte) error {
 		u.typ = NeuralTimestampedEventCounterStatIntType
 		u.value = &v
 	case data[0] == '{':
-		var v NeuralTimestampedEventCounterStatObject1
+		var v NeuralTimestampedEventCounterStatStatType
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NeuralTimestampedEventCounterStatObject1Type
+		u.typ = NeuralTimestampedEventCounterStatStatTypeType
 		u.value = &v
 	default:
 		return fmt.Errorf("NeuralTimestampedEventCounterStat: unexpected JSON token: %s", data[:1])
@@ -22254,7 +22254,7 @@ type NeuralInfoStringStatType int
 const (
 	NeuralInfoStringStatUnknownType NeuralInfoStringStatType = iota
 	NeuralInfoStringStatStringType
-	NeuralInfoStringStatObject1Type
+	NeuralInfoStringStatStatTypeType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -22263,8 +22263,8 @@ func (t NeuralInfoStringStatType) String() string {
 	switch t {
 	case NeuralInfoStringStatStringType:
 		return "String"
-	case NeuralInfoStringStatObject1Type:
-		return "Object1"
+	case NeuralInfoStringStatStatTypeType:
+		return "StatType"
 	default:
 		return "unknown"
 	}
@@ -22310,23 +22310,23 @@ func NewNeuralInfoStringStatFromString(v string) NeuralInfoStringStat {
 	}
 }
 
-// Object1 returns the NeuralInfoStringStatObject1 branch value. It returns a
+// StatType returns the NeuralInfoStringStatStatType branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero NeuralInfoStringStatObject1 in that case,
+// that is set; the returned value is the zero NeuralInfoStringStatStatType in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *NeuralInfoStringStat) Object1() (NeuralInfoStringStatObject1, error) {
-	if v, ok := u.value.(*NeuralInfoStringStatObject1); ok {
+func (u *NeuralInfoStringStat) StatType() (NeuralInfoStringStatStatType, error) {
+	if v, ok := u.value.(*NeuralInfoStringStatStatType); ok {
 		return *v, nil
 	}
-	var zero NeuralInfoStringStatObject1
-	return zero, &UnionBranchError{Union: "NeuralInfoStringStat", Want: "Object1", Got: u.typ.String()}
+	var zero NeuralInfoStringStatStatType
+	return zero, &UnionBranchError{Union: "NeuralInfoStringStat", Want: "StatType", Got: u.typ.String()}
 }
 
-// NewNeuralInfoStringStatFromObject1 returns a NeuralInfoStringStat populated with v
-// on the Object1 branch.
-func NewNeuralInfoStringStatFromObject1(v NeuralInfoStringStatObject1) NeuralInfoStringStat {
+// NewNeuralInfoStringStatFromStatType returns a NeuralInfoStringStat populated with v
+// on the StatType branch.
+func NewNeuralInfoStringStatFromStatType(v NeuralInfoStringStatStatType) NeuralInfoStringStat {
 	return NeuralInfoStringStat{
-		typ:   NeuralInfoStringStatObject1Type,
+		typ:   NeuralInfoStringStatStatTypeType,
 		value: &v,
 	}
 }
@@ -22347,11 +22347,11 @@ func (u *NeuralInfoStringStat) UnmarshalJSON(data []byte) error {
 		u.typ = NeuralInfoStringStatStringType
 		u.value = &v
 	case data[0] == '{':
-		var v NeuralInfoStringStatObject1
+		var v NeuralInfoStringStatStatType
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NeuralInfoStringStatObject1Type
+		u.typ = NeuralInfoStringStatStatTypeType
 		u.value = &v
 	default:
 		return fmt.Errorf("NeuralInfoStringStat: unexpected JSON token: %s", data[:1])
@@ -22389,7 +22389,7 @@ type NeuralInfoCounterStatType int
 const (
 	NeuralInfoCounterStatUnknownType NeuralInfoCounterStatType = iota
 	NeuralInfoCounterStatIntType
-	NeuralInfoCounterStatObject1Type
+	NeuralInfoCounterStatStatTypeType
 )
 
 // String names the branch, for diagnostics. Returns "unknown" when no branch has
@@ -22398,8 +22398,8 @@ func (t NeuralInfoCounterStatType) String() string {
 	switch t {
 	case NeuralInfoCounterStatIntType:
 		return "Int"
-	case NeuralInfoCounterStatObject1Type:
-		return "Object1"
+	case NeuralInfoCounterStatStatTypeType:
+		return "StatType"
 	default:
 		return "unknown"
 	}
@@ -22445,23 +22445,23 @@ func NewNeuralInfoCounterStatFromInt(v int) NeuralInfoCounterStat {
 	}
 }
 
-// Object1 returns the NeuralInfoCounterStatObject1 branch value. It returns a
+// StatType returns the NeuralInfoCounterStatStatType branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero NeuralInfoCounterStatObject1 in that case,
+// that is set; the returned value is the zero NeuralInfoCounterStatStatType in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *NeuralInfoCounterStat) Object1() (NeuralInfoCounterStatObject1, error) {
-	if v, ok := u.value.(*NeuralInfoCounterStatObject1); ok {
+func (u *NeuralInfoCounterStat) StatType() (NeuralInfoCounterStatStatType, error) {
+	if v, ok := u.value.(*NeuralInfoCounterStatStatType); ok {
 		return *v, nil
 	}
-	var zero NeuralInfoCounterStatObject1
-	return zero, &UnionBranchError{Union: "NeuralInfoCounterStat", Want: "Object1", Got: u.typ.String()}
+	var zero NeuralInfoCounterStatStatType
+	return zero, &UnionBranchError{Union: "NeuralInfoCounterStat", Want: "StatType", Got: u.typ.String()}
 }
 
-// NewNeuralInfoCounterStatFromObject1 returns a NeuralInfoCounterStat populated with v
-// on the Object1 branch.
-func NewNeuralInfoCounterStatFromObject1(v NeuralInfoCounterStatObject1) NeuralInfoCounterStat {
+// NewNeuralInfoCounterStatFromStatType returns a NeuralInfoCounterStat populated with v
+// on the StatType branch.
+func NewNeuralInfoCounterStatFromStatType(v NeuralInfoCounterStatStatType) NeuralInfoCounterStat {
 	return NeuralInfoCounterStat{
-		typ:   NeuralInfoCounterStatObject1Type,
+		typ:   NeuralInfoCounterStatStatTypeType,
 		value: &v,
 	}
 }
@@ -22482,11 +22482,11 @@ func (u *NeuralInfoCounterStat) UnmarshalJSON(data []byte) error {
 		u.typ = NeuralInfoCounterStatIntType
 		u.value = &v
 	case data[0] == '{':
-		var v NeuralInfoCounterStatObject1
+		var v NeuralInfoCounterStatStatType
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NeuralInfoCounterStatObject1Type
+		u.typ = NeuralInfoCounterStatStatTypeType
 		u.value = &v
 	default:
 		return fmt.Errorf("NeuralInfoCounterStat: unexpected JSON token: %s", data[:1])

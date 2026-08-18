@@ -1962,7 +1962,7 @@ type CommonQueryDSLCombinedFieldsQuery struct {
 	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
-type CommonQueryDSLCommonTermsQueryObject1 struct {
+type CommonQueryDSLCommonTermsQueryQuery struct {
 	CommonQueryDSLQueryBase
 	Analyzer         *string  `json:"analyzer,omitempty"`
 	CutoffFrequency  *float32 `json:"cutoff_frequency,omitempty"`
@@ -2095,7 +2095,7 @@ type CommonQueryDSLSpanOrQuery struct {
 	Clauses []CommonQueryDSLSpanQuery `json:"clauses"`
 }
 
-type CommonQueryDSLSpanTermQueryObject1 struct {
+type CommonQueryDSLSpanTermQueryValue struct {
 	CommonQueryDSLQueryBase
 	Value string `json:"value"`
 }
@@ -2175,7 +2175,7 @@ type ScriptBase struct {
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 }
 
-type InlineScriptObject1 struct {
+type InlineScriptSource struct {
 	ScriptBase
 	Lang    *string           `json:"lang,omitempty"`
 	Options map[string]string `json:"options,omitempty"`
@@ -2225,7 +2225,7 @@ type CommonQueryDSLFunctionScoreQuery struct {
 	ScoreMode *string                       `json:"score_mode,omitempty"`
 }
 
-type CommonQueryDSLFuzzyQueryObject1 struct {
+type CommonQueryDSLFuzzyQueryValue struct {
 	CommonQueryDSLQueryBase
 	Fuzziness *string `json:"fuzziness,omitempty"`
 
@@ -2777,7 +2777,7 @@ type CommonQueryDSLKNNQuery struct {
 	Vector []float32 `json:"vector"`
 }
 
-type CommonQueryDSLMatchQueryObject1 struct {
+type CommonQueryDSLMatchQueryQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Analyzer used to convert the text in the query value into tokens.
@@ -2821,7 +2821,7 @@ type CommonQueryDSLMatchQueryObject1 struct {
 	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
-type CommonQueryDSLMatchBoolPrefixQueryObject1 struct {
+type CommonQueryDSLMatchBoolPrefixQueryQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Analyzer used to convert the text in the query value into tokens.
@@ -2857,7 +2857,7 @@ type CommonQueryDSLMatchBoolPrefixQueryObject1 struct {
 	Query string `json:"query"`
 }
 
-type CommonQueryDSLMatchPhraseQueryObject1 struct {
+type CommonQueryDSLMatchPhraseQueryQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Analyzer used to convert the text in the query value into tokens.
@@ -2872,7 +2872,7 @@ type CommonQueryDSLMatchPhraseQueryObject1 struct {
 	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
-type CommonQueryDSLMatchPhrasePrefixQueryObject1 struct {
+type CommonQueryDSLMatchPhrasePrefixQueryQuery struct {
 	CommonQueryDSLQueryBase
 
 	// Analyzer used to convert text in the query value into tokens.
@@ -3123,7 +3123,7 @@ type CommonQueryDSLPercolateQuery struct {
 	Version *int64 `json:"version,omitempty"`
 }
 
-type CommonQueryDSLPrefixQueryObject1 struct {
+type CommonQueryDSLPrefixQueryValue struct {
 	CommonQueryDSLQueryBase
 
 	// CaseInsensitive. Allows ASCII case insensitive matching of the value
@@ -3327,7 +3327,7 @@ type CommonQueryDSLRankFeatureQuery struct {
 	Sigmoid    *CommonQueryDSLRankFeatureFunctionSigmoid    `json:"sigmoid,omitempty"`
 }
 
-type CommonQueryDSLRegexpQueryObject1 struct {
+type CommonQueryDSLRegexpQueryValue struct {
 	CommonQueryDSLQueryBase
 
 	// CaseInsensitive. Allows case insensitive matching of the regular
@@ -3421,7 +3421,7 @@ type CommonQueryDSLSimpleQueryStringQuery struct {
 	QuoteFieldSuffix *string `json:"quote_field_suffix,omitempty"`
 }
 
-type CommonQueryDSLTermQueryObject1 struct {
+type CommonQueryDSLTermQueryValue struct {
 	CommonQueryDSLQueryBase
 
 	// CaseInsensitive. Allows ASCII case insensitive matching of the value
@@ -10667,7 +10667,7 @@ type NeuralStatMetadata struct {
 	Value    NeuralStatMetadataValue `json:"value"`
 }
 
-type NeuralTimestampedEventCounterStatObject1 struct {
+type NeuralTimestampedEventCounterStatStatType struct {
 	NeuralStatMetadata
 	MinutesSinceLastEvent *int    `json:"minutes_since_last_event,omitempty"`
 	StatType              *string `json:"stat_type,omitempty"`
@@ -10806,12 +10806,12 @@ type NeuralNestedNodeStats struct {
 	SemanticHighlighting *NeuralNestedNodeStatsSemanticHighlighting `json:"semantic_highlighting,omitempty"`
 }
 
-type NeuralInfoStringStatObject1 struct {
+type NeuralInfoStringStatStatType struct {
 	NeuralStatMetadata
 	StatType *string `json:"stat_type,omitempty"`
 }
 
-type NeuralInfoCounterStatObject1 struct {
+type NeuralInfoCounterStatStatType struct {
 	NeuralStatMetadata
 	StatType *string `json:"stat_type,omitempty"`
 }

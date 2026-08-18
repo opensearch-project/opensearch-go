@@ -297,7 +297,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Body: &opensearchapi.SearchBody{
         Query: &opensearchapi.CommonQueryDSLQueryContainer{
             Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
-                "title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+                "title": opensearchapi.NewCommonQueryDSLMatchQueryFromFieldValue(
                     opensearchapi.NewFieldValueFromString(userQuery),
                 ),
             },

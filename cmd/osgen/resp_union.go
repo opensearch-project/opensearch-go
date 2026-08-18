@@ -372,24 +372,26 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 // select it -- and a permissive branch (no required keys) is named for its
 // sorted property keys joined together. Every fragment runs through baseGoName
 // so JSON keys become valid identifier fragments (e.g. "_source" -> "Source").
-// Returns "" for an object with no properties of its own: an open map branch
-// (named elsewhere), or an untitled branch composed with allOf, whose shorthand
-// sibling is usually titled for the same key the composed form requires -- naming
-// it from that key would collide, and the positional fallback reads better than
-// the GoType-qualified name deduplicateAccessorNames would produce.
+//
+// flattenRequired reaches through allOf, so a branch that composes its shape
+// with allOf is named for the key it requires even though it declares no
+// properties at its root. Returns "" only when there is no content to name from,
+// which leaves the positional fallback for an open map branch (named elsewhere)
+// and for two branches whose content cannot tell them apart (see
+// objectBranchNames).
 func objectBranchName(s *openapi3.Schema) string {
 	if s.Title != "" {
 		// baseGoName splits on '-', '_', '.' so a hyphenated title
 		// (e.g. "score-ranker-processor") normalizes to ScoreRankerProcessor.
 		return baseGoName(s.Title)
 	}
-	if len(s.Properties) == 0 {
-		return ""
-	}
 	if req := flattenRequired(s); len(req) > 0 {
 		sorted := slices.Clone(req)
 		sort.Strings(sorted)
 		return baseGoName(sorted[0])
+	}
+	if len(s.Properties) == 0 {
+		return ""
 	}
 	keys := make([]string, 0, len(s.Properties))
 	for k := range s.Properties {
@@ -661,13 +663,39 @@ func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) 
 }
 
 // deduplicateAccessorNames renames branches that share the same Name.
-// For example, two map branches both named "Map" become "StringMap" and
-// "FieldSortMap" based on their value type.
+//
+// A $ref branch is renamed first, to the schema it references: its colliding
+// name came from the spec `title`, and the spec titles a shorthand branch for the
+// very key the full-form sibling requires (MatchQuery's FieldValue branch is
+// titled "query" and the full form requires `query`), so the title is the
+// disambiguable half. That yields AsFieldValue()/AsQuery() rather than the
+// GoType-qualified pair below, whose inline half would stutter the union prefix
+// (AsCommonQueryDSLMatchQueryQueryQuery).
+//
+// Whatever still collides falls back to a GoType qualifier, which is the case
+// this function was written for: two map branches both named "Map" become
+// "StringMap" and "FieldSortMap" based on their value type.
 func deduplicateAccessorNames(branches []unionBranch) {
-	count := make(map[string]int, len(branches))
-	for _, b := range branches {
-		count[b.Name]++
+	colliding := func() map[string]int {
+		count := make(map[string]int, len(branches))
+		for _, b := range branches {
+			count[b.Name]++
+		}
+		return count
 	}
+
+	count := colliding()
+	for i := range branches {
+		b := &branches[i]
+		if count[b.Name] < 2 || !b.IsRef || b.SchemaKey == "" {
+			continue
+		}
+		if local := schemaLocalGoName(b.SchemaKey); local != "" && local != b.Name {
+			b.Name = local
+		}
+	}
+
+	count = colliding()
 	for i := range branches {
 		if count[branches[i].Name] > 1 {
 			branches[i].Name = mapValueTypeName(branches[i].GoType) + branches[i].Name

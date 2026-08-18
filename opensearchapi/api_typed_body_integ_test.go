@@ -149,8 +149,8 @@ func TestManual_SearchTypedBody(t *testing.T) {
 				operator := "and"
 				return opensearchapi.CommonQueryDSLQueryContainer{
 					Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
-						"title": opensearchapi.NewCommonQueryDSLMatchQueryFromObject1(
-							opensearchapi.CommonQueryDSLMatchQueryObject1{Query: &query, Operator: &operator},
+						"title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+							opensearchapi.CommonQueryDSLMatchQueryQuery{Query: &query, Operator: &operator},
 						),
 					},
 				}

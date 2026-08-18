@@ -575,14 +575,14 @@ func TestObjectBranchName(t *testing.T) {
 		{name: "permissive multi prop sorted", schema: obj("", nil, "includes", "excludes"), want: "ExcludesIncludes"},
 		// An object with no properties has no content name (open map branch).
 		{name: "no properties", schema: obj("", nil), want: ""},
-		// A composed branch declares no properties at its root, so it has no
-		// content name and falls back to the positional suffix.
+		// flattenRequired reaches through allOf, so a composed branch is named for
+		// the key it requires even though its root declares no properties.
 		{
-			name: "composed branch has no content name",
+			name: "composed branch takes its required key",
 			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
 				{Value: obj("", []string{"value"}, "value", "case_insensitive")},
 			}},
-			want: "",
+			want: "Value",
 		},
 		// A titled composed branch still uses its title.
 		{
@@ -773,7 +773,7 @@ func TestResolveUnionTypeKeepsComposedBranch(t *testing.T) {
 			}},
 			schemaKey:  "_common.query_dsl___TermQuery",
 			wantGoType: "CommonQueryDSLTermQuery",
-			wantBranch: []string{"String", "Object1"},
+			wantBranch: []string{"String", "Value"},
 		},
 		{
 			name: "every branch composed",
@@ -783,7 +783,7 @@ func TestResolveUnionTypeKeepsComposedBranch(t *testing.T) {
 			}},
 			schemaKey:  "_common.query_dsl___DistanceFeatureQuery",
 			wantGoType: "CommonQueryDSLDistanceFeatureQuery",
-			wantBranch: []string{"Object0", "Object1"},
+			wantBranch: []string{"Origin", "Pivot"},
 		},
 	}
 

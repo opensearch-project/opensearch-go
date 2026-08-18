@@ -305,20 +305,20 @@ MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
 },
 ```
 
-The full form is the `Object1` branch, which the shorthand-only type could not express:
+The full form is a second branch, named for the key it requires, which the shorthand-only type could not express:
 
 ```go
 query := opensearchapi.NewFieldValueFromString("hello")
 operator := "and"
 
 Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
-    "title": opensearchapi.NewCommonQueryDSLMatchQueryFromObject1(
-        opensearchapi.CommonQueryDSLMatchQueryObject1{Query: &query, Operator: &operator},
+    "title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+        opensearchapi.CommonQueryDSLMatchQueryQuery{Query: &query, Operator: &operator},
     ),
 },
 ```
 
-`distance_feature` takes a pointer to its union. Its two branches are the geo form (`Object0`) and the date form (`Object1`); the spec titles neither, so both carry positional names:
+`distance_feature` takes a pointer to its union. Its two branches are the geo form (`Object0`) and the date form (`Object1`): they declare identical fields, so no content name can tell them apart and both fall back to positional names:
 
 ```go
 q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
@@ -342,6 +342,13 @@ script := opensearchapi.NewScriptFromString("ctx._source.count += 1")
 
 // After
 script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
+```
+
+A clause you construct without its `From*` constructor marshals as `null`, which the server rejects the same way it rejected the old unset `distance_feature`. The zero value is not a usable clause:
+
+```go
+// WRONG: marshals to {"match_phrase":{"title":null}}
+MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}},
 ```
 
 On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor, so `stat.Int()` returns the value the plain field used to hold, plus an error when the response carried the object form instead.
