@@ -48,8 +48,8 @@ func classifyUnions(spec *ir.Spec) {
 	requestSelected := mapValuedUnions(allTypes, reg)
 
 	// A union can appear as several ir.Type instances (shared registry copy +
-	// per-operation copies), so each is classified separately; warn at most
-	// once per union name to avoid duplicate diagnostics.
+	// per-operation copies), so each is classified separately; warn at most once
+	// per union name and diagnostic to avoid duplicate output.
 	warned := set[string]{}
 
 	for _, t := range allTypes {
@@ -63,11 +63,15 @@ func classifyUnions(spec *ir.Spec) {
 			continue
 		}
 
-		warn := func(format string, args ...any) {
-			if warned.has(t.Name) {
+		// Keyed by name AND diagnostic kind: the two conditions below are
+		// independent, and keying on the name alone would let whichever fired first
+		// swallow the other.
+		warn := func(kind, format string, args ...any) {
+			key := t.Name + ":" + kind
+			if warned.has(key) {
 				return
 			}
-			warned.add(t.Name)
+			warned.add(key)
 			log.Printf(format, args...)
 		}
 
@@ -112,8 +116,8 @@ func classifyUnions(spec *ir.Spec) {
 			}
 		}
 		if permissive == 1 && embeddablePermissive == 1 {
-			warn("osgen: union %q left on try-each: one permissive branch plus discriminated "+
-				"branch(es), but no required key distinguishes them by presence", t.Name)
+			warn("try-each", "osgen: union %q left on try-each: one permissive branch plus "+
+				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
 
 		// Branches declaring the same required keys share one presence probe, so a
@@ -125,9 +129,9 @@ func classifyUnions(spec *ir.Spec) {
 		// cannot see -- so report it instead of dropping a branch a caller needs in
 		// order to send that form.
 		if shadowed := branchesSharingRequiredKeys(t); len(shadowed) > 0 {
-			warn("osgen: union %q decodes to its first matching branch only; no key probe can "+
-				"select these, which declare the same required keys as an earlier branch: %s",
-				t.Name, strings.Join(shadowed, ", "))
+			warn("shared-required-keys", "osgen: union %q decodes to its first matching branch only; "+
+				"no key probe can select these, which declare the same required keys as an earlier "+
+				"branch: %s", t.Name, strings.Join(shadowed, ", "))
 		}
 	}
 

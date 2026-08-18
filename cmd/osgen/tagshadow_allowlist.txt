@@ -10,8 +10,9 @@
 #
 # A narrowing entry is the deliberate case: the winning field names a more
 # specific type than the one it hides. An entry that erases a typed payload
-# makes every field of the hidden type unreachable; confirm that is intended
-# before adding one.
+# makes every field of the hidden type unreachable; an entry that widens the
+# hidden field to a pointer makes a value the embed declares required optional
+# on the winning declaration. Confirm either is intended before adding one.
 
 # --- _common.aggregations ---
 CommonAggregationsAdjacencyMatrixAggregate/buckets/CommonAggregationsMultiBucketAggregateBase # intentional narrowing: CommonAggregationsAdjacencyMatrixAggregateBuckets shadows CommonAggregationsMultiBucketAggregateBase.buckets CommonAggregationsMultiBucketAggregateBaseBuckets
@@ -41,6 +42,6 @@ SearchResultJSONValue/suggest/SearchResult # intentional narrowing: map[string][
 SearchSuggestCompletion/options/SearchCompletionSuggest # intentional narrowing: *SearchSuggestCompletionOptions shadows SearchCompletionSuggest.options SearchCompletionSuggestOptions
 
 # --- neural._common ---
-NeuralInfoCounterStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string
-NeuralInfoStringStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string
-NeuralTimestampedEventCounterStatObject1/stat_type/NeuralStatMetadata # intentional narrowing: *string shadows NeuralStatMetadata.stat_type string
+NeuralInfoCounterStatObject1/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
+NeuralInfoStringStatObject1/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string
+NeuralTimestampedEventCounterStatObject1/stat_type/NeuralStatMetadata # widens the hidden field to a pointer: *string shadows NeuralStatMetadata.stat_type string

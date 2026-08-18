@@ -64,6 +64,16 @@ func TestClassifyShadow(t *testing.T) {
 			name: "typed over raw is a narrowing", outer: "SearchHit", shadowed: "json.RawMessage",
 			want: shadowNarrowing, wantString: shadowKindLabelNarrowing,
 		},
+		{
+			// A pointer to the hidden type narrows nothing: it makes a value the
+			// embed declares required optional on the winning declaration.
+			name: "pointer over value widens", outer: "*string", shadowed: "string",
+			want: shadowWidened, wantString: shadowKindLabelWidened,
+		},
+		{
+			name: "pointer over a different type is still a narrowing", outer: "*SearchHit", shadowed: "json.RawMessage",
+			want: shadowNarrowing, wantString: shadowKindLabelNarrowing,
+		},
 	}
 
 	for _, tt := range tests {

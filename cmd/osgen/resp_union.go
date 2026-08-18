@@ -441,8 +441,10 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 
 // isObjectShaped reports whether an inline branch schema describes an object: it
 // either declares `type: object`, or it declares no type at all and composes its
-// shape with allOf, which is how the spec writes a branch that extends a base
-// (every such branch in the spec merges to an object).
+// shape with allOf, which is how the spec writes a branch that extends a base.
+// The allOf members are not inspected, so a composed branch whose members resolve
+// to something other than an object reaches classifyObjectBranch and lands on its
+// raw-map fallback rather than that type.
 func isObjectShaped(s *openapi3.Schema) bool {
 	if s.Type != nil {
 		return s.Type.Is(openapi3.TypeObject)

@@ -63,8 +63,9 @@ const tagShadowAllowlistHeader = "# osgen duplicate-JSON-tag allowlist - DO NOT 
 	"#\n" +
 	"# A narrowing entry is the deliberate case: the winning field names a more\n" +
 	"# specific type than the one it hides. An entry that erases a typed payload\n" +
-	"# makes every field of the hidden type unreachable; confirm that is intended\n" +
-	"# before adding one.\n"
+	"# makes every field of the hidden type unreachable; an entry that widens the\n" +
+	"# hidden field to a pointer makes a value the embed declares required optional\n" +
+	"# on the winning declaration. Confirm either is intended before adding one.\n"
 
 // shadowKind classifies what the shallower declaration does to the payload of
 // the embedded declaration it hides. It is not part of the allowlist key; it
@@ -84,6 +85,10 @@ const (
 	// shadowRedundant restates the hidden field's own type. Harmless on the wire
 	// but pointless, and it makes the struct read as if the embed were absent.
 	shadowRedundant
+	// shadowWidened restates the hidden field's type as a pointer to it, which
+	// narrows nothing: it makes a value the embed declares required optional on the
+	// winning declaration, and the embedded declaration is still never populated.
+	shadowWidened
 )
 
 // Allowlist kind labels written as part of the trailing "# <label>" comment on
@@ -93,6 +98,7 @@ const (
 	shadowKindLabelNarrowing = "intentional narrowing"
 	shadowKindLabelErased    = "erases a typed payload"
 	shadowKindLabelRedundant = "redundant redeclaration"
+	shadowKindLabelWidened   = "widens the hidden field to a pointer"
 )
 
 func (k shadowKind) String() string {
@@ -103,6 +109,8 @@ func (k shadowKind) String() string {
 		return shadowKindLabelErased
 	case shadowRedundant:
 		return shadowKindLabelRedundant
+	case shadowWidened:
+		return shadowKindLabelWidened
 	default:
 		return shadowKindLabelErased
 	}
@@ -240,10 +248,14 @@ func reachableTags(byName map[string]*ir.Type, embedType string) map[string]shad
 
 // classifyShadow reports what the shallower declaration does to the payload of
 // the field it hides: names a more specific type (the deliberate override),
-// restates the same type, or replaces a typed payload with raw JSON.
+// restates the same type, widens it to a pointer, or replaces a typed payload
+// with raw JSON.
 func classifyShadow(outerGoType, shadowedGoType string) shadowKind {
 	if outerGoType == shadowedGoType {
 		return shadowRedundant
+	}
+	if outerGoType == "*"+shadowedGoType {
+		return shadowWidened
 	}
 	_, outerRaw := classifyRawForm(outerGoType)
 	_, shadowedRaw := classifyRawForm(shadowedGoType)

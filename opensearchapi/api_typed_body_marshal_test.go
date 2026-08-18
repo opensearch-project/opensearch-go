@@ -159,3 +159,36 @@ func TestQueryContainerOmitsUnsetBranches(t *testing.T) {
 		})
 	}
 }
+
+// Both distance_feature forms marshal, but only the geo form is reachable when
+// decoding one: the spec declares the same required keys (field, origin, pivot)
+// on both, and they differ only in leaf types a JSON key probe cannot see, since
+// Origin accepts a bare string and both Pivot types are strings. Type() therefore
+// reports Object0 whichever form arrives, which UPGRADING_V5.md documents and
+// this pins. Generation reports the collision rather than dropping the date
+// branch, because that branch is still the one to construct when sending it.
+func TestDistanceFeatureDecodesAsGeoForm(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "geo form", body: `{"field":"location","origin":"52.37,4.89","pivot":"1km"}`},
+		{name: "date form", body: `{"field":"@timestamp","origin":"2024-01-01","pivot":"7d"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var q opensearchapi.CommonQueryDSLDistanceFeatureQuery
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &q))
+			require.Equal(t, opensearchapi.CommonQueryDSLDistanceFeatureQueryObject0Type, q.Type())
+
+			// The raw bytes are retained, so a caller that needs the form as sent
+			// reads them rather than the branch.
+			require.JSONEq(t, tt.body, string(q.RawJSON()))
+		})
+	}
+}
