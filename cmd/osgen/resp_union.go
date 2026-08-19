@@ -672,19 +672,19 @@ func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) 
 
 // renameToSchemaLocal renames a $ref branch to the schema it references, which is
 // the name deriveBranchName would have chosen had the spec not supplied a title.
-// Reports whether the name changed. Callers use it to break a collision the title
-// caused: the referenced schema's own name is the half that does not depend on
-// what the spec chose to call the branch at this site.
-func renameToSchemaLocal(b *unionBranch) bool {
+// Callers use it to break a collision the title caused: the referenced schema's own
+// name is the half that does not depend on what the spec chose to call the branch at
+// this site. A branch that is not a $ref, or whose schema yields no distinct name,
+// is left alone.
+func renameToSchemaLocal(b *unionBranch) {
 	if !b.IsRef || b.SchemaKey == "" {
-		return false
+		return
 	}
 	replacement := schemaLocalGoName(b.SchemaKey)
 	if replacement == "" || replacement == b.Name {
-		return false
+		return
 	}
 	b.Name = replacement
-	return true
 }
 
 // deduplicateAccessorNames renames branches that share the same Name.

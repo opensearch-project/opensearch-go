@@ -372,7 +372,7 @@ func TestBranchesSharingRequiredKeys(t *testing.T) {
 				{Name: "Object0", Required: []string{"field", "origin", "pivot"}},
 				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
 			},
-			want: []string{"Object1 (shadowed by Object0)"},
+			want: []string{"Object1 (same required keys as Object0)"},
 		},
 		{
 			name: "required key order is irrelevant",
@@ -380,7 +380,7 @@ func TestBranchesSharingRequiredKeys(t *testing.T) {
 				{Name: "Object0", Required: []string{"pivot", "field", "origin"}},
 				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
 			},
-			want: []string{"Object1 (shadowed by Object0)"},
+			want: []string{"Object1 (same required keys as Object0)"},
 		},
 		{
 			name: "permissive branches never collide",
@@ -442,11 +442,11 @@ func TestClassifyUnionsReportsBothDiagnostics(t *testing.T) {
 
 	out := buf.String()
 	require.Contains(t, out, `union "BothDiagnostics" left on try-each`)
-	require.Contains(t, out, `Second (shadowed by First)`)
+	require.Contains(t, out, `Second (same required keys as First)`)
 }
 
 // TestReportProbeCollisionsPopulatesIR pins the two halves the emitter depends on:
-// the shadowed branch names land on the IR type (the template renders them), and
+// the colliding branch names land on the IR type (the template renders them), and
 // the report is not gated on every branch being an object. GeospatialGeoShapes is
 // the real case that gate hid: six object branches all requiring
 // {coordinates,type} alongside a permissive array branch.
@@ -466,7 +466,7 @@ func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
 					{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
 				}}
 			},
-			want: []string{"Second (shadowed by First)"},
+			want: []string{"Second (same required keys as First)"},
 		},
 		{
 			name: "a non-object branch does not suppress the report",
@@ -477,7 +477,7 @@ func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
 					{Name: "Array", GoType: "[][]float64", TokenClass: ir.TokenArray},
 				}}
 			},
-			want: []string{"MultiPoint (shadowed by Point)"},
+			want: []string{"MultiPoint (same required keys as Point)"},
 		},
 		{
 			name: "distinct required sets report nothing",
@@ -520,7 +520,7 @@ func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
 			t.Parallel()
 			typ := tt.setup()
 			reportProbeCollisions([]*ir.Type{typ})
-			require.Equal(t, tt.want, typ.ShadowedBranches)
+			require.Equal(t, tt.want, typ.ProbeCollisionBranches)
 		})
 	}
 }

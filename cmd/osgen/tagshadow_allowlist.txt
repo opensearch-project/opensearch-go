@@ -13,7 +13,7 @@
 # makes every field of the hidden type unreachable; an entry that widens the
 # hidden field to a pointer makes a value the embed declares required optional
 # on the winning declaration. An entry noting it makes a required field
-# optional can omit the key entirely, whatever else it does to the type.
+# optional can omit the JSON key entirely, whatever else it does to the type.
 # Confirm any of these is intended before adding one.
 
 # --- _common.aggregations ---

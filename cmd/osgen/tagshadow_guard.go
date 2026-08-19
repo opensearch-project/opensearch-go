@@ -66,7 +66,7 @@ const tagShadowAllowlistHeader = "# osgen duplicate-JSON-tag allowlist - DO NOT 
 	"# makes every field of the hidden type unreachable; an entry that widens the\n" +
 	"# hidden field to a pointer makes a value the embed declares required optional\n" +
 	"# on the winning declaration. An entry noting it makes a required field\n" +
-	"# optional can omit the key entirely, whatever else it does to the type.\n" +
+	"# optional can omit the JSON key entirely, whatever else it does to the type.\n" +
 	"# Confirm any of these is intended before adding one.\n"
 
 // shadowKind classifies what the shallower declaration does to the payload of

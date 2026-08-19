@@ -510,14 +510,17 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{- if $t.ShadowedBranches}}
+{{- if $t.ProbeCollisionBranches}}
 //
-// Decoding cannot reach the branches below. Each declares the same required keys
-// as an earlier branch, so the key probe always selects that earlier one and
-// Type() never reports these. Constructing and marshaling them is unaffected;
-// read RawJSON() when you need the payload exactly as it arrived.
+// The branches below are probed only after an earlier branch that declares the
+// same required keys. The decoder keeps the first branch that unmarshals, so each
+// of these loses any payload that earlier branch can also decode -- for some
+// unions that is every payload, for others none, depending on whether the earlier
+// branch's Go types accept the bytes. Constructing and marshaling them is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived, and
+// Type() to see which branch actually decoded.
 //
-{{- range $t.ShadowedBranches}}
+{{- range $t.ProbeCollisionBranches}}
 //   - {{.}}
 {{- end}}
 {{- end}}

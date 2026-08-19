@@ -115,7 +115,6 @@ func classifyUnions(spec *ir.Spec) {
 			warn("osgen: union %q left on try-each: one permissive branch plus "+
 				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
-
 	}
 
 	// Every union has now reached its terminal decode strategy, so branch
@@ -134,13 +133,19 @@ func classifyUnions(spec *ir.Spec) {
 
 // reportProbeCollisions records and reports, for every union the emitter renders
 // with the try-each decoder, the branches whose required-key set duplicates an
-// earlier branch's. The decoder probes those keys in branch order, so such a
-// branch is unreachable on decode: it stays constructible and marshals correctly,
-// but Type() can never report it. That is a property of the schema rather than a
-// repairable defect (DistanceFeatureQuery's geo and date forms both require
-// field/origin/pivot and differ only in leaf types a key probe cannot see), so it
-// is reported and documented on the type rather than dropped, since the branch is
-// still the one a caller constructs to send that form.
+// earlier branch's. The decoder probes those keys in branch order and keeps the
+// first branch that unmarshals, so a duplicate probe costs the later branch every
+// payload the earlier branch can also decode.
+//
+// How much that costs is NOT decidable from the key set, which is why this reports
+// the collision rather than claiming unreachability. DistanceFeatureQuery's date
+// form loses everything, because the geo form's Origin is a GeoLocation that also
+// accepts a bare string. GeospatialGeoShapes loses only where two branches carry
+// the same Go shape: LineString loses to MultiPoint and Polygon to
+// MultiLineString, while MultiPoint, MultiLineString and MultiPolygon all still
+// decode, because Point's []float64 coordinates reject their nested arrays.
+// Deciding this properly means asking whether one Go type accepts another's
+// payloads, which the generator cannot answer statically.
 //
 // It runs after dropUnreachableBranches so a branch that is reported can never be
 // one the emitter has already removed.
@@ -150,18 +155,18 @@ func reportProbeCollisions(types []*ir.Type) {
 		if !rendersAsTryEach(t) {
 			continue
 		}
-		shadowed := branchesSharingRequiredKeys(t)
-		if len(shadowed) == 0 {
+		collisions := branchesSharingRequiredKeys(t)
+		if len(collisions) == 0 {
 			continue
 		}
-		t.ShadowedBranches = shadowed
+		t.ProbeCollisionBranches = collisions
 		if warned.has(t.Name) {
 			continue
 		}
 		warned.add(t.Name)
-		log.Printf("osgen: union %q decodes to its first matching branch only; no key probe can "+
-			"select these, which declare the same required keys as an earlier branch: %s",
-			t.Name, strings.Join(shadowed, ", "))
+		log.Printf("osgen: union %q probes these branches after an earlier branch that declares "+
+			"the same required keys, so each loses any payload that earlier branch can also "+
+			"decode: %s", t.Name, strings.Join(collisions, ", "))
 	}
 }
 
@@ -176,12 +181,16 @@ func rendersAsTryEach(t *ir.Type) bool {
 
 // branchesSharingRequiredKeys returns the names of branches whose required-key
 // set equals an earlier branch's, in branch order. The emitted try-each decoder
-// probes required keys to pick a branch, so an equal set makes the later branch
-// unreachable on decode. Permissive branches (no required keys) are excluded:
+// probes required keys to pick a branch, so an equal set puts the later branch
+// behind the earlier one. Permissive branches (no required keys) are excluded:
 // they are decoded by attempt rather than by probe.
+//
+// A later branch requiring a SUPERSET of an earlier branch's keys is queued behind
+// it just as firmly, since encoding/json ignores unknown keys; equality is the
+// conservative half of that and is all this reports.
 func branchesSharingRequiredKeys(t *ir.Type) []string {
 	seen := make(map[string]string, len(t.Branches)) // probe key -> first branch holding it
-	var shadowed []string
+	var collisions []string
 	for _, b := range t.Branches {
 		if len(b.Required) == 0 {
 			continue
@@ -189,12 +198,12 @@ func branchesSharingRequiredKeys(t *ir.Type) []string {
 		keys := slices.Sorted(slices.Values(b.Required))
 		probe := strings.Join(keys, ",")
 		if first, ok := seen[probe]; ok {
-			shadowed = append(shadowed, fmt.Sprintf("%s (shadowed by %s)", b.Name, first))
+			collisions = append(collisions, fmt.Sprintf("%s (same required keys as %s)", b.Name, first))
 			continue
 		}
 		seen[probe] = b.Name
 	}
-	return shadowed
+	return collisions
 }
 
 // dropUnreachableBranches removes branches whose Go type duplicates an earlier

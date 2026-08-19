@@ -77,11 +77,11 @@ func TestUnionFragment_TryEach(t *testing.T) {
 }
 
 // A try-each union decodes by probing required keys, so a branch whose key set
-// duplicates an earlier branch's is unreachable and the generator records it in
-// ShadowedBranches. The type's own doc comment has to say so: the branch stays
+// duplicates an earlier branch's is queued behind it and the generator records that
+// in ProbeCollisionBranches. The type's own doc comment has to say so: the branch stays
 // constructible and marshals correctly, only Type() can never report it. Without
 // these assertions the whole feature can be deleted with the suite still green.
-func TestUnionFragment_TryEachShadowedBranchCaveat(t *testing.T) {
+func TestUnionFragment_TryEachProbeCollisionCaveat(t *testing.T) {
 	t.Parallel()
 
 	branches := func(firstKey, secondKey string) []ir.UnionBranch {
@@ -98,23 +98,23 @@ func TestUnionFragment_TryEachShadowedBranchCaveat(t *testing.T) {
 		notWant []string
 	}{
 		{
-			name: "shadowed branch is named on the type",
+			name: "colliding branch is named on the type",
 			typ: &ir.Type{
-				Name:             "ShadowedValue",
-				Kind:             ir.TypeAmbiguousWire,
-				Branches:         branches("field", "field"),
-				ShadowedBranches: []string{"Second (shadowed by First)"},
+				Name:                   "CollidingValue",
+				Kind:                   ir.TypeAmbiguousWire,
+				Branches:               branches("field", "field"),
+				ProbeCollisionBranches: []string{"Second (same required keys as First)"},
 			},
 			want: []string{
-				"// Decoding cannot reach the branches below.",
-				"read RawJSON() when you need the payload exactly as it arrived.",
+				"// The branches below are probed only after an earlier branch that declares the",
+				"read RawJSON() when you need the payload exactly as it arrived, and",
 				// Rendered as a godoc list item, not interpolated into the prose line.
-				"//   - Second (shadowed by First)",
+				"//   - Second (same required keys as First)",
 				// The caveat sits in the doc block, so it must stay attached to the type.
-				"//   - Second (shadowed by First)\ntype ShadowedValue struct",
+				"//   - Second (same required keys as First)\ntype CollidingValue struct",
 				// Both branches keep their full surface: only Type() is affected.
-				"func NewShadowedValueFromSecond(v SecondShape) ShadowedValue",
-				"func (u *ShadowedValue) Second() (SecondShape, error)",
+				"func NewCollidingValueFromSecond(v SecondShape) CollidingValue",
+				"func (u *CollidingValue) Second() (SecondShape, error)",
 			},
 		},
 		{
@@ -124,7 +124,7 @@ func TestUnionFragment_TryEachShadowedBranchCaveat(t *testing.T) {
 				Kind:     ir.TypeAmbiguousWire,
 				Branches: branches("a", "b"),
 			},
-			notWant: []string{"Decoding cannot reach"},
+			notWant: []string{"probed only after an earlier branch"},
 		},
 	}
 
