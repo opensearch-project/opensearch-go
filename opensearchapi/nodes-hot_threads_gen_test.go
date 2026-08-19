@@ -76,6 +76,7 @@ func TestNodesHotThreads_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Nodes.HotThreads(t.Context(), nil)
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestNodesHotThreads_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Nodes.HotThreads(t.Context(), nil)
 		require.Error(t, err)

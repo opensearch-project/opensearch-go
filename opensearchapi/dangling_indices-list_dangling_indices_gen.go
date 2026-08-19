@@ -89,7 +89,7 @@ func (r DanglingIndicesListDanglingIndicesParams) get() map[string]string {
 type DanglingIndicesListDanglingIndicesResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	DanglingIndices []DanglingIndicesListDanglingIndicesDanglingIndex `json:"dangling_indices"`
@@ -113,13 +113,13 @@ func (r DanglingIndicesListDanglingIndicesResp) RawBody() io.Reader {
 
 // DanglingIndicesListDanglingIndicesDanglingIndex is a typed component of the dangling_indices.list_dangling_indices operation.
 type DanglingIndicesListDanglingIndicesDanglingIndex struct {
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// CreationDate is a date and time, either as a string whose format depends
+	// on the context (defaulting to ISO_8601) or the number of milliseconds
+	// since the epoch. OpenSearch accepts both as an input but will generally
+	// output a string. representation.
 	CreationDate *string `json:"creation_date,omitempty"`
 
-	// The time unit for milliseconds.
+	// CreationDateMillis is the time unit for milliseconds.
 	CreationDateMillis int64 `json:"creation_date_millis"`
 
 	IndexName string `json:"index_name"`

@@ -144,22 +144,22 @@ func (r CatFielddataResp) RawBody() io.Reader {
 
 // CatFielddataRecord is a typed component of the cat.fielddata operation.
 type CatFielddataRecord struct {
-	// field name
+	// Field. Field name
 	Field *string `json:"field,omitempty"`
 
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 
-	// field data usage
+	// Size. Field data usage
 	Size *string `json:"size,omitempty"`
 }
 

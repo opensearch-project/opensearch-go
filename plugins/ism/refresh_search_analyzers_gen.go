@@ -89,7 +89,8 @@ func (r RefreshSearchAnalyzersParams) get() map[string]string {
 type RefreshSearchAnalyzersResp struct {
 	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 
-	// The details of successful analyzer refreshes.
+	// SuccessfulRefreshDetails is the details of successful analyzer
+	// refreshes.
 	SuccessfulRefreshDetails []opensearchapi.ISMRefreshSearchAnalyzersRespDetails `json:"successful_refresh_details,omitempty"`
 
 	response *opensearch.Response

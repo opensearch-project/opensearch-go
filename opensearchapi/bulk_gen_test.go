@@ -77,6 +77,7 @@ func TestBulk_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -96,6 +97,7 @@ func TestBulk_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Doc.Bulk(t.Context(), opensearchapi.BulkReq{Body: strings.NewReader("{}")})
 		require.Error(t, err)

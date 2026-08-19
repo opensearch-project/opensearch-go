@@ -152,8 +152,8 @@ func (r MSearchTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-template/
 type MSearchTemplateResp struct {
-	Responses []MSearchMultiSearchResultResponsesItem `json:"responses"`
-	Took      float64                                 `json:"took"`
+	Responses []MSearchRespItem `json:"responses"`
+	Took      float64           `json:"took"`
 
 	response *opensearch.Response
 }
@@ -181,8 +181,9 @@ func (r *MSearchTemplateResp) SearchShardFailures() *PartialSearchError {
 	var totalShards, failedShards int
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
-		if resp.Type() == MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType {
-			item := resp.MSearchMultiSearchItem()
+		if resp.Type() == MSearchRespItemMultiSearchItemType {
+			// Guarded by the Type() check above, so the branch error cannot fire.
+			item, _ := resp.MultiSearchItem()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -208,10 +209,12 @@ func (r *MSearchTemplateResp) MultiSearchItemFailures() *MultiSearchItemError {
 	var failed []MultiSearchItemFailure
 	succeeded := 0
 	for i, resp := range r.Responses {
-		if resp.Type() == MSearchMultiSearchResultResponsesItemErrorRespBaseType {
+		if resp.Type() == MSearchRespItemErrorRespBaseType {
+			// Guarded by the Type() check, so the branch error cannot fire.
+			errBranch, _ := resp.ErrorRespBase()
 			failed = append(failed, MultiSearchItemFailure{
 				Index:         i,
-				ErrorRespBase: resp.ErrorRespBase(),
+				ErrorRespBase: errBranch,
 			})
 		} else {
 			succeeded++

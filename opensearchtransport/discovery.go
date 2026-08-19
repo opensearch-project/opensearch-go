@@ -1121,9 +1121,9 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		return nil, err
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
@@ -1910,9 +1910,9 @@ func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexSha
 		return nil, fmt.Errorf("getting connection for shard placement: %w", err)
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
@@ -2163,9 +2163,9 @@ func (c *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[s
 		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {

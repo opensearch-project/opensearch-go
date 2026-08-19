@@ -229,7 +229,7 @@ type CatSegmentReplicationRecord struct {
 	BytesBehind  *string `json:"bytes_behind,omitempty"`
 	BytesFetched *string `json:"bytes_fetched,omitempty"`
 
-	// The percentage value as a string.
+	// BytesPercent is the percentage value as a string.
 	BytesPercent *string `json:"bytes_percent,omitempty"`
 
 	BytesTotal             *string `json:"bytes_total,omitempty"`
@@ -239,7 +239,7 @@ type CatSegmentReplicationRecord struct {
 	Files                  *string `json:"files,omitempty"`
 	FilesFetched           *string `json:"files_fetched,omitempty"`
 
-	// The percentage value as a string.
+	// FilesPercent is the percentage value as a string.
 	FilesPercent *string `json:"files_percent,omitempty"`
 
 	FilesTotal                        *string `json:"files_total,omitempty"`

@@ -76,6 +76,7 @@ func TestDanglingIndicesImportDanglingIndex_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestDanglingIndicesImportDanglingIndex_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Dangling.ImportDanglingIndex(t.Context(), opensearchapi.DanglingIndicesImportDanglingIndexReq{IndexUUID: "test"})
 		require.Error(t, err)

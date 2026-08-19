@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -154,162 +153,45 @@ type IngestSimulatePipelineSimulation struct {
 
 // IngestSimulateDocumentSimulation is a typed component of the ingest.simulate operation.
 type IngestSimulateDocumentSimulation struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index  string               `json:"_index"`
 	Ingest IngestSimulateIngest `json:"_ingest"`
 
-	// Value used to send the document to a specific primary shard.
+	// Routing. Value used to send the document to a specific primary shard.
 	Routing *string `json:"_routing,omitempty"`
 
-	// JSON body for the document.
+	// Source. JSON body for the document.
 	Source map[string]json.RawMessage `json:"_source"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Version. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	Version *IngestSimulateDocumentSimulationVersion `json:"_version,omitempty"`
+	Version *StringifiedVersionNumber `json:"_version,omitempty"`
 
 	VersionType *VersionType `json:"_version_type,omitempty"`
 }
 
 // IngestSimulateIngest is a typed component of the ingest.simulate operation.
 type IngestSimulateIngest struct {
-	// The name of a resource or configuration element.
+	// Pipeline is the name of a resource or configuration element.
 	Pipeline *string `json:"pipeline,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// Timestamp is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	Timestamp string `json:"timestamp"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type IngestSimulateDocumentSimulationVersion struct {
-	typ   IngestSimulateDocumentSimulationVersionType
-	raw   json.RawMessage
-	value any
-}
-
-// IngestSimulateDocumentSimulationVersionType discriminates the branches of IngestSimulateDocumentSimulationVersion.
-type IngestSimulateDocumentSimulationVersionType int
-
-const (
-	IngestSimulateDocumentSimulationVersionUnknownType IngestSimulateDocumentSimulationVersionType = iota
-	IngestSimulateDocumentSimulationVersionInt64Type
-	IngestSimulateDocumentSimulationVersionStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns IngestSimulateDocumentSimulationVersionUnknownType if the value has not been decoded.
-func (u *IngestSimulateDocumentSimulationVersion) Type() IngestSimulateDocumentSimulationVersionType {
-	return u.typ
-}
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *IngestSimulateDocumentSimulationVersion) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIngestSimulateDocumentSimulationVersionFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *IngestSimulateDocumentSimulationVersion) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *IngestSimulateDocumentSimulationVersion) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewIngestSimulateDocumentSimulationVersionFromInt64 returns a IngestSimulateDocumentSimulationVersion populated with v
-// on the Int64 branch.
-func NewIngestSimulateDocumentSimulationVersionFromInt64(v int64) IngestSimulateDocumentSimulationVersion {
-	return IngestSimulateDocumentSimulationVersion{
-		typ:   IngestSimulateDocumentSimulationVersionInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *IngestSimulateDocumentSimulationVersion) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewIngestSimulateDocumentSimulationVersionFromString returns a IngestSimulateDocumentSimulationVersion populated with v
-// on the String branch.
-func NewIngestSimulateDocumentSimulationVersionFromString(v string) IngestSimulateDocumentSimulationVersion {
-	return IngestSimulateDocumentSimulationVersion{
-		typ:   IngestSimulateDocumentSimulationVersionStringType,
-		value: &v,
-	}
-}
-
-func (u *IngestSimulateDocumentSimulationVersion) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = IngestSimulateDocumentSimulationVersionUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IngestSimulateDocumentSimulationVersionInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IngestSimulateDocumentSimulationVersionStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("IngestSimulateDocumentSimulationVersion: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u IngestSimulateDocumentSimulationVersion) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // IngestSimulateBody is a typed component of the ingest.simulate operation.
 //
 // The simulate definition
 type IngestSimulateBody struct {
-	// A list of sample documents to test in the pipeline.
+	// Docs is a list of sample documents to test in the pipeline.
 	Docs []IngestSimulateDocument `json:"docs,omitempty"`
 
 	Pipeline *IngestPipeline `json:"pipeline,omitempty"`
@@ -317,12 +199,12 @@ type IngestSimulateBody struct {
 
 // IngestSimulateDocument is a typed component of the ingest.simulate operation.
 type IngestSimulateDocument struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// JSON body for the document.
+	// Source. JSON body for the document.
 	Source json.RawMessage `json:"_source"`
 }
 

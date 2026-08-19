@@ -149,7 +149,7 @@ type IndicesCreateBody struct {
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 }
 

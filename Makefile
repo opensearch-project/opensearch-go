@@ -283,6 +283,25 @@ gen-api-update-rawlist: fetch-opensearch-spec  ## Regenerate API files and refre
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED) \
 		-update-raw-message-allowlist
 
+report-missing-descriptions: fetch-opensearch-spec  ## List generated identifiers whose OpenAPI schema has no description (upstream spec gaps)
+	@printf "\033[2m-> Reporting generated identifiers with no OpenAPI description...\033[0m\n"
+	@# Generation writes into a temp dir so the checked-in generated files stay
+	@# untouched; only the stderr report matters here. OSGEN_SKIP_GIT_CHECK lets
+	@# osgen write outside the working tree. Both allowlist checks are downgraded
+	@# to warnings so unrelated allowlist drift cannot abort before the report.
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	cd $(REPO_ROOT)/cmd/osgen && OSGEN_SKIP_GIT_CHECK=1 go run . api \
+		-spec $(OPENAPI_SPEC) \
+		-out "$$tmp/opensearchapi" \
+		-pkg opensearchapi \
+		-plugins-out "$$tmp/plugins" \
+		-min-version=$(GEN_MIN_VERSION) \
+		-max-version=$(GEN_MAX_VERSION) \
+		-remove-deprecated=$(GEN_REMOVE_DEPRECATED) \
+		-allow-unlisted-raw-message \
+		-allow-unlisted-tagshadow \
+		-report-missing-descriptions
+
 gen: gen-paths gen-api  ## Regenerate all code from OpenAPI spec (run gen-paths and gen-api in parallel with `make -j gen`)
 
 regen: clean-gen gen  ## Clean generated files then regenerate from spec

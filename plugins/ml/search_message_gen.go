@@ -11,7 +11,6 @@ package ml
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -113,10 +112,10 @@ type SearchMessageResp struct {
 	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 	Hits   opensearchapi.MLSearchHits     `json:"hits"`
 
-	// Whether the search timed out.
+	// TimedOut. Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// The time taken to execute the search.
+	// Took is the time taken to execute the search.
 	Took *int `json:"took,omitempty"`
 
 	response *opensearch.Response
@@ -140,178 +139,9 @@ func (r SearchMessageResp) RawBody() io.Reader {
 type MLSearchMessageBody struct {
 	Query *opensearchapi.CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The number of messages to return.
+	// Size is the number of messages to return.
 	Size *int64 `json:"size,omitempty"`
 
-	// The sort order.
-	Sort *MLSearchMessageBodySort `json:"sort,omitempty"`
-}
-
-// MLSearchMessageBodySort is a discriminated union type (try-each, newest version first).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type MLSearchMessageBodySort struct {
-	typ   MLSearchMessageBodySortType
-	raw   json.RawMessage
-	value any
-}
-
-// MLSearchMessageBodySortType discriminates the branches of MLSearchMessageBodySort.
-type MLSearchMessageBodySortType int
-
-const (
-	MLSearchMessageBodySortUnknownType MLSearchMessageBodySortType = iota
-	MLSearchMessageBodySortStringType
-	MLSearchMessageBodySortStringMapType
-	MLSearchMessageBodySortFieldSortMapType
-	MLSearchMessageBodySortOptionsType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns MLSearchMessageBodySortUnknownType if the value has not been decoded.
-func (u *MLSearchMessageBodySort) Type() MLSearchMessageBodySortType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *MLSearchMessageBodySort) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewMLSearchMessageBodySortFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *MLSearchMessageBodySort) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = MLSearchMessageBodySortUnknownType
-}
-
-// String returns the string branch value.
-func (u *MLSearchMessageBodySort) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewMLSearchMessageBodySortFromString returns a MLSearchMessageBodySort populated with v
-// on the String branch.
-func NewMLSearchMessageBodySortFromString(v string) MLSearchMessageBodySort {
-	return MLSearchMessageBodySort{
-		typ:   MLSearchMessageBodySortStringType,
-		value: &v,
-	}
-}
-
-// StringMap returns the map[string]string branch value.
-func (u *MLSearchMessageBodySort) StringMap() map[string]string {
-	if v, ok := u.value.(*map[string]string); ok {
-		return *v
-	}
-	var zero map[string]string
-	return zero
-}
-
-// NewMLSearchMessageBodySortFromStringMap returns a MLSearchMessageBodySort populated with v
-// on the StringMap branch.
-func NewMLSearchMessageBodySortFromStringMap(v map[string]string) MLSearchMessageBodySort {
-	return MLSearchMessageBodySort{
-		typ:   MLSearchMessageBodySortStringMapType,
-		value: &v,
-	}
-}
-
-// FieldSortMap returns the map[string]opensearchapi.FieldSort branch value.
-func (u *MLSearchMessageBodySort) FieldSortMap() map[string]opensearchapi.FieldSort {
-	if v, ok := u.value.(*map[string]opensearchapi.FieldSort); ok {
-		return *v
-	}
-	var zero map[string]opensearchapi.FieldSort
-	return zero
-}
-
-// NewMLSearchMessageBodySortFromFieldSortMap returns a MLSearchMessageBodySort populated with v
-// on the FieldSortMap branch.
-func NewMLSearchMessageBodySortFromFieldSortMap(v map[string]opensearchapi.FieldSort) MLSearchMessageBodySort {
-	return MLSearchMessageBodySort{
-		typ:   MLSearchMessageBodySortFieldSortMapType,
-		value: &v,
-	}
-}
-
-// Options returns the opensearchapi.SortOptions branch value.
-func (u *MLSearchMessageBodySort) Options() opensearchapi.SortOptions {
-	if v, ok := u.value.(*opensearchapi.SortOptions); ok {
-		return *v
-	}
-	var zero opensearchapi.SortOptions
-	return zero
-}
-
-// NewMLSearchMessageBodySortFromOptions returns a MLSearchMessageBodySort populated with v
-// on the Options branch.
-func NewMLSearchMessageBodySortFromOptions(v opensearchapi.SortOptions) MLSearchMessageBodySort {
-	return MLSearchMessageBodySort{
-		typ:   MLSearchMessageBodySortOptionsType,
-		value: &v,
-	}
-}
-
-func (u *MLSearchMessageBodySort) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = MLSearchMessageBodySortUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLSearchMessageBodySortStringType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLSearchMessageBodySortStringMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]opensearchapi.FieldSort
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLSearchMessageBodySortFieldSortMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v opensearchapi.SortOptions
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = MLSearchMessageBodySortOptionsType
-			u.value = &v
-			return nil
-		}
-	}
-	return fmt.Errorf("MLSearchMessageBodySort: no branch matched JSON: %s", data[:min(len(data), 64)])
-}
-
-func (u MLSearchMessageBodySort) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
+	// Sort is the sort order.
+	Sort *opensearchapi.Sort `json:"sort,omitempty"`
 }

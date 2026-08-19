@@ -60,6 +60,16 @@ func runAPI() error {
 		"rewrite the json.RawMessage allowlist from current output instead of checking it")
 	allowUnlistedRaw := fs.Bool("allow-unlisted-raw-message", false,
 		"downgrade the json.RawMessage allowlist check from fatal to a warning")
+	tagShadowAllowlist := fs.String("tagshadow-allowlist", "",
+		"check against this duplicate-JSON-tag allowlist file (relative to cwd) instead of the one embedded in osgen; "+
+			"with -update-tagshadow-allowlist, the file to write (default: "+tagShadowAllowlistFile+" in cwd)")
+	updateTagShadowAllowlist := fs.Bool("update-tagshadow-allowlist", false,
+		"rewrite the duplicate-JSON-tag allowlist from current output instead of checking it")
+	allowUnlistedTagShadow := fs.Bool("allow-unlisted-tagshadow", false,
+		"downgrade the duplicate-JSON-tag allowlist check from fatal to a warning")
+	reportMissingDesc := fs.Bool("report-missing-descriptions", false,
+		"after generating, list generated types, fields, and enum members whose OpenAPI schema has no description "+
+			"(reporting only: never changes output and never fails generation)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -88,7 +98,15 @@ func runAPI() error {
 
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
 		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation},
-		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw})
+		guardConfig{
+			RawMessage: AllowlistConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw},
+			TagShadow: AllowlistConfig{
+				AllowlistPath: *tagShadowAllowlist,
+				Update:        *updateTagShadowAllowlist,
+				AllowUnlisted: *allowUnlistedTagShadow,
+			},
+		},
+		DescriptionReportConfig{Report: *reportMissingDesc})
 }
 
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
@@ -106,7 +124,8 @@ func generateAPI(
 	vrange VersionRange,
 	bc BreadcrumbConfig,
 	compat CompatConfig,
-	rawCfg RawMessageConfig,
+	guards guardConfig,
+	descCfg DescriptionReportConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
 		return fmt.Errorf("--version-breadcrumb-types is not implemented for `osgen api`: " +
@@ -123,6 +142,13 @@ func generateAPI(
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
 	typeQueryParamEnums(ops, spec, registry, vrange)
+
+	// Every type is registered, so a collapsed type can take its alias's friendlier
+	// name and have all references rewritten together. Must run after the walks:
+	// type references are plain strings, so a mid-walk rename dangles the ones
+	// already emitted.
+	renameCollapsedAliases(spec, registry)
+
 	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })
@@ -136,7 +162,13 @@ func generateAPI(
 
 	// Guard against the generator silently widening the raw-JSON surface. Run
 	// before any file is written so an unlisted use aborts cleanly.
-	if err := guardRawMessages(os.Stderr, irSpec, rawCfg); err != nil {
+	if err := guardRawMessages(os.Stderr, irSpec, guards.RawMessage); err != nil {
+		return err
+	}
+
+	// Guard against a struct redeclaring a JSON tag its embed already carries,
+	// which makes the embedded declaration unreachable. Also before any write.
+	if err := guardTagShadows(os.Stderr, irSpec, guards.TagShadow); err != nil {
 		return err
 	}
 
@@ -251,6 +283,10 @@ func generateAPI(
 	}
 
 	fmt.Fprintf(os.Stderr, "generated %d operations (%d files written, %d stale removed)\n", len(irSpec.Operations), wrote, removed)
+
+	// Advisory only, and last so it does not bury the write log. Runs after the
+	// files are on disk to make it clear the report cannot have shaped them.
+	reportMissingDescriptions(os.Stderr, irSpec, descCfg)
 	return nil
 }
 
@@ -432,6 +468,7 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all response schemas to build the full type registry.
@@ -549,6 +586,7 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all request body schemas to register types.
@@ -636,6 +674,7 @@ func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeReg
 		spec:     spec,
 		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	for i := range ops {
@@ -673,7 +712,7 @@ func classifyRespShape(op *apiOperation, spec *openapi3.T, registry *typeRegistr
 	}
 
 	// Array: type=array with items.
-	if schema.Type != nil && schema.Type.Is("array") {
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
 		op.RespShape = ir.RespShapeArray
 		if schema.Items != nil {
 			op.RespElemType = resolveElemType(schema.Items, registry)

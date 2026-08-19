@@ -87,7 +87,7 @@ func (r GetStoreParams) get() map[string]string {
 //
 // Available: >= 2.17.1.
 type GetStoreResp struct {
-	// Indicates whether the store exists.
+	// Exists. Indicates whether the store exists.
 	Exists *bool `json:"exists,omitempty"`
 
 	response *opensearch.Response

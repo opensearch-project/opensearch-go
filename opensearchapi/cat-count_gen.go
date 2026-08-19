@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -130,133 +129,18 @@ func (r CatCountResp) RawBody() io.Reader {
 
 // CatCountRecord is a typed component of the cat.count operation.
 type CatCountRecord struct {
-	// the document count
+	// Count is the document count
 	Count *string `json:"count,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Epoch. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	Epoch *CatCountRecordEpoch `json:"epoch,omitempty"`
+	Epoch *StringifiedEpochTimeUnitSeconds `json:"epoch,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// Timestamp. Time of day, expressed as HH:MM:SS.
 	Timestamp *string `json:"timestamp,omitempty"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatCountRecordEpoch struct {
-	typ   CatCountRecordEpochType
-	raw   json.RawMessage
-	value any
-}
-
-// CatCountRecordEpochType discriminates the branches of CatCountRecordEpoch.
-type CatCountRecordEpochType int
-
-const (
-	CatCountRecordEpochUnknownType CatCountRecordEpochType = iota
-	CatCountRecordEpochInt64Type
-	CatCountRecordEpochStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatCountRecordEpochUnknownType if the value has not been decoded.
-func (u *CatCountRecordEpoch) Type() CatCountRecordEpochType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatCountRecordEpoch) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatCountRecordEpochFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatCountRecordEpoch) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatCountRecordEpochUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatCountRecordEpoch) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatCountRecordEpochFromInt64 returns a CatCountRecordEpoch populated with v
-// on the Int64 branch.
-func NewCatCountRecordEpochFromInt64(v int64) CatCountRecordEpoch {
-	return CatCountRecordEpoch{
-		typ:   CatCountRecordEpochInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatCountRecordEpoch) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatCountRecordEpochFromString returns a CatCountRecordEpoch populated with v
-// on the String branch.
-func NewCatCountRecordEpochFromString(v string) CatCountRecordEpoch {
-	return CatCountRecordEpoch{
-		typ:   CatCountRecordEpochStringType,
-		value: &v,
-	}
-}
-
-func (u *CatCountRecordEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatCountRecordEpochUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatCountRecordEpochInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatCountRecordEpochStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatCountRecordEpoch: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatCountRecordEpoch) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Count provides quick access to the document count of the entire cluster or of an individual index.

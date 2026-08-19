@@ -101,8 +101,8 @@ func (r GetAllMessagesParams) get() map[string]string {
 type GetAllMessagesResp struct {
 	Messages []opensearchapi.MLMessage `json:"messages"`
 
-	// The index of the next message after the last message in the returned
-	// list.
+	// NextToken is the index of the next message after the last message in the
+	// returned list.
 	NextToken *int `json:"next_token,omitempty"`
 
 	response *opensearch.Response

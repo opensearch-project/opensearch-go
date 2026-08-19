@@ -94,19 +94,21 @@ func (r IndicesDataStreamsStatsParams) get() map[string]string {
 type IndicesDataStreamsStatsResp struct {
 	Shards ShardStatistics `json:"_shards"`
 
-	// Total number of backing indexes for the selected data streams.
+	// BackingIndices. Total number of backing indexes for the selected data
+	// streams.
 	BackingIndices int `json:"backing_indices"`
 
-	// Total number of selected data streams.
+	// DataStreamCount. Total number of selected data streams.
 	DataStreamCount int `json:"data_stream_count"`
 
-	// Contains statistics for the selected data streams.
+	// DataStreams. Contains statistics for the selected data streams.
 	DataStreams []IndicesDataStreamStats `json:"data_streams"`
 
-	// The unique identifier of a node.
+	// TotalStoreSize is the unique identifier of a node.
 	TotalStoreSize *string `json:"total_store_size,omitempty"`
 
-	// Total size, in bytes, of all shards for the selected data streams.
+	// TotalStoreSizeBytes. Total size, in bytes, of all shards for the
+	// selected data streams.
 	TotalStoreSizeBytes int64 `json:"total_store_size_bytes"`
 
 	response *opensearch.Response

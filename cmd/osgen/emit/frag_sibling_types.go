@@ -28,7 +28,7 @@ func (f *SiblingTypesFragment) Imports() []Import {
 	hasCrossPkg := false
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
-			if !hasJSON && strings.Contains(field.GoType, "json.RawMessage") {
+			if !hasJSON && strings.Contains(field.GoType, GoTypeRawMessage) {
 				hasJSON = true
 			}
 			if !hasCrossPkg && f.Op.IsPlugin && f.Registry != nil && isCrossPackageType(field.GoType, f.Registry) {
@@ -63,6 +63,7 @@ func (f *SiblingTypesFragment) Body() (string, error) {
 	tmpl := template.Must(template.New("siblings").Funcs(template.FuncMap{
 		"comment":          CommentWrap,
 		"wrapField":        WrapField,
+		"fieldComment":     FieldComment,
 		"availabilityNote": AvailabilityNote,
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
@@ -86,7 +87,7 @@ type {{.Name}} struct {
 {{- if needsSep $fields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}

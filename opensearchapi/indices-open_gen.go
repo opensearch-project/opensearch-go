@@ -188,7 +188,7 @@ func (r IndicesOpenResp) RawBody() io.Reader {
 
 // IndicesOpenRespBodyTask is a typed component of the indices.open operation.
 type IndicesOpenRespBodyTask struct {
-	// The unique identifier of a task.
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
@@ -198,16 +198,21 @@ type IndicesOpenRespBodyAcknowledged struct {
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
 
-// IndicesOpenRespBody is a discriminated union type (single-pass merge decode).
+// IndicesOpenRespBody is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesOpenRespBody struct {
 	typ   IndicesOpenRespBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesOpenRespBodyType discriminates the branches of IndicesOpenRespBody.
+// IndicesOpenRespBodyType names which branch of IndicesOpenRespBody is set.
 type IndicesOpenRespBodyType int
 
 const (
@@ -215,6 +220,19 @@ const (
 	IndicesOpenRespBodyTaskType
 	IndicesOpenRespBodyAcknowledgedType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesOpenRespBodyType) String() string {
+	switch t {
+	case IndicesOpenRespBodyTaskType:
+		return "Task"
+	case IndicesOpenRespBodyAcknowledgedType:
+		return "Acknowledged"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns IndicesOpenRespBodyUnknownType if the value has not been decoded.
@@ -235,13 +253,16 @@ func (u *IndicesOpenRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesOpenRespBodyUnknownType
 }
 
-// Task returns the IndicesOpenRespBodyTask branch value.
-func (u *IndicesOpenRespBody) Task() IndicesOpenRespBodyTask {
+// Task returns the IndicesOpenRespBodyTask branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero IndicesOpenRespBodyTask in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesOpenRespBody) Task() (IndicesOpenRespBodyTask, error) {
 	if v, ok := u.value.(*IndicesOpenRespBodyTask); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesOpenRespBodyTask
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesOpenRespBody", Want: "Task", Got: u.typ.String()}
 }
 
 // NewIndicesOpenRespBodyFromTask returns a IndicesOpenRespBody populated with v
@@ -253,13 +274,16 @@ func NewIndicesOpenRespBodyFromTask(v IndicesOpenRespBodyTask) IndicesOpenRespBo
 	}
 }
 
-// Acknowledged returns the IndicesOpenRespBodyAcknowledged branch value.
-func (u *IndicesOpenRespBody) Acknowledged() IndicesOpenRespBodyAcknowledged {
+// Acknowledged returns the IndicesOpenRespBodyAcknowledged branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero IndicesOpenRespBodyAcknowledged in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesOpenRespBody) Acknowledged() (IndicesOpenRespBodyAcknowledged, error) {
 	if v, ok := u.value.(*IndicesOpenRespBodyAcknowledged); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesOpenRespBodyAcknowledged
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesOpenRespBody", Want: "Acknowledged", Got: u.typ.String()}
 }
 
 // NewIndicesOpenRespBodyFromAcknowledged returns a IndicesOpenRespBody populated with v
@@ -279,7 +303,7 @@ func (u *IndicesOpenRespBody) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
 		IndicesOpenRespBodyTask

@@ -280,8 +280,8 @@ func convertType(gt *goType) *ir.Type {
 		t.Kind = ir.TypeStringEnum
 	case gt.IsEnum:
 		t.Kind = ir.TypeEnum
-	case gt.IsUnion && gt.IsLazy:
-		t.Kind = ir.TypeLazyUnion
+	case gt.IsUnion && gt.IsAmbiguousWire:
+		t.Kind = ir.TypeAmbiguousWire
 	case gt.IsUnion:
 		t.Kind = ir.TypeUnion
 	default:
@@ -304,6 +304,8 @@ func convertType(gt *goType) *ir.Type {
 	for _, b := range gt.Branches {
 		t.Branches = append(t.Branches, convertUnionBranch(b))
 	}
+
+	t.Discriminator = convertDiscriminator(gt)
 
 	// The int-backed EnumFragment also emits a <Type>Unknown sentinel const in
 	// the same scope; the string-backed StringEnumFragment emits no extra decls.
@@ -416,28 +418,50 @@ func convertUnionBranch(b unionBranch) ir.UnionBranch {
 	return ir.UnionBranch{
 		Name:         b.Name,
 		GoType:       b.GoType,
-		TokenClass:   convertTokenClass(b.TokenClass),
+		TokenClass:   b.TokenClass,
 		Required:     b.Required,
 		IsRef:        b.IsRef,
 		VersionAdded: b.VersionAdded,
 	}
 }
 
-func convertTokenClass(tc string) ir.TokenClass {
-	switch tc {
-	case "object":
-		return ir.TokenObject
-	case "array":
-		return ir.TokenArray
-	case "string":
-		return ir.TokenString
-	case "number":
-		return ir.TokenNumber
-	case "bool":
-		return ir.TokenBool
-	default:
-		return ir.TokenObject
+// convertDiscriminator builds the emit-phase view of a union's OpenAPI
+// discriminator: each wire value paired with the discriminant const of the branch
+// it selects. Returns nil when the union declares no usable discriminator.
+//
+// The parse phase records only the wire value on each branch, because the const
+// name depends on the union's final Go name and on accessor-name deduplication,
+// both settled by the time convertType runs. Branch order is the spec's
+// declaration order (see resolveUnionType), so the emitted switch is stable.
+func convertDiscriminator(gt *goType) *ir.UnionDiscriminator {
+	if gt.Discriminator == nil {
+		return nil
 	}
+	out := &ir.UnionDiscriminator{
+		PropertyName: gt.Discriminator.PropertyName,
+		DefaultValue: gt.Discriminator.DefaultValue,
+		Branches:     make([]ir.DiscriminatorBranch, 0, len(gt.Branches)),
+	}
+	for _, b := range gt.Branches {
+		if b.DiscriminatorValue == "" {
+			// resolveUnionType only sets Discriminator when every surviving
+			// branch carries a value (see discriminatorStillCovers), so this is
+			// unreachable; skip rather than emit a case with an empty literal.
+			continue
+		}
+		constName := unionConst(gt.Name, b.Name)
+		out.Branches = append(out.Branches, ir.DiscriminatorBranch{
+			Value:              b.DiscriminatorValue,
+			Const:              constName,
+			Name:               b.Name,
+			GoType:             b.GoType,
+			DiscriminatorField: b.DiscriminatorField,
+		})
+		if b.DiscriminatorValue == gt.Discriminator.DefaultValue {
+			out.DefaultConst = constName
+		}
+	}
+	return out
 }
 
 // resolveErrorWrappers returns the partial-failure wrapper-schema names

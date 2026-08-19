@@ -198,20 +198,37 @@ type Type struct {
 	Package    string
 	ImportPath string
 
-	// Merge, when non-nil, directs a try-each union to be decoded in a
-	// single json.Unmarshal pass instead of attempting each branch in turn.
-	// It applies to "success | error(s)" response unions whose branches are
-	// all objects and where exactly one branch is permissive (the success
-	// branch, embedded as the primary) while the others carry discriminating
-	// keys. See [UnionMerge].
+	// Discriminator, when non-nil, carries the OpenAPI `discriminator` the
+	// spec declares on the union's oneOf/anyOf. It is the strongest of the
+	// decode strategies and takes precedence over every other: the payload
+	// names its own branch, so UnmarshalJSON reads one property and decodes
+	// exactly one branch. See [UnionDiscriminator].
+	Discriminator *UnionDiscriminator
+
+	// Merge, when non-nil, directs a union whose branches collide on token
+	// class to be decoded in a single json.Unmarshal pass instead of
+	// attempting each branch in turn. It applies to "success | error(s)"
+	// response unions whose branches are all objects and where exactly one
+	// branch is permissive (the success branch, embedded as the primary) while
+	// the others carry discriminating keys. See [UnionMerge].
+	//
+	// This is a presence heuristic over required keys, not a spec-declared
+	// discriminator: it is only reached when the spec declares none.
 	Merge *UnionMerge
 
-	// LazyAccessors marks a union whose branches cannot be discriminated from
-	// the wire bytes (e.g. aggregation results: avg/sum/min/max all serialize
-	// as {"value": N}). Such unions are decoded lazily: UnmarshalJSON only
-	// retains the raw bytes, and generated As<Branch>() accessors decode into
-	// the concrete type the caller requested, on demand.
-	LazyAccessors bool
+	// RequestSelected marks a union the spec gives no way to discriminate from
+	// the response payload, because the branch is chosen by the REQUEST and
+	// echoed back only in the enclosing map's key. The aggregation and suggest
+	// result families are the case: the caller names an aggregation
+	// (`{"aggs": {"my_agg": {"avg": ...}}}`) and the response keys the result by
+	// that name, optionally prefixed with the type when the request passes
+	// `typed_keys=true` (`"avg#my_agg"`). Several branches also share one wire
+	// shape outright (avg/sum/min/max all serialize as `{"value": N}`), so no
+	// amount of payload inspection could separate them.
+	//
+	// Such unions retain their raw bytes and expose As<Branch>() accessors that
+	// decode the branch the caller asks for, on demand.
+	RequestSelected bool
 
 	// EnumMembers holds the members of a TypeEnum (int-backed iota enum) or
 	// TypeStringEnum (string-backed enum): each pairs the Go const identifier
@@ -274,16 +291,76 @@ type MergeBranch struct {
 	PresentProbes []string // GoNames of probes that must all be present
 }
 
+// UnionDiscriminator describes how a union reads its branch off the wire from a
+// spec-declared OpenAPI `discriminator`. The generated UnmarshalJSON reads the
+// single property named by PropertyName, looks the value up in Branches, and
+// decodes only that branch -- so the decode never guesses and a payload that
+// names no known branch is an error rather than a silent mis-decode.
+type UnionDiscriminator struct {
+	// PropertyName is the JSON property naming the branch
+	// (discriminator.propertyName in the spec; "type" for most of the
+	// OpenSearch unions, "model" for MovingAverageAggregation, "mode" for
+	// ClusterRemoteInfo).
+	PropertyName string
+
+	// Branches maps each wire value to the discriminant const of the branch it
+	// selects, in spec-declaration order so the emitted switch is stable.
+	Branches []DiscriminatorBranch
+
+	// DefaultConst is the discriminant const to decode when PropertyName is
+	// absent from the payload entirely, from the spec's `x-default` extension.
+	// Empty when the spec declares no default, in which case an absent property
+	// is an error.
+	//
+	// OpenAPI requires the discriminator property to be required on every
+	// branch; OpenSearch violates that for mapping Property, whose
+	// ObjectProperty branch leaves `type` optional because a bare
+	// `{"properties": {...}}` is an implicit object mapping. x-default names the
+	// branch to assume in exactly that case.
+	DefaultConst string
+
+	// DefaultValue is the wire value DefaultConst corresponds to, for the
+	// generated doc comment. Empty when DefaultConst is.
+	DefaultValue string
+}
+
+// DiscriminatorBranch pairs one discriminator wire value with the branch it
+// selects.
+type DiscriminatorBranch struct {
+	// Value is the wire value of the discriminator property, e.g. "keyword".
+	Value string
+	// Const is the branch's discriminant const, e.g. "CommonMappingPropertyKeywordPropertyType".
+	Const string
+	// Name is the branch's accessor name, e.g. "KeywordProperty".
+	Name string
+	// GoType is the branch type to decode into.
+	GoType string
+	// DiscriminatorField is the Go field name on GoType that carries the
+	// discriminator property, when the branch struct declares it as a plain
+	// string field (e.g. "Type" for `Type string \x60json:"type"\x60`). The
+	// generated constructor assigns Value to it so a union built in Go marshals
+	// with its discriminator set and round-trips; without it MarshalJSON would
+	// emit a payload whose own UnmarshalJSON rejects it.
+	//
+	// Empty when the branch does not declare the property as a settable string
+	// field, in which case the caller sets it (or the spec pins it some other
+	// way) and the constructor leaves it alone.
+	DiscriminatorField string
+}
+
 // TypeKind discriminates between struct and union type forms.
 type TypeKind int
 
 // TypeKind values: shape category for a generated Go type.
 const (
-	TypeStruct     TypeKind = iota // plain struct with fields
-	TypeUnion                      // byte-prefix discriminated union (token class dispatch)
-	TypeLazyUnion                  // lazy-decode union (stores raw JSON, decodes on accessor)
-	TypeEnum                       // int-backed iota enum (named int type + const block)
-	TypeStringEnum                 // string-backed enum (named string type + const block; permissive, unknown values round-trip)
+	TypeStruct TypeKind = iota // plain struct with fields
+	TypeUnion                  // union whose branches are separable by JSON token class alone
+	// TypeAmbiguousWire is a union whose branches collide on token class, so the
+	// payload must be inspected to pick one: by a spec discriminator, a
+	// key-presence merge, or request selection.
+	TypeAmbiguousWire
+	TypeEnum       // int-backed iota enum (named int type + const block)
+	TypeStringEnum // string-backed enum (named string type + const block; permissive, unknown values round-trip)
 )
 
 // TypeScope determines where a type is emitted.
@@ -310,20 +387,29 @@ type Field struct {
 	DeprecationMsg    string
 }
 
-// UnionBranch represents one branch of a discriminated union.
+// UnionBranch represents one branch of a oneOf/anyOf union.
 type UnionBranch struct {
 	Name         string
 	GoType       string
 	TokenClass   TokenClass
-	Required     []string // required object fields for try-each discrimination
+	Required     []string // required object properties, probed for presence by the key-presence fallback
 	IsRef        bool
-	VersionAdded string // x-version-added (for try-each ordering, newest first)
+	VersionAdded string // x-version-added (orders the try-each fallback, newest first)
 }
 
-// TokenClass identifies the JSON token that triggers a union branch.
+// TokenClass identifies the JSON token a branch decodes from: object, array,
+// string, number, or boolean.
+//
+// Token class is the FALLBACK discrimination signal, not the primary one. When
+// the spec declares a `discriminator` the payload names its own branch and token
+// class is irrelevant (see [UnionDiscriminator]). Token class only decides
+// anything for the unions the spec leaves undiscriminated, and only when the
+// branches happen to land in different classes -- a string-or-object union is
+// separable by its first byte. Branches that collide on class need payload
+// inspection, which is what [Type.Merge] and [Type.RequestSelected] cover.
 type TokenClass int
 
-// TokenClass values: JSON tokens used to discriminate union branches.
+// TokenClass values: the JSON token a union branch decodes from.
 const (
 	TokenObject TokenClass = iota
 	TokenArray

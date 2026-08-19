@@ -91,8 +91,8 @@ func (r IngestDeletePipelineParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/ingest-apis/delete-ingest/
 type IngestDeletePipelineResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response

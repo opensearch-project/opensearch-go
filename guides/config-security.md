@@ -241,7 +241,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
       Indices: []string{"logs-*"},
       Body:  &opensearchapi.SearchBody{
           Query: &opensearchapi.CommonQueryDSLQueryContainer{
-              MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
+              MatchAll: &opensearchapi.CommonQueryDSLQueryBase{},
           },
       },
       Params: &opensearchapi.SearchParams{
@@ -340,9 +340,9 @@ if err != nil {
     return err
 }
 
-// Typed access (preferred):
+// Typed access (preferred). Score, Index and ID are pointers on SearchHit.
 for _, hit := range resp.Hits.Hits {
-    fmt.Printf("score=%.2f index=%s id=%s\n", *hit.Score, hit.Index, hit.ID)
+    fmt.Printf("score=%.2f index=%s id=%s\n", *hit.Score, *hit.Index, *hit.ID)
 }
 
 // Raw access (logging, debugging, etc.):

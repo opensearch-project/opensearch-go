@@ -108,8 +108,8 @@ func (r IndicesUpdateAliasesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/alias/
 type IndicesUpdateAliasesResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -141,13 +141,13 @@ type IndicesUpdateAliasesBody struct {
 //
 // The action to perform on aliases.
 type IndicesUpdateAliasesAction struct {
-	// The configuration for adding an alias.
+	// Add is the configuration for adding an alias.
 	Add *IndicesUpdateAliasesAddAction `json:"add,omitempty"`
 
-	// The configuration for removing an alias.
+	// Remove is the configuration for removing an alias.
 	Remove *IndicesUpdateAliasesRemoveAction `json:"remove,omitempty"`
 
-	// The configuration for removing an index.
+	// RemoveIndex is the configuration for removing an index.
 	RemoveIndex *IndicesUpdateAliasesRemoveIndexAction `json:"remove_index,omitempty"`
 }
 
@@ -155,36 +155,38 @@ type IndicesUpdateAliasesAction struct {
 //
 // The configuration for adding an alias.
 type IndicesUpdateAliasesAddAction struct {
-	// The name of an index alias.
+	// Alias is the name of an index alias.
 	Alias *string `json:"alias,omitempty"`
 
-	// The list of aliases to add. Index alias names support date math.
+	// Aliases is the list of aliases to add. Index alias names support date
+	// math.
 	Aliases *IndicesUpdateAliasesAddActionAliases `json:"aliases,omitempty"`
 
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 	Index  *string                       `json:"index,omitempty"`
 
-	// The routing value for the document.
+	// IndexRouting is the routing value for the document.
 	IndexRouting *string `json:"index_routing,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias is hidden.
+	// IsHidden. Whether the alias is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// Whether this is the write index or data stream for the alias.
+	// IsWriteIndex. Whether this is the write index or data stream for the
+	// alias.
 	IsWriteIndex *bool `json:"is_write_index,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// The routing value for the document.
+	// SearchRouting is the routing value for the document.
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
@@ -192,20 +194,21 @@ type IndicesUpdateAliasesAddAction struct {
 //
 // The configuration for removing an alias.
 type IndicesUpdateAliasesRemoveAction struct {
-	// The name of an index alias.
+	// Alias is the name of an index alias.
 	Alias *string `json:"alias,omitempty"`
 
-	// The list of aliases to remove. Index alias names support date math.
+	// Aliases is the list of aliases to remove. Index alias names support date
+	// math.
 	Aliases *IndicesUpdateAliasesRemoveActionAliases `json:"aliases,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 
@@ -215,25 +218,31 @@ type IndicesUpdateAliasesRemoveAction struct {
 type IndicesUpdateAliasesRemoveIndexAction struct {
 	Index *string `json:"index,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// Whether the alias must exist to perform the action.
+	// MustExist. Whether the alias must exist to perform the action.
 	MustExist *bool `json:"must_exist,omitempty"`
 }
 
+//
 // The list of aliases to add. Index alias names support date math.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesUpdateAliasesAddActionAliases struct {
 	typ   IndicesUpdateAliasesAddActionAliasesType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesUpdateAliasesAddActionAliasesType discriminates the branches of IndicesUpdateAliasesAddActionAliases.
+// IndicesUpdateAliasesAddActionAliasesType names which branch of IndicesUpdateAliasesAddActionAliases is set.
 type IndicesUpdateAliasesAddActionAliasesType int
 
 const (
@@ -241,6 +250,19 @@ const (
 	IndicesUpdateAliasesAddActionAliasesStringType
 	IndicesUpdateAliasesAddActionAliasesArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesUpdateAliasesAddActionAliasesType) String() string {
+	switch t {
+	case IndicesUpdateAliasesAddActionAliasesStringType:
+		return "String"
+	case IndicesUpdateAliasesAddActionAliasesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns IndicesUpdateAliasesAddActionAliasesUnknownType if the value has not been decoded.
@@ -263,13 +285,16 @@ func (u *IndicesUpdateAliasesAddActionAliases) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesUpdateAliasesAddActionAliasesUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesUpdateAliasesAddActionAliases) String() string {
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesAddActionAliases) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesUpdateAliasesAddActionAliases", Want: "String", Got: u.typ.String()}
 }
 
 // NewIndicesUpdateAliasesAddActionAliasesFromString returns a IndicesUpdateAliasesAddActionAliases populated with v
@@ -281,13 +306,16 @@ func NewIndicesUpdateAliasesAddActionAliasesFromString(v string) IndicesUpdateAl
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesUpdateAliasesAddActionAliases) Array() []string {
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesAddActionAliases) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesUpdateAliasesAddActionAliases", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesUpdateAliasesAddActionAliasesFromArray returns a IndicesUpdateAliasesAddActionAliases populated with v
@@ -337,16 +365,22 @@ func (u IndicesUpdateAliasesAddActionAliases) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+//
 // The list of aliases to remove. Index alias names support date math.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type IndicesUpdateAliasesRemoveActionAliases struct {
 	typ   IndicesUpdateAliasesRemoveActionAliasesType
 	raw   json.RawMessage
 	value any
 }
 
-// IndicesUpdateAliasesRemoveActionAliasesType discriminates the branches of IndicesUpdateAliasesRemoveActionAliases.
+// IndicesUpdateAliasesRemoveActionAliasesType names which branch of IndicesUpdateAliasesRemoveActionAliases is set.
 type IndicesUpdateAliasesRemoveActionAliasesType int
 
 const (
@@ -354,6 +388,19 @@ const (
 	IndicesUpdateAliasesRemoveActionAliasesStringType
 	IndicesUpdateAliasesRemoveActionAliasesArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesUpdateAliasesRemoveActionAliasesType) String() string {
+	switch t {
+	case IndicesUpdateAliasesRemoveActionAliasesStringType:
+		return "String"
+	case IndicesUpdateAliasesRemoveActionAliasesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns IndicesUpdateAliasesRemoveActionAliasesUnknownType if the value has not been decoded.
@@ -376,13 +423,16 @@ func (u *IndicesUpdateAliasesRemoveActionAliases) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesUpdateAliasesRemoveActionAliasesUnknownType
 }
 
-// String returns the string branch value.
-func (u *IndicesUpdateAliasesRemoveActionAliases) String() string {
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesRemoveActionAliases) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesUpdateAliasesRemoveActionAliases", Want: "String", Got: u.typ.String()}
 }
 
 // NewIndicesUpdateAliasesRemoveActionAliasesFromString returns a IndicesUpdateAliasesRemoveActionAliases populated with v
@@ -394,13 +444,16 @@ func NewIndicesUpdateAliasesRemoveActionAliasesFromString(v string) IndicesUpdat
 	}
 }
 
-// Array returns the []string branch value.
-func (u *IndicesUpdateAliasesRemoveActionAliases) Array() []string {
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesUpdateAliasesRemoveActionAliases) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesUpdateAliasesRemoveActionAliases", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesUpdateAliasesRemoveActionAliasesFromArray returns a IndicesUpdateAliasesRemoveActionAliases populated with v

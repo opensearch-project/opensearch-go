@@ -75,6 +75,7 @@ func TestStop_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := replication.NewClient(osClient)
 
 		resp, err := client.Stop(t.Context(), replication.StopReq{Index: "test", Body: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestStop_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := replication.NewClient(osClient)
 
 		resp, err := errClient.Stop(t.Context(), replication.StopReq{Index: "test", Body: strings.NewReader("{}")})

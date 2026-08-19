@@ -130,21 +130,21 @@ type ReindexRethrottleReindexTask struct {
 	Cancelled   *bool  `json:"cancelled,omitempty"`
 	Description string `json:"description"`
 
-	// The HTTP headers.
-	Headers map[string]HTTPHeadersValue `json:"headers"`
+	// Headers is the HTTP headers.
+	Headers map[string]StringOrStringArray `json:"headers"`
 
 	ID int64 `json:"id"`
 
-	// The name of a resource or configuration element.
+	// Node is the name of a resource or configuration element.
 	Node string `json:"node"`
 
-	// The statistics about resource usage.
+	// ResourceStats is the statistics about resource usage.
 	ResourceStats *ResourceStats `json:"resource_stats,omitempty"`
 
-	// Time unit for nanoseconds.
+	// RunningTimeInNanos. Time unit for nanoseconds.
 	RunningTimeInNanos int64 `json:"running_time_in_nanos"`
 
-	// The time unit for milliseconds.
+	// StartTimeInMillis is the time unit for milliseconds.
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
 	Status ReindexRethrottleReindexStatus `json:"status"`
@@ -153,49 +153,51 @@ type ReindexRethrottleReindexTask struct {
 
 // ReindexRethrottleReindexStatus is a typed component of the reindex_rethrottle operation.
 type ReindexRethrottleReindexStatus struct {
-	// The number of scroll responses shown by the reindex.
+	// Batches is the number of scroll responses shown by the reindex.
 	Batches int64 `json:"batches"`
 
-	// The number of documents that were successfully created.
+	// Created is the number of documents that were successfully created.
 	Created int64 `json:"created"`
 
-	// The number of documents that were successfully deleted.
+	// Deleted is the number of documents that were successfully deleted.
 	Deleted int64 `json:"deleted"`
 
-	// The number of documents that were ignored because the script used for
-	// the reindex operation returned a `noop` value for `ctx.op`.
+	// Noops is the number of documents that were ignored because the script
+	// used for the reindex operation returned a `noop` value for `ctx.op`.
 	Noops int64 `json:"noops"`
 
-	// The number of successful requests per second during the reindex
-	// operation.
+	// RequestsPerSecond is the number of successful requests per second during
+	// the reindex operation.
 	RequestsPerSecond float32 `json:"requests_per_second"`
 
-	// The retry statistics for bulk and search operations.
+	// Retries is the retry statistics for bulk and search operations.
 	Retries Retries `json:"retries"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Throttled is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Throttled *string `json:"throttled,omitempty"`
 
-	// The time unit for milliseconds.
+	// ThrottledMillis is the time unit for milliseconds.
 	ThrottledMillis int64 `json:"throttled_millis"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ThrottledUntil is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ThrottledUntil *string `json:"throttled_until,omitempty"`
 
-	// The time unit for milliseconds.
+	// ThrottledUntilMillis is the time unit for milliseconds.
 	ThrottledUntilMillis int64 `json:"throttled_until_millis"`
 
-	// The number of documents that were successfully processed.
+	// Total is the number of documents that were successfully processed.
 	Total int64 `json:"total"`
 
-	// The number of documents that were successfully updated.
+	// Updated is the number of documents that were successfully updated.
 	Updated int64 `json:"updated"`
 
-	// The number of version conflicts that reindex hits.
+	// VersionConflicts is the number of version conflicts that reindex hits.
 	VersionConflicts int64 `json:"version_conflicts"`
 }
 

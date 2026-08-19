@@ -116,6 +116,68 @@ The v5 and v4 `opensearchapi/` packages carry the same high-level partial-failur
 
 Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) compiles unchanged. Code that walks the per-shard failure slice needs to switch type names.
 
+### Union types are named after their schema
+
+A `oneOf`/`anyOf` in the spec becomes a Go union: an opaque struct with a `Type()` discriminant and one accessor per branch. Earlier v5 pre-releases keyed each union by the field that referenced it, so a schema referenced from several places was emitted once per reference under a different name each time. A union is now named after the schema itself and emitted once, which collapses 212 union types to 122.
+
+The removals are consolidations, not lost functionality: every branch and accessor survives on the shared type. The names that disappear are the duplicates.
+
+| Was                                             | Now                              |
+| ----------------------------------------------- | -------------------------------- |
+| `MGetRespBodyDocsItem`                          | `MGetRespItem`                   |
+| `MSearchMultiSearchResultResponsesItem`         | `MSearchRespItem`                |
+| `SortResultsItem`                               | `FieldValue`                     |
+| `CommonAggregationsCompositeAggregateKeyValue`  | `FieldValue`                     |
+| `ErrorCauseHeaderValue`                         | `StringOrStringArray`            |
+| `SearchResultAggregationsValue`                 | `CommonAggregationsAggregate`    |
+| `CatRecoveryRecordStartTimeMillis`              | `StringifiedEpochTimeUnitMillis` |
+| `CatRecoveryRecordStopTimeMillis`               | `StringifiedEpochTimeUnitMillis` |
+| `ReplicationFollowerStatusTotalWriteTimeMillis` | `StringifiedEpochTimeUnitMillis` |
+| `IndicesIndexSettingsAnalysisAnalyzerValue`     | `CommonAnalysisAnalyzer`         |
+| `IndicesIndexSettingsAnalysisNormalizerValue`   | `CommonAnalysisNormalizer`       |
+
+Branch accessors also drop the group prefix the union name already carries, so `MGetRespItem.MGetMultiGetError()` is now `.MultiGetError()`, and `SearchHitsMetadataTotal.SearchTotalHits()` is now `.TotalHits()`.
+
+### Unions that name their own branch
+
+Where the spec declares an OpenAPI `discriminator`, the payload names its branch outright and decoding no longer guesses. Six unions gain a `Type()`, discriminant constants, and a decoder that reads one property:
+
+| Union                                 | Discriminator property |
+| ------------------------------------- | ---------------------- |
+| `CommonMappingProperty`               | `type`                 |
+| `CommonAnalysisAnalyzer`              | `type`                 |
+| `CommonAnalysisCharFilterDefinition`  | `type`                 |
+| `CommonAnalysisTokenFilterDefinition` | `type`                 |
+| `CommonAnalysisTokenizerDefinition`   | `type`                 |
+| `CommonAnalysisNormalizer`            | `type`                 |
+| `ClusterRemoteInfoCluster`            | `mode`                 |
+
+```go
+var prop opensearchapi.CommonMappingProperty
+if err := json.Unmarshal(raw, &prop); err != nil {
+    return err // a `type` naming no known branch is an error, not a silent mis-decode
+}
+switch prop.Type() {
+case opensearchapi.CommonMappingPropertyKeywordPropertyType:
+    kw, err := prop.KeywordProperty()
+    ...
+}
+```
+
+`ClusterRemoteInfoResp.Entries` was `map[string]json.RawMessage` and is now `map[string]ClusterRemoteInfoCluster`, so remote-cluster settings are typed rather than raw.
+
+### Unions the response cannot discriminate
+
+Aggregation and suggester unions carry no discriminator, because the branch is chosen by your request rather than announced in the response. `avg`, `sum`, `min`, `max`, and several other metric aggregates all serialize as `{"value": N}` and are genuinely indistinguishable from the payload alone. These keep their `As<Branch>()` accessors and have no `Type()`.
+
+Pass `typed_keys=true` so the response map key carries the type (`avg#my_agg`), and call the accessor matching the aggregation you asked for. An accessor now returns a `*UnionBranchError` when the payload cannot be that branch at all -- previously it returned a zero value and a nil error, which was indistinguishable from a genuine zero:
+
+```go
+sum, err := agg.AsSum()   // errors if the payload is, say, a histogram
+```
+
+It still cannot tell `avg` from `sum`, since those share one wire shape. `UnionBranchError` gains an `Err` field and `Unwrap()`, so the underlying decode failure is reachable through `errors.As`.
+
 ## Default Router injection
 
 `opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. v4 left Router nil.
@@ -197,6 +259,9 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 - Decide whether to set `Config.Errors` explicitly. v5 reports every partial-failure category by default.
 - Decide whether to override `Config.Client.Router` or `OPENSEARCH_GO_ROUTER`. v5 injects the default router.
 - Re-run your test suite. Spec-driven type renames in partial-failure field elements may surface as compile errors at call sites that walk shard-failure slices.
+- Switch any union type named after a field (`MGetRespBodyDocsItem`, `SortResultsItem`, ...) to the schema-named type it consolidated onto, and drop the redundant group prefix from branch accessors (`.MGetMultiGetError()` becomes `.MultiGetError()`).
+- Where a union now has a `Type()`, prefer switching on it over calling accessors speculatively. For aggregation and suggester unions, which have no `Type()`, pass `typed_keys=true` and call the accessor matching the aggregation you requested.
+- Check any code that relied on an accessor returning a usable zero value on a branch mismatch. Those now return a `*UnionBranchError`.
 
 ## See also
 

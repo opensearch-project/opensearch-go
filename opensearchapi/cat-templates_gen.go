@@ -139,19 +139,19 @@ func (r CatTemplatesResp) RawBody() io.Reader {
 
 // CatTemplatesRecord is a typed component of the cat.templates operation.
 type CatTemplatesRecord struct {
-	// The component templates that comprise the index template.
+	// ComposedOf is the component templates that comprise the index template.
 	ComposedOf *string `json:"composed_of,omitempty"`
 
-	// The template index patterns.
+	// IndexPatterns is the template index patterns.
 	IndexPatterns *string `json:"index_patterns,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// The template application order or priority number.
+	// Order is the template application order or priority number.
 	Order *string `json:"order,omitempty"`
 
-	// The template version.
+	// Version is the template version.
 	Version *string `json:"version"`
 }
 

@@ -108,24 +108,43 @@ func (r PutExperimentsResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// SearchRelevancePutExperimentsBody is a discriminated union type (try-each, newest version first).
+// SearchRelevancePutExperimentsBody is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type SearchRelevancePutExperimentsBody struct {
 	typ   SearchRelevancePutExperimentsBodyType
 	raw   json.RawMessage
 	value any
 }
 
-// SearchRelevancePutExperimentsBodyType discriminates the branches of SearchRelevancePutExperimentsBody.
+// SearchRelevancePutExperimentsBodyType names which branch of SearchRelevancePutExperimentsBody is set.
 type SearchRelevancePutExperimentsBodyType int
 
 const (
 	SearchRelevancePutExperimentsBodyUnknownType SearchRelevancePutExperimentsBodyType = iota
-	SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
-	SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
-	SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+	SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType
+	SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType
+	SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchRelevancePutExperimentsBodyType) String() string {
+	switch t {
+	case SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType:
+		return "PutHybridOptimizerExperimentRequest"
+	case SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType:
+		return "PutPointwiseExperimentRequest"
+	case SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType:
+		return "PutPairwiseExperimentRequest"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns SearchRelevancePutExperimentsBodyUnknownType if the value has not been decoded.
@@ -148,56 +167,65 @@ func (u *SearchRelevancePutExperimentsBody) SetRaw(raw json.RawMessage) {
 	u.typ = SearchRelevancePutExperimentsBodyUnknownType
 }
 
-// SearchRelevancePutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutHybridOptimizerExperimentRequest() opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest {
+// PutHybridOptimizerExperimentRequest returns the opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) PutHybridOptimizerExperimentRequest() (opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutExperimentsBody", Want: "PutHybridOptimizerExperimentRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
-// on the SearchRelevancePutHybridOptimizerExperimentRequest branch.
-func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
+// NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the PutHybridOptimizerExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromPutHybridOptimizerExperimentRequest(v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
-		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType,
+		typ:   SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType,
 		value: &v,
 	}
 }
 
-// SearchRelevancePutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPointwiseExperimentRequest() opensearchapi.SearchRelevancePutPointwiseExperimentRequest {
+// PutPointwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPointwiseExperimentRequest branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) PutPointwiseExperimentRequest() (opensearchapi.SearchRelevancePutPointwiseExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPointwiseExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutPointwiseExperimentRequest
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutExperimentsBody", Want: "PutPointwiseExperimentRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
-// on the SearchRelevancePutPointwiseExperimentRequest branch.
-func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+// NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the PutPointwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromPutPointwiseExperimentRequest(v opensearchapi.SearchRelevancePutPointwiseExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
-		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType,
+		typ:   SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType,
 		value: &v,
 	}
 }
 
-// SearchRelevancePutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value.
-func (u *SearchRelevancePutExperimentsBody) SearchRelevancePutPairwiseExperimentRequest() opensearchapi.SearchRelevancePutPairwiseExperimentRequest {
+// PutPairwiseExperimentRequest returns the opensearchapi.SearchRelevancePutPairwiseExperimentRequest branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchRelevancePutExperimentsBody) PutPairwiseExperimentRequest() (opensearchapi.SearchRelevancePutPairwiseExperimentRequest, error) {
 	if v, ok := u.value.(*opensearchapi.SearchRelevancePutPairwiseExperimentRequest); ok {
-		return *v
+		return *v, nil
 	}
 	var zero opensearchapi.SearchRelevancePutPairwiseExperimentRequest
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "SearchRelevancePutExperimentsBody", Want: "PutPairwiseExperimentRequest", Got: u.typ.String()}
 }
 
-// NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
-// on the SearchRelevancePutPairwiseExperimentRequest branch.
-func NewSearchRelevancePutExperimentsBodyFromSearchRelevancePutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
+// NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest returns a SearchRelevancePutExperimentsBody populated with v
+// on the PutPairwiseExperimentRequest branch.
+func NewSearchRelevancePutExperimentsBodyFromPutPairwiseExperimentRequest(v opensearchapi.SearchRelevancePutPairwiseExperimentRequest) SearchRelevancePutExperimentsBody {
 	return SearchRelevancePutExperimentsBody{
-		typ:   SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType,
+		typ:   SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType,
 		value: &v,
 	}
 }
@@ -209,16 +237,16 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	// Pass 2: permissive branches with no required properties, tried newest-first.
 	{
 		var v opensearchapi.SearchRelevancePutHybridOptimizerExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutHybridOptimizerExperimentRequestType
+			u.typ = SearchRelevancePutExperimentsBodyPutHybridOptimizerExperimentRequestType
 			u.value = &v
 			return nil
 		}
@@ -226,7 +254,7 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 	{
 		var v opensearchapi.SearchRelevancePutPointwiseExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPointwiseExperimentRequestType
+			u.typ = SearchRelevancePutExperimentsBodyPutPointwiseExperimentRequestType
 			u.value = &v
 			return nil
 		}
@@ -234,7 +262,7 @@ func (u *SearchRelevancePutExperimentsBody) UnmarshalJSON(data []byte) error {
 	{
 		var v opensearchapi.SearchRelevancePutPairwiseExperimentRequest
 		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchRelevancePutExperimentsBodySearchRelevancePutPairwiseExperimentRequestType
+			u.typ = SearchRelevancePutExperimentsBodyPutPairwiseExperimentRequestType
 			u.value = &v
 			return nil
 		}

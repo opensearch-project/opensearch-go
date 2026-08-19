@@ -134,10 +134,10 @@ func (r IndicesGetIndexTemplateResp) RawBody() io.Reader {
 //
 // The configuration for an index template item.
 type IndicesGetIndexTemplateIndexTemplateItem struct {
-	// The configuration for an index template.
+	// IndexTemplate is the configuration for an index template.
 	IndexTemplate IndicesIndexTemplate `json:"index_template"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 

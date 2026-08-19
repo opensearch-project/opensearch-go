@@ -125,8 +125,8 @@ func (r PutScriptParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/script-apis/create-stored-script/
 type PutScriptResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -150,7 +150,7 @@ func (r PutScriptResp) RawBody() io.Reader {
 //
 // The document
 type PutScriptBody struct {
-	// The definition of a stored script.
+	// Script is the definition of a stored script.
 	Script StoredScript `json:"script"`
 }
 

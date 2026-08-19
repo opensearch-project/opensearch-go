@@ -72,6 +72,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			// Logger: io.Discard,
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		for range 100 {
 			wg.Go(func() {
@@ -94,6 +95,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            nil,
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		resp, err := tp.Stream(req)
@@ -112,6 +114,7 @@ func TestTransportLogger(t *testing.T) {
 			}),
 			Logger: &TextLogger{Output: io.Discard},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		resp, err := tp.Stream(req)
@@ -133,6 +136,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -166,6 +170,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &TextLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -213,6 +218,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &ColorLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -269,6 +275,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &CurlLogger{Output: &dst, EnableRequestBody: true, EnableResponseBody: true},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -307,6 +314,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &JSONLogger{Output: &dst},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -346,6 +354,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &JSONLogger{Output: &dst, EnableRequestBody: true},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))
@@ -391,6 +400,7 @@ func TestTransportLogger(t *testing.T) {
 			Transport:         newRoundTripper(),
 			Logger:            &CustomLogger{Output: &dst},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc?q=a,b", nil)
 		req.Body = io.NopCloser(strings.NewReader(`{"query":"42"}`))

@@ -275,7 +275,7 @@ func TestElementTypeHasShards(t *testing.T) {
 	regType(reg, &ir.Type{
 		Name:  "ItemUnion",
 		Scope: ir.ScopeLocal,
-		Kind:  ir.TypeLazyUnion,
+		Kind:  ir.TypeAmbiguousWire,
 		Branches: []ir.UnionBranch{
 			{Name: "ShardBranch", GoType: "ShardBranch"},
 			{Name: "ErrBranch", GoType: "ErrBranch"},
@@ -446,7 +446,7 @@ func TestResolveUnionShape(t *testing.T) {
 			name: "union with Shards + Status/Error branches",
 			input: &ir.Type{
 				Name: "ItemUnion",
-				Kind: ir.TypeLazyUnion,
+				Kind: ir.TypeAmbiguousWire,
 				Branches: []ir.UnionBranch{
 					{Name: "ShardBranch", GoType: "ShardBranch"},
 					{Name: "ErrBranch", GoType: "ErrBranch"},
@@ -460,7 +460,7 @@ func TestResolveUnionShape(t *testing.T) {
 			name: "union with only success branch",
 			input: &ir.Type{
 				Name: "OnlyShard",
-				Kind: ir.TypeLazyUnion,
+				Kind: ir.TypeAmbiguousWire,
 				Branches: []ir.UnionBranch{
 					{Name: "ShardBranch", GoType: "ShardBranch"},
 					{Name: "PlainBranch", GoType: "PlainBranch"},
@@ -473,7 +473,7 @@ func TestResolveUnionShape(t *testing.T) {
 			name: "branch type not in registry is skipped",
 			input: &ir.Type{
 				Name: "Mixed",
-				Kind: ir.TypeLazyUnion,
+				Kind: ir.TypeAmbiguousWire,
 				Branches: []ir.UnionBranch{
 					{Name: "Missing", GoType: "Missing"},
 					{Name: "ShardBranch", GoType: "ShardBranch"},
@@ -507,7 +507,7 @@ func TestUnionFromResponses(t *testing.T) {
 	regType(reg, &ir.Type{
 		Name:  "MsearchItemUnion",
 		Scope: ir.ScopeLocal,
-		Kind:  ir.TypeLazyUnion,
+		Kind:  ir.TypeAmbiguousWire,
 		Branches: []ir.UnionBranch{
 			{Name: "Item", GoType: "Item"},
 		},

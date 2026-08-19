@@ -87,56 +87,63 @@ func (r FollowerStatsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#get-follower-cluster-stats
 type FollowerStatsResp struct {
-	// The number of failed read requests during replication.
+	// FailedReadRequests is the number of failed read requests during
+	// replication.
 	FailedReadRequests *float64 `json:"failed_read_requests,omitempty"`
 
-	// The number of failed write requests during replication.
+	// FailedWriteRequests is the number of failed write requests during
+	// replication.
 	FailedWriteRequests *float64 `json:"failed_write_requests,omitempty"`
 
-	// The current checkpoint of the follower index.
+	// FollowerCheckpoint is the current checkpoint of the follower index.
 	FollowerCheckpoint *float64 `json:"follower_checkpoint,omitempty"`
 
 	IndexStats map[string]opensearchapi.ReplicationIndexFollowerStatus `json:"index_stats,omitempty"`
 
-	// The current checkpoint of the leader index.
+	// LeaderCheckpoint is the current checkpoint of the leader index.
 	LeaderCheckpoint *float64 `json:"leader_checkpoint,omitempty"`
 
-	// The number of indexes currently bootstrapping.
+	// NumBootstrappingIndices is the number of indexes currently
+	// bootstrapping.
 	NumBootstrappingIndices *float64 `json:"num_bootstrapping_indices,omitempty"`
 
-	// The number of indexes that have failed replication.
+	// NumFailedIndices is the number of indexes that have failed replication.
 	NumFailedIndices *float64 `json:"num_failed_indices,omitempty"`
 
-	// The number of active index-level replication tasks.
+	// NumIndexTasks is the number of active index-level replication tasks.
 	NumIndexTasks *float64 `json:"num_index_tasks,omitempty"`
 
-	// The number of indexes currently paused.
+	// NumPausedIndices is the number of indexes currently paused.
 	NumPausedIndices *float64 `json:"num_paused_indices,omitempty"`
 
-	// The number of active shard-level replication tasks.
+	// NumShardTasks is the number of active shard-level replication tasks.
 	NumShardTasks *float64 `json:"num_shard_tasks,omitempty"`
 
-	// The number of indexes currently syncing.
+	// NumSyncingIndices is the number of indexes currently syncing.
 	NumSyncingIndices *float64 `json:"num_syncing_indices,omitempty"`
 
-	// The total number of operations read during replication.
+	// OperationsRead is the total number of operations read during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The total number of operations written during replication.
+	// OperationsWritten is the total number of operations written during
+	// replication.
 	OperationsWritten *float64 `json:"operations_written,omitempty"`
 
-	// The number of throttled read requests during replication.
+	// ThrottledReadRequests is the number of throttled read requests during
+	// replication.
 	ThrottledReadRequests *float64 `json:"throttled_read_requests,omitempty"`
 
-	// The number of throttled write requests during replication.
+	// ThrottledWriteRequests is the number of throttled write requests during
+	// replication.
 	ThrottledWriteRequests *float64 `json:"throttled_write_requests,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalWriteTimeMillis *opensearchapi.ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	// TotalWriteTimeMillis. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalWriteTimeMillis *opensearchapi.StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 
 	response *opensearch.Response
 }

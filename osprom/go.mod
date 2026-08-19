@@ -1,9 +1,9 @@
 module github.com/opensearch-project/opensearch-go/v5/osprom
 
-go 1.25.9
+go 1.25.12
 
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc4
+	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc5
 	github.com/prometheus/client_golang v1.24.1
 	github.com/stretchr/testify v1.11.1
 )

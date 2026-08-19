@@ -107,7 +107,7 @@ func (r CreateMessageParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type CreateMessageResp struct {
-	// The name of a resource or configuration element.
+	// MessageID is the name of a resource or configuration element.
 	MessageID string `json:"message_id"`
 
 	response *opensearch.Response
@@ -129,18 +129,18 @@ func (r CreateMessageResp) RawBody() io.Reader {
 
 // MLCreateMessageBody is a typed component of the ml.create_message operation.
 type MLCreateMessageBody struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
-	// The question in the message.
+	// Input is the question in the message.
 	Input *string `json:"input,omitempty"`
 
-	// The system name that generated the response.
+	// Origin is the system name that generated the response.
 	Origin *string `json:"origin,omitempty"`
 
-	// The prompt template.
+	// PromptTemplate is the prompt template.
 	PromptTemplate *string `json:"prompt_template,omitempty"`
 
-	// The answer to the question.
+	// Response is the answer to the question.
 	Response *string `json:"response,omitempty"`
 }

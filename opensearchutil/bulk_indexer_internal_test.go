@@ -299,6 +299,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
@@ -356,6 +357,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
@@ -443,6 +445,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					cfg.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 				}
 				client, _ := opensearchapi.NewClient(cfg)
+				t.Cleanup(func() { _ = client.Close() })
 
 				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
 				if testutil.IsDebugEnabled(t) {
@@ -496,6 +499,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 				ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 				defer cancel()
@@ -522,6 +526,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
 				ctx, cancel := context.WithCancel(context.Background())
@@ -555,6 +560,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
 					FlushBytes: 1,
@@ -579,6 +585,7 @@ func TestBulkIndexerContext(t *testing.T) {
 				// forever signaling a flusher that already left. Regression for
 				// the unbuffered done-channel deadlock.
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				ctx, cancel := context.WithCancel(t.Context())
 				bi, err := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
@@ -644,6 +651,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					}
 				}
 				client, _ := opensearchapi.NewClient(config)
+				t.Cleanup(func() { _ = client.Close() })
 
 				var (
 					indexerError error
@@ -703,6 +711,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				)
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{NumWorkers: 1, Client: client}
 				if testutil.IsDebugEnabled(t) {
@@ -793,6 +802,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 				flushIndex := testutil.MustUniqueString(t, "test-flush")
 
 				var flushEndCalled atomic.Bool
@@ -847,6 +857,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				})
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
@@ -933,6 +944,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				)
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
@@ -984,6 +996,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				})
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 

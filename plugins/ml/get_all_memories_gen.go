@@ -97,7 +97,8 @@ func (r GetAllMemoriesParams) get() map[string]string {
 type GetAllMemoriesResp struct {
 	Memories []opensearchapi.MLMemory `json:"memories"`
 
-	// The index of the next memory after the last memory in the returned list.
+	// NextToken is the index of the next memory after the last memory in the
+	// returned list.
 	NextToken *int `json:"next_token,omitempty"`
 
 	response *opensearch.Response

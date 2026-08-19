@@ -68,6 +68,7 @@ func TestGeojsonUploadPost_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := geospatial.NewClient(osClient)
 
 		resp, err := client.GeojsonUploadPost(t.Context(), &geospatial.GeojsonUploadPostReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestGeojsonUploadPost_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := geospatial.NewClient(osClient)
 
 		resp, err := errClient.GeojsonUploadPost(t.Context(), &geospatial.GeojsonUploadPostReq{BodyReader: strings.NewReader("{}")})

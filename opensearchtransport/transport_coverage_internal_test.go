@@ -374,6 +374,7 @@ func TestPerform_GzipCompression(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	body := bytes.NewReader([]byte(`{"query":{"match_all":{}}}`))
 	req, _ := http.NewRequest(http.MethodPost, "/_search", io.NopCloser(body))
@@ -399,6 +400,7 @@ func TestPerform_MetricsEnabled(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req)
@@ -425,6 +427,7 @@ func TestPerform_SignError(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req) //nolint:bodyclose // error path
@@ -447,6 +450,7 @@ func TestPerform_TransportError(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	tp.seedFallbackDisabled = true
 	tp.seedFallbackPool = nil
 
@@ -475,6 +479,7 @@ func TestPerform_NetworkErrorRetry(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req)

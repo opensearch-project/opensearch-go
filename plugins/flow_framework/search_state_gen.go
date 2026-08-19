@@ -113,10 +113,11 @@ type SearchStateResp struct {
 	Shards *FlowFrameworkCommonShards    `json:"_shards,omitempty"`
 	Hits   *FlowFrameworkCommonStateHits `json:"hits,omitempty"`
 
-	// Whether the request timed out.
+	// TimedOut. Whether the request timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// The amount of time in milliseconds that the request took to complete.
+	// Took is the amount of time in milliseconds that the request took to
+	// complete.
 	Took *int `json:"took,omitempty"`
 
 	response *opensearch.Response
@@ -138,7 +139,7 @@ func (r SearchStateResp) RawBody() io.Reader {
 
 // FlowFrameworkCommonStateHits is a typed component of the flow_framework.search_state operation.
 type FlowFrameworkCommonStateHits struct {
-	// The list of search hits.
+	// Hits is the list of search hits.
 	Hits []FlowFrameworkCommonStateItems `json:"hits,omitempty"`
 
 	MaxScore *float32                  `json:"max_score"`
@@ -147,81 +148,100 @@ type FlowFrameworkCommonStateHits struct {
 
 // FlowFrameworkCommonStateItems is a typed component of the flow_framework.search_state operation.
 type FlowFrameworkCommonStateItems struct {
-	// The document ID.
+	// ID is the document ID.
 	ID *string `json:"_id,omitempty"`
 
-	// The index name where the document resides.
+	// Index is the index name where the document resides.
 	Index *string `json:"_index,omitempty"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm *int `json:"_primary_term,omitempty"`
 
-	// The score of the search hit.
+	// Score is the score of the search hit.
 	Score *float32 `json:"_score,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int `json:"_seq_no,omitempty"`
 
 	Source *FlowFrameworkCommonSearchStateResponse `json:"_source,omitempty"`
 
-	// The version of the document.
+	// Version is the version of the document.
 	Version *int `json:"_version,omitempty"`
 }
 
 // FlowFrameworkCommonSearchStateResponse is a typed component of the flow_framework.search_state operation.
 type FlowFrameworkCommonSearchStateResponse struct {
-	// When the provisioning operation completed.
+	// ProvisionEndTime. When the provisioning operation completed.
 	ProvisionEndTime *string `json:"provision_end_time,omitempty"`
 
-	// When the provisioning operation started.
+	// ProvisionStartTime. When the provisioning operation started.
 	ProvisionStartTime *string `json:"provision_start_time,omitempty"`
 
-	// The current progress status of the provisioning operation.
+	// ProvisioningProgress is the current progress status of the provisioning
+	// operation.
 	ProvisioningProgress *string `json:"provisioning_progress,omitempty"`
 
 	ResourcesCreated *FlowFrameworkCommonSearchStateRespResourcesCreated `json:"resources_created,omitempty"`
 
-	// The current state of the workflow.
+	// State is the current state of the workflow.
 	State *string `json:"state,omitempty"`
 
 	User *FlowFrameworkCommonUser `json:"user,omitempty"`
 
-	// The ID of the workflow.
+	// WorkflowID is the ID of the workflow.
 	WorkflowID *string `json:"workflow_id,omitempty"`
 }
 
 // FlowFrameworkCommonResourcesCreated is a typed component of the flow_framework.search_state operation.
 type FlowFrameworkCommonResourcesCreated struct {
-	// The unique identifier for the created resource.
+	// ResourceID is the unique identifier for the created resource.
 	ResourceID *string `json:"resource_id,omitempty"`
 
-	// The type of resource created.
+	// ResourceType is the type of resource created.
 	ResourceType *string `json:"resource_type,omitempty"`
 
-	// The unique identifier for the workflow step.
+	// WorkflowStepID is the unique identifier for the workflow step.
 	WorkflowStepID *string `json:"workflow_step_id,omitempty"`
 
-	// The name of the workflow step.
+	// WorkflowStepName is the name of the workflow step.
 	WorkflowStepName *string `json:"workflow_step_name,omitempty"`
 }
 
-// FlowFrameworkCommonSearchStateRespResourcesCreated is a discriminated union type.
+// FlowFrameworkCommonSearchStateRespResourcesCreated is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+
 type FlowFrameworkCommonSearchStateRespResourcesCreated struct {
 	typ   FlowFrameworkCommonSearchStateRespResourcesCreatedType
 	raw   json.RawMessage
 	value any
 }
 
-// FlowFrameworkCommonSearchStateRespResourcesCreatedType discriminates the branches of FlowFrameworkCommonSearchStateRespResourcesCreated.
+// FlowFrameworkCommonSearchStateRespResourcesCreatedType names which branch of FlowFrameworkCommonSearchStateRespResourcesCreated is set.
 type FlowFrameworkCommonSearchStateRespResourcesCreatedType int
 
 const (
 	FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType FlowFrameworkCommonSearchStateRespResourcesCreatedType = iota
-	FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+	FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType
 	FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t FlowFrameworkCommonSearchStateRespResourcesCreatedType) String() string {
+	switch t {
+	case FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType:
+		return "ResourcesCreated"
+	case FlowFrameworkCommonSearchStateRespResourcesCreatedArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType if the value has not been decoded.
@@ -244,31 +264,37 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) SetRaw(raw json.Raw
 	u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedUnknownType
 }
 
-// FlowFrameworkCommonResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value.
-func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) FlowFrameworkCommonResourcesCreated() FlowFrameworkCommonResourcesCreated {
+// ResourcesCreated returns the FlowFrameworkCommonResourcesCreated branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero FlowFrameworkCommonResourcesCreated in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) ResourcesCreated() (FlowFrameworkCommonResourcesCreated, error) {
 	if v, ok := u.value.(*FlowFrameworkCommonResourcesCreated); ok {
-		return *v
+		return *v, nil
 	}
 	var zero FlowFrameworkCommonResourcesCreated
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "FlowFrameworkCommonSearchStateRespResourcesCreated", Want: "ResourcesCreated", Got: u.typ.String()}
 }
 
-// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
-// on the FlowFrameworkCommonResourcesCreated branch.
-func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromFlowFrameworkCommonResourcesCreated(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
+// NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromResourcesCreated returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
+// on the ResourcesCreated branch.
+func NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromResourcesCreated(v FlowFrameworkCommonResourcesCreated) FlowFrameworkCommonSearchStateRespResourcesCreated {
 	return FlowFrameworkCommonSearchStateRespResourcesCreated{
-		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType,
+		typ:   FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType,
 		value: &v,
 	}
 }
 
-// Array returns the []FlowFrameworkCommonResourcesCreated branch value.
-func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Array() []FlowFrameworkCommonResourcesCreated {
+// Array returns the []FlowFrameworkCommonResourcesCreated branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []FlowFrameworkCommonResourcesCreated in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) Array() ([]FlowFrameworkCommonResourcesCreated, error) {
 	if v, ok := u.value.(*[]FlowFrameworkCommonResourcesCreated); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []FlowFrameworkCommonResourcesCreated
-	return zero
+	return zero, &opensearchapi.UnionBranchError{Union: "FlowFrameworkCommonSearchStateRespResourcesCreated", Want: "Array", Got: u.typ.String()}
 }
 
 // NewFlowFrameworkCommonSearchStateRespResourcesCreatedFromArray returns a FlowFrameworkCommonSearchStateRespResourcesCreated populated with v
@@ -293,7 +319,7 @@ func (u *FlowFrameworkCommonSearchStateRespResourcesCreated) UnmarshalJSON(data 
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedFlowFrameworkCommonResourcesCreatedType
+		u.typ = FlowFrameworkCommonSearchStateRespResourcesCreatedResourcesCreatedType
 		u.value = &v
 	case data[0] == '[':
 		var v []FlowFrameworkCommonResourcesCreated
