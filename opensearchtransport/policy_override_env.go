@@ -7,7 +7,6 @@
 package opensearchtransport
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -356,8 +355,8 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 				if !*override.applyAll {
 					action = overrideActionDisabled
 				}
-				dl.Logf("Policy override: %s %s at path %q (env: %s)\n",
-					action, typeName, path, override.envKey)
+				dl.Debug("Policy override applied at path",
+					"action", action, "type", typeName, "path", path, "env", override.envKey)
 			}
 			continue
 		}
@@ -386,8 +385,8 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 				if !m.enable {
 					action = overrideActionDisabled
 				}
-				dl.Logf("Policy override: %s %s at path %q (env: %s, matcher: %q)\n",
-					action, typeName, path, override.envKey, m.raw)
+				dl.Debug("Policy override applied at path",
+					"action", action, "type", typeName, "path", path, "env", override.envKey, "matcher", m.raw)
 			}
 			break // First match wins for this override
 		}
@@ -480,16 +479,21 @@ func policyNodeLabel(p Policy) string {
 	}
 }
 
-// dumpPolicyTreeIfDebug writes the policy tree through the debug logger when one
-// is installed (i.e. when OPENSEARCH_GO_DEBUG is truthy). It is a no-op
-// otherwise, so callers may invoke it unconditionally once they have decided the
-// dump was requested (OPENSEARCH_GO_POLICY_DUMP).
+// dumpPolicyTreeIfDebug writes the policy tree to stderr when a debug logger is
+// installed, by OPENSEARCH_GO_DEBUG, Config.EnableDebugLogger, or
+// Config.DebugLogger. It is a no-op otherwise, so callers may invoke it
+// unconditionally once they have decided the dump was requested
+// (OPENSEARCH_GO_POLICY_DUMP).
+//
+// The tree is written directly rather than through the debug logger because its
+// value is being readable as one contiguous block a reader scans to copy a path
+// out of: a log handler would escape the newlines into a single record, and one
+// record per node would interleave the tree with unrelated debug output. A
+// caller who supplies Config.DebugLogger therefore switches the dump on without
+// receiving it.
 func dumpPolicyTreeIfDebug(root Policy) {
-	dl := loadDebugLogger()
-	if dl == nil {
+	if loadDebugLogger() == nil {
 		return
 	}
-	var buf bytes.Buffer
-	writePolicyTree(&buf, root)
-	dl.Logf("%s", buf.String())
+	writePolicyTree(os.Stderr, root)
 }

@@ -29,7 +29,6 @@ package osprom
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -176,7 +175,7 @@ type Registry struct {
 	pool      sync.Pool
 	done      chan struct{}
 	stop      func() // idempotent close of done, via sync.OnceFunc
-	log       *slog.Logger
+	log       debugLoggerFunc
 	workers   int
 
 	reqFilter      RequestFilter
@@ -190,8 +189,15 @@ type Registry struct {
 // Option configures a [Registry].
 type Option func(*options)
 
+// debugLoggerFunc resolves the logger a [Registry] writes its lifecycle
+// messages to. It is called per message rather than once at construction,
+// because a Registry is built before the client that installs the logger: the
+// client takes the Registry as its Observer, so a logger passed as
+// Config.DebugLogger does not exist yet when the Registry is created.
+type debugLoggerFunc func() opensearchtransport.DebugLogger
+
 type options struct {
-	logger         *slog.Logger
+	logger         debugLoggerFunc
 	workers        int
 	bufferSize     int
 	reqFilter      RequestFilter
@@ -200,10 +206,20 @@ type options struct {
 	streamOverflow StreamOverflowHandler
 }
 
-// WithLogger sets the logger used for lifecycle messages. Defaults to
-// [slog.Default].
-func WithLogger(l *slog.Logger) Option {
-	return func(o *options) { o.logger = l }
+// WithLogger sets the logger used for lifecycle messages.
+//
+// Any [opensearchtransport.DebugLogger] is accepted, so an application can pass
+// the same logger it gives the client (logzerolog.Default(), for instance)
+// rather than maintaining a second one in another shape. A *slog.Logger
+// satisfies the interface directly. A nil logger silences these messages.
+//
+// Defaults to [opensearchtransport.LoadDebugLogger], resolved per message, so
+// lifecycle messages follow the same switch as the client's own debug records:
+// OPENSEARCH_GO_DEBUG or Config.DebugLogger turns both on together. Resolution
+// is deferred because a Registry is constructed before the client that installs
+// the logger.
+func WithLogger(l opensearchtransport.DebugLogger) Option {
+	return func(o *options) { o.logger = func() opensearchtransport.DebugLogger { return l } }
 }
 
 // WithBufferSize sets the capacity of the channel buffering events between the
@@ -269,7 +285,7 @@ func New(reg prometheus.Registerer, observers ...Observer) (*Registry, error) {
 
 // NewWithOptions is [New] with functional options.
 func NewWithOptions(reg prometheus.Registerer, observers []Observer, opts []Option) (*Registry, error) {
-	cfg := options{logger: slog.Default()}
+	cfg := options{logger: opensearchtransport.LoadDebugLogger}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -364,7 +380,9 @@ func defaultBufferSize() int {
 // it drains events already buffered, then returns ctx.Err() (nil on a
 // Close-triggered stop).
 func (r *Registry) Run(ctx context.Context) error {
-	r.log.Debug("osprom registry running", "buffer_size", cap(r.ch), "observers", len(r.sinks()), "workers", r.workers)
+	if dl := r.log(); dl != nil {
+		dl.Debug("osprom registry running", "buffer_size", cap(r.ch), "observers", len(r.sinks()), "workers", r.workers)
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(r.workers)
@@ -392,7 +410,9 @@ func (r *Registry) Run(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	r.log.Debug("osprom registry stopped")
+	if dl := r.log(); dl != nil {
+		dl.Debug("osprom registry stopped")
+	}
 	return nil
 }
 

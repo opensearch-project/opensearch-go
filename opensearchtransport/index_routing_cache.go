@@ -447,7 +447,7 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 		}
 	}
 	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("mergeShardMap: CAS exhausted after %d attempts (concurrent writer wins)\n", maxRetries)
+		dl.Debug("mergeShardMap: CAS exhausted (concurrent writer wins)", "attempts", maxRetries)
 	}
 }
 

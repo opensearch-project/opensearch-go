@@ -239,7 +239,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	resp, err := hc(ctx, c, c.URL)
 	if err != nil {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("[%s] Health check failed for %q: %s\n", cp.name, c.URL, err)
+			dl.Debug("Health check failed", "pool", cp.name, "conn", c.URL, "err", err)
 		}
 		if obs := observerFromAtomic(&cp.observer); obs != nil {
 			event := newConnectionEvent(cp.name, c, lifecycleCounts{})
@@ -297,7 +297,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	if dl := loadDebugLogger(); dl != nil {
 		prev := c.loadVersion()
 		if prev != "" && prev != info.Version.Number {
-			dl.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, prev, info.Version.Number)
+			dl.Debug("Version changed", "pool", cp.name, "conn", c.URL, "version_from", prev, "version_to", info.Version.Number)
 		}
 	}
 	// Update the connection version
@@ -413,7 +413,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 			select {
 			case <-ctx.Done():
 				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("[%s] Health check cancelled for %q: %v\n", cp.name, c.URL, ctx.Err())
+					dl.Debug("Health check cancelled", "pool", cp.name, "conn", c.URL, "err", ctx.Err())
 				}
 				return
 			case <-time.After(timeout):
@@ -439,7 +439,8 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				stillInPool := slices.Contains(cp.mu.ready, c) || slices.Contains(cp.mu.dead, c)
 				if !stillInPool {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("[%s] Connection %q removed from pool by DiscoveryUpdate, stopping health checks\n", cp.name, c.URL)
+						dl.Debug("Connection removed from pool by DiscoveryUpdate, stopping health checks",
+							"pool", cp.name, "conn", c.URL)
 					}
 					return true
 				}
@@ -449,7 +450,8 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// when metrics improve, or clear lcOverloaded if it can't reach the node.
 				if c.loadConnState().lifecycle().has(lcOverloaded) {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("[%s] Connection %q is overload-demoted, stopping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
+						dl.Debug("Connection is overload-demoted, stopping resurrection (stats poller manages lifecycle)",
+							"pool", cp.name, "conn", c.URL)
 					}
 					return true
 				}

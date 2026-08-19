@@ -80,14 +80,16 @@ sudo apt install make
 
 ### Go Workspace and Nested Modules
 
-The repository is a Go workspace. Alongside the root client module there are four nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
+The repository is a Go workspace. Alongside the root client module there are six nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
 
-| Module          | Purpose                    | Keeps out of the core graph                                  |
-| --------------- | -------------------------- | ------------------------------------------------------------ |
-| `osprom`        | Prometheus metrics sink    | `github.com/prometheus/client_golang`                        |
-| `osotel`        | OpenTelemetry metrics sink | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric` |
-| `cmd/osgen`     | API code generator         | `github.com/getkin/kin-openapi`                              |
-| `cmd/osapilint` | API migration linter       | `golang.org/x/tools`                                         |
+| Module          | Purpose                         | Keeps out of the core graph                                                                                 |
+| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `osprom`        | Prometheus metrics sink         | `github.com/prometheus/client_golang`                                                                       |
+| `osotel`        | OpenTelemetry metrics sink      | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric`                                                |
+| `log-zerolog`   | zerolog debug-logger adapter    | `github.com/rs/zerolog`                                                                                     |
+| `log-slog`      | `log/slog` debug-logger adapter | nothing: `log/slog` is stdlib, so the module exists to version and test the adapter alongside `log-zerolog` |
+| `cmd/osgen`     | API code generator              | `github.com/getkin/kin-openapi`                                                                             |
+| `cmd/osapilint` | API migration linter            | `golang.org/x/tools`                                                                                        |
 
 `go.work` and `go.work.sum` are committed, so a fresh clone builds across every module with no setup step. From the repository root, `go build ./...` and `go test ./...` span all of them, and `make test-unit` and `make lint.local` additionally run each nested module on its own. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
 

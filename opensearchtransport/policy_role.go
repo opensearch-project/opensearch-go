@@ -343,8 +343,9 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 
 	if beforeReadyCount != afterReadyCount || beforeDeadCount != afterDeadCount {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("RolePolicy[%s]: Removed connections (ready: %d->%d, dead: %d->%d)\n",
-				p.requiredRoleKey, beforeReadyCount, afterReadyCount, beforeDeadCount, afterDeadCount)
+			dl.Debug("RolePolicy: Removed connections",
+				"role", p.requiredRoleKey, "ready_from", beforeReadyCount, "ready_to", afterReadyCount,
+				"dead_from", beforeDeadCount, "dead_to", afterDeadCount)
 		}
 	}
 

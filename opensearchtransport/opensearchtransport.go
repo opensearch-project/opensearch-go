@@ -197,6 +197,14 @@ type Config struct {
 
 	EnableDebugLogger bool
 
+	// DebugLogger receives the client's internal debug records. Supplying one
+	// enables debug logging and takes precedence over EnableDebugLogger, which
+	// selects the built-in stderr logger instead.
+	//
+	// The installed logger is process-global: the last client constructed wins,
+	// and LoadDebugLogger returns it for every client in the process.
+	DebugLogger DebugLogger
+
 	DiscoverNodesInterval time.Duration
 
 	// DiscoveryHealthCheckRetries sets the number of health check retries during node discovery.
@@ -1135,8 +1143,8 @@ func New(cfg Config) (*Transport, error) {
 		client.seedFallbackPool.mu.Unlock()
 	}
 
-	if cfg.EnableDebugLogger {
-		storeDebugLogger(&debuggingLogger{Output: os.Stdout})
+	if dl := resolveDebugLogger(cfg); dl != nil {
+		storeDebugLogger(dl)
 	}
 
 	// Per-request counters are recorded on the hot path; the detailed snapshot
@@ -1620,7 +1628,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			}
 
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Request to %s failed: %v\n", conn.URL, err)
+				dl.Debug("Request failed", "conn", conn.URL, "err", err)
 			}
 
 			// Retry on HTTP/2 stream resets (RST_STREAM frames such as REFUSED_STREAM).
@@ -1635,8 +1643,8 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			var streamErr h2StreamError
 			if errors.As(err, &streamErr) {
 				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("HTTP/2 stream error from %s: StreamID=%d, Code=%d\n",
-						conn.URL, streamErr.StreamID, streamErr.Code)
+					dl.Debug("HTTP/2 stream error",
+						"conn", conn.URL, "stream_id", streamErr.StreamID, "code", streamErr.Code)
 				}
 				// Mark draining so OnSuccess from concurrent requests won't resurrect
 				// this connection. Requires defaultDrainingQuiescingChecks consecutive
@@ -1651,14 +1659,14 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			if c.router != nil {
 				if poolErr := c.router.OnFailure(conn); poolErr != nil {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Router error marking connection as failed: %v\n", poolErr)
+						dl.Debug("Router error marking connection as failed", "err", poolErr)
 					}
 				}
 			} else {
 				c.mu.Lock()
 				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Connection pool error marking connection as failed: %v\n", poolErr)
+						dl.Debug("Connection pool error marking connection as failed", "err", poolErr)
 					}
 				}
 				c.mu.Unlock()
@@ -1862,7 +1870,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	}
 
 	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Seed fallback: attempting request via %s\n", conn.URL)
+		dl.Debug("Seed fallback: attempting request", "conn", conn.URL)
 	}
 
 	c.setReqURL(conn.URL, req)
@@ -1910,14 +1918,14 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 
 	if err != nil {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Seed fallback: request to %s failed: %v\n", conn.URL, err)
+			dl.Debug("Seed fallback: request failed", "conn", conn.URL, "err", err)
 		}
 		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
 	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Seed fallback: request to %s succeeded, triggering rediscovery\n", conn.URL)
+		dl.Debug("Seed fallback: request succeeded, triggering rediscovery", "conn", conn.URL)
 	}
 	c.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
 	c.discoveryNeeded.Store(true)
@@ -1968,7 +1976,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	conn.proactiveCheck.mu.Unlock()
 
 	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Connection: close detected for %q, scheduling proactive health check\n", conn.URL)
+		dl.Debug("Connection: close detected, scheduling proactive health check", "conn", conn.URL)
 	}
 
 	go func() {
@@ -1979,21 +1987,21 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 
 		if err != nil {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Proactive health check failed for %q: %v\n", conn.URL, err)
+				dl.Debug("Proactive health check failed", "conn", conn.URL, "err", err)
 			}
 
 			// Mark connection as failed to trigger resurrection
 			if c.router != nil {
 				if poolErr := c.router.OnFailure(conn); poolErr != nil {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Router error during proactive health check failure for %q: %v\n", conn.URL, poolErr)
+						dl.Debug("Router error during proactive health check failure", "conn", conn.URL, "err", poolErr)
 					}
 				}
 			} else {
 				c.mu.Lock()
 				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
 					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Pool error during proactive health check failure for %q: %v\n", conn.URL, poolErr)
+						dl.Debug("Pool error during proactive health check failure", "conn", conn.URL, "err", poolErr)
 					}
 				}
 				c.mu.Unlock()
@@ -2787,8 +2795,10 @@ func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnecti
 		pool.enforceActiveCapWithLock()
 
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Promoted singleServerPool to multiServerPool: %d ready, %d dead connections (timeouts: %v, %d)\n",
-				len(pool.mu.ready), len(pool.mu.dead), pool.resurrectTimeoutInitial, pool.resurrectTimeoutFactorCutoff)
+			dl.Debug("Promoted singleServerPool to multiServerPool",
+				"ready", len(pool.mu.ready), "dead", len(pool.mu.dead),
+				"resurrect_timeout_initial", pool.resurrectTimeoutInitial,
+				"resurrect_timeout_factor_cutoff", pool.resurrectTimeoutFactorCutoff)
 		}
 
 		return pool
@@ -2823,16 +2833,16 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 		case len(currentPool.mu.ready) > 0:
 			connection = currentPool.mu.ready[0]
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Demoting multiServerPool to singleServerPool using ready connection: %s\n", connection.URL)
+				dl.Debug("Demoting multiServerPool to singleServerPool using ready connection", "conn", connection.URL)
 			}
 		case len(currentPool.mu.dead) > 0:
 			connection = currentPool.mu.dead[0]
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Demoting multiServerPool to singleServerPool using dead connection: %s\n", connection.URL)
+				dl.Debug("Demoting multiServerPool to singleServerPool using dead connection", "conn", connection.URL)
 			}
 		default:
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Warning: Demoting multiServerPool with no connections available\n")
+				dl.Debug("Demoting multiServerPool with no connections available")
 			}
 		}
 

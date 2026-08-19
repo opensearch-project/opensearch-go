@@ -29,6 +29,7 @@
 package opensearchtransport
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
@@ -476,19 +479,161 @@ func TestTransportLogger(t *testing.T) {
 	})
 }
 
-func TestDebuggingLogger(t *testing.T) {
-	logger := &debuggingLogger{Output: io.Discard}
+// debugRecordPrefixLen is the width of the fixed timestamp-and-level prefix
+// textDebugLogger writes ahead of every record.
+const debugRecordPrefixLen = len("[15:04:05.000] DEBUG    ")
 
-	t.Run("Log", func(t *testing.T) {
-		if err := logger.Log("Foo"); err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
+func TestTextDebugLogger(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		msg  string
+		kv   []any
+		want string
+	}{
+		{
+			name: "message only",
+			msg:  "Discovery: starting",
+			want: "Discovery: starting\n",
+		},
+		{
+			name: "key value pairs",
+			msg:  "Node overloaded",
+			kv:   []any{"conn", "https://localhost:9200", "heap_used_percent", 93},
+			want: "Node overloaded conn=https://localhost:9200 heap_used_percent=93\n",
+		},
+		{
+			name: "dangling key",
+			msg:  "Pool resurrect",
+			kv:   []any{"conn", "node-1", "state"},
+			want: "Pool resurrect conn=node-1 !BADKEY=state\n",
+		},
+		{
+			// slog consumes only the bad key, so the argument after it starts a
+			// fresh pair instead of being swallowed as its value.
+			name: "non-string key resyncs on the next pair",
+			msg:  "Pool resurrect",
+			kv:   []any{42, "conn", "node-1"},
+			want: "Pool resurrect !BADKEY=42 conn=node-1\n",
+		},
+		{
+			name: "non-string key last",
+			msg:  "Pool resurrect",
+			kv:   []any{"conn", "node-1", 42},
+			want: "Pool resurrect conn=node-1 !BADKEY=42\n",
+		},
+		{
+			name: "error value",
+			msg:  "Discovery failed",
+			kv:   []any{"err", errors.New("connection refused")},
+			want: "Discovery failed err=connection refused\n",
+		},
+		{
+			name: "empty kv",
+			msg:  "Warmup complete",
+			kv:   []any{},
+			want: "Warmup complete\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			(&textDebugLogger{Output: &buf}).Debug(tt.msg, tt.kv...)
+
+			got := buf.String()
+			require.Greater(t, len(got), debugRecordPrefixLen)
+			require.Regexp(t, `^\[\d{2}:\d{2}:\d{2}\.\d{3}\] DEBUG {4}$`, got[:debugRecordPrefixLen])
+			require.Equal(t, tt.want, got[debugRecordPrefixLen:])
+		})
+	}
+}
+
+func TestResolveDebugLogger(t *testing.T) {
+	t.Parallel()
+
+	supplied := &testDebugLogger{}
+
+	tests := []struct {
+		name string
+		cfg  Config
+		want DebugLogger
+	}{
+		{
+			name: "neither set installs nothing",
+			cfg:  Config{},
+			want: nil,
+		},
+		{
+			name: "EnableDebugLogger selects the built-in logger",
+			cfg:  Config{EnableDebugLogger: true},
+			want: &textDebugLogger{Output: os.Stderr},
+		},
+		{
+			name: "supplied logger is used",
+			cfg:  Config{DebugLogger: supplied},
+			want: supplied,
+		},
+		{
+			name: "supplied logger wins over EnableDebugLogger",
+			cfg:  Config{DebugLogger: supplied, EnableDebugLogger: true},
+			want: supplied,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, resolveDebugLogger(tt.cfg))
+		})
+	}
+}
+
+// TestTextDebugLoggerConcurrent pins the concurrency requirement DebugLogger
+// states: records reach the output whole, and the write itself is serialized, so
+// the type is safe with any writer rather than only with an atomic one.
+func TestTextDebugLoggerConcurrent(t *testing.T) {
+	t.Parallel()
+
+	const records = 50
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+
+	var wg sync.WaitGroup
+	for i := range records {
+		wg.Go(func() { logger.Debug("concurrent record", "i", i) })
+	}
+	wg.Wait()
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, records)
+	for _, line := range lines {
+		require.Regexp(t, `^\[\d{2}:\d{2}:\d{2}\.\d{3}\] DEBUG {4}concurrent record i=\d+$`, line)
+	}
+}
+
+// TestDebugFunc pins the func-shaped path into DebugLogger, which is how a
+// caller whose logging is a function rather than a type plugs in.
+func TestDebugFunc(t *testing.T) {
+	t.Parallel()
+
+	var (
+		gotMsg string
+		gotKV  []any
+	)
+
+	var dl DebugLogger = DebugFunc(func(msg string, kv ...any) {
+		gotMsg, gotKV = msg, kv
 	})
-	t.Run("Logf", func(t *testing.T) {
-		if err := logger.Logf("Foo %d", 1); err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-	})
+	dl.Debug("Node overloaded", "conn", "https://localhost:9200", "heap_used_percent", 93)
+
+	require.Equal(t, "Node overloaded", gotMsg)
+	require.Equal(t, []any{"conn", "https://localhost:9200", "heap_used_percent", 93}, gotKV)
 }
 
 type CustomLogger struct {

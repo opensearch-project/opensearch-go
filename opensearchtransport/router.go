@@ -924,7 +924,7 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 	// Log configuration errors. These are caller bugs that should be fixed.
 	if dl := loadDebugLogger(); dl != nil {
 		for _, err := range cfg.errs {
-			dl.Logf("routerConfig error: %v\n", err)
+			dl.Debug("routerConfig error", "err", err)
 		}
 	}
 

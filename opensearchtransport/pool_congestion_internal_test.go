@@ -885,11 +885,10 @@ func TestClusterSearchAIMD_DebugLogging(t *testing.T) {
 	ca.update([]nodeSearchSample{makeTestSample(c1, 2100, highWait, 13)})
 }
 
-// testDebugLogger implements the DebuggingLogger interface for test coverage.
+// testDebugLogger implements the DebugLogger interface for test coverage.
 type testDebugLogger struct{}
 
-func (l *testDebugLogger) Log(_ ...any) error            { return nil }
-func (l *testDebugLogger) Logf(_ string, _ ...any) error { return nil }
+func (l *testDebugLogger) Debug(_ string, _ ...any) {}
 
 // enableTestDebugLogger sets the debug logger to a no-op testDebugLogger exactly
 // once for the lifetime of the test process. This avoids data races that
