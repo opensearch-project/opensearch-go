@@ -967,7 +967,6 @@ type NodesInfoNodeTransport struct {
 	PublishAddress string `json:"publish_address"`
 }
 
-//
 // The HTTP server type configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -975,7 +974,6 @@ type NodesInfoNodeTransport struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodesInfoNodeSettingsHTTPType struct {
 	typ   NodesInfoNodeSettingsHTTPTypeType
 	raw   json.RawMessage
@@ -1103,7 +1101,6 @@ func (u NodesInfoNodeSettingsHTTPType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The transport layer type configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1111,7 +1108,6 @@ func (u NodesInfoNodeSettingsHTTPType) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodesInfoNodeSettingsTransportType struct {
 	typ   NodesInfoNodeSettingsTransportTypeType
 	raw   json.RawMessage
@@ -1241,7 +1237,6 @@ func (u NodesInfoNodeSettingsTransportType) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Total heap allowed to be used to hold recently indexed documents before they must be written to disk. This size is a shared pool across all shards on this node, and is controlled by Indexing Buffer settings.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -1249,7 +1244,6 @@ func (u NodesInfoNodeSettingsTransportType) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodesInfoNodeTotalIndexingBuffer struct {
 	typ   NodesInfoNodeTotalIndexingBufferType
 	raw   json.RawMessage
@@ -1384,7 +1378,6 @@ func (u NodesInfoNodeTotalIndexingBuffer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodesInfoNodeTotalIndexingBufferInBytes struct {
 	typ   NodesInfoNodeTotalIndexingBufferInBytesType
 	raw   json.RawMessage

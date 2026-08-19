@@ -947,6 +947,32 @@ type SearchSuggestBase struct {
 	Text   string `json:"text"`
 }
 
+type SearchCompletionSuggestOption struct {
+	ID    *string `json:"_id,omitempty"`
+	Index *string `json:"_index,omitempty"`
+
+	// Routing is the routing value for the document.
+	Routing *string `json:"_routing,omitempty"`
+
+	ScoreRaw     *float32                   `json:"_score,omitempty"`
+	Source       json.RawMessage            `json:"_source,omitempty"`
+	CollateMatch *bool                      `json:"collate_match,omitempty"`
+	Contexts     map[string][]SearchContext `json:"contexts,omitempty"`
+	Fields       map[string]json.RawMessage `json:"fields,omitempty"`
+	Score        *float32                   `json:"score,omitempty"`
+	Text         string                     `json:"text"`
+}
+
+type SearchCompletionSuggest struct {
+	SearchSuggestBase
+	Options SearchCompletionSuggestOptions `json:"options"`
+}
+
+type SearchSuggestCompletion struct {
+	SearchCompletionSuggest
+	Options *SearchSuggestCompletionOptions `json:"options,omitempty"`
+}
+
 type SearchPhraseSuggestOption struct {
 	CollateMatch *bool   `json:"collate_match,omitempty"`
 	Highlighted  *string `json:"highlighted,omitempty"`
@@ -1936,6 +1962,20 @@ type CommonQueryDSLCombinedFieldsQuery struct {
 	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
+type CommonQueryDSLCommonTermsQueryQuery struct {
+	CommonQueryDSLQueryBase
+	Analyzer         *string  `json:"analyzer,omitempty"`
+	CutoffFrequency  *float32 `json:"cutoff_frequency,omitempty"`
+	HighFreqOperator *string  `json:"high_freq_operator,omitempty"`
+	LowFreqOperator  *string  `json:"low_freq_operator,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Query string `json:"query"`
+}
+
 type CommonQueryDSLConstantScoreQuery struct {
 	CommonQueryDSLQueryBase
 	Filter CommonQueryDSLQueryContainer `json:"filter"`
@@ -1952,6 +1992,38 @@ type CommonQueryDSLDisMaxQuery struct {
 	// TieBreaker. Floating point number between 0 and 1.0 used to increase the
 	// relevance scores of documents matching multiple query clauses.
 	TieBreaker *float32 `json:"tie_breaker,omitempty"`
+}
+
+type CommonQueryDSLDistanceFeatureQueryObject0 struct {
+	CommonQueryDSLQueryBase
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	// Origin is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	Origin GeoLocation `json:"origin"`
+
+	Pivot string `json:"pivot"`
+}
+
+type CommonQueryDSLDistanceFeatureQueryObject1 struct {
+	CommonQueryDSLQueryBase
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	Origin string `json:"origin"`
+
+	// Pivot is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	Pivot string `json:"pivot"`
 }
 
 type CommonQueryDSLExistsQuery struct {
@@ -2023,6 +2095,11 @@ type CommonQueryDSLSpanOrQuery struct {
 	Clauses []CommonQueryDSLSpanQuery `json:"clauses"`
 }
 
+type CommonQueryDSLSpanTermQueryValue struct {
+	CommonQueryDSLQueryBase
+	Value string `json:"value"`
+}
+
 type CommonQueryDSLSpanWithinQuery struct {
 	CommonQueryDSLQueryBase
 	Big    CommonQueryDSLSpanQuery `json:"big"`
@@ -2044,7 +2121,7 @@ type CommonQueryDSLSpanQuery struct {
 
 	// SpanTerm is the equivalent of the `term` query but for use with other
 	// span queries.
-	SpanTerm map[string]string `json:"span_term,omitempty"`
+	SpanTerm map[string]CommonQueryDSLSpanTermQuery `json:"span_term,omitempty"`
 
 	SpanWithin *CommonQueryDSLSpanWithinQuery `json:"span_within,omitempty"`
 }
@@ -2098,6 +2175,15 @@ type ScriptBase struct {
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 }
 
+type InlineScriptSource struct {
+	ScriptBase
+	Lang    *string           `json:"lang,omitempty"`
+	Options map[string]string `json:"options,omitempty"`
+
+	// Source is the script source.
+	Source string `json:"source"`
+}
+
 type StoredScriptID struct {
 	ScriptBase
 
@@ -2137,6 +2223,27 @@ type CommonQueryDSLFunctionScoreQuery struct {
 
 	Query     *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 	ScoreMode *string                       `json:"score_mode,omitempty"`
+}
+
+type CommonQueryDSLFuzzyQueryValue struct {
+	CommonQueryDSLQueryBase
+	Fuzziness *string `json:"fuzziness,omitempty"`
+
+	// MaxExpansions. Maximum number of variations created.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged when
+	// creating expansions.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Transpositions. Indicates whether edits include transpositions of two
+	// adjacent characters (for example, `ab` to `ba`).
+	Transpositions *bool `json:"transpositions,omitempty"`
+
+	// Value. Term you wish to find in the provided field.
+	Value *FieldValue `json:"value"`
 }
 
 type CommonQueryDSLGeoBoundingBoxQuery struct {
@@ -2670,6 +2777,120 @@ type CommonQueryDSLKNNQuery struct {
 	Vector []float32 `json:"vector"`
 }
 
+type CommonQueryDSLMatchQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// AutoGenerateSynonymsPhraseQuery. If `true`, match phrase queries are
+	// automatically created for multi-term synonyms.
+	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
+
+	// Deprecated: since 2.0.0.
+	CutoffFrequency *float32 `json:"cutoff_frequency,omitempty"`
+
+	Fuzziness    *string `json:"fuzziness,omitempty"`
+	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
+
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
+	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
+
+	// Lenient. If `true`, format-based errors, such as providing a text query
+	// value for a numeric field, are ignored.
+	Lenient *bool `json:"lenient,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the query will expand.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Operator *string `json:"operator,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged for fuzzy
+	// matching.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	// Query. Text, number, Boolean value or date you wish to find in the
+	// provided field.
+	Query *FieldValue `json:"query"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
+}
+
+type CommonQueryDSLMatchBoolPrefixQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	Fuzziness    *string `json:"fuzziness,omitempty"`
+	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
+
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
+	// Can be applied to the term subqueries constructed for all terms but the
+	// final term.
+	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the query will expand.
+	// Can be applied to the term subqueries constructed for all terms but the
+	// final term.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Operator *string `json:"operator,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged for fuzzy
+	// matching. Can be applied to the term subqueries constructed for all
+	// terms but the final term.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	// Query. Terms you wish to find in the provided field. The last term is
+	// used in a prefix query.
+	Query string `json:"query"`
+}
+
+type CommonQueryDSLMatchPhraseQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// Query terms that are analyzed and turned into a phrase query.
+	Query string `json:"query"`
+
+	// Slop. Maximum number of positions allowed between matching tokens.
+	Slop *int `json:"slop,omitempty"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
+}
+
+type CommonQueryDSLMatchPhrasePrefixQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the last provided term
+	// of the query value will expand.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// Query. Text you wish to find in the provided field.
+	Query string `json:"query"`
+
+	// Slop. Maximum number of positions allowed between matching tokens.
+	Slop *int `json:"slop,omitempty"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
+}
+
 type CommonQueryDSLLikeDocument struct {
 	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
@@ -2902,6 +3123,22 @@ type CommonQueryDSLPercolateQuery struct {
 	Version *int64 `json:"version,omitempty"`
 }
 
+type CommonQueryDSLPrefixQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows ASCII case insensitive matching of the value
+	// with the indexed field values when set to `true`. Default is `false`
+	// which means the case sensitivity of matching depends on the underlying
+	// field's mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Beginning characters of terms you wish to find in the provided
+	// field.
+	Value string `json:"value"`
+}
+
 type CommonQueryDSLQueryStringQuery struct {
 	CommonQueryDSLQueryBase
 
@@ -3090,6 +3327,29 @@ type CommonQueryDSLRankFeatureQuery struct {
 	Sigmoid    *CommonQueryDSLRankFeatureFunctionSigmoid    `json:"sigmoid,omitempty"`
 }
 
+type CommonQueryDSLRegexpQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows case insensitive matching of the regular
+	// expression value with the indexed field values when set to `true`. When
+	// `false`, case sensitivity of matching depends on the underlying field's
+	// mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	// Flags. Enables optional operators for the regular expression.
+	Flags *string `json:"flags,omitempty"`
+
+	// MaxDeterminizedStates. Maximum number of automaton states required for
+	// the query.
+	MaxDeterminizedStates *int `json:"max_determinized_states,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Regular expression for terms you wish to find in the provided
+	// field.
+	Value string `json:"value"`
+}
+
 type CommonQueryDSLScriptQuery struct {
 	CommonQueryDSLQueryBase
 	Script Script `json:"script"`
@@ -3161,6 +3421,18 @@ type CommonQueryDSLSimpleQueryStringQuery struct {
 	QuoteFieldSuffix *string `json:"quote_field_suffix,omitempty"`
 }
 
+type CommonQueryDSLTermQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows ASCII case insensitive matching of the value
+	// with the indexed field values when set to `true`. When `false`, the case
+	// sensitivity of matching depends on the underlying field's mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	// Value is a field value.
+	Value *FieldValue `json:"value"`
+}
+
 // Returns documents that contain one or more exact terms in a provided field.
 type CommonQueryDSLTermsQuery struct {
 	Name  *string  `json:"_name,omitempty"`
@@ -3188,6 +3460,26 @@ type CommonQueryDSLTypeQuery struct {
 	Value string `json:"value"`
 }
 
+type CommonQueryDSLWildcardQueryObject1 struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows case insensitive matching of the pattern with
+	// the indexed field values when set to `true`. Default is `false` which
+	// means the case sensitivity of matching depends on the underlying field's
+	// mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Wildcard pattern for terms you wish to find in the provided
+	// field. Required, when wildcard is not set.
+	Value *string `json:"value,omitempty"`
+
+	// Wildcard pattern for terms you wish to find in the provided field.
+	// Required, when value is not set.
+	Wildcard *string `json:"wildcard,omitempty"`
+}
+
 type CommonQueryDSLWrapperQuery struct {
 	CommonQueryDSLQueryBase
 
@@ -3205,20 +3497,20 @@ type CommonQueryDSLQueryContainer struct {
 	// Available: >= 3.2.0.
 	Agentic *CommonQueryDSLAgenticQuery `json:"agentic,omitempty"`
 
-	Bool             *CommonQueryDSLBoolQuery             `json:"bool,omitempty"`
-	Boosting         *CommonQueryDSLBoostingQuery         `json:"boosting,omitempty"`
-	CombinedFields   *CommonQueryDSLCombinedFieldsQuery   `json:"combined_fields,omitempty"`
-	Common           map[string]string                    `json:"common,omitempty"`
-	ConstantScore    *CommonQueryDSLConstantScoreQuery    `json:"constant_score,omitempty"`
-	DisMax           *CommonQueryDSLDisMaxQuery           `json:"dis_max,omitempty"`
-	DistanceFeature  json.RawMessage                      `json:"distance_feature,omitempty"`
-	Exists           *CommonQueryDSLExistsQuery           `json:"exists,omitempty"`
-	FieldMaskingSpan *CommonQueryDSLSpanFieldMaskingQuery `json:"field_masking_span,omitempty"`
-	FunctionScore    *CommonQueryDSLFunctionScoreQuery    `json:"function_score,omitempty"`
+	Bool             *CommonQueryDSLBoolQuery                  `json:"bool,omitempty"`
+	Boosting         *CommonQueryDSLBoostingQuery              `json:"boosting,omitempty"`
+	CombinedFields   *CommonQueryDSLCombinedFieldsQuery        `json:"combined_fields,omitempty"`
+	Common           map[string]CommonQueryDSLCommonTermsQuery `json:"common,omitempty"`
+	ConstantScore    *CommonQueryDSLConstantScoreQuery         `json:"constant_score,omitempty"`
+	DisMax           *CommonQueryDSLDisMaxQuery                `json:"dis_max,omitempty"`
+	DistanceFeature  *CommonQueryDSLDistanceFeatureQuery       `json:"distance_feature,omitempty"`
+	Exists           *CommonQueryDSLExistsQuery                `json:"exists,omitempty"`
+	FieldMaskingSpan *CommonQueryDSLSpanFieldMaskingQuery      `json:"field_masking_span,omitempty"`
+	FunctionScore    *CommonQueryDSLFunctionScoreQuery         `json:"function_score,omitempty"`
 
 	// Fuzzy. Returns documents that contain terms similar to the search term,
 	// as measured by a Levenshtein edit distance.
-	Fuzzy map[string]FieldValue `json:"fuzzy,omitempty"`
+	Fuzzy map[string]CommonQueryDSLFuzzyQuery `json:"fuzzy,omitempty"`
 
 	GeoBoundingBox *CommonQueryDSLGeoBoundingBoxQuery `json:"geo_bounding_box,omitempty"`
 	GeoDistance    *CommonQueryDSLGeoDistanceQuery    `json:"geo_distance,omitempty"`
@@ -3237,26 +3529,26 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Match. Returns documents that match a provided text, number, date or
 	// Boolean value. The provided text is analyzed before matching.
-	Match map[string]FieldValue `json:"match,omitempty"`
+	Match map[string]CommonQueryDSLMatchQuery `json:"match,omitempty"`
 
 	MatchAll *CommonQueryDSLQueryBase `json:"match_all,omitempty"`
 
 	// MatchBoolPrefix. Analyzes its input and constructs a `bool` query from
 	// the terms. Each term except the last is used in a `term` query. The last
 	// term is used in a prefix query.
-	MatchBoolPrefix map[string]string `json:"match_bool_prefix,omitempty"`
+	MatchBoolPrefix map[string]CommonQueryDSLMatchBoolPrefixQuery `json:"match_bool_prefix,omitempty"`
 
 	MatchNone *CommonQueryDSLQueryBase `json:"match_none,omitempty"`
 
 	// MatchPhrase. Analyzes the text and creates a phrase query out of the
 	// analyzed text.
-	MatchPhrase map[string]string `json:"match_phrase,omitempty"`
+	MatchPhrase map[string]CommonQueryDSLMatchPhraseQuery `json:"match_phrase,omitempty"`
 
 	// MatchPhrasePrefix. Returns documents that contain the words of a
 	// provided text, in the same order as provided. The last term of the
 	// provided text is treated as a prefix, matching any words that begin with
 	// that term.
-	MatchPhrasePrefix map[string]string `json:"match_phrase_prefix,omitempty"`
+	MatchPhrasePrefix map[string]CommonQueryDSLMatchPhrasePrefixQuery `json:"match_phrase_prefix,omitempty"`
 
 	MoreLikeThis *CommonQueryDSLMoreLikeThisQuery     `json:"more_like_this,omitempty"`
 	MultiMatch   *CommonQueryDSLMultiMatchQuery       `json:"multi_match,omitempty"`
@@ -3267,7 +3559,7 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Prefix. Returns documents that contain a specific prefix in a provided
 	// field.
-	Prefix map[string]string `json:"prefix,omitempty"`
+	Prefix map[string]CommonQueryDSLPrefixQuery `json:"prefix,omitempty"`
 
 	QueryString *CommonQueryDSLQueryStringQuery `json:"query_string,omitempty"`
 
@@ -3278,7 +3570,7 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Regexp. Returns documents that contain terms matching a regular
 	// expression.
-	Regexp map[string]string `json:"regexp,omitempty"`
+	Regexp map[string]CommonQueryDSLRegexpQuery `json:"regexp,omitempty"`
 
 	Script            *CommonQueryDSLScriptQuery            `json:"script,omitempty"`
 	ScriptScore       *CommonQueryDSLScriptScoreQuery       `json:"script_score,omitempty"`
@@ -3291,7 +3583,7 @@ type CommonQueryDSLQueryContainer struct {
 	SpanOr            *CommonQueryDSLSpanOrQuery            `json:"span_or,omitempty"`
 
 	// SpanTerm. Matches spans containing a term.
-	SpanTerm map[string]string `json:"span_term,omitempty"`
+	SpanTerm map[string]CommonQueryDSLSpanTermQuery `json:"span_term,omitempty"`
 
 	SpanWithin *CommonQueryDSLSpanWithinQuery `json:"span_within,omitempty"`
 
@@ -3302,7 +3594,7 @@ type CommonQueryDSLQueryContainer struct {
 	// Term. Returns documents that contain an exact term in a provided field.
 	// To return a document, the query term must exactly match the queried
 	// field's value, including white space and capitalization.
-	Term map[string]FieldValue `json:"term,omitempty"`
+	Term map[string]CommonQueryDSLTermQuery `json:"term,omitempty"`
 
 	// Terms. Returns documents that contain one or more exact terms in a
 	// provided field.
@@ -3318,7 +3610,7 @@ type CommonQueryDSLQueryContainer struct {
 
 	// Wildcard. Returns documents that contain terms matching a wildcard
 	// pattern.
-	Wildcard map[string]string `json:"wildcard,omitempty"`
+	Wildcard map[string]CommonQueryDSLWildcardQuery `json:"wildcard,omitempty"`
 
 	Wrapper *CommonQueryDSLWrapperQuery `json:"wrapper,omitempty"`
 
@@ -10370,81 +10662,93 @@ type ErrorRespBase struct {
 	Status int `json:"status"`
 }
 
+type NeuralStatMetadata struct {
+	StatType string                  `json:"stat_type"`
+	Value    NeuralStatMetadataValue `json:"value"`
+}
+
+type NeuralTimestampedEventCounterStatStatType struct {
+	NeuralStatMetadata
+	MinutesSinceLastEvent *int    `json:"minutes_since_last_event,omitempty"`
+	StatType              *string `json:"stat_type,omitempty"`
+	TrailingIntervalValue *int    `json:"trailing_interval_value,omitempty"`
+}
+
 type NeuralNestedNodeStatsProcessorsIngest struct {
 	// Available: >= 3.1.0.
-	SemanticFieldChunkingExecutions *int `json:"semantic_field_chunking_executions,omitempty"`
+	SemanticFieldChunkingExecutions *NeuralTimestampedEventCounterStat `json:"semantic_field_chunking_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	SemanticFieldExecutions *int `json:"semantic_field_executions,omitempty"`
+	SemanticFieldExecutions *NeuralTimestampedEventCounterStat `json:"semantic_field_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	SkipExistingExecutions *int `json:"skip_existing_executions,omitempty"`
+	SkipExistingExecutions *NeuralTimestampedEventCounterStat `json:"skip_existing_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	SparseEncodingExecutions *int `json:"sparse_encoding_executions,omitempty"`
+	SparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"sparse_encoding_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingDelimiterExecutions *int `json:"text_chunking_delimiter_executions,omitempty"`
+	TextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_delimiter_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingExecutions *int `json:"text_chunking_executions,omitempty"`
+	TextChunkingExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingFixedCharLengthExecutions *int `json:"text_chunking_fixed_char_length_executions,omitempty"`
+	TextChunkingFixedCharLengthExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_fixed_char_length_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingFixedTokenLengthExecutions *int `json:"text_chunking_fixed_token_length_executions,omitempty"`
+	TextChunkingFixedTokenLengthExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_fixed_token_length_executions,omitempty"`
 
 	// Available: >= 3.0.0.
-	TextEmbeddingExecutions *int `json:"text_embedding_executions,omitempty"`
+	TextEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"text_embedding_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextImageEmbeddingExecutions *int `json:"text_image_embedding_executions,omitempty"`
+	TextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"text_image_embedding_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessorsSearchHybrid struct {
 	// Available: >= 3.1.0.
-	CombArithmeticExecutions *int `json:"comb_arithmetic_executions,omitempty"`
+	CombArithmeticExecutions *NeuralTimestampedEventCounterStat `json:"comb_arithmetic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombGeometricExecutions *int `json:"comb_geometric_executions,omitempty"`
+	CombGeometricExecutions *NeuralTimestampedEventCounterStat `json:"comb_geometric_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombHarmonicExecutions *int `json:"comb_harmonic_executions,omitempty"`
+	CombHarmonicExecutions *NeuralTimestampedEventCounterStat `json:"comb_harmonic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombRRFExecutions *int `json:"comb_rrf_executions,omitempty"`
+	CombRRFExecutions *NeuralTimestampedEventCounterStat `json:"comb_rrf_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormL2Executions *int `json:"norm_l2_executions,omitempty"`
+	NormL2Executions *NeuralTimestampedEventCounterStat `json:"norm_l2_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormMinmaxExecutions *int `json:"norm_minmax_executions,omitempty"`
+	NormMinmaxExecutions *NeuralTimestampedEventCounterStat `json:"norm_minmax_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormZscoreExecutions *int `json:"norm_zscore_executions,omitempty"`
+	NormZscoreExecutions *NeuralTimestampedEventCounterStat `json:"norm_zscore_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormalizationProcessorExecutions *int `json:"normalization_processor_executions,omitempty"`
+	NormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"normalization_processor_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	RankBasedNormalizationProcessorExecutions *int `json:"rank_based_normalization_processor_executions,omitempty"`
+	RankBasedNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"rank_based_normalization_processor_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessorsSearch struct {
 	Hybrid *NeuralNestedNodeStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralQueryEnricherExecutions *int `json:"neural_query_enricher_executions,omitempty"`
+	NeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"neural_query_enricher_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralSparseTwoPhaseExecutions *int `json:"neural_sparse_two_phase_executions,omitempty"`
+	NeuralSparseTwoPhaseExecutions *NeuralTimestampedEventCounterStat `json:"neural_sparse_two_phase_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	RerankByFieldExecutions *int `json:"rerank_by_field_executions,omitempty"`
+	RerankByFieldExecutions *NeuralTimestampedEventCounterStat `json:"rerank_by_field_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	RerankMLExecutions *int `json:"rerank_ml_executions,omitempty"`
+	RerankMLExecutions *NeuralTimestampedEventCounterStat `json:"rerank_ml_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessors struct {
@@ -10454,35 +10758,35 @@ type NeuralNestedNodeStatsProcessors struct {
 
 type NeuralNestedNodeStatsQueryHybrid struct {
 	// Available: >= 3.1.0.
-	HybridQueryRequests *int `json:"hybrid_query_requests,omitempty"`
+	HybridQueryRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	HybridQueryWithFilterRequests *int `json:"hybrid_query_with_filter_requests,omitempty"`
+	HybridQueryWithFilterRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_filter_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	HybridQueryWithInnerHitsRequests *int `json:"hybrid_query_with_inner_hits_requests,omitempty"`
+	HybridQueryWithInnerHitsRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_inner_hits_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	HybridQueryWithPaginationRequests *int `json:"hybrid_query_with_pagination_requests,omitempty"`
+	HybridQueryWithPaginationRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_pagination_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQueryNeural struct {
 	// Available: >= 3.1.0.
-	NeuralQueryAgainstKNNRequests *int `json:"neural_query_against_knn_requests,omitempty"`
+	NeuralQueryAgainstKNNRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_knn_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralQueryAgainstSemanticDenseRequests *int `json:"neural_query_against_semantic_dense_requests,omitempty"`
+	NeuralQueryAgainstSemanticDenseRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_semantic_dense_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralQueryAgainstSemanticSparseRequests *int `json:"neural_query_against_semantic_sparse_requests,omitempty"`
+	NeuralQueryAgainstSemanticSparseRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_semantic_sparse_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralQueryRequests *int `json:"neural_query_requests,omitempty"`
+	NeuralQueryRequests *NeuralTimestampedEventCounterStat `json:"neural_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQueryNeuralSparse struct {
 	// Available: >= 3.1.0.
-	NeuralSparseQueryRequests *int `json:"neural_sparse_query_requests,omitempty"`
+	NeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"neural_sparse_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQuery struct {
@@ -10493,7 +10797,7 @@ type NeuralNestedNodeStatsQuery struct {
 
 type NeuralNestedNodeStatsSemanticHighlighting struct {
 	// Available: >= 3.1.0.
-	SemanticHighlightingRequestCount *int `json:"semantic_highlighting_request_count,omitempty"`
+	SemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting_request_count,omitempty"`
 }
 
 type NeuralNestedNodeStats struct {
@@ -10502,75 +10806,85 @@ type NeuralNestedNodeStats struct {
 	SemanticHighlighting *NeuralNestedNodeStatsSemanticHighlighting `json:"semantic_highlighting,omitempty"`
 }
 
+type NeuralInfoStringStatStatType struct {
+	NeuralStatMetadata
+	StatType *string `json:"stat_type,omitempty"`
+}
+
+type NeuralInfoCounterStatStatType struct {
+	NeuralStatMetadata
+	StatType *string `json:"stat_type,omitempty"`
+}
+
 type NeuralNestedInfoStatsProcessorsIngest struct {
 	// Available: >= 3.1.0.
-	SkipExistingProcessors *int `json:"skip_existing_processors,omitempty"`
+	SkipExistingProcessors *NeuralInfoCounterStat `json:"skip_existing_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	SparseEncodingProcessors *int `json:"sparse_encoding_processors,omitempty"`
+	SparseEncodingProcessors *NeuralInfoCounterStat `json:"sparse_encoding_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingDelimiterProcessors *int `json:"text_chunking_delimiter_processors,omitempty"`
+	TextChunkingDelimiterProcessors *NeuralInfoCounterStat `json:"text_chunking_delimiter_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingFixedCharLengthProcessors *int `json:"text_chunking_fixed_char_length_processors,omitempty"`
+	TextChunkingFixedCharLengthProcessors *NeuralInfoCounterStat `json:"text_chunking_fixed_char_length_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingFixedTokenLengthProcessors *int `json:"text_chunking_fixed_token_length_processors,omitempty"`
+	TextChunkingFixedTokenLengthProcessors *NeuralInfoCounterStat `json:"text_chunking_fixed_token_length_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextChunkingProcessors *int `json:"text_chunking_processors,omitempty"`
+	TextChunkingProcessors *NeuralInfoCounterStat `json:"text_chunking_processors,omitempty"`
 
 	// Available: >= 3.0.0.
-	TextEmbeddingProcessorsInPipelines *int `json:"text_embedding_processors_in_pipelines,omitempty"`
+	TextEmbeddingProcessorsInPipelines *NeuralInfoCounterStat `json:"text_embedding_processors_in_pipelines,omitempty"`
 
 	// Available: >= 3.1.0.
-	TextImageEmbeddingProcessors *int `json:"text_image_embedding_processors,omitempty"`
+	TextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"text_image_embedding_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessorsSearchHybrid struct {
 	// Available: >= 3.1.0.
-	CombArithmeticProcessors *int `json:"comb_arithmetic_processors,omitempty"`
+	CombArithmeticProcessors *NeuralInfoCounterStat `json:"comb_arithmetic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombGeometricProcessors *int `json:"comb_geometric_processors,omitempty"`
+	CombGeometricProcessors *NeuralInfoCounterStat `json:"comb_geometric_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombHarmonicProcessors *int `json:"comb_harmonic_processors,omitempty"`
+	CombHarmonicProcessors *NeuralInfoCounterStat `json:"comb_harmonic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	CombRRFProcessors *int `json:"comb_rrf_processors,omitempty"`
+	CombRRFProcessors *NeuralInfoCounterStat `json:"comb_rrf_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormL2Processors *int `json:"norm_l2_processors,omitempty"`
+	NormL2Processors *NeuralInfoCounterStat `json:"norm_l2_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormMinmaxProcessors *int `json:"norm_minmax_processors,omitempty"`
+	NormMinmaxProcessors *NeuralInfoCounterStat `json:"norm_minmax_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormZscoreProcessors *int `json:"norm_zscore_processors,omitempty"`
+	NormZscoreProcessors *NeuralInfoCounterStat `json:"norm_zscore_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	NormalizationProcessors *int `json:"normalization_processors,omitempty"`
+	NormalizationProcessors *NeuralInfoCounterStat `json:"normalization_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	RankBasedNormalizationProcessors *int `json:"rank_based_normalization_processors,omitempty"`
+	RankBasedNormalizationProcessors *NeuralInfoCounterStat `json:"rank_based_normalization_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessorsSearch struct {
 	Hybrid *NeuralNestedInfoStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralQueryEnricherProcessors *int `json:"neural_query_enricher_processors,omitempty"`
+	NeuralQueryEnricherProcessors *NeuralInfoCounterStat `json:"neural_query_enricher_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	NeuralSparseTwoPhaseProcessors *int `json:"neural_sparse_two_phase_processors,omitempty"`
+	NeuralSparseTwoPhaseProcessors *NeuralInfoCounterStat `json:"neural_sparse_two_phase_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	RerankByFieldProcessors *int `json:"rerank_by_field_processors,omitempty"`
+	RerankByFieldProcessors *NeuralInfoCounterStat `json:"rerank_by_field_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	RerankMLProcessors *int `json:"rerank_ml_processors,omitempty"`
+	RerankMLProcessors *NeuralInfoCounterStat `json:"rerank_ml_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessors struct {
@@ -10580,7 +10894,7 @@ type NeuralNestedInfoStatsProcessors struct {
 
 type NeuralNestedInfoStats struct {
 	// Available: >= 3.0.0.
-	ClusterVersion *string `json:"cluster_version,omitempty"`
+	ClusterVersion *NeuralInfoStringStat `json:"cluster_version,omitempty"`
 
 	Processors *NeuralNestedInfoStatsProcessors `json:"processors,omitempty"`
 }
@@ -10595,171 +10909,171 @@ type NeuralNestedStats struct {
 
 type NeuralFlatNodeStats struct {
 	// Available: >= 3.1.0.
-	ProcessorsIngestSemanticFieldChunkingExecutions *int `json:"processors.ingest.semantic_field_chunking_executions,omitempty"`
+	ProcessorsIngestSemanticFieldChunkingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.semantic_field_chunking_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestSemanticFieldExecutions *int `json:"processors.ingest.semantic_field_executions,omitempty"`
+	ProcessorsIngestSemanticFieldExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.semantic_field_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestSkipExistingExecutions *int `json:"processors.ingest.skip_existing_executions,omitempty"`
+	ProcessorsIngestSkipExistingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.skip_existing_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestSparseEncodingExecutions *int `json:"processors.ingest.sparse_encoding_executions,omitempty"`
+	ProcessorsIngestSparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.sparse_encoding_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingDelimiterExecutions *int `json:"processors.ingest.text_chunking_delimiter_executions,omitempty"`
+	ProcessorsIngestTextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_delimiter_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingExecutions *int `json:"processors.ingest.text_chunking_executions,omitempty"`
+	ProcessorsIngestTextChunkingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingFixedCharLengthExecutions *int `json:"processors.ingest.text_chunking_fixed_char_length_executions,omitempty"`
+	ProcessorsIngestTextChunkingFixedCharLengthExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_fixed_char_length_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingFixedTokenLengthExecutions *int `json:"processors.ingest.text_chunking_fixed_token_length_executions,omitempty"`
+	ProcessorsIngestTextChunkingFixedTokenLengthExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_fixed_token_length_executions,omitempty"`
 
 	// Available: >= 3.0.0.
-	ProcessorsIngestTextEmbeddingExecutions *int `json:"processors.ingest.text_embedding_executions,omitempty"`
+	ProcessorsIngestTextEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_embedding_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextImageEmbeddingExecutions *int `json:"processors.ingest.text_image_embedding_executions,omitempty"`
+	ProcessorsIngestTextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_image_embedding_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombArithmeticExecutions *int `json:"processors.search.hybrid.comb_arithmetic_executions,omitempty"`
+	ProcessorsSearchHybridCombArithmeticExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_arithmetic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombGeometricExecutions *int `json:"processors.search.hybrid.comb_geometric_executions,omitempty"`
+	ProcessorsSearchHybridCombGeometricExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_geometric_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombHarmonicExecutions *int `json:"processors.search.hybrid.comb_harmonic_executions,omitempty"`
+	ProcessorsSearchHybridCombHarmonicExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_harmonic_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombRRFExecutions *int `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
+	ProcessorsSearchHybridCombRRFExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormL2Executions *int `json:"processors.search.hybrid.norm_l2_executions,omitempty"`
+	ProcessorsSearchHybridNormL2Executions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_l2_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormMinmaxExecutions *int `json:"processors.search.hybrid.norm_minmax_executions,omitempty"`
+	ProcessorsSearchHybridNormMinmaxExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_minmax_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormZscoreExecutions *int `json:"processors.search.hybrid.norm_zscore_executions,omitempty"`
+	ProcessorsSearchHybridNormZscoreExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_zscore_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormalizationProcessorExecutions *int `json:"processors.search.hybrid.normalization_processor_executions,omitempty"`
+	ProcessorsSearchHybridNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.normalization_processor_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridRankBasedNormalizationProcessorExecutions *int `json:"processors.search.hybrid.rank_based_normalization_processor_executions,omitempty"`
+	ProcessorsSearchHybridRankBasedNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.rank_based_normalization_processor_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchNeuralQueryEnricherExecutions *int `json:"processors.search.neural_query_enricher_executions,omitempty"`
+	ProcessorsSearchNeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.neural_query_enricher_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchNeuralSparseTwoPhaseExecutions *int `json:"processors.search.neural_sparse_two_phase_executions,omitempty"`
+	ProcessorsSearchNeuralSparseTwoPhaseExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.neural_sparse_two_phase_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchRerankByFieldExecutions *int `json:"processors.search.rerank_by_field_executions,omitempty"`
+	ProcessorsSearchRerankByFieldExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.rerank_by_field_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchRerankMLExecutions *int `json:"processors.search.rerank_ml_executions,omitempty"`
+	ProcessorsSearchRerankMLExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.rerank_ml_executions,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryHybridHybridQueryRequests *int `json:"query.hybrid.hybrid_query_requests,omitempty"`
+	QueryHybridHybridQueryRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryHybridHybridQueryWithFilterRequests *int `json:"query.hybrid.hybrid_query_with_filter_requests,omitempty"`
+	QueryHybridHybridQueryWithFilterRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_filter_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryHybridHybridQueryWithInnerHitsRequests *int `json:"query.hybrid.hybrid_query_with_inner_hits_requests,omitempty"`
+	QueryHybridHybridQueryWithInnerHitsRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_inner_hits_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryHybridHybridQueryWithPaginationRequests *int `json:"query.hybrid.hybrid_query_with_pagination_requests,omitempty"`
+	QueryHybridHybridQueryWithPaginationRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_pagination_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryNeuralNeuralQueryAgainstKNNRequests *int `json:"query.neural.neural_query_against_knn_requests,omitempty"`
+	QueryNeuralNeuralQueryAgainstKNNRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_knn_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryNeuralNeuralQueryAgainstSemanticDenseRequests *int `json:"query.neural.neural_query_against_semantic_dense_requests,omitempty"`
+	QueryNeuralNeuralQueryAgainstSemanticDenseRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_semantic_dense_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryNeuralNeuralQueryAgainstSemanticSparseRequests *int `json:"query.neural.neural_query_against_semantic_sparse_requests,omitempty"`
+	QueryNeuralNeuralQueryAgainstSemanticSparseRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_semantic_sparse_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryNeuralNeuralQueryRequests *int `json:"query.neural.neural_query_requests,omitempty"`
+	QueryNeuralNeuralQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	QueryNeuralSparseNeuralSparseQueryRequests *int `json:"query.neural_sparse.neural_sparse_query_requests,omitempty"`
+	QueryNeuralSparseNeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural_sparse.neural_sparse_query_requests,omitempty"`
 
 	// Available: >= 3.1.0.
-	SemanticHighlightingSemanticHighlightingRequestCount *int `json:"semantic_highlighting.semantic_highlighting_request_count,omitempty"`
+	SemanticHighlightingSemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting.semantic_highlighting_request_count,omitempty"`
 }
 
 type NeuralFlatInfoStats struct {
 	// Available: >= 3.0.0.
-	ClusterVersion *string `json:"cluster_version,omitempty"`
+	ClusterVersion *NeuralInfoStringStat `json:"cluster_version,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestSkipExistingProcessors *int `json:"processors.ingest.skip_existing_processors,omitempty"`
+	ProcessorsIngestSkipExistingProcessors *NeuralInfoCounterStat `json:"processors.ingest.skip_existing_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestSparseEncodingProcessors *int `json:"processors.ingest.sparse_encoding_processors,omitempty"`
+	ProcessorsIngestSparseEncodingProcessors *NeuralInfoCounterStat `json:"processors.ingest.sparse_encoding_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingDelimiterProcessors *int `json:"processors.ingest.text_chunking_delimiter_processors,omitempty"`
+	ProcessorsIngestTextChunkingDelimiterProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_delimiter_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingFixedCharLengthProcessors *int `json:"processors.ingest.text_chunking_fixed_char_length_processors,omitempty"`
+	ProcessorsIngestTextChunkingFixedCharLengthProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_fixed_char_length_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingFixedTokenLengthProcessors *int `json:"processors.ingest.text_chunking_fixed_token_length_processors,omitempty"`
+	ProcessorsIngestTextChunkingFixedTokenLengthProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_fixed_token_length_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextChunkingProcessors *int `json:"processors.ingest.text_chunking_processors,omitempty"`
+	ProcessorsIngestTextChunkingProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_processors,omitempty"`
 
 	// Available: >= 3.0.0.
-	ProcessorsIngestTextEmbeddingProcessorsInPipelines *int `json:"processors.ingest.text_embedding_processors_in_pipelines,omitempty"`
+	ProcessorsIngestTextEmbeddingProcessorsInPipelines *NeuralInfoCounterStat `json:"processors.ingest.text_embedding_processors_in_pipelines,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsIngestTextImageEmbeddingProcessors *int `json:"processors.ingest.text_image_embedding_processors,omitempty"`
+	ProcessorsIngestTextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_image_embedding_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombArithmeticProcessors *int `json:"processors.search.hybrid.comb_arithmetic_processors,omitempty"`
+	ProcessorsSearchHybridCombArithmeticProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_arithmetic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombGeometricProcessors *int `json:"processors.search.hybrid.comb_geometric_processors,omitempty"`
+	ProcessorsSearchHybridCombGeometricProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_geometric_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombHarmonicProcessors *int `json:"processors.search.hybrid.comb_harmonic_processors,omitempty"`
+	ProcessorsSearchHybridCombHarmonicProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_harmonic_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridCombRRFProcessors *int `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
+	ProcessorsSearchHybridCombRRFProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormL2Processors *int `json:"processors.search.hybrid.norm_l2_processors,omitempty"`
+	ProcessorsSearchHybridNormL2Processors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_l2_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormMinmaxProcessors *int `json:"processors.search.hybrid.norm_minmax_processors,omitempty"`
+	ProcessorsSearchHybridNormMinmaxProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_minmax_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormZscoreProcessors *int `json:"processors.search.hybrid.norm_zscore_processors,omitempty"`
+	ProcessorsSearchHybridNormZscoreProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_zscore_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridNormalizationProcessors *int `json:"processors.search.hybrid.normalization_processors,omitempty"`
+	ProcessorsSearchHybridNormalizationProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.normalization_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchHybridRankBasedNormalizationProcessors *int `json:"processors.search.hybrid.rank_based_normalization_processors,omitempty"`
+	ProcessorsSearchHybridRankBasedNormalizationProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.rank_based_normalization_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchNeuralQueryEnricherProcessors *int `json:"processors.search.neural_query_enricher_processors,omitempty"`
+	ProcessorsSearchNeuralQueryEnricherProcessors *NeuralInfoCounterStat `json:"processors.search.neural_query_enricher_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchNeuralSparseTwoPhaseProcessors *int `json:"processors.search.neural_sparse_two_phase_processors,omitempty"`
+	ProcessorsSearchNeuralSparseTwoPhaseProcessors *NeuralInfoCounterStat `json:"processors.search.neural_sparse_two_phase_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchRerankByFieldProcessors *int `json:"processors.search.rerank_by_field_processors,omitempty"`
+	ProcessorsSearchRerankByFieldProcessors *NeuralInfoCounterStat `json:"processors.search.rerank_by_field_processors,omitempty"`
 
 	// Available: >= 3.1.0.
-	ProcessorsSearchRerankMLProcessors *int `json:"processors.search.rerank_ml_processors,omitempty"`
+	ProcessorsSearchRerankMLProcessors *NeuralInfoCounterStat `json:"processors.search.rerank_ml_processors,omitempty"`
 }
 
 type NeuralFlatStats struct {

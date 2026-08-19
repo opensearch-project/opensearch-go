@@ -219,7 +219,6 @@ type MSearchMultiSearchItem struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MSearchRespItem struct {
 	typ   MSearchRespItemType
 	raw   json.RawMessage

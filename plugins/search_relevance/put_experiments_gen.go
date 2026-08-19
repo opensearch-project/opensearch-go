@@ -114,7 +114,6 @@ func (r PutExperimentsResp) RawBody() io.Reader {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchRelevancePutExperimentsBody struct {
 	typ   SearchRelevancePutExperimentsBodyType
 	raw   json.RawMessage

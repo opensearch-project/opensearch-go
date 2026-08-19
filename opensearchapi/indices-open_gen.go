@@ -205,7 +205,6 @@ type IndicesOpenRespBodyAcknowledged struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesOpenRespBody struct {
 	typ   IndicesOpenRespBodyType
 	raw   json.RawMessage

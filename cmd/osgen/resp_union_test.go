@@ -433,6 +433,29 @@ func TestDeduplicateAccessorNames(t *testing.T) {
 			},
 			want: []string{"StringArray", "IntArray"},
 		},
+		{
+			// The spec titles a shorthand $ref branch for the very key the
+			// full-form sibling requires, so both derive the same name. The $ref
+			// branch is renamed to the schema it references, which leaves the
+			// inline branch its content name -- qualifying both by Go type would
+			// stutter the union prefix into CommonQueryDSLMatchQueryQueryQuery.
+			name: "titled ref branch yields to its schema name",
+			branches: []unionBranch{
+				{Name: "Query", GoType: "FieldValue", IsRef: true, SchemaKey: "_common___FieldValue"},
+				{Name: "Query", GoType: "CommonQueryDSLMatchQueryQuery"},
+			},
+			want: []string{"FieldValue", "Query"},
+		},
+		{
+			// Neither branch can be renamed from a schema key, so both keep the
+			// GoType qualifier.
+			name: "inline collisions still fall back to the GoType qualifier",
+			branches: []unionBranch{
+				{Name: "Field", GoType: "AObject0"},
+				{Name: "Field", GoType: "AObject1"},
+			},
+			want: []string{"AObject0Field", "AObject1Field"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -575,6 +598,23 @@ func TestObjectBranchName(t *testing.T) {
 		{name: "permissive multi prop sorted", schema: obj("", nil, "includes", "excludes"), want: "ExcludesIncludes"},
 		// An object with no properties has no content name (open map branch).
 		{name: "no properties", schema: obj("", nil), want: ""},
+		// flattenRequired reaches through allOf, so a composed branch is named for
+		// the key it requires even though its root declares no properties.
+		{
+			name: "composed branch takes its required key",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Value: obj("", []string{"value"}, "value", "case_insensitive")},
+			}},
+			want: "Value",
+		},
+		// A titled composed branch still uses its title.
+		{
+			name: "titled composed branch",
+			schema: &openapi3.Schema{Title: "completion", AllOf: openapi3.SchemaRefs{
+				{Value: obj("", nil, "options")},
+			}},
+			want: "Completion",
+		},
 	}
 
 	for _, tt := range tests {
@@ -662,6 +702,130 @@ func TestClassifyBranchInlineObject(t *testing.T) {
 			require.Equal(t, tt.wantName, b.Name)
 			require.Equal(t, tt.wantGoType, b.GoType)
 			require.Equal(t, ir.TokenObject, b.TokenClass)
+		})
+	}
+}
+
+// TestClassifyBranchInlineComposed covers an inline branch that composes its
+// shape with allOf and so carries no `type` keyword: an allOf of objects is an
+// object, and the branch must classify as one. A titled composed branch keeps
+// its title-derived name; an unnamed one falls back to the positional suffix.
+func TestClassifyBranchInlineComposed(t *testing.T) {
+	t.Parallel()
+
+	// Shaped like the spec's field-scoped queries: a $ref'd base merged with an
+	// inline object that adds the branch's own properties.
+	composed := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{
+					Ref: "#/components/schemas/_common.query_dsl___QueryBase",
+					Value: &openapi3.Schema{
+						Type:       &openapi3.Types{"object"},
+						Properties: openapi3.Schemas{"boost": {Value: openapi3.NewFloat64Schema()}},
+					},
+				},
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{"value"},
+					Properties: openapi3.Schemas{"value": {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		objName    string
+		wantName   string
+		wantGoType string
+	}{
+		{name: "content name", objName: "Value", wantName: "Value", wantGoType: "CommonQueryDSLTermQueryValue"},
+		{name: "positional fallback", objName: "", wantName: "Object1", wantGoType: "CommonQueryDSLTermQueryObject1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			b := w.classifyBranch(composed(), "_common.query_dsl___TermQuery", "_common.query_dsl", 1, tt.objName)
+			require.Equal(t, tt.wantName, b.Name)
+			require.Equal(t, tt.wantGoType, b.GoType)
+			require.Equal(t, ir.TokenObject, b.TokenClass)
+			// Required comes through the allOf members, which is what a decoder
+			// probes to tell the branch from its siblings.
+			require.Equal(t, []string{"value"}, b.Required)
+		})
+	}
+}
+
+// TestResolveUnionTypeKeepsComposedBranch covers the two unions an inline
+// composed (allOf) branch appears in: a shorthand scalar paired with the
+// full-form object, and a union whose every branch is composed. Dropping the
+// composed branch would silently collapse the first to the scalar alone and
+// degrade the second to json.RawMessage.
+func TestResolveUnionTypeKeepsComposedBranch(t *testing.T) {
+	t.Parallel()
+
+	composed := func(required string) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{required},
+					Properties: openapi3.Schemas{required: {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		schema     *openapi3.Schema
+		schemaKey  string
+		wantGoType string
+		wantBranch []string
+	}{
+		{
+			name: "scalar shorthand and composed full form",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{Title: "value", Type: &openapi3.Types{"string"}}},
+				composed("value"),
+			}},
+			schemaKey:  "_common.query_dsl___TermQuery",
+			wantGoType: "CommonQueryDSLTermQuery",
+			wantBranch: []string{"String", "Value"},
+		},
+		{
+			name: "every branch composed",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				composed("origin"),
+				composed("pivot"),
+			}},
+			schemaKey:  "_common.query_dsl___DistanceFeatureQuery",
+			wantGoType: "CommonQueryDSLDistanceFeatureQuery",
+			wantBranch: []string{"Origin", "Pivot"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			got := w.resolveUnionType(tt.schema, tt.schemaKey, "_common.query_dsl")
+			require.Equal(t, tt.wantGoType, got)
+
+			registered, ok := reg.lookup(tt.schemaKey)
+			require.True(t, ok)
+			names := make([]string, 0, len(registered.Branches))
+			for _, b := range registered.Branches {
+				names = append(names, b.Name)
+			}
+			require.ElementsMatch(t, tt.wantBranch, names)
 		})
 	}
 }
@@ -863,6 +1027,122 @@ func TestRenameBranchesShadowingTypeNames(t *testing.T) {
 				require.NotEqual(t, unwrapTypeName(b.GoType), tt.unionName+b.Name,
 					"branch %q const still shadows a union type name", b.Name)
 			}
+		})
+	}
+}
+
+// An inline branch that is neither typed nor composed describes nothing a Go type
+// can carry, so it yields no branch at all and the union proceeds without it.
+func TestClassifyBranchInlineUnresolvable(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+	}{
+		{name: "no type and no allOf", schema: &openapi3.Schema{}},
+		{name: "description only", schema: &openapi3.Schema{Description: "a branch the spec never shapes"}},
+		{
+			// A nullable-only type set is not a shape either: resolveUnionType skips
+			// null branches, and classifyBranch must not invent one.
+			name:   "null type",
+			schema: &openapi3.Schema{Type: &openapi3.Types{"null"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			b := w.classifyBranch(&openapi3.SchemaRef{Value: tt.schema}, "test___Parent", "test", 0, "")
+			require.Empty(t, b.GoType)
+			require.Empty(t, b.Name)
+		})
+	}
+}
+
+// flattenRequired walks allOf members, which the loader resolves in place, so a
+// cyclic allOf would recurse forever without the visited set. The keys it collects
+// must also stay deduplicated across the walk.
+func TestFlattenRequiredTerminatesOnCycles(t *testing.T) {
+	t.Parallel()
+
+	selfRef := &openapi3.Schema{Required: []string{"self"}}
+	selfRef.AllOf = openapi3.SchemaRefs{{Value: selfRef}}
+
+	a := &openapi3.Schema{Required: []string{"a"}}
+	b := &openapi3.Schema{Required: []string{"b"}}
+	a.AllOf = openapi3.SchemaRefs{{Value: b}}
+	b.AllOf = openapi3.SchemaRefs{{Value: a}}
+
+	shared := &openapi3.Schema{Required: []string{"field"}}
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+		want   []string
+	}{
+		{name: "self-referential allOf", schema: selfRef, want: []string{"self"}},
+		{name: "mutually recursive allOf", schema: a, want: []string{"a", "b"}},
+		{
+			// The same member reached twice contributes its keys once.
+			name: "diamond over one member",
+			schema: &openapi3.Schema{
+				Required: []string{"root"},
+				AllOf:    openapi3.SchemaRefs{{Value: shared}, {Value: shared}},
+			},
+			want: []string{"root", "field"},
+		},
+		{name: "nil schema", schema: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, flattenRequired(tt.schema))
+		})
+	}
+}
+
+// renameToSchemaLocal leaves a branch alone when the schema key offers no distinct
+// name, so a collision it cannot break falls through to the GoType qualifier.
+func TestRenameToSchemaLocalLeavesBranchAlone(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		branch unionBranch
+		want   string
+	}{
+		{
+			// An inline child key ("<parent>.<field>") has no "___" group separator,
+			// so there is no local segment to rename to.
+			name:   "key with no group separator yields no local name",
+			branch: unionBranch{Name: "Query", GoType: "FieldValue", IsRef: true, SchemaKey: "searchBody.query"},
+			want:   "Query",
+		},
+		{
+			name:   "local name already equals the branch name",
+			branch: unionBranch{Name: "FieldValue", GoType: "FieldValue", IsRef: true, SchemaKey: "_common___FieldValue"},
+			want:   "FieldValue",
+		},
+		{
+			name:   "an inline branch has no schema to rename to",
+			branch: unionBranch{Name: "Object1", GoType: "ParentObject1"},
+			want:   "Object1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := tt.branch
+			renameToSchemaLocal(&b)
+			require.Equal(t, tt.want, b.Name)
 		})
 	}
 }

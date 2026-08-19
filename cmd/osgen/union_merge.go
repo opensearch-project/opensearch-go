@@ -48,8 +48,8 @@ func classifyUnions(spec *ir.Spec) {
 	requestSelected := mapValuedUnions(allTypes, reg)
 
 	// A union can appear as several ir.Type instances (shared registry copy +
-	// per-operation copies), so each is classified separately; warn at most
-	// once per union name to avoid duplicate diagnostics.
+	// per-operation copies), so each is classified separately; warn at most once
+	// per union name and diagnostic to avoid duplicate output.
 	warned := set[string]{}
 
 	for _, t := range allTypes {
@@ -112,14 +112,98 @@ func classifyUnions(spec *ir.Spec) {
 			}
 		}
 		if permissive == 1 && embeddablePermissive == 1 {
-			warn("osgen: union %q left on try-each: one permissive branch plus discriminated "+
-				"branch(es), but no required key distinguishes them by presence", t.Name)
+			warn("osgen: union %q left on try-each: one permissive branch plus "+
+				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
 	}
 
 	// Every union has now reached its terminal decode strategy, so branch
 	// reachability is decidable.
 	dropUnreachableBranches(allTypes)
+
+	// Probe collisions are reported last, over the branches that survive, and
+	// deliberately outside the loop above: that loop gates on allObjectBranches,
+	// which is a precondition for MERGE analysis rather than for probing. A
+	// try-each union with one non-object branch still emits a key probe per object
+	// branch, so gating the report the same way hid GeospatialGeoShapes, whose six
+	// object branches all require the same two keys alongside a permissive array
+	// branch.
+	reportProbeCollisions(allTypes)
+}
+
+// reportProbeCollisions records and reports, for every union the emitter renders
+// with the try-each decoder, the branches whose required-key set duplicates an
+// earlier branch's. The decoder probes those keys in branch order and keeps the
+// first branch that unmarshals, so a duplicate probe costs the later branch every
+// payload the earlier branch can also decode.
+//
+// How much that costs is NOT decidable from the key set, which is why this reports
+// the collision rather than claiming unreachability. DistanceFeatureQuery's date
+// form loses everything, because the geo form's Origin is a GeoLocation that also
+// accepts a bare string. GeospatialGeoShapes loses only where two branches carry
+// the same Go shape: LineString loses to MultiPoint and Polygon to
+// MultiLineString, while MultiPoint, MultiLineString and MultiPolygon all still
+// decode, because Point's []float64 coordinates reject their nested arrays.
+// Deciding this properly means asking whether one Go type accepts another's
+// payloads, which the generator cannot answer statically.
+//
+// It runs after dropUnreachableBranches so a branch that is reported can never be
+// one the emitter has already removed.
+func reportProbeCollisions(types []*ir.Type) {
+	warned := set[string]{}
+	for _, t := range types {
+		if !rendersAsTryEach(t) {
+			continue
+		}
+		collisions := branchesSharingRequiredKeys(t)
+		if len(collisions) == 0 {
+			continue
+		}
+		t.ProbeCollisionBranches = collisions
+		if warned.has(t.Name) {
+			continue
+		}
+		warned.add(t.Name)
+		log.Printf("osgen: union %q probes these branches after an earlier branch that declares "+
+			"the same required keys, so each loses any payload that earlier branch can also "+
+			"decode: %s", t.Name, strings.Join(collisions, ", "))
+	}
+}
+
+// rendersAsTryEach reports whether the emitter will decode this union by
+// attempting each branch in turn, which is the only strategy that probes required
+// keys. The stronger strategies are checked in the same precedence the template
+// applies: a spec discriminator, then a key-presence merge, then request
+// selection.
+func rendersAsTryEach(t *ir.Type) bool {
+	return t.Kind == ir.TypeAmbiguousWire && t.Discriminator == nil && t.Merge == nil && !t.RequestSelected
+}
+
+// branchesSharingRequiredKeys returns the names of branches whose required-key
+// set equals an earlier branch's, in branch order. The emitted try-each decoder
+// probes required keys to pick a branch, so an equal set puts the later branch
+// behind the earlier one. Permissive branches (no required keys) are excluded:
+// they are decoded by attempt rather than by probe.
+//
+// A later branch requiring a SUPERSET of an earlier branch's keys is queued behind
+// it just as firmly, since encoding/json ignores unknown keys; equality is the
+// conservative half of that and is all this reports.
+func branchesSharingRequiredKeys(t *ir.Type) []string {
+	seen := make(map[string]string, len(t.Branches)) // probe key -> first branch holding it
+	var collisions []string
+	for _, b := range t.Branches {
+		if len(b.Required) == 0 {
+			continue
+		}
+		keys := slices.Sorted(slices.Values(b.Required))
+		probe := strings.Join(keys, ",")
+		if first, ok := seen[probe]; ok {
+			collisions = append(collisions, fmt.Sprintf("%s (same required keys as %s)", b.Name, first))
+			continue
+		}
+		seen[probe] = b.Name
+	}
+	return collisions
 }
 
 // dropUnreachableBranches removes branches whose Go type duplicates an earlier

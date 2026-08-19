@@ -263,7 +263,18 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 	s := ref.Value
 	versionAdded := extensionString(s.Extensions, extVersionAdded)
 
+	// An object-shaped branch, whether it says so with `type: object` or composes
+	// its shape with allOf and declares no type at all. Dropping the composed form
+	// leaves the union with only its sibling shorthand, which collapses the union
+	// to that branch's type (MatchQuery keeping FieldValue and losing the
+	// full-form object), or degrades it to json.RawMessage when every branch is
+	// composed (DistanceFeatureQuery).
+	if isObjectShaped(s) {
+		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
+	}
+
 	if s.Type == nil {
+		// Neither typed nor composed: nothing to resolve.
 		return unionBranch{}
 	}
 
@@ -291,23 +302,21 @@ func (w *walker) classifyBranch(ref *openapi3.SchemaRef, parentKey, group string
 		}
 	}
 
-	if s.Type.Is(openapi3.TypeObject) {
-		return w.classifyObjectBranch(s, parentKey, group, branchIdx, versionAdded, objName)
-	}
-
 	return unionBranch{}
 }
 
-// classifyObjectBranch resolves an inline object oneOf/anyOf branch. An object
-// with properties becomes a named type; an open object (additionalProperties
-// only) falls back to a raw map branch. name is the branch's resolved suffix,
+// classifyObjectBranch resolves an object-shaped inline oneOf/anyOf branch,
+// either declared `type: object` or composed with allOf. An object with
+// properties becomes a named type; an open object (additionalProperties only)
+// falls back to a raw map branch. name is the branch's resolved suffix,
 // computed by the caller from branch content (see objectBranchName); the caller
 // passes "" when content naming collided with a sibling, in which case the
 // branch falls back to a positional Object<idx> suffix so the two remain
 // distinct types.
 func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group string, branchIdx int, versionAdded, name string) unionBranch {
-	// Open object (additionalProperties) with no declared properties.
-	if len(s.Properties) == 0 {
+	// Open object (additionalProperties) with no declared properties. A composed
+	// branch carries its properties on its allOf members, so it is not open.
+	if len(s.Properties) == 0 && len(s.AllOf) == 0 {
 		return unionBranch{
 			Name:         "Map",
 			GoType:       "map[string]json.RawMessage",
@@ -325,7 +334,17 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		name = fmt.Sprintf("Object%d", branchIdx)
 	}
 	childKey := fmt.Sprintf("%s.%s", parentKey, name)
-	goTypeName := w.resolveObjectSchema(s, childKey, group, false)
+	// A composed branch merges its allOf members into one struct, which
+	// resolveInlineSchema routes (including the narrowed-union case a struct merge
+	// would flatten away). A plain object registers directly; routing it through
+	// resolveInlineSchema too would re-read a `type: object` branch that also
+	// declares oneOf as a union rather than the object the branch says it is.
+	var goTypeName string
+	if len(s.AllOf) > 0 {
+		goTypeName = w.resolveInlineSchema(s, childKey, group, false)
+	} else {
+		goTypeName = w.resolveObjectSchema(s, childKey, group, false)
+	}
 	if goTypeName != "" && goTypeName != goTypeRawMessage {
 		return unionBranch{
 			Name:         name,
@@ -337,7 +356,7 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 		}
 	}
 
-	// Properties present but unresolvable to a named type: raw map fallback.
+	// Shape declared but unresolvable to a named type: raw map fallback.
 	return unionBranch{
 		Name:         "Map",
 		GoType:       "map[string]json.RawMessage",
@@ -353,21 +372,26 @@ func (w *walker) classifyObjectBranch(s *openapi3.Schema, parentKey, group strin
 // select it -- and a permissive branch (no required keys) is named for its
 // sorted property keys joined together. Every fragment runs through baseGoName
 // so JSON keys become valid identifier fragments (e.g. "_source" -> "Source").
-// Returns "" for an object with no properties (an open map branch, named
-// elsewhere).
+//
+// flattenRequired reaches through allOf, so a branch that composes its shape
+// with allOf is named for the key it requires even though it declares no
+// properties at its root. Returns "" only when there is no content to name from,
+// which leaves the positional fallback for an open map branch (named elsewhere)
+// and for two branches whose content cannot tell them apart (see
+// objectBranchNames).
 func objectBranchName(s *openapi3.Schema) string {
 	if s.Title != "" {
 		// baseGoName splits on '-', '_', '.' so a hyphenated title
 		// (e.g. "score-ranker-processor") normalizes to ScoreRankerProcessor.
 		return baseGoName(s.Title)
 	}
-	if len(s.Properties) == 0 {
-		return ""
-	}
 	if req := flattenRequired(s); len(req) > 0 {
 		sorted := slices.Clone(req)
 		sort.Strings(sorted)
 		return baseGoName(sorted[0])
+	}
+	if len(s.Properties) == 0 {
+		return ""
 	}
 	keys := make([]string, 0, len(s.Properties))
 	for k := range s.Properties {
@@ -398,7 +422,7 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 		if br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeNull) {
 			continue
 		}
-		if br.Ref == "" && br.Value != nil && br.Value.Type != nil && br.Value.Type.Is(openapi3.TypeObject) {
+		if br.Ref == "" && br.Value != nil && isObjectShaped(br.Value) {
 			if n := objectBranchName(br.Value); n != "" {
 				names[idx] = n
 			}
@@ -415,6 +439,22 @@ func objectBranchNames(branches []*openapi3.SchemaRef) map[int]string {
 		}
 	}
 	return names
+}
+
+// isObjectShaped reports whether an inline branch schema describes an object: it
+// either declares `type: object`, or it declares no type at all and composes its
+// shape with allOf, which is how the spec writes a branch that extends a base.
+//
+// The allOf members are not inspected. Every composed branch in the vendored spec
+// merges to an object, so the shortcut holds today; a branch whose members
+// resolved to a scalar would still be classified TokenObject by
+// classifyObjectBranch, which is why this predicate is the place to tighten if
+// that ever appears.
+func isObjectShaped(s *openapi3.Schema) bool {
+	if s.Type != nil {
+		return s.Type.Is(openapi3.TypeObject)
+	}
+	return len(s.AllOf) > 0
 }
 
 // classifyRefBranch resolves a $ref-bearing union branch into its unionBranch.
@@ -476,17 +516,24 @@ func (w *walker) classifyRefBranch(ref *openapi3.SchemaRef, parentKey, group str
 // required (e.g. NodeReloadError adding required reload_exception) carries that
 // requirement on an allOf member rather than at the root. Union discrimination
 // needs the full set to find a branch's distinguishing keys.
+//
+// The kin-openapi loader resolves each allOf member's $ref in place, so a cyclic
+// allOf would recurse forever; visited holds the schemas already on the current
+// path, matching findStringFieldByJSONName, reachableTags, and flattenJSONTags.
+// seen dedupes the KEYS being collected and cannot serve that purpose.
 func flattenRequired(s *openapi3.Schema) []string {
 	if s == nil {
 		return nil
 	}
 	seen := make(set[string])
+	visited := make(map[*openapi3.Schema]bool)
 	var out []string
 	var walk func(*openapi3.Schema)
 	walk = func(sch *openapi3.Schema) {
-		if sch == nil {
+		if sch == nil || visited[sch] {
 			return
 		}
+		visited[sch] = true
 		for _, k := range sch.Required {
 			if !seen.has(k) {
 				seen.add(k)
@@ -619,20 +666,57 @@ func renameBranchesShadowingTypeNames(unionName string, branches []unionBranch) 
 		if unionName+b.Name != branchType {
 			continue
 		}
-		if replacement := schemaLocalGoName(b.SchemaKey); replacement != "" && replacement != b.Name {
-			b.Name = replacement
-		}
+		renameToSchemaLocal(b)
 	}
 }
 
-// deduplicateAccessorNames renames branches that share the same Name.
-// For example, two map branches both named "Map" become "StringMap" and
-// "FieldSortMap" based on their value type.
-func deduplicateAccessorNames(branches []unionBranch) {
-	count := make(map[string]int, len(branches))
-	for _, b := range branches {
-		count[b.Name]++
+// renameToSchemaLocal renames a $ref branch to the schema it references, which is
+// the name deriveBranchName would have chosen had the spec not supplied a title.
+// Callers use it to break a collision the title caused: the referenced schema's own
+// name is the half that does not depend on what the spec chose to call the branch at
+// this site. A branch that is not a $ref, or whose schema yields no distinct name,
+// is left alone.
+func renameToSchemaLocal(b *unionBranch) {
+	if !b.IsRef || b.SchemaKey == "" {
+		return
 	}
+	replacement := schemaLocalGoName(b.SchemaKey)
+	if replacement == "" || replacement == b.Name {
+		return
+	}
+	b.Name = replacement
+}
+
+// deduplicateAccessorNames renames branches that share the same Name.
+//
+// A $ref branch is renamed first, to the schema it references: its colliding
+// name came from the spec `title`, and the spec titles a shorthand branch for the
+// very key the full-form sibling requires (MatchQuery's FieldValue branch is
+// titled "query" and the full form requires `query`), so the title is the
+// disambiguable half. That yields AsFieldValue()/AsQuery() rather than the
+// GoType-qualified pair below, whose inline half would stutter the union prefix
+// (AsCommonQueryDSLMatchQueryQueryQuery).
+//
+// Whatever still collides falls back to a GoType qualifier, which is the case
+// this function was written for: two map branches both named "Map" become
+// "StringMap" and "FieldSortMap" based on their value type.
+func deduplicateAccessorNames(branches []unionBranch) {
+	nameCounts := func() map[string]int {
+		counts := make(map[string]int, len(branches))
+		for _, b := range branches {
+			counts[b.Name]++
+		}
+		return counts
+	}
+
+	count := nameCounts()
+	for i := range branches {
+		if count[branches[i].Name] > 1 {
+			renameToSchemaLocal(&branches[i])
+		}
+	}
+
+	count = nameCounts()
 	for i := range branches {
 		if count[branches[i].Name] > 1 {
 			branches[i].Name = mapValueTypeName(branches[i].GoType) + branches[i].Name

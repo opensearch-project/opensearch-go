@@ -186,9 +186,16 @@ go run . api -spec ../../opensearch-openapi.yaml -out ../../opensearchapi \
 
 Then review the diff to the allowlist as part of the change. Adding an entry is asserting that the shadow or the raw payload is deliberate, which is why the allowlists are reviewed rather than regenerated blindly.
 
-The duplicate-tag guard exists because nothing else catches the pattern. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so the outer declaration wins and the embedded one is never populated. `go vet`'s `structtag` analyzer only checks duplicates within a single struct, `golangci-lint` relaxes generated files, and the generated-code CI job is advisory. Each entry is labeled with what the winning field narrows, so a reviewer can tell a deliberate narrowing (a bucket aggregation replacing an erased `TBucket` with a concrete type) from an erasure that makes fields unreachable.
+The duplicate-tag guard exists because nothing else catches the pattern. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so the outer declaration wins and the embedded one is never populated. `go vet`'s `structtag` analyzer only checks duplicates within a single struct, `golangci-lint` relaxes generated files, and the generated-code CI job is advisory. Each entry is labeled with what the winning field does to the payload it hides, so a reviewer can tell a deliberate narrowing (a bucket aggregation replacing an erased `TBucket` with a concrete type) from an erasure that makes fields unreachable or a widening that makes a required value optional.
 
 Because `make regen` deletes the generated files before writing new ones, an aborted generation leaves the tree empty. Recover with `git checkout -- opensearchapi/ plugins/ internal/`.
+
+Alongside the guards, generation reports two non-fatal union diagnostics on stderr. Neither aborts, because neither is a generator defect: both describe what the spec leaves decodable.
+
+| Diagnostic                                  | What it means                                                                                                                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `left on try-each`                          | One permissive branch plus discriminated branch(es), but no required key tells them apart by presence, so a single-pass merge would not be safe                                                             |
+| `decodes to its first matching branch only` | Two branches declare the same required keys, so the probe can never select the later one. It stays constructible and marshals correctly; only decoding is affected, and `Type()` reports the earlier branch |
 
 ## Reporting Spec Gaps
 

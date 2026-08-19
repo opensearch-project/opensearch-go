@@ -188,7 +188,6 @@ type FlowFrameworkCommonWorkFlowStatusDefaultResponse struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type FlowFrameworkGetStatusRespBody struct {
 	typ   FlowFrameworkGetStatusRespBodyType
 	raw   json.RawMessage

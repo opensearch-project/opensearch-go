@@ -302,7 +302,7 @@ func (u {{.Name}}) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -354,7 +354,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -510,7 +510,21 @@ func (u {{$t.Name}}) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- if $t.ProbeCollisionBranches}}
+//
+// The branches below are probed only after an earlier branch that declares the
+// same required keys. The decoder keeps the first branch that unmarshals, so each
+// of these loses any payload that earlier branch can also decode -- for some
+// unions that is every payload, for others none, depending on whether the earlier
+// branch's Go types accept the bytes. Constructing and marshaling them is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived, and
+// Type() to see which branch actually decoded.
+//
+{{- range $t.ProbeCollisionBranches}}
+//   - {{.}}
+{{- end}}
+{{- end}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
@@ -564,7 +578,7 @@ func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-{{template "typedSurface" $t}}
+{{- template "typedSurface" $t}}
 func (u *{{$t.Name}}) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil

@@ -230,6 +230,16 @@ type Type struct {
 	// decode the branch the caller asks for, on demand.
 	RequestSelected bool
 
+	// ProbeCollisionBranches names the branches a try-each decoder probes only after
+	// an earlier branch that declares the same required keys. The decoder tries the
+	// earlier branch first and keeps it if json.Unmarshal succeeds, so a branch named
+	// here loses every payload the earlier branch can also decode -- which for some
+	// unions is all of them and for others none, since whether the earlier branch
+	// accepts the bytes is a property of its Go types, not of the key set. Marshaling
+	// and construction are unaffected. Set by reportProbeCollisions and documented on
+	// the generated type rather than dropped.
+	ProbeCollisionBranches []string
+
 	// EnumMembers holds the members of a TypeEnum (int-backed iota enum) or
 	// TypeStringEnum (string-backed enum): each pairs the Go const identifier
 	// with its wire value. Empty for all other kinds.

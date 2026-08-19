@@ -217,7 +217,6 @@ type MGetMultiGetError struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MGetRespItem struct {
 	typ   MGetRespItemType
 	raw   json.RawMessage

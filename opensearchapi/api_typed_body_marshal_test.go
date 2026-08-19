@@ -54,7 +54,7 @@ func TestUpdateBodyOmitsUnsetRawFields(t *testing.T) {
 		{
 			name: "script only omits doc and upsert",
 			body: func() opensearchapi.UpdateBody {
-				s := opensearchapi.NewScriptFromString("ctx._source.count += 1")
+				s := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
 				return opensearchapi.UpdateBody{Script: &s}
 			}(),
 			want: `{"script":"ctx._source.count += 1"}`,
@@ -79,11 +79,10 @@ func TestUpdateBodyOmitsUnsetRawFields(t *testing.T) {
 }
 
 // QueryContainer is shared by ~15 request bodies (search, count, explain,
-// delete_by_query, ...). Its bare RawMessage branch, distance_feature, must not
-// leak a null into every query regardless of which other branch is set - the
-// server rejects that with "[distance_feature] query malformed, no start_object
-// after query name".
-func TestQueryContainerOmitsUnsetRawBranches(t *testing.T) {
+// delete_by_query, ...). Every branch it carries must stay absent from the wire
+// unless the caller set it: the server rejects a null query clause with
+// "[distance_feature] query malformed, no start_object after query name".
+func TestQueryContainerOmitsUnsetBranches(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -102,14 +101,83 @@ func TestQueryContainerOmitsUnsetRawBranches(t *testing.T) {
 			want:      `{"match_none":{}}`,
 		},
 		{
-			name:      "map branch: match_phrase",
-			container: opensearchapi.CommonQueryDSLQueryContainer{MatchPhrase: map[string]string{"title": "hello"}},
-			want:      `{"match_phrase":{"title":"hello"}}`,
+			name: "map branch, shorthand form: match_phrase",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
+					"title": opensearchapi.NewCommonQueryDSLMatchPhraseQueryFromString("hello"),
+				},
+			},
+			want: `{"match_phrase":{"title":"hello"}}`,
 		},
 		{
-			name:      "raw branch set is emitted",
-			container: opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: json.RawMessage(`{"field":"ts"}`)},
-			want:      `{"distance_feature":{"field":"ts"}}`,
+			// The full form of a field-scoped query, which carries the clause's
+			// options alongside the term.
+			name: "map branch, full form: match",
+			container: func() opensearchapi.CommonQueryDSLQueryContainer {
+				query := opensearchapi.NewFieldValueFromString("hello")
+				operator := "and"
+				return opensearchapi.CommonQueryDSLQueryContainer{
+					Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+						"title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+							opensearchapi.CommonQueryDSLMatchQueryQuery{Query: &query, Operator: &operator},
+						),
+					},
+				}
+			}(),
+			want: `{"match":{"title":{"query":"hello","operator":"and"}}}`,
+		},
+		{
+			// Every remaining field-scoped clause the CHANGELOG names, in its
+			// shorthand form. Each must marshal to the bare value it did before the
+			// clause became a union, which is what "no wire-format change for
+			// equivalent code" means.
+			name: "map branches, shorthand form: the remaining clauses",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				Term: map[string]opensearchapi.CommonQueryDSLTermQuery{
+					"a": opensearchapi.NewCommonQueryDSLTermQueryFromFieldValue(opensearchapi.NewFieldValueFromString("t")),
+				},
+				Fuzzy: map[string]opensearchapi.CommonQueryDSLFuzzyQuery{
+					"b": opensearchapi.NewCommonQueryDSLFuzzyQueryFromFieldValue(opensearchapi.NewFieldValueFromString("f")),
+				},
+				Prefix: map[string]opensearchapi.CommonQueryDSLPrefixQuery{
+					"c": opensearchapi.NewCommonQueryDSLPrefixQueryFromString("p"),
+				},
+				Wildcard: map[string]opensearchapi.CommonQueryDSLWildcardQuery{
+					"d": opensearchapi.NewCommonQueryDSLWildcardQueryFromString("w*"),
+				},
+				Regexp: map[string]opensearchapi.CommonQueryDSLRegexpQuery{
+					"e": opensearchapi.NewCommonQueryDSLRegexpQueryFromString("r.*"),
+				},
+				SpanTerm: map[string]opensearchapi.CommonQueryDSLSpanTermQuery{
+					"f": opensearchapi.NewCommonQueryDSLSpanTermQueryFromString("s"),
+				},
+				Common: map[string]opensearchapi.CommonQueryDSLCommonTermsQuery{
+					"g": opensearchapi.NewCommonQueryDSLCommonTermsQueryFromString("c"),
+				},
+				MatchBoolPrefix: map[string]opensearchapi.CommonQueryDSLMatchBoolPrefixQuery{
+					"h": opensearchapi.NewCommonQueryDSLMatchBoolPrefixQueryFromString("mbp"),
+				},
+				MatchPhrasePrefix: map[string]opensearchapi.CommonQueryDSLMatchPhrasePrefixQuery{
+					"i": opensearchapi.NewCommonQueryDSLMatchPhrasePrefixQueryFromString("mpp"),
+				},
+			},
+			want: `{"term":{"a":"t"},"fuzzy":{"b":"f"},"prefix":{"c":"p"},"wildcard":{"d":"w*"},` +
+				`"regexp":{"e":"r.*"},"span_term":{"f":"s"},"common":{"g":"c"},` +
+				`"match_bool_prefix":{"h":"mbp"},"match_phrase_prefix":{"i":"mpp"}}`,
+		},
+		{
+			name: "union branch set is emitted: distance_feature",
+			container: func() opensearchapi.CommonQueryDSLQueryContainer {
+				q := opensearchapi.NewCommonQueryDSLDistanceFeatureQueryFromObject0(
+					opensearchapi.CommonQueryDSLDistanceFeatureQueryObject0{
+						Field:  "location",
+						Origin: opensearchapi.NewGeoLocationFromString("52.37,4.89"),
+						Pivot:  "1km",
+					},
+				)
+				return opensearchapi.CommonQueryDSLQueryContainer{DistanceFeature: &q}
+			}(),
+			want: `{"distance_feature":{"field":"location","origin":"52.37,4.89","pivot":"1km"}}`,
 		},
 	}
 
@@ -127,6 +195,128 @@ func TestQueryContainerOmitsUnsetRawBranches(t *testing.T) {
 			require.NoError(t, err)
 			require.JSONEq(t, `{"query":`+tt.want+`}`, string(body))
 			require.NotContains(t, string(body), "null")
+		})
+	}
+}
+
+// Both distance_feature forms marshal, but only the geo form is reachable when
+// decoding one: the spec declares the same required keys (field, origin, pivot)
+// on both, and they differ only in leaf types a JSON key probe cannot see, since
+// Origin accepts a bare string and both Pivot types are strings. Type() therefore
+// reports Object0 whichever form arrives, which UPGRADING_V5.md documents and
+// this pins. Generation reports the collision rather than dropping the date
+// branch, because that branch is still the one to construct when sending it.
+func TestDistanceFeatureDecodesAsGeoForm(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "geo form", body: `{"field":"location","origin":"52.37,4.89","pivot":"1km"}`},
+		{name: "date form", body: `{"field":"@timestamp","origin":"2024-01-01","pivot":"7d"}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var q opensearchapi.CommonQueryDSLDistanceFeatureQuery
+			require.NoError(t, json.Unmarshal([]byte(tt.body), &q))
+			require.Equal(t, opensearchapi.CommonQueryDSLDistanceFeatureQueryObject0Type, q.Type())
+
+			// The raw bytes are retained, so a caller that needs the form as sent
+			// reads them rather than the branch.
+			require.JSONEq(t, tt.body, string(q.RawJSON()))
+		})
+	}
+}
+
+// A clause union built without one of its From* constructors carries no branch, so
+// it marshals as null: the same shape #1066 reported, reachable from the caller's
+// side instead of the generator's. UPGRADING_V5.md documents it. This pins the
+// current behavior so that making an unset union marshal to an error is a
+// deliberate, visible change rather than a silent one.
+func TestUnsetClauseUnionMarshalsNull(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		container opensearchapi.CommonQueryDSLQueryContainer
+		want      string
+	}{
+		{
+			name: "zero value as a map entry",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}},
+			},
+			want: `{"match_phrase":{"title":null}}`,
+		},
+		{
+			name: "zero value behind a pointer field",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				DistanceFeature: &opensearchapi.CommonQueryDSLDistanceFeatureQuery{},
+			},
+			want: `{"distance_feature":null}`,
+		},
+		{
+			// A nil map is absent, which is the case the reported bug was about.
+			name:      "nil map is omitted",
+			container: opensearchapi.CommonQueryDSLQueryContainer{},
+			want:      `{}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := json.Marshal(tt.container)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
+		})
+	}
+}
+
+// Script and ScriptsPainlessExecuteBody.Script are two different migrations that
+// UPGRADING_V5.md documents together: an update body takes the Script union, while
+// painless takes the InlineScript union directly, so a Script will not compile
+// there. Both documented snippets are exercised here because CI does not compile
+// the guides.
+func TestScriptBodiesMarshalDocumentedShapes(t *testing.T) {
+	t.Parallel()
+
+	const src = "ctx._source.count += 1"
+
+	tests := []struct {
+		name string
+		body any
+		want string
+	}{
+		{
+			name: "update body takes the Script union",
+			body: func() any {
+				script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString(src))
+				return opensearchapi.UpdateBody{Script: &script}
+			}(),
+			want: `{"script":"` + src + `"}`,
+		},
+		{
+			name: "painless body takes the InlineScript union directly",
+			body: func() any {
+				inline := opensearchapi.NewInlineScriptFromString(src)
+				return opensearchapi.ScriptsPainlessExecuteBody{Script: &inline}
+			}(),
+			want: `{"script":"` + src + `"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := json.Marshal(tt.body)
+			require.NoError(t, err)
+			require.JSONEq(t, tt.want, string(got))
 		})
 	}
 }
