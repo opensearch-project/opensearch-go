@@ -1181,3 +1181,107 @@ func TestBulkIndexerAddDeliversToRoutedQueue(t *testing.T) {
 	}
 	require.Equal(t, uint64(numItems), bi.Stats().NumAdded)
 }
+
+// bulkDocumentIDs returns an "action:documentID" entry for each action line in
+// a bulk request body, in the order the lines appear. Source lines are skipped:
+// they either fail to decode into a bulkActionMetadata envelope or carry no key
+// that names a bulk action.
+func bulkDocumentIDs(body []byte) []string {
+	var ids []string
+	for line := range strings.SplitSeq(strings.TrimRight(string(body), "\n"), "\n") {
+		var envelope map[string]bulkActionMetadata
+		if err := json.Unmarshal([]byte(line), &envelope); err != nil {
+			continue
+		}
+		for action, meta := range envelope {
+			switch action {
+			case actionIndex, actionCreate, actionUpdate, actionDelete:
+				ids = append(ids, action+":"+meta.DocumentID)
+			}
+		}
+	}
+	return ids
+}
+
+func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 8
+		numFillers = numWorkers * 4
+		hotDocID   = "user_123"
+		hotActions = 3
+		hotAction  = actionUpdate + ":" + hotDocID
+		wantAdded  = numFillers + hotActions
+	)
+
+	var mu sync.Mutex
+	// requests holds the action lines of each bulk request the indexer sent.
+	var requests [][]string
+
+	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{
+		Transport: &mockTransport{RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+				return defaultRoundTripFunc(req)
+			}
+			// RoundTrip runs on a worker goroutine, so record the body and
+			// leave every assertion to the test goroutine below.
+			if body, readErr := io.ReadAll(req.Body); readErr == nil {
+				mu.Lock()
+				requests = append(requests, bulkDocumentIDs(body))
+				mu.Unlock()
+			}
+			return defaultRoundTripFunc(req)
+		}},
+	}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	// Fill the other queues so a build that routes everything to one worker
+	// cannot pass by accident.
+	for i := range numFillers {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			Action:     actionIndex,
+			DocumentID: "filler_" + strconv.Itoa(i),
+			Body:       strings.NewReader(`{"a":1}`),
+		}))
+	}
+	for range hotActions {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			Action:     actionUpdate,
+			DocumentID: hotDocID,
+			Body:       strings.NewReader(`{"doc":{"a":1}}`),
+		}))
+	}
+	require.NoError(t, bi.Close(t.Context()))
+	require.Equal(t, uint64(wantAdded), bi.Stats().NumAdded)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Equal(t, uint64(len(requests)), bi.Stats().NumRequests, "every bulk request must have been recorded")
+	require.Greater(t, len(requests), 1, "fillers must spread over more than one worker")
+
+	requestsCarryingHotDoc := 0
+	for _, actions := range requests {
+		hits := 0
+		for _, action := range actions {
+			if action == hotAction {
+				hits++
+			}
+		}
+		if hits == 0 {
+			continue
+		}
+		requestsCarryingHotDoc++
+		require.Equal(t, hotActions, hits, "one request must carry every action for %s", hotDocID)
+	}
+	require.Equal(t, 1, requestsCarryingHotDoc, "actions for %s must not be split across requests", hotDocID)
+}
