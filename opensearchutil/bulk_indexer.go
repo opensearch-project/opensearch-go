@@ -34,7 +34,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"runtime"
 	"strings"
 	"sync"
@@ -42,7 +41,6 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
@@ -69,6 +67,9 @@ type BulkIndexer interface {
 	//
 	// It is safe for concurrent use. When it's called from goroutines,
 	// they must finish before the call to Close, eg. using sync.WaitGroup.
+	//
+	// Items that carry a DocumentID are routed to a fixed worker, so repeated
+	// actions on one document are sent in the order they were added.
 	Add(context.Context, BulkIndexerItem) error
 
 	// Close waits until all added items are flushed and closes the indexer.
@@ -169,14 +170,14 @@ type BulkIndexerDebugLogger interface {
 }
 
 type bulkIndexer struct {
-	wg     sync.WaitGroup
-	queues struct {
-		sync.RWMutex
-		m map[*opensearchtransport.Connection]chan BulkIndexerItem
-	}
-	rrQueues  []chan BulkIndexerItem
-	docRouter *opensearchtransport.DocRouter
-	rrCounter atomic.Uint64 // added for round-robin fallback
+	wg sync.WaitGroup
+	// queues holds one item channel per worker, indexed by worker id - 1.
+	// Items carrying a DocumentID are pinned to a queue by a hash of that ID,
+	// so every action on one document is buffered by a single worker and lands
+	// either in the same bulk request or in submission order across requests.
+	queues []chan BulkIndexerItem
+	// rrCounter spreads items without a DocumentID across queues.
+	rrCounter atomic.Int64
 	workers   []*worker
 	ticker    *time.Ticker
 	// stopFlush cancels the flusher goroutine; flusherDone is closed when that
@@ -244,15 +245,10 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	if cfg.MetaBufferPoolMaxBytes == 0 {
 		cfg.MetaBufferPoolMaxBytes = defaultMetaBufferPoolMaxBytes
 	}
-	docRouter, err := opensearchtransport.NewDocRouter()
-	if err != nil {
-		return nil, err
-	}
 
 	bi := bulkIndexer{
 		config:           cfg,
 		stats:            &bulkIndexerStats{},
-		docRouter:        docRouter,
 		metaPoolMaxBytes: cfg.MetaBufferPoolMaxBytes,
 		implicitClient:   implicitClient,
 		metaPool: sync.Pool{
@@ -268,60 +264,11 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 	return &bi, nil
 }
 
-// Add adds an item to the indexer and routes it to the correct worker queue.
+// Add adds an item to the indexer.
 //
 // Adding an item after a call to Close() will panic.
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
-	var targetQueue chan BulkIndexerItem
-
-	//nolint:nestif // keep routing logic inline for simplicity
-	if item.DocumentID != "" {
-		idx := item.Index
-		if idx == "" {
-			idx = bi.config.Index
-		}
-
-		encodedPath := "/" + url.PathEscape(idx) + "/_doc/" + url.PathEscape(item.DocumentID)
-
-		if p, err := url.PathUnescape(encodedPath); err == nil {
-			req := (&http.Request{
-				Method: http.MethodPost,
-				URL: &url.URL{
-					Path:    p,
-					RawPath: encodedPath,
-				},
-			}).WithContext(ctx)
-
-			if hop, evalErr := bi.docRouter.Eval(ctx, req); evalErr == nil && hop.Conn != nil {
-				bi.queues.RLock()
-				targetQueue = bi.queues.m[hop.Conn]
-				bi.queues.RUnlock()
-
-				if targetQueue == nil {
-					bi.queues.Lock()
-					targetQueue = bi.queues.m[hop.Conn]
-					if targetQueue == nil {
-						//nolint:gosec // G115: NumWorkers is strictly positive
-						workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
-						targetQueue = bi.rrQueues[workerIndex]
-						bi.queues.m[hop.Conn] = targetQueue
-					}
-					bi.queues.Unlock()
-				}
-			}
-		}
-
-		if targetQueue == nil {
-			//nolint:gosec // G115: intentional conversion from signed to unsigned for modulo
-			workerIndex := uint32(shardhash.Hash(item.DocumentID)) % uint32(bi.config.NumWorkers)
-			targetQueue = bi.rrQueues[workerIndex]
-		}
-	} else {
-		// Round-robin distribution for items without a DocumentID
-		//nolint:gosec // G115: NumWorkers is strictly positive
-		workerIndex := bi.rrCounter.Add(1) % uint64(bi.config.NumWorkers)
-		targetQueue = bi.rrQueues[workerIndex]
-	}
+	queue := bi.queues[bi.queueIndex(item)]
 
 	select {
 	case <-ctx.Done():
@@ -330,23 +277,38 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 			bi.config.OnError(ctx, ctx.Err())
 		}
 		return ctx.Err()
-	case targetQueue <- item:
+	case queue <- item:
 		bi.stats.numAdded.Add(1)
 	}
 
 	return nil
 }
 
-// Close stops the periodic flush, closes the indexer queue channel,
+// queueIndex returns the index in bi.queues of the worker that owns item.
+// An item with a DocumentID always maps to the same queue; one without is
+// handed out round-robin.
+func (bi *bulkIndexer) queueIndex(item BulkIndexerItem) int {
+	if item.DocumentID == "" {
+		return int(bi.rrCounter.Add(1) % int64(len(bi.queues)))
+	}
+
+	// shardhash.Hash is signed, so wrap a negative remainder into range.
+	// The hash matches the shard OpenSearch routes the document to, which
+	// keeps documents that share a shard together in one worker's buffer.
+	idx := int(shardhash.Hash(item.DocumentID)) % len(bi.queues)
+	if idx < 0 {
+		idx += len(bi.queues)
+	}
+	return idx
+}
+
+// Close stops the periodic flush, closes every worker queue channel,
 // stops the flusher goroutine and calls flush on all writers.
 func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
-
-	// Iterate through the slice and close each worker's channel
-	for _, q := range bi.rrQueues {
-		close(q)
+	for _, queue := range bi.queues {
+		close(queue)
 	}
-
 	// Stop the periodic flusher and wait for it to return before the final
 	// drain below, so no auto-flush races the drain. stopFlush is non-blocking
 	// and idempotent; flusherDone is already closed if the flusher exited via
@@ -409,22 +371,22 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 
 // init initializes the bulk indexer.
 func (bi *bulkIndexer) init(ctx context.Context) {
-	bi.queues.m = make(map[*opensearchtransport.Connection]chan BulkIndexerItem)
-	bi.rrQueues = make([]chan BulkIndexerItem, bi.config.NumWorkers)
+	bi.queues = make([]chan BulkIndexerItem, bi.config.NumWorkers)
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
-		ch := make(chan BulkIndexerItem, bi.config.NumWorkers)
-		bi.rrQueues[i-1] = ch
+		// Buffer each queue so Add does not block while its worker is
+		// mid-flush; no other worker can take the item.
+		queue := make(chan BulkIndexerItem, bi.config.NumWorkers)
+		bi.queues[i-1] = queue
 		w := worker{
 			id:  i,
-			ch:  ch,
+			ch:  queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
 		}
 		w.run(ctx)
 		bi.workers = append(bi.workers, &w)
 	}
-
 	bi.wg.Add(bi.config.NumWorkers)
 
 	bi.ticker = time.NewTicker(bi.config.FlushInterval)

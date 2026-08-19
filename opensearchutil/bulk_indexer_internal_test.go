@@ -1105,47 +1105,79 @@ func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, 
 
 func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
 
-func TestBulkIndexer_ConsistentRouting(t *testing.T) {
-	numWorkers := 5
+func TestBulkIndexerQueueIndexPinsDocumentID(t *testing.T) {
+	t.Parallel()
 
-	docRouter, err := opensearchtransport.NewDocRouter()
-	require.NoError(t, err, "Unexpected error creating DocRouter")
+	// numWorkers is baked into wantIndex, so a change in shardhash.Hash or in
+	// the modulo folding fails here instead of silently reshuffling documents.
+	const numWorkers = 8
 
-	// Manually initialize the indexer without calling init()
-	// so background workers don't drain the queues during the test.
-	bi := &bulkIndexer{
-		config:    BulkIndexerConfig{NumWorkers: numWorkers},
-		rrQueues:  make([]chan BulkIndexerItem, numWorkers),
-		stats:     &bulkIndexerStats{},
-		docRouter: docRouter,
-	}
-	bi.queues.m = make(map[*opensearchtransport.Connection]chan BulkIndexerItem)
-
-	for i := range numWorkers {
-		bi.rrQueues[i] = make(chan BulkIndexerItem, 100)
+	tests := []struct {
+		name       string
+		documentID string
+		wantIndex  int
+	}{
+		{name: "ascii", documentID: "user_123", wantIndex: 4},
+		{name: "numeric", documentID: "42", wantIndex: 2},
+		{name: "multibyte", documentID: "ünïcødé-🌍", wantIndex: 3},
+		{name: "long", documentID: strings.Repeat("a", 512), wantIndex: 1},
 	}
 
-	targetDocID := "user_123"
-	numItems := 100
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bi := &bulkIndexer{queues: make([]chan BulkIndexerItem, numWorkers)}
+			for range 3 {
+				require.Equal(t, tt.wantIndex, bi.queueIndex(BulkIndexerItem{DocumentID: tt.documentID}))
+			}
+		})
+	}
+}
+
+func TestBulkIndexerQueueIndexRoundRobinsWithoutDocumentID(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 4
+		rounds     = 3
+	)
+
+	bi := &bulkIndexer{queues: make([]chan BulkIndexerItem, numWorkers)}
+
+	got := make([]int, numWorkers)
+	for range numWorkers * rounds {
+		got[bi.queueIndex(BulkIndexerItem{})]++
+	}
+
+	require.Equal(t, []int{rounds, rounds, rounds, rounds}, got)
+}
+
+func TestBulkIndexerAddDeliversToRoutedQueue(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 8
+		numItems   = 10
+		wantIndex  = 4 // shardhash.Hash("user_123") folded into numWorkers.
+	)
+
+	// Skip init so no worker drains the queues while the test inspects them.
+	bi := &bulkIndexer{stats: &bulkIndexerStats{}, queues: make([]chan BulkIndexerItem, numWorkers)}
+	for i := range bi.queues {
+		bi.queues[i] = make(chan BulkIndexerItem, numItems)
+	}
 
 	for range numItems {
-		item := BulkIndexerItem{
-			Action:     "update",
-			DocumentID: targetDocID,
-		}
-		err := bi.Add(context.Background(), item)
-		require.NoError(t, err, "Unexpected error during Add")
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionUpdate, DocumentID: "user_123"}))
 	}
 
-	populatedChannels := 0
-	// Check rrQueues since the map dynamically points to these channels
-	for i, q := range bi.rrQueues {
-		if len(q) == numItems {
-			populatedChannels++
-		} else {
-			require.Empty(t, q, "Expected queue %d to have 0 items", i)
+	for i, queue := range bi.queues {
+		if i == wantIndex {
+			require.Len(t, queue, numItems, "queue %d must hold every item for one document ID", i)
+			continue
 		}
+		require.Empty(t, queue, "queue %d must stay empty", i)
 	}
-
-	require.Equal(t, 1, populatedChannels, "Expected exactly 1 channel to receive all items for the same ID")
+	require.Equal(t, uint64(numItems), bi.Stats().NumAdded)
 }
