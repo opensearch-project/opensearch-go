@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -523,4 +524,38 @@ func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
 			require.Equal(t, tt.want, typ.ProbeCollisionBranches)
 		})
 	}
+}
+
+// A union reaches the IR as several instances: the shared registry copy plus one
+// per operation that references it. Every instance must carry the collision so the
+// emitter renders the caveat wherever it writes the type, while the diagnostic is
+// logged once. Not parallel: it captures the process-wide log writer.
+func TestReportProbeCollisionsWarnsOncePerUnion(t *testing.T) {
+	branches := []ir.UnionBranch{
+		{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+		{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+	}
+	instances := []*ir.Type{
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+	}
+
+	var buf bytes.Buffer
+	flags := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(flags)
+	})
+
+	reportProbeCollisions(instances)
+
+	for i, typ := range instances {
+		require.Equal(t, []string{"Second (same required keys as First)"}, typ.ProbeCollisionBranches,
+			"instance %d must carry the collision for the emitter to render it", i)
+	}
+	require.Equal(t, 1, strings.Count(buf.String(), `union "TwoShapes"`),
+		"the diagnostic is reported once per union, not once per instance")
 }

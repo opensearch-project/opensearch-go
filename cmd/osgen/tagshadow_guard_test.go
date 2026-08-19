@@ -509,3 +509,114 @@ func TestCollectTagShadows_Deterministic(t *testing.T) {
 		require.Equal(t, want, got)
 	}
 }
+
+// The optionality clause is orthogonal to the kind: a narrowing that also turns a
+// required value into a pointer says so, while shadowWidened already implies it
+// and would only restate itself.
+func TestTagShadowDetailReportsOptionality(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		shadow  tagShadow
+		want    string
+		notWant string
+	}{
+		{
+			name: "narrowing that also widens to a pointer says both",
+			shadow: tagShadow{
+				Outer: "StringTermsAggregate", JSONName: "buckets", Declaring: "MultiBucketAggregateBase",
+				Chain:       []string{"MultiBucketAggregateBase"},
+				OuterGoType: "*StringTermsAggregateBuckets", ShadowedGoType: "MultiBucketAggregateBaseBuckets",
+				Kind:          shadowNarrowing,
+				MakesOptional: true,
+			},
+			want: "; makes a required field optional",
+		},
+		{
+			name: "shadowWidened already says the winner is a pointer",
+			shadow: tagShadow{
+				Outer: "NeuralInfoCounterStatStatType", JSONName: "stat_type", Declaring: "NeuralStatMetadata",
+				Chain:       []string{"NeuralStatMetadata"},
+				OuterGoType: "*string", ShadowedGoType: "string",
+				Kind:          shadowWidened,
+				MakesOptional: true,
+			},
+			want:    shadowKindLabelWidened,
+			notWant: "; makes a required field optional",
+		},
+		{
+			name: "an optional field the winner also leaves optional adds nothing",
+			shadow: tagShadow{
+				Outer: "Outer", JSONName: "f", Declaring: "Base",
+				Chain:       []string{"Base"},
+				OuterGoType: "*Concrete", ShadowedGoType: "json.RawMessage",
+				Kind:          shadowNarrowing,
+				MakesOptional: false,
+			},
+			want:    shadowKindLabelNarrowing,
+			notWant: "; makes a required field optional",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			detail := tt.shadow.detail()
+			require.Contains(t, detail, tt.want)
+			if tt.notWant != "" {
+				require.NotContains(t, detail, tt.notWant)
+			}
+		})
+	}
+}
+
+// makesRequiredOptional reads the only signal ir.Field carries: a field the spec
+// marks required is emitted as a plain value with no omitempty, so a pointer or an
+// omitempty tag on the winner means the key can go missing.
+func TestMakesRequiredOptional(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		outer    ir.Field
+		shadowed ir.Field
+		want     bool
+	}{
+		{
+			name:     "pointer over a required value",
+			outer:    ir.Field{GoType: "*string", IsPointer: true},
+			shadowed: ir.Field{GoType: "string"},
+			want:     true,
+		},
+		{
+			name:     "omitempty over a required value",
+			outer:    ir.Field{GoType: "string", OmitEmpty: true},
+			shadowed: ir.Field{GoType: "string"},
+			want:     true,
+		},
+		{
+			name:     "value over a required value keeps it required",
+			outer:    ir.Field{GoType: "ConcreteBuckets"},
+			shadowed: ir.Field{GoType: "BaseBuckets"},
+		},
+		{
+			name:     "the hidden field was already optional",
+			outer:    ir.Field{GoType: "*string", IsPointer: true},
+			shadowed: ir.Field{GoType: "*string", IsPointer: true},
+		},
+		{
+			name:     "the hidden field carried omitempty",
+			outer:    ir.Field{GoType: "*string", IsPointer: true},
+			shadowed: ir.Field{GoType: "string", OmitEmpty: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, makesRequiredOptional(tt.outer, tt.shadowed))
+		})
+	}
+}
