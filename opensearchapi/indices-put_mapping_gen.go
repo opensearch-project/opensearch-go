@@ -207,7 +207,6 @@ type IndicesPutMappingBody struct {
 	Properties map[string]CommonMappingProperty `json:"properties,omitempty"`
 }
 
-//
 // Specify dynamic templates for the mapping.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -215,7 +214,6 @@ type IndicesPutMappingBody struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesPutMappingBodyDynamicTemplates struct {
 	typ   IndicesPutMappingBodyDynamicTemplatesType
 	raw   json.RawMessage

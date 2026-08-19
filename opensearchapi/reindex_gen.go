@@ -225,7 +225,6 @@ type ReindexRespBodyTask struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ReindexRespBody struct {
 	typ   ReindexRespBodyType
 	raw   json.RawMessage

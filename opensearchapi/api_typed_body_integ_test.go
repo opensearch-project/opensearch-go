@@ -33,7 +33,7 @@ func TestManual_UpdateTypedBody(t *testing.T) {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
 
-	script := opensearchapi.NewScriptFromString("ctx._source.count += 1")
+	script := opensearchapi.NewScriptFromInline(opensearchapi.NewInlineScriptFromString("ctx._source.count += 1"))
 
 	tests := []struct {
 		name       string
@@ -105,9 +105,10 @@ func TestManual_UpdateTypedBody(t *testing.T) {
 	}
 }
 
-// A typed SearchBody carries the shared QueryContainer, whose bare
-// distance_feature branch previously leaked a null into every query and made the
-// typed search path unusable.
+// A typed SearchBody carries the shared QueryContainer, whose distance_feature
+// branch previously leaked a null into every query and made the typed search
+// path unusable. Its field-scoped query clauses accept both the shorthand and
+// the full form, so the cases below send each against a live cluster.
 func TestManual_SearchTypedBody(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
@@ -134,8 +135,26 @@ func TestManual_SearchTypedBody(t *testing.T) {
 			container: opensearchapi.CommonQueryDSLQueryContainer{MatchAll: &opensearchapi.CommonQueryDSLQueryBase{}},
 		},
 		{
-			name:      "match_phrase",
-			container: opensearchapi.CommonQueryDSLQueryContainer{MatchPhrase: map[string]string{"title": "hello"}},
+			name: "match_phrase shorthand",
+			container: opensearchapi.CommonQueryDSLQueryContainer{
+				MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{
+					"title": opensearchapi.NewCommonQueryDSLMatchPhraseQueryFromString("hello"),
+				},
+			},
+		},
+		{
+			name: "match full form",
+			container: func() opensearchapi.CommonQueryDSLQueryContainer {
+				query := opensearchapi.NewFieldValueFromString("hello")
+				operator := "and"
+				return opensearchapi.CommonQueryDSLQueryContainer{
+					Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+						"title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
+							opensearchapi.CommonQueryDSLMatchQueryQuery{Query: &query, Operator: &operator},
+						),
+					},
+				}
+			}(),
 		},
 	}
 

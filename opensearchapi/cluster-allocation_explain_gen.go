@@ -317,7 +317,6 @@ type ClusterAllocationExplainAllocationStore struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ClusterAllocationExplainClusterInfoShardSizesValue struct {
 	typ   ClusterAllocationExplainClusterInfoShardSizesValueType
 	raw   json.RawMessage

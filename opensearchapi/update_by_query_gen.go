@@ -434,7 +434,6 @@ type UpdateByQueryRespBodyTask struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type UpdateByQueryRespBody struct {
 	typ   UpdateByQueryRespBodyType
 	raw   json.RawMessage

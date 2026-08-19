@@ -422,7 +422,6 @@ type DeleteByQueryRespBodyTask struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type DeleteByQueryRespBody struct {
 	typ   DeleteByQueryRespBodyType
 	raw   json.RawMessage

@@ -784,7 +784,6 @@ type SearchRescoreQuery struct {
 	ScoreMode *string `json:"score_mode,omitempty"`
 }
 
-//
 // Can be used to improve precision by reordering just the top (for example 100 - 500) documents returned by the `query` and `post_filter` phases.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -792,7 +791,6 @@ type SearchRescoreQuery struct {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchBodyRescore struct {
 	typ   SearchBodyRescoreType
 	raw   json.RawMessage

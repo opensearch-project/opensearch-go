@@ -76,6 +76,75 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "RawJSON")
 }
 
+// A try-each union decodes by probing required keys, so a branch whose key set
+// duplicates an earlier branch's is queued behind it and the generator records that
+// in ProbeCollisionBranches. The type's own doc comment has to say so: the branch stays
+// constructible and marshals correctly, only Type() can never report it. Without
+// these assertions the whole feature can be deleted with the suite still green.
+func TestUnionFragment_TryEachProbeCollisionCaveat(t *testing.T) {
+	t.Parallel()
+
+	branches := func(firstKey, secondKey string) []ir.UnionBranch {
+		return []ir.UnionBranch{
+			{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{firstKey}},
+			{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{secondKey}},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		typ     *ir.Type
+		want    []string
+		notWant []string
+	}{
+		{
+			name: "colliding branch is named on the type",
+			typ: &ir.Type{
+				Name:                   "CollidingValue",
+				Kind:                   ir.TypeAmbiguousWire,
+				Branches:               branches("field", "field"),
+				ProbeCollisionBranches: []string{"Second (same required keys as First)"},
+			},
+			want: []string{
+				"// The branches below are probed only after an earlier branch that declares the",
+				"read RawJSON() when you need the payload exactly as it arrived, and",
+				// Rendered as a godoc list item, not interpolated into the prose line.
+				"//   - Second (same required keys as First)",
+				// The caveat sits in the doc block, so it must stay attached to the type.
+				"//   - Second (same required keys as First)\ntype CollidingValue struct",
+				// Both branches keep their full surface: only Type() is affected.
+				"func NewCollidingValueFromSecond(v SecondShape) CollidingValue",
+				"func (u *CollidingValue) Second() (SecondShape, error)",
+			},
+		},
+		{
+			name: "branches with distinct required keys carry no caveat",
+			typ: &ir.Type{
+				Name:     "PlainValue",
+				Kind:     ir.TypeAmbiguousWire,
+				Branches: branches("a", "b"),
+			},
+			notWant: []string{"probed only after an earlier branch"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := (&emit.UnionFragment{Types: []*ir.Type{tt.typ}}).Body()
+			require.NoError(t, err)
+
+			for _, want := range tt.want {
+				require.Contains(t, body, want)
+			}
+			for _, notWant := range tt.notWant {
+				require.NotContains(t, body, notWant)
+			}
+		})
+	}
+}
+
 func TestUnionFragment_MergedDecode(t *testing.T) {
 	t.Parallel()
 

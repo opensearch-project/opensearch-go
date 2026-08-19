@@ -136,7 +136,7 @@ type ScriptsPainlessExecuteBody struct {
 	Context *string `json:"context,omitempty"`
 
 	ContextSetup *ScriptsPainlessExecutePainlessContextSetup `json:"context_setup,omitempty"`
-	Script       *string                                     `json:"script,omitempty"`
+	Script       *InlineScript                               `json:"script,omitempty"`
 }
 
 // ScriptsPainlessExecutePainlessContextSetup is a typed component of the scripts_painless_execute operation.

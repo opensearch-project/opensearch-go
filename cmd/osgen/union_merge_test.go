@@ -7,8 +7,14 @@
 package main
 
 import (
+	"bytes"
+	"log"
+	"os"
 	"slices"
+	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
@@ -338,4 +344,218 @@ func TestDropUnreachableBranches(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestBranchesSharingRequiredKeys covers the probe-collision report: a try-each
+// decoder picks a branch by the required keys present in the payload, so two
+// branches declaring the same set leave the later one unreachable on decode
+// (DistanceFeatureQuery's geo and date forms both require field/origin/pivot).
+// Key order must not matter, and permissive branches are decoded by attempt
+// rather than by probe, so they never collide.
+func TestBranchesSharingRequiredKeys(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		branches []ir.UnionBranch
+		want     []string
+	}{
+		{
+			name: "distinct required sets do not collide",
+			branches: []ir.UnionBranch{
+				{Name: "Doc", Required: []string{"doc"}},
+				{Name: "Script", Required: []string{"script"}},
+			},
+		},
+		{
+			name: "same required set shadows the later branch",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"field", "origin", "pivot"}},
+				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
+			},
+			want: []string{"Object1 (same required keys as Object0)"},
+		},
+		{
+			name: "required key order is irrelevant",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"pivot", "field", "origin"}},
+				{Name: "Object1", Required: []string{"field", "origin", "pivot"}},
+			},
+			want: []string{"Object1 (same required keys as Object0)"},
+		},
+		{
+			name: "permissive branches never collide",
+			branches: []ir.UnionBranch{
+				{Name: "ShapeA"},
+				{Name: "ShapeB"},
+			},
+		},
+		{
+			name: "a subset is still distinguishable",
+			branches: []ir.UnionBranch{
+				{Name: "Object0", Required: []string{"field"}},
+				{Name: "Object1", Required: []string{"field", "origin"}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := branchesSharingRequiredKeys(&ir.Type{Name: "U", Branches: tt.branches})
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestClassifyUnionsReportsBothDiagnostics covers a union that trips both
+// diagnostics: it has one embeddable permissive branch (so no merge is safe) and
+// two branches sharing a required key (so the probe cannot separate them). They are
+// reported by separate passes, and both must reach the log for the same union.
+//
+// One scenario with no varying input, so there is no table to build, and it cannot
+// run in parallel: asserting on log output means installing a process-wide writer.
+func TestClassifyUnionsReportsBothDiagnostics(t *testing.T) {
+	permissive := structType("Permissive", field("Note", "note", "string"))
+	first := structType("First", field("Field", "field", "string"))
+	second := structType("Second", field("Field", "field", "string"))
+
+	// One embeddable permissive branch plus two branches whose required sets are
+	// identical: the first condition fires on the permissive branch, the second on
+	// the duplicated probe.
+	union := &ir.Type{Name: "BothDiagnostics", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+		{Name: "Permissive", GoType: "Permissive", TokenClass: ir.TokenObject},
+		{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+		{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+	}}
+	resp := structType("BothResp", field("Body", "body", "BothDiagnostics"))
+
+	var buf bytes.Buffer
+	flags := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(flags)
+	})
+
+	classifyUnions(newClassifySpec(permissive, first, second, union, resp))
+
+	out := buf.String()
+	require.Contains(t, out, `union "BothDiagnostics" left on try-each`)
+	require.Contains(t, out, `Second (same required keys as First)`)
+}
+
+// TestReportProbeCollisionsPopulatesIR pins the two halves the emitter depends on:
+// the colliding branch names land on the IR type (the template renders them), and
+// the report is not gated on every branch being an object. GeospatialGeoShapes is
+// the real case that gate hid: six object branches all requiring
+// {coordinates,type} alongside a permissive array branch.
+func TestReportProbeCollisionsPopulatesIR(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		setup func() *ir.Type
+		want  []string
+	}{
+		{
+			name: "object branches only",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+					{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+				}}
+			},
+			want: []string{"Second (same required keys as First)"},
+		},
+		{
+			name: "a non-object branch does not suppress the report",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "GeoShapes", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "Point", GoType: "Point", TokenClass: ir.TokenObject, Required: []string{"coordinates", "type"}},
+					{Name: "MultiPoint", GoType: "MultiPoint", TokenClass: ir.TokenObject, Required: []string{"coordinates", "type"}},
+					{Name: "Array", GoType: "[][]float64", TokenClass: ir.TokenArray},
+				}}
+			},
+			want: []string{"MultiPoint (same required keys as Point)"},
+		},
+		{
+			name: "distinct required sets report nothing",
+			setup: func() *ir.Type {
+				return &ir.Type{Name: "Distinct", Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{
+					{Name: "Doc", GoType: "Doc", TokenClass: ir.TokenObject, Required: []string{"doc"}},
+					{Name: "Script", GoType: "Script", TokenClass: ir.TokenObject, Required: []string{"script"}},
+				}}
+			},
+		},
+		{
+			name: "a discriminated union names its branch, so probes are irrelevant",
+			setup: func() *ir.Type {
+				return &ir.Type{
+					Name: "Discriminated", Kind: ir.TypeAmbiguousWire,
+					Discriminator: &ir.UnionDiscriminator{PropertyName: "type"},
+					Branches: []ir.UnionBranch{
+						{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+						{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+					},
+				}
+			},
+		},
+		{
+			name: "a request-selected union is chosen by the caller, not by probe",
+			setup: func() *ir.Type {
+				return &ir.Type{
+					Name: "RequestPicked", Kind: ir.TypeAmbiguousWire, RequestSelected: true,
+					Branches: []ir.UnionBranch{
+						{Name: "Avg", GoType: "Avg", TokenClass: ir.TokenObject, Required: []string{"value"}},
+						{Name: "Sum", GoType: "Sum", TokenClass: ir.TokenObject, Required: []string{"value"}},
+					},
+				}
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			typ := tt.setup()
+			reportProbeCollisions([]*ir.Type{typ})
+			require.Equal(t, tt.want, typ.ProbeCollisionBranches)
+		})
+	}
+}
+
+// A union reaches the IR as several instances: the shared registry copy plus one
+// per operation that references it. Every instance must carry the collision so the
+// emitter renders the caveat wherever it writes the type, while the diagnostic is
+// logged once. Not parallel: it captures the process-wide log writer.
+func TestReportProbeCollisionsWarnsOncePerUnion(t *testing.T) {
+	branches := []ir.UnionBranch{
+		{Name: "First", GoType: "First", TokenClass: ir.TokenObject, Required: []string{"field"}},
+		{Name: "Second", GoType: "Second", TokenClass: ir.TokenObject, Required: []string{"field"}},
+	}
+	instances := []*ir.Type{
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+		{Name: "TwoShapes", Kind: ir.TypeAmbiguousWire, Branches: branches},
+	}
+
+	var buf bytes.Buffer
+	flags := log.Flags()
+	log.SetOutput(&buf)
+	log.SetFlags(0)
+	t.Cleanup(func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(flags)
+	})
+
+	reportProbeCollisions(instances)
+
+	for i, typ := range instances {
+		require.Equal(t, []string{"Second (same required keys as First)"}, typ.ProbeCollisionBranches,
+			"instance %d must carry the collision for the emitter to render it", i)
+	}
+	require.Equal(t, 1, strings.Count(buf.String(), `union "TwoShapes"`),
+		"the diagnostic is reported once per union, not once per instance")
 }

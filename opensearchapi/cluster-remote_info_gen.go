@@ -160,7 +160,6 @@ type ClusterRemoteInfoClusterRemoteProxyInfo struct {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type ClusterRemoteInfoCluster struct {
 	typ   ClusterRemoteInfoClusterType
 	raw   json.RawMessage

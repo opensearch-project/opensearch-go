@@ -23,7 +23,6 @@ import (
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringOrStringArray struct {
 	typ   StringOrStringArrayType
 	raw   json.RawMessage
@@ -158,7 +157,6 @@ func (u StringOrStringArray) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseBucketsType
 	raw   json.RawMessage
@@ -295,7 +293,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsAdjacencyMatrixAggregateBuckets struct {
 	typ   CommonAggregationsAdjacencyMatrixAggregateBucketsType
 	raw   json.RawMessage
@@ -432,7 +429,6 @@ func (u CommonAggregationsAdjacencyMatrixAggregateBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsDateHistogramAggregateBuckets struct {
 	typ   CommonAggregationsDateHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -562,7 +558,6 @@ func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, 
 	return build.NullJSON, nil
 }
 
-//
 // A field value.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -570,7 +565,6 @@ func (u CommonAggregationsDateHistogramAggregateBuckets) MarshalJSON() ([]byte, 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type FieldValue struct {
 	typ   FieldValueType
 	raw   json.RawMessage
@@ -736,7 +730,6 @@ func (u FieldValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseCompositeBucketBucketsType
 	raw   json.RawMessage
@@ -875,7 +868,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseCompositeBucketBuckets) Marsha
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets struct {
 	typ   CommonAggregationsMultiBucketAggregateBaseRangeBucketBucketsType
 	raw   json.RawMessage
@@ -1014,7 +1006,6 @@ func (u CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets) MarshalJSO
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsFiltersAggregateBuckets struct {
 	typ   CommonAggregationsFiltersAggregateBucketsType
 	raw   json.RawMessage
@@ -1144,14 +1135,12 @@ func (u CommonAggregationsFiltersAggregateBuckets) MarshalJSON() ([]byte, error)
 	return build.NullJSON, nil
 }
 
-//
 // The lower-right corner coordinates.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeoLocation struct {
 	typ   GeoLocationType
 	raw   json.RawMessage
@@ -1347,19 +1336,18 @@ func (u GeoLocation) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A geo-bounding box. It can be represented in the following ways:
-//  - As 4 top/bottom/left/right coordinates.
-//  - As 2 top_left/bottom_right points.
-//  - As 2 top_right/bottom_left points.
-//  - As a Well Known Text (WKT) bounding box.
+//   - As 4 top/bottom/left/right coordinates.
+//   - As 2 top_left/bottom_right points.
+//   - As 2 top_right/bottom_left points.
+//   - As a Well Known Text (WKT) bounding box.
+//
 // The spec declares no discriminator, but each branch requires a JSON key the
 // others lack, so one decode both populates the common branch and detects the
 // others by key presence.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeoBounds struct {
 	typ   GeoBoundsType
 	raw   json.RawMessage
@@ -1566,7 +1554,6 @@ func (u GeoBounds) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsGeoHashGridAggregateBuckets struct {
 	typ   CommonAggregationsGeoHashGridAggregateBucketsType
 	raw   json.RawMessage
@@ -1703,7 +1690,6 @@ func (u CommonAggregationsGeoHashGridAggregateBuckets) MarshalJSON() ([]byte, er
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsGeoTileGridAggregateBuckets struct {
 	typ   CommonAggregationsGeoTileGridAggregateBucketsType
 	raw   json.RawMessage
@@ -1840,7 +1826,6 @@ func (u CommonAggregationsGeoTileGridAggregateBuckets) MarshalJSON() ([]byte, er
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsKeyedPercentilesValue struct {
 	typ   CommonAggregationsKeyedPercentilesValueType
 	raw   json.RawMessage
@@ -1977,7 +1962,6 @@ func (u CommonAggregationsKeyedPercentilesValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsPercentiles struct {
 	typ   CommonAggregationsPercentilesType
 	raw   json.RawMessage
@@ -2112,7 +2096,6 @@ func (u CommonAggregationsPercentiles) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsHistogramAggregateBuckets struct {
 	typ   CommonAggregationsHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -2249,7 +2232,6 @@ func (u CommonAggregationsHistogramAggregateBuckets) MarshalJSON() ([]byte, erro
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsIPRangeAggregateBuckets struct {
 	typ   CommonAggregationsIPRangeAggregateBucketsType
 	raw   json.RawMessage
@@ -2386,7 +2368,6 @@ func (u CommonAggregationsIPRangeAggregateBuckets) MarshalJSON() ([]byte, error)
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsLongRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsLongRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2523,7 +2504,6 @@ func (u CommonAggregationsLongRareTermsAggregateBuckets) MarshalJSON() ([]byte, 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsLongTermsBucketKey struct {
 	typ   CommonAggregationsLongTermsBucketKeyType
 	raw   json.RawMessage
@@ -2660,7 +2640,6 @@ func (u CommonAggregationsLongTermsBucketKey) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsMultiTermsAggregateBuckets struct {
 	typ   CommonAggregationsMultiTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2797,7 +2776,6 @@ func (u CommonAggregationsMultiTermsAggregateBuckets) MarshalJSON() ([]byte, err
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsSignificantLongTermsAggregateBuckets struct {
 	typ   CommonAggregationsSignificantLongTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -2936,7 +2914,6 @@ func (u CommonAggregationsSignificantLongTermsAggregateBuckets) MarshalJSON() ([
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsSignificantStringTermsAggregateBuckets struct {
 	typ   CommonAggregationsSignificantStringTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3075,7 +3052,6 @@ func (u CommonAggregationsSignificantStringTermsAggregateBuckets) MarshalJSON() 
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsStringRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsStringRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3205,7 +3181,6 @@ func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte
 	return build.NullJSON, nil
 }
 
-//
 // The names of queries that matched the document. When `include_named_queries_score` is false (default), returns an array of query names. When true, returns an object mapping query names to their scores.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3213,7 +3188,6 @@ func (u CommonAggregationsStringRareTermsAggregateBuckets) MarshalJSON() ([]byte
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHitMatchedQueries struct {
 	typ   SearchHitMatchedQueriesType
 	raw   json.RawMessage
@@ -3341,7 +3315,6 @@ func (u SearchHitMatchedQueries) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The total number of hits, present only if `track_total_hits` is not set to `false` in the search request.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -3349,7 +3322,6 @@ func (u SearchHitMatchedQueries) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHitsMetadataTotal struct {
 	typ   SearchHitsMetadataTotalType
 	raw   json.RawMessage
@@ -3484,7 +3456,6 @@ func (u SearchHitsMetadataTotal) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsUnmappedRareTermsAggregateBuckets struct {
 	typ   CommonAggregationsUnmappedRareTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3621,7 +3592,6 @@ func (u CommonAggregationsUnmappedRareTermsAggregateBuckets) MarshalJSON() ([]by
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsUnmappedSignificantTermsAggregateBuckets struct {
 	typ   CommonAggregationsUnmappedSignificantTermsAggregateBucketsType
 	raw   json.RawMessage
@@ -3760,7 +3730,6 @@ func (u CommonAggregationsUnmappedSignificantTermsAggregateBuckets) MarshalJSON(
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAggregationsVariableWidthHistogramAggregateBuckets struct {
 	typ   CommonAggregationsVariableWidthHistogramAggregateBucketsType
 	raw   json.RawMessage
@@ -6912,6 +6881,408 @@ func (u CommonAggregationsAggregate) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// Text or location that we want similar documents for or a lookup to a document's field for the text.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type SearchContext struct {
+	typ   SearchContextType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchContextType names which branch of SearchContext is set.
+type SearchContextType int
+
+const (
+	SearchContextUnknownType SearchContextType = iota
+	SearchContextStringType
+	SearchContextLocationType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchContextType) String() string {
+	switch t {
+	case SearchContextStringType:
+		return "String"
+	case SearchContextLocationType:
+		return "Location"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchContextUnknownType if the value has not been decoded.
+func (u *SearchContext) Type() SearchContextType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *SearchContext) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchContextFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchContext) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchContextUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchContext) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "SearchContext", Want: "String", Got: u.typ.String()}
+}
+
+// NewSearchContextFromString returns a SearchContext populated with v
+// on the String branch.
+func NewSearchContextFromString(v string) SearchContext {
+	return SearchContext{
+		typ:   SearchContextStringType,
+		value: &v,
+	}
+}
+
+// Location returns the GeoLocation branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero GeoLocation in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchContext) Location() (GeoLocation, error) {
+	if v, ok := u.value.(*GeoLocation); ok {
+		return *v, nil
+	}
+	var zero GeoLocation
+	return zero, &UnionBranchError{Union: "SearchContext", Want: "Location", Got: u.typ.String()}
+}
+
+// NewSearchContextFromLocation returns a SearchContext populated with v
+// on the Location branch.
+func NewSearchContextFromLocation(v GeoLocation) SearchContext {
+	return SearchContext{
+		typ:   SearchContextLocationType,
+		value: &v,
+	}
+}
+
+func (u *SearchContext) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = SearchContextUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchContextStringType
+		u.value = &v
+	case data[0] == '{':
+		var v GeoLocation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchContextLocationType
+		u.value = &v
+	default:
+		return fmt.Errorf("SearchContext: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u SearchContext) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// SearchCompletionSuggestOptions is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type SearchCompletionSuggestOptions struct {
+	typ   SearchCompletionSuggestOptionsType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchCompletionSuggestOptionsType names which branch of SearchCompletionSuggestOptions is set.
+type SearchCompletionSuggestOptionsType int
+
+const (
+	SearchCompletionSuggestOptionsUnknownType SearchCompletionSuggestOptionsType = iota
+	SearchCompletionSuggestOptionsTextType
+	SearchCompletionSuggestOptionsArrayType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchCompletionSuggestOptionsType) String() string {
+	switch t {
+	case SearchCompletionSuggestOptionsTextType:
+		return "Text"
+	case SearchCompletionSuggestOptionsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchCompletionSuggestOptionsUnknownType if the value has not been decoded.
+func (u *SearchCompletionSuggestOptions) Type() SearchCompletionSuggestOptionsType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *SearchCompletionSuggestOptions) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchCompletionSuggestOptionsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchCompletionSuggestOptions) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchCompletionSuggestOptionsUnknownType
+}
+
+// Text returns the SearchCompletionSuggestOption branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchCompletionSuggestOptions) Text() (SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
+		return *v, nil
+	}
+	var zero SearchCompletionSuggestOption
+	return zero, &UnionBranchError{Union: "SearchCompletionSuggestOptions", Want: "Text", Got: u.typ.String()}
+}
+
+// NewSearchCompletionSuggestOptionsFromText returns a SearchCompletionSuggestOptions populated with v
+// on the Text branch.
+func NewSearchCompletionSuggestOptionsFromText(v SearchCompletionSuggestOption) SearchCompletionSuggestOptions {
+	return SearchCompletionSuggestOptions{
+		typ:   SearchCompletionSuggestOptionsTextType,
+		value: &v,
+	}
+}
+
+// Array returns the []SearchCompletionSuggestOption branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []SearchCompletionSuggestOption in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchCompletionSuggestOptions) Array() ([]SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*[]SearchCompletionSuggestOption); ok {
+		return *v, nil
+	}
+	var zero []SearchCompletionSuggestOption
+	return zero, &UnionBranchError{Union: "SearchCompletionSuggestOptions", Want: "Array", Got: u.typ.String()}
+}
+
+// NewSearchCompletionSuggestOptionsFromArray returns a SearchCompletionSuggestOptions populated with v
+// on the Array branch.
+func NewSearchCompletionSuggestOptionsFromArray(v []SearchCompletionSuggestOption) SearchCompletionSuggestOptions {
+	return SearchCompletionSuggestOptions{
+		typ:   SearchCompletionSuggestOptionsArrayType,
+		value: &v,
+	}
+}
+
+func (u *SearchCompletionSuggestOptions) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = SearchCompletionSuggestOptionsUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '{':
+		var v SearchCompletionSuggestOption
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchCompletionSuggestOptionsTextType
+		u.value = &v
+	case data[0] == '[':
+		var v []SearchCompletionSuggestOption
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchCompletionSuggestOptionsArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("SearchCompletionSuggestOptions: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u SearchCompletionSuggestOptions) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// SearchSuggestCompletionOptions is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type SearchSuggestCompletionOptions struct {
+	typ   SearchSuggestCompletionOptionsType
+	raw   json.RawMessage
+	value any
+}
+
+// SearchSuggestCompletionOptionsType names which branch of SearchSuggestCompletionOptions is set.
+type SearchSuggestCompletionOptionsType int
+
+const (
+	SearchSuggestCompletionOptionsUnknownType SearchSuggestCompletionOptionsType = iota
+	SearchSuggestCompletionOptionsTextType
+	SearchSuggestCompletionOptionsArrayType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchSuggestCompletionOptionsType) String() string {
+	switch t {
+	case SearchSuggestCompletionOptionsTextType:
+		return "Text"
+	case SearchSuggestCompletionOptionsArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns SearchSuggestCompletionOptionsUnknownType if the value has not been decoded.
+func (u *SearchSuggestCompletionOptions) Type() SearchSuggestCompletionOptionsType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *SearchSuggestCompletionOptions) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewSearchSuggestCompletionOptionsFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *SearchSuggestCompletionOptions) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = SearchSuggestCompletionOptionsUnknownType
+}
+
+// Text returns the SearchCompletionSuggestOption branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchCompletionSuggestOption in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchSuggestCompletionOptions) Text() (SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*SearchCompletionSuggestOption); ok {
+		return *v, nil
+	}
+	var zero SearchCompletionSuggestOption
+	return zero, &UnionBranchError{Union: "SearchSuggestCompletionOptions", Want: "Text", Got: u.typ.String()}
+}
+
+// NewSearchSuggestCompletionOptionsFromText returns a SearchSuggestCompletionOptions populated with v
+// on the Text branch.
+func NewSearchSuggestCompletionOptionsFromText(v SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
+	return SearchSuggestCompletionOptions{
+		typ:   SearchSuggestCompletionOptionsTextType,
+		value: &v,
+	}
+}
+
+// Array returns the []SearchCompletionSuggestOption branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []SearchCompletionSuggestOption in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchSuggestCompletionOptions) Array() ([]SearchCompletionSuggestOption, error) {
+	if v, ok := u.value.(*[]SearchCompletionSuggestOption); ok {
+		return *v, nil
+	}
+	var zero []SearchCompletionSuggestOption
+	return zero, &UnionBranchError{Union: "SearchSuggestCompletionOptions", Want: "Array", Got: u.typ.String()}
+}
+
+// NewSearchSuggestCompletionOptionsFromArray returns a SearchSuggestCompletionOptions populated with v
+// on the Array branch.
+func NewSearchSuggestCompletionOptionsFromArray(v []SearchCompletionSuggestOption) SearchSuggestCompletionOptions {
+	return SearchSuggestCompletionOptions{
+		typ:   SearchSuggestCompletionOptionsArrayType,
+		value: &v,
+	}
+}
+
+func (u *SearchSuggestCompletionOptions) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = SearchSuggestCompletionOptionsUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '{':
+		var v SearchCompletionSuggestOption
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSuggestCompletionOptionsTextType
+		u.value = &v
+	case data[0] == '[':
+		var v []SearchCompletionSuggestOption
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = SearchSuggestCompletionOptionsArrayType
+		u.value = &v
+	default:
+		return fmt.Errorf("SearchSuggestCompletionOptions: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u SearchSuggestCompletionOptions) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // SearchPhraseSuggestOptions is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -6919,7 +7290,6 @@ func (u CommonAggregationsAggregate) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPhraseSuggestOptions struct {
 	typ   SearchPhraseSuggestOptionsType
 	raw   json.RawMessage
@@ -7054,7 +7424,6 @@ func (u SearchPhraseSuggestOptions) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchTermSuggestOptions struct {
 	typ   SearchTermSuggestOptionsType
 	raw   json.RawMessage
@@ -7219,6 +7588,54 @@ func (u *SearchSuggest) SetRaw(raw json.RawMessage) {
 // a zero value, which the As<Branch>() accessors cannot.
 func (u *SearchSuggest) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
 
+// AsCompletion decodes the union as SearchSuggestCompletion, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// SearchSuggestCompletion: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// SearchSuggest for why nothing in the payload could.
+func (u *SearchSuggest) AsCompletion() (SearchSuggestCompletion, error) {
+	if v, ok := u.value.(*SearchSuggestCompletion); ok {
+		return *v, nil
+	}
+	var v SearchSuggestCompletion
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "length", "offset", "text", "options") {
+		return v, &UnionBranchError{
+			Union: "SearchSuggest",
+			Want:  "Completion",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required properties %q",
+				[]string{"length", "offset", "text", "options"}),
+		}
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "SearchSuggest",
+			Want:  "Completion",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewSearchSuggestFromCompletion returns a SearchSuggest populated with v
+// on the Completion branch.
+func NewSearchSuggestFromCompletion(v SearchSuggestCompletion) SearchSuggest {
+	return SearchSuggest{
+		value: &v,
+	}
+}
+
 // AsPhrase decodes the union as SearchPhraseSuggest, the branch the caller
 // requested. It returns (zero, nil) when the union holds nothing -- test IsZero
 // to tell that from a branch that decoded to a zero value.
@@ -7331,7 +7748,6 @@ func (u SearchSuggest) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -7343,7 +7759,6 @@ func (u SearchSuggest) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedEpochTimeUnitSeconds struct {
 	typ   StringifiedEpochTimeUnitSecondsType
 	raw   json.RawMessage
@@ -7471,7 +7886,6 @@ func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -7483,7 +7897,6 @@ func (u StringifiedEpochTimeUnitSeconds) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedEpochTimeUnitMillis struct {
 	typ   StringifiedEpochTimeUnitMillisType
 	raw   json.RawMessage
@@ -7611,7 +8024,6 @@ func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must appear in matching documents.
 // However, unlike `must`, the score of the query will be ignored.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -7620,7 +8032,6 @@ func (u StringifiedEpochTimeUnitMillis) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryFilter struct {
 	typ   CommonQueryDSLBoolQueryFilterType
 	raw   json.RawMessage
@@ -7748,7 +8159,6 @@ func (u CommonQueryDSLBoolQueryFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The minimum number of terms that should match as an integer, percentage, or range.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -7756,7 +8166,6 @@ func (u CommonQueryDSLBoolQueryFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MinimumShouldMatch struct {
 	typ   MinimumShouldMatchType
 	raw   json.RawMessage
@@ -7884,7 +8293,6 @@ func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must appear in matching documents and will contribute to the score.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -7892,7 +8300,6 @@ func (u MinimumShouldMatch) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryMust struct {
 	typ   CommonQueryDSLBoolQueryMustType
 	raw   json.RawMessage
@@ -8020,7 +8427,6 @@ func (u CommonQueryDSLBoolQueryMust) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) must not appear in the matching documents.
 // Because scoring is ignored, a score of `0` is returned for all documents.
 // The spec declares no discriminator, but each branch is a different JSON token
@@ -8029,7 +8435,6 @@ func (u CommonQueryDSLBoolQueryMust) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryMustNot struct {
 	typ   CommonQueryDSLBoolQueryMustNotType
 	raw   json.RawMessage
@@ -8157,7 +8562,6 @@ func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The clause (query) should appear in the matching document.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8165,7 +8569,6 @@ func (u CommonQueryDSLBoolQueryMustNot) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLBoolQueryShould struct {
 	typ   CommonQueryDSLBoolQueryShouldType
 	raw   json.RawMessage
@@ -8293,6 +8696,423 @@ func (u CommonQueryDSLBoolQueryShould) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// CommonQueryDSLCommonTermsQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLCommonTermsQuery struct {
+	typ   CommonQueryDSLCommonTermsQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLCommonTermsQueryType names which branch of CommonQueryDSLCommonTermsQuery is set.
+type CommonQueryDSLCommonTermsQueryType int
+
+const (
+	CommonQueryDSLCommonTermsQueryUnknownType CommonQueryDSLCommonTermsQueryType = iota
+	CommonQueryDSLCommonTermsQueryStringType
+	CommonQueryDSLCommonTermsQueryQueryType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLCommonTermsQueryType) String() string {
+	switch t {
+	case CommonQueryDSLCommonTermsQueryStringType:
+		return "String"
+	case CommonQueryDSLCommonTermsQueryQueryType:
+		return "Query"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLCommonTermsQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLCommonTermsQuery) Type() CommonQueryDSLCommonTermsQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLCommonTermsQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLCommonTermsQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLCommonTermsQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLCommonTermsQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLCommonTermsQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLCommonTermsQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLCommonTermsQueryFromString returns a CommonQueryDSLCommonTermsQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLCommonTermsQueryFromString(v string) CommonQueryDSLCommonTermsQuery {
+	return CommonQueryDSLCommonTermsQuery{
+		typ:   CommonQueryDSLCommonTermsQueryStringType,
+		value: &v,
+	}
+}
+
+// Query returns the CommonQueryDSLCommonTermsQueryQuery branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLCommonTermsQueryQuery in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLCommonTermsQuery) Query() (CommonQueryDSLCommonTermsQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLCommonTermsQueryQuery); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLCommonTermsQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLCommonTermsQuery", Want: "Query", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLCommonTermsQueryFromQuery returns a CommonQueryDSLCommonTermsQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLCommonTermsQueryFromQuery(v CommonQueryDSLCommonTermsQueryQuery) CommonQueryDSLCommonTermsQuery {
+	return CommonQueryDSLCommonTermsQuery{
+		typ:   CommonQueryDSLCommonTermsQueryQueryType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLCommonTermsQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLCommonTermsQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLCommonTermsQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLCommonTermsQueryQuery
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLCommonTermsQueryQueryType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLCommonTermsQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLCommonTermsQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLDistanceFeatureQuery is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+//
+// The branches below are probed only after an earlier branch that declares the
+// same required keys. The decoder keeps the first branch that unmarshals, so each
+// of these loses any payload that earlier branch can also decode -- for some
+// unions that is every payload, for others none, depending on whether the earlier
+// branch's Go types accept the bytes. Constructing and marshaling them is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived, and
+// Type() to see which branch actually decoded.
+//
+//   - Object1 (same required keys as Object0)
+type CommonQueryDSLDistanceFeatureQuery struct {
+	typ   CommonQueryDSLDistanceFeatureQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLDistanceFeatureQueryType names which branch of CommonQueryDSLDistanceFeatureQuery is set.
+type CommonQueryDSLDistanceFeatureQueryType int
+
+const (
+	CommonQueryDSLDistanceFeatureQueryUnknownType CommonQueryDSLDistanceFeatureQueryType = iota
+	CommonQueryDSLDistanceFeatureQueryObject0Type
+	CommonQueryDSLDistanceFeatureQueryObject1Type
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLDistanceFeatureQueryType) String() string {
+	switch t {
+	case CommonQueryDSLDistanceFeatureQueryObject0Type:
+		return "Object0"
+	case CommonQueryDSLDistanceFeatureQueryObject1Type:
+		return "Object1"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLDistanceFeatureQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLDistanceFeatureQuery) Type() CommonQueryDSLDistanceFeatureQueryType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLDistanceFeatureQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLDistanceFeatureQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLDistanceFeatureQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLDistanceFeatureQueryUnknownType
+}
+
+// Object0 returns the CommonQueryDSLDistanceFeatureQueryObject0 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLDistanceFeatureQueryObject0 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLDistanceFeatureQuery) Object0() (CommonQueryDSLDistanceFeatureQueryObject0, error) {
+	if v, ok := u.value.(*CommonQueryDSLDistanceFeatureQueryObject0); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLDistanceFeatureQueryObject0
+	return zero, &UnionBranchError{Union: "CommonQueryDSLDistanceFeatureQuery", Want: "Object0", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLDistanceFeatureQueryFromObject0 returns a CommonQueryDSLDistanceFeatureQuery populated with v
+// on the Object0 branch.
+func NewCommonQueryDSLDistanceFeatureQueryFromObject0(v CommonQueryDSLDistanceFeatureQueryObject0) CommonQueryDSLDistanceFeatureQuery {
+	return CommonQueryDSLDistanceFeatureQuery{
+		typ:   CommonQueryDSLDistanceFeatureQueryObject0Type,
+		value: &v,
+	}
+}
+
+// Object1 returns the CommonQueryDSLDistanceFeatureQueryObject1 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLDistanceFeatureQueryObject1 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLDistanceFeatureQuery) Object1() (CommonQueryDSLDistanceFeatureQueryObject1, error) {
+	if v, ok := u.value.(*CommonQueryDSLDistanceFeatureQueryObject1); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLDistanceFeatureQueryObject1
+	return zero, &UnionBranchError{Union: "CommonQueryDSLDistanceFeatureQuery", Want: "Object1", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLDistanceFeatureQueryFromObject1 returns a CommonQueryDSLDistanceFeatureQuery populated with v
+// on the Object1 branch.
+func NewCommonQueryDSLDistanceFeatureQueryFromObject1(v CommonQueryDSLDistanceFeatureQueryObject1) CommonQueryDSLDistanceFeatureQuery {
+	return CommonQueryDSLDistanceFeatureQuery{
+		typ:   CommonQueryDSLDistanceFeatureQueryObject1Type,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLDistanceFeatureQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLDistanceFeatureQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "field", "origin", "pivot") {
+		var v CommonQueryDSLDistanceFeatureQueryObject0
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonQueryDSLDistanceFeatureQueryObject0Type
+			u.value = &v
+			return nil
+		}
+	}
+	if build.HasJSONKeys(data, "field", "origin", "pivot") {
+		var v CommonQueryDSLDistanceFeatureQueryObject1
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = CommonQueryDSLDistanceFeatureQueryObject1Type
+			u.value = &v
+			return nil
+		}
+	}
+	// Pass 2: permissive branches with no required properties, tried newest-first.
+	return fmt.Errorf("CommonQueryDSLDistanceFeatureQuery: no branch matched JSON: %s", data[:min(len(data), 64)])
+}
+
+func (u CommonQueryDSLDistanceFeatureQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLSpanTermQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLSpanTermQuery struct {
+	typ   CommonQueryDSLSpanTermQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLSpanTermQueryType names which branch of CommonQueryDSLSpanTermQuery is set.
+type CommonQueryDSLSpanTermQueryType int
+
+const (
+	CommonQueryDSLSpanTermQueryUnknownType CommonQueryDSLSpanTermQueryType = iota
+	CommonQueryDSLSpanTermQueryStringType
+	CommonQueryDSLSpanTermQueryValueType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLSpanTermQueryType) String() string {
+	switch t {
+	case CommonQueryDSLSpanTermQueryStringType:
+		return "String"
+	case CommonQueryDSLSpanTermQueryValueType:
+		return "Value"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLSpanTermQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLSpanTermQuery) Type() CommonQueryDSLSpanTermQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLSpanTermQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLSpanTermQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLSpanTermQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLSpanTermQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLSpanTermQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLSpanTermQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLSpanTermQueryFromString returns a CommonQueryDSLSpanTermQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLSpanTermQueryFromString(v string) CommonQueryDSLSpanTermQuery {
+	return CommonQueryDSLSpanTermQuery{
+		typ:   CommonQueryDSLSpanTermQueryStringType,
+		value: &v,
+	}
+}
+
+// Value returns the CommonQueryDSLSpanTermQueryValue branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLSpanTermQueryValue in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLSpanTermQuery) Value() (CommonQueryDSLSpanTermQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLSpanTermQueryValue); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLSpanTermQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLSpanTermQuery", Want: "Value", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLSpanTermQueryFromValue returns a CommonQueryDSLSpanTermQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLSpanTermQueryFromValue(v CommonQueryDSLSpanTermQueryValue) CommonQueryDSLSpanTermQuery {
+	return CommonQueryDSLSpanTermQuery{
+		typ:   CommonQueryDSLSpanTermQueryValueType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLSpanTermQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLSpanTermQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLSpanTermQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLSpanTermQueryValue
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLSpanTermQueryValueType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLSpanTermQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLSpanTermQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // CommonQueryDSLRandomScoreFunctionSeed is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8300,7 +9120,6 @@ func (u CommonQueryDSLBoolQueryShould) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLRandomScoreFunctionSeed struct {
 	typ   CommonQueryDSLRandomScoreFunctionSeedType
 	raw   json.RawMessage
@@ -8430,14 +9249,146 @@ func (u CommonQueryDSLRandomScoreFunctionSeed) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-// Script is a oneOf union whose branches decode from different JSON tokens.
+// InlineScript is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
 // selects one.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
+type InlineScript struct {
+	typ   InlineScriptType
+	raw   json.RawMessage
+	value any
+}
 
+// InlineScriptType names which branch of InlineScript is set.
+type InlineScriptType int
+
+const (
+	InlineScriptUnknownType InlineScriptType = iota
+	InlineScriptStringType
+	InlineScriptSourceType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t InlineScriptType) String() string {
+	switch t {
+	case InlineScriptStringType:
+		return "String"
+	case InlineScriptSourceType:
+		return "Source"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns InlineScriptUnknownType if the value has not been decoded.
+func (u *InlineScript) Type() InlineScriptType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *InlineScript) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewInlineScriptFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *InlineScript) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = InlineScriptUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *InlineScript) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "InlineScript", Want: "String", Got: u.typ.String()}
+}
+
+// NewInlineScriptFromString returns a InlineScript populated with v
+// on the String branch.
+func NewInlineScriptFromString(v string) InlineScript {
+	return InlineScript{
+		typ:   InlineScriptStringType,
+		value: &v,
+	}
+}
+
+// Source returns the InlineScriptSource branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero InlineScriptSource in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *InlineScript) Source() (InlineScriptSource, error) {
+	if v, ok := u.value.(*InlineScriptSource); ok {
+		return *v, nil
+	}
+	var zero InlineScriptSource
+	return zero, &UnionBranchError{Union: "InlineScript", Want: "Source", Got: u.typ.String()}
+}
+
+// NewInlineScriptFromSource returns a InlineScript populated with v
+// on the Source branch.
+func NewInlineScriptFromSource(v InlineScriptSource) InlineScript {
+	return InlineScript{
+		typ:   InlineScriptSourceType,
+		value: &v,
+	}
+}
+
+func (u *InlineScript) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = InlineScriptUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = InlineScriptStringType
+		u.value = &v
+	case data[0] == '{':
+		var v InlineScriptSource
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = InlineScriptSourceType
+		u.value = &v
+	default:
+		return fmt.Errorf("InlineScript: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u InlineScript) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// Script is a oneOf union decoded by trying each branch in turn.
+// The spec declares no discriminator and no single key tells the branches apart,
+// so each is attempted (newest schema version first) until one decodes.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
 type Script struct {
 	typ   ScriptType
 	raw   json.RawMessage
@@ -8449,7 +9400,7 @@ type ScriptType int
 
 const (
 	ScriptUnknownType ScriptType = iota
-	ScriptStringType
+	ScriptInlineType
 	ScriptStoredType
 )
 
@@ -8457,8 +9408,8 @@ const (
 // been decoded.
 func (t ScriptType) String() string {
 	switch t {
-	case ScriptStringType:
-		return "String"
+	case ScriptInlineType:
+		return "Inline"
 	case ScriptStoredType:
 		return "Stored"
 	default:
@@ -8485,23 +9436,23 @@ func (u *Script) SetRaw(raw json.RawMessage) {
 	u.typ = ScriptUnknownType
 }
 
-// String returns the string branch value. It returns a
+// Inline returns the InlineScript branch value. It returns a
 // *UnionBranchError when the union holds a different branch, naming the branch
-// that is set; the returned value is the zero string in that case,
+// that is set; the returned value is the zero InlineScript in that case,
 // which is indistinguishable from a decoded one, so check the error.
-func (u *Script) String() (string, error) {
-	if v, ok := u.value.(*string); ok {
+func (u *Script) Inline() (InlineScript, error) {
+	if v, ok := u.value.(*InlineScript); ok {
 		return *v, nil
 	}
-	var zero string
-	return zero, &UnionBranchError{Union: "Script", Want: "String", Got: u.typ.String()}
+	var zero InlineScript
+	return zero, &UnionBranchError{Union: "Script", Want: "Inline", Got: u.typ.String()}
 }
 
-// NewScriptFromString returns a Script populated with v
-// on the String branch.
-func NewScriptFromString(v string) Script {
+// NewScriptFromInline returns a Script populated with v
+// on the Inline branch.
+func NewScriptFromInline(v InlineScript) Script {
 	return Script{
-		typ:   ScriptStringType,
+		typ:   ScriptInlineType,
 		value: &v,
 	}
 }
@@ -8534,28 +9485,172 @@ func (u *Script) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = ScriptStringType
-		u.value = &v
-	case data[0] == '{':
+	// Pass 1: branches that declare required properties. A branch is eligible
+	// only when the payload carries every required key, so a more specific branch
+	// (e.g. an error sub-response keyed by "error") is not absorbed by a
+	// structurally permissive success branch. encoding/json does not enforce a
+	// schema's "required" set, hence the explicit key probe.
+	if build.HasJSONKeys(data, "id") {
 		var v StoredScriptID
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ScriptStoredType
+			u.value = &v
+			return nil
 		}
-		u.typ = ScriptStoredType
-		u.value = &v
-	default:
-		return fmt.Errorf("Script: unexpected JSON token: %s", data[:1])
 	}
-	return nil
+	// Pass 2: permissive branches with no required properties, tried newest-first.
+	{
+		var v InlineScript
+		if err := json.Unmarshal(data, &v); err == nil {
+			u.typ = ScriptInlineType
+			u.value = &v
+			return nil
+		}
+	}
+	return fmt.Errorf("Script: no branch matched JSON: %s", data[:min(len(data), 64)])
 }
 
 func (u Script) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLFuzzyQuery is a oneOf union whose branch the request selects.
+//
+// The spec declares no discriminator because the response payload carries no
+// branch name: the caller picks the branch in its REQUEST and the response
+// echoes it only in the enclosing map's key. Pass typed_keys=true and that key
+// is prefixed with the type, e.g. "avg#my_agg" for the aggregation named
+// my_agg; without it the key is the bare name and the type is only what the
+// caller asked for.
+//
+// So there is deliberately no Type() method and no discriminant constants. Call
+// the As<Branch>() accessor for the branch you requested. It returns a
+// *UnionBranchError when the payload cannot be that branch, which catches
+// asking for the wrong shape entirely (AsSum on a histogram result). It cannot
+// catch a wrong branch of the SAME shape: several metric aggregates serialize
+// identically as {"value": N}, so AsSum on an avg result succeeds. Only the
+// request knows which it was.
+type CommonQueryDSLFuzzyQuery struct {
+	raw   json.RawMessage
+	value any
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLFuzzyQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling.
+func (u *CommonQueryDSLFuzzyQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+}
+
+// IsZero reports whether the union holds nothing: no decoded branch and no
+// retained bytes. Distinguishes an absent union from one whose branch decoded to
+// a zero value, which the As<Branch>() accessors cannot.
+func (u *CommonQueryDSLFuzzyQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
+
+// AsFieldValue decodes the union as FieldValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// FieldValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLFuzzyQuery for why nothing in the payload could.
+func (u *CommonQueryDSLFuzzyQuery) AsFieldValue() (FieldValue, error) {
+	if v, ok := u.value.(*FieldValue); ok {
+		return *v, nil
+	}
+	var v FieldValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLFuzzyQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLFuzzyQueryFromFieldValue returns a CommonQueryDSLFuzzyQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLFuzzyQueryFromFieldValue(v FieldValue) CommonQueryDSLFuzzyQuery {
+	return CommonQueryDSLFuzzyQuery{
+		value: &v,
+	}
+}
+
+// AsValue decodes the union as CommonQueryDSLFuzzyQueryValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLFuzzyQueryValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLFuzzyQuery for why nothing in the payload could.
+func (u *CommonQueryDSLFuzzyQuery) AsValue() (CommonQueryDSLFuzzyQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLFuzzyQueryValue); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLFuzzyQueryValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "value") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLFuzzyQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"value"}),
+		}
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLFuzzyQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLFuzzyQueryFromValue returns a CommonQueryDSLFuzzyQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLFuzzyQueryFromValue(v CommonQueryDSLFuzzyQueryValue) CommonQueryDSLFuzzyQuery {
+	return CommonQueryDSLFuzzyQuery{
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLFuzzyQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	return nil
+}
+
+func (u CommonQueryDSLFuzzyQuery) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -8572,7 +9667,6 @@ func (u Script) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchSourceFilter struct {
 	typ   SearchSourceFilterType
 	raw   json.RawMessage
@@ -8700,7 +9794,6 @@ func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Defines how to fetch a source. Fetching can be disabled entirely, or the source can be filtered.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8708,7 +9801,6 @@ func (u SearchSourceFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchSourceConfig struct {
 	typ   SearchSourceConfigType
 	raw   json.RawMessage
@@ -8836,7 +9928,6 @@ func (u SearchSourceConfig) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of inner hits and their sort order.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -8844,7 +9935,6 @@ func (u SearchSourceConfig) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchFieldCollapseInnerHits struct {
 	typ   SearchFieldCollapseInnerHitsType
 	raw   json.RawMessage
@@ -8979,7 +10069,6 @@ func (u SearchFieldCollapseInnerHits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLFieldAndFormat struct {
 	typ   CommonQueryDSLFieldAndFormatType
 	raw   json.RawMessage
@@ -9114,7 +10203,6 @@ func (u CommonQueryDSLFieldAndFormat) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchHighlightFields struct {
 	typ   SearchHighlightFieldsType
 	raw   json.RawMessage
@@ -9248,7 +10336,6 @@ func (u SearchHighlightFields) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SortCombinations struct {
 	typ   SortCombinationsType
 	raw   json.RawMessage
@@ -9451,7 +10538,6 @@ func (u SortCombinations) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type Sort struct {
 	typ   SortType
 	raw   json.RawMessage
@@ -9586,7 +10672,6 @@ func (u Sort) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLKNNQueryRescore struct {
 	typ   CommonQueryDSLKNNQueryRescoreType
 	raw   json.RawMessage
@@ -9714,7 +10799,552 @@ func (u CommonQueryDSLKNNQueryRescore) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// CommonQueryDSLMatchQuery is a oneOf union whose branch the request selects.
 //
+// The spec declares no discriminator because the response payload carries no
+// branch name: the caller picks the branch in its REQUEST and the response
+// echoes it only in the enclosing map's key. Pass typed_keys=true and that key
+// is prefixed with the type, e.g. "avg#my_agg" for the aggregation named
+// my_agg; without it the key is the bare name and the type is only what the
+// caller asked for.
+//
+// So there is deliberately no Type() method and no discriminant constants. Call
+// the As<Branch>() accessor for the branch you requested. It returns a
+// *UnionBranchError when the payload cannot be that branch, which catches
+// asking for the wrong shape entirely (AsSum on a histogram result). It cannot
+// catch a wrong branch of the SAME shape: several metric aggregates serialize
+// identically as {"value": N}, so AsSum on an avg result succeeds. Only the
+// request knows which it was.
+type CommonQueryDSLMatchQuery struct {
+	raw   json.RawMessage
+	value any
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLMatchQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling.
+func (u *CommonQueryDSLMatchQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+}
+
+// IsZero reports whether the union holds nothing: no decoded branch and no
+// retained bytes. Distinguishes an absent union from one whose branch decoded to
+// a zero value, which the As<Branch>() accessors cannot.
+func (u *CommonQueryDSLMatchQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
+
+// AsFieldValue decodes the union as FieldValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// FieldValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLMatchQuery for why nothing in the payload could.
+func (u *CommonQueryDSLMatchQuery) AsFieldValue() (FieldValue, error) {
+	if v, ok := u.value.(*FieldValue); ok {
+		return *v, nil
+	}
+	var v FieldValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLMatchQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLMatchQueryFromFieldValue returns a CommonQueryDSLMatchQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLMatchQueryFromFieldValue(v FieldValue) CommonQueryDSLMatchQuery {
+	return CommonQueryDSLMatchQuery{
+		value: &v,
+	}
+}
+
+// AsQuery decodes the union as CommonQueryDSLMatchQueryQuery, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLMatchQueryQuery: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLMatchQuery for why nothing in the payload could.
+func (u *CommonQueryDSLMatchQuery) AsQuery() (CommonQueryDSLMatchQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchQueryQuery); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLMatchQueryQuery
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "query") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLMatchQuery",
+			Want:  "Query",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"query"}),
+		}
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLMatchQuery",
+			Want:  "Query",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLMatchQueryFromQuery returns a CommonQueryDSLMatchQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchQueryFromQuery(v CommonQueryDSLMatchQueryQuery) CommonQueryDSLMatchQuery {
+	return CommonQueryDSLMatchQuery{
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLMatchQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	return nil
+}
+
+func (u CommonQueryDSLMatchQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLMatchBoolPrefixQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLMatchBoolPrefixQuery struct {
+	typ   CommonQueryDSLMatchBoolPrefixQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLMatchBoolPrefixQueryType names which branch of CommonQueryDSLMatchBoolPrefixQuery is set.
+type CommonQueryDSLMatchBoolPrefixQueryType int
+
+const (
+	CommonQueryDSLMatchBoolPrefixQueryUnknownType CommonQueryDSLMatchBoolPrefixQueryType = iota
+	CommonQueryDSLMatchBoolPrefixQueryStringType
+	CommonQueryDSLMatchBoolPrefixQueryQueryType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMatchBoolPrefixQueryType) String() string {
+	switch t {
+	case CommonQueryDSLMatchBoolPrefixQueryStringType:
+		return "String"
+	case CommonQueryDSLMatchBoolPrefixQueryQueryType:
+		return "Query"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLMatchBoolPrefixQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) Type() CommonQueryDSLMatchBoolPrefixQueryType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMatchBoolPrefixQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMatchBoolPrefixQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchBoolPrefixQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchBoolPrefixQueryFromString returns a CommonQueryDSLMatchBoolPrefixQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLMatchBoolPrefixQueryFromString(v string) CommonQueryDSLMatchBoolPrefixQuery {
+	return CommonQueryDSLMatchBoolPrefixQuery{
+		typ:   CommonQueryDSLMatchBoolPrefixQueryStringType,
+		value: &v,
+	}
+}
+
+// Query returns the CommonQueryDSLMatchBoolPrefixQueryQuery branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLMatchBoolPrefixQueryQuery in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchBoolPrefixQuery) Query() (CommonQueryDSLMatchBoolPrefixQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchBoolPrefixQueryQuery); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLMatchBoolPrefixQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchBoolPrefixQuery", Want: "Query", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchBoolPrefixQueryFromQuery returns a CommonQueryDSLMatchBoolPrefixQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchBoolPrefixQueryFromQuery(v CommonQueryDSLMatchBoolPrefixQueryQuery) CommonQueryDSLMatchBoolPrefixQuery {
+	return CommonQueryDSLMatchBoolPrefixQuery{
+		typ:   CommonQueryDSLMatchBoolPrefixQueryQueryType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLMatchBoolPrefixQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLMatchBoolPrefixQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchBoolPrefixQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLMatchBoolPrefixQueryQuery
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchBoolPrefixQueryQueryType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLMatchBoolPrefixQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLMatchBoolPrefixQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLMatchPhraseQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLMatchPhraseQuery struct {
+	typ   CommonQueryDSLMatchPhraseQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLMatchPhraseQueryType names which branch of CommonQueryDSLMatchPhraseQuery is set.
+type CommonQueryDSLMatchPhraseQueryType int
+
+const (
+	CommonQueryDSLMatchPhraseQueryUnknownType CommonQueryDSLMatchPhraseQueryType = iota
+	CommonQueryDSLMatchPhraseQueryStringType
+	CommonQueryDSLMatchPhraseQueryQueryType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMatchPhraseQueryType) String() string {
+	switch t {
+	case CommonQueryDSLMatchPhraseQueryStringType:
+		return "String"
+	case CommonQueryDSLMatchPhraseQueryQueryType:
+		return "Query"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLMatchPhraseQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLMatchPhraseQuery) Type() CommonQueryDSLMatchPhraseQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLMatchPhraseQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMatchPhraseQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMatchPhraseQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhraseQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchPhraseQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhraseQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchPhraseQueryFromString returns a CommonQueryDSLMatchPhraseQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLMatchPhraseQueryFromString(v string) CommonQueryDSLMatchPhraseQuery {
+	return CommonQueryDSLMatchPhraseQuery{
+		typ:   CommonQueryDSLMatchPhraseQueryStringType,
+		value: &v,
+	}
+}
+
+// Query returns the CommonQueryDSLMatchPhraseQueryQuery branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLMatchPhraseQueryQuery in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchPhraseQuery) Query() (CommonQueryDSLMatchPhraseQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchPhraseQueryQuery); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLMatchPhraseQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhraseQuery", Want: "Query", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchPhraseQueryFromQuery returns a CommonQueryDSLMatchPhraseQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchPhraseQueryFromQuery(v CommonQueryDSLMatchPhraseQueryQuery) CommonQueryDSLMatchPhraseQuery {
+	return CommonQueryDSLMatchPhraseQuery{
+		typ:   CommonQueryDSLMatchPhraseQueryQueryType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLMatchPhraseQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhraseQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhraseQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLMatchPhraseQueryQuery
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhraseQueryQueryType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLMatchPhraseQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLMatchPhraseQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLMatchPhrasePrefixQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLMatchPhrasePrefixQuery struct {
+	typ   CommonQueryDSLMatchPhrasePrefixQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLMatchPhrasePrefixQueryType names which branch of CommonQueryDSLMatchPhrasePrefixQuery is set.
+type CommonQueryDSLMatchPhrasePrefixQueryType int
+
+const (
+	CommonQueryDSLMatchPhrasePrefixQueryUnknownType CommonQueryDSLMatchPhrasePrefixQueryType = iota
+	CommonQueryDSLMatchPhrasePrefixQueryStringType
+	CommonQueryDSLMatchPhrasePrefixQueryQueryType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLMatchPhrasePrefixQueryType) String() string {
+	switch t {
+	case CommonQueryDSLMatchPhrasePrefixQueryStringType:
+		return "String"
+	case CommonQueryDSLMatchPhrasePrefixQueryQueryType:
+		return "Query"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLMatchPhrasePrefixQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) Type() CommonQueryDSLMatchPhrasePrefixQueryType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLMatchPhrasePrefixQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhrasePrefixQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhrasePrefixQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchPhrasePrefixQueryFromString returns a CommonQueryDSLMatchPhrasePrefixQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLMatchPhrasePrefixQueryFromString(v string) CommonQueryDSLMatchPhrasePrefixQuery {
+	return CommonQueryDSLMatchPhrasePrefixQuery{
+		typ:   CommonQueryDSLMatchPhrasePrefixQueryStringType,
+		value: &v,
+	}
+}
+
+// Query returns the CommonQueryDSLMatchPhrasePrefixQueryQuery branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLMatchPhrasePrefixQueryQuery in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) Query() (CommonQueryDSLMatchPhrasePrefixQueryQuery, error) {
+	if v, ok := u.value.(*CommonQueryDSLMatchPhrasePrefixQueryQuery); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLMatchPhrasePrefixQueryQuery
+	return zero, &UnionBranchError{Union: "CommonQueryDSLMatchPhrasePrefixQuery", Want: "Query", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLMatchPhrasePrefixQueryFromQuery returns a CommonQueryDSLMatchPhrasePrefixQuery populated with v
+// on the Query branch.
+func NewCommonQueryDSLMatchPhrasePrefixQueryFromQuery(v CommonQueryDSLMatchPhrasePrefixQueryQuery) CommonQueryDSLMatchPhrasePrefixQuery {
+	return CommonQueryDSLMatchPhrasePrefixQuery{
+		typ:   CommonQueryDSLMatchPhrasePrefixQueryQueryType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLMatchPhrasePrefixQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLMatchPhrasePrefixQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhrasePrefixQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLMatchPhrasePrefixQueryQuery
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLMatchPhrasePrefixQueryQueryType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLMatchPhrasePrefixQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLMatchPhrasePrefixQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // Text that we want similar documents for or a lookup to a document's field for the text.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -9722,7 +11352,6 @@ func (u CommonQueryDSLKNNQueryRescore) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLLike struct {
 	typ   CommonQueryDSLLikeType
 	raw   json.RawMessage
@@ -9850,7 +11479,6 @@ func (u CommonQueryDSLLike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Specifies free form text and/or a single or multiple documents for which you want to find similar documents.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -9858,7 +11486,6 @@ func (u CommonQueryDSLLike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMoreLikeThisQueryLike struct {
 	typ   CommonQueryDSLMoreLikeThisQueryLikeType
 	raw   json.RawMessage
@@ -9988,7 +11615,6 @@ func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Language value, such as `arabic` or `thai`. Defaults to `english`.
 // Each language value corresponds to a predefined list of stop words in Lucene. See Stop words by language for supported language values and their stop words.
 // Also accepts an array of stop words.
@@ -9998,7 +11624,6 @@ func (u CommonQueryDSLMoreLikeThisQueryLike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisStopWords struct {
 	typ   CommonAnalysisStopWordsType
 	raw   json.RawMessage
@@ -10126,7 +11751,6 @@ func (u CommonAnalysisStopWords) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Used in combination with `like` to exclude documents that match a set of terms.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -10134,7 +11758,6 @@ func (u CommonAnalysisStopWords) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLMoreLikeThisQueryUnlike struct {
 	typ   CommonQueryDSLMoreLikeThisQueryUnlikeType
 	raw   json.RawMessage
@@ -10264,6 +11887,140 @@ func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// CommonQueryDSLPrefixQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLPrefixQuery struct {
+	typ   CommonQueryDSLPrefixQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLPrefixQueryType names which branch of CommonQueryDSLPrefixQuery is set.
+type CommonQueryDSLPrefixQueryType int
+
+const (
+	CommonQueryDSLPrefixQueryUnknownType CommonQueryDSLPrefixQueryType = iota
+	CommonQueryDSLPrefixQueryStringType
+	CommonQueryDSLPrefixQueryValueType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLPrefixQueryType) String() string {
+	switch t {
+	case CommonQueryDSLPrefixQueryStringType:
+		return "String"
+	case CommonQueryDSLPrefixQueryValueType:
+		return "Value"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLPrefixQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLPrefixQuery) Type() CommonQueryDSLPrefixQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLPrefixQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLPrefixQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLPrefixQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLPrefixQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLPrefixQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLPrefixQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLPrefixQueryFromString returns a CommonQueryDSLPrefixQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLPrefixQueryFromString(v string) CommonQueryDSLPrefixQuery {
+	return CommonQueryDSLPrefixQuery{
+		typ:   CommonQueryDSLPrefixQueryStringType,
+		value: &v,
+	}
+}
+
+// Value returns the CommonQueryDSLPrefixQueryValue branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLPrefixQueryValue in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLPrefixQuery) Value() (CommonQueryDSLPrefixQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLPrefixQueryValue); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLPrefixQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLPrefixQuery", Want: "Value", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLPrefixQueryFromValue returns a CommonQueryDSLPrefixQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLPrefixQueryFromValue(v CommonQueryDSLPrefixQueryValue) CommonQueryDSLPrefixQuery {
+	return CommonQueryDSLPrefixQuery{
+		typ:   CommonQueryDSLPrefixQueryValueType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLPrefixQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLPrefixQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLPrefixQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLPrefixQueryValue
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLPrefixQueryValueType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLPrefixQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLPrefixQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // CommonQueryDSLNumberRangeQueryFrom is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -10271,7 +12028,6 @@ func (u CommonQueryDSLMoreLikeThisQueryUnlike) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLNumberRangeQueryFrom struct {
 	typ   CommonQueryDSLNumberRangeQueryFromType
 	raw   json.RawMessage
@@ -10408,7 +12164,6 @@ func (u CommonQueryDSLNumberRangeQueryFrom) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonQueryDSLNumberRangeQueryTo struct {
 	typ   CommonQueryDSLNumberRangeQueryToType
 	raw   json.RawMessage
@@ -10667,6 +12422,414 @@ func (u CommonQueryDSLRangeQuery) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// CommonQueryDSLRegexpQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLRegexpQuery struct {
+	typ   CommonQueryDSLRegexpQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLRegexpQueryType names which branch of CommonQueryDSLRegexpQuery is set.
+type CommonQueryDSLRegexpQueryType int
+
+const (
+	CommonQueryDSLRegexpQueryUnknownType CommonQueryDSLRegexpQueryType = iota
+	CommonQueryDSLRegexpQueryStringType
+	CommonQueryDSLRegexpQueryValueType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLRegexpQueryType) String() string {
+	switch t {
+	case CommonQueryDSLRegexpQueryStringType:
+		return "String"
+	case CommonQueryDSLRegexpQueryValueType:
+		return "Value"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLRegexpQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLRegexpQuery) Type() CommonQueryDSLRegexpQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLRegexpQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLRegexpQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLRegexpQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLRegexpQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLRegexpQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLRegexpQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLRegexpQueryFromString returns a CommonQueryDSLRegexpQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLRegexpQueryFromString(v string) CommonQueryDSLRegexpQuery {
+	return CommonQueryDSLRegexpQuery{
+		typ:   CommonQueryDSLRegexpQueryStringType,
+		value: &v,
+	}
+}
+
+// Value returns the CommonQueryDSLRegexpQueryValue branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLRegexpQueryValue in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLRegexpQuery) Value() (CommonQueryDSLRegexpQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLRegexpQueryValue); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLRegexpQueryValue
+	return zero, &UnionBranchError{Union: "CommonQueryDSLRegexpQuery", Want: "Value", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLRegexpQueryFromValue returns a CommonQueryDSLRegexpQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLRegexpQueryFromValue(v CommonQueryDSLRegexpQueryValue) CommonQueryDSLRegexpQuery {
+	return CommonQueryDSLRegexpQuery{
+		typ:   CommonQueryDSLRegexpQueryValueType,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLRegexpQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLRegexpQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRegexpQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLRegexpQueryValue
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLRegexpQueryValueType
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLRegexpQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLRegexpQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLTermQuery is a oneOf union whose branch the request selects.
+//
+// The spec declares no discriminator because the response payload carries no
+// branch name: the caller picks the branch in its REQUEST and the response
+// echoes it only in the enclosing map's key. Pass typed_keys=true and that key
+// is prefixed with the type, e.g. "avg#my_agg" for the aggregation named
+// my_agg; without it the key is the bare name and the type is only what the
+// caller asked for.
+//
+// So there is deliberately no Type() method and no discriminant constants. Call
+// the As<Branch>() accessor for the branch you requested. It returns a
+// *UnionBranchError when the payload cannot be that branch, which catches
+// asking for the wrong shape entirely (AsSum on a histogram result). It cannot
+// catch a wrong branch of the SAME shape: several metric aggregates serialize
+// identically as {"value": N}, so AsSum on an avg result succeeds. Only the
+// request knows which it was.
+type CommonQueryDSLTermQuery struct {
+	raw   json.RawMessage
+	value any
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLTermQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling.
+func (u *CommonQueryDSLTermQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+}
+
+// IsZero reports whether the union holds nothing: no decoded branch and no
+// retained bytes. Distinguishes an absent union from one whose branch decoded to
+// a zero value, which the As<Branch>() accessors cannot.
+func (u *CommonQueryDSLTermQuery) IsZero() bool { return u.value == nil && len(u.raw) == 0 }
+
+// AsFieldValue decodes the union as FieldValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// FieldValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLTermQuery for why nothing in the payload could.
+func (u *CommonQueryDSLTermQuery) AsFieldValue() (FieldValue, error) {
+	if v, ok := u.value.(*FieldValue); ok {
+		return *v, nil
+	}
+	var v FieldValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLTermQuery",
+			Want:  "FieldValue",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLTermQueryFromFieldValue returns a CommonQueryDSLTermQuery populated with v
+// on the FieldValue branch.
+func NewCommonQueryDSLTermQueryFromFieldValue(v FieldValue) CommonQueryDSLTermQuery {
+	return CommonQueryDSLTermQuery{
+		value: &v,
+	}
+}
+
+// AsValue decodes the union as CommonQueryDSLTermQueryValue, the branch the caller
+// requested. It returns (zero, nil) when the union holds nothing -- test IsZero
+// to tell that from a branch that decoded to a zero value.
+//
+// It returns a *UnionBranchError when the retained bytes cannot be a
+// CommonQueryDSLTermQueryValue: either they fail to decode, or they lack a property the
+// branch requires. encoding/json ignores unknown properties, so the required-key
+// probe is what catches a payload of the wrong shape entirely (asking a bucket
+// aggregate for a single-metric one).
+//
+// It cannot catch a DIFFERENT branch that shares this one's wire shape; see
+// CommonQueryDSLTermQuery for why nothing in the payload could.
+func (u *CommonQueryDSLTermQuery) AsValue() (CommonQueryDSLTermQueryValue, error) {
+	if v, ok := u.value.(*CommonQueryDSLTermQueryValue); ok {
+		return *v, nil
+	}
+	var v CommonQueryDSLTermQueryValue
+	if len(u.raw) == 0 {
+		return v, nil
+	}
+	if !build.HasJSONKeys(u.raw, "value") {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLTermQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err: fmt.Errorf("payload lacks required property %q",
+				[]string{"value"}),
+		}
+	}
+	if err := json.Unmarshal(u.raw, &v); err != nil {
+		return v, &UnionBranchError{
+			Union: "CommonQueryDSLTermQuery",
+			Want:  "Value",
+			Got:   "incompatible payload",
+			Err:   err,
+		}
+	}
+	return v, nil
+}
+
+// NewCommonQueryDSLTermQueryFromValue returns a CommonQueryDSLTermQuery populated with v
+// on the Value branch.
+func NewCommonQueryDSLTermQueryFromValue(v CommonQueryDSLTermQueryValue) CommonQueryDSLTermQuery {
+	return CommonQueryDSLTermQuery{
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLTermQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	return nil
+}
+
+func (u CommonQueryDSLTermQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// CommonQueryDSLWildcardQuery is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type CommonQueryDSLWildcardQuery struct {
+	typ   CommonQueryDSLWildcardQueryType
+	raw   json.RawMessage
+	value any
+}
+
+// CommonQueryDSLWildcardQueryType names which branch of CommonQueryDSLWildcardQuery is set.
+type CommonQueryDSLWildcardQueryType int
+
+const (
+	CommonQueryDSLWildcardQueryUnknownType CommonQueryDSLWildcardQueryType = iota
+	CommonQueryDSLWildcardQueryStringType
+	CommonQueryDSLWildcardQueryObject1Type
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t CommonQueryDSLWildcardQueryType) String() string {
+	switch t {
+	case CommonQueryDSLWildcardQueryStringType:
+		return "String"
+	case CommonQueryDSLWildcardQueryObject1Type:
+		return "Object1"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns CommonQueryDSLWildcardQueryUnknownType if the value has not been decoded.
+func (u *CommonQueryDSLWildcardQuery) Type() CommonQueryDSLWildcardQueryType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *CommonQueryDSLWildcardQuery) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewCommonQueryDSLWildcardQueryFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *CommonQueryDSLWildcardQuery) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = CommonQueryDSLWildcardQueryUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLWildcardQuery) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "CommonQueryDSLWildcardQuery", Want: "String", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLWildcardQueryFromString returns a CommonQueryDSLWildcardQuery populated with v
+// on the String branch.
+func NewCommonQueryDSLWildcardQueryFromString(v string) CommonQueryDSLWildcardQuery {
+	return CommonQueryDSLWildcardQuery{
+		typ:   CommonQueryDSLWildcardQueryStringType,
+		value: &v,
+	}
+}
+
+// Object1 returns the CommonQueryDSLWildcardQueryObject1 branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero CommonQueryDSLWildcardQueryObject1 in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *CommonQueryDSLWildcardQuery) Object1() (CommonQueryDSLWildcardQueryObject1, error) {
+	if v, ok := u.value.(*CommonQueryDSLWildcardQueryObject1); ok {
+		return *v, nil
+	}
+	var zero CommonQueryDSLWildcardQueryObject1
+	return zero, &UnionBranchError{Union: "CommonQueryDSLWildcardQuery", Want: "Object1", Got: u.typ.String()}
+}
+
+// NewCommonQueryDSLWildcardQueryFromObject1 returns a CommonQueryDSLWildcardQuery populated with v
+// on the Object1 branch.
+func NewCommonQueryDSLWildcardQueryFromObject1(v CommonQueryDSLWildcardQueryObject1) CommonQueryDSLWildcardQuery {
+	return CommonQueryDSLWildcardQuery{
+		typ:   CommonQueryDSLWildcardQueryObject1Type,
+		value: &v,
+	}
+}
+
+func (u *CommonQueryDSLWildcardQuery) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = CommonQueryDSLWildcardQueryUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLWildcardQueryStringType
+		u.value = &v
+	case data[0] == '{':
+		var v CommonQueryDSLWildcardQueryObject1
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = CommonQueryDSLWildcardQueryObject1Type
+		u.value = &v
+	default:
+		return fmt.Errorf("CommonQueryDSLWildcardQuery: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u CommonQueryDSLWildcardQuery) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // CommonMappingDynamic is a oneOf union whose branches decode from different JSON tokens.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -10674,7 +12837,6 @@ func (u CommonQueryDSLRangeQuery) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingDynamic struct {
 	typ   CommonMappingDynamicType
 	raw   json.RawMessage
@@ -10809,7 +12971,6 @@ func (u CommonMappingDynamic) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingJoinPropertyRelationsValue struct {
 	typ   CommonMappingJoinPropertyRelationsValueType
 	raw   json.RawMessage
@@ -10946,7 +13107,6 @@ func (u CommonMappingJoinPropertyRelationsValue) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingSuggestContextPrecision struct {
 	typ   CommonMappingSuggestContextPrecisionType
 	raw   json.RawMessage
@@ -11076,18 +13236,17 @@ func (u CommonMappingSuggestContextPrecision) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A two-dimensional Cartesian point specified by x and y coordinates. It can be represented in the following ways:
-//  - As an `{x, y}` object.
-//  - As an `[x, y]` array.
-//  - As a string in `"x, y"` or WKT point format.
+//   - As an `{x, y}` object.
+//   - As an `[x, y]` array.
+//   - As a string in `"x, y"` or WKT point format.
+//
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
 // selects one.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type XYLocation struct {
 	typ   XYLocationType
 	raw   json.RawMessage
@@ -11253,7 +13412,6 @@ func (u XYLocation) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonMappingSemanticPropertyChunking struct {
 	typ   CommonMappingSemanticPropertyChunkingType
 	raw   json.RawMessage
@@ -11394,7 +13552,6 @@ func (u CommonMappingSemanticPropertyChunking) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonMappingProperty struct {
 	typ   CommonMappingPropertyType
 	raw   json.RawMessage
@@ -13111,7 +15268,6 @@ func (u CommonMappingProperty) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisAnalyzer struct {
 	typ   CommonAnalysisAnalyzerType
 	raw   json.RawMessage
@@ -13815,7 +15971,6 @@ func (u CommonAnalysisAnalyzer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisCharFilterDefinition struct {
 	typ   CommonAnalysisCharFilterDefinitionType
 	raw   json.RawMessage
@@ -14072,7 +16227,6 @@ func (u CommonAnalysisCharFilterDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisCharFilter struct {
 	typ   CommonAnalysisCharFilterType
 	raw   json.RawMessage
@@ -14209,7 +16363,6 @@ func (u CommonAnalysisCharFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisTokenFilterDefinition struct {
 	typ   CommonAnalysisTokenFilterDefinitionType
 	raw   json.RawMessage
@@ -16041,7 +18194,6 @@ func (u CommonAnalysisTokenFilterDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisTokenFilter struct {
 	typ   CommonAnalysisTokenFilterType
 	raw   json.RawMessage
@@ -16178,7 +18330,6 @@ func (u CommonAnalysisTokenFilter) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisNormalizer struct {
 	typ   CommonAnalysisNormalizerType
 	raw   json.RawMessage
@@ -16330,7 +18481,6 @@ func (u CommonAnalysisNormalizer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to learn which branch was decoded, then call the corresponding
 // accessor.
-
 type CommonAnalysisTokenizerDefinition struct {
 	typ   CommonAnalysisTokenizerDefinitionType
 	raw   json.RawMessage
@@ -17007,7 +19157,6 @@ func (u CommonAnalysisTokenizerDefinition) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type CommonAnalysisTokenizer struct {
 	typ   CommonAnalysisTokenizerType
 	raw   json.RawMessage
@@ -17135,7 +19284,6 @@ func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of outstanding bytes that may be consumed by indexing requests. When this limit is reached or exceeded,
 // the node will reject new coordinating and primary operations. When replica operations consume 1.5x this limit,
 // the node will reject new replica operations. Defaults to 10% of the heap.
@@ -17145,7 +19293,6 @@ func (u CommonAnalysisTokenizer) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexingPressureMemoryLimit struct {
 	typ   IndicesIndexingPressureMemoryLimitType
 	raw   json.RawMessage
@@ -17275,7 +19422,6 @@ func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The policy configuration for segment merging.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -17283,7 +19429,6 @@ func (u IndicesIndexingPressureMemoryLimit) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSettingsMergePolicy struct {
 	typ   IndicesIndexSettingsMergePolicyType
 	raw   json.RawMessage
@@ -17418,7 +19563,6 @@ func (u IndicesIndexSettingsMergePolicy) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortMissing struct {
 	typ   IndicesIndexSegmentSortMissingType
 	raw   json.RawMessage
@@ -17553,7 +19697,6 @@ func (u IndicesIndexSegmentSortMissing) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortMode struct {
 	typ   IndicesIndexSegmentSortModeType
 	raw   json.RawMessage
@@ -17688,7 +19831,6 @@ func (u IndicesIndexSegmentSortMode) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type IndicesIndexSegmentSortOrder struct {
 	typ   IndicesIndexSegmentSortOrderType
 	raw   json.RawMessage
@@ -17822,7 +19964,16 @@ func (u IndicesIndexSegmentSortOrder) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
+//
+// The branches below are probed only after an earlier branch that declares the
+// same required keys. The decoder keeps the first branch that unmarshals, so each
+// of these loses any payload that earlier branch can also decode -- for some
+// unions that is every payload, for others none, depending on whether the earlier
+// branch's Go types accept the bytes. Constructing and marshaling them is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived, and
+// Type() to see which branch actually decoded.
+//
+//   - Object0 (same required keys as Object1)
 type SegmentReplicationStats struct {
 	typ   SegmentReplicationStatsType
 	raw   json.RawMessage
@@ -17961,7 +20112,6 @@ func (u SegmentReplicationStats) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type BulkByScrollTaskStatusOrException struct {
 	typ   BulkByScrollTaskStatusOrExceptionType
 	raw   json.RawMessage
@@ -18102,7 +20252,6 @@ func (u BulkByScrollTaskStatusOrException) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type BulkByScrollFailure struct {
 	typ   BulkByScrollFailureType
 	raw   json.RawMessage
@@ -18234,14 +20383,12 @@ func (u BulkByScrollFailure) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Task status information can vary wildly from task to task.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type TasksStatus struct {
 	typ   TasksStatusType
 	raw   json.RawMessage
@@ -18444,7 +20591,6 @@ func (u TasksStatus) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type TasksTaskInfos struct {
 	typ   TasksTaskInfosType
 	raw   json.RawMessage
@@ -18572,7 +20718,6 @@ func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
 // this behavior while keeping the semantics of the field type.
 //
@@ -18584,7 +20729,6 @@ func (u TasksTaskInfos) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type StringifiedVersionNumber struct {
 	typ   StringifiedVersionNumberType
 	raw   json.RawMessage
@@ -18712,7 +20856,6 @@ func (u StringifiedVersionNumber) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The number of hits matching the query. When `true`, the exact
 // number of hits is returned at the cost of some performance. When `false`, the
 // response does not include the total number of hits matching the query.
@@ -18723,7 +20866,6 @@ func (u StringifiedVersionNumber) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchTrackHits struct {
 	typ   SearchTrackHitsType
 	raw   json.RawMessage
@@ -18851,7 +20993,6 @@ func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The ISM template configuration.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -18859,7 +21000,6 @@ func (u SearchTrackHits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ISMPolicyTemplate struct {
 	typ   ISMPolicyTemplateType
 	raw   json.RawMessage
@@ -18994,7 +21134,6 @@ func (u ISMPolicyTemplate) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchResultJSONValueSuggestValueItemCompletionOptions struct {
 	typ   SearchResultJSONValueSuggestValueItemCompletionOptionsType
 	raw   json.RawMessage
@@ -19322,7 +21461,6 @@ func (u SearchResultJSONValueSuggestValueItem) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MLExecuteAlgorithmResponse struct {
 	typ   MLExecuteAlgorithmResponseType
 	raw   json.RawMessage
@@ -19454,7 +21592,6 @@ func (u MLExecuteAlgorithmResponse) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // A comma-separated list of node IDs used to filter results. Supports [node filters](https://opensearch.org/docs/latest/api-reference/nodes-apis/index/#node-filters).
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -19462,7 +21599,6 @@ func (u MLExecuteAlgorithmResponse) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NodeIDs struct {
 	typ   NodeIDsType
 	raw   json.RawMessage
@@ -19590,7 +21726,6 @@ func (u NodeIDs) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The create time.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -19598,7 +21733,6 @@ func (u NodeIDs) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type MLSourceCreateTime struct {
 	typ   MLSourceCreateTimeType
 	raw   json.RawMessage
@@ -19726,13 +21860,550 @@ func (u MLSourceCreateTime) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
+// NeuralStatMetadataValue is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type NeuralStatMetadataValue struct {
+	typ   NeuralStatMetadataValueType
+	raw   json.RawMessage
+	value any
+}
+
+// NeuralStatMetadataValueType names which branch of NeuralStatMetadataValue is set.
+type NeuralStatMetadataValueType int
+
+const (
+	NeuralStatMetadataValueUnknownType NeuralStatMetadataValueType = iota
+	NeuralStatMetadataValueIntType
+	NeuralStatMetadataValueStringType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralStatMetadataValueType) String() string {
+	switch t {
+	case NeuralStatMetadataValueIntType:
+		return "Int"
+	case NeuralStatMetadataValueStringType:
+		return "String"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns NeuralStatMetadataValueUnknownType if the value has not been decoded.
+func (u *NeuralStatMetadataValue) Type() NeuralStatMetadataValueType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *NeuralStatMetadataValue) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralStatMetadataValueFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralStatMetadataValue) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralStatMetadataValueUnknownType
+}
+
+// Int returns the int branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralStatMetadataValue) Int() (int, error) {
+	if v, ok := u.value.(*int); ok {
+		return *v, nil
+	}
+	var zero int
+	return zero, &UnionBranchError{Union: "NeuralStatMetadataValue", Want: "Int", Got: u.typ.String()}
+}
+
+// NewNeuralStatMetadataValueFromInt returns a NeuralStatMetadataValue populated with v
+// on the Int branch.
+func NewNeuralStatMetadataValueFromInt(v int) NeuralStatMetadataValue {
+	return NeuralStatMetadataValue{
+		typ:   NeuralStatMetadataValueIntType,
+		value: &v,
+	}
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralStatMetadataValue) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "NeuralStatMetadataValue", Want: "String", Got: u.typ.String()}
+}
+
+// NewNeuralStatMetadataValueFromString returns a NeuralStatMetadataValue populated with v
+// on the String branch.
+func NewNeuralStatMetadataValueFromString(v string) NeuralStatMetadataValue {
+	return NeuralStatMetadataValue{
+		typ:   NeuralStatMetadataValueStringType,
+		value: &v,
+	}
+}
+
+func (u *NeuralStatMetadataValue) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = NeuralStatMetadataValueUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v int
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralStatMetadataValueIntType
+		u.value = &v
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralStatMetadataValueStringType
+		u.value = &v
+	default:
+		return fmt.Errorf("NeuralStatMetadataValue: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u NeuralStatMetadataValue) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// NeuralTimestampedEventCounterStat is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type NeuralTimestampedEventCounterStat struct {
+	typ   NeuralTimestampedEventCounterStatType
+	raw   json.RawMessage
+	value any
+}
+
+// NeuralTimestampedEventCounterStatType names which branch of NeuralTimestampedEventCounterStat is set.
+type NeuralTimestampedEventCounterStatType int
+
+const (
+	NeuralTimestampedEventCounterStatUnknownType NeuralTimestampedEventCounterStatType = iota
+	NeuralTimestampedEventCounterStatIntType
+	NeuralTimestampedEventCounterStatStatTypeType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralTimestampedEventCounterStatType) String() string {
+	switch t {
+	case NeuralTimestampedEventCounterStatIntType:
+		return "Int"
+	case NeuralTimestampedEventCounterStatStatTypeType:
+		return "StatType"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns NeuralTimestampedEventCounterStatUnknownType if the value has not been decoded.
+func (u *NeuralTimestampedEventCounterStat) Type() NeuralTimestampedEventCounterStatType {
+	return u.typ
+}
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *NeuralTimestampedEventCounterStat) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralTimestampedEventCounterStatFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralTimestampedEventCounterStat) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralTimestampedEventCounterStatUnknownType
+}
+
+// Int returns the int branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralTimestampedEventCounterStat) Int() (int, error) {
+	if v, ok := u.value.(*int); ok {
+		return *v, nil
+	}
+	var zero int
+	return zero, &UnionBranchError{Union: "NeuralTimestampedEventCounterStat", Want: "Int", Got: u.typ.String()}
+}
+
+// NewNeuralTimestampedEventCounterStatFromInt returns a NeuralTimestampedEventCounterStat populated with v
+// on the Int branch.
+func NewNeuralTimestampedEventCounterStatFromInt(v int) NeuralTimestampedEventCounterStat {
+	return NeuralTimestampedEventCounterStat{
+		typ:   NeuralTimestampedEventCounterStatIntType,
+		value: &v,
+	}
+}
+
+// StatType returns the NeuralTimestampedEventCounterStatStatType branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NeuralTimestampedEventCounterStatStatType in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralTimestampedEventCounterStat) StatType() (NeuralTimestampedEventCounterStatStatType, error) {
+	if v, ok := u.value.(*NeuralTimestampedEventCounterStatStatType); ok {
+		return *v, nil
+	}
+	var zero NeuralTimestampedEventCounterStatStatType
+	return zero, &UnionBranchError{Union: "NeuralTimestampedEventCounterStat", Want: "StatType", Got: u.typ.String()}
+}
+
+// NewNeuralTimestampedEventCounterStatFromStatType returns a NeuralTimestampedEventCounterStat populated with v
+// on the StatType branch.
+func NewNeuralTimestampedEventCounterStatFromStatType(v NeuralTimestampedEventCounterStatStatType) NeuralTimestampedEventCounterStat {
+	return NeuralTimestampedEventCounterStat{
+		typ:   NeuralTimestampedEventCounterStatStatTypeType,
+		value: &v,
+	}
+}
+
+func (u *NeuralTimestampedEventCounterStat) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = NeuralTimestampedEventCounterStatUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v int
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralTimestampedEventCounterStatIntType
+		u.value = &v
+	case data[0] == '{':
+		var v NeuralTimestampedEventCounterStatStatType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralTimestampedEventCounterStatStatTypeType
+		u.value = &v
+	default:
+		return fmt.Errorf("NeuralTimestampedEventCounterStat: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u NeuralTimestampedEventCounterStat) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// NeuralInfoStringStat is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type NeuralInfoStringStat struct {
+	typ   NeuralInfoStringStatType
+	raw   json.RawMessage
+	value any
+}
+
+// NeuralInfoStringStatType names which branch of NeuralInfoStringStat is set.
+type NeuralInfoStringStatType int
+
+const (
+	NeuralInfoStringStatUnknownType NeuralInfoStringStatType = iota
+	NeuralInfoStringStatStringType
+	NeuralInfoStringStatStatTypeType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralInfoStringStatType) String() string {
+	switch t {
+	case NeuralInfoStringStatStringType:
+		return "String"
+	case NeuralInfoStringStatStatTypeType:
+		return "StatType"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns NeuralInfoStringStatUnknownType if the value has not been decoded.
+func (u *NeuralInfoStringStat) Type() NeuralInfoStringStatType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *NeuralInfoStringStat) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralInfoStringStatFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralInfoStringStat) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralInfoStringStatUnknownType
+}
+
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralInfoStringStat) String() (string, error) {
+	if v, ok := u.value.(*string); ok {
+		return *v, nil
+	}
+	var zero string
+	return zero, &UnionBranchError{Union: "NeuralInfoStringStat", Want: "String", Got: u.typ.String()}
+}
+
+// NewNeuralInfoStringStatFromString returns a NeuralInfoStringStat populated with v
+// on the String branch.
+func NewNeuralInfoStringStatFromString(v string) NeuralInfoStringStat {
+	return NeuralInfoStringStat{
+		typ:   NeuralInfoStringStatStringType,
+		value: &v,
+	}
+}
+
+// StatType returns the NeuralInfoStringStatStatType branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NeuralInfoStringStatStatType in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralInfoStringStat) StatType() (NeuralInfoStringStatStatType, error) {
+	if v, ok := u.value.(*NeuralInfoStringStatStatType); ok {
+		return *v, nil
+	}
+	var zero NeuralInfoStringStatStatType
+	return zero, &UnionBranchError{Union: "NeuralInfoStringStat", Want: "StatType", Got: u.typ.String()}
+}
+
+// NewNeuralInfoStringStatFromStatType returns a NeuralInfoStringStat populated with v
+// on the StatType branch.
+func NewNeuralInfoStringStatFromStatType(v NeuralInfoStringStatStatType) NeuralInfoStringStat {
+	return NeuralInfoStringStat{
+		typ:   NeuralInfoStringStatStatTypeType,
+		value: &v,
+	}
+}
+
+func (u *NeuralInfoStringStat) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = NeuralInfoStringStatUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] == '"':
+		var v string
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoStringStatStringType
+		u.value = &v
+	case data[0] == '{':
+		var v NeuralInfoStringStatStatType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoStringStatStatTypeType
+		u.value = &v
+	default:
+		return fmt.Errorf("NeuralInfoStringStat: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u NeuralInfoStringStat) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
+// NeuralInfoCounterStat is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
+// Use Type() to determine which branch was decoded, then call
+// the corresponding accessor.
+type NeuralInfoCounterStat struct {
+	typ   NeuralInfoCounterStatType
+	raw   json.RawMessage
+	value any
+}
+
+// NeuralInfoCounterStatType names which branch of NeuralInfoCounterStat is set.
+type NeuralInfoCounterStatType int
+
+const (
+	NeuralInfoCounterStatUnknownType NeuralInfoCounterStatType = iota
+	NeuralInfoCounterStatIntType
+	NeuralInfoCounterStatStatTypeType
+)
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NeuralInfoCounterStatType) String() string {
+	switch t {
+	case NeuralInfoCounterStatIntType:
+		return "Int"
+	case NeuralInfoCounterStatStatTypeType:
+		return "StatType"
+	default:
+		return "unknown"
+	}
+}
+
+// Type returns which union branch was populated during decoding.
+// Returns NeuralInfoCounterStatUnknownType if the value has not been decoded.
+func (u *NeuralInfoCounterStat) Type() NeuralInfoCounterStatType { return u.typ }
+
+// RawJSON returns the union's JSON bytes. After decoding these are borrowed
+// from the response buffer: valid only while the owning response value is
+// reachable, must not be mutated, and must be copied if retained beyond it.
+func (u *NeuralInfoCounterStat) RawJSON() json.RawMessage { return u.raw }
+
+// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
+// verbatim when no typed branch is set. Use the NewNeuralInfoCounterStatFrom*
+// constructors to populate a typed branch instead; SetRaw is the typed
+// escape hatch for callers that already have wire-format bytes.
+func (u *NeuralInfoCounterStat) SetRaw(raw json.RawMessage) {
+	u.raw = raw
+	u.value = nil
+	u.typ = NeuralInfoCounterStatUnknownType
+}
+
+// Int returns the int branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero int in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralInfoCounterStat) Int() (int, error) {
+	if v, ok := u.value.(*int); ok {
+		return *v, nil
+	}
+	var zero int
+	return zero, &UnionBranchError{Union: "NeuralInfoCounterStat", Want: "Int", Got: u.typ.String()}
+}
+
+// NewNeuralInfoCounterStatFromInt returns a NeuralInfoCounterStat populated with v
+// on the Int branch.
+func NewNeuralInfoCounterStatFromInt(v int) NeuralInfoCounterStat {
+	return NeuralInfoCounterStat{
+		typ:   NeuralInfoCounterStatIntType,
+		value: &v,
+	}
+}
+
+// StatType returns the NeuralInfoCounterStatStatType branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NeuralInfoCounterStatStatType in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NeuralInfoCounterStat) StatType() (NeuralInfoCounterStatStatType, error) {
+	if v, ok := u.value.(*NeuralInfoCounterStatStatType); ok {
+		return *v, nil
+	}
+	var zero NeuralInfoCounterStatStatType
+	return zero, &UnionBranchError{Union: "NeuralInfoCounterStat", Want: "StatType", Got: u.typ.String()}
+}
+
+// NewNeuralInfoCounterStatFromStatType returns a NeuralInfoCounterStat populated with v
+// on the StatType branch.
+func NewNeuralInfoCounterStatFromStatType(v NeuralInfoCounterStatStatType) NeuralInfoCounterStat {
+	return NeuralInfoCounterStat{
+		typ:   NeuralInfoCounterStatStatTypeType,
+		value: &v,
+	}
+}
+
+func (u *NeuralInfoCounterStat) UnmarshalJSON(data []byte) error {
+	u.raw = data
+	u.value = nil
+	u.typ = NeuralInfoCounterStatUnknownType
+	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
+		return nil
+	}
+	switch {
+	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
+		var v int
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoCounterStatIntType
+		u.value = &v
+	case data[0] == '{':
+		var v NeuralInfoCounterStatStatType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.typ = NeuralInfoCounterStatStatTypeType
+		u.value = &v
+	default:
+		return fmt.Errorf("NeuralInfoCounterStat: unexpected JSON token: %s", data[:1])
+	}
+	return nil
+}
+
+func (u NeuralInfoCounterStat) MarshalJSON() ([]byte, error) {
+	if u.value != nil {
+		return json.Marshal(u.value)
+	}
+	if len(u.raw) > 0 {
+		return u.raw, nil
+	}
+	return build.NullJSON, nil
+}
+
 // NeuralStats is a oneOf union decoded by trying each branch in turn.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type NeuralStats struct {
 	typ   NeuralStatsType
 	raw   json.RawMessage
@@ -19864,7 +22535,6 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The cron schedule configuration for the rollup job.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -19872,7 +22542,6 @@ func (u NeuralStats) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type RollupsIntervalCron struct {
 	typ   RollupsIntervalCronType
 	raw   json.RawMessage
@@ -20007,7 +22676,6 @@ func (u RollupsIntervalCron) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelinePhaseResultsProcessor struct {
 	typ   SearchPipelinePhaseResultsProcessorType
 	raw   json.RawMessage
@@ -20148,7 +22816,6 @@ func (u SearchPipelinePhaseResultsProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelineRequestProcessor struct {
 	typ   SearchPipelineRequestProcessorType
 	raw   json.RawMessage
@@ -20389,7 +23056,6 @@ func (u SearchPipelineRequestProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SearchPipelineRespProcessor struct {
 	typ   SearchPipelineRespProcessorType
 	raw   json.RawMessage
@@ -20759,7 +23425,6 @@ func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Whether the PPL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -20767,7 +23432,6 @@ func (u SearchPipelineRespProcessor) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLPPLEnabled struct {
 	typ   SQLPPLEnabledType
 	raw   json.RawMessage
@@ -20895,7 +23559,6 @@ func (u SQLPPLEnabled) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The maximum result set size.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -20903,7 +23566,6 @@ func (u SQLPPLEnabled) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLPluginsQuerySizeLimit struct {
 	typ   SQLPluginsQuerySizeLimitType
 	raw   json.RawMessage
@@ -21031,7 +23693,6 @@ func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // Whether the SQL plugin is enabled.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21039,7 +23700,6 @@ func (u SQLPluginsQuerySizeLimit) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLEnabled struct {
 	typ   SQLEnabledType
 	raw   json.RawMessage
@@ -21167,7 +23827,6 @@ func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The threshold in milliseconds for logging slow queries.
 // The spec declares no discriminator, but each branch is a different JSON token
 // class (object, array, string, number, boolean), so the payload's first byte
@@ -21175,7 +23834,6 @@ func (u SQLEnabled) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type SQLSlowlog struct {
 	typ   SQLSlowlogType
 	raw   json.RawMessage
@@ -21303,14 +23961,12 @@ func (u SQLSlowlog) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // The resource limits for query requests in the query group.
 // The spec declares no discriminator and no single key tells the branches apart,
 // so each is attempted (newest schema version first) until one decodes.
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type WLMQueryGroupRespResourceLimits struct {
 	typ   WLMQueryGroupRespResourceLimitsType
 	raw   json.RawMessage
@@ -21449,7 +24105,6 @@ func (u WLMQueryGroupRespResourceLimits) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type ScrollIDs struct {
 	typ   ScrollIDsType
 	raw   json.RawMessage
@@ -21577,7 +24232,6 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 	return build.NullJSON, nil
 }
 
-//
 // GeoJSON `geoshape` types supported by OpenSearch.
 // For more details, see: https://docs.opensearch.org/docs/latest/field-types/supported-field-types/geo-shape.
 // The spec declares no discriminator and no single key tells the branches apart,
@@ -21585,7 +24239,20 @@ func (u ScrollIDs) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
+//
+// The branches below are probed only after an earlier branch that declares the
+// same required keys. The decoder keeps the first branch that unmarshals, so each
+// of these loses any payload that earlier branch can also decode -- for some
+// unions that is every payload, for others none, depending on whether the earlier
+// branch's Go types accept the bytes. Constructing and marshaling them is
+// unaffected; read RawJSON() when you need the payload exactly as it arrived, and
+// Type() to see which branch actually decoded.
+//
+//   - MultiPoint (same required keys as Point)
+//   - LineString (same required keys as Point)
+//   - MultiLineString (same required keys as Point)
+//   - Polygon (same required keys as Point)
+//   - MultiPolygon (same required keys as Point)
 type GeospatialGeoShapes struct {
 	typ   GeospatialGeoShapesType
 	raw   json.RawMessage
@@ -21883,7 +24550,6 @@ func (u GeospatialGeoShapes) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type GeospatialGeometry struct {
 	typ   GeospatialGeometryType
 	raw   json.RawMessage
@@ -22021,7 +24687,6 @@ func (u GeospatialGeometry) MarshalJSON() ([]byte, error) {
 //
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-
 type WLMQueryGroupCreateResourceLimits struct {
 	typ   WLMQueryGroupCreateResourceLimitsType
 	raw   json.RawMessage
