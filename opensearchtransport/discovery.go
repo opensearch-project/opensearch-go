@@ -356,7 +356,7 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	discovered, err := c.getNodesInfo(ctx)
 	if err != nil {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Error getting nodes info: %s\n", err)
+			dl.Debug("Error getting nodes info", "err", err)
 		}
 		discoverErr = fmt.Errorf("discovery: get nodes: %w", err)
 		return discoverErr
@@ -405,7 +405,7 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	if c.router != nil {
 		if err := c.router.CheckDead(ctx, c.DefaultHealthCheck); err != nil {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("DiscoverNodes: router.CheckDead: %v\n", err)
+				dl.Debug("DiscoverNodes: router.CheckDead", "err", err)
 			}
 		}
 	}
@@ -433,7 +433,8 @@ func (c *Transport) rotateStandbyConnections(ctx context.Context) {
 	if c.router != nil {
 		if n, err := c.router.RotateStandby(ctx, c.standbyRotationCount); err != nil {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("DiscoverNodes: router.RotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
+				dl.Debug("DiscoverNodes: router.RotateStandby rotated standby connections",
+					"rotated", n, "requested", c.standbyRotationCount, "err", err)
 			}
 		}
 		return
@@ -446,7 +447,8 @@ func (c *Transport) rotateStandbyConnections(ctx context.Context) {
 	if ok && pool != nil {
 		if n, err := pool.rotateStandby(ctx, c.standbyRotationCount); err != nil {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("DiscoverNodes: pool.rotateStandby rotated %d/%d: %v\n", n, c.standbyRotationCount, err)
+				dl.Debug("DiscoverNodes: pool.rotateStandby rotated standby connections",
+					"rotated", n, "requested", c.standbyRotationCount, "err", err)
 			}
 		}
 	}
@@ -690,7 +692,7 @@ func (c *Transport) updateConnectionPool(
 		if _, exists := newConnectionsByURL[url]; !exists {
 			removed = append(removed, oldConn)
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Discovery: Connection %q removed from cluster (roles: %v)\n", url, oldConn.Roles.toSlice())
+				dl.Debug("Discovery: Connection removed from cluster", "conn", url, "roles", oldConn.Roles.toSlice())
 			}
 		}
 	}
@@ -1133,7 +1135,7 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		c.mu.RUnlock()
 		if pool != nil {
 			if poolErr := pool.OnFailure(conn); poolErr != nil && loadDebugLogger() != nil {
-				loadDebugLogger().Logf("Failed to mark connection as failed: %v\n", poolErr) //nolint:errcheck // debug log
+				loadDebugLogger().Debug("Failed to mark connection as failed", "err", poolErr)
 			}
 		}
 		return nil, err
@@ -1184,8 +1186,8 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	if hasNodesMeta && nodesMeta.Successful == 0 {
 		failuresJSON := nodesMeta.formatFailures()
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Discovery: _nodes reports total=%d successful=%d failed=%d failures=%s; retaining current pool\n",
-				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON)
+			dl.Debug("Discovery: no successful nodes in _nodes response; retaining current pool",
+				"total", nodesMeta.Total, "successful", nodesMeta.Successful, "failed", nodesMeta.Failed, "failures", failuresJSON)
 		}
 		return nil, fmt.Errorf("discovery: total=%d successful=%d failed=%d failures=%s: %w",
 			nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON, errDiscoveryEmpty)
@@ -1200,7 +1202,7 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	// use the nodes map length as a last-resort empty-response guard.
 	if !hasNodesMeta && len(nodes) == 0 {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Discovery: no _nodes metadata and zero nodes returned; retaining current pool\n")
+			dl.Debug("Discovery: no _nodes metadata and zero nodes returned; retaining current pool")
 		}
 		return nil, fmt.Errorf("discovery: %w", errDiscoveryEmpty)
 	}
@@ -1208,8 +1210,8 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	if hasNodesMeta && nodesMeta.Failed > 0 {
 		failuresJSON := nodesMeta.formatFailures()
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Discovery: partial failure — _nodes reports total=%d successful=%d failed=%d failures=%s\n",
-				nodesMeta.Total, nodesMeta.Successful, nodesMeta.Failed, failuresJSON)
+			dl.Debug("Discovery: partial failure in _nodes response",
+				"total", nodesMeta.Total, "successful", nodesMeta.Successful, "failed", nodesMeta.Failed, "failures", failuresJSON)
 		}
 	}
 
@@ -1335,8 +1337,7 @@ func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discov
 					c.metrics.addressResolverErrors.Add(1)
 				}
 				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("AddressResolver error for node %q (%q): %v\n",
-						p.node.Name, p.defaultURL, err)
+					dl.Debug("AddressResolver error for node", "node", p.node.Name, "conn", p.defaultURL, "err", err)
 				}
 			}
 
@@ -1400,8 +1401,8 @@ func (c *Transport) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, 
 			c.metrics.addressResolverErrors.Add(1)
 		}
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("AddressResolver returned malformed URL for node %q (scheme=%q host=%q); keeping default %q\n",
-				node.Name, resolved.Scheme, resolved.Host, defaultURL)
+			dl.Debug("AddressResolver returned malformed URL for node; keeping default",
+				"node", node.Name, "scheme", resolved.Scheme, "host", resolved.Host, "conn", defaultURL)
 		}
 		return defaultURL
 	}
@@ -1446,8 +1447,7 @@ func newInstrumentedResolver(resolve AddressResolverFunc, m *metrics) AddressRes
 				m.addressResolverErrors.Add(1)
 			}
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("AddressResolver error for node %q (%q): %v\n",
-					node.Name, node.URL, err)
+				dl.Debug("AddressResolver error for node", "node", node.Name, "conn", node.URL, "err", err)
 			}
 		}
 		return u, err
@@ -1505,8 +1505,8 @@ func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []disc
 
 		if _, dup := seen[ra.Node.ID]; dup {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("AddressResolverRunner returned duplicate node ID %q (%q); keeping first\n",
-					ra.Node.ID, ra.Node.Name)
+				dl.Debug("AddressResolverRunner returned duplicate node ID; keeping first",
+					"node", ra.Node.Name, "node_id", ra.Node.ID)
 			}
 			continue
 		}
@@ -1697,8 +1697,7 @@ func (c *Transport) resetDeadConnViability() {
 		conn.mu.Lock()
 		if err := conn.casLifecycle(conn.loadConnState(), 0, 0, lcViable); err == nil {
 			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("resetDeadConnViability: cleared lcViable on %s (dead since %s)\n",
-					conn.URL, conn.loadDeadSince())
+				dl.Debug("resetDeadConnViability: cleared lcViable", "conn", conn.URL, "dead_since", conn.loadDeadSince())
 			}
 		}
 		conn.mu.Unlock()
@@ -1767,7 +1766,7 @@ func (c *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
 	shardPlacement, err := c.getShardPlacement(ctx)
 	if err != nil {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Discovery: shard placement fetch failed (continuing with minFanOut): %v\n", err)
+			dl.Debug("Discovery: shard placement fetch failed (continuing with minFanOut)", "err", err)
 		}
 		return
 	}
@@ -2110,9 +2109,8 @@ func (c *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement ma
 	rns, err := c.getRoutingMeta(ctx, needFetch)
 	if err != nil {
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf(
-				"Discovery: routing metadata fetch failed for %d indexes (shard-exact routing unavailable): %v\n",
-				len(needFetch), err)
+			dl.Debug("Discovery: routing metadata fetch failed for indexes (shard-exact routing unavailable)",
+				"index_count", len(needFetch), "err", err)
 		}
 		return
 	}

@@ -37,32 +37,41 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
-var debugLoggerPtr atomic.Pointer[DebuggingLogger]
+var debugLoggerPtr atomic.Pointer[DebugLogger]
 
-func loadDebugLogger() DebuggingLogger {
+// loadDebugLogger returns the installed debug logger, or nil.
+//
+// Emitting sites guard on this inline -- `if dl := loadDebugLogger(); dl != nil`
+// -- rather than calling a debug(msg string, kv ...any) helper that hides the
+// guard. A helper's variadic slice is passed to an interface method, so escape
+// analysis heap-allocates it whether or not a logger is installed, and several
+// of these sites are on the request path. Measured with no logger installed, on
+// a four-pair record: 2.5 ns/op and 0 allocs for the inline guard against
+// 18.8 ns/op and 96 B/1 alloc for the helper.
+func loadDebugLogger() DebugLogger {
 	if p := debugLoggerPtr.Load(); p != nil {
 		return *p
 	}
 	return nil
 }
 
-// LoadDebugLogger returns the currently configured debugging logger, or
-// nil when one has not been installed (e.g. when OPENSEARCH_GO_DEBUG is
-// unset and no caller has supplied one programmatically). It exposes the
-// shared logger so other packages in the module can emit
-// configuration-time diagnostics through the same sink the transport
-// uses for request-level debug output.
-func LoadDebugLogger() DebuggingLogger {
+// LoadDebugLogger returns the currently configured debug logger, or nil when
+// one has not been installed (e.g. when OPENSEARCH_GO_DEBUG is unset and no
+// caller has supplied one programmatically). It exposes the shared logger so
+// other packages in the module can emit configuration-time diagnostics through
+// the same logger the transport uses for request-level debug output.
+func LoadDebugLogger() DebugLogger {
 	return loadDebugLogger()
 }
 
-func storeDebugLogger(dl DebuggingLogger) {
+func storeDebugLogger(dl DebugLogger) {
 	if dl == nil {
 		debugLoggerPtr.Store(nil)
 	} else {
@@ -70,9 +79,24 @@ func storeDebugLogger(dl DebuggingLogger) {
 	}
 }
 
+// resolveDebugLogger returns the debug logger a Config asks for: an explicitly
+// supplied one wins, otherwise EnableDebugLogger selects the built-in text
+// logger. It returns nil when the Config asks for neither, so that a logger
+// already installed from OPENSEARCH_GO_DEBUG is left in place.
+func resolveDebugLogger(cfg Config) DebugLogger {
+	switch {
+	case cfg.DebugLogger != nil:
+		return cfg.DebugLogger
+	case cfg.EnableDebugLogger:
+		return &textDebugLogger{Output: os.Stderr}
+	default:
+		return nil
+	}
+}
+
 func init() { //nolint:gochecknoinits // Only set implicitly once at startup
 	if enabled, _ := strconv.ParseBool(os.Getenv(envvars.Debug)); enabled {
-		storeDebugLogger(&debuggingLogger{Output: os.Stderr})
+		storeDebugLogger(&textDebugLogger{Output: os.Stderr})
 	}
 }
 
@@ -87,11 +111,43 @@ type Logger interface {
 	ResponseBodyEnabled() bool
 }
 
-// DebuggingLogger defines the interface for a debugging logger.
-type DebuggingLogger interface {
-	Log(a ...any) error
-	Logf(format string, a ...any) error
+// DebugLogger receives the client's internal debug records: connection
+// lifecycle transitions, discovery results, routing decisions, and the like.
+//
+// Install one with Config.DebugLogger, or set OPENSEARCH_GO_DEBUG or
+// Config.EnableDebugLogger to use the built-in stderr logger. The log-zerolog
+// and log-slog submodules implement it for those two libraries; any other
+// logger takes three lines, and needs no import of this package, because the
+// method signature mentions none of its types:
+//
+//	type myLogger struct{ sink *mySink }
+//
+//	func (m myLogger) Debug(msg string, kv ...any) { m.sink.Write(msg, kv) }
+//
+// Use DebugFunc when the logging is a function rather than a type.
+//
+// Keys in kv are strings and values are arbitrary, following the same
+// alternating layout as log/slog. A malformed pair (a trailing key with no
+// value, or a non-string key) is rendered as !BADKEY by the built-in logger and
+// by log-slog, and dropped by log-zerolog, which is zerolog's own behavior.
+//
+// Implementations must be safe for concurrent use: records are emitted from the
+// transport's background goroutines as well as from request paths.
+type DebugLogger interface {
+	Debug(msg string, kv ...any)
 }
+
+// DebugFunc adapts a plain function to DebugLogger:
+//
+//	opensearch.Config{
+//		DebugLogger: opensearchtransport.DebugFunc(func(msg string, kv ...any) {
+//			myLogger.Printf("%s %v", msg, kv)
+//		}),
+//	}
+type DebugFunc func(msg string, kv ...any)
+
+// Debug implements DebugLogger by calling f.
+func (f DebugFunc) Debug(msg string, kv ...any) { f(msg, kv...) }
 
 // TextLogger prints the log message in plain text.
 type TextLogger struct {
@@ -121,9 +177,21 @@ type JSONLogger struct {
 	EnableResponseBody bool
 }
 
-// debuggingLogger prints debug messages as plain text.
-type debuggingLogger struct {
+// badDebugKey labels a malformed key/value pair in a debug record. It is
+// log/slog's own placeholder, so the built-in logger and the log-slog adapter
+// render the same input identically.
+const badDebugKey = "!BADKEY"
+
+// textDebugLogger is the built-in DebugLogger, printing records as plain text
+// with a timestamp prefix.
+type textDebugLogger struct {
 	Output io.Writer
+
+	// mu serializes writes to Output. DebugLogger requires implementations to be
+	// safe for concurrent use, and records are emitted from several transport
+	// goroutines at once. Without it the type would be safe only for a writer
+	// whose Write is itself atomic, which os.Stderr happens to be.
+	mu sync.Mutex
 }
 
 // LogRoundTrip prints the information about request and response.
@@ -434,20 +502,40 @@ func (l *JSONLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 // ResponseBodyEnabled returns true when the response body should be logged.
 func (l *JSONLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
-// Log prints the arguments to output in default format with a timestamp prefix.
-func (l *debuggingLogger) Log(a ...any) error {
-	ts := time.Now().UTC().Format("15:04:05.000")
-	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
-	_, err := fmt.Fprint(l.Output, a...)
-	return err
-}
+// Debug prints msg followed by the key/value pairs as k=v, prefixed with a
+// timestamp and terminated with a newline.
+//
+// Malformed pairs are rendered the way log/slog renders them. A trailing key
+// with no value becomes !BADKEY=<key>. A non-string key becomes !BADKEY=<key>
+// and consumes only itself, so the argument after it starts a fresh pair rather
+// than being swallowed as its value.
+//
+// The record is assembled before the write, and the write is serialized by mu,
+// so concurrent callers neither interleave fragments nor race on Output.
+func (l *textDebugLogger) Debug(msg string, kv ...any) {
+	var b strings.Builder
+	fmt.Fprintf(&b, "[%s] DEBUG    %s", time.Now().UTC().Format("15:04:05.000"), msg)
+	for i := 0; i < len(kv); {
+		switch key, ok := kv[i].(string); {
+		case !ok:
+			fmt.Fprintf(&b, " %s=%v", badDebugKey, kv[i])
+			i++
+		case i+1 < len(kv):
+			fmt.Fprintf(&b, " %s=%v", key, kv[i+1])
+			i += 2
+		default:
+			fmt.Fprintf(&b, " %s=%v", badDebugKey, key)
+			i++
+		}
+	}
+	b.WriteByte('\n')
 
-// Logf formats the arguments and prints them to output with a timestamp prefix.
-func (l *debuggingLogger) Logf(format string, a ...any) error {
-	ts := time.Now().UTC().Format("15:04:05.000")
-	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
-	_, err := fmt.Fprintf(l.Output, format, a...)
-	return err
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	// The interface returns no error: a debug logger that cannot write has
+	// nowhere left to report it.
+	_, _ = io.WriteString(l.Output, b.String())
 }
 
 func logBodyAsText(dst io.Writer, body io.Reader, prefix string) {

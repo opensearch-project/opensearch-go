@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,6 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -493,4 +495,126 @@ func (o *countingObserver) OnStreamResponse(*opensearchtransport.StreamResponseE
 
 func (o *countingObserver) count() int {
 	return int(o.n.Load())
+}
+
+// captureDebugLogger records the lifecycle messages a Registry emits.
+type captureDebugLogger struct {
+	mu   sync.Mutex
+	msgs []string
+}
+
+func (c *captureDebugLogger) Debug(msg string, _ ...any) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.msgs = append(c.msgs, msg)
+}
+
+func (c *captureDebugLogger) messages() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return slices.Clone(c.msgs)
+}
+
+// TestWithLogger covers both explicit-logger paths: any
+// opensearchtransport.DebugLogger receives the lifecycle records, not only a
+// *slog.Logger, and a nil one silences them rather than panicking.
+//
+// Two captures, not one. With a single sink the client's own debug records land
+// beside the registry's, and an assertion on that sink passes even when the
+// registry's messages never arrive. The global capture also pins that WithLogger
+// is what routes these records: a nil logger has to silence them, not fall back
+// to the installed default.
+//
+// Not parallel: installing the process-global debug logger mutates process
+// state that the other logger tests in this file read.
+func TestWithLogger(t *testing.T) {
+	tests := []struct {
+		name   string
+		logger func(explicit *captureDebugLogger) opensearchtransport.DebugLogger
+		want   []string
+	}{
+		{
+			name:   "any DebugLogger receives lifecycle records",
+			logger: func(explicit *captureDebugLogger) opensearchtransport.DebugLogger { return explicit },
+			want:   []string{"osprom registry running", "osprom registry stopped"},
+		},
+		{
+			name:   "nil logger silences lifecycle records",
+			logger: func(*captureDebugLogger) opensearchtransport.DebugLogger { return nil },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			explicit, global := &captureDebugLogger{}, &captureDebugLogger{}
+
+			// Installs global as the process-global debug logger, which is the
+			// default WithLogger has to override in both rows.
+			client, err := opensearch.NewClient(opensearch.Config{
+				Addresses:   []string{"http://localhost:9200"},
+				DebugLogger: global,
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = client.Close() })
+
+			reg, err := NewWithOptions(prometheus.NewRegistry(), nil, []Option{WithLogger(tt.logger(explicit))})
+			require.NoError(t, err)
+
+			// A nil logger would panic either inside Run's goroutine, which takes
+			// the test binary down, or on Close, which fails here.
+			require.NotPanics(t, runRegistry(t, reg))
+
+			require.Equal(t, tt.want, explicit.messages())
+			require.NotContains(t, global.messages(), "osprom registry running")
+			require.NotContains(t, global.messages(), "osprom registry stopped")
+		})
+	}
+}
+
+// TestDefaultLoggerResolvesPerMessage pins that the default resolves the
+// process-global logger at each message rather than once at construction.
+//
+// Both halves matter. A Registry is built before the client that installs the
+// logger, since the client takes the Registry as its Observer, so reading the
+// global at construction would capture nil and silence these messages forever.
+// And because the last client constructed wins, swapping the global between two
+// messages has to redirect the second one: a resolve-once-lazily implementation
+// would send both to the first logger.
+func TestDefaultLoggerResolvesPerMessage(t *testing.T) {
+	first, second := &captureDebugLogger{}, &captureDebugLogger{}
+
+	reg, err := NewWithOptions(prometheus.NewRegistry(), nil, nil) // no WithLogger: takes the default
+	require.NoError(t, err)
+
+	// Installs first as the process-global debug logger.
+	c1, err := opensearch.NewClient(opensearch.Config{
+		Addresses:   []string{"http://localhost:9200"},
+		DebugLogger: first,
+		Observer:    reg,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c1.Close() })
+
+	var wg sync.WaitGroup
+	wg.Go(func() { _ = reg.Run(t.Context()) })
+
+	require.Eventually(t, func() bool {
+		return slices.Contains(first.messages(), "osprom registry running")
+	}, time.Second, 10*time.Millisecond, "startup message never reached the installed logger")
+
+	// Replaces the process-global logger: the last client constructed wins.
+	c2, err := opensearch.NewClient(opensearch.Config{
+		Addresses:   []string{"http://localhost:9200"},
+		DebugLogger: second,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c2.Close() })
+
+	require.NoError(t, reg.Close())
+	wg.Wait()
+
+	require.Contains(t, second.messages(), "osprom registry stopped",
+		"shutdown message did not follow the swapped global")
+	require.NotContains(t, first.messages(), "osprom registry stopped",
+		"shutdown message went to the logger installed at construction time")
 }

@@ -135,6 +135,105 @@ Delete any `EnableMetrics` field from your config; leaving it in place is a comp
 
 `Metrics()` now returns the full snapshot unconditionally, including `Connections`, `Policies`, and `Router` (the latter two populate when a router with policies is active). The returned error is still non-nil only when a snapshot callback fails.
 
+## `DebuggingLogger` replaced by `DebugLogger`
+
+`opensearchtransport.DebuggingLogger` and its two printf-shaped methods are removed in favor of a one-method leveled interface:
+
+```go
+// Before
+type DebuggingLogger interface {
+    Log(a ...any) error
+    Logf(format string, a ...any) error
+}
+
+// After
+type DebugLogger interface {
+    Debug(msg string, kv ...any)
+}
+```
+
+A custom implementation collapses to one method and drops the error return, since a debug logger that cannot write has nowhere to report the failure:
+
+```go
+// Before
+type myLogger struct{ w io.Writer }
+
+func (l myLogger) Log(a ...any) error                    { _, err := fmt.Fprint(l.w, a...); return err }
+func (l myLogger) Logf(format string, a ...any) error    { _, err := fmt.Fprintf(l.w, format, a...); return err }
+
+// After
+type myLogger struct{ w io.Writer }
+
+func (l myLogger) Debug(msg string, kv ...any) { fmt.Fprintln(l.w, msg, kv) }
+```
+
+`LoadDebugLogger()` returns a `DebugLogger` now. Callers that only read it to test for nil are unaffected.
+
+### Installing a logger
+
+Debug records could previously only go to the client's own stream. `Config.DebugLogger` (on both `opensearch.Config` and `opensearchtransport.Config`) routes them into an application's logger instead:
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:   []string{"https://localhost:9200"},
+    DebugLogger: logzerolog.Default(),
+})
+```
+
+```sh
+go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+```
+
+`log-slog` is the equivalent for `log/slog`. Both are separate Go modules, so neither library enters the core client's dependency graph. See [`log-zerolog/README.md`](log-zerolog/README.md) and [`log-slog/README.md`](log-slog/README.md).
+
+A supplied logger takes precedence over `EnableDebugLogger`. Both fields and `OPENSEARCH_GO_DEBUG` otherwise behave as before.
+
+### Output changes for the built-in logger
+
+Records now carry a message and key/value pairs rather than a formatted line:
+
+```
+[15:04:05.000] DEBUG    Node overloaded: heap over threshold conn=https://localhost:9200 heap_used_percent=93 threshold=85
+```
+
+Two behavior changes come with it:
+
+- `EnableDebugLogger: true` writes to stderr. It previously wrote to stdout while `OPENSEARCH_GO_DEBUG=true` wrote to stderr; both now agree, and stderr is what `guides/config-envvars.md` documents. Anything parsing the client's debug output from stdout needs to read stderr.
+- `OPENSEARCH_GO_POLICY_DUMP` writes the policy tree straight to stderr instead of through the logger, so it stays one contiguous block. Sent through a structured logger it would become a single record with every newline escaped, which defeats its purpose of being read and copied from.
+
+### `osotel.WithLogger` / `osprom.WithLogger` take a `DebugLogger`
+
+Both options widen from `*slog.Logger` to `opensearchtransport.DebugLogger`:
+
+```go
+// Before
+func WithLogger(l *slog.Logger) Option
+
+// After
+func WithLogger(l opensearchtransport.DebugLogger) Option
+```
+
+Existing calls compile unchanged, because `*slog.Logger` satisfies the interface. Only code that names the function's type explicitly needs updating:
+
+```go
+// Before
+var f func(*slog.Logger) osotel.Option = osotel.WithLogger
+
+// After
+var f func(opensearchtransport.DebugLogger) osotel.Option = osotel.WithLogger
+```
+
+The point is that one logger now serves both the client and the registries:
+
+```go
+dl := logzerolog.Default()
+
+reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(dl)})
+client, err := opensearch.NewClient(opensearch.Config{DebugLogger: dl})
+```
+
+The default changes from `slog.Default()` to `opensearchtransport.LoadDebugLogger()`, resolved per message, so the registries' lifecycle messages appear whenever the client's debug records do. Resolution is deferred rather than read at construction because a registry has to exist before the client that installs the logger, since the client takes the registry as its `Observer`. Under the old default they appeared almost never: all four sites log at debug level and `slog.Default()` discards anything below `LevelInfo`, so unless the application had lowered its global slog level, those messages were dropped. If you relied on them reaching `slog.Default()` specifically, pass it explicitly with `WithLogger(slog.Default())`. Passing nil now silences them instead of panicking.
+
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 
 The concrete `opensearchtransport.Client` type was renamed to `opensearchtransport.Transport`. The type owns HTTP round-trip concerns -- connection pooling, retries, node selection, and discovery -- so `Transport` reflects its role and avoids colliding conceptually with the API clients above it (`opensearch.Client` and `opensearchapi.Client`).

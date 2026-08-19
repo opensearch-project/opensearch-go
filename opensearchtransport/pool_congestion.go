@@ -121,17 +121,18 @@ func (r *poolRegistry) setMaxCwnd(name string, size int32) {
 	pc.mu.Lock()
 	oldMaxCwnd := pc.mu.maxCwnd
 	oldCwnd := pc.cwnd.Load()
+	newCwnd := min(oldCwnd, size)
 	pc.mu.maxCwnd = size
 	// Clamp cwnd if it already exceeds the real ceiling.
-	if oldCwnd > size {
-		pc.cwnd.Store(size)
+	if newCwnd != oldCwnd {
+		pc.cwnd.Store(newCwnd)
 	}
 	// Reset ssthresh to the real ceiling so slow start targets the correct value.
 	pc.mu.ssthresh = size
 	pc.mu.Unlock()
 	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("setMaxCwnd: pool=%q size=%d oldMaxCwnd=%d oldCwnd=%d clamped=%v\n",
-			name, size, oldMaxCwnd, oldCwnd, oldCwnd > size)
+		dl.Debug("setMaxCwnd: updated congestion window ceiling",
+			"pool", name, "max_cwnd_from", oldMaxCwnd, "max_cwnd_to", size, "cwnd_from", oldCwnd, "cwnd_to", newCwnd)
 	}
 }
 
@@ -248,8 +249,9 @@ func updatePoolCongestion(conn *Connection, threadPools map[string]ThreadPoolSta
 		if oldCwnd != newCwnd {
 			if dl := loadDebugLogger(); dl != nil {
 				pc.mu.Lock()
-				dl.Logf("AIMD: conn=%s pool=%q cwnd=%d->%d maxCwnd=%d ssthresh=%d\n",
-					conn.Name, name, oldCwnd, newCwnd, pc.mu.maxCwnd, pc.mu.ssthresh)
+				dl.Debug("AIMD: adjusted congestion window",
+					"node", conn.Name, "pool", name, "cwnd_from", oldCwnd, "cwnd_to", newCwnd,
+					"max_cwnd", pc.mu.maxCwnd, "ssthresh", pc.mu.ssthresh)
 				pc.mu.Unlock()
 			}
 		}
@@ -401,22 +403,22 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 		c.cwnd.Store(newCwnd)
 		c.mu.ssthresh = newCwnd
 		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("clusterAIMD: congested cwnd=%d->%d maxCwnd=%d nodes=%d\n",
-				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+			dl.Debug("clusterAIMD: congested",
+				"cwnd_from", cwnd, "cwnd_to", newCwnd, "max_cwnd", clusterMaxCwnd, "nodes", len(polled))
 		}
 	case cwnd < ssthresh:
 		newCwnd := min(cwnd*2, clusterMaxCwnd)
 		c.cwnd.Store(newCwnd)
 		if dl := loadDebugLogger(); dl != nil && newCwnd != cwnd {
-			dl.Logf("clusterAIMD: slow-start cwnd=%d->%d maxCwnd=%d nodes=%d\n",
-				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+			dl.Debug("clusterAIMD: slow-start",
+				"cwnd_from", cwnd, "cwnd_to", newCwnd, "max_cwnd", clusterMaxCwnd, "nodes", len(polled))
 		}
 	default:
 		newCwnd := min(cwnd+1, clusterMaxCwnd)
 		c.cwnd.Store(newCwnd)
 		if dl := loadDebugLogger(); dl != nil && newCwnd != cwnd {
-			dl.Logf("clusterAIMD: avoidance cwnd=%d->%d maxCwnd=%d nodes=%d\n",
-				cwnd, newCwnd, clusterMaxCwnd, len(polled))
+			dl.Debug("clusterAIMD: avoidance",
+				"cwnd_from", cwnd, "cwnd_to", newCwnd, "max_cwnd", clusterMaxCwnd, "nodes", len(polled))
 		}
 	}
 }

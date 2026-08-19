@@ -4,6 +4,8 @@ use (
 	.
 	./cmd/osapilint
 	./cmd/osgen
+	./log-slog
+	./log-zerolog
 	./osotel
 	./osprom
 )
