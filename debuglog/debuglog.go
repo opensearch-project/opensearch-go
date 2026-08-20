@@ -52,9 +52,13 @@ type Logger interface {
 //		Int("attempts", n).
 //		Msg("Retrying request")
 //
-// A chain that never reaches Msg emits nothing. The osapilint check in this
-// repository reports such a chain as an error, because the compiler cannot: a
-// chain is a valid expression statement whether or not it terminates.
+// A chain that never reaches Msg emits nothing, and the compiler cannot say so:
+// a chain is a valid expression statement whether or not it terminates. This
+// repository guards against it with a test in the debuglog package that parses
+// every module and fails when it finds one, so a missing terminator breaks the
+// test suite rather than shipping. That guard matches a chain written as a
+// statement, which is how every emitting site is written; a chain assigned to a
+// variable first is outside what it can see.
 //
 // The key/value pairing is part of the method signature rather than a
 // convention, so a record cannot carry a key with no value or a value with no
@@ -132,8 +136,7 @@ func StringerText(val fmt.Stringer) string {
 	return val.String()
 }
 
-// nilText renders a nil value. It matches the way the fmt package prints one,
-// which is what the client's debug records showed before the fields were typed.
+// nilText renders a nil value, matching the way the fmt package prints one.
 const nilText = "<nil>"
 
 // Nop returns an Event that discards the record. Its methods do nothing and it

@@ -201,6 +201,12 @@ func f() { e := Debug().Str("a", "b"); e.Msg("later") }`,
 //
 // It walks every module in the repository rather than only this one, because the
 // adapter and metrics-registry modules build chains too.
+//
+// What it does not catch: a chain assigned to a variable before its fields are
+// added, since [unterminatedChains] matches the statement form. Every emitting
+// site is written as a statement, so the hole is narrow by construction rather
+// than by luck, and the row named "assigned chain is not a statement" above pins
+// the boundary.
 func TestRepoDebugChainsTerminate(t *testing.T) {
 	t.Parallel()
 

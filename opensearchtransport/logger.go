@@ -70,10 +70,12 @@ func Debug() debuglog.Event {
 
 // debugEnabled reports whether a debug logger is installed.
 //
-// Emitting a record does not need this -- [Debug] handles the absent case
-// itself. It exists for the one caller that writes to stderr directly instead of
-// through the logger, the OPENSEARCH_GO_POLICY_DUMP tree, which still has to
-// honor the same switch.
+// Emitting a record does not need this: [Debug] handles the absent case itself,
+// and the 88 emitting sites call it unguarded. It exists for the two callers that
+// cannot, because they do work a no-op event cannot undo. The
+// OPENSEARCH_GO_POLICY_DUMP tree writes to stderr directly rather than through
+// the logger, and one AIMD record has to take a mutex to read the fields it
+// carries.
 func debugEnabled() bool { return debugLoggerPtr.Load() != nil }
 
 func storeDebugLogger(dl debuglog.Logger) {

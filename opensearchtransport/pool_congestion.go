@@ -250,16 +250,23 @@ func updatePoolCongestion(conn *Connection, threadPools map[string]ThreadPoolSta
 		applyPoolAIMD(pc, tps)
 		newCwnd := pc.cwnd.Load()
 		if oldCwnd != newCwnd {
-			pc.mu.Lock()
-			Debug().
-				Str("node", conn.Name).
-				Str("pool", name).
-				Int32("cwnd_from", oldCwnd).
-				Int32("cwnd_to", newCwnd).
-				Int32("max_cwnd", pc.mu.maxCwnd).
-				Int32("ssthresh", pc.mu.ssthresh).
-				Msg("AIMD: adjusted congestion window")
-			pc.mu.Unlock()
+			// Guarded, unlike every other emitting site in the package: reading
+			// maxCwnd and ssthresh for the record needs pc.mu, and an unguarded
+			// chain would take the lock on every adjustment whether or not anyone
+			// is listening. Debug() alone cannot prevent that, since a chain's
+			// arguments are evaluated either way.
+			if debugEnabled() {
+				pc.mu.Lock()
+				Debug().
+					Str("node", conn.Name).
+					Str("pool", name).
+					Int32("cwnd_from", oldCwnd).
+					Int32("cwnd_to", newCwnd).
+					Int32("max_cwnd", pc.mu.maxCwnd).
+					Int32("ssthresh", pc.mu.ssthresh).
+					Msg("AIMD: adjusted congestion window")
+				pc.mu.Unlock()
+			}
 		}
 	}
 
