@@ -357,10 +357,12 @@ type sharedTransport struct {
 
 // ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
 // shared debug logger, resolved per call so a logger installed after init is
-// still honored. It is a no-op when none is installed (OPENSEARCH_GO_DEBUG unset).
+// still honored. The record is discarded when none is installed.
 //
 // ttlcache hands us a format string and arguments, so the message is rendered
-// here rather than passed as key/value pairs.
+// here rather than passed as key/value pairs. That rendering happens whether or
+// not a logger is installed, which is affordable only because ttlcache calls
+// this from one reconciliation path that should never run.
 func ttlcacheDebugf(format string, a ...any) {
 	opensearchtransport.Debug().Msg(fmt.Sprintf(format, a...))
 }

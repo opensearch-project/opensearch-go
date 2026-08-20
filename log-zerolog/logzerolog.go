@@ -18,11 +18,12 @@
 // Records are emitted at zerolog's debug level, which its package-level logger
 // admits without further configuration.
 //
-// [debuglog.Event] is shaped after zerolog's own builder, so every field method
+// [debuglog.Event] is shaped after zerolog's own builder, so a field method
 // forwards to the matching *zerolog.Event method and the value is never boxed
 // into an interface on the way. Whatever the application configured for durations
 // (DurationFieldUnit), timestamps (TimeFieldFormat), and errors
-// (ErrorMarshalFunc) therefore still applies.
+// (ErrorMarshalFunc) therefore still applies. Stringer is the one exception,
+// resolved here and written with Str; see its own doc for why.
 package logzerolog
 
 import (
@@ -70,7 +71,7 @@ func (a adapter) Debug() debuglog.Event {
 // discarded and the receiver returned instead.
 //
 // A chain that never reaches Msg leaves the *Event unreturned to zerolog's pool.
-// The osapilint check in this repository reports such a chain.
+// The debuglog package carries a test that fails when it finds such a chain.
 type event struct{ e *zerolog.Event }
 
 // Str implements [debuglog.Event].
