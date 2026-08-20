@@ -350,14 +350,12 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 				continue
 			}
 			overrider.setEnvOverride(*override.applyAll)
-			if dl := loadDebugLogger(); dl != nil {
-				action := overrideActionEnabled
-				if !*override.applyAll {
-					action = overrideActionDisabled
-				}
-				dl.Debug("Policy override applied at path",
-					"action", action, "type", typeName, "path", path, "env", override.envKey)
+			action := overrideActionEnabled
+			if !*override.applyAll {
+				action = overrideActionDisabled
 			}
+			Debug().Str("action", action).Str("type", typeName).Str("path", path).Str("env", override.envKey).
+				Msg("Policy override applied at path")
 			continue
 		}
 
@@ -380,14 +378,12 @@ func applyPolicyOverridesRecursive(p Policy, overrides []policyOverride, paths m
 			}
 
 			overrider.setEnvOverride(m.enable)
-			if dl := loadDebugLogger(); dl != nil {
-				action := overrideActionEnabled
-				if !m.enable {
-					action = overrideActionDisabled
-				}
-				dl.Debug("Policy override applied at path",
-					"action", action, "type", typeName, "path", path, "env", override.envKey, "matcher", m.raw)
+			action := overrideActionEnabled
+			if !m.enable {
+				action = overrideActionDisabled
 			}
+			Debug().Str("action", action).Str("type", typeName).Str("path", path).Str("env", override.envKey).
+				Str("matcher", m.raw).Msg("Policy override applied at path")
 			break // First match wins for this override
 		}
 	}
@@ -492,7 +488,7 @@ func policyNodeLabel(p Policy) string {
 // caller who supplies Config.DebugLogger therefore switches the dump on without
 // receiving it.
 func dumpPolicyTreeIfDebug(root Policy) {
-	if loadDebugLogger() == nil {
+	if !debugEnabled() {
 		return
 	}
 	writePolicyTree(os.Stderr, root)

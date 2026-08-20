@@ -43,6 +43,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
@@ -214,10 +215,10 @@ type Config struct {
 	// log/slog ship as the log-zerolog and log-slog submodules.
 	//
 	// The installed logger is process-global: the last client constructed wins,
-	// and opensearchtransport.LoadDebugLogger returns it for every client in the
-	// process. A Config carrying one is never cached, so each such client is
-	// constructed fresh.
-	DebugLogger opensearchtransport.DebugLogger
+	// and opensearchtransport.Debug returns an event backed by it for every
+	// client in the process. A Config carrying one is never cached, so each such
+	// client is constructed fresh.
+	DebugLogger debuglog.Logger
 
 	// ActiveListCap sets the maximum number of connections in the ready list's active partition per pool.
 	// When discovery adds connections that would exceed this cap, overflow connections
@@ -361,9 +362,7 @@ type sharedTransport struct {
 // ttlcache hands us a format string and arguments, so the message is rendered
 // here rather than passed as key/value pairs.
 func ttlcacheDebugf(format string, a ...any) {
-	if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
-		dl.Debug(fmt.Sprintf(format, a...))
-	}
+	opensearchtransport.Debug().Msg(fmt.Sprintf(format, a...))
 }
 
 // cachedDefault is the ttlcache.Cacheable for an implicit default client.

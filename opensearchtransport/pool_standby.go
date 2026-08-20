@@ -104,10 +104,12 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 		cp.metrics.standbyDemotions.Add(1)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("Overload-demoted connection to standby",
-			"pool", cp.name, "conn", c.URL, "active", cp.mu.activeCount, "standby", len(cp.mu.ready)-cp.mu.activeCount)
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", c.URL).
+		Int("active", cp.mu.activeCount).
+		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
+		Msg("Overload-demoted connection to standby")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		obs.OnOverloadDetected(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))
@@ -133,10 +135,11 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 	c.storeOverloadedAt(time.Time{})
 	c.mu.Unlock()
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("Cleared overloaded flag on connection",
-			"pool", cp.name, "conn", c.URL, "state", c.loadConnState().lifecycle())
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", c.URL).
+		Stringer("state", c.loadConnState().lifecycle()).
+		Msg("Cleared overloaded flag on connection")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		cp.mu.RLock()
@@ -223,11 +226,13 @@ func (cp *multiServerPool) enforceActiveCapWithLock() {
 		cp.metrics.standbyDemotions.Add(int64(overflow))
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("Enforced active cap: moved connections to standby",
-			"pool", cp.name, "cap", cp.mu.activeListCap, "moved", overflow,
-			"active", cp.mu.activeCount, "standby", len(cp.mu.ready)-cp.mu.activeCount)
-	}
+	Debug().
+		Str("pool", cp.name).
+		Int("cap", cp.mu.activeListCap).
+		Int("moved", overflow).
+		Int("active", cp.mu.activeCount).
+		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
+		Msg("Enforced active cap: moved connections to standby")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		counts := cp.countByLifecycleWithLock()
@@ -264,10 +269,12 @@ func (cp *multiServerPool) tryStandbyWithLock() *Connection {
 		cp.metrics.standbyPromotions.Add(1)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("tryStandby: promoted connection to active (forced, no warmup)",
-			"pool", cp.name, "conn", c.URL, "active", cp.mu.activeCount, "standby", len(cp.mu.ready)-cp.mu.activeCount)
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", c.URL).
+		Int("active", cp.mu.activeCount).
+		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
+		Msg("tryStandby: promoted connection to active (forced, no warmup)")
 
 	return c
 }
@@ -481,10 +488,12 @@ func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool, e
 		return true, false, fmt.Errorf("[%s] %q: %w", cp.name, candidate.URL, ErrRotationPromotionRace)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("rotateStandby: promoted connection standby->active with warmup",
-			"pool", cp.name, "conn", candidate.URL, "active", cp.mu.activeCount, "standby", len(cp.mu.ready)-cp.mu.activeCount)
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", candidate.URL).
+		Int("active", cp.mu.activeCount).
+		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
+		Msg("rotateStandby: promoted connection standby->active with warmup")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		obs.OnStandbyPromote(newConnectionEvent(
@@ -557,10 +566,12 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, e
 		cp.removeFromReadyWithLock(candidate)
 		cp.appendToDeadWithLock(candidate)
 
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Debug("healthcheckStart: health check failed for connection, moved to dead",
-				"pool", cp.name, "conn", candidate.URL, "active", cp.mu.activeCount, "dead", len(cp.mu.dead))
-		}
+		Debug().
+			Str("pool", cp.name).
+			Stringer("conn", candidate.URL).
+			Int("active", cp.mu.activeCount).
+			Int("dead", len(cp.mu.dead)).
+			Msg("healthcheckStart: health check failed for connection, moved to dead")
 
 		cp.scheduleResurrect(ctx, candidate)
 		return nil, fmt.Errorf("[%s] %q: %w: moved to dead", cp.name, candidate.URL, ErrRotationHealthCheckFailed)
@@ -600,10 +611,12 @@ func (cp *multiServerPool) evictUnknownFromReadyWithLock(c *Connection) {
 	cp.removeFromReadyWithLock(c)
 	cp.appendToDeadWithLock(c)
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("evictUnknownFromReadyWithLock: moved connection to dead",
-			"pool", cp.name, "conn", c.URL, "active", cp.mu.activeCount, "dead", len(cp.mu.dead))
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", c.URL).
+		Int("active", cp.mu.activeCount).
+		Int("dead", len(cp.mu.dead)).
+		Msg("evictUnknownFromReadyWithLock: moved connection to dead")
 }
 
 // asyncPromoteStandby claims a non-warming standby connection, health-checks it,
@@ -614,9 +627,7 @@ func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
 	candidate, err := cp.healthcheckStart(ctx)
 	if candidate == nil {
 		if err != nil && !errors.Is(err, ErrRotationNoCandidate) {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Debug("asyncPromoteStandby: healthcheckStart", "pool", cp.name, "err", err)
-			}
+			Debug().Str("pool", cp.name).Err(err).Msg("asyncPromoteStandby: healthcheckStart")
 		}
 		return
 	}
@@ -629,10 +640,12 @@ func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
 		return
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("asyncPromoteStandby: promoted connection to active",
-			"pool", cp.name, "conn", candidate.URL, "active", cp.mu.activeCount, "standby", len(cp.mu.ready)-cp.mu.activeCount)
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", candidate.URL).
+		Int("active", cp.mu.activeCount).
+		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
+		Msg("asyncPromoteStandby: promoted connection to active")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		obs.OnStandbyPromote(newConnectionEvent(

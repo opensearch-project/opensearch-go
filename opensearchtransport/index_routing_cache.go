@@ -446,9 +446,7 @@ func (slot *indexSlot) mergeShardMap(placement *indexShardPlacement) {
 			return
 		}
 	}
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("mergeShardMap: CAS exhausted (concurrent writer wins)", "attempts", maxRetries)
-	}
+	Debug().Int("attempts", maxRetries).Msg("mergeShardMap: CAS exhausted (concurrent writer wins)")
 }
 
 // carriesForward reports whether old contains any shard keys absent from

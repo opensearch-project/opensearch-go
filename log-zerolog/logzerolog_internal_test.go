@@ -8,10 +8,7 @@ package logzerolog
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
-	"fmt"
-	"net"
 	"net/url"
 	"testing"
 	"time"
@@ -19,106 +16,98 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 )
 
-func TestNew(t *testing.T) {
+// TestEventTypedMethods pins that each typed Event method forwards to the
+// matching zerolog method, including the two cases most likely to regress: a
+// nil *url.URL passed to Stringer, and the field key Err uses.
+func TestEventTypedMethods(t *testing.T) {
 	t.Parallel()
 
-	connURL, err := url.Parse("https://localhost:9200/path?q=1")
+	connURL, err := url.Parse("https://localhost:9200")
 	require.NoError(t, err)
 
 	tests := []struct {
-		name string
-		msg  string
-		kv   []any
-		want string
+		name  string
+		build func(debuglog.Event) debuglog.Event
+		want  string
 	}{
 		{
-			name: "message only",
-			msg:  "Discovery: starting",
-			want: `{"level":"debug","message":"Discovery: starting"}`,
+			name:  "Str",
+			build: func(e debuglog.Event) debuglog.Event { return e.Str("conn", "node-1") },
+			want:  `{"level":"debug","conn":"node-1","message":"typed field"}`,
 		},
 		{
-			name: "key value pairs",
-			msg:  "Node overloaded",
-			kv:   []any{"conn", "https://localhost:9200", "heap_used_percent", 93},
-			want: `{"level":"debug","conn":"https://localhost:9200","heap_used_percent":93,"message":"Node overloaded"}`,
+			name:  "Strs",
+			build: func(e debuglog.Event) debuglog.Event { return e.Strs("nodes", []string{"a", "b"}) },
+			want:  `{"level":"debug","nodes":["a","b"],"message":"typed field"}`,
 		},
 		{
-			// A *url.URL is the most common value the client logs. zerolog has no
-			// fmt.Stringer case, so without the pre-pass this renders as a
-			// ten-field object instead of the URL.
-			name: "url renders as a string",
-			msg:  "Seed fallback",
-			kv:   []any{"conn", connURL},
-			want: `{"level":"debug","conn":"https://localhost:9200/path?q=1","message":"Seed fallback"}`,
+			name:  "Int",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int("attempts", 3) },
+			want:  `{"level":"debug","attempts":3,"message":"typed field"}`,
 		},
 		{
-			// time.Duration implements fmt.Stringer, so a Stringer-first pre-pass
-			// would render "1.5s" and defeat zerolog's DurationFieldUnit.
-			name: "duration keeps zerolog rendering",
-			msg:  "Resurrect scheduled",
-			kv:   []any{"timeout", 1500 * time.Millisecond},
-			want: `{"level":"debug","timeout":1500,"message":"Resurrect scheduled"}`,
+			name:  "Int32",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int32("code", int32(7)) },
+			want:  `{"level":"debug","code":7,"message":"typed field"}`,
 		},
 		{
-			// A nil *url.URL panics inside (*url.URL).String. The printf
-			// formatting this adapter replaced was panic-safe, because fmt
-			// recovers a String panic and prints <nil>, and so is zerolog's own
-			// reflection fallback. The pre-pass must not regress that.
-			name: "nil url does not panic",
-			msg:  "Seed fallback",
-			kv:   []any{"conn", (*url.URL)(nil)},
-			want: `{"level":"debug","conn":null,"message":"Seed fallback"}`,
+			name:  "Int64",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int64("bytes", int64(1024)) },
+			want:  `{"level":"debug","bytes":1024,"message":"typed field"}`,
 		},
 		{
-			// time.Time also implements fmt.Stringer, and its String method
-			// renders "2026-08-19 04:13:43.91 +0000 UTC" rather than zerolog's
-			// configured TimeFieldFormat.
-			name: "time keeps zerolog rendering",
-			msg:  "Connection dead",
-			kv:   []any{"dead_since", time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC)},
-			want: `{"level":"debug","dead_since":"2026-08-19T04:13:43Z","message":"Connection dead"}`,
+			name:  "Uint32",
+			build: func(e debuglog.Event) debuglog.Event { return e.Uint32("port", uint32(9200)) },
+			want:  `{"level":"debug","port":9200,"message":"typed field"}`,
 		},
 		{
-			// net.IP implements fmt.Stringer, so the pre-pass has to skip it for
-			// zerolog's AppendIPAddr path to render it.
-			name: "ip keeps zerolog rendering",
-			msg:  "Resolved node",
-			kv:   []any{"addr", net.ParseIP("10.0.0.7")},
-			want: `{"level":"debug","addr":"10.0.0.7","message":"Resolved node"}`,
+			name:  "Float64",
+			build: func(e debuglog.Event) debuglog.Event { return e.Float64("ratio", 0.5) },
+			want:  `{"level":"debug","ratio":0.5,"message":"typed field"}`,
 		},
 		{
-			// json.RawMessage has no String method, so it never enters the
-			// pre-pass; this pins that it still reaches zerolog as raw JSON
-			// rather than a base64 []byte.
-			name: "raw json is embedded",
-			msg:  "Node stats",
-			kv:   []any{"stats", json.RawMessage(`{"heap":93}`)},
-			want: `{"level":"debug","stats":{"heap":93},"message":"Node stats"}`,
+			// time.Duration implements fmt.Stringer, but Dur forwards to zerolog's
+			// own Dur rather than going through Stringer, so DurationFieldUnit
+			// (milliseconds by default) still applies instead of "1.5s".
+			name:  "Dur",
+			build: func(e debuglog.Event) debuglog.Event { return e.Dur("timeout", 1500*time.Millisecond) },
+			want:  `{"level":"debug","timeout":1500,"message":"typed field"}`,
 		},
 		{
-			name: "error goes through ErrorMarshalFunc",
-			msg:  "Discovery failed",
-			kv:   []any{"err", errors.New("connection refused")},
-			want: `{"level":"debug","err":"connection refused","message":"Discovery failed"}`,
+			// time.Time also implements fmt.Stringer, but Time forwards to
+			// zerolog's own Time rather than going through Stringer, so
+			// TimeFieldFormat (RFC3339 by default) still applies instead of
+			// time.Time.String()'s format.
+			name: "Time",
+			build: func(e debuglog.Event) debuglog.Event {
+				return e.Time("seen", time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC))
+			},
+			want: `{"level":"debug","seen":"2026-08-19T04:13:43Z","message":"typed field"}`,
 		},
 		{
-			// The client's connection-state keys carry a named integer type with a
-			// String method, so the pre-pass is not URL-specific: without it
-			// zerolog's reflection writes the number and the state names are lost.
-			name: "named integer Stringer renders as a string",
-			msg:  "casLifecycle failed",
-			kv:   []any{"state", lifecycleStringer(6)},
-			want: `{"level":"debug","state":"lc(6)","message":"casLifecycle failed"}`,
+			name:  "Stringer",
+			build: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", connURL) },
+			want:  `{"level":"debug","conn":"https://localhost:9200","message":"typed field"}`,
 		},
 		{
-			// Documented divergence from the client's built-in logger, which
-			// renders a dangling key as !BADKEY: zerolog drops it silently.
-			name: "dangling key is dropped",
-			msg:  "Pool resurrect",
-			kv:   []any{"conn", "node-1", "state"},
-			want: `{"level":"debug","conn":"node-1","message":"Pool resurrect"}`,
+			// A nil *url.URL satisfies fmt.Stringer, so the interface value is
+			// non-nil while the pointer inside it is not. Rendering must not
+			// dereference it.
+			name:  "Stringer nil pointer",
+			build: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", (*url.URL)(nil)) },
+			want:  `{"level":"debug","conn":"<nil>","message":"typed field"}`,
+		},
+		{
+			// Err goes through zerolog's own Err, so the key is zerolog's
+			// configured ErrorFieldName ("error" by default), not the "err" the
+			// built-in logger and log-slog use.
+			name:  "Err",
+			build: func(e debuglog.Event) debuglog.Event { return e.Err(errors.New("connection refused")) },
+			want:  `{"level":"debug","error":"connection refused","message":"typed field"}`,
 		},
 	}
 
@@ -127,75 +116,49 @@ func TestNew(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
-			New(zerolog.New(&buf)).Debug(tt.msg, tt.kv...)
+			tt.build(New(zerolog.New(&buf)).Debug()).Msg("typed field")
 
 			require.JSONEq(t, tt.want, buf.String())
 		})
 	}
 }
 
-// panickingStringer models a value whose String method fails for its own
-// reasons, which the pre-pass has to survive because the paths it replaced do.
-type panickingStringer struct{}
-
-func (panickingStringer) String() string { panic("String is broken") }
-
-// lifecycleStringer models opensearchtransport's connLifecycle: a named integer
-// type whose String method names the bits it holds. It is the second kind of
-// Stringer the client emits, after *url.URL, which is why the pre-pass is
-// type-agnostic rather than a URL special case.
-type lifecycleStringer int
-
-func (l lifecycleStringer) String() string { return fmt.Sprintf("lc(%d)", int(l)) }
-
-// nilMapStringer has a nil-map receiver kind, which the pointer check alone
-// would miss.
-type nilMapStringer map[string]string
-
-func (m nilMapStringer) String() string { return m["missing"] }
-
-// TestHostileStringers pins that no value can take the process down through the
-// pre-pass. fmt recovers a panicking String and prints <nil>-style output, and
-// zerolog's reflection fallback renders whatever it can, so this adapter must
-// not be the one link in the chain that crashes.
-func TestHostileStringers(t *testing.T) {
+// TestNewChainsMultipleFields pins that Msg emits every field accumulated
+// across the chain, not just the last one.
+func TestNewChainsMultipleFields(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name  string
-		value any
-	}{
-		{name: "nil pointer", value: (*url.URL)(nil)},
-		{name: "nil map with String", value: nilMapStringer(nil)},
-		{name: "nil slice with String", value: net.IP(nil)},
-		{name: "panicking String", value: panickingStringer{}},
-	}
+	var buf bytes.Buffer
+	New(zerolog.New(&buf)).Debug().
+		Str("conn", "https://localhost:9200").
+		Int("heap_used_percent", 93).
+		Msg("Node overloaded")
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			var buf bytes.Buffer
-			require.NotPanics(t, func() {
-				New(zerolog.New(&buf)).Debug("hostile value", "conn", tt.value)
-			})
-			require.NotEmpty(t, buf.String())
-		})
-	}
+	require.JSONEq(
+		t,
+		`{"level":"debug","conn":"https://localhost:9200","heap_used_percent":93,"message":"Node overloaded"}`,
+		buf.String(),
+	)
 }
 
-// TestNewDoesNotMutateCallerSlice pins that the Stringer pre-pass copies rather
-// than writing back into the slice it was handed.
-func TestNewDoesNotMutateCallerSlice(t *testing.T) {
+// TestDebugDisabledLevel pins that a logger whose level excludes debug yields
+// no output at all, and that the Event Debug returns in that case is safe to
+// chain and call Msg on.
+func TestDebugDisabledLevel(t *testing.T) {
 	t.Parallel()
 
-	connURL, err := url.Parse("https://localhost:9200")
-	require.NoError(t, err)
+	var buf bytes.Buffer
+	zl := zerolog.New(&buf).Level(zerolog.InfoLevel)
 
-	kv := []any{"conn", connURL}
-	New(zerolog.New(&bytes.Buffer{})).Debug("Seed fallback", kv...)
-
-	require.Equal(t, []any{"conn", connURL}, kv)
+	require.NotPanics(t, func() {
+		New(zl).Debug().
+			Str("conn", "https://localhost:9200").
+			Int("attempts", 3).
+			Stringer("nil_conn", (*url.URL)(nil)).
+			Err(errors.New("boom")).
+			Msg("Node overloaded")
+	})
+	require.Empty(t, buf.String())
 }
 
 // TestDefaultReadsPackageLoggerPerRecord pins that Default() resolves
@@ -214,7 +177,7 @@ func TestDefaultReadsPackageLoggerPerRecord(t *testing.T) {
 	var buf bytes.Buffer
 	log.Logger = zerolog.New(&buf)
 
-	debugLogger.Debug("Node overloaded", "conn", "https://localhost:9200")
+	debugLogger.Debug().Str("conn", "https://localhost:9200").Msg("Node overloaded")
 
 	require.JSONEq(
 		t,

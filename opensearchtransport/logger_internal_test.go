@@ -45,6 +45,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
@@ -483,14 +484,24 @@ func TestTransportLogger(t *testing.T) {
 // textDebugLogger writes ahead of every record.
 const debugRecordPrefixLen = len("[15:04:05.000] DEBUG    ")
 
+// TestTextDebugLogger pins the built-in logger's rendering, one row per
+// debuglog.Event method. There are no malformed-pair cases to cover: the typed
+// methods make key/value pairing a compile-time fact, so a dangling key or a
+// non-string key cannot be constructed.
 func TestTextDebugLogger(t *testing.T) {
 	t.Parallel()
 
+	var (
+		fixedTime = time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC)
+		nodeURL   = &url.URL{Scheme: "https", Host: "localhost:9200"}
+		nilURL    *url.URL
+	)
+
 	tests := []struct {
-		name string
-		msg  string
-		kv   []any
-		want string
+		name   string
+		msg    string
+		fields func(debuglog.Event) debuglog.Event
+		want   string
 	}{
 		{
 			name: "message only",
@@ -498,42 +509,73 @@ func TestTextDebugLogger(t *testing.T) {
 			want: "Discovery: starting\n",
 		},
 		{
-			name: "key value pairs",
+			name: "string and int pair",
 			msg:  "Node overloaded",
-			kv:   []any{"conn", "https://localhost:9200", "heap_used_percent", 93},
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Str("conn", "https://localhost:9200").Int("heap_used_percent", 93)
+			},
 			want: "Node overloaded conn=https://localhost:9200 heap_used_percent=93\n",
 		},
 		{
-			name: "dangling key",
-			msg:  "Pool resurrect",
-			kv:   []any{"conn", "node-1", "state"},
-			want: "Pool resurrect conn=node-1 !BADKEY=state\n",
+			name:   "string slice",
+			msg:    "Discovery: connection removed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Strs("roles", []string{"data", "ingest"}) },
+			want:   "Discovery: connection removed roles=[data ingest]\n",
 		},
 		{
-			// slog consumes only the bad key, so the argument after it starts a
-			// fresh pair instead of being swallowed as its value.
-			name: "non-string key resyncs on the next pair",
-			msg:  "Pool resurrect",
-			kv:   []any{42, "conn", "node-1"},
-			want: "Pool resurrect !BADKEY=42 conn=node-1\n",
+			name: "sized integers",
+			msg:  "AIMD: adjusted congestion window",
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Int32("cwnd_to", 8).Int64("tripped", 3).Uint32("stream_id", 7)
+			},
+			want: "AIMD: adjusted congestion window cwnd_to=8 tripped=3 stream_id=7\n",
 		},
 		{
-			name: "non-string key last",
-			msg:  "Pool resurrect",
-			kv:   []any{"conn", "node-1", 42},
-			want: "Pool resurrect conn=node-1 !BADKEY=42\n",
+			name:   "float",
+			msg:    "Node overloaded: breaker size over threshold",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Float64("ratio", 0.85) },
+			want:   "Node overloaded: breaker size over threshold ratio=0.85\n",
 		},
 		{
-			name: "error value",
-			msg:  "Discovery failed",
-			kv:   []any{"err", errors.New("connection refused")},
-			want: "Discovery failed err=connection refused\n",
+			name: "duration",
+			msg:  "Promoted singleServerPool to multiServerPool",
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Dur("resurrect_timeout_initial", 1500*time.Millisecond)
+			},
+			want: "Promoted singleServerPool to multiServerPool resurrect_timeout_initial=1.5s\n",
 		},
 		{
-			name: "empty kv",
-			msg:  "Warmup complete",
-			kv:   []any{},
-			want: "Warmup complete\n",
+			name:   "timestamp",
+			msg:    "resetDeadConnViability: cleared lcViable",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Time("dead_since", fixedTime) },
+			want:   "resetDeadConnViability: cleared lcViable dead_since=2026-08-19 04:13:43 +0000 UTC\n",
+		},
+		{
+			name:   "stringer",
+			msg:    "Request failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", nodeURL) },
+			want:   "Request failed conn=https://localhost:9200\n",
+		},
+		{
+			// A typed-nil pointer satisfies fmt.Stringer while (*url.URL).String
+			// dereferences its receiver, so the nil has to be caught before String
+			// is called. Debug logging must not be able to panic the program.
+			name:   "nil stringer renders rather than panicking",
+			msg:    "Request failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", nilURL) },
+			want:   "Request failed conn=<nil>\n",
+		},
+		{
+			name:   "error",
+			msg:    "Discovery failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Err(errors.New("connection refused")) },
+			want:   "Discovery failed err=connection refused\n",
+		},
+		{
+			name:   "nil error",
+			msg:    "Discovery failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Err(nil) },
+			want:   "Discovery failed err=<nil>\n",
 		},
 	}
 
@@ -542,7 +584,11 @@ func TestTextDebugLogger(t *testing.T) {
 			t.Parallel()
 
 			var buf bytes.Buffer
-			(&textDebugLogger{Output: &buf}).Debug(tt.msg, tt.kv...)
+			event := (&textDebugLogger{Output: &buf}).Debug()
+			if tt.fields != nil {
+				event = tt.fields(event)
+			}
+			event.Msg(tt.msg)
 
 			got := buf.String()
 			require.Greater(t, len(got), debugRecordPrefixLen)
@@ -550,6 +596,23 @@ func TestTextDebugLogger(t *testing.T) {
 			require.Equal(t, tt.want, got[debugRecordPrefixLen:])
 		})
 	}
+}
+
+// TestTextDebugLoggerChainDiscarded pins that a chain which never reaches Msg
+// writes nothing. The compiler cannot catch a missing terminator, so this records
+// the consequence the debuglog chain guard exists to prevent.
+//
+// The event is held in a variable rather than chained inline because that guard
+// sweeps this repository for exactly the inline shape. Keep it this way, or the
+// guard reports this test as the defect it is describing.
+func TestTextDebugLoggerChainDiscarded(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	event := (&textDebugLogger{Output: &buf}).Debug()
+	event.Str("conn", "node-1").Int("attempts", 2)
+
+	require.Empty(t, buf.String())
 }
 
 func TestResolveDebugLogger(t *testing.T) {
@@ -560,7 +623,7 @@ func TestResolveDebugLogger(t *testing.T) {
 	tests := []struct {
 		name string
 		cfg  Config
-		want DebugLogger
+		want debuglog.Logger
 	}{
 		{
 			name: "neither set installs nothing",
@@ -593,7 +656,7 @@ func TestResolveDebugLogger(t *testing.T) {
 	}
 }
 
-// TestTextDebugLoggerConcurrent pins the concurrency requirement DebugLogger
+// TestTextDebugLoggerConcurrent pins the concurrency requirement debuglog.Logger
 // states: records reach the output whole, and the write itself is serialized, so
 // the type is safe with any writer rather than only with an atomic one.
 func TestTextDebugLoggerConcurrent(t *testing.T) {
@@ -606,7 +669,7 @@ func TestTextDebugLoggerConcurrent(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range records {
-		wg.Go(func() { logger.Debug("concurrent record", "i", i) })
+		wg.Go(func() { logger.Debug().Int("i", i).Msg("concurrent record") })
 	}
 	wg.Wait()
 
@@ -615,25 +678,6 @@ func TestTextDebugLoggerConcurrent(t *testing.T) {
 	for _, line := range lines {
 		require.Regexp(t, `^\[\d{2}:\d{2}:\d{2}\.\d{3}\] DEBUG {4}concurrent record i=\d+$`, line)
 	}
-}
-
-// TestDebugFunc pins the func-shaped path into DebugLogger, which is how a
-// caller whose logging is a function rather than a type plugs in.
-func TestDebugFunc(t *testing.T) {
-	t.Parallel()
-
-	var (
-		gotMsg string
-		gotKV  []any
-	)
-
-	var dl DebugLogger = DebugFunc(func(msg string, kv ...any) {
-		gotMsg, gotKV = msg, kv
-	})
-	dl.Debug("Node overloaded", "conn", "https://localhost:9200", "heap_used_percent", 93)
-
-	require.Equal(t, "Node overloaded", gotMsg)
-	require.Equal(t, []any{"conn", "https://localhost:9200", "heap_used_percent", 93}, gotKV)
 }
 
 type CustomLogger struct {

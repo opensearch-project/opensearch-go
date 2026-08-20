@@ -129,9 +129,8 @@ func (c *Connection) casLifecycle(
 		}
 		target := connState(raw).withLifecycle(next)
 		if c.state.CompareAndSwap(raw, int64(target)) {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Debug("casLifecycle: applied lifecycle transition", "state_from", lc, "state_to", next, "conn", c.URL)
-			}
+			Debug().Stringer("state_from", lc).Stringer("state_to", next).Stringer("conn", c.URL).
+				Msg("casLifecycle: applied lifecycle transition")
 			return nil
 		}
 		// CAS failed -- re-load and re-check masked bits before retrying.
@@ -423,6 +422,15 @@ func (wm warmupManager) skipCount() int {
 
 // isZero returns true if both rounds and skipCount are zero.
 func (wm warmupManager) isZero() bool { return wm == 0 }
+
+// String renders the packed pair as "rounds=N,skip=N".
+//
+// Debug records pass a warmupManager through Stringer, so the formatting happens
+// only when a record is actually emitted. Without this the raw int32 would be
+// logged, and a packed bitfield printed as a decimal says nothing.
+func (wm warmupManager) String() string {
+	return fmt.Sprintf("rounds=%d,skip=%d", wm.rounds(), wm.skipCount())
+}
 
 // withRounds returns a new warmupManager with the rounds field replaced.
 func (wm warmupManager) withRounds(rounds int) warmupManager {

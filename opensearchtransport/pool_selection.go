@@ -97,15 +97,19 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				warmupDone := !conn.loadConnState().isWarmingUp()
 				if warmupDone && cp.mu.activeListCap > 0 && cp.mu.activeCount > cp.mu.activeListCap {
 					needsCapEnforce = true
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Debug("Next: warmup complete for connection, triggering cap enforcement",
-							"pool", cp.name, "conn", conn.URL, "active", cp.mu.activeCount, "cap", cp.mu.activeListCap)
-					}
+					Debug().
+						Str("pool", cp.name).
+						Stringer("conn", conn.URL).
+						Int("active", cp.mu.activeCount).
+						Int("cap", cp.mu.activeListCap).
+						Msg("Next: warmup complete for connection, triggering cap enforcement")
 				} else if warmupDone {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Debug("Next: warmup complete for connection, no cap enforcement",
-							"pool", cp.name, "conn", conn.URL, "active", cp.mu.activeCount, "cap", cp.mu.activeListCap)
-					}
+					Debug().
+						Str("pool", cp.name).
+						Stringer("conn", conn.URL).
+						Int("active", cp.mu.activeCount).
+						Int("cap", cp.mu.activeListCap).
+						Msg("Next: warmup complete for connection, no cap enforcement")
 				}
 
 				// Notify observer: warmup accept (State.IsWarmingUp() tells
@@ -300,10 +304,13 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 		cp.metrics.connectionsDemoted.Add(1)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Debug("Next: evicted externally-demoted connection",
-			"pool", cp.name, "conn", c.URL, "state", ConnState{packed: int64(state)}.Hex(), "active", cp.mu.activeCount, "dead", len(cp.mu.dead))
-	}
+	Debug().
+		Str("pool", cp.name).
+		Stringer("conn", c.URL).
+		Str("state", ConnState{packed: int64(state)}.Hex()).
+		Int("active", cp.mu.activeCount).
+		Int("dead", len(cp.mu.dead)).
+		Msg("Next: evicted externally-demoted connection")
 
 	if obs := observerFromAtomic(&cp.observer); obs != nil {
 		obs.OnDemote(newConnectionEvent(cp.name, c, cp.countByLifecycleWithLock()))

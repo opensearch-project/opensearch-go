@@ -44,6 +44,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -816,11 +817,11 @@ func TestConfigKey(t *testing.T) {
 	})
 }
 
-// noopDebugLogger is an opensearchtransport.DebugLogger that discards records,
-// for configs that only need the field populated.
+// noopDebugLogger is a debuglog.Logger that discards records, for configs that
+// only need the field populated.
 type noopDebugLogger struct{}
 
-func (noopDebugLogger) Debug(string, ...any) {}
+func (noopDebugLogger) Debug() debuglog.Event { return debuglog.Nop() }
 
 // TestCachedDefaultKeyNotCacheable verifies cachedDefault.Key surfaces
 // ttlcache.ErrNotCacheable for an un-hashable config, so GetOrCreate falls

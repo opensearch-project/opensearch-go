@@ -468,11 +468,11 @@ OPENSEARCH_GO_DEBUG=true go test ./...
 
 ### Sending debug records to your own logger
 
-Both settings above select the client's built-in logger, which writes plain text to stderr. To send the same records into the logger your application already uses, set `DebugLogger` instead. It takes any type with one method:
+Both settings above select the client's built-in logger, which writes plain text to stderr. To send the same records into the logger your application already uses, set `DebugLogger` instead. It takes any `debuglog.Logger`, a one-method interface defined in the `debuglog` package that returns a chain of typed field methods ended by `Msg`:
 
 ```go
-type DebugLogger interface {
-    Debug(msg string, kv ...any)
+type Logger interface {
+    Debug() Event
 }
 ```
 
@@ -526,31 +526,13 @@ Supplying a `DebugLogger` enables debug output on its own and takes precedence o
 
 ### Bringing your own logger
 
-The two modules above are conveniences, not the extension point. The extension point is the interface, and it mentions none of the client's own types, so an implementation needs no import of `opensearchtransport`:
+The two modules above are conveniences, not the extension point. The extension point is `debuglog.Logger` and `debuglog.Event`, and neither mentions any of the client's own types, so an implementation needs no import beyond the standard library and `debuglog` itself.
 
-```go
-type myLogger struct{ sink *mySink }
+Implementing `Event` directly is twelve methods: one per typed field (`Str`, `Strs`, `Int`, `Int32`, `Int64`, `Uint32`, `Float64`, `Dur`, `Time`, `Stringer`, `Err`) plus `Msg`, which is too much to show usefully inline. See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a worked implementation.
 
-func (m myLogger) Debug(msg string, kv ...any) { m.sink.Write(msg, kv) }
+Embedding a `debuglog.Event` to inherit most of it does not work, and fails quietly. A promoted field method returns the embedded value rather than your type, so the chain leaves your implementation at the first `Str` and the `Msg` you wrote never runs. Write all twelve methods and have each return your own type.
 
-client, err := opensearch.NewClient(opensearch.Config{
-    Addresses:   []string{"http://localhost:9200"},
-    DebugLogger: myLogger{sink: sink},
-})
-```
-
-When the logging is already a function rather than a type, `DebugFunc` saves the declaration:
-
-```go
-client, err := opensearch.NewClient(opensearch.Config{
-    Addresses: []string{"http://localhost:9200"},
-    DebugLogger: opensearchtransport.DebugFunc(func(msg string, kv ...any) {
-        log.Printf("%s %v", msg, kv)
-    }),
-})
-```
-
-Keys are strings and values arbitrary, in the same alternating layout `log/slog` uses. Implementations must be safe for concurrent use: records come from the transport's background goroutines as well as from request paths.
+Implementations must be safe for concurrent use: `Debug()` is called from the transport's background goroutines as well as from request paths. The `Event` it returns need not be, since it belongs to the one caller assembling that record.
 
 ## Policy Overrides
 

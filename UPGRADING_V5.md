@@ -135,9 +135,9 @@ Delete any `EnableMetrics` field from your config; leaving it in place is a comp
 
 `Metrics()` now returns the full snapshot unconditionally, including `Connections`, `Policies`, and `Router` (the latter two populate when a router with policies is active). The returned error is still non-nil only when a snapshot callback fails.
 
-## `DebuggingLogger` replaced by `DebugLogger`
+## `DebuggingLogger` replaced by `debuglog.Logger`
 
-`opensearchtransport.DebuggingLogger` and its two printf-shaped methods are removed in favor of a one-method leveled interface:
+`opensearchtransport.DebuggingLogger` and its two printf-shaped methods are removed in favor of `debuglog.Logger`, defined in the new `debuglog` package: a one-method interface returning a chain of typed field methods that `Msg` emits and ends:
 
 ```go
 // Before
@@ -147,27 +147,44 @@ type DebuggingLogger interface {
 }
 
 // After
-type DebugLogger interface {
-    Debug(msg string, kv ...any)
+type Logger interface {
+    Debug() Event
+}
+
+type Event interface {
+    Str(key, val string) Event
+    Strs(key string, val []string) Event
+    Int(key string, val int) Event
+    Int32(key string, val int32) Event
+    Int64(key string, val int64) Event
+    Uint32(key string, val uint32) Event
+    Float64(key string, val float64) Event
+    Dur(key string, val time.Duration) Event
+    Time(key string, val time.Time) Event
+    Stringer(key string, val fmt.Stringer) Event
+    Err(err error) Event
+    Msg(msg string)
 }
 ```
 
-A custom implementation collapses to one method and drops the error return, since a debug logger that cannot write has nowhere to report the failure:
+A custom implementation drops the error return, since a debug logger that cannot write has nowhere to report the failure, and trades the single `...any` method for one method per field type:
 
 ```go
 // Before
 type myLogger struct{ w io.Writer }
 
-func (l myLogger) Log(a ...any) error                    { _, err := fmt.Fprint(l.w, a...); return err }
-func (l myLogger) Logf(format string, a ...any) error    { _, err := fmt.Fprintf(l.w, format, a...); return err }
+func (l myLogger) Log(a ...any) error                 { _, err := fmt.Fprint(l.w, a...); return err }
+func (l myLogger) Logf(format string, a ...any) error { _, err := fmt.Fprintf(l.w, format, a...); return err }
 
 // After
 type myLogger struct{ w io.Writer }
 
-func (l myLogger) Debug(msg string, kv ...any) { fmt.Fprintln(l.w, msg, kv) }
+func (l myLogger) Debug() debuglog.Event { return myEvent{w: l.w} }
 ```
 
-`LoadDebugLogger()` returns a `DebugLogger` now. Callers that only read it to test for nil are unaffected.
+Implementing `Event` is twelve methods, which is unwieldy to show inline; see [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a worked implementation. Embedding a `debuglog.Event` to inherit most of it does not work: the promoted field methods return the embedded value, so the chain leaves your type at the first `Str` and your `Msg` never runs. Write all twelve.
+
+`opensearchtransport.DebugLogger`, `opensearchtransport.DebugFunc`, and `LoadDebugLogger()` are also removed. Implement `debuglog.Logger` in place of `DebugLogger`; there is no replacement for `DebugFunc`, since a plain function cannot express the typed field chain `Event` requires. Call `opensearchtransport.Debug()` in place of `LoadDebugLogger()`: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
 
 ### Installing a logger
 
@@ -201,26 +218,26 @@ Two behavior changes come with it:
 - `EnableDebugLogger: true` writes to stderr. It previously wrote to stdout while `OPENSEARCH_GO_DEBUG=true` wrote to stderr; both now agree, and stderr is what `guides/config-envvars.md` documents. Anything parsing the client's debug output from stdout needs to read stderr.
 - `OPENSEARCH_GO_POLICY_DUMP` writes the policy tree straight to stderr instead of through the logger, so it stays one contiguous block. Sent through a structured logger it would become a single record with every newline escaped, which defeats its purpose of being read and copied from.
 
-### `osotel.WithLogger` / `osprom.WithLogger` take a `DebugLogger`
+### `osotel.WithLogger` / `osprom.WithLogger` take a `debuglog.Logger`
 
-Both options widen from `*slog.Logger` to `opensearchtransport.DebugLogger`:
+Both options change from a `*slog.Logger` parameter to `debuglog.Logger`:
 
 ```go
 // Before
 func WithLogger(l *slog.Logger) Option
 
 // After
-func WithLogger(l opensearchtransport.DebugLogger) Option
+func WithLogger(l debuglog.Logger) Option
 ```
 
-Existing calls compile unchanged, because `*slog.Logger` satisfies the interface. Only code that names the function's type explicitly needs updating:
+This is a hard break: `*slog.Logger` does not implement `debuglog.Logger`, so an existing call passing one directly no longer compiles and must wrap it:
 
 ```go
 // Before
-var f func(*slog.Logger) osotel.Option = osotel.WithLogger
+reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(someSlogLogger)})
 
 // After
-var f func(opensearchtransport.DebugLogger) osotel.Option = osotel.WithLogger
+reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(logslog.New(someSlogLogger))})
 ```
 
 The point is that one logger now serves both the client and the registries:
@@ -232,7 +249,7 @@ reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithL
 client, err := opensearch.NewClient(opensearch.Config{DebugLogger: dl})
 ```
 
-The default changes from `slog.Default()` to `opensearchtransport.LoadDebugLogger()`, resolved per message, so the registries' lifecycle messages appear whenever the client's debug records do. Resolution is deferred rather than read at construction because a registry has to exist before the client that installs the logger, since the client takes the registry as its `Observer`. Under the old default they appeared almost never: all four sites log at debug level and `slog.Default()` discards anything below `LevelInfo`, so unless the application had lowered its global slog level, those messages were dropped. If you relied on them reaching `slog.Default()` specifically, pass it explicitly with `WithLogger(slog.Default())`. Passing nil now silences them instead of panicking.
+The default changes from `slog.Default()` to `opensearchtransport.Debug`, resolved per message, so the registries' lifecycle messages appear whenever the client's debug records do. Resolution is deferred rather than read at construction because a registry has to exist before the client that installs the logger, since the client takes the registry as its `Observer`. Under the old default they appeared almost never: all four sites log at debug level and `slog.Default()` discards anything below `LevelInfo`, so unless the application had lowered its global slog level, those messages were dropped. If you relied on them reaching `slog.Default()` specifically, pass it explicitly with `WithLogger(logslog.New(slog.Default()))`. Passing nil still silences them rather than panicking.
 
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 

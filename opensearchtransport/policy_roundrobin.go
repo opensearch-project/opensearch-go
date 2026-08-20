@@ -146,10 +146,9 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 		}
 
 		if err := conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby|lcOverloaded); err != nil {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Debug("casLifecycle failed; appending to dead anyway",
-					"pool", p.pool.name, "conn", conn.URL, "state", conn.loadConnState().lifecycle(), "err", err)
-			}
+			Debug().Str("pool", p.pool.name).Stringer("conn", conn.URL).
+				Stringer("state", conn.loadConnState().lifecycle()).Err(err).
+				Msg("casLifecycle failed; appending to dead anyway")
 		}
 		p.pool.appendToDeadWithLock(conn)
 	}

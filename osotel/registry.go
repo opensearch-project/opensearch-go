@@ -35,6 +35,7 @@ import (
 
 	"go.opentelemetry.io/otel/metric"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -172,7 +173,7 @@ type Registry struct {
 	pool      sync.Pool
 	done      chan struct{}
 	stop      func() // idempotent close of done, via sync.OnceFunc
-	log       debugLoggerFunc
+	log       debugEventFunc
 	workers   int
 
 	reqFilter      RequestFilter
@@ -186,15 +187,17 @@ type Registry struct {
 // Option configures a [Registry].
 type Option func(*options)
 
-// debugLoggerFunc resolves the logger a [Registry] writes its lifecycle
-// messages to. It is called per message rather than once at construction,
-// because a Registry is built before the client that installs the logger: the
-// client takes the Registry as its Observer, so a logger passed as
-// Config.DebugLogger does not exist yet when the Registry is created.
-type debugLoggerFunc func() opensearchtransport.DebugLogger
+// debugEventFunc begins a [Registry] lifecycle message. It is called per message
+// rather than once at construction, because a Registry is built before the
+// client that installs the logger: the client takes the Registry as its
+// Observer, so a logger passed as Config.DebugLogger does not exist yet when the
+// Registry is created.
+//
+// It never returns nil, so the emitting sites need no guard.
+type debugEventFunc func() debuglog.Event
 
 type options struct {
-	logger         debugLoggerFunc
+	logger         debugEventFunc
 	workers        int
 	bufferSize     int
 	reqFilter      RequestFilter
@@ -205,18 +208,25 @@ type options struct {
 
 // WithLogger sets the logger used for lifecycle messages.
 //
-// Any [opensearchtransport.DebugLogger] is accepted, so an application can pass
-// the same logger it gives the client (logzerolog.Default(), for instance)
-// rather than maintaining a second one in another shape. A *slog.Logger
-// satisfies the interface directly. A nil logger silences these messages.
+// Any [debuglog.Logger] is accepted, so an application can pass the same logger
+// it gives the client (logzerolog.Default(), for instance) rather than
+// maintaining a second one in another shape. A nil logger silences these
+// messages.
 //
-// Defaults to [opensearchtransport.LoadDebugLogger], resolved per message, so
-// lifecycle messages follow the same switch as the client's own debug records:
+// Defaults to [opensearchtransport.Debug], resolved per message, so lifecycle
+// messages follow the same switch as the client's own debug records:
 // OPENSEARCH_GO_DEBUG or Config.DebugLogger turns both on together. Resolution
 // is deferred because a Registry is constructed before the client that installs
 // the logger.
-func WithLogger(l opensearchtransport.DebugLogger) Option {
-	return func(o *options) { o.logger = func() opensearchtransport.DebugLogger { return l } }
+func WithLogger(l debuglog.Logger) Option {
+	return func(o *options) {
+		o.logger = func() debuglog.Event {
+			if l == nil {
+				return debuglog.Nop()
+			}
+			return l.Debug()
+		}
+	}
 }
 
 // WithBufferSize sets the capacity of the channel buffering events between the
@@ -282,7 +292,7 @@ func New(meter metric.Meter, observers ...Observer) (*Registry, error) {
 
 // NewWithOptions is [New] with functional options.
 func NewWithOptions(meter metric.Meter, observers []Observer, opts []Option) (*Registry, error) {
-	cfg := options{logger: opensearchtransport.LoadDebugLogger}
+	cfg := options{logger: opensearchtransport.Debug}
 	for _, opt := range opts {
 		opt(&cfg)
 	}
@@ -378,9 +388,11 @@ func defaultBufferSize() int {
 // Close-triggered stop). The context passed to observers is ctx, so instrument
 // recordings carry its cancellation and any baggage.
 func (r *Registry) Run(ctx context.Context) error {
-	if dl := r.log(); dl != nil {
-		dl.Debug("osotel registry running", "buffer_size", cap(r.ch), "observers", len(r.sinks()), "workers", r.workers)
-	}
+	r.log().
+		Int("buffer_size", cap(r.ch)).
+		Int("observers", len(r.sinks())).
+		Int("workers", r.workers).
+		Msg("osotel registry running")
 
 	var wg sync.WaitGroup
 	wg.Add(r.workers)
@@ -408,9 +420,7 @@ func (r *Registry) Run(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if dl := r.log(); dl != nil {
-		dl.Debug("osotel registry stopped")
-	}
+	r.log().Msg("osotel registry stopped")
 	return nil
 }
 
