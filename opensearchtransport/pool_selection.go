@@ -307,7 +307,7 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 	Debug().
 		Str("pool", cp.name).
 		Stringer("conn", c.URL).
-		Str("state", ConnState{packed: int64(state)}.Hex()).
+		Stringer("state", hexState{packed: int64(state)}).
 		Int("active", cp.mu.activeCount).
 		Int("dead", len(cp.mu.dead)).
 		Msg("Next: evicted externally-demoted connection")

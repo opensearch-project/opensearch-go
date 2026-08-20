@@ -624,6 +624,19 @@ func (s ConnState) String() string {
 		lc, s.WarmupRoundsRemaining(), s.WarmupSkipRemaining())
 }
 
+// hexState renders a ConnState through [ConnState.Hex] when a debug record is
+// actually emitted.
+//
+// ConnState.String already means something else, the compact form observers and
+// metrics see, and repointing it would change their output. Passing a hexState to
+// debuglog.Event.Stringer instead defers Hex's two fmt.Sprintf calls (its own,
+// plus the one connLifecycle.String performs for the %s) to emit time, so a
+// contended CAS or a pool eviction does not pay for them with debug logging off.
+type hexState ConnState
+
+// String returns the packed hex form, the same text Hex produces.
+func (h hexState) String() string { return ConnState(h).Hex() }
+
 // Hex returns the packed state as a hex string with decoded field annotations.
 // Format: "0xLLLLLLLLLLLLLLLL [LC=name cfg(rnds=N,skip=N) rd(rnds=N,skip=N)]"
 //
