@@ -198,12 +198,11 @@ func (c *Client) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPo
 		return sample, false
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
-
-	if c.healthCheckRequestModifier != nil {
-		c.healthCheckRequestModifier(req)
+	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
+		if dl := loadDebugLogger(); dl != nil {
+			dl.Logf("Stats poll failed for %q: %v\n", conn.URL, err)
+		}
+		return sample, false
 	}
 
 	res, err := c.transport.RoundTrip(req)

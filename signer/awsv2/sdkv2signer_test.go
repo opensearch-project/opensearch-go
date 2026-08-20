@@ -15,6 +15,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -23,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v4/signer"
 	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 )
 
@@ -41,6 +43,19 @@ func getCredentialProvider() aws.CredentialsProviderFunc {
 const (
 	testRegion = "us-west-2"
 )
+
+func loadTestAWSConfig(t *testing.T, creds aws.CredentialsProvider) aws.Config {
+	t.Helper()
+	if creds == nil {
+		creds = getCredentialProvider()
+	}
+	awsCfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithRegion(testRegion),
+		config.WithCredentialsProvider(creds),
+	)
+	require.NoError(t, err)
+	return awsCfg
+}
 
 func TestV4SignerAwsSdkV2(t *testing.T) {
 	currentRegion := os.Getenv("AWS_REGION")
@@ -75,180 +90,147 @@ func TestV4SignerAwsSdkV2(t *testing.T) {
 
 		awsCfg.Region = "" // Ensure region is empty to trigger error
 
-		signer, err := awsv2.NewSigner(awsCfg)
+		s, err := awsv2.NewSigner(awsCfg)
 		require.NoError(t, err)
-		err = signer.SignRequest(req)
+		err = s.SignRequest(req)
 
 		require.EqualErrorf(
 			t, err, "aws region cannot be empty", "unexpected error")
 	})
 
-	t.Run("sign request success", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		require.NoError(t, err)
-		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "us-west-2")
-		t.Cleanup(func() {
-			os.Setenv("AWS_REGION", region)
+	successCases := []struct {
+		name         string
+		method       string
+		body         string
+		service      string
+		overridePort uint16
+		wantHost     string
+	}{
+		{
+			name:     "sign request success",
+			method:   http.MethodGet,
+			wantHost: "localhost:9200",
+		},
+		{
+			name:         "with signature port override",
+			method:       http.MethodGet,
+			overridePort: 443,
+			wantHost:     "localhost",
+		},
+		{
+			name:     "sign request success with body",
+			method:   http.MethodPost,
+			body:     "some data",
+			wantHost: "localhost:9200",
+		},
+		{
+			name:     "sign request success with body for other AWS Services",
+			method:   http.MethodPost,
+			body:     "some data",
+			service:  "ec",
+			wantHost: "localhost:9200",
+		},
+	}
+
+	for _, tt := range successCases {
+		t.Run(tt.name, func(t *testing.T) {
+			var body io.Reader
+			if tt.body != "" {
+				body = bytes.NewBufferString(tt.body)
+			}
+			req, err := http.NewRequest(tt.method, "https://localhost:9200", body)
+			require.NoError(t, err)
+
+			awsCfg := loadTestAWSConfig(t, nil)
+
+			var s signer.Signer
+			if tt.service != "" {
+				s, err = awsv2.NewSignerWithService(awsCfg, tt.service)
+			} else {
+				s, err = awsv2.NewSigner(awsCfg)
+			}
+			require.NoError(t, err)
+
+			if tt.overridePort != 0 {
+				s.OverrideSigningPort(tt.overridePort)
+			}
+			require.NoError(t, s.SignRequest(req))
+
+			require.Equal(t, tt.wantHost, req.Host)
+			q := req.Header
+			require.NotEmpty(t, q.Get("Authorization"))
+			require.NotEmpty(t, q.Get("X-Amz-Date"))
+			require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
 		})
-
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
-
-		signer, err := awsv2.NewSigner(awsCfg)
-		require.NoError(t, err)
-
-		err = signer.SignRequest(req)
-		require.NoError(t, err)
-
-		q := req.Header
-		require.Equal(t, "localhost:9200", req.Host)
-		require.NotEmpty(t, q.Get("Authorization"))
-		require.NotEmpty(t, q.Get("X-Amz-Date"))
-		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
-	})
-
-	t.Run("with signature port override", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodGet, "https://localhost:9200", nil)
-		require.NoError(t, err)
-		require.Equal(t, "localhost:9200", req.Host)
-
-		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "us-west-2")
-		t.Cleanup(func() {
-			os.Setenv("AWS_REGION", region)
-		})
-
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
-
-		signer, err := awsv2.NewSigner(awsCfg)
-		require.NoError(t, err)
-
-		signer.OverrideSigningPort(443)
-		err = signer.SignRequest(req)
-		require.NoError(t, err)
-
-		// Should have stripped off the port given it was 443 (80 would have also gotten removed)
-		require.Equal(t, "localhost", req.Host)
-		q := req.Header
-		require.NotEmpty(t, q.Get("Authorization"))
-		require.NotEmpty(t, q.Get("X-Amz-Date"))
-		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
-	})
-
-	t.Run("sign request success with body", func(t *testing.T) {
-		req, err := http.NewRequest(
-			http.MethodPost, "https://localhost:9200",
-			bytes.NewBufferString("some data"))
-		require.NoError(t, err)
-		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "us-west-2")
-		t.Cleanup(func() {
-			os.Setenv("AWS_REGION", region)
-		})
-
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
-
-		signer, err := awsv2.NewSigner(awsCfg)
-		require.NoError(t, err)
-
-		err = signer.SignRequest(req)
-		require.NoError(t, err)
-		q := req.Header
-		require.NotEmpty(t, q.Get("Authorization"))
-		require.NotEmpty(t, q.Get("X-Amz-Date"))
-		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
-	})
-
-	t.Run("sign request success with body for other AWS Services", func(t *testing.T) {
-		req, err := http.NewRequest(
-			http.MethodPost, "https://localhost:9200",
-			bytes.NewBufferString("some data"))
-		require.NoError(t, err)
-		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "us-west-2")
-		t.Cleanup(func() {
-			os.Setenv("AWS_REGION", region)
-		})
-
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
-
-		signer, err := awsv2.NewSignerWithService(awsCfg, "ec")
-		require.NoError(t, err)
-
-		require.NoError(t, err)
-		err = signer.SignRequest(req)
-		require.NoError(t, err)
-		q := req.Header
-		require.NotEmpty(t, q.Get("Authorization"))
-		require.NotEmpty(t, q.Get("X-Amz-Date"))
-		require.NotEmpty(t, q.Get("X-Amz-Content-Sha256"))
-	})
+	}
 
 	t.Run("sign request failed due to invalid service", func(t *testing.T) {
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
+		awsCfg := loadTestAWSConfig(t, nil)
 
-		_, err = awsv2.NewSignerWithService(awsCfg, "")
+		_, err := awsv2.NewSignerWithService(awsCfg, "")
 		require.EqualError(t, err, "service cannot be empty")
 	})
 
-	t.Run("closes request body when read fails", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "https://localhost:9200", nil)
-		require.NoError(t, err)
+	signFailCases := []struct {
+		name  string
+		setup func(t *testing.T) (*http.Request, aws.Config)
+		check func(t *testing.T, err error, req *http.Request)
+	}{
+		{
+			name: "closes request body when read fails",
+			setup: func(t *testing.T) (*http.Request, aws.Config) {
+				t.Helper()
+				req, err := http.NewRequest(http.MethodPost, "https://localhost:9200", nil)
+				require.NoError(t, err)
+				req.Body = &brokenReadCloser{err: "boom"}
+				return req, loadTestAWSConfig(t, nil)
+			},
+			check: func(t *testing.T, err error, req *http.Request) {
+				t.Helper()
+				require.Error(t, err)
+				body, ok := req.Body.(*brokenReadCloser)
+				require.True(t, ok)
+				require.True(t, body.closed, "request body must be closed even when the read fails")
+			},
+		},
+		{
+			name: "honors a cancelled request context for credential retrieval",
+			setup: func(t *testing.T) (*http.Request, aws.Config) {
+				t.Helper()
+				ctx, cancel := context.WithCancel(t.Context())
+				cancel()
 
-		body := &brokenReadCloser{err: "boom"}
-		req.Body = body
+				awsCfg := loadTestAWSConfig(t, aws.CredentialsProviderFunc(
+					func(ctx context.Context) (aws.Credentials, error) {
+						if err := ctx.Err(); err != nil {
+							return aws.Credentials{}, err
+						}
+						return aws.Credentials{
+							AccessKeyID:     "AKID",
+							SecretAccessKey: "SECRET_KEY",
+						}, nil
+					},
+				))
 
-		region := os.Getenv("AWS_REGION")
-		os.Setenv("AWS_REGION", "us-west-2")
-		t.Cleanup(func() {
-			os.Setenv("AWS_REGION", region)
+				req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://localhost:9200", nil)
+				require.NoError(t, err)
+				return req, awsCfg
+			},
+			check: func(t *testing.T, err error, _ *http.Request) {
+				t.Helper()
+				require.ErrorIs(t, err, context.Canceled)
+			},
+		},
+	}
+
+	for _, tt := range signFailCases {
+		t.Run(tt.name, func(t *testing.T) {
+			req, awsCfg := tt.setup(t)
+			s, err := awsv2.NewSigner(awsCfg)
+			require.NoError(t, err)
+			tt.check(t, s.SignRequest(req), req)
 		})
-
-		awsCfg, err := config.LoadDefaultConfig(context.TODO(),
-			config.WithRegion("us-west-2"),
-			config.WithCredentialsProvider(
-				getCredentialProvider(),
-			),
-		)
-		require.NoError(t, err)
-
-		signer, err := awsv2.NewSigner(awsCfg)
-		require.NoError(t, err)
-
-		err = signer.SignRequest(req)
-		require.Error(t, err)
-		require.True(t, body.closed, "request body must be closed even when the read fails")
-	})
+	}
 }
 
 // brokenReadCloser fails on Read and records whether Close was called, so a
