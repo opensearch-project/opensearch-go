@@ -8,8 +8,8 @@
 //
 // The client emits its internal debug records (connection lifecycle
 // transitions, discovery results, routing decisions) through
-// [opensearchtransport.DebugLogger]. Install one of these adapters to route
-// those records into an application's existing zerolog logger:
+// [debuglog.Logger]. Install one of these adapters to route those records into
+// an application's existing zerolog logger:
 //
 //	client, err := opensearch.NewClient(opensearch.Config{
 //		DebugLogger: logzerolog.Default(),
@@ -17,18 +17,22 @@
 //
 // Records are emitted at zerolog's debug level, which its package-level logger
 // admits without further configuration.
+//
+// [debuglog.Event] is shaped after zerolog's own builder, so every field method
+// forwards to the matching *zerolog.Event method and the value is never boxed
+// into an interface on the way. Whatever the application configured for durations
+// (DurationFieldUnit), timestamps (TimeFieldFormat), and errors
+// (ErrorMarshalFunc) therefore still applies.
 package logzerolog
 
 import (
 	"fmt"
-	"reflect"
-	"slices"
 	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 )
 
 // loggerFunc resolves the logger a record is written to. New captures the logger
@@ -40,113 +44,120 @@ type loggerFunc func() zerolog.Logger
 
 type adapter struct{ logger loggerFunc }
 
-// Debug emits msg with the key/value pairs as zerolog fields.
+// Debug begins a record, or discards it when the logger's level excludes debug.
 //
-// A trailing key with no value is dropped, as is a pair whose key is not a
-// string: that is zerolog's own handling of a malformed field slice, and the
-// client's built-in logger renders !BADKEY for the same input.
-func (a adapter) Debug(msg string, kv ...any) {
+// zerolog returns a nil *Event for a filtered-out level. Its own methods tolerate
+// that, but returning [debuglog.Nop] instead keeps the nil from traveling through
+// this package and means no *Event is taken from zerolog's pool for a record that
+// will not be written.
+func (a adapter) Debug() debuglog.Event {
 	// (zerolog.Logger).Debug has a pointer receiver, so the resolved logger needs
 	// a name to be addressable.
 	zl := a.logger()
-	zl.Debug().Fields(flattenStringers(kv)).Msg(msg)
+	//nolint:zerologlint // dispatched by event.Msg, which zerologlint cannot follow through the debuglog.Event interface
+	e := zl.Debug()
+	if e == nil {
+		return debuglog.Nop()
+	}
+	return event{e}
 }
 
-// New returns a DebugLogger writing to zl.
-func New(zl zerolog.Logger) opensearchtransport.DebugLogger {
+// event forwards each field to zerolog.
+//
+// It holds nothing but the *zerolog.Event, which makes it pointer-shaped, so
+// converting it to [debuglog.Event] on every chained call needs no allocation.
+// Each zerolog method returns the same *Event it was called on, so the result is
+// discarded and the receiver returned instead.
+//
+// A chain that never reaches Msg leaves the *Event unreturned to zerolog's pool.
+// The osapilint check in this repository reports such a chain.
+type event struct{ e *zerolog.Event }
+
+// Str implements [debuglog.Event].
+func (ev event) Str(key, val string) debuglog.Event {
+	ev.e.Str(key, val)
+	return ev
+}
+
+// Strs implements [debuglog.Event].
+func (ev event) Strs(key string, val []string) debuglog.Event {
+	ev.e.Strs(key, val)
+	return ev
+}
+
+// Int implements [debuglog.Event].
+func (ev event) Int(key string, val int) debuglog.Event {
+	ev.e.Int(key, val)
+	return ev
+}
+
+// Int32 implements [debuglog.Event].
+func (ev event) Int32(key string, val int32) debuglog.Event {
+	ev.e.Int32(key, val)
+	return ev
+}
+
+// Int64 implements [debuglog.Event].
+func (ev event) Int64(key string, val int64) debuglog.Event {
+	ev.e.Int64(key, val)
+	return ev
+}
+
+// Uint32 implements [debuglog.Event].
+func (ev event) Uint32(key string, val uint32) debuglog.Event {
+	ev.e.Uint32(key, val)
+	return ev
+}
+
+// Float64 implements [debuglog.Event].
+func (ev event) Float64(key string, val float64) debuglog.Event {
+	ev.e.Float64(key, val)
+	return ev
+}
+
+// Dur implements [debuglog.Event], so DurationFieldUnit still applies.
+func (ev event) Dur(key string, val time.Duration) debuglog.Event {
+	ev.e.Dur(key, val)
+	return ev
+}
+
+// Time implements [debuglog.Event], so TimeFieldFormat still applies.
+func (ev event) Time(key string, val time.Time) debuglog.Event {
+	ev.e.Time(key, val)
+	return ev
+}
+
+// Stringer implements [debuglog.Event], resolving the value through
+// [debuglog.StringerText] rather than zerolog's own Stringer, which dereferences
+// without a nil check. The client's most common debug value is a *url.URL, and a
+// nil one would panic.
+func (ev event) Stringer(key string, val fmt.Stringer) debuglog.Event {
+	ev.e.Str(key, debuglog.StringerText(val))
+	return ev
+}
+
+// Err implements [debuglog.Event], recording the error under zerolog's configured
+// ErrorFieldName, which is "error" by default rather than the "err" the built-in
+// logger uses. Going through zerolog's own Err is what keeps ErrorMarshalFunc and
+// ErrorStackMarshaler working.
+func (ev event) Err(err error) debuglog.Event {
+	ev.e.Err(err)
+	return ev
+}
+
+// Msg implements [debuglog.Event], emitting the record and returning its *Event
+// to zerolog's pool.
+func (ev event) Msg(msg string) { ev.e.Msg(msg) }
+
+// New returns a debug logger writing to zl.
+func New(zl zerolog.Logger) debuglog.Logger {
 	return adapter{func() zerolog.Logger { return zl }}
 }
 
-// Default returns a DebugLogger writing to zerolog's package-level logger, so
+// Default returns a debug logger writing to zerolog's package-level logger, so
 // the client inherits whatever format, level, and writer the application has
 // already configured. The logger is read per record, so a reassignment of
 // log.Logger that runs after this call still applies.
-func Default() opensearchtransport.DebugLogger {
+func Default() debuglog.Logger {
 	return adapter{func() zerolog.Logger { return log.Logger }}
-}
-
-// flattenStringers replaces each value implementing [fmt.Stringer] with its
-// String result, returning kv unchanged when there is nothing to replace.
-//
-// zerolog's field encoder has no fmt.Stringer case, so a value it does not
-// recognize falls through to reflection-based JSON. The client's most common
-// debug field is a *url.URL, which would render as a ten-field object rather
-// than the address.
-//
-// Values zerolog renders itself are left alone so their configured formatting
-// survives -- see [isZerologNative].
-func flattenStringers(kv []any) []any {
-	var out []any
-	for i, v := range kv {
-		s, ok := v.(fmt.Stringer)
-		if !ok || isZerologNative(v) || isNilPointer(v) {
-			continue
-		}
-		if out == nil {
-			out = slices.Clone(kv)
-		}
-		out[i] = safeString(s)
-	}
-	if out == nil {
-		return kv
-	}
-	return out
-}
-
-// safeString calls s.String, turning a panic into a placeholder rather than
-// letting it escape.
-//
-// fmt does the same for %v, rendering %!v(PANIC=String method: ...), so the
-// printf formatting this pre-pass replaced tolerated a broken String. A debug
-// field is not worth killing the process for, and this adapter must not be the
-// least forgiving link in the chain.
-func safeString(s fmt.Stringer) string {
-	var v string
-	func() {
-		defer func() {
-			if r := recover(); r != nil {
-				v = fmt.Sprintf("!PANIC(String method: %v)", r)
-			}
-		}()
-		v = s.String()
-	}()
-	return v
-}
-
-// isNilPointer reports whether v holds a nil pointer, so that String is not
-// called on it.
-//
-// A typed-nil pointer satisfies fmt.Stringer, and many String methods
-// dereference without a guard: (*url.URL).String panics. Both paths this
-// pre-pass sits in front of tolerate that already, so it must not regress them.
-// fmt recovers a panicking String and prints <nil>, and zerolog's reflection
-// fallback renders null. Skipping the value here leaves zerolog to render null.
-func isNilPointer(v any) bool {
-	rv := reflect.ValueOf(v)
-	return rv.Kind() == reflect.Pointer && rv.IsNil()
-}
-
-// isZerologNative reports whether zerolog encodes v in a way the pre-pass would
-// discard. Each of these implements fmt.Stringer and would otherwise be caught:
-//
-//   - time.Duration is written according to DurationFieldUnit and
-//     DurationFieldInteger, not as "1.5s".
-//   - time.Time is written according to TimeFieldFormat, not as
-//     "2026-08-19 04:13:43.91 +0000 UTC".
-//   - error is written through ErrorMarshalFunc, and its String result would
-//     bypass any configured stack or structured rendering.
-//
-// Two types zerolog also encodes itself need no entry. net.IP is a Stringer, but
-// zerolog's AppendIPAddr writes exactly ip.String(), so flattening it is
-// indistinguishable from letting zerolog handle it. json.RawMessage has no
-// String method, so it never reaches the assertion and stays raw JSON. Both are
-// covered by tests, so a future zerolog change that makes either case matter
-// fails here rather than silently altering output.
-func isZerologNative(v any) bool {
-	switch v.(type) {
-	case time.Duration, *time.Duration, time.Time, *time.Time, error:
-		return true
-	default:
-		return false
-	}
 }

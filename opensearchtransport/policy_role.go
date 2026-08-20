@@ -342,11 +342,10 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 	afterDeadCount := len(p.pool.mu.dead)
 
 	if beforeReadyCount != afterReadyCount || beforeDeadCount != afterDeadCount {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Debug("RolePolicy: Removed connections",
-				"role", p.requiredRoleKey, "ready_from", beforeReadyCount, "ready_to", afterReadyCount,
-				"dead_from", beforeDeadCount, "dead_to", afterDeadCount)
-		}
+		Debug().Str("role", p.requiredRoleKey).
+			Int("ready_from", beforeReadyCount).Int("ready_to", afterReadyCount).
+			Int("dead_from", beforeDeadCount).Int("dead_to", afterDeadCount).
+			Msg("RolePolicy: Removed connections")
 	}
 
 	// If removal shrunk the active partition and standby exists,

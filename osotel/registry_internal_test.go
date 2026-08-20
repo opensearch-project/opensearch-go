@@ -8,11 +8,13 @@ package osotel
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -23,6 +25,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -487,27 +490,121 @@ func (o *countingObserver) count() int {
 	return int(o.n.Load())
 }
 
-// captureDebugLogger records the lifecycle messages a Registry emits.
-type captureDebugLogger struct {
-	mu   sync.Mutex
-	msgs []string
+// debugRecord is one emitted lifecycle message plus the fields chained onto
+// it before Msg, so a test can assert either the message text alone or that
+// the chain reached the logger intact.
+type debugRecord struct {
+	msg    string
+	fields string // "key=val" pairs in call order, space-separated
 }
 
-func (c *captureDebugLogger) Debug(msg string, _ ...any) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.msgs = append(c.msgs, msg)
+// captureDebugLogger records the lifecycle messages a Registry emits.
+type captureDebugLogger struct {
+	mu      sync.Mutex
+	records []debugRecord
+}
+
+func (c *captureDebugLogger) Debug() debuglog.Event {
+	return &captureEvent{c: c}
 }
 
 func (c *captureDebugLogger) messages() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return slices.Clone(c.msgs)
+	var msgs []string
+	for _, r := range c.records {
+		msgs = append(msgs, r.msg)
+	}
+	return msgs
 }
 
-// TestWithLogger covers both explicit-logger paths: any
-// opensearchtransport.DebugLogger receives the lifecycle records, not only a
-// *slog.Logger, and a nil one silences them rather than panicking.
+// fields returns the rendered field chain of the first record whose message
+// equals msg, or "" if no such record was captured.
+func (c *captureDebugLogger) fields(msg string) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, r := range c.records {
+		if r.msg == msg {
+			return r.fields
+		}
+	}
+	return ""
+}
+
+// captureEvent accumulates one record's chained fields. It belongs to the
+// single caller building the chain, so it needs no lock of its own; only the
+// append to the shared captureDebugLogger in Msg takes the mutex, which is
+// what makes concurrent Debug() calls from the registry's workers safe.
+type captureEvent struct {
+	c      *captureDebugLogger
+	fields []string
+}
+
+func (e *captureEvent) add(kv string) debuglog.Event {
+	e.fields = append(e.fields, kv)
+	return e
+}
+
+func (e *captureEvent) Str(key, val string) debuglog.Event { return e.add(key + "=" + val) }
+func (e *captureEvent) Strs(key string, val []string) debuglog.Event {
+	return e.add(key + "=" + strings.Join(val, ","))
+}
+func (e *captureEvent) Int(key string, val int) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+func (e *captureEvent) Int32(key string, val int32) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+func (e *captureEvent) Int64(key string, val int64) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+func (e *captureEvent) Uint32(key string, val uint32) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+func (e *captureEvent) Float64(key string, val float64) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%v", key, val))
+}
+func (e *captureEvent) Dur(key string, val time.Duration) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%s", key, val))
+}
+func (e *captureEvent) Time(key string, val time.Time) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%s", key, val))
+}
+func (e *captureEvent) Stringer(key string, val fmt.Stringer) debuglog.Event {
+	return e.add(key + "=" + debuglog.StringerText(val))
+}
+func (e *captureEvent) Err(err error) debuglog.Event {
+	return e.add(fmt.Sprintf("err=%v", err))
+}
+
+func (e *captureEvent) Msg(msg string) {
+	e.c.mu.Lock()
+	defer e.c.mu.Unlock()
+	e.c.records = append(e.c.records, debugRecord{msg: msg, fields: strings.Join(e.fields, " ")})
+}
+
+// TestLoggerCapturesChainedFields pins that the fields chained before Msg
+// reach the logger, not just the final message text. The emitting sites
+// build a multi-field chain before calling Msg; a chain that forgot Msg
+// would silently log nothing, and the compiler cannot catch that.
+func TestLoggerCapturesChainedFields(t *testing.T) {
+	t.Parallel()
+
+	explicit := &captureDebugLogger{}
+	mp, _ := newTestMeter(t)
+	reg, err := NewWithOptions(mp.Meter("test"), nil, []Option{WithLogger(explicit)})
+	require.NoError(t, err)
+	require.NotPanics(t, runRegistry(t, reg))
+
+	fields := explicit.fields("osotel registry running")
+	require.Contains(t, fields, "observers=0")
+	require.Contains(t, fields, "buffer_size=")
+	require.Contains(t, fields, "workers=")
+}
+
+// TestWithLogger covers both explicit-logger paths: any debuglog.Logger
+// receives the lifecycle records, not only a purpose-built adapter, and a
+// nil one silences them rather than panicking.
 //
 // Two captures, not one. With a single sink the client's own debug records land
 // beside the registry's, and an assertion on that sink passes even when the
@@ -520,17 +617,17 @@ func (c *captureDebugLogger) messages() []string {
 func TestWithLogger(t *testing.T) {
 	tests := []struct {
 		name   string
-		logger func(explicit *captureDebugLogger) opensearchtransport.DebugLogger
+		logger func(explicit *captureDebugLogger) debuglog.Logger
 		want   []string
 	}{
 		{
-			name:   "any DebugLogger receives lifecycle records",
-			logger: func(explicit *captureDebugLogger) opensearchtransport.DebugLogger { return explicit },
+			name:   "any Logger receives lifecycle records",
+			logger: func(explicit *captureDebugLogger) debuglog.Logger { return explicit },
 			want:   []string{"osotel registry running", "osotel registry stopped"},
 		},
 		{
 			name:   "nil logger silences lifecycle records",
-			logger: func(*captureDebugLogger) opensearchtransport.DebugLogger { return nil },
+			logger: func(*captureDebugLogger) debuglog.Logger { return nil },
 		},
 	}
 

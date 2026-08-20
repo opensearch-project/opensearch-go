@@ -922,10 +922,8 @@ func buildStandaloneRouterConfig(opts []RouterOption) (routerConfig, *shardCostC
 	}
 
 	// Log configuration errors. These are caller bugs that should be fixed.
-	if dl := loadDebugLogger(); dl != nil {
-		for _, err := range cfg.errs {
-			dl.Debug("routerConfig error", "err", err)
-		}
+	for _, err := range cfg.errs {
+		Debug().Err(err).Msg("routerConfig error")
 	}
 
 	// Resolve shard cost tables and scoring function.

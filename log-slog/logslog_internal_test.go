@@ -10,37 +10,97 @@ import (
 	"bytes"
 	"errors"
 	"log/slog"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 )
 
-func TestNew(t *testing.T) {
+// TestEventTypedMethods pins that each typed Event method renders its value
+// through slog, including the two cases most likely to regress: a nil
+// *url.URL passed to Stringer, and the field key Err uses.
+func TestEventTypedMethods(t *testing.T) {
 	t.Parallel()
 
+	connURL, err := url.Parse("https://localhost:9200")
+	require.NoError(t, err)
+
 	tests := []struct {
-		name string
-		msg  string
-		kv   []any
-		want string
+		name  string
+		build func(debuglog.Event) debuglog.Event
+		want  string
 	}{
 		{
-			name: "message only",
-			msg:  "Discovery: starting",
-			want: `level=DEBUG msg="Discovery: starting"`,
+			name:  "Str",
+			build: func(e debuglog.Event) debuglog.Event { return e.Str("conn", "node-1") },
+			want:  `level=DEBUG msg="typed field" conn=node-1`,
 		},
 		{
-			name: "key value pairs",
-			msg:  "Node overloaded",
-			kv:   []any{"conn", "https://localhost:9200", "heap_used_percent", 93},
-			want: `level=DEBUG msg="Node overloaded" conn=https://localhost:9200 heap_used_percent=93`,
+			name:  "Strs",
+			build: func(e debuglog.Event) debuglog.Event { return e.Strs("nodes", []string{"a", "b"}) },
+			want:  `level=DEBUG msg="typed field" nodes="[a b]"`,
 		},
 		{
-			name: "error value",
-			msg:  "Discovery failed",
-			kv:   []any{"err", errors.New("connection refused")},
-			want: `level=DEBUG msg="Discovery failed" err="connection refused"`,
+			name:  "Int",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int("attempts", 3) },
+			want:  `level=DEBUG msg="typed field" attempts=3`,
+		},
+		{
+			name:  "Int32",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int32("code", int32(7)) },
+			want:  `level=DEBUG msg="typed field" code=7`,
+		},
+		{
+			name:  "Int64",
+			build: func(e debuglog.Event) debuglog.Event { return e.Int64("bytes", int64(1024)) },
+			want:  `level=DEBUG msg="typed field" bytes=1024`,
+		},
+		{
+			name:  "Uint32",
+			build: func(e debuglog.Event) debuglog.Event { return e.Uint32("port", uint32(9200)) },
+			want:  `level=DEBUG msg="typed field" port=9200`,
+		},
+		{
+			name:  "Float64",
+			build: func(e debuglog.Event) debuglog.Event { return e.Float64("ratio", 0.5) },
+			want:  `level=DEBUG msg="typed field" ratio=0.5`,
+		},
+		{
+			name:  "Dur",
+			build: func(e debuglog.Event) debuglog.Event { return e.Dur("timeout", 1500*time.Millisecond) },
+			want:  `level=DEBUG msg="typed field" timeout=1.5s`,
+		},
+		{
+			name: "Time",
+			build: func(e debuglog.Event) debuglog.Event {
+				return e.Time("seen", time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC))
+			},
+			want: `level=DEBUG msg="typed field" seen=2026-08-19T04:13:43.000Z`,
+		},
+		{
+			name:  "Stringer",
+			build: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", connURL) },
+			want:  `level=DEBUG msg="typed field" conn=https://localhost:9200`,
+		},
+		{
+			// A nil *url.URL satisfies fmt.Stringer, so the interface value is
+			// non-nil while the pointer inside it is not. Rendering must not
+			// dereference it.
+			name:  "Stringer nil pointer",
+			build: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", (*url.URL)(nil)) },
+			want:  `level=DEBUG msg="typed field" conn=<nil>`,
+		},
+		{
+			// slog's own key for an error field is "err", independent of the
+			// built-in logger's key. log-zerolog uses zerolog's ErrorFieldName
+			// instead.
+			name:  "Err",
+			build: func(e debuglog.Event) debuglog.Event { return e.Err(errors.New("connection refused")) },
+			want:  `level=DEBUG msg="typed field" err="connection refused"`,
 		},
 	}
 
@@ -59,16 +119,64 @@ func TestNew(t *testing.T) {
 				},
 			})
 
-			New(slog.New(handler)).Debug(tt.msg, tt.kv...)
+			tt.build(New(slog.New(handler)).Debug()).Msg("typed field")
 
 			require.Equal(t, tt.want, strings.TrimSpace(buf.String()))
 		})
 	}
 }
 
+// TestNewChainsMultipleFields pins that Msg emits every field accumulated
+// across the chain, not just the last one.
+func TestNewChainsMultipleFields(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	})
+
+	New(slog.New(handler)).Debug().
+		Str("conn", "https://localhost:9200").
+		Int("heap_used_percent", 93).
+		Msg("Node overloaded")
+
+	require.Equal(
+		t,
+		`level=DEBUG msg="Node overloaded" conn=https://localhost:9200 heap_used_percent=93`,
+		strings.TrimSpace(buf.String()),
+	)
+}
+
+// TestDebugDisabledLevel pins that a handler which does not admit
+// slog.LevelDebug yields no output at all, and that the Event Debug returns
+// in that case is safe to chain and call Msg on.
+func TestDebugDisabledLevel(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	require.NotPanics(t, func() {
+		New(logger).Debug().
+			Str("conn", "https://localhost:9200").
+			Int("attempts", 3).
+			Stringer("nil_conn", (*url.URL)(nil)).
+			Err(errors.New("boom")).
+			Msg("Node overloaded")
+	})
+	require.Empty(t, buf.String())
+}
+
 // TestNewHandlerContract covers what must still hold because the adapter hands
 // records to Handler().Handle rather than to the logger: caller attribution,
-// level filtering, attributes bound with Logger.With, and malformed pairs.
+// level filtering, and attributes bound with Logger.With.
 //
 // A row with no wantContains asserts that nothing was written at all, so a row
 // can never silently assert nothing.
@@ -80,15 +188,15 @@ func TestNewHandlerContract(t *testing.T) {
 		handlerOpts     *slog.HandlerOptions
 		withAttrs       []any
 		msg             string
-		kv              []any
+		build           func(debuglog.Event) debuglog.Event
 		wantContains    []string
 		wantNotContains []string
 	}{
 		{
 			// The adapter builds the record itself and computes the caller frame
-			// with runtime.Callers, because calling (*slog.Logger).Debug from inside
-			// a wrapper method would attribute every record to the wrapper. Adding
-			// a frame inside adapter.Debug breaks this silently.
+			// with runtime.Callers in Msg, because Msg is the call that sits at the
+			// emitting site. Adding a frame between the chain's Msg call and
+			// runtime.Callers breaks this silently.
 			name:            "source is the caller, not the adapter",
 			handlerOpts:     &slog.HandlerOptions{AddSource: true, Level: slog.LevelDebug},
 			msg:             "Node overloaded",
@@ -103,28 +211,14 @@ func TestNewHandlerContract(t *testing.T) {
 			msg:         "Node overloaded",
 		},
 		{
-			name:         "attributes bound with With survive",
-			handlerOpts:  &slog.HandlerOptions{Level: slog.LevelDebug},
-			withAttrs:    []any{"component", "opensearch"},
-			msg:          "Node overloaded",
-			kv:           []any{"conn", "https://localhost:9200"},
+			name:        "attributes bound with With survive",
+			handlerOpts: &slog.HandlerOptions{Level: slog.LevelDebug},
+			withAttrs:   []any{"component", "opensearch"},
+			msg:         "Node overloaded",
+			build: func(e debuglog.Event) debuglog.Event {
+				return e.Str("conn", "https://localhost:9200")
+			},
 			wantContains: []string{"component=opensearch", "conn=https://localhost:9200"},
-		},
-		{
-			// Parity with both slog and the client's built-in logger. log-zerolog
-			// drops the pair instead, which is zerolog's own behavior.
-			name:         "dangling key renders as BADKEY",
-			handlerOpts:  &slog.HandlerOptions{Level: slog.LevelDebug},
-			msg:          "Pool resurrect",
-			kv:           []any{"conn", "node-1", "state"},
-			wantContains: []string{"!BADKEY=state"},
-		},
-		{
-			name:         "non-string key renders as BADKEY and resyncs",
-			handlerOpts:  &slog.HandlerOptions{Level: slog.LevelDebug},
-			msg:          "Pool resurrect",
-			kv:           []any{42, "conn", "node-1"},
-			wantContains: []string{"!BADKEY=42", "conn=node-1"},
 		},
 	}
 
@@ -138,7 +232,11 @@ func TestNewHandlerContract(t *testing.T) {
 				logger = logger.With(tt.withAttrs...)
 			}
 
-			New(logger).Debug(tt.msg, tt.kv...)
+			ev := New(logger).Debug()
+			if tt.build != nil {
+				ev = tt.build(ev)
+			}
+			ev.Msg(tt.msg)
 
 			if len(tt.wantContains) == 0 {
 				require.Empty(t, buf.String())
@@ -172,7 +270,7 @@ func TestDefault(t *testing.T) {
 		name         string
 		handlerOpts  *slog.HandlerOptions
 		msg          string
-		kv           []any
+		build        func(debuglog.Event) debuglog.Event
 		wantContains []string
 	}{
 		{
@@ -181,10 +279,12 @@ func TestDefault(t *testing.T) {
 			msg:         "Node overloaded",
 		},
 		{
-			name:         "handler admitting debug delivers",
-			handlerOpts:  &slog.HandlerOptions{Level: slog.LevelDebug},
-			msg:          "Node overloaded",
-			kv:           []any{"conn", "https://localhost:9200"},
+			name:        "handler admitting debug delivers",
+			handlerOpts: &slog.HandlerOptions{Level: slog.LevelDebug},
+			msg:         "Node overloaded",
+			build: func(e debuglog.Event) debuglog.Event {
+				return e.Str("conn", "https://localhost:9200")
+			},
 			wantContains: []string{`msg="Node overloaded"`, "conn=https://localhost:9200"},
 		},
 	}
@@ -199,7 +299,11 @@ func TestDefault(t *testing.T) {
 			var buf bytes.Buffer
 			slog.SetDefault(slog.New(slog.NewTextHandler(&buf, tt.handlerOpts)))
 
-			debugLogger.Debug(tt.msg, tt.kv...)
+			ev := debugLogger.Debug()
+			if tt.build != nil {
+				ev = tt.build(ev)
+			}
+			ev.Msg(tt.msg)
 
 			if len(tt.wantContains) == 0 {
 				require.Empty(t, buf.String())

@@ -239,7 +239,9 @@ Path matchers target the dot-delimited node paths the client assigns when it wal
 OPENSEARCH_GO_DEBUG=true OPENSEARCH_GO_POLICY_DUMP=true ./your-app
 ```
 
-`OPENSEARCH_GO_POLICY_DUMP` is gated on debug logging being enabled, by any of the three switches that install a logger: `OPENSEARCH_GO_DEBUG`, `Config.EnableDebugLogger`, or `Config.DebugLogger`. The tree itself is written straight to stderr rather than through the debug logger, so it arrives as one contiguous block you can read and copy a path out of; through a structured logger it would become a single record with every newline escaped. A `Config.DebugLogger` therefore switches the dump on without receiving it. It does not change routing behavior; it only prints the tree.
+`OPENSEARCH_GO_POLICY_DUMP` needs debug logging switched on, by `OPENSEARCH_GO_DEBUG`, `Config.EnableDebugLogger`, or `Config.DebugLogger`. It does not change routing behavior; it only prints the tree.
+
+The tree goes straight to stderr rather than through the debug logger, so it arrives as one contiguous block you can scan and copy a path out of. A structured logger would collapse it into a single record with every newline escaped. A `Config.DebugLogger` therefore switches the dump on without receiving it.
 
 For reference, the **default router** (the tree built by [`NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when `OPENSEARCH_GO_ROUTER` is on) produces this 58-node tree. Each `router` node is labeled with the thread pool it scores for, and each `role` node with the role it selects, because the bare path (`router[0]` vs `router[8]`) does not say which pool or role a node serves. Your tree may differ if you supply a custom router or `RouterOption`s:
 
