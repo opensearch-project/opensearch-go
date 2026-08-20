@@ -62,15 +62,8 @@ Both are pinned by tests. The one to be careful with is the frame count. The cal
 
 Each `debuglog.Event` method accumulates a typed `slog.Attr` directly, with no boxing into `any` along the way. Debug records are off unless a logger is installed, and `opensearchtransport.Debug()` returns a no-op `Event` when none is, so an idle logger costs only the chained calls themselves. This interface is for development-time diagnostics, not the request hot path.
 
-Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in [`../log-zerolog`](../log-zerolog), which benchmarks the same record shapes.
+Two costs are worth knowing before choosing this module over [`log-zerolog`](../log-zerolog). slog allocates per attribute, so a record's byte and allocation counts both grow with the number of fields. And the record rebuild that keeps source attribution pointing at the transport file pays `runtime.Callers` and `slog.NewRecord` on every emitted record. The handler matters too: `TextHandler` costs more than `JSONHandler` at every record size.
 
-| record           | log-slog (JSONHandler)    | log-slog (TextHandler)    | log-zerolog             |
-| ---------------- | ------------------------- | ------------------------- | ----------------------- |
-| 1 field          | 377.5 ns, 112 B, 3 allocs | 413.1 ns, 112 B, 3 allocs | 82.6 ns, 32 B, 1 alloc  |
-| 4 fields         | 558.6 ns, 352 B, 5 allocs | 703.9 ns, 376 B, 6 allocs | 139.5 ns, 32 B, 1 alloc |
-| 8 fields         | 835.1 ns, 809 B, 8 allocs | 929.6 ns, 825 B, 8 allocs | 194.6 ns, 32 B, 1 alloc |
-| level rejects it | 6.1 ns, 0 B, 0 allocs     | 6.2 ns, 0 B, 0 allocs     | 10.9 ns, 0 B, 0 allocs  |
+Against that, this module adds no dependency, since slog is in the standard library, and it keeps everything in one logging pipeline.
 
-slog costs roughly four times what zerolog does per record, and it allocates per attribute, so both its byte count and its allocation count grow with the record where zerolog's stay flat. Part of that is the record rebuild this adapter does to keep source attribution: `runtime.Callers` and `slog.NewRecord` are paid on every emitted record. The handler choice matters too, with `TextHandler` costing more than `JSONHandler` at every size.
-
-Prefer this module when the application already routes everything through `log/slog` and having one logging pipeline is worth more than the per-record cost. Prefer [`log-zerolog`](../log-zerolog) when debug logging will be left on somewhere it matters, or where allocation pressure is something you measure. slog is also the only one of the two that adds no dependency, since it is in the standard library. Both sit far below the cost of the request being described.
+Measured numbers for both adapters, over identical record shapes, live in one place: [Choosing between the adapters](../USER_GUIDE.md#choosing-between-the-adapters). Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in `../log-zerolog`.

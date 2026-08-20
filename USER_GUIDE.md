@@ -524,6 +524,24 @@ zerolog's package-level logger admits debug records with no equivalent step. See
 
 Supplying a `DebugLogger` enables debug output on its own and takes precedence over `EnableDebugLogger`. The logger is process-global, so the last client constructed wins.
 
+### Choosing between the adapters
+
+This is the one place these numbers live. Both adapter READMEs and the root README point here rather than repeating them, so a re-run updates one table.
+
+Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. Each module benchmarks identical record shapes; reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module.
+
+| record              | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text              |
+| ------------------- | ----------------------- | ------------------------- | ------------------------- | -------------------------- |
+| 1 field             | 82.6 ns, 32 B, 1 alloc  | 377.5 ns, 112 B, 3 allocs | 413.1 ns, 112 B, 3 allocs | 210.2 ns, 384 B, 10 allocs |
+| 4 fields            | 139.5 ns, 32 B, 1 alloc | 558.6 ns, 352 B, 5 allocs | 703.9 ns, 376 B, 6 allocs | 273.8 ns, 576 B, 12 allocs |
+| 8 fields            | 194.6 ns, 32 B, 1 alloc | 835.1 ns, 809 B, 8 allocs | 929.6 ns, 825 B, 8 allocs | 330.6 ns, 608 B, 12 allocs |
+| level rejects it    | 10.9 ns, 0 B, 0 allocs  | 6.1 ns, 0 B, 0 allocs     | 6.2 ns, 0 B, 0 allocs     | n/a                        |
+| no logger installed | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs      |
+
+`log-zerolog` runs about four times faster per record and its allocation count does not move with the number of fields. That single 32-byte allocation is `(*url.URL).String` building the connection address rather than anything the adapter does, so eight fields cost the same as one. `log-slog` allocates per attribute, so both its byte count and its allocation count grow with the record, and part of that is the record rebuild it does to keep source attribution pointing at the transport file.
+
+Prefer `log-zerolog` when debug logging will be left on somewhere it matters, or where allocation pressure is something you measure. Prefer `log-slog` when the application already routes everything through `log/slog` and one logging pipeline is worth more than the per-record cost, or when you would rather add no dependency at all. Both sit far below the cost of the request being described, and neither costs anything when no logger is installed.
+
 ### Bringing your own logger
 
 The two modules above are conveniences, not the extension point. The extension point is `debuglog.Logger` and `debuglog.Event`, and neither mentions any of the client's own types, so an implementation needs no import beyond the standard library and `debuglog` itself.

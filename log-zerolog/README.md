@@ -52,15 +52,6 @@ Each `debuglog.Event` method forwards straight to the matching `*zerolog.Event` 
 
 Each `debuglog.Event` method is a typed call straight through to the matching `*zerolog.Event` method, so no value is boxed into an interface on the way. Debug records are off unless a logger is installed, and `opensearchtransport.Debug()` returns a no-op `Event` when none is, so an idle logger costs only the chained calls themselves. This interface is for development-time diagnostics, not the request hot path.
 
-Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in [`../log-slog`](../log-slog), which benchmarks the same record shapes.
+What that buys, and the reason to reach for this module over [`log-slog`](../log-slog): the allocation count per record does not move with the number of fields. Eight fields cost the same as one, and the single allocation that remains is `(*url.URL).String` building the connection address rather than anything the adapter does.
 
-| record           | log-zerolog             | log-slog (JSONHandler)    |
-| ---------------- | ----------------------- | ------------------------- |
-| 1 field          | 82.6 ns, 32 B, 1 alloc  | 377.5 ns, 112 B, 3 allocs |
-| 4 fields         | 139.5 ns, 32 B, 1 alloc | 558.6 ns, 352 B, 5 allocs |
-| 8 fields         | 194.6 ns, 32 B, 1 alloc | 835.1 ns, 809 B, 8 allocs |
-| level rejects it | 10.9 ns, 0 B, 0 allocs  | 6.1 ns, 0 B, 0 allocs     |
-
-zerolog is roughly four times faster per record, and its allocation count does not move with the number of fields. That single 32-byte allocation is `(*url.URL).String` building the connection address, not the adapter: adding seven more fields adds no allocation at all, which is the property the typed methods exist to preserve. slog allocates per attribute, so both its byte count and its allocation count grow with the record.
-
-Prefer this module when debug logging will be left on somewhere it matters, or where allocation pressure is something you measure. Prefer [`log-slog`](../log-slog) when the application already routes everything through `log/slog` and one logging pipeline is worth more than the per-record cost. Both sit far below the cost of the request being described.
+Measured numbers for both adapters, over identical record shapes, live in one place: [Choosing between the adapters](../USER_GUIDE.md#choosing-between-the-adapters). Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in `../log-slog`.
