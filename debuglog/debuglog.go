@@ -128,16 +128,20 @@ type Event interface { //nolint:interfacebloat // one method per logged type is 
 // emitted field and never on the path a disabled logger takes.
 func StringerText(val fmt.Stringer) string {
 	if val == nil {
-		return nilText
+		return NilText
 	}
 	if rv := reflect.ValueOf(val); rv.Kind() == reflect.Pointer && rv.IsNil() {
-		return nilText
+		return NilText
 	}
 	return val.String()
 }
 
-// nilText renders a nil value, matching the way the fmt package prints one.
-const nilText = "<nil>"
+// NilText renders a nil value, matching the way the fmt package prints one.
+//
+// It is exported because an implementation needs it to honor the same contract
+// [StringerText] does for a nil Stringer: [Event.Err] handed a nil error, and any
+// other absent value, should read the same way whichever logger is installed.
+const NilText = "<nil>"
 
 // Nop returns an Event that discards the record. Its methods do nothing and it
 // allocates nothing, so a disabled logger costs only the chained calls

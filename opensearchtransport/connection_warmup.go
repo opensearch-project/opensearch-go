@@ -56,7 +56,7 @@ func (c *Connection) startWarmup(maxRounds, maxSkipCount int) {
 		}
 		Debug().
 			Stringer("conn", c.URL).
-			Str("state", ConnState{packed: current}.Hex()).
+			Stringer("state", hexState{packed: current}).
 			Msg("startWarmup: CAS race on connection during attempt")
 	}
 }

@@ -546,7 +546,7 @@ func (e *textDebugEvent) Stringer(key string, val fmt.Stringer) debuglog.Event {
 // Err implements [debuglog.Event], recording the error under the key "err".
 func (e *textDebugEvent) Err(err error) debuglog.Event {
 	if err == nil {
-		return e.field(errFieldKey, nilFieldText)
+		return e.field(errFieldKey, debuglog.NilText)
 	}
 	return e.field(errFieldKey, err.Error())
 }
@@ -574,12 +574,11 @@ func (e *textDebugEvent) Msg(msg string) {
 	_, _ = io.WriteString(e.logger.Output, b.String())
 }
 
-// errFieldKey is the key [debuglog.Event.Err] records an error under, and
-// nilFieldText renders a nil value the way the fmt package prints one.
-const (
-	errFieldKey  = "err"
-	nilFieldText = "<nil>"
-)
+// errFieldKey is the key [debuglog.Event.Err] records an error under in the
+// built-in logger. An adapter uses whatever key its own library configures, so
+// this is not shared through debuglog. A nil value renders as
+// [debuglog.NilText], which is.
+const errFieldKey = "err"
 
 func logBodyAsText(dst io.Writer, body io.Reader, prefix string) {
 	scanner := bufio.NewScanner(body)
