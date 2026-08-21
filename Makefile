@@ -216,7 +216,7 @@ build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 OPENAPI_SPEC := $(REPO_ROOT)/opensearch-openapi.yaml
-OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
+OPENAPI_SPEC_URL := https://api-spec.opensearch.org/opensearch-openapi.yaml
 
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
