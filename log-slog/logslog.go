@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
@@ -43,19 +44,40 @@ type loggerFunc func() *slog.Logger
 
 type adapter struct{ logger loggerFunc }
 
+// eventPool holds events between records so that a logger left switched on does
+// not allocate one, plus its attribute slice, per record.
+//
+// An event is returned by [event.Msg]. A chain that never reaches Msg leaves its
+// event to the garbage collector, which is why the pool is a performance measure
+// and not a correctness one.
+// A pool is process-wide by nature; the transport's own event pool is excluded
+// from gochecknoglobals for the same reason.
+//
+//nolint:gochecknoglobals // see above
+var eventPool = sync.Pool{New: func() any { return new(event) }}
+
+// maxPooledAttrs bounds the attribute capacity the pool retains, so one unusually
+// wide record cannot park its slice for the life of the process. The client's
+// widest record carries nine fields.
+const maxPooledAttrs = 32
+
 // Debug begins a record, or discards it when the handler does not admit
 // [slog.LevelDebug].
 //
 // The level is checked here rather than in Msg so that a filtered-out record
 // accumulates no attributes at all: the returned [debuglog.Nop] discards every
-// field it is handed. Handler().Handle in Msg does no filtering of its own, so
-// without this check a LevelInfo handler would receive debug records.
+// field it is handed, and no event is taken from the pool. Handler().Handle in Msg
+// does no filtering of its own, so without this check a LevelInfo handler would
+// receive debug records.
 func (a adapter) Debug() debuglog.Event {
 	l := a.logger()
 	if !l.Enabled(context.Background(), slog.LevelDebug) {
 		return debuglog.Nop()
 	}
-	return &event{logger: l}
+	e, _ := eventPool.Get().(*event)
+	e.logger = l
+	e.attrs = e.attrs[:0]
+	return e
 }
 
 // event accumulates one record's attributes for slog.
@@ -64,6 +86,10 @@ func (a adapter) Debug() debuglog.Event {
 // to (*slog.Logger).Debug so that HandlerOptions.AddSource reports the client
 // code that emitted it. Delegating to Debug would attribute every record to this
 // file.
+//
+// Both the event and its attribute slice survive in eventPool across records, so
+// a steady stream of records reuses one slice rather than growing a new one from
+// empty each time.
 type event struct {
 	logger *slog.Logger
 	attrs  []slog.Attr
@@ -144,6 +170,14 @@ func (e *event) Msg(msg string) {
 	// Msg returns no error: a debug logger that cannot write has nowhere left to
 	// report it.
 	_ = e.logger.Handler().Handle(context.Background(), record) //nolint:errcheck // no error path on debuglog.Event.Msg
+
+	// Returning the event here is safe even for a handler that retains the record
+	// past Handle: AddAttrs copies into the Record's own storage, so the record
+	// never aliases e.attrs.
+	e.logger = nil
+	if cap(e.attrs) <= maxPooledAttrs {
+		eventPool.Put(e)
+	}
 }
 
 // errKey is the key debuglog.Event.Err records an error under.
