@@ -17,6 +17,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -89,6 +91,230 @@ func TestSetReqURL(t *testing.T) {
 
 		require.Equal(t, "/api/v1/opensearch/_cat/indices", req.URL.Path)
 	})
+
+	t.Run("rewriting from the original path is stable across attempts", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{}
+		u, _ := url.Parse("https://node1:9200/prefix")
+		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
+		origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
+		for range 3 {
+			restoreReqPath(req, origPath, origRawPath)
+			c.setReqURL(u, req)
+			require.Equal(t, "/prefix/_search", req.URL.Path)
+		}
+	})
+
+	t.Run("switching to a prefix-less connection restores the caller path", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{}
+		prefixed, _ := url.Parse("https://proxy:9200/prefix")
+		bare, _ := url.Parse("https://node:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/_search", nil)
+		origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
+		c.setReqURL(prefixed, req)
+		require.Equal(t, "/prefix/_search", req.URL.Path)
+
+		restoreReqPath(req, origPath, origRawPath)
+		c.setReqURL(bare, req)
+		require.Equal(t, "/_search", req.URL.Path)
+		require.Equal(t, "node:9200", req.URL.Host)
+	})
+
+	t.Run("percent-encoded RawPath is prepended from the original each attempt", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{}
+		u, _ := url.Parse("https://node1:9200/prefix")
+		req, _ := http.NewRequest(http.MethodGet, "/idx/_doc/a%2Fb", nil)
+		require.Equal(t, "/idx/_doc/a%2Fb", req.URL.RawPath)
+		origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
+		for range 2 {
+			restoreReqPath(req, origPath, origRawPath)
+			c.setReqURL(u, req)
+			require.Equal(t, "/prefix/idx/_doc/a/b", req.URL.Path)
+			require.Equal(t, "/prefix/idx/_doc/a%2Fb", req.URL.RawPath)
+		}
+	})
+}
+
+// TestStreamRetryDoesNotStackPathPrefix is the user-visible form of the
+// setReqURL-in-place bug: stream reuses one *http.Request, default MaxRetries
+// is > 0, and a reverse-proxy prefix is a supported address shape. Every
+// attempt must send /prefix/_search, never /prefix/prefix/_search.
+func TestStreamRetryDoesNotStackPathPrefix(t *testing.T) {
+	t.Parallel()
+
+	u, err := url.Parse("https://node1:9200/prefix")
+	require.NoError(t, err)
+
+	var mu sync.Mutex
+	var paths []string
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		MaxRetries:        2,
+		NodeStatsInterval: -1,
+		HealthCheck:       NoOpHealthCheck,
+		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			mu.Lock()
+			paths = append(paths, req.URL.Path)
+			mu.Unlock()
+			return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodGet, "/_search", nil)
+	require.NoError(t, err)
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, http.StatusBadGateway, res.StatusCode)
+	if res.Body != nil {
+		res.Body.Close()
+	}
+
+	mu.Lock()
+	got := append([]string(nil), paths...)
+	mu.Unlock()
+	require.Equal(t, []string{"/prefix/_search", "/prefix/_search", "/prefix/_search"}, got)
+}
+
+// TestStreamRetryRouteSeesOriginalPath pins the other half of the bug: after
+// attempt 0 rewrites Path to /prefix/_search, retry Route() must still see
+// /_search. Otherwise the mux treats leftover /prefix/_search as
+// /{index}/_search with index "prefix".
+func TestStreamRetryRouteSeesOriginalPath(t *testing.T) {
+	t.Parallel()
+
+	u, err := url.Parse("https://node1:9200/prefix")
+	require.NoError(t, err)
+	conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u)}
+
+	router := &pathRecordingRouter{conn: conn}
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		Router:            router,
+		MaxRetries:        2,
+		NodeStatsInterval: -1,
+		HealthCheck:       NoOpHealthCheck,
+		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+			return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodGet, "/_search", nil)
+	require.NoError(t, err)
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	if res.Body != nil {
+		res.Body.Close()
+	}
+
+	require.Equal(t, []string{"/_search", "/_search", "/_search"}, router.paths())
+}
+
+// TestStreamRetryThenSeedFallbackDoesNotStackPrefix covers 502 then
+// ErrNoConnections then seed fallback. The loop restores before Route on
+// the ErrNoConnections iteration, so performSeedFallback must still see
+// /_search and send /prefix/_search, not /prefix/prefix/_search.
+func TestStreamRetryThenSeedFallbackDoesNotStackPrefix(t *testing.T) {
+	t.Parallel()
+
+	u, err := url.Parse("http://seed-node:9200/prefix")
+	require.NoError(t, err)
+	conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u)}
+	router := &onceThenEmptyRouter{conn: conn}
+
+	var (
+		mu    sync.Mutex
+		paths []string
+		n     atomic.Int32
+	)
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		Router:            router,
+		MaxRetries:        1,
+		NodeStatsInterval: -1,
+		HealthCheck:       NoOpHealthCheck,
+		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			mu.Lock()
+			paths = append(paths, req.URL.Path)
+			mu.Unlock()
+			if n.Add(1) == 1 {
+				return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+			}
+			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+	require.NotNil(t, tp.seedFallbackPool)
+
+	req, err := http.NewRequest(http.MethodGet, "/_search", nil)
+	require.NoError(t, err)
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	require.Equal(t, http.StatusOK, res.StatusCode)
+	if res.Body != nil {
+		res.Body.Close()
+	}
+
+	mu.Lock()
+	got := append([]string(nil), paths...)
+	mu.Unlock()
+	require.Equal(t, []string{"/prefix/_search", "/prefix/_search"}, got,
+		"first attempt is the 502 hop; second is seed fallback — neither may stack the prefix")
+	require.Equal(t, []string{"/_search", "/_search"}, router.paths(),
+		"Route() sees the original path on the 502 attempt and on the ErrNoConnections attempt")
+}
+
+// TestStreamRetryPreservesRawPathPrefix is the encoded-segment counterpart of
+// TestStreamRetryDoesNotStackPathPrefix: RawPath must be restored too, or
+// EscapedPath() would re-encode from Path and drop %2F.
+func TestStreamRetryPreservesRawPathPrefix(t *testing.T) {
+	t.Parallel()
+
+	u, err := url.Parse("https://node1:9200/prefix")
+	require.NoError(t, err)
+
+	var mu sync.Mutex
+	var rawPaths []string
+	tp, err := New(Config{
+		URLs:              []*url.URL{u},
+		MaxRetries:        1,
+		NodeStatsInterval: -1,
+		HealthCheck:       NoOpHealthCheck,
+		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			mu.Lock()
+			rawPaths = append(rawPaths, req.URL.EscapedPath())
+			mu.Unlock()
+			return &http.Response{StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodGet, "/idx/_doc/a%2Fb", nil)
+	require.NoError(t, err)
+	res, err := tp.Stream(req)
+	require.NoError(t, err)
+	require.NotNil(t, res)
+	if res.Body != nil {
+		res.Body.Close()
+	}
+
+	mu.Lock()
+	got := append([]string(nil), rawPaths...)
+	mu.Unlock()
+	require.Equal(t, []string{"/prefix/idx/_doc/a%2Fb", "/prefix/idx/_doc/a%2Fb"}, got)
 }
 
 func TestSetReqAuth(t *testing.T) {
@@ -598,3 +824,65 @@ func TestCalculateNodeStatsInterval(t *testing.T) {
 		require.Equal(t, defaultNodeStatsIntervalMin, interval)
 	})
 }
+
+// pathRecordingRouter returns the same hop every time and records req.URL.Path
+// as Route() saw it (before setReqURL).
+type pathRecordingRouter struct {
+	conn *Connection
+	mu   sync.Mutex
+	saw  []string
+}
+
+func (r *pathRecordingRouter) Route(_ context.Context, req *http.Request) (NextHop, error) {
+	r.mu.Lock()
+	r.saw = append(r.saw, req.URL.Path)
+	r.mu.Unlock()
+	return NextHop{Conn: r.conn}, nil
+}
+
+func (r *pathRecordingRouter) paths() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.saw...)
+}
+
+func (r *pathRecordingRouter) OnSuccess(*Connection)                                {}
+func (r *pathRecordingRouter) OnFailure(*Connection) error                          { return nil }
+func (r *pathRecordingRouter) DiscoveryUpdate(_, _, _ []*Connection) error          { return nil }
+func (r *pathRecordingRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error { return nil }
+func (r *pathRecordingRouter) RotateStandby(_ context.Context, _ int) (int, error)  { return 0, nil }
+
+var _ Router = (*pathRecordingRouter)(nil)
+
+// onceThenEmptyRouter returns conn on the first Route, then ErrNoConnections,
+// so stream() takes the retryable-status path once and seed fallback next.
+type onceThenEmptyRouter struct {
+	conn *Connection
+	n    atomic.Int32
+	mu   sync.Mutex
+	saw  []string
+}
+
+func (r *onceThenEmptyRouter) Route(_ context.Context, req *http.Request) (NextHop, error) {
+	r.mu.Lock()
+	r.saw = append(r.saw, req.URL.Path)
+	r.mu.Unlock()
+	if r.n.Add(1) == 1 {
+		return NextHop{Conn: r.conn}, nil
+	}
+	return NextHop{}, ErrNoConnections
+}
+
+func (r *onceThenEmptyRouter) paths() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.saw...)
+}
+
+func (r *onceThenEmptyRouter) OnSuccess(*Connection)                                {}
+func (r *onceThenEmptyRouter) OnFailure(*Connection) error                          { return nil }
+func (r *onceThenEmptyRouter) DiscoveryUpdate(_, _, _ []*Connection) error          { return nil }
+func (r *onceThenEmptyRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error { return nil }
+func (r *onceThenEmptyRouter) RotateStandby(_ context.Context, _ int) (int, error)  { return 0, nil }
+
+var _ Router = (*onceThenEmptyRouter)(nil)
