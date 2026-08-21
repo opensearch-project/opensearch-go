@@ -680,6 +680,29 @@ func TestTextDebugLoggerConcurrent(t *testing.T) {
 	}
 }
 
+// TestTextDebugLoggerReusesEvents pins the one hazard pooling introduces: an
+// event handed back by Msg and picked up again by the next Debug must carry none
+// of the previous record's fields.
+//
+// The records differ in field count so that a stale buffer shows up either way
+// round, whichever of them the pool happens to serve first.
+func TestTextDebugLoggerReusesEvents(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+
+	logger.Debug().Str("conn", "node-1").Int("attempts", 2).Msg("first")
+	logger.Debug().Str("conn", "node-2").Msg("second")
+	logger.Debug().Msg("third")
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, 3)
+	require.Equal(t, "first conn=node-1 attempts=2", lines[0][debugRecordPrefixLen:])
+	require.Equal(t, "second conn=node-2", lines[1][debugRecordPrefixLen:])
+	require.Equal(t, "third", lines[2][debugRecordPrefixLen:])
+}
+
 type CustomLogger struct {
 	Output io.Writer
 }

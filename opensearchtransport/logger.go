@@ -468,63 +468,117 @@ func (l *JSONLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 // ResponseBodyEnabled returns true when the response body should be logged.
 func (l *JSONLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
+// textDebugEventPool holds events between records so that a logger left switched
+// on does not allocate one, plus its two buffers, per record.
+//
+// An event is returned by [textDebugEvent.Msg]. A chain that never reaches Msg
+// simply leaves its event to the garbage collector, which is why the pool is a
+// performance measure and not a correctness one.
+var textDebugEventPool = sync.Pool{New: func() any { return new(textDebugEvent) }}
+
 // Debug begins a record. Fields accumulate on the returned event and Msg writes
 // the assembled line.
 func (l *textDebugLogger) Debug() debuglog.Event {
-	return &textDebugEvent{logger: l}
+	e, _ := textDebugEventPool.Get().(*textDebugEvent)
+	e.logger = l
+	e.fields = e.fields[:0]
+	return e
 }
 
 // textDebugEvent accumulates one record for [textDebugLogger] as " key=value"
 // fragments, rendering each value the way the fmt package would.
 //
-// It converts with the strconv functions rather than fmt.Fprintf so that the
-// built-in logger does not box every value it is handed, which is the cost the
-// typed [debuglog.Event] methods exist to avoid.
+// Values are appended with the strconv.Append functions rather than through
+// fmt.Fprintf, so the built-in logger neither boxes a value it is handed (the
+// cost the typed [debuglog.Event] methods exist to avoid) nor allocates a string
+// per field on the way into the buffer.
 type textDebugEvent struct {
 	logger *textDebugLogger
-	fields strings.Builder
+
+	// fields holds the rendered " key=value" fragments in call order. line holds
+	// the whole record, assembled by Msg, which needs its own buffer because the
+	// timestamp and message precede fields that have already been appended.
+	//
+	// Both survive in textDebugEventPool across records, so a steady stream of
+	// records reuses one pair of buffers rather than allocating per record.
+	fields []byte
+	line   []byte
 }
 
-// field appends one rendered pair.
+// maxPooledDebugBuffer bounds the buffer capacity the pool retains. A record
+// carrying an unusually long value (a discovery response, a policy tree) would
+// otherwise park its whole buffer in the pool for the life of the process, so an
+// event grown past this is dropped instead and the next one starts fresh.
+//
+// 4 KiB is comfortably above every record the client emits; the longest observed
+// is a few hundred bytes.
+const maxPooledDebugBuffer = 4 << 10
+
+// key appends the separator, the key, and the "=" that the value follows.
+func (e *textDebugEvent) key(key string) {
+	e.fields = append(e.fields, ' ')
+	e.fields = append(e.fields, key...)
+	e.fields = append(e.fields, '=')
+}
+
+// field appends one pair whose value is already a string.
 func (e *textDebugEvent) field(key, val string) debuglog.Event {
-	e.fields.WriteByte(' ')
-	e.fields.WriteString(key)
-	e.fields.WriteByte('=')
-	e.fields.WriteString(val)
+	e.key(key)
+	e.fields = append(e.fields, val...)
 	return e
 }
 
 // Str implements [debuglog.Event].
 func (e *textDebugEvent) Str(key, val string) debuglog.Event { return e.field(key, val) }
 
-// Strs implements [debuglog.Event].
+// Strs implements [debuglog.Event], rendering the slice as fmt's %v does:
+// space-separated inside square brackets.
 func (e *textDebugEvent) Strs(key string, val []string) debuglog.Event {
-	return e.field(key, fmt.Sprintf("%v", val))
+	e.key(key)
+	e.fields = append(e.fields, '[')
+	for i, s := range val {
+		if i > 0 {
+			e.fields = append(e.fields, ' ')
+		}
+		e.fields = append(e.fields, s...)
+	}
+	e.fields = append(e.fields, ']')
+	return e
 }
 
 // Int implements [debuglog.Event].
 func (e *textDebugEvent) Int(key string, val int) debuglog.Event {
-	return e.field(key, strconv.Itoa(val))
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, int64(val), 10)
+	return e
 }
 
 // Int32 implements [debuglog.Event].
 func (e *textDebugEvent) Int32(key string, val int32) debuglog.Event {
-	return e.field(key, strconv.FormatInt(int64(val), 10))
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, int64(val), 10)
+	return e
 }
 
 // Int64 implements [debuglog.Event].
 func (e *textDebugEvent) Int64(key string, val int64) debuglog.Event {
-	return e.field(key, strconv.FormatInt(val, 10))
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, val, 10)
+	return e
 }
 
 // Uint32 implements [debuglog.Event].
 func (e *textDebugEvent) Uint32(key string, val uint32) debuglog.Event {
-	return e.field(key, strconv.FormatUint(uint64(val), 10))
+	e.key(key)
+	e.fields = strconv.AppendUint(e.fields, uint64(val), 10)
+	return e
 }
 
 // Float64 implements [debuglog.Event].
 func (e *textDebugEvent) Float64(key string, val float64) debuglog.Event {
-	return e.field(key, strconv.FormatFloat(val, 'g', -1, 64))
+	e.key(key)
+	e.fields = strconv.AppendFloat(e.fields, val, 'g', -1, 64)
+	return e
 }
 
 // Dur implements [debuglog.Event].
@@ -552,26 +606,32 @@ func (e *textDebugEvent) Err(err error) debuglog.Event {
 }
 
 // Msg writes msg and the accumulated fields as one line, prefixed with a
-// timestamp and terminated with a newline.
+// timestamp and terminated with a newline, and returns the event to the pool.
 //
 // The line is assembled before the write and the write is serialized by the
 // logger's mutex, so concurrent callers neither interleave fragments nor race on
 // Output.
 func (e *textDebugEvent) Msg(msg string) {
-	var b strings.Builder
-	b.WriteByte('[')
-	b.WriteString(time.Now().UTC().Format("15:04:05.000"))
-	b.WriteString("] DEBUG    ")
-	b.WriteString(msg)
-	b.WriteString(e.fields.String())
-	b.WriteByte('\n')
+	e.line = append(e.line[:0], '[')
+	e.line = time.Now().UTC().AppendFormat(e.line, "15:04:05.000")
+	e.line = append(e.line, "] DEBUG    "...)
+	e.line = append(e.line, msg...)
+	e.line = append(e.line, e.fields...)
+	e.line = append(e.line, '\n')
 
 	e.logger.mu.Lock()
-	defer e.logger.mu.Unlock()
-
 	// Msg returns no error: a debug logger that cannot write has nowhere left to
 	// report it.
-	_, _ = io.WriteString(e.logger.Output, b.String())
+	_, _ = e.logger.Output.Write(e.line)
+	e.logger.mu.Unlock()
+
+	// The event is unreachable to the caller from here: Msg ends the chain, and
+	// nothing it returned escaped. Clear the logger so a pooled event holds no
+	// reference to a writer the application may be finished with.
+	e.logger = nil
+	if cap(e.fields) <= maxPooledDebugBuffer && cap(e.line) <= maxPooledDebugBuffer {
+		textDebugEventPool.Put(e)
+	}
 }
 
 // errFieldKey is the key [debuglog.Event.Err] records an error under in the
