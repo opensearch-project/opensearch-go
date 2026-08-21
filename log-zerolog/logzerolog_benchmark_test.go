@@ -23,12 +23,26 @@ import (
 // the built-in logger's, so the three sets of numbers are comparable. Changing a
 // shape here means changing it in all three.
 var (
-	benchURL = &url.URL{Scheme: "https", Host: "localhost:9200"}
-	errBench = errors.New("connection refused")
+	benchURL      = &url.URL{Scheme: "https", Host: "localhost:9200"}
+	errBench      = errors.New("connection refused")
+	benchConnText = benchURL.String()
 )
 
 func oneField(dl debuglog.Logger) {
 	dl.Debug().Stringer("conn", benchURL).Msg("Request failed")
+}
+
+// fourFieldsNoStringer is the four-field shape with the deferred Stringer swapped for an
+// already-resolved string. Every other shape here pays one allocation inside
+// (*url.URL).String, so this is the shape that shows what the logger itself
+// allocates, as opposed to what resolving the connection address costs.
+func fourFieldsNoStringer(dl debuglog.Logger) {
+	dl.Debug().
+		Str("conn", benchConnText).
+		Int("attempts", 3).
+		Dur("took", 1500*time.Millisecond).
+		Err(errBench).
+		Msg("Request failed")
 }
 
 func fourFields(dl debuglog.Logger) {
@@ -66,6 +80,7 @@ func BenchmarkAdapter(b *testing.B) {
 		{"one field", oneField},
 		{"four fields", fourFields},
 		{"eight fields", eightFields},
+		{"four fields, no Stringer", fourFieldsNoStringer},
 	}
 
 	for _, shape := range shapes {

@@ -22,10 +22,24 @@ import (
 var (
 	benchDebugURL = &url.URL{Scheme: "https", Host: "localhost:9200"}
 	errBenchDebug = errors.New("connection refused")
+	benchConnText = benchDebugURL.String()
 )
 
 func emitOneDebugField(dl debuglog.Logger) {
 	dl.Debug().Stringer("conn", benchDebugURL).Msg("Request failed")
+}
+
+// emitFourDebugFieldsNoStringer is the four-field shape with the deferred Stringer swapped for an
+// already-resolved string. Every other shape here pays one allocation inside
+// (*url.URL).String, so this is the shape that shows what the logger itself
+// allocates, as opposed to what resolving the connection address costs.
+func emitFourDebugFieldsNoStringer(dl debuglog.Logger) {
+	dl.Debug().
+		Str("conn", benchConnText).
+		Int("attempts", 3).
+		Dur("took", 1500*time.Millisecond).
+		Err(errBenchDebug).
+		Msg("Request failed")
 }
 
 func emitFourDebugFields(dl debuglog.Logger) {
@@ -63,6 +77,7 @@ func BenchmarkTextDebugLogger(b *testing.B) {
 		{"one field", emitOneDebugField},
 		{"four fields", emitFourDebugFields},
 		{"eight fields", emitEightDebugFields},
+		{"four fields, no Stringer", emitFourDebugFieldsNoStringer},
 	}
 
 	for _, shape := range shapes {

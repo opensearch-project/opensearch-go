@@ -64,7 +64,7 @@ Each `debuglog.Event` method accumulates a typed `slog.Attr` directly, with no b
 
 The event comes from a `sync.Pool` and its attribute slice is reused, so a one-field record costs one allocation, the same as [`log-zerolog`](../log-zerolog). It climbs to three by eight fields: `slog.Record` stores five attributes inline and moves the overflow to the heap, and `JSONHandler` encodes each `float64` through `json.Marshal`. Neither is something this adapter controls, because the record is handed to the handler by value to keep source attribution pointing at the transport file.
 
-What does not go away is time. The record rebuild pays `runtime.Callers` and `slog.NewRecord` on every emitted record, which is most of why this module costs roughly four to five times per record what `log-zerolog` does. The handler matters too: `TextHandler` costs more than `JSONHandler` at every record size, and is at two allocations by four fields where `JSONHandler` is still at one.
+What does not go away is time. The record rebuild pays `runtime.Callers` and `slog.NewRecord` on every emitted record, which is most of why this module costs three to five times per record what `log-zerolog` does. The handler matters too: `TextHandler` costs more than `JSONHandler` at every record size, and is at two allocations by four fields where `JSONHandler` is still at one.
 
 Against that, this module adds no dependency, since slog is in the standard library, and it keeps everything in one logging pipeline.
 
