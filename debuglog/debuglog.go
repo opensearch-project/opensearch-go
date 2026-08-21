@@ -14,7 +14,7 @@
 //
 // The client's own records are emitted from opensearchtransport, which installs
 // the logger and exposes an accessor that never returns nil. Install a logger
-// with opensearch.Config.DebugLogger, or set OPENSEARCH_GO_DEBUG or
+// with opensearch.Config.DebugLogger, or set OPENSEARCH_GO_LOG=debug or
 // Config.EnableDebugLogger to use the built-in one that writes plain text to
 // stderr.
 //

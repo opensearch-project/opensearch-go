@@ -89,7 +89,7 @@ func storeDebugLogger(dl debuglog.Logger) {
 // resolveDebugLogger returns the debug logger a Config asks for: an explicitly
 // supplied one wins, otherwise EnableDebugLogger selects the built-in text
 // logger. It returns nil when the Config asks for neither, so that a logger
-// already installed from OPENSEARCH_GO_DEBUG is left in place.
+// already installed from the environment is left in place.
 func resolveDebugLogger(cfg Config) debuglog.Logger {
 	switch {
 	case cfg.DebugLogger != nil:
@@ -102,7 +102,7 @@ func resolveDebugLogger(cfg Config) debuglog.Logger {
 }
 
 func init() { //nolint:gochecknoinits // Only set implicitly once at startup
-	if enabled, _ := strconv.ParseBool(os.Getenv(envvars.Debug)); enabled {
+	if envvars.DebugRequested() {
 		storeDebugLogger(&textDebugLogger{Output: os.Stderr})
 	}
 }
@@ -147,7 +147,7 @@ type JSONLogger struct {
 }
 
 // textDebugLogger is the built-in [debuglog.Logger], printing records as plain
-// text with a timestamp prefix. It is what OPENSEARCH_GO_DEBUG and
+// text with a timestamp prefix. It is what OPENSEARCH_GO_LOG=debug and
 // Config.EnableDebugLogger install, so the client has a working debug logger
 // without any logging library in its dependency graph.
 type textDebugLogger struct {

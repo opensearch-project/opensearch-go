@@ -218,7 +218,7 @@ type options struct {
 //
 // Defaults to [opensearchtransport.Debug], resolved per message, so lifecycle
 // messages follow the same switch as the client's own debug records:
-// OPENSEARCH_GO_DEBUG or Config.DebugLogger turns both on together. Resolution
+// OPENSEARCH_GO_LOG=debug or Config.DebugLogger turns both on together. Resolution
 // is deferred because a Registry is constructed before the client that installs
 // the logger.
 func WithLogger(l debuglog.Logger) Option {

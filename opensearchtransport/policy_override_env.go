@@ -476,7 +476,7 @@ func policyNodeLabel(p Policy) string {
 }
 
 // dumpPolicyTreeIfDebug writes the policy tree to stderr when a debug logger is
-// installed, by OPENSEARCH_GO_DEBUG, Config.EnableDebugLogger, or
+// installed, by OPENSEARCH_GO_LOG=debug, Config.EnableDebugLogger, or
 // Config.DebugLogger. It is a no-op otherwise, so callers may invoke it
 // unconditionally once they have decided the dump was requested
 // (OPENSEARCH_GO_POLICY_DUMP).

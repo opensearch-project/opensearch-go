@@ -441,11 +441,13 @@ Returns `OpOther` for unrecognized patterns.
 
 ## Debugging
 
-Set the `OPENSEARCH_GO_DEBUG` environment variable to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
+Set `OPENSEARCH_GO_LOG=debug` to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
 
 ```bash
-OPENSEARCH_GO_DEBUG=true go run myapp.go
+OPENSEARCH_GO_LOG=debug go run myapp.go
 ```
+
+The client emits at one level, so any other value switches the records off: raise the level to silence them rather than unsetting the variable. `OPENSEARCH_GO_DEBUG=true` is the older boolean spelling of the same switch. It is still read whenever `OPENSEARCH_GO_LOG` is unset or empty, so nothing setting it has to change, but `OPENSEARCH_GO_LOG` wins when both are set.
 
 For programmatic control, set `EnableDebugLogger: true` in the client configuration:
 
@@ -460,10 +462,10 @@ client, err := opensearchapi.NewClient(
 )
 ```
 
-In tests, use the `testutil.IsDebugEnabled(t)` helper which also reads `OPENSEARCH_GO_DEBUG`:
+In tests, use the `testutil.IsDebugEnabled(t)` helper, which resolves the two variables the same way the client does:
 
 ```bash
-OPENSEARCH_GO_DEBUG=true go test ./...
+OPENSEARCH_GO_LOG=debug go test ./...
 ```
 
 ### Sending debug records to your own logger
@@ -567,7 +569,7 @@ OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
 OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
-Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
+Set `OPENSEARCH_GO_LOG=debug` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
 
 ## Environment Variables
 

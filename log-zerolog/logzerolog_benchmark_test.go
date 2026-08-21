@@ -24,7 +24,7 @@ import (
 // shape here means changing it in all three.
 var (
 	benchURL = &url.URL{Scheme: "https", Host: "localhost:9200"}
-	benchErr = errors.New("connection refused")
+	errBench = errors.New("connection refused")
 )
 
 func oneField(dl debuglog.Logger) {
@@ -36,7 +36,7 @@ func fourFields(dl debuglog.Logger) {
 		Stringer("conn", benchURL).
 		Int("attempts", 3).
 		Dur("took", 1500*time.Millisecond).
-		Err(benchErr).
+		Err(errBench).
 		Msg("Request failed")
 }
 
@@ -45,7 +45,7 @@ func eightFields(dl debuglog.Logger) {
 		Stringer("conn", benchURL).
 		Int("attempts", 3).
 		Dur("took", 1500*time.Millisecond).
-		Err(benchErr).
+		Err(errBench).
 		Str("pool", "search").
 		Int64("tripped", 3).
 		Float64("ratio", 0.85).
