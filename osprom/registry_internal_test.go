@@ -510,8 +510,11 @@ type debugRecord struct {
 
 // captureDebugLogger records the lifecycle messages a Registry emits.
 type captureDebugLogger struct {
-	mu      sync.Mutex
-	records []debugRecord
+	// mu guards records, appended to by every worker goroutine the Registry runs.
+	mu struct {
+		sync.Mutex
+		records []debugRecord
+	}
 }
 
 func (c *captureDebugLogger) Debug() debuglog.Event {
@@ -521,8 +524,8 @@ func (c *captureDebugLogger) Debug() debuglog.Event {
 func (c *captureDebugLogger) messages() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	var msgs []string
-	for _, r := range c.records {
+	msgs := make([]string, 0, len(c.mu.records))
+	for _, r := range c.mu.records {
 		msgs = append(msgs, r.msg)
 	}
 	return msgs
@@ -533,7 +536,7 @@ func (c *captureDebugLogger) messages() []string {
 func (c *captureDebugLogger) fields(msg string) string {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, r := range c.records {
+	for _, r := range c.mu.records {
 		if r.msg == msg {
 			return r.fields
 		}
@@ -559,30 +562,39 @@ func (e *captureEvent) Str(key, val string) debuglog.Event { return e.add(key + 
 func (e *captureEvent) Strs(key string, val []string) debuglog.Event {
 	return e.add(key + "=" + strings.Join(val, ","))
 }
+
 func (e *captureEvent) Int(key string, val int) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%d", key, val))
 }
+
 func (e *captureEvent) Int32(key string, val int32) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%d", key, val))
 }
+
 func (e *captureEvent) Int64(key string, val int64) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%d", key, val))
 }
+
 func (e *captureEvent) Uint32(key string, val uint32) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%d", key, val))
 }
+
 func (e *captureEvent) Float64(key string, val float64) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%v", key, val))
 }
+
 func (e *captureEvent) Dur(key string, val time.Duration) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%s", key, val))
 }
+
 func (e *captureEvent) Time(key string, val time.Time) debuglog.Event {
 	return e.add(fmt.Sprintf("%s=%s", key, val))
 }
+
 func (e *captureEvent) Stringer(key string, val fmt.Stringer) debuglog.Event {
 	return e.add(key + "=" + debuglog.StringerText(val))
 }
+
 func (e *captureEvent) Err(err error) debuglog.Event {
 	return e.add(fmt.Sprintf("err=%v", err))
 }
@@ -590,7 +602,7 @@ func (e *captureEvent) Err(err error) debuglog.Event {
 func (e *captureEvent) Msg(msg string) {
 	e.c.mu.Lock()
 	defer e.c.mu.Unlock()
-	e.c.records = append(e.c.records, debugRecord{msg: msg, fields: strings.Join(e.fields, " ")})
+	e.c.mu.records = append(e.c.mu.records, debugRecord{msg: msg, fields: strings.Join(e.fields, " ")})
 }
 
 // TestLoggerCapturesChainedFields pins that the fields chained before Msg
