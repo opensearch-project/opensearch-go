@@ -642,9 +642,17 @@ func (e *textDebugEvent) Msg(msg string) {
 	// nothing it returned escaped. Clear the logger so a pooled event holds no
 	// reference to a writer the application may be finished with.
 	e.logger = nil
-	if cap(e.fields) <= maxPooledDebugBuffer && cap(e.line) <= maxPooledDebugBuffer {
+	if e.worthPooling() {
 		textDebugEventPool.Put(e)
 	}
+}
+
+// worthPooling reports whether this event's buffers are small enough to keep.
+//
+// Both buffers are checked, because either one can be the large one: a record
+// with many fields grows fields, while a record with a long message grows line.
+func (e *textDebugEvent) worthPooling() bool {
+	return cap(e.fields) <= maxPooledDebugBuffer && cap(e.line) <= maxPooledDebugBuffer
 }
 
 // errFieldKey is the key [debuglog.Event.Err] records an error under in the

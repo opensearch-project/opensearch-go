@@ -173,10 +173,14 @@ func (e *event) Msg(msg string) {
 	// past Handle: AddAttrs copies into the Record's own storage, so the record
 	// never aliases e.attrs.
 	e.logger = nil
-	if cap(e.attrs) <= maxPooledAttrs {
+	if e.worthPooling() {
 		eventPool.Put(e)
 	}
 }
+
+// worthPooling reports whether this event's attribute slice is small enough to
+// keep.
+func (e *event) worthPooling() bool { return cap(e.attrs) <= maxPooledAttrs }
 
 // errKey is the key debuglog.Event.Err records an error under.
 const errKey = "err"

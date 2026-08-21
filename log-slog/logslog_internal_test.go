@@ -11,6 +11,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/url"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -184,6 +185,70 @@ func TestReusesEvents(t *testing.T) {
 		`level=DEBUG msg=second conn=node-2`,
 		`level=DEBUG msg=third`,
 	}, strings.Split(strings.TrimSpace(buf.String()), "\n"))
+}
+
+// TestEventWorthPooling pins the size cap on what the pool retains. Nothing else
+// exercises the drop side: every record the suite emits carries a handful of
+// attributes, so an inverted comparison here would keep exactly the wide events
+// the cap exists to discard and no test would notice.
+func TestEventWorthPooling(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		attrsCap   int
+		wantPooled bool
+	}{
+		{name: "empty", wantPooled: true},
+		{name: "under the cap", attrsCap: 8, wantPooled: true},
+		{name: "exactly at the cap", attrsCap: maxPooledAttrs, wantPooled: true},
+		{name: "one over the cap", attrsCap: maxPooledAttrs + 1},
+		{name: "far over the cap", attrsCap: maxPooledAttrs * 4},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := &event{attrs: make([]slog.Attr, 0, tt.attrsCap)}
+
+			require.Equal(t, tt.wantPooled, e.worthPooling())
+		})
+	}
+}
+
+// TestWideRecordStillEmitted pins that a record past the pool cap is written in
+// full. The cap decides what is kept for reuse, not what gets emitted.
+func TestWideRecordStillEmitted(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	})
+	dl := New(slog.New(handler))
+
+	e := dl.Debug()
+	for i := range maxPooledAttrs + 4 {
+		e = e.Int("n"+strconv.Itoa(i), i)
+	}
+	e.Msg("wide")
+	// A following record must be unaffected by whatever the pool did with the
+	// event the wide one used.
+	dl.Debug().Str("conn", "node-1").Msg("next")
+
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	require.Len(t, lines, 2)
+	require.Contains(t, lines[0], "msg=wide")
+	require.Contains(t, lines[0], "n0=0")
+	require.Contains(t, lines[0], "n"+strconv.Itoa(maxPooledAttrs+3)+"="+strconv.Itoa(maxPooledAttrs+3))
+	require.Equal(t, `level=DEBUG msg=next conn=node-1`, lines[1])
 }
 
 // TestDebugDisabledLevel pins that a handler which does not admit

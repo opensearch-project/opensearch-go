@@ -703,6 +703,124 @@ func TestTextDebugLoggerReusesEvents(t *testing.T) {
 	require.Equal(t, "third", lines[2][debugRecordPrefixLen:])
 }
 
+// TestTextDebugEventWorthPooling pins the size cap on what the pool retains.
+// Nothing else exercises the drop side: every record the test suite emits is far
+// under the cap, so an inverted comparison here would keep exactly the oversized
+// events the cap exists to discard and no test would notice.
+//
+// Both buffers are checked independently because either can be the large one: a
+// record with many fields grows fields, a record with a long message grows line.
+func TestTextDebugEventWorthPooling(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		fieldsCap  int
+		lineCap    int
+		wantPooled bool
+	}{
+		{name: "both empty", wantPooled: true},
+		{name: "both under the cap", fieldsCap: 64, lineCap: 128, wantPooled: true},
+		{name: "both exactly at the cap", fieldsCap: maxPooledDebugBuffer, lineCap: maxPooledDebugBuffer, wantPooled: true},
+		{name: "fields one byte over", fieldsCap: maxPooledDebugBuffer + 1, wantPooled: false},
+		{name: "line one byte over", lineCap: maxPooledDebugBuffer + 1, wantPooled: false},
+		{name: "both over", fieldsCap: maxPooledDebugBuffer * 2, lineCap: maxPooledDebugBuffer * 2, wantPooled: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := &textDebugEvent{
+				fields: make([]byte, 0, tt.fieldsCap),
+				line:   make([]byte, 0, tt.lineCap),
+			}
+
+			require.Equal(t, tt.wantPooled, e.worthPooling())
+		})
+	}
+}
+
+// TestTextDebugLoggerOversizedRecord pins that a record past the pool cap is
+// still written in full. The cap decides what is kept for reuse, not what gets
+// emitted, so an oversized record must not be truncated or dropped.
+func TestTextDebugLoggerOversizedRecord(t *testing.T) {
+	t.Parallel()
+
+	huge := strings.Repeat("x", maxPooledDebugBuffer+1)
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+	logger.Debug().Str("payload", huge).Msg("oversized")
+	// A following record must be unaffected by whatever the pool did with the
+	// event the oversized one used.
+	logger.Debug().Str("conn", "node-1").Msg("next")
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, 2)
+	require.Equal(t, "oversized payload="+huge, lines[0][debugRecordPrefixLen:])
+	require.Equal(t, "next conn=node-1", lines[1][debugRecordPrefixLen:])
+}
+
+// TestTextDebugLoggerTimeMonotonic pins the one place this logger deliberately
+// renders a value differently from the fmt package. time.Time.String appends a
+// monotonic-clock reading for a value that carries one; Time appends through
+// AppendFormat instead, which does not, because that reading is noise in a record
+// and because String allocates.
+//
+// The wall-clock row is the one the client actually produces: its timestamps
+// round-trip through Unix nanoseconds, which strips the monotonic reading, so
+// both paths agree there.
+func TestTextDebugLoggerTimeMonotonic(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		val        time.Time
+		wantSuffix bool // whether time.Time.String would add "m=+..."
+	}{
+		{name: "wall clock only", val: time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC)},
+		{name: "carries a monotonic reading", val: time.Now(), wantSuffix: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			(&textDebugLogger{Output: &buf}).Debug().Time("at", tt.val).Msg("m")
+			got := strings.TrimSuffix(buf.String()[debugRecordPrefixLen:], "\n")
+
+			require.Equal(t, "m at="+tt.val.Format(timeFieldLayout), got)
+			require.NotContains(t, got, " m=+", "the monotonic reading must not reach the record")
+			// Guard the premise: if String stops adding the suffix, this test is no
+			// longer proving anything and the row should go.
+			require.Equal(t, tt.wantSuffix, strings.Contains(tt.val.String(), " m=+"))
+		})
+	}
+}
+
+// TestStoreDebugLoggerClears pins the nil branch of storeDebugLogger: passing nil
+// uninstalls the logger rather than installing a non-nil interface wrapping a nil
+// value, which Debug would then call through and panic on.
+func TestStoreDebugLoggerClears(t *testing.T) {
+	previous := debugLoggerPtr.Load()
+	t.Cleanup(func() { debugLoggerPtr.Store(previous) })
+
+	var buf bytes.Buffer
+	storeDebugLogger(&textDebugLogger{Output: &buf})
+	require.True(t, debugEnabled())
+	Debug().Str("conn", "node-1").Msg("installed")
+	require.Contains(t, buf.String(), "installed conn=node-1")
+
+	storeDebugLogger(nil)
+	require.False(t, debugEnabled())
+
+	buf.Reset()
+	Debug().Str("conn", "node-1").Msg("discarded")
+	require.Empty(t, buf.String(), "a cleared logger must receive nothing")
+}
+
 type CustomLogger struct {
 	Output io.Writer
 }
