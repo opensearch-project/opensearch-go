@@ -129,9 +129,8 @@ func (c *Connection) casLifecycle(
 		}
 		target := connState(raw).withLifecycle(next)
 		if c.state.CompareAndSwap(raw, int64(target)) {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("casLifecycle: %s -> %s on %s\n", lc, next, c.URL)
-			}
+			Debug().Stringer("state_from", lc).Stringer("state_to", next).Stringer("conn", c.URL).
+				Msg("casLifecycle: applied lifecycle transition")
 			return nil
 		}
 		// CAS failed -- re-load and re-check masked bits before retrying.
@@ -424,6 +423,15 @@ func (wm warmupManager) skipCount() int {
 // isZero returns true if both rounds and skipCount are zero.
 func (wm warmupManager) isZero() bool { return wm == 0 }
 
+// String renders the packed pair as "rounds=N,skip=N".
+//
+// Debug records pass a warmupManager through Stringer, so the formatting happens
+// only when a record is actually emitted. Without this the raw int32 would be
+// logged, and a packed bitfield printed as a decimal says nothing.
+func (wm warmupManager) String() string {
+	return fmt.Sprintf("rounds=%d,skip=%d", wm.rounds(), wm.skipCount())
+}
+
 // withRounds returns a new warmupManager with the rounds field replaced.
 func (wm warmupManager) withRounds(rounds int) warmupManager {
 	return warmupManager(
@@ -615,6 +623,19 @@ func (s ConnState) String() string {
 	return fmt.Sprintf("%s(warmup: rounds=%d, skip=%d)",
 		lc, s.WarmupRoundsRemaining(), s.WarmupSkipRemaining())
 }
+
+// hexState renders a ConnState through [ConnState.Hex] when a debug record is
+// actually emitted.
+//
+// ConnState.String already means something else, the compact form observers and
+// metrics see, and repointing it would change their output. Passing a hexState to
+// debuglog.Event.Stringer instead defers Hex's two fmt.Sprintf calls (its own,
+// plus the one connLifecycle.String performs for the %s) to emit time, so a
+// contended CAS or a pool eviction does not pay for them with debug logging off.
+type hexState ConnState
+
+// String returns the packed hex form, the same text Hex produces.
+func (h hexState) String() string { return ConnState(h).Hex() }
 
 // Hex returns the packed state as a hex string with decoded field annotations.
 // Format: "0xLLLLLLLLLLLLLLLL [LC=name cfg(rnds=N,skip=N) rd(rnds=N,skip=N)]"

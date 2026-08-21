@@ -441,11 +441,13 @@ Returns `OpOther` for unrecognized patterns.
 
 ## Debugging
 
-Set the `OPENSEARCH_GO_DEBUG` environment variable to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
+Set `OPENSEARCH_GO_LOG=debug` to enable debug logging for connection management, node discovery, and request routing. Debug output is written to stderr.
 
 ```bash
-OPENSEARCH_GO_DEBUG=true go run myapp.go
+OPENSEARCH_GO_LOG=debug go run myapp.go
 ```
+
+The client emits at one level, so any other value switches the records off: raise the level to silence them rather than unsetting the variable. `OPENSEARCH_GO_DEBUG=true` is the older boolean spelling of the same switch. It is still read whenever `OPENSEARCH_GO_LOG` is unset or empty, so nothing setting it has to change, but `OPENSEARCH_GO_LOG` wins when both are set.
 
 For programmatic control, set `EnableDebugLogger: true` in the client configuration:
 
@@ -460,11 +462,81 @@ client, err := opensearchapi.NewClient(
 )
 ```
 
-In tests, use the `testutil.IsDebugEnabled(t)` helper which also reads `OPENSEARCH_GO_DEBUG`:
+In tests, use the `testutil.IsDebugEnabled(t)` helper, which resolves the two variables the same way the client does:
 
 ```bash
-OPENSEARCH_GO_DEBUG=true go test ./...
+OPENSEARCH_GO_LOG=debug go test ./...
 ```
+
+### Sending debug records to your own logger
+
+Both settings above select the client's built-in logger, which writes plain text to stderr. To send the same records into the logger your application already uses, set `DebugLogger` instead. It takes any `debuglog.Logger`, a one-method interface defined in the `debuglog` package that returns a chain of typed field methods ended by `Msg`:
+
+```go
+type Logger interface {
+    Debug() Event
+}
+```
+
+Adapters for zerolog and `log/slog` ship as separate modules, so neither library enters the core client's dependency graph:
+
+```bash
+go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+```
+
+```go
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:   []string{"http://localhost:9200"},
+            DebugLogger: logzerolog.Default(),
+        },
+    },
+)
+```
+
+`Default()` reads zerolog's package-level logger, so the records pick up the format, level, and writer already configured. Pass a specific logger with `logzerolog.New(zl)`.
+
+For `log/slog`, the shape is the same:
+
+```bash
+go get github.com/opensearch-project/opensearch-go/v5/log-slog
+```
+
+```go
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:   []string{"http://localhost:9200"},
+            DebugLogger: logslog.Default(),
+        },
+    },
+)
+```
+
+One caveat with slog: records are emitted at `slog.LevelDebug`, and slog's default handler discards anything below `LevelInfo`, so nothing appears until a handler admitting debug is installed.
+
+```go
+slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+    Level: slog.LevelDebug,
+})))
+```
+
+zerolog's package-level logger admits debug records with no equivalent step. See [`log-zerolog/README.md`](log-zerolog/README.md) and [`log-slog/README.md`](log-slog/README.md).
+
+Supplying a `DebugLogger` enables debug output on its own and takes precedence over `EnableDebugLogger`. The logger is process-global, so the last client constructed wins.
+
+### Choosing between the adapters
+
+All three pool their event, so nothing the logger itself does allocates; a record carrying a `Stringer` pays one allocation for the value's own `String`. `log-zerolog` and the built-in logger stay at that one however wide the record gets and are within a nanosecond of each other; `log-slog` climbs to three by eight fields and costs three to five times as much per record, but adds no dependency. The built-in logger costs about what `log-zerolog` costs and needs no module, but writes one fixed plain-text format to stderr and cannot be pointed anywhere else.
+
+[`debuglog/README.md`](debuglog/README.md#choosing-between-them) has the measured table and the reasons behind each of those.
+
+### Bringing your own logger
+
+The two modules above are conveniences, not the extension point. The extension point is `debuglog.Logger` and `debuglog.Event`, and neither mentions any of the client's own types, so an implementation needs no import beyond the standard library and `debuglog` itself.
+
+[`debuglog/README.md`](debuglog/README.md#implementing-it-yourself) covers what to know before writing one: all twelve methods are required and embedding an `Event` to inherit most of them fails quietly, `StringerText` has to stand in for `String` so a nil `*url.URL` cannot panic, and `Debug()` must be safe for concurrent use because records are emitted from the transport's background goroutines as well as from request paths.
 
 ## Policy Overrides
 
@@ -481,7 +553,7 @@ OPENSEARCH_GO_POLICY_ROLE=chain[0].mux[0].role[0]=false myapp
 OPENSEARCH_GO_POLICY_ROLE=.*mux.*role.*=false myapp
 ```
 
-Set `OPENSEARCH_GO_DEBUG=true` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
+Set `OPENSEARCH_GO_LOG=debug` to see policy paths and override actions. See [Request Routing](guides/transport-routing.md#policy-override-variables) for full documentation.
 
 ## Environment Variables
 

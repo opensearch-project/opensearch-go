@@ -167,9 +167,7 @@ func (r *PolicyChain) DiscoveryUpdate(added, removed, unchanged []*Connection) e
 				firstError = err // Capture first error to return
 			}
 			// Log error if debug logging is enabled
-			if dl := loadDebugLogger(); dl != nil {
-				_ = dl.Logf("PolicyChain: policy DiscoveryUpdate failed: %v", err)
-			}
+			Debug().Err(err).Msg("PolicyChain: policy DiscoveryUpdate failed")
 		}
 
 		// Cache if any policy is enabled
@@ -194,9 +192,7 @@ func (r *PolicyChain) CheckDead(ctx context.Context, healthCheck HealthCheckFunc
 				firstError = err // Capture first error to return
 			}
 			// Log error if debug logging is enabled
-			if dl := loadDebugLogger(); dl != nil {
-				_ = dl.Logf("PolicyChain: policy CheckDead failed: %v", err)
-			}
+			Debug().Err(err).Msg("PolicyChain: policy CheckDead failed")
 		}
 	}
 	return firstError

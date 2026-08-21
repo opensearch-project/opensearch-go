@@ -199,9 +199,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 	}
 
 	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Stats poll failed for %q: %v\n", conn.URL, err)
-		}
+		Debug().Stringer("conn", conn.URL).Err(err).Msg("Stats poll failed, cannot prepare request")
 		return sample, false
 	}
 
@@ -218,9 +216,10 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 				lcReady|lcActive|lcStandby,
 			)
 			conn.mu.Unlock()
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Stats poll failed for %q, clearing overloaded flag (resurrection scheduler will handle): %v\n", conn.URL, err)
-			}
+			Debug().
+				Stringer("conn", conn.URL).
+				Err(err).
+				Msg("Stats poll failed, clearing overloaded flag (resurrection scheduler will handle)")
 		}
 		return sample, false
 	}
@@ -328,9 +327,7 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	conn.mu.RUnlock()
 
 	if health != nil && health.Status == clusterStatusRed {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Node %q overloaded: cluster status is red\n", conn.URL)
-		}
+		Debug().Stringer("conn", conn.URL).Msg("Node overloaded: cluster status is red")
 		overloaded = true
 	}
 
@@ -338,10 +335,11 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 
 	// JVM heap usage
 	if stats.JVM.Mem.HeapUsedPercent >= c.overloadedHeapThreshold {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Node %q overloaded: heap_used_percent=%d >= threshold=%d\n",
-				conn.URL, stats.JVM.Mem.HeapUsedPercent, c.overloadedHeapThreshold)
-		}
+		Debug().
+			Stringer("conn", conn.URL).
+			Int("heap_used_percent", stats.JVM.Mem.HeapUsedPercent).
+			Int("threshold", c.overloadedHeapThreshold).
+			Msg("Node overloaded: heap over threshold")
 		overloaded = true
 	}
 
@@ -356,10 +354,12 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 		if breaker.LimitSizeInBytes > 0 {
 			ratio := float64(breaker.EstimatedSizeInBytes) / float64(breaker.LimitSizeInBytes)
 			if ratio >= c.overloadedBreakerRatio {
-				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("Node %q overloaded: breaker %q size ratio=%.3f >= threshold=%.3f\n",
-						conn.URL, name, ratio, c.overloadedBreakerRatio)
-				}
+				Debug().
+					Stringer("conn", conn.URL).
+					Str("breaker", name).
+					Float64("ratio", ratio).
+					Float64("threshold", c.overloadedBreakerRatio).
+					Msg("Node overloaded: breaker size over threshold")
 				overloaded = true
 			}
 		}
@@ -369,10 +369,13 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 		conn.mu.lastBreakerTripped[name] = breaker.Tripped
 
 		if existed && breaker.Tripped > prevTripped {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Node %q overloaded: breaker %q tripped %d times since last poll (prev=%d, now=%d)\n",
-					conn.URL, name, breaker.Tripped-prevTripped, prevTripped, breaker.Tripped)
-			}
+			Debug().
+				Stringer("conn", conn.URL).
+				Str("breaker", name).
+				Int64("tripped_delta", breaker.Tripped-prevTripped).
+				Int64("tripped_from", prevTripped).
+				Int64("tripped_to", breaker.Tripped).
+				Msg("Node overloaded: breaker tripped since last poll")
 			overloaded = true
 		}
 	}
@@ -584,9 +587,7 @@ func (c *Transport) refreshClusterHealth(conn *Connection) {
 
 	health, statusCode, err := c.fetchClusterHealth(c.ctx, conn.URL, applyModifier)
 	if err != nil {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Cluster health refresh failed for %q: %v\n", conn.URL, err)
-		}
+		Debug().Stringer("conn", conn.URL).Err(err).Msg("Cluster health refresh failed")
 		return
 	}
 
@@ -600,10 +601,10 @@ func (c *Transport) refreshClusterHealth(conn *Connection) {
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		resetClusterHealth(conn)
 
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Cluster health refresh got %d for %q, resetting to pending\n",
-				statusCode, conn.URL)
-		}
+		Debug().
+			Int("status_code", statusCode).
+			Stringer("conn", conn.URL).
+			Msg("Cluster health refresh got unexpected status, resetting to pending")
 
 	default:
 		// Unexpected status code; skip update and retry on next poll cycle.
