@@ -167,7 +167,7 @@ type Event interface {
 }
 ```
 
-A custom implementation drops the error return, since a debug logger that cannot write has nowhere to report the failure, and trades the single `...any` method for one method per field type:
+A custom implementation drops the error return, since a debug logger that cannot write has nowhere to report the failure, and trades the two `...any` methods for one method per field type:
 
 ```go
 // Before
@@ -184,7 +184,9 @@ func (l myLogger) Debug() debuglog.Event { return myEvent{w: l.w} }
 
 Implementing `Event` is twelve methods, which is unwieldy to show inline; see [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a worked implementation. Embedding a `debuglog.Event` to inherit most of it does not work: the promoted field methods return the embedded value, so the chain leaves your type at the first `Str` and your `Msg` never runs. Write all twelve.
 
-`opensearchtransport.DebugLogger`, `opensearchtransport.DebugFunc`, and `LoadDebugLogger()` are also removed. Implement `debuglog.Logger` in place of `DebugLogger`; there is no replacement for `DebugFunc`, since a plain function cannot express the typed field chain `Event` requires. Call `opensearchtransport.Debug()` in place of `LoadDebugLogger()`: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
+`opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
+
+`opensearchutil.BulkIndexerConfig.DebugLogger` is a different field and is unchanged. It still takes a `BulkIndexerDebugLogger` (a `Printf` method) and logs the indexer's own worker activity, not the client's internal records.
 
 ### Installing a logger
 
@@ -217,39 +219,6 @@ Two behavior changes come with it:
 
 - `EnableDebugLogger: true` writes to stderr. It previously wrote to stdout while `OPENSEARCH_GO_DEBUG=true` wrote to stderr; both now agree, and stderr is what `guides/config-envvars.md` documents. Anything parsing the client's debug output from stdout needs to read stderr.
 - `OPENSEARCH_GO_POLICY_DUMP` writes the policy tree straight to stderr instead of through the logger, so it stays one contiguous block. Sent through a structured logger it would become a single record with every newline escaped, which defeats its purpose of being read and copied from.
-
-### `osotel.WithLogger` / `osprom.WithLogger` take a `debuglog.Logger`
-
-Both options change from a `*slog.Logger` parameter to `debuglog.Logger`:
-
-```go
-// Before
-func WithLogger(l *slog.Logger) Option
-
-// After
-func WithLogger(l debuglog.Logger) Option
-```
-
-This is a hard break: `*slog.Logger` does not implement `debuglog.Logger`, so an existing call passing one directly no longer compiles and must wrap it:
-
-```go
-// Before
-reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(someSlogLogger)})
-
-// After
-reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(logslog.New(someSlogLogger))})
-```
-
-The point is that one logger now serves both the client and the registries:
-
-```go
-dl := logzerolog.Default()
-
-reg, err := osotel.NewWithOptions(meter, observers, []osotel.Option{osotel.WithLogger(dl)})
-client, err := opensearch.NewClient(opensearch.Config{DebugLogger: dl})
-```
-
-The default changes from `slog.Default()` to `opensearchtransport.Debug`, resolved per message, so the registries' lifecycle messages appear whenever the client's debug records do. Resolution is deferred rather than read at construction because a registry has to exist before the client that installs the logger, since the client takes the registry as its `Observer`. Under the old default they appeared almost never: all four sites log at debug level and `slog.Default()` discards anything below `LevelInfo`, so unless the application had lowered its global slog level, those messages were dropped. If you relied on them reaching `slog.Default()` specifically, pass it explicitly with `WithLogger(logslog.New(slog.Default()))`. Passing nil still silences them rather than panicking.
 
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 
