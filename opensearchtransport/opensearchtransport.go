@@ -1212,7 +1212,7 @@ func New(cfg Config) (*Transport, error) {
 			// OPENSEARCH_GO_POLICY_DUMP prints the policy tree ("DOM") so an
 			// operator can see the exact node paths to target with
 			// OPENSEARCH_GO_POLICY_* matchers. Debug-gated: emits only when a
-			// debug logger is installed (OPENSEARCH_GO_DEBUG truthy).
+			// debug logger is installed (OPENSEARCH_GO_LOG=debug).
 			if envvars.Truthy(envvars.PolicyDump) {
 				dumpPolicyTreeIfDebug(routerPolicy)
 			}

@@ -22,7 +22,7 @@ import (
 // debuglog deliberately has no test dependencies to put one in.
 var (
 	benchURL = &url.URL{Scheme: "https", Host: "localhost:9200"}
-	benchErr = errors.New("connection refused")
+	errBench = errors.New("connection refused")
 )
 
 // BenchmarkNop measures the floor every emitting site pays when no logger is
@@ -43,7 +43,7 @@ func BenchmarkNop(b *testing.B) {
 				Stringer("conn", benchURL).
 				Int("attempts", 3).
 				Dur("took", 1500*time.Millisecond).
-				Err(benchErr).
+				Err(errBench).
 				Msg("Request failed")
 		}
 	})
@@ -55,7 +55,7 @@ func BenchmarkNop(b *testing.B) {
 				Stringer("conn", benchURL).
 				Int("attempts", 3).
 				Dur("took", 1500*time.Millisecond).
-				Err(benchErr).
+				Err(errBench).
 				Str("pool", "search").
 				Int64("tripped", 3).
 				Float64("ratio", 0.85).

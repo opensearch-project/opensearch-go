@@ -649,6 +649,9 @@ func TestWithLogger(t *testing.T) {
 		{
 			name:   "nil logger silences lifecycle records",
 			logger: func(*captureDebugLogger) debuglog.Logger { return nil },
+			// Empty rather than nil: messages sizes its result from the records it
+			// walks, so no records yields a non-nil slice of none.
+			want: []string{},
 		},
 	}
 

@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -111,15 +112,45 @@ const StandbyRotationCount = "OPENSEARCH_GO_STANDBY_ROTATION_COUNT"
 // health checks required to promote a standby connection to active.
 const StandbyPromotionChecks = "OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS"
 
-// Debug enables verbose internal logging via [strconv.ParseBool].
+// Log selects how verbosely the client logs its own internals. The client emits
+// at one level, debug, so [LogLevelDebug] installs the built-in stderr logger and
+// every other level leaves it off. An unrecognized value is off too, for the same
+// reason "info" is: neither asks for debug records.
+//
+// It supersedes [Debug], which predates it and says the same thing as a boolean.
+// When both are set Log decides, so a process can lower the level of a
+// deployment that still exports OPENSEARCH_GO_DEBUG=true without unsetting it.
+const Log = "OPENSEARCH_GO_LOG"
+
+// LogLevelDebug is the [Log] value that switches the client's debug records on.
+// It is matched case-insensitively and ignoring surrounding space.
+const LogLevelDebug = "debug"
+
+// Debug enables verbose internal logging via [strconv.ParseBool]. It is the older
+// spelling of [Log] set to [LogLevelDebug] and remains supported, read whenever
+// Log is unset or empty. Prefer Log in new deployments.
 const Debug = "OPENSEARCH_GO_DEBUG"
+
+// DebugRequested reports whether the environment asks for the client's debug
+// records: [Log] set to [LogLevelDebug], or a truthy [Debug] when Log is unset or
+// empty.
+//
+// Read it rather than either variable directly, so every consumer resolves the
+// two the same way.
+func DebugRequested() bool {
+	if val, ok := os.LookupEnv(Log); ok && val != "" {
+		return strings.EqualFold(strings.TrimSpace(val), LogLevelDebug)
+	}
+	return Truthy(Debug)
+}
 
 // PolicyDump dumps the router's policy tree (the structural "DOM": the
 // dot-delimited node paths used by OPENSEARCH_GO_POLICY_* path matchers) at
-// client initialization when set to a truthy value. The dump is written
-// through the debug logger, so it is only emitted when [Debug] is also
-// enabled. Parsed via [strconv.ParseBool]. It is not an OPENSEARCH_GO_POLICY_*
-// override: the override parser only reads the fixed set of policy type names.
+// client initialization when set to a truthy value. The dump is only emitted
+// when debug logging is on, so it needs [DebugRequested] to hold or a
+// Config.DebugLogger to be installed. Parsed via [strconv.ParseBool]. It is not
+// an OPENSEARCH_GO_POLICY_* override: the override parser only reads the fixed
+// set of policy type names.
 const PolicyDump = "OPENSEARCH_GO_POLICY_DUMP"
 
 // ErrorMask is a comma-separated bitfield spec controlling which categories
