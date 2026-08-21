@@ -78,7 +78,7 @@ func BenchmarkTextDebugLogger(b *testing.B) {
 // BenchmarkDebugNoLoggerInstalled measures what the client's own emitting sites
 // cost with debug logging off, through the real accessor rather than through
 // debuglog.Nop directly, so the atomic load is included. This is the number that
-// matters for the 88 unguarded sites: it is paid on every request path that
+// matters for the 85 unguarded sites: it is paid on every request path that
 // touches one.
 func BenchmarkDebugNoLoggerInstalled(b *testing.B) {
 	previous := debugLoggerPtr.Load()

@@ -528,7 +528,7 @@ Supplying a `DebugLogger` enables debug output on its own and takes precedence o
 
 ### Choosing between the adapters
 
-All three pool their event, so a narrow record costs one allocation whichever you install. `log-zerolog` and the built-in logger stay at one however wide the record gets; `log-slog` starts allocating again past five fields and costs three to four times as much per record, but adds no dependency. The built-in logger costs about what `log-zerolog` costs and needs no module, but writes one fixed plain-text format to stderr and cannot be pointed anywhere else.
+All three pool their event, so a one-field record costs one allocation whichever you install. `log-zerolog` and the built-in logger stay at one however wide the record gets; `log-slog` climbs to three by eight fields and costs roughly four to five times as much per record, but adds no dependency. The built-in logger costs about what `log-zerolog` costs and needs no module, but writes one fixed plain-text format to stderr and cannot be pointed anywhere else.
 
 [`debuglog/README.md`](debuglog/README.md#choosing-between-them) has the measured table and the reasons behind each of those.
 

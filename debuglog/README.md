@@ -67,9 +67,11 @@ Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, media
 | level rejects it    | 10.5 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.4 ns, 0 B, 0 allocs     | n/a                     |
 | no logger installed | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
 
-All three pool their event, so a record up to four fields costs one allocation, and that allocation is `(*url.URL).String` building the connection address rather than anything the logger does. `log-zerolog` and the built-in logger hold at one however wide the record gets, because both append values straight into a byte buffer.
+All three pool their event, so a one-field record costs one allocation whichever you install, and that allocation is `(*url.URL).String` building the connection address rather than anything the logger does. `log-zerolog` and the built-in logger hold at one however wide the record gets, because both append values straight into a byte buffer.
 
-`log-slog` starts allocating again past five fields. That is `slog.Record`, which stores five attributes inline and moves the overflow to a heap slice, plus `JSONHandler` encoding each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. The gap that remains is time, not allocations: slog costs three to four times per record what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
+`log-slog` climbs to three by eight fields. `slog.Record` stores five attributes inline and moves the overflow to a heap slice, and `JSONHandler` encodes each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. `TextHandler` is at two allocations by four fields, where `JSONHandler` is still at one.
+
+The wider gap is time, not allocations. Per record `log-slog` costs roughly four to five times what `log-zerolog` does and three to four times what the built-in logger does, and `TextHandler` costs more than `JSONHandler` at every size.
 
 Which to pick:
 
