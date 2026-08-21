@@ -76,13 +76,13 @@ func rendezvousTopK(
 		k = len(conns)
 	}
 
-	// Split into shard-hosting and non-shard partitions, preserving
-	// the caller's RTT sort order within each partition.
+	// Copy before ranking. rankByHash sorts in place, and callers pass
+	// the live RTT-ordered list; the empty-placement path used to alias
+	// that slice and reorder it.
 	var shard, nonShard []*Connection
-	var partBuf *[]*Connection // pooled buffer backing shard + nonShard
+	partBuf := getConnSlice(len(conns))
+	part := (*partBuf)[:0]
 	if len(shardNodeNames) > 0 {
-		partBuf = getConnSlice(len(conns))
-		part := (*partBuf)[:0]
 		// Append shard nodes first, then non-shard nodes.
 		for _, c := range conns {
 			if _, ok := shardNodeNames[c.Name]; ok {
@@ -97,11 +97,11 @@ func rendezvousTopK(
 		}
 		shard = part[:shardLen]
 		nonShard = part[shardLen:]
-		*partBuf = part // keep slice header in sync for putConnSlice
 	} else {
-		// No shard placement data -- treat all nodes equally.
-		shard = conns
+		part = append(part, conns...)
+		shard = part
 	}
+	*partBuf = part // keep slice header in sync for putConnSlice
 
 	var slots []*Connection
 	if buf != nil {
@@ -119,9 +119,7 @@ func rendezvousTopK(
 		_ = fillSlotsFromTiers(keyA, keyB, nonShard, slots, remaining, &slots)
 	}
 
-	if partBuf != nil {
-		putConnSlice(partBuf)
-	}
+	putConnSlice(partBuf)
 
 	// Phase 3: rotate within the slots by the jitter offset (in-place).
 	n := len(slots)
@@ -170,7 +168,9 @@ func fillSlotsFromTiers(keyA, keyB string, conns []*Connection, dst []*Connectio
 }
 
 // rankByHash sorts connections in-place by rendezvous hash weight (descending)
-// for consistent key-to-node assignment within an RTT tier.
+// for consistent key-to-node assignment within an RTT tier. The input must be
+// a private buffer; rendezvousTopK copies before ranking so the live
+// activeConns/sortedConns list is not reordered.
 func rankByHash(keyA, keyB string, conns []*Connection) []*Connection {
 	// Pre-compute weights using a pooled map. The map avoids repeated
 	// hashing during sort comparisons.
