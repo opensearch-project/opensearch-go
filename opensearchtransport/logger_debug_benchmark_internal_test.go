@@ -21,7 +21,7 @@ import (
 // means changing it in all three.
 var (
 	benchDebugURL = &url.URL{Scheme: "https", Host: "localhost:9200"}
-	benchDebugErr = errors.New("connection refused")
+	errBenchDebug = errors.New("connection refused")
 )
 
 func emitOneDebugField(dl debuglog.Logger) {
@@ -33,7 +33,7 @@ func emitFourDebugFields(dl debuglog.Logger) {
 		Stringer("conn", benchDebugURL).
 		Int("attempts", 3).
 		Dur("took", 1500*time.Millisecond).
-		Err(benchDebugErr).
+		Err(errBenchDebug).
 		Msg("Request failed")
 }
 
@@ -42,7 +42,7 @@ func emitEightDebugFields(dl debuglog.Logger) {
 		Stringer("conn", benchDebugURL).
 		Int("attempts", 3).
 		Dur("took", 1500*time.Millisecond).
-		Err(benchDebugErr).
+		Err(errBenchDebug).
 		Str("pool", "search").
 		Int64("tripped", 3).
 		Float64("ratio", 0.85).
@@ -95,7 +95,7 @@ func BenchmarkDebugNoLoggerInstalled(b *testing.B) {
 			Stringer("conn", benchDebugURL).
 			Int("attempts", 3).
 			Dur("took", 1500*time.Millisecond).
-			Err(benchDebugErr).
+			Err(errBenchDebug).
 			Msg("Request failed")
 	}
 }
