@@ -528,31 +528,15 @@ Supplying a `DebugLogger` enables debug output on its own and takes precedence o
 
 ### Choosing between the adapters
 
-This is the one place these numbers live. Both adapter READMEs and the root README point here rather than repeating them, so a re-run updates one table.
+`log-zerolog` holds one allocation per record however many fields it carries. `log-slog` allocates per attribute and costs roughly four times as much per record, but adds no dependency. The built-in logger costs about what `log-zerolog` costs and needs no module, but writes one fixed plain-text format to stderr and cannot be pointed anywhere else.
 
-Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. Each module benchmarks identical record shapes; reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module.
-
-| record              | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text              |
-| ------------------- | ----------------------- | ------------------------- | ------------------------- | -------------------------- |
-| 1 field             | 82.6 ns, 32 B, 1 alloc  | 377.5 ns, 112 B, 3 allocs | 413.1 ns, 112 B, 3 allocs | 210.2 ns, 384 B, 10 allocs |
-| 4 fields            | 139.5 ns, 32 B, 1 alloc | 558.6 ns, 352 B, 5 allocs | 703.9 ns, 376 B, 6 allocs | 273.8 ns, 576 B, 12 allocs |
-| 8 fields            | 194.6 ns, 32 B, 1 alloc | 835.1 ns, 809 B, 8 allocs | 929.6 ns, 825 B, 8 allocs | 330.6 ns, 608 B, 12 allocs |
-| level rejects it    | 10.9 ns, 0 B, 0 allocs  | 6.1 ns, 0 B, 0 allocs     | 6.2 ns, 0 B, 0 allocs     | n/a                        |
-| no logger installed | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs      |
-
-`log-zerolog` runs about four times faster per record and its allocation count does not move with the number of fields. That single 32-byte allocation is `(*url.URL).String` building the connection address rather than anything the adapter does, so eight fields cost the same as one. `log-slog` allocates per attribute, so both its byte count and its allocation count grow with the record, and part of that is the record rebuild it does to keep source attribution pointing at the transport file.
-
-Prefer `log-zerolog` when debug logging will be left on somewhere it matters, or where allocation pressure is something you measure. Prefer `log-slog` when the application already routes everything through `log/slog` and one logging pipeline is worth more than the per-record cost, or when you would rather add no dependency at all. Both sit far below the cost of the request being described, and neither costs anything when no logger is installed.
+[`debuglog/README.md`](debuglog/README.md#choosing-between-them) has the measured table and the reasons behind each of those.
 
 ### Bringing your own logger
 
 The two modules above are conveniences, not the extension point. The extension point is `debuglog.Logger` and `debuglog.Event`, and neither mentions any of the client's own types, so an implementation needs no import beyond the standard library and `debuglog` itself.
 
-Implementing `Event` directly is twelve methods: one per typed field (`Str`, `Strs`, `Int`, `Int32`, `Int64`, `Uint32`, `Float64`, `Dur`, `Time`, `Stringer`, `Err`) plus `Msg`, which is too much to show usefully inline. See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a worked implementation.
-
-Embedding a `debuglog.Event` to inherit most of it does not work, and fails quietly. A promoted field method returns the embedded value rather than your type, so the chain leaves your implementation at the first `Str` and the `Msg` you wrote never runs. Write all twelve methods and have each return your own type.
-
-Implementations must be safe for concurrent use: `Debug()` is called from the transport's background goroutines as well as from request paths. The `Event` it returns need not be, since it belongs to the one caller assembling that record.
+[`debuglog/README.md`](debuglog/README.md#implementing-it-yourself) covers what to know before writing one: all twelve methods are required and embedding an `Event` to inherit most of them fails quietly, `StringerText` has to stand in for `String` so a nil `*url.URL` cannot panic, and `Debug()` must be safe for concurrent use because records are emitted from the transport's background goroutines as well as from request paths.
 
 ## Policy Overrides
 

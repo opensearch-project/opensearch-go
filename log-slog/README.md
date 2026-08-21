@@ -66,4 +66,4 @@ Two costs are worth knowing before choosing this module over [`log-zerolog`](../
 
 Against that, this module adds no dependency, since slog is in the standard library, and it keeps everything in one logging pipeline.
 
-Measured numbers for both adapters, over identical record shapes, live in one place: [Choosing between the adapters](../USER_GUIDE.md#choosing-between-the-adapters). Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in `../log-zerolog`.
+Measured numbers for both adapters and the built-in logger, over identical record shapes, live in one place: [Choosing between them](../debuglog/README.md#choosing-between-them). Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in `../log-zerolog`.
