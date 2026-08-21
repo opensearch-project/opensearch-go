@@ -26,7 +26,7 @@ var (
 )
 
 // BenchmarkNop measures the floor every emitting site pays when no logger is
-// installed. The 88 sites in the client are unguarded, so this is the cost of
+// installed. The 85 sites in the client are unguarded, so this is the cost of
 // debug logging being switched off.
 func BenchmarkNop(b *testing.B) {
 	b.Run("one field", func(b *testing.B) {

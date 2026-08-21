@@ -50,15 +50,13 @@ type adapter struct{ logger loggerFunc }
 // An event is returned by [event.Msg]. A chain that never reaches Msg leaves its
 // event to the garbage collector, which is why the pool is a performance measure
 // and not a correctness one.
-// A pool is process-wide by nature; the transport's own event pool is excluded
-// from gochecknoglobals for the same reason.
 //
-//nolint:gochecknoglobals // see above
+//nolint:gochecknoglobals // a pool is process-wide by nature; the transport's own event pool is excluded for the same reason
 var eventPool = sync.Pool{New: func() any { return new(event) }}
 
 // maxPooledAttrs bounds the attribute capacity the pool retains, so one unusually
 // wide record cannot park its slice for the life of the process. The client's
-// widest record carries nine fields.
+// widest record carries six fields, in pool_congestion.go's AIMD adjustment.
 const maxPooledAttrs = 32
 
 // Debug begins a record, or discards it when the handler does not admit
