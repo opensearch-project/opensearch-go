@@ -154,6 +154,38 @@ func TestNewChainsMultipleFields(t *testing.T) {
 	)
 }
 
+// TestReusesEvents pins the one hazard pooling introduces: an event handed back
+// by Msg and picked up again by the next Debug must carry none of the previous
+// record's attributes.
+//
+// The records differ in attribute count so that a stale slice shows up either way
+// round, whichever of them the pool happens to serve first.
+func TestReusesEvents(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{}
+			}
+			return a
+		},
+	})
+	dl := New(slog.New(handler))
+
+	dl.Debug().Str("conn", "node-1").Int("attempts", 2).Msg("first")
+	dl.Debug().Str("conn", "node-2").Msg("second")
+	dl.Debug().Msg("third")
+
+	require.Equal(t, []string{
+		`level=DEBUG msg=first conn=node-1 attempts=2`,
+		`level=DEBUG msg=second conn=node-2`,
+		`level=DEBUG msg=third`,
+	}, strings.Split(strings.TrimSpace(buf.String()), "\n"))
+}
+
 // TestDebugDisabledLevel pins that a handler which does not admit
 // slog.LevelDebug yields no output at all, and that the Event Debug returns
 // in that case is safe to chain and call Msg on.

@@ -61,15 +61,15 @@ Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, media
 
 | record              | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text           |
 | ------------------- | ----------------------- | ------------------------- | ------------------------- | ----------------------- |
-| 1 field             | 78.8 ns, 32 B, 1 alloc  | 367.4 ns, 112 B, 3 allocs | 407.3 ns, 112 B, 3 allocs | 108.8 ns, 32 B, 1 alloc |
-| 4 fields            | 132.8 ns, 32 B, 1 alloc | 540.4 ns, 352 B, 5 allocs | 687.0 ns, 376 B, 6 allocs | 140.0 ns, 32 B, 1 alloc |
-| 8 fields            | 186.0 ns, 32 B, 1 alloc | 808.1 ns, 809 B, 8 allocs | 906.4 ns, 825 B, 8 allocs | 194.8 ns, 32 B, 1 alloc |
-| level rejects it    | 10.5 ns, 0 B, 0 allocs  | 6.4 ns, 0 B, 0 allocs     | 6.4 ns, 0 B, 0 allocs     | n/a                     |
+| 1 field             | 78.8 ns, 32 B, 1 alloc  | 350.6 ns, 32 B, 1 alloc   | 412.7 ns, 32 B, 1 alloc   | 108.8 ns, 32 B, 1 alloc |
+| 4 fields            | 132.8 ns, 32 B, 1 alloc | 490.3 ns, 32 B, 1 alloc   | 633.8 ns, 56 B, 2 allocs  | 140.0 ns, 32 B, 1 alloc |
+| 8 fields            | 186.0 ns, 32 B, 1 alloc | 788.3 ns, 168 B, 3 allocs | 821.8 ns, 184 B, 3 allocs | 194.8 ns, 32 B, 1 alloc |
+| level rejects it    | 10.5 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.4 ns, 0 B, 0 allocs     | n/a                     |
 | no logger installed | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
 
-`log-zerolog` and the built-in logger both hold one allocation per record however many fields it carries, and that allocation is `(*url.URL).String` building the connection address rather than anything either of them does. Both pool their event and append values straight into a byte buffer, so eight fields cost the same as one.
+All three pool their event, so a record up to four fields costs one allocation, and that allocation is `(*url.URL).String` building the connection address rather than anything the logger does. `log-zerolog` and the built-in logger hold at one however wide the record gets, because both append values straight into a byte buffer.
 
-`log-slog` allocates per attribute, so its byte count and its allocation count both grow with the record. Part of that is the record rebuild it performs to keep source attribution pointing at the transport file rather than at the adapter. `TextHandler` costs more than `JSONHandler` at every size.
+`log-slog` starts allocating again past five fields. That is `slog.Record`, which stores five attributes inline and moves the overflow to a heap slice, plus `JSONHandler` encoding each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. The gap that remains is time, not allocations: slog costs three to four times per record what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
 
 Which to pick:
 
