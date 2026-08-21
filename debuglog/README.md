@@ -59,25 +59,30 @@ This is the one place these numbers live. Both adapter READMEs, the root README,
 
 Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. All three implementations benchmark identical record shapes; reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module.
 
-| record              | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text           |
-| ------------------- | ----------------------- | ------------------------- | ------------------------- | ----------------------- |
-| 1 field             | 78.8 ns, 32 B, 1 alloc  | 350.6 ns, 32 B, 1 alloc   | 412.7 ns, 32 B, 1 alloc   | 108.8 ns, 32 B, 1 alloc |
-| 4 fields            | 132.8 ns, 32 B, 1 alloc | 490.3 ns, 32 B, 1 alloc   | 633.8 ns, 56 B, 2 allocs  | 140.0 ns, 32 B, 1 alloc |
-| 8 fields            | 186.0 ns, 32 B, 1 alloc | 788.3 ns, 168 B, 3 allocs | 821.8 ns, 184 B, 3 allocs | 194.8 ns, 32 B, 1 alloc |
-| level rejects it    | 10.5 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.4 ns, 0 B, 0 allocs     | n/a                     |
-| no logger installed | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
+The "no Stringer" row is the same four-field record with the deferred `Stringer` swapped for an already-resolved string. Every other row pays one allocation inside `(*url.URL).String`, so that row is the one that shows what a logger itself allocates rather than what resolving the connection address costs.
 
-All three pool their event, so a one-field record costs one allocation whichever you install, and that allocation is `(*url.URL).String` building the connection address rather than anything the logger does. `log-zerolog` and the built-in logger hold at one however wide the record gets, because both append values straight into a byte buffer.
+| record                | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text           |
+| --------------------- | ----------------------- | ------------------------- | ------------------------- | ----------------------- |
+| 1 field               | 82.3 ns, 32 B, 1 alloc  | 354.1 ns, 32 B, 1 alloc   | 387.9 ns, 32 B, 1 alloc   | 104.8 ns, 32 B, 1 alloc |
+| 4 fields              | 136.4 ns, 32 B, 1 alloc | 483.8 ns, 32 B, 1 alloc   | 629.7 ns, 56 B, 2 allocs  | 136.8 ns, 32 B, 1 alloc |
+| 4 fields, no Stringer | 109.1 ns, 0 B, 0 allocs | 447.9 ns, 0 B, 0 allocs   | 593.4 ns, 24 B, 1 alloc   | 113.2 ns, 0 B, 0 allocs |
+| 8 fields              | 190.8 ns, 32 B, 1 alloc | 712.4 ns, 168 B, 3 allocs | 804.2 ns, 184 B, 3 allocs | 190.3 ns, 32 B, 1 alloc |
+| level rejects it      | 10.7 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.3 ns, 0 B, 0 allocs     | n/a                     |
+| no logger installed   | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
 
-`log-slog` climbs to three by eight fields. `slog.Record` stores five attributes inline and moves the overflow to a heap slice, and `JSONHandler` encodes each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. `TextHandler` is at two allocations by four fields, where `JSONHandler` is still at one.
+All three pool their event, so nothing a logger does allocates: the no-Stringer row is 0 B and 0 allocations for `log-zerolog`, for `log-slog` under `JSONHandler`, and for the built-in logger. The single allocation every other row shows is `(*url.URL).String` building the connection address, paid by the caller's value and not by the logger.
 
-The wider gap is time, not allocations. Per record `log-slog` costs roughly four to five times what `log-zerolog` does and three to four times what the built-in logger does, and `TextHandler` costs more than `JSONHandler` at every size.
+`log-zerolog` and the built-in logger then hold at that one allocation however wide the record gets, because both append values straight into a byte buffer. On time they are within a nanosecond of each other at four and eight fields; `log-zerolog` is ahead only on the shortest record.
+
+`log-slog` climbs to three allocations by eight fields. `slog.Record` stores five attributes inline and moves the overflow to a heap slice, and `JSONHandler` encodes each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. `TextHandler` allocates one more than `JSONHandler` at every size.
+
+The wider gap is time, not allocations. Per record `log-slog` costs three to five times what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
 
 Which to pick:
 
-- **`log-zerolog`** if debug logging will be left on somewhere that matters, or where allocation pressure is something you measure.
+- **`log-zerolog`** if the records go into a pipeline the application already runs and per-record cost is something you measure.
 - **`log-slog`** if the application already routes everything through `log/slog` and one logging pipeline is worth more than the per-record cost, or if you would rather add no dependency at all.
-- **The built-in logger** if the records are for a human reading stderr. It costs about what `log-zerolog` costs and needs no module, but it writes one fixed plain-text format and cannot be pointed anywhere else.
+- **The built-in logger** if the records are for a human reading stderr. It costs what `log-zerolog` costs and needs no module, but it writes one fixed plain-text format and cannot be pointed anywhere else.
 
 All three sit far below the cost of the request being described, and none costs anything when no logger is installed.
 

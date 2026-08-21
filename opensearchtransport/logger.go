@@ -587,9 +587,22 @@ func (e *textDebugEvent) Dur(key string, val time.Duration) debuglog.Event {
 }
 
 // Time implements [debuglog.Event].
+//
+// Appending in [timeFieldLayout] rather than calling val.String keeps the field
+// allocation-free; String builds and returns a string, which was the one field
+// type in this logger that still allocated.
 func (e *textDebugEvent) Time(key string, val time.Time) debuglog.Event {
-	return e.field(key, val.String())
+	e.key(key)
+	e.fields = val.AppendFormat(e.fields, timeFieldLayout)
+	return e
 }
+
+// timeFieldLayout renders a timestamp the way [time.Time.String] does, with one
+// difference: String appends a monotonic-clock reading ("m=+0.000192626") when the
+// value carries one, and this does not. That reading is noise in a debug record,
+// and the client's own timestamps round-trip through Unix nanoseconds, which
+// strips it, so today no record renders differently either way.
+const timeFieldLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
 
 // Stringer implements [debuglog.Event], rendering a nil value as <nil> rather
 // than panicking.
