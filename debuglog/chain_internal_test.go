@@ -24,18 +24,18 @@ import (
 // is never returned to the pool.
 //
 // Msg is deliberately absent -- it is the terminator this guard looks for.
-var fieldMethods = map[string]bool{
-	"Str":      true,
-	"Strs":     true,
-	"Int":      true,
-	"Int32":    true,
-	"Int64":    true,
-	"Uint32":   true,
-	"Float64":  true,
-	"Dur":      true,
-	"Time":     true,
-	"Stringer": true,
-	"Err":      true,
+var fieldMethods = map[string]struct{}{
+	"Str":      {},
+	"Strs":     {},
+	"Int":      {},
+	"Int32":    {},
+	"Int64":    {},
+	"Uint32":   {},
+	"Float64":  {},
+	"Dur":      {},
+	"Time":     {},
+	"Stringer": {},
+	"Err":      {},
 }
 
 // chainRoots are the names of the calls that begin a debug chain: the
@@ -45,9 +45,9 @@ var fieldMethods = map[string]bool{
 // Matching the root is what keeps this off unrelated builders. A config hash
 // builder chains Int the same way a debug record does, so the method names alone
 // do not identify a debug chain.
-var chainRoots = map[string]bool{
-	"Debug": true,
-	"log":   true,
+var chainRoots = map[string]struct{}{
+	"Debug": {},
+	"log":   {},
 }
 
 // unterminatedChains reports every statement in f that builds a debug record and
@@ -72,7 +72,13 @@ func unterminatedChains(fset *token.FileSet, f *ast.File) []string {
 			return true
 		}
 		sel, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok || !fieldMethods[sel.Sel.Name] || !chainRoots[chainRoot(call)] {
+		if !ok {
+			return true
+		}
+		if _, isField := fieldMethods[sel.Sel.Name]; !isField {
+			return true
+		}
+		if _, isRoot := chainRoots[chainRoot(call)]; !isRoot {
 			return true
 		}
 		found = append(found, fset.Position(stmt.Pos()).String()+": chain ends in "+sel.Sel.Name+", never calls Msg")
