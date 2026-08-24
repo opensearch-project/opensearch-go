@@ -1302,8 +1302,10 @@ func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
 
 // bulkRecorder records the action lines of every bulk request an indexer sends.
 type bulkRecorder struct {
-	mu       sync.Mutex
-	requests [][]string
+	mu struct {
+		sync.Mutex
+		requests [][]string
+	}
 }
 
 func (r *bulkRecorder) roundTrip(req *http.Request) (*http.Response, error) {
@@ -1314,7 +1316,7 @@ func (r *bulkRecorder) roundTrip(req *http.Request) (*http.Response, error) {
 	// assertion to the test goroutine.
 	if body, err := io.ReadAll(req.Body); err == nil {
 		r.mu.Lock()
-		r.requests = append(r.requests, bulkDocumentIDs(body))
+		r.mu.requests = append(r.mu.requests, bulkDocumentIDs(body))
 		r.mu.Unlock()
 	}
 	return defaultRoundTripFunc(req)
@@ -1327,10 +1329,10 @@ func (r *bulkRecorder) takeActions() []string {
 	defer r.mu.Unlock()
 
 	var actions []string
-	for _, request := range r.requests {
+	for _, request := range r.mu.requests {
 		actions = append(actions, request...)
 	}
-	r.requests = nil
+	r.mu.requests = nil
 
 	return actions
 }
@@ -1359,10 +1361,10 @@ func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
 		wantValue  = "planted-by-flush-caller"
 	)
 
-	var (
-		mu        sync.Mutex
-		flushedAs []any
-	)
+	var flushed struct {
+		sync.Mutex
+		contextValues []any
+	}
 
 	var recorder bulkRecorder
 	bi, err := NewBulkIndexer(BulkIndexerConfig{
@@ -1372,9 +1374,9 @@ func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
 		// OnFlushStart receives the context the flush is running under, which
 		// is the same one the bulk request is issued with.
 		OnFlushStart: func(ctx context.Context) context.Context {
-			mu.Lock()
-			flushedAs = append(flushedAs, ctx.Value(flushContextKey{}))
-			mu.Unlock()
+			flushed.Lock()
+			flushed.contextValues = append(flushed.contextValues, ctx.Value(flushContextKey{}))
+			flushed.Unlock()
 
 			return ctx
 		},
@@ -1389,13 +1391,13 @@ func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
 
 	require.NoError(t, bi.Flush(context.WithValue(t.Context(), flushContextKey{}, wantValue)))
 
-	mu.Lock()
-	defer mu.Unlock()
+	flushed.Lock()
+	defer flushed.Unlock()
 
 	// Exactly one element proves two things at once: the flush ran on the
 	// caller's context rather than the worker's, and the three workers holding
 	// nothing did not fire the flush callbacks for a request they never sent.
-	require.Equal(t, []any{wantValue}, flushedAs)
+	require.Equal(t, []any{wantValue}, flushed.contextValues)
 }
 
 func TestBulkIndexerFlushDrainsAndKeepsIndexerUsable(t *testing.T) {
