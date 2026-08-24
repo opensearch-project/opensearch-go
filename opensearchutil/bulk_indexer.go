@@ -82,6 +82,11 @@ type BulkIndexer interface {
 	// reached it. The bulk requests Flush drives run on the context passed to
 	// it, so a deadline there bounds the whole drain.
 	//
+	// A non-nil error means a drain did not go through: a transport failure, an
+	// error status, an unreadable response. Documents the cluster rejected
+	// individually are reported to their OnFailure callback instead, and do not
+	// make Flush return an error.
+	//
 	// It is safe to call repeatedly, and safe for concurrent use alongside Add
 	// and other Flush calls. Like Add, it must not be called after Close, nor
 	// concurrently with it: Close closes the worker queues, and a Flush that
@@ -364,29 +369,31 @@ func (bi *bulkIndexer) Flush(ctx context.Context) error {
 	// indexer whose workers are gone would wait for an ack that never arrives.
 	workersDone := bi.config.Context.Done()
 
-	barriers := make([]chan error, 0, len(bi.queues))
+	// One channel for every barrier this call sends, buffered to that count, so
+	// no worker blocks reporting its result even when this call has already
+	// abandoned the drain on a cancelled context. Results are joined, so the
+	// order they arrive in does not matter.
+	done := make(chan error, len(bi.queues))
+	sent := 0
 	for _, queue := range bi.queues {
-		// Buffered, so a worker publishing its result never blocks even when
-		// this call has already abandoned the barrier on a cancelled context.
-		barrier := make(chan error, 1)
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-workersDone:
 			return bi.config.Context.Err()
-		case queue <- queueEntry{flush: &flushBarrier{ctx: ctx, done: barrier}}:
-			barriers = append(barriers, barrier)
+		case queue <- queueEntry{flush: &flushBarrier{ctx: ctx, done: done}}:
+			sent++
 		}
 	}
 
-	errs := make([]error, 0, len(barriers))
-	for _, barrier := range barriers {
+	errs := make([]error, 0, sent)
+	for range sent {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-workersDone:
 			return bi.config.Context.Err()
-		case err := <-barrier:
+		case err := <-done:
 			errs = append(errs, err)
 		}
 	}
@@ -570,6 +577,16 @@ func (w *worker) run(ctx context.Context) {
 						err = w.flush(entry.flush.ctx)
 					}
 					w.mu.Unlock()
+
+					// The request landed even when individual documents were
+					// rejected, and those reach the caller through OnFailure,
+					// so a partial failure is not a failed drain. Reporting it
+					// here would make a non-nil Flush error useless as a signal
+					// that the flush itself did not go through.
+					var partial *opensearchapi.PartialBulkError
+					if errors.As(err, &partial) {
+						err = nil
+					}
 					entry.flush.done <- err
 
 					continue

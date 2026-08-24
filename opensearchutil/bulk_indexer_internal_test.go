@@ -1444,36 +1444,92 @@ func TestBulkIndexerFlushDrainsAndKeepsIndexerUsable(t *testing.T) {
 func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
 	t.Parallel()
 
-	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
-		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
-			return infoResponse()
-		}
-		return &http.Response{
-			StatusCode: http.StatusInternalServerError,
-			Status:     "500 Internal Server Error",
-			Body:       io.NopCloser(strings.NewReader(`{"error":{"type":"illegal_state_exception"},"status":500}`)),
-			Header:     http.Header{"Content-Type": []string{"application/json"}},
-		}, nil
-	})
+	tests := []struct {
+		name string
+		// status and body describe the /_bulk response; transportErr instead
+		// fails the round trip outright.
+		status       int
+		body         string
+		transportErr error
+		wantErr      bool
+		wantFailed   uint64
+	}{
+		{
+			name:       "http error status",
+			status:     http.StatusInternalServerError,
+			body:       `{"error":{"type":"illegal_state_exception"},"status":500}`,
+			wantErr:    true,
+			wantFailed: 1,
+		},
+		{
+			name:         "transport error",
+			transportErr: errors.New("dial tcp: connection refused"),
+			wantErr:      true,
+			wantFailed:   1,
+		},
+		{
+			name:       "unparseable body",
+			status:     http.StatusOK,
+			body:       `{"items": not json`,
+			wantErr:    true,
+			wantFailed: 1,
+		},
+		{
+			// The request landed; one document was rejected. That reaches the
+			// caller through OnFailure, so the drain itself did not fail and
+			// Flush must not report an error for it.
+			name:   "per-item rejection is not a flush failure",
+			status: http.StatusOK,
+			body: `{"took":1,"errors":true,"items":[` +
+				`{"index":{"_index":"i","_id":"doc_1","status":409,` +
+				`"error":{"type":"version_conflict_engine_exception","reason":"conflict"}}}]}`,
+			wantErr:    false,
+			wantFailed: 1,
+		},
+	}
 
-	bi, err := NewBulkIndexer(BulkIndexerConfig{
-		NumWorkers: 1,
-		Client:     client,
-		Index:      testutil.MustUniqueString(t, "test-index"),
-	})
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
-		Action:     actionIndex,
-		DocumentID: "doc_1",
-		Body:       strings.NewReader(`{"a":1}`),
-	}))
+			bi, err := NewBulkIndexer(BulkIndexerConfig{
+				NumWorkers: 1,
+				Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+					if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+						return infoResponse()
+					}
+					if tt.transportErr != nil {
+						return nil, tt.transportErr
+					}
+					return &http.Response{
+						StatusCode: tt.status,
+						Status:     http.StatusText(tt.status),
+						Body:       io.NopCloser(strings.NewReader(tt.body)),
+						Header:     http.Header{"Content-Type": []string{"application/json"}},
+					}, nil
+				}),
+				Index: testutil.MustUniqueString(t, "test-index"),
+			})
+			require.NoError(t, err)
 
-	// A failed bulk request has to surface through Flush's return value; the
-	// caller has no other way to learn the drain it just asked for did not land.
-	require.Error(t, bi.Flush(t.Context()))
-	require.Equal(t, uint64(1), bi.Stats().NumFailed)
-	require.NoError(t, bi.Close(t.Context()))
+			require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "doc_1",
+				Body:       strings.NewReader(`{"a":1}`),
+			}))
+
+			// A drain that did not land has to surface through Flush's return
+			// value; the caller has no other way to learn it failed.
+			flushErr := bi.Flush(t.Context())
+			if tt.wantErr {
+				require.Error(t, flushErr)
+			} else {
+				require.NoError(t, flushErr)
+			}
+			require.Equal(t, tt.wantFailed, bi.Stats().NumFailed)
+			require.NoError(t, bi.Close(t.Context()))
+		})
+	}
 }
 
 func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
