@@ -1395,7 +1395,7 @@ func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
 	defer flushed.Unlock()
 
 	// Exactly one element proves two things at once: the flush ran on the
-	// caller's context rather than the worker's, and the three workers holding
+	// caller's context rather than the worker's, and the workers holding
 	// nothing did not fire the flush callbacks for a request they never sent.
 	require.Equal(t, []any{wantValue}, flushed.contextValues)
 }

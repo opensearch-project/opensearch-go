@@ -474,7 +474,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
 		// Buffer each queue so Add does not block while its worker is
-		// mid-flush; no other worker can take the item.
+		// mid-flush; no other worker can take the entry.
 		queue := make(chan queueEntry, bi.config.NumWorkers)
 		bi.queues[i-1] = queue
 		w := worker{
