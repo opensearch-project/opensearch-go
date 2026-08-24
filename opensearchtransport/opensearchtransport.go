@@ -1628,7 +1628,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 				c.metrics.failures.Add(1)
 			}
 
-			Debug().Stringer("conn", conn.URL).Err(err).Msg("Request failed")
+			Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
 
 			// Retry on HTTP/2 stream resets (RST_STREAM frames such as REFUSED_STREAM).
 			// Go 1.21+ added As bridging on the vendored internal http2.StreamError
@@ -1642,7 +1642,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			var streamErr h2StreamError
 			if errors.As(err, &streamErr) {
 				Debug().
-					Stringer("conn", conn.URL).
+					Str("conn", conn.URLString).
 					Uint32("stream_id", streamErr.StreamID).
 					Uint32("code", streamErr.Code).
 					Msg("HTTP/2 stream error")
@@ -1865,7 +1865,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		return nil, fmt.Errorf("cannot get connection: %w (seed fallback also exhausted)", err)
 	}
 
-	Debug().Stringer("conn", conn.URL).Msg("Seed fallback: attempting request")
+	Debug().Str("conn", conn.URLString).Msg("Seed fallback: attempting request")
 
 	c.setReqURL(conn.URL, req)
 	c.setReqAuth(conn.URL, req)
@@ -1911,12 +1911,12 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	}
 
 	if err != nil {
-		Debug().Stringer("conn", conn.URL).Err(err).Msg("Seed fallback: request failed")
+		Debug().Str("conn", conn.URLString).Err(err).Msg("Seed fallback: request failed")
 		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
-	Debug().Stringer("conn", conn.URL).Msg("Seed fallback: request succeeded, triggering rediscovery")
+	Debug().Str("conn", conn.URLString).Msg("Seed fallback: request succeeded, triggering rediscovery")
 	c.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
 	c.discoveryNeeded.Store(true)
 	return res, nil
@@ -1965,7 +1965,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	conn.proactiveCheck.mu.lastAt = time.Now()
 	conn.proactiveCheck.mu.Unlock()
 
-	Debug().Stringer("conn", conn.URL).Msg("Connection: close detected, scheduling proactive health check")
+	Debug().Str("conn", conn.URLString).Msg("Connection: close detected, scheduling proactive health check")
 
 	go func() {
 		resp, err := c.healthCheck(c.ctx, conn, conn.URL)
@@ -1974,17 +1974,17 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 		}
 
 		if err != nil {
-			Debug().Stringer("conn", conn.URL).Err(err).Msg("Proactive health check failed")
+			Debug().Str("conn", conn.URLString).Err(err).Msg("Proactive health check failed")
 
 			// Mark connection as failed to trigger resurrection
 			if c.router != nil {
 				if poolErr := c.router.OnFailure(conn); poolErr != nil {
-					Debug().Stringer("conn", conn.URL).Err(poolErr).Msg("Router error during proactive health check failure")
+					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Router error during proactive health check failure")
 				}
 			} else {
 				c.mu.Lock()
 				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
-					Debug().Stringer("conn", conn.URL).Err(poolErr).Msg("Pool error during proactive health check failure")
+					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Pool error during proactive health check failure")
 				}
 				c.mu.Unlock()
 			}
@@ -2814,10 +2814,10 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 		switch {
 		case len(currentPool.mu.ready) > 0:
 			connection = currentPool.mu.ready[0]
-			Debug().Stringer("conn", connection.URL).Msg("Demoting multiServerPool to singleServerPool using ready connection")
+			Debug().Str("conn", connection.URLString).Msg("Demoting multiServerPool to singleServerPool using ready connection")
 		case len(currentPool.mu.dead) > 0:
 			connection = currentPool.mu.dead[0]
-			Debug().Stringer("conn", connection.URL).Msg("Demoting multiServerPool to singleServerPool using dead connection")
+			Debug().Str("conn", connection.URLString).Msg("Demoting multiServerPool to singleServerPool using dead connection")
 		default:
 			Debug().Msg("Demoting multiServerPool with no connections available")
 		}

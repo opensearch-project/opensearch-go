@@ -172,7 +172,7 @@ func (cp *multiServerPool) deferredStandbyPromotion() {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 		Int("cap", cp.mu.activeListCap).
@@ -423,7 +423,7 @@ func (cp *multiServerPool) OnSuccess(c *Connection) {
 		return
 	}
 
-	Debug().Str("pool", cp.name).Stringer("conn", c.URL).Msg("OnSuccess: connection transitioning from dead to ready")
+	Debug().Str("pool", cp.name).Str("conn", c.URLString).Msg("OnSuccess: connection transitioning from dead to ready")
 	c.markAsHealthyWithLock()
 	cp.resurrectWithLock(c)
 	cp.poolSuccesses.Add(1)
@@ -438,7 +438,7 @@ func (cp *multiServerPool) shouldSkipDraining(c *Connection) bool {
 	if remaining := c.drainingQuiescingRemaining.Load(); remaining > 0 {
 		Debug().
 			Str("pool", cp.name).
-			Stringer("conn", c.URL).
+			Str("conn", c.URLString).
 			Int64("quiescing_checks_remaining", remaining).
 			Msg("OnSuccess: connection is draining, skipping resurrection")
 		return true
@@ -451,7 +451,7 @@ func (cp *multiServerPool) shouldSkipOverloaded(c *Connection) bool {
 	if c.loadConnState().lifecycle().has(lcOverloaded) {
 		Debug().
 			Str("pool", cp.name).
-			Stringer("conn", c.URL).
+			Str("conn", c.URLString).
 			Msg("OnSuccess: connection is overload-demoted, skipping resurrection (stats poller manages lifecycle)")
 		return true
 	}
@@ -591,7 +591,7 @@ func (cp *multiServerPool) Unlock() { cp.mu.Unlock() }
 //   - Caller must hold both pool lock and connection lock
 //   - Connection should exist in the dead list
 func (cp *multiServerPool) resurrectWithLock(c *Connection) {
-	Debug().Str("pool", cp.name).Stringer("conn", c.URL).Msg("Resurrecting connection")
+	Debug().Str("pool", cp.name).Str("conn", c.URLString).Msg("Resurrecting connection")
 
 	// Clear overloaded state -- node just came back from dead, stats poller will re-evaluate.
 	c.storeOverloadedAt(time.Time{})
@@ -619,7 +619,7 @@ func (cp *multiServerPool) resurrectWithLock(c *Connection) {
 		cp.appendToReadyStandbyWithLock(c)
 		Debug().
 			Str("pool", cp.name).
-			Stringer("conn", c.URL).
+			Str("conn", c.URLString).
 			Int("cap", cp.mu.activeListCap).
 			Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 			Msg("Resurrected connection to standby")

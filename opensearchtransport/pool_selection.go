@@ -99,14 +99,14 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 					needsCapEnforce = true
 					Debug().
 						Str("pool", cp.name).
-						Stringer("conn", conn.URL).
+						Str("conn", conn.URLString).
 						Int("active", cp.mu.activeCount).
 						Int("cap", cp.mu.activeListCap).
 						Msg("Next: warmup complete for connection, triggering cap enforcement")
 				} else if warmupDone {
 					Debug().
 						Str("pool", cp.name).
-						Stringer("conn", conn.URL).
+						Str("conn", conn.URLString).
 						Int("active", cp.mu.activeCount).
 						Int("cap", cp.mu.activeListCap).
 						Msg("Next: warmup complete for connection, no cap enforcement")
@@ -306,7 +306,7 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Stringer("state", hexState{packed: int64(state)}).
 		Int("active", cp.mu.activeCount).
 		Int("dead", len(cp.mu.dead)).

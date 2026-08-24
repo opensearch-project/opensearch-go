@@ -50,7 +50,7 @@ var debugLoggerPtr atomic.Pointer[debuglog.Logger]
 // Debug begins one debug record: chain fields onto the returned event and end
 // the chain with Msg.
 //
-//	Debug().Stringer("conn", conn.URL).Err(err).Msg("Request failed")
+//	Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
 //
 // It never returns nil. With no logger installed it returns [debuglog.Nop],
 // whose methods discard the record and allocate nothing, so emitting sites need

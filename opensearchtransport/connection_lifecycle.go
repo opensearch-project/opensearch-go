@@ -129,7 +129,7 @@ func (c *Connection) casLifecycle(
 		}
 		target := connState(raw).withLifecycle(next)
 		if c.state.CompareAndSwap(raw, int64(target)) {
-			Debug().Stringer("state_from", lc).Stringer("state_to", next).Stringer("conn", c.URL).
+			Debug().Stringer("state_from", lc).Stringer("state_to", next).Str("conn", c.URLString).
 				Msg("casLifecycle: applied lifecycle transition")
 			return nil
 		}

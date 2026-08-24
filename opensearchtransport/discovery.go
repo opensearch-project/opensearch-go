@@ -1700,7 +1700,7 @@ func (c *Transport) resetDeadConnViability() {
 		}
 		conn.mu.Lock()
 		if err := conn.casLifecycle(conn.loadConnState(), 0, 0, lcViable); err == nil {
-			Debug().Stringer("conn", conn.URL).Time("dead_since", conn.loadDeadSince()).Msg("resetDeadConnViability: cleared lcViable")
+			Debug().Str("conn", conn.URLString).Time("dead_since", conn.loadDeadSince()).Msg("resetDeadConnViability: cleared lcViable")
 		}
 		conn.mu.Unlock()
 	}

@@ -199,7 +199,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 	}
 
 	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
-		Debug().Stringer("conn", conn.URL).Err(err).Msg("Stats poll failed, cannot prepare request")
+		Debug().Str("conn", conn.URLString).Err(err).Msg("Stats poll failed, cannot prepare request")
 		return sample, false
 	}
 
@@ -217,7 +217,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 			)
 			conn.mu.Unlock()
 			Debug().
-				Stringer("conn", conn.URL).
+				Str("conn", conn.URLString).
 				Err(err).
 				Msg("Stats poll failed, clearing overloaded flag (resurrection scheduler will handle)")
 		}
@@ -327,7 +327,7 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	conn.mu.RUnlock()
 
 	if health != nil && health.Status == clusterStatusRed {
-		Debug().Stringer("conn", conn.URL).Msg("Node overloaded: cluster status is red")
+		Debug().Str("conn", conn.URLString).Msg("Node overloaded: cluster status is red")
 		overloaded = true
 	}
 
@@ -336,7 +336,7 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	// JVM heap usage
 	if stats.JVM.Mem.HeapUsedPercent >= c.overloadedHeapThreshold {
 		Debug().
-			Stringer("conn", conn.URL).
+			Str("conn", conn.URLString).
 			Int("heap_used_percent", stats.JVM.Mem.HeapUsedPercent).
 			Int("threshold", c.overloadedHeapThreshold).
 			Msg("Node overloaded: heap over threshold")
@@ -355,7 +355,7 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 			ratio := float64(breaker.EstimatedSizeInBytes) / float64(breaker.LimitSizeInBytes)
 			if ratio >= c.overloadedBreakerRatio {
 				Debug().
-					Stringer("conn", conn.URL).
+					Str("conn", conn.URLString).
 					Str("breaker", name).
 					Float64("ratio", ratio).
 					Float64("threshold", c.overloadedBreakerRatio).
@@ -370,7 +370,7 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 
 		if existed && breaker.Tripped > prevTripped {
 			Debug().
-				Stringer("conn", conn.URL).
+				Str("conn", conn.URLString).
 				Str("breaker", name).
 				Int64("tripped_delta", breaker.Tripped-prevTripped).
 				Int64("tripped_from", prevTripped).
@@ -587,7 +587,7 @@ func (c *Transport) refreshClusterHealth(conn *Connection) {
 
 	health, statusCode, err := c.fetchClusterHealth(c.ctx, conn.URL, applyModifier)
 	if err != nil {
-		Debug().Stringer("conn", conn.URL).Err(err).Msg("Cluster health refresh failed")
+		Debug().Str("conn", conn.URLString).Err(err).Msg("Cluster health refresh failed")
 		return
 	}
 
@@ -603,7 +603,7 @@ func (c *Transport) refreshClusterHealth(conn *Connection) {
 
 		Debug().
 			Int("status_code", statusCode).
-			Stringer("conn", conn.URL).
+			Str("conn", conn.URLString).
 			Msg("Cluster health refresh got unexpected status, resetting to pending")
 
 	default:

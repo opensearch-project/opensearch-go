@@ -238,7 +238,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	start := time.Now()
 	resp, err := hc(ctx, c, c.URL)
 	if err != nil {
-		Debug().Str("pool", cp.name).Stringer("conn", c.URL).Err(err).Msg("Health check failed")
+		Debug().Str("pool", cp.name).Str("conn", c.URLString).Err(err).Msg("Health check failed")
 		if obs := observerFromAtomic(&cp.observer); obs != nil {
 			event := newConnectionEvent(cp.name, c, lifecycleCounts{})
 			event.Error = err
@@ -296,7 +296,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	if prev != "" && prev != info.Version.Number {
 		Debug().
 			Str("pool", cp.name).
-			Stringer("conn", c.URL).
+			Str("conn", c.URLString).
 			Str("version_from", prev).
 			Str("version_to", info.Version.Number).
 			Msg("Version changed")
@@ -413,7 +413,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 			// Wait for either timeout or context cancellation
 			select {
 			case <-ctx.Done():
-				Debug().Str("pool", cp.name).Stringer("conn", c.URL).Err(ctx.Err()).Msg("Health check cancelled")
+				Debug().Str("pool", cp.name).Str("conn", c.URLString).Err(ctx.Err()).Msg("Health check cancelled")
 				return
 			case <-time.After(timeout):
 				// Timeout elapsed, proceed with resurrection attempt
@@ -437,7 +437,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// Check if connection is still in the pool (ready or dead lists)
 				stillInPool := slices.Contains(cp.mu.ready, c) || slices.Contains(cp.mu.dead, c)
 				if !stillInPool {
-					Debug().Str("pool", cp.name).Stringer("conn", c.URL).Msg("Connection removed from pool by DiscoveryUpdate, stopping health checks")
+					Debug().Str("pool", cp.name).Str("conn", c.URLString).Msg("Connection removed from pool by DiscoveryUpdate, stopping health checks")
 					return true
 				}
 
@@ -447,7 +447,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				if c.loadConnState().lifecycle().has(lcOverloaded) {
 					Debug().
 						Str("pool", cp.name).
-						Stringer("conn", c.URL).
+						Str("conn", c.URLString).
 						Msg("Connection is overload-demoted, stopping resurrection (stats poller manages lifecycle)")
 					return true
 				}

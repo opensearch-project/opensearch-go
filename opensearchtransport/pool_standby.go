@@ -106,7 +106,7 @@ func (cp *multiServerPool) demoteOverloaded(c *Connection) {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 		Msg("Overload-demoted connection to standby")
@@ -137,7 +137,7 @@ func (cp *multiServerPool) promoteFromOverloaded(c *Connection) {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Stringer("state", c.loadConnState().lifecycle()).
 		Msg("Cleared overloaded flag on connection")
 
@@ -271,7 +271,7 @@ func (cp *multiServerPool) tryStandbyWithLock() *Connection {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 		Msg("tryStandby: promoted connection to active (forced, no warmup)")
@@ -490,7 +490,7 @@ func (cp *multiServerPool) rotateStandbyOnce(ctx context.Context) (bool, bool, e
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", candidate.URL).
+		Str("conn", candidate.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 		Msg("rotateStandby: promoted connection standby->active with warmup")
@@ -568,7 +568,7 @@ func (cp *multiServerPool) healthcheckStart(ctx context.Context) (*Connection, e
 
 		Debug().
 			Str("pool", cp.name).
-			Stringer("conn", candidate.URL).
+			Str("conn", candidate.URLString).
 			Int("active", cp.mu.activeCount).
 			Int("dead", len(cp.mu.dead)).
 			Msg("healthcheckStart: health check failed for connection, moved to dead")
@@ -613,7 +613,7 @@ func (cp *multiServerPool) evictUnknownFromReadyWithLock(c *Connection) {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", c.URL).
+		Str("conn", c.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("dead", len(cp.mu.dead)).
 		Msg("evictUnknownFromReadyWithLock: moved connection to dead")
@@ -642,7 +642,7 @@ func (cp *multiServerPool) asyncPromoteStandby(ctx context.Context) {
 
 	Debug().
 		Str("pool", cp.name).
-		Stringer("conn", candidate.URL).
+		Str("conn", candidate.URLString).
 		Int("active", cp.mu.activeCount).
 		Int("standby", len(cp.mu.ready)-cp.mu.activeCount).
 		Msg("asyncPromoteStandby: promoted connection to active")
