@@ -57,26 +57,27 @@ See [USER_GUIDE.md Debugging](../USER_GUIDE.md#debugging) for the usage walkthro
 
 This is the one place these numbers live. Both adapter READMEs, the root README, and the user guide point here rather than repeating them, so a re-run updates one table.
 
-Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. All three implementations benchmark identical record shapes; reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module.
+Measured on darwin/arm64, Apple M4 Max, go1.26.4, writing to `io.Discard`, medians of 10 runs through `benchstat`. Both tables below come from one sitting, because absolute times drift a few percent between sessions and rows measured apart are not comparable. Byte and allocation counts are exact counters rather than samples, and were identical across all 10 runs of every row. All three implementations benchmark identical record shapes; reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module.
 
-The "no Stringer" row is the same four-field record with the deferred `Stringer` swapped for an already-resolved string. Every other row pays one allocation inside `(*url.URL).String`, so that row is the one that shows what a logger itself allocates rather than what resolving the connection address costs.
+Each "no Stringer" row is the record above it with the deferred `Stringer` swapped for an already-resolved string, which is the shape the client's own records have: the connection address comes from `Connection.URLString`, cached at construction. The paired rows separate what a logger allocates from what resolving that address costs.
 
 | record                | log-zerolog             | log-slog (JSONHandler)    | log-slog (TextHandler)    | built-in text           |
 | --------------------- | ----------------------- | ------------------------- | ------------------------- | ----------------------- |
-| 1 field               | 82.3 ns, 32 B, 1 alloc  | 354.1 ns, 32 B, 1 alloc   | 387.9 ns, 32 B, 1 alloc   | 104.8 ns, 32 B, 1 alloc |
-| 4 fields              | 136.4 ns, 32 B, 1 alloc | 483.8 ns, 32 B, 1 alloc   | 629.7 ns, 56 B, 2 allocs  | 136.8 ns, 32 B, 1 alloc |
-| 4 fields, no Stringer | 109.1 ns, 0 B, 0 allocs | 447.9 ns, 0 B, 0 allocs   | 593.4 ns, 24 B, 1 alloc   | 113.2 ns, 0 B, 0 allocs |
-| 8 fields              | 190.8 ns, 32 B, 1 alloc | 712.4 ns, 168 B, 3 allocs | 804.2 ns, 184 B, 3 allocs | 190.3 ns, 32 B, 1 alloc |
-| level rejects it      | 10.7 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.3 ns, 0 B, 0 allocs     | n/a                     |
+| 1 field               | 83.4 ns, 32 B, 1 alloc  | 356.5 ns, 32 B, 1 alloc   | 386.7 ns, 32 B, 1 alloc   | 110.7 ns, 32 B, 1 alloc |
+| 1 field, no Stringer  | 55.5 ns, 0 B, 0 allocs  | 323.9 ns, 0 B, 0 allocs   | 353.8 ns, 0 B, 0 allocs   | 84.0 ns, 0 B, 0 allocs  |
+| 4 fields              | 139.9 ns, 32 B, 1 alloc | 486.4 ns, 32 B, 1 alloc   | 624.0 ns, 56 B, 2 allocs  | 144.0 ns, 32 B, 1 alloc |
+| 4 fields, no Stringer | 111.5 ns, 0 B, 0 allocs | 450.7 ns, 0 B, 0 allocs   | 588.9 ns, 24 B, 1 alloc   | 117.6 ns, 0 B, 0 allocs |
+| 8 fields              | 195.6 ns, 32 B, 1 alloc | 715.4 ns, 168 B, 3 allocs | 805.0 ns, 184 B, 3 allocs | 199.6 ns, 32 B, 1 alloc |
+| level rejects it      | 10.9 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.3 ns, 0 B, 0 allocs     | n/a                     |
 | no logger installed   | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
 
-All three pool their event, so nothing a logger does allocates: the no-Stringer row is 0 B and 0 allocations for `log-zerolog`, for `log-slog` under `JSONHandler`, and for the built-in logger. The allocation every other row has in common is `(*url.URL).String` building the connection address, paid by the caller's value and not by the logger.
+All three pool their event, so nothing a logger does allocates: both no-Stringer rows are 0 B and 0 allocations for `log-zerolog`, for `log-slog` under `JSONHandler`, and for the built-in logger. The allocation the other rows have in common is `(*url.URL).String` building the connection address, paid by the caller's value and not by the logger. The one-field pair isolates it best, since a record of one `Stringer` field is otherwise the cheapest thing any of these can emit.
 
-`log-zerolog` and the built-in logger then hold at that one allocation however wide the record gets, because both append values straight into a byte buffer. On time they are within a nanosecond of each other at four and eight fields; `log-zerolog` is ahead only on the shortest record.
+`log-zerolog` and the built-in logger then hold at that one allocation however wide the record gets, because both append values straight into a byte buffer. `log-zerolog` leads at every size, by 2 to 3% at four and eight fields and by a third on the shortest record, where the built-in logger's fixed timestamp prefix is a larger share of the work.
 
 `log-slog` climbs to three allocations by eight fields. Two of the three are `slog.Record`, which stores five attributes inline and moves the overflow to a heap slice, and the address string. The third is the handler's, and the two handlers pay it on different fields: `JSONHandler` writes an `error` through `Error()` but sends every `float64` through `json.Marshal`, while `TextHandler` appends floats itself and has no `error` case, so `Err` falls to `fmt.Sprintf`. That is why the four-field rows, carrying an error and no float, cost `TextHandler` one allocation more, and why the eight-field rows, carrying both, come out even. None of it is the adapter's to fix: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter.
 
-The wider gap is time, not allocations. Per record `log-slog` costs three to five times what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
+The wider gap is time, not allocations. Per record `log-slog` costs three to six times what the other two do, the multiple growing as the record gets cheaper, and `TextHandler` costs more than `JSONHandler` at every size.
 
 ### Per field
 
@@ -84,20 +85,20 @@ The table above prices whole records. This one prices one field at a time, each 
 
 | field      | log-zerolog       | log-slog (JSONHandler) | log-slog (TextHandler) | built-in text      |
 | ---------- | ----------------- | ---------------------- | ---------------------- | ------------------ |
-| no fields  | 39.9 ns, 0 allocs | 266.3 ns, 0 allocs     | 298.0 ns, 0 allocs     | 72.5 ns, 0 allocs  |
-| `Str`      | 48.7 ns, 0 allocs | 311.3 ns, 0 allocs     | 342.3 ns, 0 allocs     | 79.2 ns, 0 allocs  |
-| `Strs`     | 59.7 ns, 0 allocs | 412.6 ns, 1 alloc      | 563.9 ns, 5 allocs     | 97.8 ns, 0 allocs  |
-| `Int`      | 47.8 ns, 0 allocs | 307.9 ns, 0 allocs     | 342.0 ns, 0 allocs     | 81.0 ns, 0 allocs  |
-| `Int32`    | 48.0 ns, 0 allocs | 308.4 ns, 0 allocs     | 343.1 ns, 0 allocs     | 80.4 ns, 0 allocs  |
-| `Int64`    | 47.6 ns, 0 allocs | 309.1 ns, 0 allocs     | 341.0 ns, 0 allocs     | 80.5 ns, 0 allocs  |
-| `Uint32`   | 46.8 ns, 0 allocs | 309.2 ns, 0 allocs     | 343.2 ns, 0 allocs     | 80.0 ns, 0 allocs  |
-| `Float64`  | 62.4 ns, 0 allocs | 373.1 ns, 1 alloc      | 360.9 ns, 0 allocs     | 98.6 ns, 0 allocs  |
-| `Dur`      | 69.0 ns, 0 allocs | 316.1 ns, 0 allocs     | 349.6 ns, 0 allocs     | 87.6 ns, 0 allocs  |
-| `Time`     | 70.2 ns, 0 allocs | 353.9 ns, 0 allocs     | 390.2 ns, 0 allocs     | 175.6 ns, 0 allocs |
-| `Stringer` | 79.6 ns, 1 alloc  | 353.1 ns, 1 alloc      | 386.6 ns, 1 alloc      | 106.7 ns, 1 alloc  |
-| `Err`      | 58.1 ns, 0 allocs | 326.2 ns, 0 allocs     | 460.0 ns, 1 alloc      | 79.8 ns, 0 allocs  |
+| no fields  | 41.1 ns, 0 allocs | 271.4 ns, 0 allocs     | 303.4 ns, 0 allocs     | 77.0 ns, 0 allocs  |
+| `Str`      | 49.9 ns, 0 allocs | 320.4 ns, 0 allocs     | 347.6 ns, 0 allocs     | 84.4 ns, 0 allocs  |
+| `Strs`     | 60.9 ns, 0 allocs | 415.7 ns, 1 alloc      | 572.2 ns, 5 allocs     | 100.4 ns, 0 allocs |
+| `Int`      | 50.5 ns, 0 allocs | 316.6 ns, 0 allocs     | 347.8 ns, 0 allocs     | 85.4 ns, 0 allocs  |
+| `Int32`    | 49.8 ns, 0 allocs | 317.3 ns, 0 allocs     | 346.4 ns, 0 allocs     | 85.4 ns, 0 allocs  |
+| `Int64`    | 49.4 ns, 0 allocs | 316.5 ns, 0 allocs     | 348.0 ns, 0 allocs     | 84.8 ns, 0 allocs  |
+| `Uint32`   | 48.5 ns, 0 allocs | 316.4 ns, 0 allocs     | 346.9 ns, 0 allocs     | 84.5 ns, 0 allocs  |
+| `Float64`  | 65.3 ns, 0 allocs | 383.4 ns, 1 alloc      | 367.6 ns, 0 allocs     | 103.8 ns, 0 allocs |
+| `Dur`      | 71.7 ns, 0 allocs | 321.4 ns, 0 allocs     | 355.0 ns, 0 allocs     | 91.3 ns, 0 allocs  |
+| `Time`     | 73.3 ns, 0 allocs | 365.6 ns, 0 allocs     | 396.2 ns, 0 allocs     | 183.6 ns, 0 allocs |
+| `Stringer` | 82.5 ns, 1 alloc  | 363.0 ns, 1 alloc      | 390.8 ns, 1 alloc      | 111.0 ns, 1 alloc  |
+| `Err`      | 59.9 ns, 0 allocs | 334.1 ns, 0 allocs     | 464.2 ns, 1 alloc      | 82.7 ns, 0 allocs  |
 
-`Stringer` is the only field that allocates on all four, and the allocation is inside the caller's `String()`, not in the logger. The client's own records avoid it: `Connection` caches its address as `URLString` at construction, so every emitting site passes `Str("conn", conn.URLString)` and pays nothing. Reach for `Stringer` when the value is genuinely expensive and might not be rendered at all, which is what it exists for.
+`Stringer` is the only field that allocates on all four, and the allocation is inside the caller's `String()` rather than in the logger. The method itself is free: handed a `String()` that returns an already-built string, the built-in logger's `Stringer` row measures 0 B and 0 allocations. A `*url.URL` is what costs, because `url.URL.String()` builds a fresh string on every call with nowhere to cache it. The client's own records sidestep that by passing `Str("conn", conn.URLString)`, and `Stringer` remains for values that are dear to render and often never rendered: the connection-state field resolves through `fmt.Sprintf` at four allocations, all of which a disabled logger skips.
 
 The rest is `log-slog`. `JSONHandler` allocates on `Strs`, which it marshals as a slice, and on `Float64`, which it routes through `encoding/json` rather than `strconv`. `TextHandler` renders floats itself but pays five allocations on `Strs` and one on `Err`, both through `fmt`. On the two integer-widening methods, `Int32` and `Uint32`, the widening to 64 bits costs nothing measurable.
 

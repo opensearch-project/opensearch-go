@@ -57,6 +57,15 @@ func emitOneDebugField(dl debuglog.Logger) {
 	dl.Debug().Stringer("conn", benchDebugURL).Msg("Request failed")
 }
 
+// emitOneDebugFieldNoStringer is the shape the client's own one-field records
+// have: the connection address arrives already resolved, from
+// Connection.URLString. It is the counterpart to the "1 field" shape above,
+// whose single allocation is the deferred Stringer rather than anything a
+// one-field record inherently costs.
+func emitOneDebugFieldNoStringer(dl debuglog.Logger) {
+	dl.Debug().Str("conn", benchConnText).Msg("Request failed")
+}
+
 // emitFourDebugFieldsNoStringer is the four-field shape with the deferred Stringer swapped for an
 // already-resolved string. Every other shape here pays one allocation inside
 // (*url.URL).String, so this is the shape that shows what the logger itself
@@ -103,6 +112,7 @@ func BenchmarkTextDebugLogger(b *testing.B) {
 		emit func(debuglog.Logger)
 	}{
 		{"one field", emitOneDebugField},
+		{"one field, no Stringer", emitOneDebugFieldNoStringer},
 		{"four fields", emitFourDebugFields},
 		{"eight fields", emitEightDebugFields},
 		{"four fields, no Stringer", emitFourDebugFieldsNoStringer},

@@ -60,6 +60,14 @@ func oneField(dl debuglog.Logger) {
 	dl.Debug().Stringer("conn", benchURL).Msg("Request failed")
 }
 
+// oneFieldNoStringer is the shape the client's own one-field records have: the
+// connection address arrives already resolved, from Connection.URLString. It is
+// the counterpart to oneField, whose single allocation is the deferred Stringer
+// rather than anything a one-field record inherently costs.
+func oneFieldNoStringer(dl debuglog.Logger) {
+	dl.Debug().Str("conn", benchConnText).Msg("Request failed")
+}
+
 // fourFieldsNoStringer is the four-field shape with the deferred Stringer swapped for an
 // already-resolved string. Every other shape here pays one allocation inside
 // (*url.URL).String, so this is the shape that shows what the logger itself
@@ -106,6 +114,7 @@ func BenchmarkAdapter(b *testing.B) {
 		emit func(debuglog.Logger)
 	}{
 		{"one field", oneField},
+		{"one field, no Stringer", oneFieldNoStringer},
 		{"four fields", fourFields},
 		{"eight fields", eightFields},
 		{"four fields, no Stringer", fourFieldsNoStringer},
