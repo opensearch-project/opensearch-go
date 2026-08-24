@@ -70,11 +70,11 @@ The "no Stringer" row is the same four-field record with the deferred `Stringer`
 | level rejects it      | 10.7 ns, 0 B, 0 allocs  | 6.3 ns, 0 B, 0 allocs     | 6.3 ns, 0 B, 0 allocs     | n/a                     |
 | no logger installed   | n/a                     | n/a                       | n/a                       | 3.7 ns, 0 B, 0 allocs   |
 
-All three pool their event, so nothing a logger does allocates: the no-Stringer row is 0 B and 0 allocations for `log-zerolog`, for `log-slog` under `JSONHandler`, and for the built-in logger. The single allocation every other row shows is `(*url.URL).String` building the connection address, paid by the caller's value and not by the logger.
+All three pool their event, so nothing a logger does allocates: the no-Stringer row is 0 B and 0 allocations for `log-zerolog`, for `log-slog` under `JSONHandler`, and for the built-in logger. The allocation every other row has in common is `(*url.URL).String` building the connection address, paid by the caller's value and not by the logger.
 
 `log-zerolog` and the built-in logger then hold at that one allocation however wide the record gets, because both append values straight into a byte buffer. On time they are within a nanosecond of each other at four and eight fields; `log-zerolog` is ahead only on the shortest record.
 
-`log-slog` climbs to three allocations by eight fields. `slog.Record` stores five attributes inline and moves the overflow to a heap slice, and `JSONHandler` encodes each `float64` through `json.Marshal`. Neither is something the adapter controls: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter. `TextHandler` allocates one more than `JSONHandler` at every size.
+`log-slog` climbs to three allocations by eight fields. Two of the three are `slog.Record`, which stores five attributes inline and moves the overflow to a heap slice, and the address string. The third is the handler's, and the two handlers pay it on different fields: `JSONHandler` writes an `error` through `Error()` but sends every `float64` through `json.Marshal`, while `TextHandler` appends floats itself and has no `error` case, so `Err` falls to `fmt.Sprintf`. That is why the four-field rows, carrying an error and no float, cost `TextHandler` one allocation more, and why the eight-field rows, carrying both, come out even. None of it is the adapter's to fix: the record is handed to the handler by value to keep source attribution pointing at the transport file rather than at the adapter.
 
 The wider gap is time, not allocations. Per record `log-slog` costs three to five times what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
 
