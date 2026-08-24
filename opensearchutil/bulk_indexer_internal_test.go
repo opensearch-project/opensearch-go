@@ -1560,6 +1560,55 @@ func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 }
 
+func TestBulkIndexerFlushReturnsWhenContextCancelledMidDrain(t *testing.T) {
+	t.Parallel()
+
+	// The transport parks inside the bulk request until the test releases it, so
+	// Flush is provably still waiting for its barrier when the context dies. Both
+	// channels carry the handshake, so the test never sleeps to sequence this.
+	inFlight := make(chan struct{}, 1)
+	release := make(chan struct{})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 1,
+		Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+				return infoResponse()
+			}
+			select {
+			case inFlight <- struct{}{}:
+			default:
+			}
+			<-release
+
+			return defaultRoundTripFunc(req)
+		}),
+		Index: testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { close(release) })
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	flushed := make(chan error, 1)
+	go func() { flushed <- bi.Flush(ctx) }()
+
+	<-inFlight
+	cancel()
+
+	select {
+	case flushErr := <-flushed:
+		require.ErrorIs(t, flushErr, context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung after its context was cancelled mid-drain")
+	}
+}
+
 func TestBulkIndexerFlushDoesNotHangWhenConstructionContextCancelled(t *testing.T) {
 	t.Parallel()
 

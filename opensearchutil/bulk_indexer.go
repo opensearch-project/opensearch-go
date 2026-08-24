@@ -72,25 +72,14 @@ type BulkIndexer interface {
 	// actions on one document are sent in the order they were added.
 	Add(context.Context, BulkIndexerItem) error
 
-	// Flush sends every item added before the call to OpenSearch and leaves the
-	// indexer open for further Add calls, so a single indexer can serve a
-	// process that drains on demand: a warm AWS Lambda handler, or a test that
-	// asserts on indexed documents.
+	// Flush sends every item added before the call and leaves the indexer open,
+	// so one indexer can drain on demand and keep going. Items added
+	// concurrently may land in this drain or the next, and the bulk requests run
+	// on ctx.
 	//
-	// Items added concurrently with Flush may or may not be included. The
-	// guarantee covers the items each worker had already been handed when Flush
-	// reached it. The bulk requests Flush drives run on the context passed to
-	// it, so a deadline there bounds the whole drain.
-	//
-	// A non-nil error means a drain did not go through: a transport failure, an
-	// error status, an unreadable response. Documents the cluster rejected
-	// individually are reported to their OnFailure callback instead, and do not
-	// make Flush return an error.
-	//
-	// It is safe to call repeatedly, and safe for concurrent use alongside Add
-	// and other Flush calls. Like Add, it must not be called after Close, nor
-	// concurrently with it: Close closes the worker queues, and a Flush that
-	// reaches a closed queue panics.
+	// A non-nil error means the drain itself failed; documents the cluster
+	// rejected individually go to their OnFailure callback. Safe alongside Add
+	// and other Flush calls, but like Add it panics after Close.
 	Flush(context.Context) error
 
 	// Close waits until all added items are flushed and closes the indexer.
@@ -348,14 +337,10 @@ func (bi *bulkIndexer) queueIndex(item BulkIndexerItem) int {
 	return idx
 }
 
-// Flush sends every item added before the call to OpenSearch, leaving the
-// indexer open for further Add calls.
+// Flush drains every item added before the call, leaving the indexer open.
 //
-// Calling it after Close panics, the way Add does: Close has closed the worker
-// queues by then, and this sends a barrier down each one.
-//
-// Every error reaches the caller through the return value, so unlike the
-// periodic flush and Close there is nothing here for OnError to report.
+// Errors reach the caller through the return value, so unlike the periodic
+// flush and Close there is nothing here for OnError to report.
 func (bi *bulkIndexer) Flush(ctx context.Context) error {
 	// Reject a dead context up front rather than letting the selects below
 	// choose randomly between a ready ctx.Done and a ready queue send, so the
