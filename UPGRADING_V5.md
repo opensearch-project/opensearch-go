@@ -398,3 +398,43 @@ MatchPhrase: map[string]opensearchapi.CommonQueryDSLMatchPhraseQuery{"title": {}
 `SearchSuggestCompletion` narrows the inherited `options` field to `*SearchSuggestCompletionOptions`, so a field the spec marks required is now omitted when unset; read it through `AsCompletion()`.
 
 On the response side, `SearchSuggest` gains an `AsCompletion()` branch, and the `neural` info-stat fields change from plain scalars to `NeuralInfoCounterStat`, `NeuralInfoStringStat`, and `NeuralTimestampedEventCounterStat`. Each keeps the scalar on a branch accessor: `Int()` on `NeuralInfoCounterStat` and `NeuralTimestampedEventCounterStat`, and `String()` on `NeuralInfoStringStat`, which is the one that replaced a `*string`. The accessor returns the value the plain field used to hold, plus an error when the response carried the object form instead.
+
+## `opensearchutil.BulkIndexer` interface gained `Flush()`
+
+The exported `BulkIndexer` interface in `opensearchutil` gained a new method:
+
+```go
+type BulkIndexer interface {
+    Add(context.Context, BulkIndexerItem) error
+    Flush(context.Context) error // new in v5
+    Close(context.Context) error
+    Stats() BulkIndexerStats
+}
+```
+
+External code that implements `BulkIndexer` must add a `Flush(context.Context) error` method. Indexers built via `NewBulkIndexer` gain it automatically; only hand-written implementations, most often a fake standing in for the indexer in tests, are affected.
+
+`Flush` sends every item added before the call and leaves the indexer open. A handler that had to construct an indexer per invocation, because `Close` was the only way to force a drain, can now keep one indexer and flush at the end of each unit of work:
+
+```go
+// Before: Close is the only way to drain, and it makes the indexer unusable,
+// so the indexer has to be rebuilt on every invocation.
+func handler(ctx context.Context) error {
+    indexer, err := opensearchutil.NewBulkIndexer(cfg)
+    if err != nil {
+        return err
+    }
+    // ... indexer.Add(ctx, item) ...
+    return indexer.Close(ctx)
+}
+
+// After: build the indexer once, drain per invocation.
+var indexer = mustNewBulkIndexer(cfg)
+
+func handler(ctx context.Context) error {
+    // ... indexer.Add(ctx, item) ...
+    return indexer.Flush(ctx)
+}
+```
+
+`Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.

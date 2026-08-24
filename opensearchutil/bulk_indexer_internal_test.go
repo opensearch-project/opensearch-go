@@ -47,6 +47,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -1140,7 +1141,7 @@ func TestBulkIndexerQueueIndexPinsDocumentID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			bi := &bulkIndexer{queues: make([]chan BulkIndexerItem, numWorkers)}
+			bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
 			for range 3 {
 				require.Equal(t, tt.wantIndex, bi.queueIndex(BulkIndexerItem{DocumentID: tt.documentID}))
 			}
@@ -1156,7 +1157,7 @@ func TestBulkIndexerQueueIndexRoundRobinsWithoutDocumentID(t *testing.T) {
 		rounds     = 3
 	)
 
-	bi := &bulkIndexer{queues: make([]chan BulkIndexerItem, numWorkers)}
+	bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
 
 	got := make([]int, numWorkers)
 	for range numWorkers * rounds {
@@ -1176,9 +1177,9 @@ func TestBulkIndexerAddDeliversToRoutedQueue(t *testing.T) {
 	)
 
 	// Skip init so no worker drains the queues while the test inspects them.
-	bi := &bulkIndexer{stats: &bulkIndexerStats{}, queues: make([]chan BulkIndexerItem, numWorkers)}
+	bi := &bulkIndexer{stats: &bulkIndexerStats{}, queues: make([]chan queueEntry, numWorkers)}
 	for i := range bi.queues {
-		bi.queues[i] = make(chan BulkIndexerItem, numItems)
+		bi.queues[i] = make(chan queueEntry, numItems)
 	}
 
 	for range numItems {
@@ -1297,4 +1298,290 @@ func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
 		require.Equal(t, hotActions, hits, "one request must carry every action for %s", hotDocID)
 	}
 	require.Equal(t, 1, requestsCarryingHotDoc, "actions for %s must not be split across requests", hotDocID)
+}
+
+// bulkRecorder records the action lines of every bulk request an indexer sends.
+type bulkRecorder struct {
+	mu       sync.Mutex
+	requests [][]string
+}
+
+func (r *bulkRecorder) roundTrip(req *http.Request) (*http.Response, error) {
+	if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+		return defaultRoundTripFunc(req)
+	}
+	// RoundTrip runs on a worker goroutine, so record the body and leave every
+	// assertion to the test goroutine.
+	if body, err := io.ReadAll(req.Body); err == nil {
+		r.mu.Lock()
+		r.requests = append(r.requests, bulkDocumentIDs(body))
+		r.mu.Unlock()
+	}
+	return defaultRoundTripFunc(req)
+}
+
+// takeActions returns every action line recorded so far and clears the record,
+// so a caller can assert on one round of flushing at a time.
+func (r *bulkRecorder) takeActions() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var actions []string
+	for _, request := range r.requests {
+		actions = append(actions, request...)
+	}
+	r.requests = nil
+
+	return actions
+}
+
+func newBulkTestClient(t *testing.T, roundTrip func(*http.Request) (*http.Response, error)) *opensearchapi.Client {
+	t.Helper()
+
+	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{
+		Transport: &mockTransport{RoundTripFunc: roundTrip},
+	}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
+
+	return client
+}
+
+// flushContextKey types the value the Flush caller plants on its context, so
+// the test can prove that context is what the bulk request ran under.
+type flushContextKey struct{}
+
+func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 4
+		wantValue  = "planted-by-flush-caller"
+	)
+
+	var (
+		mu        sync.Mutex
+		flushedAs []any
+	)
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+		// OnFlushStart receives the context the flush is running under, which
+		// is the same one the bulk request is issued with.
+		OnFlushStart: func(ctx context.Context) context.Context {
+			mu.Lock()
+			flushedAs = append(flushedAs, ctx.Value(flushContextKey{}))
+			mu.Unlock()
+
+			return ctx
+		},
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	require.NoError(t, bi.Flush(context.WithValue(t.Context(), flushContextKey{}, wantValue)))
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	// Exactly one element proves two things at once: the flush ran on the
+	// caller's context rather than the worker's, and the three workers holding
+	// nothing did not fire the flush callbacks for a request they never sent.
+	require.Equal(t, []any{wantValue}, flushedAs)
+}
+
+func TestBulkIndexerFlushDrainsAndKeepsIndexerUsable(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers    = 4
+		itemsPerRound = 12
+		rounds        = 3
+	)
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	// The payload is far below the default FlushBytes (5MB) and each round
+	// finishes well inside the default FlushInterval (30s), so neither
+	// threshold can fire: every action the transport sees got there via Flush.
+	for round := range rounds {
+		want := make([]string, 0, itemsPerRound)
+		for i := range itemsPerRound {
+			documentID := fmt.Sprintf("doc_%d_%d", round, i)
+			want = append(want, actionIndex+":"+documentID)
+			require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: documentID,
+				Body:       strings.NewReader(`{"a":1}`),
+			}))
+		}
+
+		require.NoError(t, bi.Flush(t.Context()))
+		require.ElementsMatch(t, want, recorder.takeActions(),
+			"round %d: Flush must send exactly the items added since the previous Flush", round)
+	}
+
+	require.NoError(t, bi.Close(t.Context()))
+	require.Equal(t, uint64(rounds*itemsPerRound), bi.Stats().NumAdded)
+}
+
+func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
+	t.Parallel()
+
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		return &http.Response{
+			StatusCode: http.StatusInternalServerError,
+			Status:     "500 Internal Server Error",
+			Body:       io.NopCloser(strings.NewReader(`{"error":{"type":"illegal_state_exception"},"status":500}`)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	// A failed bulk request has to surface through Flush's return value; the
+	// caller has no other way to learn the drain it just asked for did not land.
+	require.Error(t, bi.Flush(t.Context()))
+	require.Equal(t, uint64(1), bi.Stats().NumFailed)
+	require.NoError(t, bi.Close(t.Context()))
+}
+
+func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 2,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	// Flush checks the context before queueing any barrier, so a cancelled
+	// context is a clean refusal rather than a partial drain.
+	require.ErrorIs(t, bi.Flush(ctx), context.Canceled)
+	require.Empty(t, recorder.takeActions(), "a refused Flush must not send anything")
+
+	require.NoError(t, bi.Close(t.Context()))
+}
+
+func TestBulkIndexerFlushDoesNotHangWhenConstructionContextCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Context:    ctx,
+		NumWorkers: 2,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	cancel()
+	<-bi.(*bulkIndexer).flusherDone
+
+	// A live context, deliberately, rather than the cancelled one: the workers
+	// are gone, so a Flush that only watched the caller's context would wait
+	// forever for a barrier ack that can never arrive.
+	done := make(chan error, 1)
+	go func() { done <- bi.Flush(t.Context()) }()
+
+	select {
+	case flushErr := <-done:
+		// A worker may still drain the barrier before it notices the
+		// cancellation, so a nil error is legitimate here. What matters is
+		// that Flush returned at all.
+		if flushErr != nil {
+			require.ErrorIs(t, flushErr, context.Canceled)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung after construction context was cancelled")
+	}
+}
+
+func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers    = 4
+		numAdders     = 4
+		itemsPerAdder = 25
+		numFlushers   = 3
+		wantAdded     = numAdders * itemsPerAdder
+	)
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	var g errgroup.Group
+	for adder := range numAdders {
+		g.Go(func() error {
+			for i := range itemsPerAdder {
+				if err := bi.Add(t.Context(), BulkIndexerItem{
+					Action:     actionIndex,
+					DocumentID: fmt.Sprintf("doc_%d_%d", adder, i),
+					Body:       strings.NewReader(`{"a":1}`),
+				}); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+	}
+	for range numFlushers {
+		g.Go(func() error { return bi.Flush(t.Context()) })
+	}
+	require.NoError(t, g.Wait())
+	// Concurrent flushes make no promise about which items each one carried, so
+	// the assertion is on the total after a final barrier: nothing added was
+	// dropped, and nothing was sent twice.
+	require.NoError(t, bi.Flush(t.Context()))
+	require.NoError(t, bi.Close(t.Context()))
+
+	require.Equal(t, uint64(wantAdded), bi.Stats().NumAdded)
+	require.Len(t, recorder.takeActions(), wantAdded)
 }
