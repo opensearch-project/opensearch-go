@@ -412,7 +412,7 @@ type BulkIndexer interface {
 }
 ```
 
-External code that implements `BulkIndexer` must add a `Flush(context.Context) error` method. Indexers built via `NewBulkIndexer` gain it automatically; only hand-written implementations, most often a fake standing in for the indexer in tests, are affected.
+Callers that build their indexer with `NewBulkIndexer` have nothing to do: it gains `Flush` automatically, and `Close` still drains whatever is buffered before it returns, so no existing code has to start calling `Flush`. Only code that implements the interface itself, most often a fake standing in for the indexer in tests, has to add a `Flush(context.Context) error` method.
 
 `Flush` sends every item added before the call and leaves the indexer open. A handler that had to construct an indexer per invocation, because `Close` was the only way to force a drain, can now keep one indexer and flush at the end of each unit of work:
 
