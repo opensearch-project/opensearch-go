@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"io"
 	"sort"
+
+	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
 // goField represents a single struct field in a generated Go type.
@@ -26,30 +28,66 @@ type goField struct {
 	DeprecationMsg    string // explains what to use instead
 }
 
-// unionBranch represents one branch of a oneOf/anyOf discriminated union.
+// unionBranch represents one branch of a oneOf/anyOf union.
 type unionBranch struct {
-	Name         string   // Go accessor/const suffix (e.g. "TotalHits", "Int64")
-	GoType       string   // Go type of the branch value (e.g. "SearchTotalHits", "int64")
-	TokenClass   string   // "object", "array", "number", "string", "bool" for byte-prefix dispatch
-	Required     []string // required fields for object validation (try-each heuristic)
-	IsRef        bool     // branch came from a $ref (needs registry walk)
-	VersionAdded string   // x-version-added from the spec (for try-each ordering)
+	Name string // Go accessor/const suffix (e.g. "TotalHits", "Int64")
+	// GoType is the Go type of the branch value (e.g. "SearchTotalHits", "int64").
+	GoType string
+	// SchemaKey is the branch's own $ref schema key, when it came from a $ref
+	// (e.g. "_common.analysis___CharFilterDefinition"). Retained because the
+	// key's local segment is the only unqualified name for the branch: the Go
+	// type name carries the group prefix, which the enclosing union name already
+	// supplies. Empty for inline and primitive branches.
+	SchemaKey string
+	// TokenClass is the JSON token this branch decodes from. It separates
+	// branches only when they land in different classes (see ir.TokenClass).
+	TokenClass ir.TokenClass
+	// Required lists required object properties, probed for presence by the
+	// key-presence fallback.
+	Required     []string
+	IsRef        bool   // branch came from a $ref (needs registry walk)
+	VersionAdded string // x-version-added from the spec (orders the try-each fallback)
+	// Ordinal is the position in the spec oneOf/anyOf array; the source of truth
+	// for order (Name must never be parsed for it).
+	Ordinal int
+
+	// DiscriminatorValue is the wire value of the union's discriminator property
+	// that selects this branch, resolved from the spec's discriminator.mapping or
+	// from the const/enum the branch pins the property to. Empty unless the union
+	// declares a discriminator that resolved for every branch.
+	DiscriminatorValue string
+
+	// DiscriminatorField is the Go field name on this branch's type that carries
+	// the discriminator property, when the branch declares it as a plain string
+	// field. Resolved during the walk, where the registry is at hand. See
+	// ir.DiscriminatorBranch.DiscriminatorField.
+	DiscriminatorField string
 }
 
-// goType represents a generated Go struct type or discriminated union.
+// goType represents a generated Go struct type or oneOf/anyOf union.
 type goType struct {
-	Name       string        // Go type name (e.g. "ClusterHealthResp", "ShardStatistics")
-	Pkg        string        // full import path (see ir.DefaultCoreImportPath)
-	SchemaRef  string        // original spec schema key (e.g. "_common___ShardStatistics")
-	Fields     []goField     // struct fields in declaration order
-	IsResp     bool          // true for top-level response body types (gets Inspect method)
-	IsShared   bool          // true for types emitted to types_gen.go (shared across operations)
-	IsUnion    bool          // true for discriminated union types (oneOf/anyOf)
-	IsLazy     bool          // lazy-decode union (stores raw, decodes on accessor call)
-	IsEnum     bool          // true for int-backed iota enum types (x-enum-name marker)
-	Branches   []unionBranch // union branches (only populated when IsUnion)
-	EnumValues []string      // allowed wire values (only populated when IsEnum)
-	Comment    string        // type doc comment
+	Name      string    // Go type name (e.g. "ClusterHealthResp", "ShardStatistics")
+	Pkg       string    // full import path (see ir.DefaultCoreImportPath)
+	SchemaRef string    // original spec schema key (e.g. "_common___ShardStatistics")
+	Fields    []goField // struct fields in declaration order
+	IsResp    bool      // true for top-level response body types (gets Inspect method)
+	IsShared  bool      // true for types emitted to types_gen.go (shared across operations)
+	IsUnion   bool      // true for oneOf/anyOf union types
+	// IsAmbiguousWire marks a union whose branches collide on JSON token class,
+	// so the payload must be inspected to pick one.
+	IsAmbiguousWire bool
+	IsEnum          bool             // true for int-backed iota enum types (x-enum-name marker)
+	IsStringEnum    bool             // true for string-backed enum types (oneOf-of-const; permissive)
+	Branches        []unionBranch    // union branches (only populated when IsUnion)
+	EnumValues      []string         // allowed wire values (int-backed path; also the conflict-check key)
+	EnumConsts      []constEnumValue // per-member values + doc/version metadata (string-backed path)
+	Comment         string           // type doc comment
+
+	// Discriminator carries the spec's OpenAPI `discriminator` when the union
+	// declares one and every branch resolved to a unique value. Nil otherwise,
+	// including for a partially-resolvable discriminator: see
+	// discriminatorValues for why resolution is all-or-nothing.
+	Discriminator *unionDiscriminator
 }
 
 // typeRegistry tracks generated types, deduplicates by schema ref, and
@@ -135,6 +173,43 @@ func (r *typeRegistry) lookup(ref string) (*goType, bool) {
 	return t, ok
 }
 
+// aliasRef points ref at an already-registered type instead of registering a new
+// one, so a schema that is the same type as another resolves to it everywhere.
+//
+// Used for allOf schemas whose override contributes nothing beyond the base (see
+// walker.collapsesToBase): the spec names them separately, but after erasing the
+// generic type argument they describe the identical shape. Aliasing keeps every
+// lookup path working -- notably the response-body classifier, which resolves an
+// operation's Resp by its own ref and would otherwise degrade the response to raw
+// JSON -- while emitting only one Go type.
+//
+// The alias is not appended to r.order, so the type is emitted once, under the
+// name it was originally registered with.
+func (r *typeRegistry) aliasRef(ref string, target *goType) {
+	if ref == "" || target == nil {
+		return
+	}
+	if _, exists := r.byRef[ref]; exists {
+		return
+	}
+	r.byRef[ref] = target
+}
+
+// rename changes a registered type's Go name, keeping the byName index in sync.
+// Callers must rewrite references separately (see rewriteTypeRefs): type
+// references are plain strings, not pointers to this entry.
+func (r *typeRegistry) rename(t *goType, name string) {
+	if t == nil || name == "" || name == t.Name {
+		return
+	}
+	if _, taken := r.byName[name]; taken {
+		return
+	}
+	delete(r.byName, t.Name)
+	t.Name = name
+	r.byName[name] = t
+}
+
 // lookupByName returns a previously registered type by its Go name.
 func (r *typeRegistry) lookupByName(name string) (*goType, bool) {
 	t, ok := r.byName[name]
@@ -215,8 +290,16 @@ func (r *typeRegistry) forOperation(group string) []*goType {
 	return result
 }
 
-// reachableFrom returns all non-shared, non-Resp types transitively reachable
-// from the given schema ref by following field type references and embeds.
+// reachableFrom returns all non-shared types transitively reachable from the
+// given schema ref by following field type references and embeds.
+//
+// A response-body type (IsResp) is normally the operation's own Resp struct and
+// is not duplicated as a sibling. But when another type references it as a field
+// or branch -- e.g. a search hit's _source that $refs a get operation's response
+// schema -- that schema is genuinely reachable structurally and must be emitted,
+// or the field's type reference dangles. Such a type is only ever inlined into
+// its own operation's Resp (its schema type is not otherwise emitted), so
+// emitting it here as a referenced sibling is correct and non-duplicative.
 func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 	visited := make(map[string]bool)
 	var result []*goType
@@ -234,7 +317,7 @@ func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 				continue
 			}
 			visited[child.SchemaRef] = true
-			if !child.IsResp && !child.IsShared {
+			if !child.IsShared {
 				result = append(result, child)
 			}
 			walk(child.SchemaRef)
@@ -246,7 +329,7 @@ func (r *typeRegistry) reachableFrom(startRef string) []*goType {
 				continue
 			}
 			visited[child.SchemaRef] = true
-			if !child.IsResp && !child.IsShared {
+			if !child.IsShared {
 				result = append(result, child)
 			}
 			walk(child.SchemaRef)

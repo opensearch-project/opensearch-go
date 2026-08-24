@@ -134,10 +134,10 @@ func (r IndicesGetIndexTemplateResp) RawBody() io.Reader {
 //
 // The configuration for an index template item.
 type IndicesGetIndexTemplateIndexTemplateItem struct {
-	// The configuration for an index template.
+	// IndexTemplate is the configuration for an index template.
 	IndexTemplate IndicesIndexTemplate `json:"index_template"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -148,12 +148,12 @@ type IndicesGetIndexTemplateIndexTemplateItem struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) GetIndexTemplate(ctx context.Context, req IndicesGetIndexTemplateReq) (*IndicesGetIndexTemplateResp, error) {
+func (c IndicesClient) GetIndexTemplate(ctx context.Context, req IndicesGetIndexTemplateReq) (*IndicesGetIndexTemplateResp, error) {
 	var (
 		data IndicesGetIndexTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

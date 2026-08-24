@@ -117,7 +117,7 @@ func (r IndicesGetDataStreamResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) GetDataStream(ctx context.Context, req *IndicesGetDataStreamReq) (*IndicesGetDataStreamResp, error) {
+func (c IndicesClient) GetDataStream(ctx context.Context, req *IndicesGetDataStreamReq) (*IndicesGetDataStreamResp, error) {
 	if req == nil {
 		req = &IndicesGetDataStreamReq{}
 	}
@@ -126,7 +126,7 @@ func (c indicesClient) GetDataStream(ctx context.Context, req *IndicesGetDataStr
 		data IndicesGetDataStreamResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

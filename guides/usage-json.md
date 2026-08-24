@@ -1,12 +1,14 @@
 - [Making Raw JSON REST Requests](#making-raw-json-rest-requests)
   - [Setup](#setup)
-  - [Using Do for Typed Responses](#using-do-for-typed-responses)
+  - [Using Execute for Typed Responses](#using-execute-for-typed-responses)
   - [GET](#get)
   - [PUT](#put)
   - [POST](#post)
   - [DELETE](#delete)
 
 # Making Raw JSON REST Requests
+
+> **Runnable example:** [`_samples/usage-json.go`](../_samples/usage-json.go)
 
 The OpenSearch client implements many high-level REST DSLs that invoke OpenSearch APIs. However you may find yourself in a situation that requires you to invoke an API that is not supported by the client. Use `client.Perform` to do so.
 
@@ -43,27 +45,40 @@ func example() error {
 	}
 ```
 
-## Using Do for Typed Responses
+## Using Execute for Typed Responses
 
-When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoints, newly released server APIs, or internal custom endpoints -- use `opensearch.Do()` to execute a request and automatically unmarshal the JSON response into a struct.
+When you need to call an API that `opensearchapi` doesn't cover -- plugin endpoints, newly released server APIs, or internal custom endpoints -- use `opensearch.Execute[T]()` to execute a request and automatically unmarshal the JSON response into a struct.
 
-The `Client.Do()` method accepts `any` for its response parameter, which means passing a non-pointer compiles but fails at runtime during JSON unmarshaling. The generic `opensearch.Do[T]()` function catches this mistake at compile time. `Client.Do()` is marked with a `Deprecated` doc annotation to steer callers toward the safer alternative -- it remains fully functional and will not be removed, but `staticcheck` SA1019 will flag cross-package usage as a nudge.
+`opensearch.Execute[T]()` is generic: the type parameter enforces that the response destination is a pointer at compile time, so passing a non-pointer does not compile. Pass a nil `*T` (for example `(*opensearch.NoBody)(nil)`) to skip unmarshaling.
 
 First, define a request type that satisfies `opensearch.Request`:
 
 ```go
-	// customReq wraps opensearch.BuildRequest to satisfy the opensearch.Request interface.
+	// customReq builds an *http.Request from a path with a leading slash (e.g.
+	// "/_plugins/my_plugin/status") to satisfy the opensearch.Request interface.
+	// The transport prepends the base URL. method is an HTTP method
+	// (e.g. http.MethodGet) forwarded by the caller.
 	type customReq struct {
 		path string
 		body io.Reader
 	}
 
 	func (r customReq) GetRequest(method string) (*http.Request, error) {
-		return opensearch.BuildRequest(method, r.path, r.body, nil, nil)
+		req, err := http.NewRequest(method, r.path, r.body)
+		if err != nil {
+			return nil, err
+		}
+		// opensearch.BuildRequest set this automatically for a non-nil body;
+		// http.NewRequest does not, so set it here or OpenSearch may reject a
+		// JSON body with 400/415.
+		if r.body != nil {
+			req.Header.Set("Content-Type", "application/json")
+		}
+		return req, nil
 	}
 ```
 
-Then use `opensearch.Do` to call the endpoint with a typed response:
+Then use `opensearch.Execute` to call the endpoint with a typed response:
 
 ```go
 	type PluginStatusResp struct {
@@ -73,30 +88,30 @@ Then use `opensearch.Do` to call the endpoint with a typed response:
 
 	ctx := context.Background()
 
-	// Preferred: opensearch.Do[T] enforces *T at compile time.
+	// opensearch.Execute[T] enforces *T at compile time.
 	var pluginStatus PluginStatusResp
 	req := customReq{path: "/_plugins/my_plugin/status"}
-	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, &pluginStatus)
+	resp, err := opensearch.Execute(ctx, client.Client, http.MethodGet, req, &pluginStatus)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("plugin status: %s (v%s), http: %d\n", pluginStatus.Status, pluginStatus.Version, resp.StatusCode)
 ```
 
-If you pass a non-pointer value to `opensearch.Do`, the compiler rejects it:
+If you pass a non-pointer value to `opensearch.Execute`, the compiler rejects it:
 
 ```go
 	// Compile error: cannot use pluginStatus (variable of type PluginStatusResp)
-	// as *PluginStatusResp value in argument to opensearch.Do
-	resp, err := opensearch.Do(ctx, client.Client, http.MethodGet, req, pluginStatus)
+	// as *PluginStatusResp value in argument to opensearch.Execute
+	resp, err := opensearch.Execute(ctx, client.Client, http.MethodGet, req, pluginStatus)
 ```
 
 The three levels of the client API, from lowest to highest:
 
 | Level | Function                                                           | Response handling                                         | When to use                                                |
 | ----- | ------------------------------------------------------------------ | --------------------------------------------------------- | ---------------------------------------------------------- |
-| Low   | `client.Perform(req)`                                              | Raw `*http.Response`; caller reads and closes body        | Proxying, streaming, full control needed                   |
-| Mid   | `opensearch.Do(ctx, client, method, req, &resp)`                   | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
+| Low   | `client.Stream(req)`                                               | Raw `*http.Response`; caller reads and closes body        | Streaming, incremental forwarding, full control needed     |
+| Mid   | `opensearch.Execute(ctx, client, method, req, &resp)`              | Automatic JSON unmarshal with compile-time pointer safety | Plugin APIs, unsupported endpoints, custom `Request` types |
 | High  | `client.Search(ctx, req)` / `client.Indices.Create(ctx, req)` etc. | Fully typed request and response                          | Standard OpenSearch APIs                                   |
 
 ## GET
@@ -109,7 +124,7 @@ The following example returns the server version information via `GET /`.
 		return err
 	}
 
-	infoResponse, err := client.Client.Perform(infoRequest)
+	infoResponse, err := client.Request(infoRequest)
 	if err != nil {
 		return err
 	}
@@ -150,7 +165,7 @@ The following example creates an index.
 		return err
 	}
 	createIndexRequest.Header["Content-Type"] = []string{"application/json"}
-	createIndexResp, err := client.Client.Perform(createIndexRequest)
+	createIndexResp, err := client.Request(createIndexRequest)
 	if err != nil {
 		return err
 	}
@@ -182,7 +197,7 @@ The following example searches for a document.
 		return err
 	}
 	searchRequest.Header["Content-Type"] = []string{"application/json"}
-	searchResp, err := client.Client.Perform(searchRequest)
+	searchResp, err := client.Request(searchRequest)
 	if err != nil {
 		return err
 	}
@@ -202,7 +217,7 @@ The following example deletes an index.
 	if err != nil {
 		return err
 	}
-	deleteIndexResp, err := client.Client.Perform(deleteIndexRequest)
+	deleteIndexResp, err := client.Request(deleteIndexRequest)
 	if err != nil {
 		return err
 	}

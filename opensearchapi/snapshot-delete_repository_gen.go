@@ -91,8 +91,8 @@ func (r SnapshotDeleteRepositoryParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/delete-snapshot-repository/
 type SnapshotDeleteRepositoryResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -119,7 +119,7 @@ func (r SnapshotDeleteRepositoryResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/delete-snapshot-repository/
-func (c snapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDeleteRepositoryReq) (*SnapshotDeleteRepositoryResp, error) {
+func (c SnapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDeleteRepositoryReq) (*SnapshotDeleteRepositoryResp, error) {
 	if req == nil {
 		req = &SnapshotDeleteRepositoryReq{}
 	}
@@ -128,7 +128,7 @@ func (c snapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDelet
 		data SnapshotDeleteRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,
@@ -140,7 +140,7 @@ func (c snapshotClient) DeleteRepository(ctx context.Context, req *SnapshotDelet
 }
 
 // Deprecated: use SnapshotDeleteRepository via the parent client instead.
-func (c repositoryClient) Delete(ctx context.Context, req *SnapshotDeleteRepositoryReq) (*SnapshotDeleteRepositoryResp, error) {
+func (c RepositoryClient) Delete(ctx context.Context, req *SnapshotDeleteRepositoryReq) (*SnapshotDeleteRepositoryResp, error) {
 	if req == nil {
 		req = &SnapshotDeleteRepositoryReq{}
 	}
@@ -149,7 +149,7 @@ func (c repositoryClient) Delete(ctx context.Context, req *SnapshotDeleteReposit
 		data SnapshotDeleteRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

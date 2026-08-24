@@ -160,6 +160,18 @@ type Config struct {
 	DiscoverNodesOnStart  *bool
 	DiscoverNodesInterval time.Duration // Discover nodes periodically. Default: disabled.
 
+	// VerifyDeadAfter is the duration a dead connection can be blindly
+	// resurrected for use as a zombie connection when no other healthy
+	// connections are available. A connection proven reachable is a zombie
+	// candidate until it has been dead longer than this window; after that the
+	// discovery loop clears the mark, so the node must health-check clean again
+	// before it can be used. Seeds are always available and never expire this
+	// way. 0 = use the default window, <0 = disabled (a viable connection stays
+	// a zombie candidate indefinitely), >0 = explicit window. Overridable by
+	// OPENSEARCH_GO_VERIFY_DEAD_AFTER (bool true = default, false = disabled,
+	// else a duration string).
+	VerifyDeadAfter time.Duration
+
 	// Health check configuration
 	HealthCheckTimeout    time.Duration // Timeout for health check requests. Default: 3s.
 	HealthCheckMaxRetries int           // Max retries for health checks. Default: 3. Set to -1 to disable health checks.
@@ -233,6 +245,14 @@ type Config struct {
 	Selector  opensearchtransport.Selector           // The selector object.
 	Router    opensearchtransport.Router             // Optional router for request-aware routing.
 	Observer  opensearchtransport.ConnectionObserver // Optional observer for connection lifecycle events.
+
+	// OperationClassifier maps each request's method and path to the
+	// [opensearchtransport.RequestEvent.RouteName] label reported to observers.
+	// When nil, a process-wide classifier built from the standard OpenSearch REST
+	// layout is used. Override it only when you route non-standard paths and need
+	// RouteName to reflect them; it affects the observability label only, never
+	// routing. See [opensearchtransport.Config.OperationClassifier].
+	OperationClassifier *opensearchtransport.OperationClassifier
 
 	// ShardCostConfig overrides shard cost multipliers for connection scoring.
 	// See [opensearchtransport.Config.ShardCostConfig] for format details.
@@ -452,6 +472,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 
+		VerifyDeadAfter: cfg.VerifyDeadAfter,
+
 		HealthCheckTimeout:    cfg.HealthCheckTimeout,
 		HealthCheckMaxRetries: cfg.HealthCheckMaxRetries,
 		HealthCheckJitter:     cfg.HealthCheckJitter,
@@ -474,6 +496,7 @@ func NewClient(cfg Config) (*Client, error) {
 		Selector:              cfg.Selector,
 		Router:                cfg.Router,
 		Observer:              cfg.Observer,
+		OperationClassifier:   cfg.OperationClassifier,
 		ShardCostConfig:       cfg.ShardCostConfig,
 		ConnectionPoolFunc:    cfg.ConnectionPoolFunc,
 		AddressResolver:       cfg.AddressResolver,
@@ -563,6 +586,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	// two lists stay together.
 	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
 		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
+		cfg.OperationClassifier != nil ||
 		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
 		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
 		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {
@@ -615,6 +639,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 		b.Int(-1)
 	}
 	b.Int(int64(cfg.DiscoverNodesInterval)).
+		Int(int64(cfg.VerifyDeadAfter)).
 		Int(int64(cfg.HealthCheckTimeout)).
 		Int(int64(cfg.HealthCheckMaxRetries)).
 		Int(int64(cfg.ResurrectTimeoutInitial)).
@@ -665,35 +690,50 @@ func ParseVersion(version string) (int64, int64, int64, error) {
 
 // Stream delegates to Transport.Stream, returning the raw [http.Response] from
 // the underlying [http.RoundTripper]. The caller owns the response body and
-// must close it. Use Stream for proxy and streaming use cases where bytes are
-// forwarded incrementally; use [Do] when you want a decoded Go value.
+// must close it. Use Stream when bytes are forwarded incrementally without
+// decoding; use [Execute] when you want a decoded Go value.
 func (c *Client) Stream(req *http.Request) (*http.Response, error) {
-	if req.Header == nil {
-		// Pre-allocate for the headers the transport layer sets on every
-		// outgoing request (User-Agent, Authorization, Content-Type,
-		// Content-Encoding, etc.) so the map does not have to resize on
-		// the hot path.
-		const defaultHeaderCount = 8
-		req.Header = make(http.Header, defaultHeaderCount)
-	}
+	c.ensureReqHeader(req)
 	return c.Transport.Stream(req)
 }
 
-// Do gets and performs the request. It also tries to parse the response into the dataPointer.
+// Request delegates to Transport.Request, returning an [http.Response] whose
+// body has been read and buffered; the connection is already back in the pool.
+// Callers that want a decoded Go value should use [Execute] rather than calling
+// Request directly.
+func (c *Client) Request(req *http.Request) (*http.Response, error) {
+	c.ensureReqHeader(req)
+	return c.Transport.Request(req)
+}
+
+// ensureReqHeader initializes req.Header if the caller left it nil, pre-sizing
+// for the headers the transport sets on every request (User-Agent,
+// Authorization, Content-Type, Content-Encoding, etc.) so the map does not
+// resize on the hot path.
+func (c *Client) ensureReqHeader(req *http.Request) {
+	if req.Header == nil {
+		const defaultHeaderCount = 8
+		req.Header = make(http.Header, defaultHeaderCount)
+	}
+}
+
+// NoBody is a marker type for [Execute] calls that expect no response body.
+// Pass (*NoBody)(nil) to skip JSON unmarshaling while retaining compile-time
+// pointer enforcement.
+type NoBody struct{}
+
+// Execute performs the request and parses the response body into dataPointer.
+// The generic parameter enforces that dataPointer is a pointer at compile time;
+// pass a nil *T (for example (*NoBody)(nil)) to skip JSON unmarshaling.
 //
-// On error, Do may return a non-nil *Response alongside a non-nil error. This
-// happens when the transport received a response but a subsequent failure
+// On error, Execute may return a non-nil *Response alongside a non-nil error.
+// This happens when the transport received a response but a subsequent failure
 // occurred (a body-read failure during buffering, or an unrelated transport
 // error such as context cancellation during retry backoff). Callers that need
 // to distinguish a hard transport failure should check resp == nil rather than
 // err != nil, and may inspect the returned *Response in the error case. A nil
 // *Response always signals that no usable response was produced.
-//
-// Deprecated: Use [Do] instead, which enforces that dataPointer is a pointer at compile time.
-// Client.Do accepts any, so passing a non-pointer compiles but fails at runtime during JSON
-// unmarshaling. The method remains fully functional and will not be removed; this annotation
-// exists to steer callers toward the safer generic alternative.
-func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer any) (*Response, error) {
+func Execute[T any](ctx context.Context, c *Client, method string, req Request, dataPointer *T) (*Response, error) {
 	httpReq, err := req.GetRequest(method)
 	if err != nil {
 		return nil, err
@@ -703,20 +743,12 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 		httpReq = httpReq.WithContext(ctx)
 	}
 
-	resp, err := c.Stream(httpReq)
+	// Transport.Request buffers the body and returns the connection to the pool;
+	// resp.Body is already an io.NopCloser over the buffered bytes.
+	//nolint:bodyclose // Request already drained and closed the socket; resp.Body is a NopCloser over buffered bytes
+	resp, err := c.Request(httpReq)
 	if resp == nil {
 		return nil, err
-	}
-
-	// Buffer and close the raw body so the TCP connection returns to the pool.
-	// Stream returns the body unbuffered; Do owns it from here.
-	if resp.Body != nil {
-		body, rerr := io.ReadAll(resp.Body)
-		resp.Body.Close()
-		resp.Body = io.NopCloser(bytes.NewReader(body))
-		if rerr != nil && err == nil {
-			err = fmt.Errorf("%w: %w", opensearchtransport.ErrResponseBodyRead, rerr)
-		}
 	}
 
 	response := &Response{
@@ -727,7 +759,7 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	if err != nil {
-		// Stream may return (resp != nil, err != nil) in two cases: a body-read
+		// Request may return (resp != nil, err != nil) in two cases: a body-read
 		// failure (ErrResponseBodyRead) or an unrelated transport error alongside
 		// a response (e.g. context cancellation during retry backoff). Only label
 		// the former as ErrReadBody so callers can distinguish the two.
@@ -757,24 +789,6 @@ func (c *Client) Do(ctx context.Context, method string, req Request, dataPointer
 	}
 
 	return response, nil
-}
-
-// NoBody is a marker type for [Do] calls that expect no response body.
-// Pass (*NoBody)(nil) to skip JSON unmarshaling while retaining compile-time
-// pointer enforcement.
-type NoBody struct{}
-
-// Do is a generic version of [Client.Do] that enforces dataPointer as a pointer at compile time.
-// It delegates to [Client.Do] after the type system has guaranteed *T.
-//
-// A nil dataPointer is forwarded as untyped nil so that [Client.Do] skips
-// unmarshalling. This prevents a typed nil (e.g. (*MyResp)(nil)) from being
-// widened into a non-nil any interface that would reach [json.Unmarshal].
-func Do[T any](ctx context.Context, c *Client, method string, req Request, dataPointer *T) (*Response, error) {
-	if dataPointer == nil {
-		return c.Do(ctx, method, req, nil)
-	}
-	return c.Do(ctx, method, req, dataPointer)
 }
 
 // Metrics returns the client metrics.

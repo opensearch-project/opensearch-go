@@ -93,7 +93,7 @@ func makeTestConn(t *testing.T, urlStr string, id string, rtt time.Duration) *Co
 	conn.rttRing.add(rtt)
 	conn.rttRing.add(rtt)
 	conn.rttRing.add(rtt)
-	conn.state.Store(int64(newConnState(lcActive)))
+	conn.setLifecycleBit(lcActive)
 	return conn
 }
 

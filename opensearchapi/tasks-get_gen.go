@@ -130,12 +130,12 @@ func (r TasksGetResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/
-func (c tasksClient) Get(ctx context.Context, req TasksGetReq) (*TasksGetResp, error) {
+func (c TasksClient) Get(ctx context.Context, req TasksGetReq) (*TasksGetResp, error) {
 	var (
 		data TasksGetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

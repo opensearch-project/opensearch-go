@@ -164,19 +164,32 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Search hits: %v\n", searchResp.Hits.Total.Value)
 
-	if searchResp.Hits.Total.Value > 0 {
+	// Total is a union; TotalHits() unwraps the {value, relation} form. Its
+	// population is conditional on the query parameter track_total_hits, set
+	// through SearchParams.TrackTotalHits and defaulting to true; a request that
+	// sets it to "false" leaves this pointer nil. See the "Hit counts" section of
+	// guides/usage-search.md.
+	total, err := searchResp.Hits.Total.TotalHits()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Search hits: %v\n", total.Value)
+
+	if total.Value > 0 {
 		indices := make([]string, 0)
 		for _, hit := range searchResp.Hits.Hits {
+			if hit.Index == nil {
+				continue
+			}
 			add := true
 			for _, index := range indices {
-				if index == hit.Index {
+				if index == *hit.Index {
 					add = false
 				}
 			}
 			if add {
-				indices = append(indices, hit.Index)
+				indices = append(indices, *hit.Index)
 			}
 		}
 		fmt.Printf("Search indices: %s\n", strings.Join(indices, ","))
@@ -231,7 +244,7 @@ Before starting, we strongly recommend reading the full AWS documentation regard
 
 Import the request signer from `signer/awsv2`. It signs each request with AWS Signature Version 4 (SigV4) using AWS SDK for Go v2 and automatically discovers AWS credentials from the `~/.aws` folder or environment variables.
 
-To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)
+To read more about SigV4 see [Signature Version 4 signing process](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_sigv.html)
 
 The signer caches credentials so SigV4 signing does not call `Credentials.Retrieve` on every request, which matters most for STS-backed providers (assume-role, web identity, IRSA).
 

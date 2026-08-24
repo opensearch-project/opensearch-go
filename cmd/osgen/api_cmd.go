@@ -53,12 +53,23 @@ func runAPI() error {
 		"emit backward-compatibility forwarder methods (e.g. top-level Client.Bulk forwarding to Doc.Bulk)")
 	emitV4Deprecation := fs.Bool("emit-v4-deprecation", false,
 		"mark the v4 compatibility forwarders with a Deprecated doc comment (requires -emit-v4-compat)")
-	rawAllowlist := fs.String("raw-message-allowlist", "rawmessage_allowlist.txt",
-		"path to the checked-in json.RawMessage allowlist (relative to cwd)")
+	rawAllowlist := fs.String("raw-message-allowlist", "",
+		"check against this json.RawMessage allowlist file (relative to cwd) instead of the one embedded in osgen; "+
+			"with -update-raw-message-allowlist, the file to write (default: "+rawMessageAllowlistFile+" in cwd)")
 	updateRawAllowlist := fs.Bool("update-raw-message-allowlist", false,
 		"rewrite the json.RawMessage allowlist from current output instead of checking it")
 	allowUnlistedRaw := fs.Bool("allow-unlisted-raw-message", false,
 		"downgrade the json.RawMessage allowlist check from fatal to a warning")
+	tagShadowAllowlist := fs.String("tagshadow-allowlist", "",
+		"check against this duplicate-JSON-tag allowlist file (relative to cwd) instead of the one embedded in osgen; "+
+			"with -update-tagshadow-allowlist, the file to write (default: "+tagShadowAllowlistFile+" in cwd)")
+	updateTagShadowAllowlist := fs.Bool("update-tagshadow-allowlist", false,
+		"rewrite the duplicate-JSON-tag allowlist from current output instead of checking it")
+	allowUnlistedTagShadow := fs.Bool("allow-unlisted-tagshadow", false,
+		"downgrade the duplicate-JSON-tag allowlist check from fatal to a warning")
+	reportMissingDesc := fs.Bool("report-missing-descriptions", false,
+		"after generating, list generated types, fields, and enum members whose OpenAPI schema has no description "+
+			"(reporting only: never changes output and never fails generation)")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return err
 	}
@@ -87,7 +98,15 @@ func runAPI() error {
 
 	return generateAPI(*specPath, filter, *outDir, *pluginsDir, *pkg, vrange, bc,
 		CompatConfig{V4Compat: *emitV4Compat, V4Deprecation: *emitV4Deprecation},
-		RawMessageConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw})
+		guardConfig{
+			RawMessage: AllowlistConfig{AllowlistPath: *rawAllowlist, Update: *updateRawAllowlist, AllowUnlisted: *allowUnlistedRaw},
+			TagShadow: AllowlistConfig{
+				AllowlistPath: *tagShadowAllowlist,
+				Update:        *updateTagShadowAllowlist,
+				AllowUnlisted: *allowUnlistedTagShadow,
+			},
+		},
+		DescriptionReportConfig{Report: *reportMissingDesc})
 }
 
 // generateAPI uses the two-phase pipeline (Parse -> IR -> Emit -> Targets).
@@ -105,7 +124,8 @@ func generateAPI(
 	vrange VersionRange,
 	bc BreadcrumbConfig,
 	compat CompatConfig,
-	rawCfg RawMessageConfig,
+	guards guardConfig,
+	descCfg DescriptionReportConfig,
 ) error {
 	if bc.Types != BreadcrumbAll {
 		return fmt.Errorf("--version-breadcrumb-types is not implemented for `osgen api`: " +
@@ -121,6 +141,14 @@ func generateAPI(
 	registry := newTypeRegistry(corePkg)
 	respFieldExc := populateResponseTypes(ops, spec, registry, vrange)
 	reqFieldExc := populateRequestBodyTypes(ops, spec, registry, vrange)
+	typeQueryParamEnums(ops, spec, registry, vrange)
+
+	// Every type is registered, so a collapsed type can take its alias's friendlier
+	// name and have all references rewritten together. Must run after the walks:
+	// type references are plain strings, so a mid-walk rename dangles the ones
+	// already emitted.
+	renameCollapsedAliases(spec, registry)
+
 	reportCollisions(os.Stderr, registry)
 	fieldExclusions := append(respFieldExc, reqFieldExc...) //nolint:gocritic // intentional concat into new slice
 	sort.Slice(fieldExclusions, func(i, j int) bool { return fieldExclusions[i].Name < fieldExclusions[j].Name })
@@ -134,7 +162,13 @@ func generateAPI(
 
 	// Guard against the generator silently widening the raw-JSON surface. Run
 	// before any file is written so an unlisted use aborts cleanly.
-	if err := guardRawMessages(os.Stderr, irSpec, rawCfg); err != nil {
+	if err := guardRawMessages(os.Stderr, irSpec, guards.RawMessage); err != nil {
+		return err
+	}
+
+	// Guard against a struct redeclaring a JSON tag its embed already carries,
+	// which makes the embedded declaration unreachable. Also before any write.
+	if err := guardTagShadows(os.Stderr, irSpec, guards.TagShadow); err != nil {
 		return err
 	}
 
@@ -171,7 +205,7 @@ func generateAPI(
 	// Render and write targets in parallel. Each target writes to a unique
 	// path, so workers can both render and write without coordination beyond
 	// the shared written-set, log slice, and first-error capture.
-	written := make(map[string]struct{}, len(targets))
+	written := make(set[string], len(targets))
 	var (
 		mu       sync.Mutex
 		writeLog []string
@@ -217,7 +251,7 @@ func generateAPI(
 					continue
 				}
 				mu.Lock()
-				written[absPath] = struct{}{}
+				written.add(absPath)
 				if changed {
 					writeLog = append(writeLog, repoRelPath(absPath))
 					wrote++
@@ -249,6 +283,10 @@ func generateAPI(
 	}
 
 	fmt.Fprintf(os.Stderr, "generated %d operations (%d files written, %d stale removed)\n", len(irSpec.Operations), wrote, removed)
+
+	// Advisory only, and last so it does not bury the write log. Runs after the
+	// files are on disk to make it clear the report cannot have shaped them.
+	reportMissingDescriptions(os.Stderr, irSpec, descCfg)
 	return nil
 }
 
@@ -292,7 +330,7 @@ func buildPluginSubClients(spec *ir.Spec) map[string]map[string]*emit.PluginSubC
 // removeStaleGenFiles removes *_gen.go files under root that are not in
 // the written set. It resolves root, verifies it is inside the git working
 // tree, and uses os.OpenRoot to confine removal.
-func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) {
+func removeStaleGenFiles(root string, written set[string]) (int, error) {
 	abs, err := resolveGenRoot(root)
 	if err != nil {
 		return 0, err
@@ -319,7 +357,7 @@ func removeStaleGenFiles(root string, written map[string]struct{}) (int, error) 
 			return nil
 		}
 		full := filepath.Join(abs, path)
-		if _, ok := written[full]; ok {
+		if written.has(full) {
 			return nil
 		}
 		if err := dir.Remove(path); err != nil {
@@ -428,8 +466,9 @@ func populateResponseTypes(ops []apiOperation, spec *openapi3.T, registry *typeR
 	w := &walker{
 		registry: registry,
 		spec:     spec,
-		inFlight: make(map[string]struct{}),
+		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all response schemas to build the full type registry.
@@ -545,8 +584,9 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 	w := &walker{
 		registry: registry,
 		spec:     spec,
-		inFlight: make(map[string]struct{}),
+		inFlight: make(set[string]),
 		vrange:   vrange,
+		warnOut:  os.Stderr,
 	}
 
 	// Walk all request body schemas to register types.
@@ -614,6 +654,52 @@ func populateRequestBodyTypes(ops []apiOperation, spec *openapi3.T, registry *ty
 	return w.excludedFields
 }
 
+// typeQueryParamEnums types query parameters whose schema is an allowlisted
+// const-oneOf (e.g. cat's `time` -> TimeUnit, nodes.info's `metric` -> Metric).
+//
+// It runs after the response and request-body walks so the shared registry
+// already holds any enum that also appears in a body or response. For a
+// query-param-only enum (never reached by those walks) it registers the type
+// here via the same walker path, so emission is identical regardless of where
+// the enum first appears. A param is retyped only when its enum type is present
+// in the registry after this pass, so a generated Params struct can never name a
+// type that was not emitted.
+func typeQueryParamEnums(ops []apiOperation, spec *openapi3.T, registry *typeRegistry, vrange VersionRange) {
+	if spec == nil || spec.Components == nil || spec.Components.Schemas == nil {
+		return
+	}
+
+	w := &walker{
+		registry: registry,
+		spec:     spec,
+		inFlight: make(set[string]),
+		vrange:   vrange,
+		warnOut:  os.Stderr,
+	}
+
+	for i := range ops {
+		op := &ops[i]
+		for j := range op.QueryParams {
+			qp := &op.QueryParams[j]
+			// Only plain-string params backed by a component $ref are candidates;
+			// duration/bool/int/list params keep their existing handling.
+			if qp.SchemaRef == "" || qp.IsDuration || qp.IsBool || qp.IsInt || qp.IsList {
+				continue
+			}
+			schemaRef, ok := spec.Components.Schemas[qp.SchemaRef]
+			if !ok || schemaRef.Value == nil {
+				continue
+			}
+			name, ok := w.resolveStringEnumConst(qp.SchemaRef, schemaRef.Value, op.Group)
+			if !ok {
+				continue
+			}
+			qp.GoType = name
+			qp.IsStringEnum = true
+		}
+	}
+}
+
 // classifyRespShape determines the response body shape for operations whose
 // response schema didn't produce a registered struct type. It inspects the
 // raw schema to detect map, array, or empty patterns and resolves the element
@@ -626,7 +712,7 @@ func classifyRespShape(op *apiOperation, spec *openapi3.T, registry *typeRegistr
 	}
 
 	// Array: type=array with items.
-	if schema.Type != nil && schema.Type.Is("array") {
+	if schema.Type != nil && schema.Type.Is(openapi3.TypeArray) {
 		op.RespShape = ir.RespShapeArray
 		if schema.Items != nil {
 			op.RespElemType = resolveElemType(schema.Items, registry)
@@ -709,8 +795,8 @@ func resolveElemType(ref *openapi3.SchemaRef, registry *typeRegistry) *goType {
 }
 
 type typeUsage struct {
-	groups map[string]struct{}
-	pkgs   map[string]struct{}
+	groups set[string]
+	pkgs   set[string]
 	pkg    string
 }
 
@@ -775,15 +861,15 @@ func collectTypeRefs(group, ref string, registry *typeRegistry, uses map[string]
 	}
 	u, exists := uses[ref]
 	if !exists {
-		u = &typeUsage{groups: make(map[string]struct{}), pkgs: make(map[string]struct{}), pkg: t.Pkg}
+		u = &typeUsage{groups: make(set[string]), pkgs: make(set[string]), pkg: t.Pkg}
 		uses[ref] = u
 	}
-	if _, seen := u.groups[group]; seen {
+	if u.groups.has(group) {
 		return
 	}
-	u.groups[group] = struct{}{}
+	u.groups.add(group)
 	if pkg, ok := groupPkgs[group]; ok {
-		u.pkgs[pkg] = struct{}{}
+		u.pkgs.add(pkg)
 	}
 
 	for _, f := range t.Fields {

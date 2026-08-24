@@ -133,6 +133,33 @@ func extensionString(extensions map[string]any, key string) string {
 	}
 }
 
+// refExtensionString reads a string-valued extension from a schema reference,
+// preferring an extension written alongside a $ref over one on the referenced
+// schema.
+//
+// kin-openapi splits a $ref's siblings across two places. Standard fields such
+// as description are overlaid onto the resolved schema, so Value.Description
+// sees them, but x-* keys stay on the SchemaRef and never reach Value.Extensions.
+// Reading only the resolved schema therefore drops every extension the spec
+// attaches next to a $ref, which is where the OpenSearch spec records most of
+// its version annotations.
+//
+// The sibling wins because it describes the property that carries it, not the
+// shared type it points at: two properties may reference one schema and have
+// been added in different versions.
+func refExtensionString(ref *openapi3.SchemaRef, key string) string {
+	if ref == nil {
+		return ""
+	}
+	if v := extensionString(ref.Extensions, key); v != "" {
+		return v
+	}
+	if ref.Value == nil {
+		return ""
+	}
+	return extensionString(ref.Value.Extensions, key)
+}
+
 // extensionBool reads a bool-valued extension from a map.
 func extensionBool(extensions map[string]any, key string) bool {
 	if extensions == nil {

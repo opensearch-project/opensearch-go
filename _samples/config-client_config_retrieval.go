@@ -4,6 +4,12 @@
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
 
+// This sample demonstrates constructing a client from retrieved configuration.
+//
+// Learn more:
+//   - Guide: https://github.com/opensearch-project/opensearch-go/blob/main/guides/config-envvars.md
+//   - API reference: https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi
+
 package main
 
 import (

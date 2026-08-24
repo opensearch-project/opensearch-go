@@ -58,6 +58,16 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 			if conn == nil {
 				continue // selector error
 			}
+
+			// Dedicated cluster managers stay in the inventory for discovery but
+			// do not serve request traffic. A user-supplied seed is exempt so a
+			// dedicated-cluster-manager seed can still bootstrap discovery.
+			// Skipping here means a pool of only dedicated cluster managers
+			// exhausts its attempts and falls through to the no-connection path
+			// below.
+			if !conn.seed && conn.Roles.isDedicatedClusterManager() {
+				continue
+			}
 			state := conn.loadConnState()
 
 			if state.lifecycle()&(lcActive|lcStandby) == 0 {
@@ -85,16 +95,16 @@ func (cp *multiServerPool) Next() (*Connection, error) {
 				cp.poolWarmupAccepts.Add(1)
 				// Check if warmup finished and cap enforcement is needed.
 				warmupDone := !conn.loadConnState().isWarmingUp()
-				if warmupDone && cp.activeListCap > 0 && cp.mu.activeCount > cp.activeListCap {
+				if warmupDone && cp.mu.activeListCap > 0 && cp.mu.activeCount > cp.mu.activeListCap {
 					needsCapEnforce = true
 					if dl := loadDebugLogger(); dl != nil {
 						dl.Logf("[%s] Next: warmup complete for %s, triggering cap enforcement (active=%d, cap=%d)\n",
-							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+							cp.name, conn.URL, cp.mu.activeCount, cp.mu.activeListCap)
 					}
 				} else if warmupDone {
 					if dl := loadDebugLogger(); dl != nil {
 						dl.Logf("[%s] Next: warmup complete for %s, no cap enforcement (active=%d, cap=%d)\n",
-							cp.name, conn.URL, cp.mu.activeCount, cp.activeListCap)
+							cp.name, conn.URL, cp.mu.activeCount, cp.mu.activeListCap)
 					}
 				}
 
@@ -183,6 +193,9 @@ func (cp *multiServerPool) nextWithEviction() (*Connection, error) {
 		if conn == nil {
 			continue
 		}
+		if !conn.seed && conn.Roles.isDedicatedClusterManager() {
+			continue // dedicated cluster managers do not serve request traffic
+		}
 		state := conn.loadConnState()
 
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
@@ -222,6 +235,9 @@ func (cp *multiServerPool) nextFallback() (*Connection, error) {
 		if conn == nil {
 			continue
 		}
+		if !conn.seed && conn.Roles.isDedicatedClusterManager() {
+			continue // dedicated cluster managers do not serve request traffic
+		}
 		state := conn.loadConnState()
 
 		if state.lifecycle()&(lcActive|lcStandby) != 0 {
@@ -244,17 +260,20 @@ func (cp *multiServerPool) nextFallback() (*Connection, error) {
 //   - Caller must hold pool write lock
 func (cp *multiServerPool) nextFallbackWithLock() (*Connection, error) {
 	// Try standby before zombie -- standby connections are healthy but idle
-	if c := cp.tryStandbyWithLock(); c != nil {
+	if c := cp.tryStandbyWithLock(); c != nil && (c.seed || !c.Roles.isDedicatedClusterManager()) {
 		cp.poolRequests.Add(1)
 		return c, nil
 	}
 
-	// Last resort: zombie from dead list
-	if len(cp.mu.dead) == 0 {
-		return nil, ErrNoConnections
+	// Last resort: a zombie from the dead list, but only one that is
+	// availableForRouting (see that method for why). An all-unavailable dead
+	// list yields nil, so Next reports ErrNoConnections and the request
+	// cascades to the seed-URL fallback rather than dialing a dead zombie.
+	if c := cp.tryZombieWithLock(); c != nil && (c.seed || !c.Roles.isDedicatedClusterManager()) {
+		cp.poolRequests.Add(1)
+		return c, nil
 	}
-	cp.poolRequests.Add(1)
-	return cp.tryZombieWithLock(), nil
+	return nil, ErrNoConnections
 }
 
 // evictExternallyDemotedWithLock removes a connection from the active partition
@@ -297,8 +316,14 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 // Used by Next() when no ready connections are available, providing a way to short-circuit the periodic
 // heartbeat timer by attempting requests on dead connections immediately.
 //
+// Only a connection that is availableForRouting (a user-supplied seed, or a
+// discovered node proven reachable at least once) is eligible: a never-verified
+// discovered node must not be dialed as a zombie (see availableForRouting).
+// Returns nil when the dead list is empty or holds no eligible connection, so
+// the caller reports ErrNoConnections and the seed-URL fallback takes over.
+//
 // The function rotates through dead connections by popping from the front and pushing to the back,
-// ensuring fair distribution of retry attempts across all dead connections.
+// ensuring fair distribution of retry attempts across all eligible dead connections.
 //
 // CONCURRENCY NOTE: This function races with OnFailure() over dead list ordering. OnFailure()
 // sorts dead connections by failure count while this function rotates the list for fair distribution.
@@ -311,17 +336,19 @@ func (cp *multiServerPool) evictExternallyDemotedWithLock(c *Connection, state c
 //   - Caller should call OnSuccess() if the connection proves to work (which will resurrect it)
 //   - Caller should call OnFailure() if the connection fails (which is a no-op since it's already dead)
 func (cp *multiServerPool) tryZombieWithLock() *Connection {
-	if len(cp.mu.dead) == 0 {
-		return nil
+	// Rotate through the dead list at most once, returning the first eligible
+	// (availableForRouting) connection. Each iteration pops the front and pushes
+	// it to the back, preserving fair round-robin distribution across retries.
+	for range cp.mu.dead {
+		c := cp.mu.dead[0]
+		cp.mu.dead = append(cp.mu.dead[1:], c)
+		if !c.availableForRouting() {
+			continue
+		}
+		if cp.metrics != nil {
+			cp.metrics.zombieConnections.Add(1)
+		}
+		return c
 	}
-
-	// Pop from front, push to back (rotate the queue) in one operation
-	var c *Connection
-	c, cp.mu.dead = cp.mu.dead[0], append(cp.mu.dead[1:], cp.mu.dead[0])
-
-	if cp.metrics != nil {
-		cp.metrics.zombieConnections.Add(1)
-	}
-
-	return c
+	return nil
 }

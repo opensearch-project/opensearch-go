@@ -126,7 +126,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		}
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
-			obs.OnRoute(buildRouteEvent(routeEventParams{
+			dispatchRoute(obs, routeEventParams{
 				totalNodes:    len(conns),
 				fanOut:        len(conns),
 				candidates:    conns,
@@ -136,7 +136,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				targetShard:   -1,
 				poolInfoReady: pir,
 				scoreFunc:     p.scoreFunc,
-			}))
+			})
 		}
 
 		return NextHop{Conn: best, PoolName: p.poolName}, nil
@@ -187,7 +187,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			if keyB != "" {
 				key = keyA + "/" + keyB
 			}
-			obs.OnRoute(buildRouteEvent(routeEventParams{
+			dispatchRoute(obs, routeEventParams{
 				indexName:           indexName,
 				key:                 key,
 				fanOut:              len(shardCandidates),
@@ -204,7 +204,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 				scoreFunc:           p.scoreFunc,
-			}))
+			})
 		}
 		candidatesBuf.Release()
 
@@ -263,7 +263,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 		if keyB != "" {
 			key = keyA + "/" + keyB
 		}
-		obs.OnRoute(buildRouteEvent(routeEventParams{
+		dispatchRoute(obs, routeEventParams{
 			indexName:           indexName,
 			key:                 key,
 			fanOut:              fanOut,
@@ -279,7 +279,7 @@ func (p *poolRouter) Eval(ctx context.Context, req *http.Request) (NextHop, erro
 			poolInfoReady:       loadPoolInfoReady(p.poolInfoReady),
 			adaptiveMCSR:        adaptiveMCSR,
 			scoreFunc:           p.scoreFunc,
-		}))
+		})
 	}
 
 	putConnSlice(bp)

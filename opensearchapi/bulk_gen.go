@@ -267,12 +267,12 @@ func (r *BulkResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
-func (c documentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
+func (c DocumentClient) Bulk(ctx context.Context, req BulkReq) (*BulkResp, error) {
 	var (
 		data BulkResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

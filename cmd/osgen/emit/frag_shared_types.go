@@ -23,7 +23,7 @@ type SharedTypesFragment struct {
 func (f *SharedTypesFragment) Imports() []Import {
 	for _, t := range f.Types {
 		for _, field := range t.Fields {
-			if strings.Contains(field.GoType, "json.RawMessage") {
+			if strings.Contains(field.GoType, GoTypeRawMessage) {
 				return []Import{{Path: "encoding/json"}}
 			}
 		}
@@ -48,6 +48,7 @@ func (f *SharedTypesFragment) Body() (string, error) {
 var sharedTypesFmtTmpl = template.Must(template.New("sharedTypes").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
+	"fieldComment":     FieldComment,
 	"availabilityNote": AvailabilityNote,
 	"needsSep":         needsSepIR,
 }).Parse(`{{range .}}
@@ -60,7 +61,7 @@ type {{.Name}} struct {
 {{- if needsSep $fields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}
@@ -99,7 +100,7 @@ func NewSharedTypesFile(outDir, pkg string, types []*ir.Type) Target {
 func NewUnionTypesFile(outDir, pkg string, types []*ir.Type) Target {
 	var unionTypes []*ir.Type
 	for _, t := range types {
-		if (t.Kind == ir.TypeUnion || t.Kind == ir.TypeLazyUnion) && t.Scope == ir.ScopeShared {
+		if (t.Kind == ir.TypeUnion || t.Kind == ir.TypeAmbiguousWire) && t.Scope == ir.ScopeShared {
 			unionTypes = append(unionTypes, t)
 		}
 	}
@@ -113,20 +114,36 @@ func NewUnionTypesFile(outDir, pkg string, types []*ir.Type) Target {
 	}
 }
 
-// NewEnumTypesFile builds a Target for enums_gen.go.
+// NewEnumTypesFile builds a Target for enums_gen.go. It emits both int-backed
+// (closed) enums and string-backed (permissive) enums into the same file.
 func NewEnumTypesFile(outDir, pkg string, types []*ir.Type) Target {
-	var enumTypes []*ir.Type
+	var enumTypes, stringEnumTypes []*ir.Type
 	for _, t := range types {
-		if t.Kind == ir.TypeEnum && t.Scope == ir.ScopeShared {
+		if t.Scope != ir.ScopeShared {
+			continue
+		}
+		switch t.Kind {
+		case ir.TypeEnum:
 			enumTypes = append(enumTypes, t)
+		case ir.TypeStringEnum:
+			stringEnumTypes = append(stringEnumTypes, t)
+		case ir.TypeStruct, ir.TypeUnion, ir.TypeAmbiguousWire:
+			// Emitted by other fragments (SharedTypesFragment / UnionFragment).
 		}
 	}
-	if len(enumTypes) == 0 {
+	if len(enumTypes) == 0 && len(stringEnumTypes) == 0 {
 		return nil
+	}
+	var fragments []Fragment
+	if len(enumTypes) > 0 {
+		fragments = append(fragments, &EnumFragment{Types: enumTypes})
+	}
+	if len(stringEnumTypes) > 0 {
+		fragments = append(fragments, &StringEnumFragment{Types: stringEnumTypes})
 	}
 	return &File{
 		FilePath:  outDir + "/enums_gen.go",
 		Package:   pkg,
-		Fragments: []Fragment{&EnumFragment{Types: enumTypes}},
+		Fragments: fragments,
 	}
 }

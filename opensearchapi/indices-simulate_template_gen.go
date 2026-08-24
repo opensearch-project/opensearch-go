@@ -136,7 +136,7 @@ func (r IndicesSimulateTemplateParams) get() map[string]string {
 type IndicesSimulateTemplateResp struct {
 	Overlapping []IndicesSimulateTemplateOverlapping `json:"overlapping,omitempty"`
 
-	// The configuration for an index template simulation.
+	// Template is the configuration for an index template simulation.
 	Template IndicesSimulateTemplateTemplate `json:"template"`
 
 	response *opensearch.Response
@@ -163,12 +163,12 @@ func (r IndicesSimulateTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) SimulateTemplate(ctx context.Context, req IndicesSimulateTemplateReq) (*IndicesSimulateTemplateResp, error) {
+func (c IndicesClient) SimulateTemplate(ctx context.Context, req IndicesSimulateTemplateReq) (*IndicesSimulateTemplateResp, error) {
 	var (
 		data IndicesSimulateTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

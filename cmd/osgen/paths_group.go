@@ -33,7 +33,7 @@ type opGroup struct {
 // pathVariant is one URL path variant within an operation group.
 type pathVariant struct {
 	path               string
-	methods            map[string]struct{} // HTTP methods available at this path (e.g. "GET", "POST")
+	methods            set[string] // HTTP methods available at this path (e.g. "GET", "POST")
 	pathParams         []string
 	arrayParams        map[string]bool
 	deprecated         bool
@@ -129,7 +129,7 @@ func groupFromSpec(spec *openapi3.T, filter map[string]bool, vrange VersionRange
 					existing.deprecated = false
 					existing.deprecationMessage = ""
 				}
-				existing.methods[httpMethod] = struct{}{}
+				existing.methods.add(httpMethod)
 				continue
 			}
 
@@ -140,7 +140,7 @@ func groupFromSpec(spec *openapi3.T, filter map[string]bool, vrange VersionRange
 
 			g.pathSpecs = append(g.pathSpecs, pathVariant{
 				path:               urlPath,
-				methods:            map[string]struct{}{httpMethod: {}},
+				methods:            newSet(httpMethod),
 				pathParams:         params,
 				arrayParams:        arrayParams,
 				deprecated:         op.Deprecated,
@@ -214,16 +214,16 @@ func isArrayParam(p *openapi3.Parameter) bool {
 }
 
 func schemaIsArray(s *openapi3.Schema) bool {
-	if s.Type != nil && s.Type.Is("array") {
+	if s.Type != nil && s.Type.Is(openapi3.TypeArray) {
 		return true
 	}
 	for _, ref := range s.OneOf {
-		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is("array") {
+		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is(openapi3.TypeArray) {
 			return true
 		}
 	}
 	for _, ref := range s.AnyOf {
-		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is("array") {
+		if ref.Value != nil && ref.Value.Type != nil && ref.Value.Type.Is(openapi3.TypeArray) {
 			return true
 		}
 	}
@@ -364,7 +364,7 @@ func expandUnionPaths(g *opGroup) {
 					syn.arrayParams[k] = v
 				}
 			}
-			syn.methods = make(map[string]struct{}, len(pv.methods))
+			syn.methods = make(set[string], len(pv.methods))
 			maps.Copy(syn.methods, pv.methods)
 			expanded = append(expanded, syn)
 		}

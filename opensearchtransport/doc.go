@@ -176,8 +176,8 @@ Enable automatic cluster discovery to maintain current node information:
 		Router: router,
 	})
 
-The discovery process respects node roles and can exclude dedicated cluster manager nodes
-from request routing (controlled by IncludeDedicatedClusterManagers configuration).
+The discovery process keeps dedicated cluster manager nodes in the connection
+inventory for reuse and eviction, but excludes them from request routing.
 
 When a request fails (transport error or retryable HTTP status), the failing connection is
 marked with a needsCatUpdate flag that excludes it from scored routing candidate sets.

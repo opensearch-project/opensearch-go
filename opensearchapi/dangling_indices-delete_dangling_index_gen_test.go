@@ -76,6 +76,7 @@ func TestDanglingIndicesDeleteDanglingIndex_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Dangling.DeleteDanglingIndex(t.Context(), opensearchapi.DanglingIndicesDeleteDanglingIndexReq{IndexUUID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestDanglingIndicesDeleteDanglingIndex_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Dangling.DeleteDanglingIndex(t.Context(), opensearchapi.DanglingIndicesDeleteDanglingIndexReq{IndexUUID: "test"})
 		require.Error(t, err)

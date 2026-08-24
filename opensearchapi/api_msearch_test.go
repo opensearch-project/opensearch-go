@@ -23,7 +23,7 @@ import (
 // decoded shape of each per-item union branch. An msearch responses[] element
 // is either a search result ({hits,took,...}) or a per-search error
 // ({error:{...},status}); this exercises the
-// MSearchMultiSearchResultResponsesItem merged single-pass decode (the
+// MSearchRespItem merged single-pass decode (the
 // success|error fan-in) and validates that the running server version returns
 // what the generated client can decode.
 func TestManual_MSearch(t *testing.T) {
@@ -76,34 +76,38 @@ func TestManual_MSearch(t *testing.T) {
 	require.Len(t, resp.Responses, 2)
 
 	// Each case asserts the decoded branch of one responses[] element,
-	// exercising the success|error fan-in: MSearchMultiSearchItem for a
+	// exercising the success|error fan-in: MultiSearchItem for a
 	// successful sub-search, ErrorRespBase for the index-missing one.
 	tests := []struct {
 		name  string
 		idx   int
-		check func(t *testing.T, item opensearchapi.MSearchMultiSearchResultResponsesItem)
+		check func(t *testing.T, item opensearchapi.MSearchRespItem)
 	}{
 		{
-			name: "successful sub-search decodes via MSearchMultiSearchItem branch",
+			name: "successful sub-search decodes via MultiSearchItem branch",
 			idx:  0,
-			check: func(t *testing.T, item opensearchapi.MSearchMultiSearchResultResponsesItem) {
+			check: func(t *testing.T, item opensearchapi.MSearchRespItem) {
 				t.Helper()
-				require.Equal(t, opensearchapi.MSearchMultiSearchResultResponsesItemMSearchMultiSearchItemType, item.Type())
-				v := item.MSearchMultiSearchItem()
+				require.Equal(t, opensearchapi.MSearchRespItemMultiSearchItemType, item.Type())
+				v, err := item.MultiSearchItem()
+				require.NoError(t, err)
 				require.False(t, v.TimedOut)
 				require.NotNil(t, v.Hits.Total)
-				require.Equal(t, opensearchapi.SearchHitsMetadataTotalSearchTotalHitsType, v.Hits.Total.Type())
-				require.Equal(t, int64(1), v.Hits.Total.SearchTotalHits().Value)
+				require.Equal(t, opensearchapi.SearchHitsMetadataTotalTotalHitsType, v.Hits.Total.Type())
+				total, err := v.Hits.Total.TotalHits()
+				require.NoError(t, err)
+				require.Equal(t, int64(1), total.Value)
 				require.Len(t, v.Hits.Hits, 1)
 			},
 		},
 		{
 			name: "missing index decodes via ErrorRespBase branch",
 			idx:  1,
-			check: func(t *testing.T, item opensearchapi.MSearchMultiSearchResultResponsesItem) {
+			check: func(t *testing.T, item opensearchapi.MSearchRespItem) {
 				t.Helper()
-				require.Equal(t, opensearchapi.MSearchMultiSearchResultResponsesItemErrorRespBaseType, item.Type())
-				v := item.ErrorRespBase()
+				require.Equal(t, opensearchapi.MSearchRespItemErrorRespBaseType, item.Type())
+				v, err := item.ErrorRespBase()
+				require.NoError(t, err)
 				require.Equal(t, 404, v.Status)
 				require.NotEmpty(t, v.Error.Type)
 			},

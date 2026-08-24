@@ -294,16 +294,22 @@ func TestRouteTrieAdversarial(t *testing.T) {
 		require.NotNil(t, m.policy)
 	})
 
-	t.Run("query string in path is not stripped", func(t *testing.T) {
-		// Trie matches path only; query strings should not appear in path
-		// but if they do, the last segment won't match
-		_, ok := trie.match(http.MethodGet, "/_search?q=test")
-		require.False(t, ok)
+	t.Run("query string in path matches bare index route", func(t *testing.T) {
+		// The trie matches the path only; a real req.URL.Path is already
+		// query-stripped, so "?q=test" never reaches here in production. If it
+		// does, the whole segment "_search?q=test" is treated as an index name
+		// and matches the bare "GET /{index}" route (index_get).
+		m, ok := trie.match(http.MethodGet, "/_search?q=test")
+		require.True(t, ok)
+		require.Equal(t, OpIndexGet, m.operationID)
 	})
 
-	t.Run("fragment in path", func(t *testing.T) {
-		_, ok := trie.match(http.MethodGet, "/_search#fragment")
-		require.False(t, ok)
+	t.Run("fragment in path matches bare index route", func(t *testing.T) {
+		// As above: fragments are stripped from a real req.URL.Path; a literal
+		// "_search#fragment" segment matches the bare "GET /{index}" route.
+		m, ok := trie.match(http.MethodGet, "/_search#fragment")
+		require.True(t, ok)
+		require.Equal(t, OpIndexGet, m.operationID)
 	})
 
 	t.Run("spaces in path", func(t *testing.T) {

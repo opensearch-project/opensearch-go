@@ -1,5 +1,7 @@
 # Document Lifecycle
 
+> **Runnable example:** [`_samples/indexing-document_lifecycle.go`](../_samples/indexing-document_lifecycle.go)
+
 > **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](config-security.md#request-body-construction) for details.
 
 This guide covers OpenSearch Golang Client API actions for Document Lifecycle. You'll learn how to create, read, update, and delete documents in your OpenSearch cluster. Whether you're new to OpenSearch or an experienced user, this guide provides the information you need to manage your document lifecycle effectively.

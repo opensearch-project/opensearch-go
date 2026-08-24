@@ -38,6 +38,13 @@ import (
 // ---------------------------------------------------------------------------
 // casLifecycle unit tests
 // ---------------------------------------------------------------------------
+//
+// NOTE: tests in this file set connection state via raw c.state.Store on
+// purpose, not via setLifecycleBit/casLifecycle. These are the unit tests for
+// those primitives, so the setup must be independent of them -- both to avoid
+// testing a primitive with itself and to deliberately simulate external/
+// concurrent mutation of the state word (the conflict-detection scenarios).
+// Do not "sweep" these to setLifecycleBit.
 
 func TestCasLifecycle_SetAndClear(t *testing.T) {
 	t.Parallel()

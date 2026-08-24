@@ -102,7 +102,7 @@ type MTermVectorsParams struct {
 	// A comma-separated list of documents IDs. You must provide either the
 	// `docs` field in the request body or specify `ids` as a query parameter
 	// or in the request body.
-	Ids []string
+	IDs []string
 
 	// If `true`, the response includes term offsets.
 	//
@@ -144,7 +144,7 @@ type MTermVectorsParams struct {
 	Version int
 
 	// The specific version type.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r MTermVectorsParams) get() map[string]string {
@@ -166,8 +166,8 @@ func (r MTermVectorsParams) get() map[string]string {
 		set("fields", strings.Join(r.Fields, ","))
 	}
 
-	if len(r.Ids) > 0 {
-		set("ids", strings.Join(r.Ids, ","))
+	if len(r.IDs) > 0 {
+		set("ids", strings.Join(r.IDs, ","))
 	}
 
 	if r.Offsets != nil {
@@ -203,7 +203,7 @@ func (r MTermVectorsParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -238,12 +238,12 @@ func (r MTermVectorsResp) RawBody() io.Reader {
 
 // MTermVectorsTermVectorsResult is a typed component of the mtermvectors operation.
 type MTermVectorsTermVectorsResult struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version     *int64                           `json:"_version,omitempty"`
@@ -263,7 +263,7 @@ type TermVectorsTermVector struct {
 type TermVectorsFieldStatistics struct {
 	DocCount   int   `json:"doc_count"`
 	SumDocFreq int64 `json:"sum_doc_freq"`
-	SumTtf     int64 `json:"sum_ttf"`
+	SumTTF     int64 `json:"sum_ttf"`
 }
 
 // TermVectorsTerm is a typed component of the mtermvectors operation.
@@ -272,7 +272,7 @@ type TermVectorsTerm struct {
 	Score    *float64           `json:"score,omitempty"`
 	TermFreq int                `json:"term_freq"`
 	Tokens   []TermVectorsToken `json:"tokens,omitempty"`
-	Ttf      *int               `json:"ttf,omitempty"`
+	TTF      *int               `json:"ttf,omitempty"`
 }
 
 // TermVectorsToken is a typed component of the mtermvectors operation.
@@ -287,81 +287,85 @@ type TermVectorsToken struct {
 //
 // Define ids, documents, parameters or a list of parameters per document here. You must at least provide a list of document ids. See documentation.
 type MTermVectorsBody struct {
-	// Array of existing or artificial documents.
+	// Docs. Array of existing or artificial documents.
 	Docs []MTermVectorsOperation `json:"docs,omitempty"`
 
-	// Simplified syntax to specify documents by their ID if they're in the
-	// same index.
-	Ids []string `json:"ids,omitempty"`
+	// IDs. Simplified syntax to specify documents by their ID if they're in
+	// the same index.
+	IDs []string `json:"ids,omitempty"`
 }
 
 // MTermVectorsOperation is a typed component of the mtermvectors operation.
 type MTermVectorsOperation struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// An artificial document for which you want to retrieve term vectors.
-	Doc json.RawMessage `json:"doc"`
+	// Doc is an artificial document for which you want to retrieve term
+	// vectors.
+	Doc json.RawMessage `json:"doc,omitempty"`
 
-	// When `true`, the response includes the document count, the sum of the
-	// document frequencies, and the sum of the term frequencies.
+	// FieldStatistics. When `true`, the response includes the document count,
+	// the sum of the document frequencies, and the sum of the term
+	// frequencies.
 	FieldStatistics *bool `json:"field_statistics,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Fields is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Fields *string `json:"fields,omitempty"`
 
 	Filter *TermVectorsFilter `json:"filter,omitempty"`
 
-	// When `true`, the response includes the term offsets.
+	// Offsets. When `true`, the response includes the term offsets.
 	Offsets *bool `json:"offsets,omitempty"`
 
-	// When `true`, the response includes the term payloads.
+	// Payloads. When `true`, the response includes the term payloads.
 	Payloads *bool `json:"payloads,omitempty"`
 
-	// When `true`, the response includes the term positions.
+	// Positions. When `true`, the response includes the term positions.
 	Positions *bool `json:"positions,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// When `true`, the response includes the term frequency and the document
-	// frequency.
+	// TermStatistics. When `true`, the response includes the term frequency
+	// and the document frequency.
 	TermStatistics *bool `json:"term_statistics,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 // TermVectorsFilter is a typed component of the mtermvectors operation.
 type TermVectorsFilter struct {
-	// Ignores words that appear in more than the specified number of
-	// documents. Default is `unbounded`.
+	// MaxDocFreq. Ignores words that appear in more than the specified number
+	// of documents. Default is `unbounded`.
 	MaxDocFreq *int `json:"max_doc_freq,omitempty"`
 
-	// The maximum number of terms that should be returned per field.
+	// MaxNumTerms is the maximum number of terms that should be returned per
+	// field.
 	MaxNumTerms *int `json:"max_num_terms,omitempty"`
 
-	// Ignore words with more than this frequency in the source doc. Default is
-	// `unbounded`.
+	// MaxTermFreq. Ignore words with more than this frequency in the source
+	// doc. Default is `unbounded`.
 	MaxTermFreq *int `json:"max_term_freq,omitempty"`
 
-	// The maximum word length. Words longer than this value will be ignored.
-	// Default is `unbounded`.
+	// MaxWordLength is the maximum word length. Words longer than this value
+	// will be ignored. Default is `unbounded`.
 	MaxWordLength *int `json:"max_word_length,omitempty"`
 
-	// Ignore terms which do not occur in at least this many docs.
+	// MinDocFreq. Ignore terms which do not occur in at least this many docs.
 	MinDocFreq *int `json:"min_doc_freq,omitempty"`
 
-	// Ignore words with less than this frequency in the source doc.
+	// MinTermFreq. Ignore words with less than this frequency in the source
+	// doc.
 	MinTermFreq *int `json:"min_term_freq,omitempty"`
 
-	// The minimum word length. Words shorter than this value will be ignored.
-	// Default is 0.
+	// MinWordLength is the minimum word length. Words shorter than this value
+	// will be ignored. Default is 0.
 	MinWordLength *int `json:"min_word_length,omitempty"`
 }
 
@@ -374,7 +378,7 @@ type TermVectorsFilter struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c documentClient) MTermVectors(ctx context.Context, req MTermVectorsReq) (*MTermVectorsResp, error) {
+func (c DocumentClient) MTermVectors(ctx context.Context, req MTermVectorsReq) (*MTermVectorsResp, error) {
 	var (
 		data MTermVectorsResp
 		err  error
@@ -383,7 +387,7 @@ func (c documentClient) MTermVectors(ctx context.Context, req MTermVectorsReq) (
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

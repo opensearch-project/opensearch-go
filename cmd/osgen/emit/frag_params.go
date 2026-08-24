@@ -111,16 +111,19 @@ func (f *ParamsFragment) Body() (string, error) {
 		}
 		return name
 	}
+	qualifyGoType := qualifierFunc(f.Op.IsPlugin, f.Registry)
 
 	tmpl := template.Must(template.New("params").Funcs(template.FuncMap{
 		"wrapField":         WrapField,
 		"availabilityNote":  AvailabilityNote,
 		"qualify":           qualify,
+		"qualifyType":       qualifyGoType,
 		"isDuration":        func(k ir.ParamKind) bool { return k == ir.ParamDuration },
 		"isBool":            func(k ir.ParamKind) bool { return k == ir.ParamBool },
 		"isList":            func(k ir.ParamKind) bool { return k == ir.ParamList },
 		"isInt":             func(k ir.ParamKind) bool { return k == ir.ParamInt },
 		"isIntPtr":          func(p ir.QueryParam) bool { return p.Kind == ir.ParamInt && p.GoType == "*int" },
+		"isStringEnum":      func(p ir.QueryParam) bool { return p.IsStringEnum },
 		"hasFormatOverride": HasFormatOverride,
 	}).Parse(paramsTmplStr))
 
@@ -153,7 +156,7 @@ type {{.TypePrefix}}Params struct {
 {{- end}}
 	// Default: {{$p.Default}}.
 {{- end}}
-	{{$p.GoName}} {{$p.GoType}}
+	{{$p.GoName}} {{qualifyType $p.GoType}}
 {{- end}}
 }
 
@@ -192,6 +195,10 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 {{- else if isInt .Kind}}
 	if r.{{.GoName}} != 0 {
 		set("{{.WireName}}", strconv.Itoa(r.{{.GoName}}))
+	}
+{{- else if isStringEnum .}}
+	if r.{{.GoName}} != "" {
+		set("{{.WireName}}", string(r.{{.GoName}}))
 	}
 {{- else}}
 	if r.{{.GoName}} != "" {

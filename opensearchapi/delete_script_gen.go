@@ -91,8 +91,8 @@ func (r DeleteScriptParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/script-apis/delete-script/
 type DeleteScriptResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -124,7 +124,7 @@ func (c Client) DeleteScript(ctx context.Context, req DeleteScriptReq) (*DeleteS
 		data DeleteScriptResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodDelete,

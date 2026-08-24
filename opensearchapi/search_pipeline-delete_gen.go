@@ -111,12 +111,12 @@ func (r SearchPipelineDeleteResp) RawBody() io.Reader {
 // DELETE /_search/pipeline/{id}
 //
 // Available: >= 2.9.0.
-func (c searchPipelineClient) Delete(ctx context.Context, req SearchPipelineDeleteReq) (*SearchPipelineDeleteResp, error) {
+func (c SearchPipelineClient) Delete(ctx context.Context, req SearchPipelineDeleteReq) (*SearchPipelineDeleteResp, error) {
 	var (
 		data SearchPipelineDeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

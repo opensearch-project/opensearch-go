@@ -55,6 +55,7 @@ func TestMetricsAlwaysAllocated(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tp, err := New(Config{URLs: tc.urls})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 			require.NotNil(t, tp.metrics, "metrics struct always allocated")
 		})
 	}
@@ -90,6 +91,7 @@ func TestDetailedCallbacksAlwaysRegistered(t *testing.T) {
 			}
 			tp, err := New(cfg)
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 			total := len(tp.metrics.policyCallbacks) +
 				len(tp.metrics.connMetricCallbacks) +
 				len(tp.metrics.snapshotCallbacks)
@@ -144,6 +146,7 @@ func TestMetrics(t *testing.T) {
 				DisableRetry: true,
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		tp.metrics.requests.Store(3)
 		tp.metrics.failures.Store(4)
@@ -225,6 +228,7 @@ func TestMetrics(t *testing.T) {
 			DisableRetry: true,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		pool, ok := tp.mu.connectionPool.(*singleServerPool)
 		require.True(t, ok, "single URL should yield a singleServerPool, got %T", tp.mu.connectionPool)
@@ -236,7 +240,9 @@ func TestMetrics(t *testing.T) {
 		conn.storeDeadSince(deadAt)
 		conn.storeOverloadedAt(overAt)
 		// lcUnknown without lcActive/lcStandby => IsDead; lcOverloaded => IsOverloaded.
-		conn.state.Store(int64(newConnState(lcDead | lcUnknown | lcOverloaded)))
+		// Reset the seed conn (born lcActive) to dead+overloaded: clear the
+		// active/standby position bits and set lcUnknown|lcOverloaded.
+		conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcOverloaded, lcReady|lcActive|lcStandby)
 		conn.mu.Unlock()
 
 		m, err := tp.Metrics()
@@ -267,6 +273,7 @@ func TestMetrics(t *testing.T) {
 			DisableRetry: true,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		var wg sync.WaitGroup
 		const performers, snapshotters = 4, 2
@@ -351,6 +358,7 @@ func TestMetrics(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				tp, err := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
 				tc.inject(tp.metrics)
 
 				_, err = tp.Metrics()
@@ -367,6 +375,7 @@ func TestMetrics(t *testing.T) {
 		// all succeed must leave callbackErrs empty so errors.Join returns nil.
 		tp, err := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		tp.metrics.connMetricCallbacks = append(tp.metrics.connMetricCallbacks,
 			func([]*Connection, []ConnectionMetric) error { return nil })
 		tp.metrics.policyCallbacks = append(tp.metrics.policyCallbacks,
@@ -385,7 +394,7 @@ func TestMetrics(t *testing.T) {
 			URL:   "http://foo1",
 			State: activeState,
 		}
-		require.Equal(t, "{http://foo1 state=ready+active (000000000101)}", m.String())
+		require.Equal(t, "{http://foo1 state=ready+active (0000000000101)}", m.String())
 
 		// Dead connection: lcUnknown|lcNeedsWarmup -- awaiting resurrection
 		tt, _ := time.Parse(time.RFC3339, "2010-11-11T11:00:00Z")
@@ -492,6 +501,7 @@ func TestMetricsDetailedSnapshot(t *testing.T) {
 			}
 			tp, err := New(cfg)
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			m, err := tp.Metrics()
 			require.NoError(t, err)

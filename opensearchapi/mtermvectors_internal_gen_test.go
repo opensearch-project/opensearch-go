@@ -41,7 +41,7 @@ func TestMTermVectorsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ids",
-			params: MTermVectorsParams{Ids: []string{"a", "b"}},
+			params: MTermVectorsParams{IDs: []string{"a", "b"}},
 			want:   map[string]string{"ids": "a,b"},
 		},
 		{

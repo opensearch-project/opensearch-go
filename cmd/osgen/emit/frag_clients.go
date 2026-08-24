@@ -14,9 +14,9 @@ import (
 
 // SubClient describes a sub-client type and its placement in the hierarchy.
 type SubClient struct {
-	TypeName  string // e.g. "catClient"
+	TypeName  string // e.g. "CatClient"
 	FieldName string // exported field on parent (e.g. "Cat")
-	Parent    string // parent client type ("Client" or "indicesClient")
+	Parent    string // parent client type ("Client" or "IndicesClient")
 	// Aliases are extra exported field names on the parent that point at the
 	// same sub-client value as FieldName, for compatibility (e.g. "Document"
 	// aliasing "Doc"). Only honored for top-level (Parent == "Client") clients.
@@ -156,6 +156,9 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	return client
 }
 {{range .SubClients}}
+// {{.TypeName}} groups a related subset of the OpenSearch API. {{.TypeName}}
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
 type {{.TypeName}} struct {
 	apiClient *Client
 {{- range nestedFields $.Hierarchy .TypeName}}

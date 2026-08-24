@@ -138,6 +138,6 @@ func (r UnloadModelResp) RawBody() io.Reader {
 
 // MLUnloadModelBody is a typed component of the ml.unload_model operation.
 type MLUnloadModelBody struct {
-	ModelIds []string `json:"model_ids,omitempty"`
-	NodeIds  []string `json:"node_ids,omitempty"`
+	ModelIDs []string `json:"model_ids,omitempty"`
+	NodeIDs  []string `json:"node_ids,omitempty"`
 }

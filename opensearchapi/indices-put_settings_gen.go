@@ -159,8 +159,8 @@ func (r IndicesPutSettingsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-settings/
 type IndicesPutSettingsResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -187,7 +187,7 @@ func (r IndicesPutSettingsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-settings/
-func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
+func (c IndicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
 	if req == nil {
 		req = &IndicesPutSettingsReq{}
 	}
@@ -196,7 +196,7 @@ func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsR
 		data IndicesPutSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,
@@ -208,7 +208,7 @@ func (c indicesClient) PutSettings(ctx context.Context, req *IndicesPutSettingsR
 }
 
 // Deprecated: use IndicesPutSettings via the parent client instead.
-func (c settingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
+func (c SettingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*IndicesPutSettingsResp, error) {
 	if req == nil {
 		req = &IndicesPutSettingsReq{}
 	}
@@ -217,7 +217,7 @@ func (c settingsClient) Put(ctx context.Context, req *IndicesPutSettingsReq) (*I
 		data IndicesPutSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

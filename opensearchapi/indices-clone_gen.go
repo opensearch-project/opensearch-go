@@ -175,7 +175,7 @@ type IndicesCloneBody struct {
 	// Aliases for the resulting index.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Configuration options for the target index.
+	// Settings. Configuration options for the target index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 
@@ -188,12 +188,12 @@ type IndicesCloneBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/clone/
-func (c indicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*IndicesCloneResp, error) {
+func (c IndicesClient) Clone(ctx context.Context, req IndicesCloneReq) (*IndicesCloneResp, error) {
 	var (
 		data IndicesCloneResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

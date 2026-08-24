@@ -112,10 +112,11 @@ func (r SnapshotCleanupRepositoryResp) RawBody() io.Reader {
 
 // SnapshotCleanupRepositoryResults is a typed component of the snapshot.cleanup_repository operation.
 type SnapshotCleanupRepositoryResults struct {
-	// The number of binary large objects (blobs) removed during cleanup.
+	// DeletedBlobs is the number of binary large objects (blobs) removed
+	// during cleanup.
 	DeletedBlobs int64 `json:"deleted_blobs"`
 
-	// The number of bytes freed by cleanup operations.
+	// DeletedBytes is the number of bytes freed by cleanup operations.
 	DeletedBytes int64 `json:"deleted_bytes"`
 }
 
@@ -126,12 +127,12 @@ type SnapshotCleanupRepositoryResults struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
+func (c SnapshotClient) CleanupRepository(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
 	var (
 		data SnapshotCleanupRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -143,12 +144,12 @@ func (c snapshotClient) CleanupRepository(ctx context.Context, req SnapshotClean
 }
 
 // Deprecated: use SnapshotCleanupRepository via the parent client instead.
-func (c repositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
+func (c RepositoryClient) Cleanup(ctx context.Context, req SnapshotCleanupRepositoryReq) (*SnapshotCleanupRepositoryResp, error) {
 	var (
 		data SnapshotCleanupRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

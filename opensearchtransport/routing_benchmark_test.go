@@ -69,6 +69,9 @@ func BenchmarkConnectionPool(b *testing.B) {
 			URL: &url.URL{Scheme: "http", Host: "bench1:9200"},
 			ID:  "bench1",
 		}
+		// Normal host, proven reachable: latch lcViable so the router admits it
+		// (these benchmarks do no network I/O, so nothing else sets the bit).
+		conn.setLifecycleBit(lcActive | lcViable)
 		pool := &singleServerPool{connection: conn}
 
 		b.ReportAllocs()
@@ -85,6 +88,11 @@ func BenchmarkConnectionPool(b *testing.B) {
 			{URL: &url.URL{Scheme: "http", Host: "bench1:9200"}, ID: "bench1"},
 			{URL: &url.URL{Scheme: "http", Host: "bench2:9200"}, ID: "bench2"},
 			{URL: &url.URL{Scheme: "http", Host: "bench3:9200"}, ID: "bench3"},
+		}
+		// Normal hosts, proven reachable: latch lcViable so the router admits
+		// them (these benchmarks do no network I/O, so nothing else sets it).
+		for _, conn := range connections {
+			conn.setLifecycleBit(lcActive | lcViable)
 		}
 		pool := NewConnectionPool(connections, nil)
 

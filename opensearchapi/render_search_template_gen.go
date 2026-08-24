@@ -136,16 +136,17 @@ func (r RenderSearchTemplateResp) RawBody() io.Reader {
 //
 // The search definition template and its parameters.
 type RenderSearchTemplateBody struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
-	// Key-value pairs used to replace Mustache variables in the template. The
-	// key is the variable name. The value is the variable value.
+	// Params. Key-value pairs used to replace Mustache variables in the
+	// template. The key is the variable name. The value is the variable value.
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 
-	// An inline search template. Supports the same parameters as the search
-	// API request body. These parameters also support Mustache variables. If
-	// no `id` or `<templated-id>` is specified, this parameter is required.
+	// Source is an inline search template. Supports the same parameters as the
+	// search API request body. These parameters also support Mustache
+	// variables. If no `id` or `<templated-id>` is specified, this parameter
+	// is required.
 	Source *string `json:"source,omitempty"`
 }
 
@@ -167,7 +168,7 @@ func (c Client) RenderSearchTemplate(ctx context.Context, req RenderSearchTempla
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

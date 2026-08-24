@@ -25,22 +25,22 @@ var noBody *opensearch.NoBody //nolint:gochecknoglobals // package-internal sent
 type Client struct {
 	Client         *opensearch.Client
 	errors         *errMaskWidth
-	Cat            catClient
-	Cluster        clusterClient
-	Dangling       danglingClient
-	Doc            documentClient
-	Document       documentClient
-	Index          indicesClient
-	Indices        indicesClient
-	Indexes        indicesClient
-	Nodes          nodesClient
-	PIT            pointInTimeClient
-	PointInTime    pointInTimeClient
-	Ingest         ingestClient
-	Tasks          tasksClient
-	Scroll         scrollClient
-	SearchPipeline searchPipelineClient
-	Snapshot       snapshotClient
+	Cat            CatClient
+	Cluster        ClusterClient
+	Dangling       DanglingClient
+	Doc            DocumentClient
+	Document       DocumentClient
+	Index          IndicesClient
+	Indices        IndicesClient
+	Indexes        IndicesClient
+	Nodes          NodesClient
+	PIT            PointInTimeClient
+	PointInTime    PointInTimeClient
+	Ingest         IngestClient
+	Tasks          TasksClient
+	Scroll         ScrollClient
+	SearchPipeline SearchPipelineClient
+	Snapshot       SnapshotClient
 }
 
 // clientInit initializes a Client with all sub-clients.
@@ -49,22 +49,22 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 		Client: rootClient,
 		errors: newErrMask(mask),
 	}
-	client.Cat = catClient{apiClient: client}
-	client.Cluster = clusterClient{apiClient: client}
-	client.Dangling = danglingClient{apiClient: client}
-	client.Doc = documentClient{apiClient: client}
-	client.Index = indicesClient{apiClient: client}
-	client.Nodes = nodesClient{apiClient: client}
-	client.PIT = pointInTimeClient{apiClient: client}
-	client.Ingest = ingestClient{apiClient: client}
-	client.Tasks = tasksClient{apiClient: client}
-	client.Scroll = scrollClient{apiClient: client}
-	client.SearchPipeline = searchPipelineClient{apiClient: client}
-	client.Snapshot = snapshotClient{apiClient: client}
-	client.Index.Alias = aliasClient{apiClient: client}
-	client.Index.Mapping = mappingClient{apiClient: client}
-	client.Index.Settings = settingsClient{apiClient: client}
-	client.Snapshot.Repository = repositoryClient{apiClient: client}
+	client.Cat = CatClient{apiClient: client}
+	client.Cluster = ClusterClient{apiClient: client}
+	client.Dangling = DanglingClient{apiClient: client}
+	client.Doc = DocumentClient{apiClient: client}
+	client.Index = IndicesClient{apiClient: client}
+	client.Nodes = NodesClient{apiClient: client}
+	client.PIT = PointInTimeClient{apiClient: client}
+	client.Ingest = IngestClient{apiClient: client}
+	client.Tasks = TasksClient{apiClient: client}
+	client.Scroll = ScrollClient{apiClient: client}
+	client.SearchPipeline = SearchPipelineClient{apiClient: client}
+	client.Snapshot = SnapshotClient{apiClient: client}
+	client.Index.Alias = AliasClient{apiClient: client}
+	client.Index.Mapping = MappingClient{apiClient: client}
+	client.Index.Settings = SettingsClient{apiClient: client}
+	client.Snapshot.Repository = RepositoryClient{apiClient: client}
 	client.Document = client.Doc
 	client.Indices = client.Index
 	client.Indexes = client.Index
@@ -72,70 +72,118 @@ func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client {
 	return client
 }
 
-type catClient struct {
+// CatClient groups a related subset of the OpenSearch API. CatClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type CatClient struct {
 	apiClient *Client
 }
 
-type clusterClient struct {
+// ClusterClient groups a related subset of the OpenSearch API. ClusterClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type ClusterClient struct {
 	apiClient *Client
 }
 
-type danglingClient struct {
+// DanglingClient groups a related subset of the OpenSearch API. DanglingClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type DanglingClient struct {
 	apiClient *Client
 }
 
-type documentClient struct {
+// DocumentClient groups a related subset of the OpenSearch API. DocumentClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type DocumentClient struct {
 	apiClient *Client
 }
 
-type indicesClient struct {
+// IndicesClient groups a related subset of the OpenSearch API. IndicesClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type IndicesClient struct {
 	apiClient *Client
-	Alias     aliasClient
-	Mapping   mappingClient
-	Settings  settingsClient
+	Alias     AliasClient
+	Mapping   MappingClient
+	Settings  SettingsClient
 }
 
-type aliasClient struct {
-	apiClient *Client
-}
-
-type mappingClient struct {
-	apiClient *Client
-}
-
-type settingsClient struct {
+// AliasClient groups a related subset of the OpenSearch API. AliasClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type AliasClient struct {
 	apiClient *Client
 }
 
-type nodesClient struct {
+// MappingClient groups a related subset of the OpenSearch API. MappingClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type MappingClient struct {
 	apiClient *Client
 }
 
-type pointInTimeClient struct {
+// SettingsClient groups a related subset of the OpenSearch API. SettingsClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type SettingsClient struct {
 	apiClient *Client
 }
 
-type ingestClient struct {
+// NodesClient groups a related subset of the OpenSearch API. NodesClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type NodesClient struct {
 	apiClient *Client
 }
 
-type tasksClient struct {
+// PointInTimeClient groups a related subset of the OpenSearch API. PointInTimeClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type PointInTimeClient struct {
 	apiClient *Client
 }
 
-type scrollClient struct {
+// IngestClient groups a related subset of the OpenSearch API. IngestClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type IngestClient struct {
 	apiClient *Client
 }
 
-type searchPipelineClient struct {
+// TasksClient groups a related subset of the OpenSearch API. TasksClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type TasksClient struct {
 	apiClient *Client
 }
 
-type snapshotClient struct {
+// ScrollClient groups a related subset of the OpenSearch API. ScrollClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type ScrollClient struct {
+	apiClient *Client
+}
+
+// SearchPipelineClient groups a related subset of the OpenSearch API. SearchPipelineClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type SearchPipelineClient struct {
+	apiClient *Client
+}
+
+// SnapshotClient groups a related subset of the OpenSearch API. SnapshotClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type SnapshotClient struct {
 	apiClient  *Client
-	Repository repositoryClient
+	Repository RepositoryClient
 }
 
-type repositoryClient struct {
+// RepositoryClient groups a related subset of the OpenSearch API. RepositoryClient
+// values should be obtained from a [Client] created with [NewClient] or
+// [NewDefaultClient]; the zero value is not usable.
+type RepositoryClient struct {
 	apiClient *Client
 }

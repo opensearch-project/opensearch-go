@@ -140,7 +140,7 @@ func (r CatSegmentsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segments/
-func (c catClient) Segments(ctx context.Context, req *CatSegmentsReq) (*CatSegmentsResp, error) {
+func (c CatClient) Segments(ctx context.Context, req *CatSegmentsReq) (*CatSegmentsResp, error) {
 	if req == nil {
 		req = &CatSegmentsReq{}
 	}
@@ -149,7 +149,7 @@ func (c catClient) Segments(ctx context.Context, req *CatSegmentsReq) (*CatSegme
 		data CatSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -135,6 +135,12 @@ linters:
       - linters:
           - goconst
         path: cmd/osgen/
+      # cmd/osapilint/linter tests exercise unexported linter internals
+      # (parseMajor, dirFromArg, runTypeAwareRewrite, rewriteFileTyped, ...),
+      # so they must live in package linter, not linter_test.
+      - linters:
+          - testpackage
+        path: cmd/osapilint/linter/
       - linters:
           - gosec
         path: _test\.go

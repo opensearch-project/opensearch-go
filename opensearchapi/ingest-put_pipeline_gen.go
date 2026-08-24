@@ -111,8 +111,8 @@ func (r IngestPutPipelineParams) get() map[string]string {
 //
 // See: https://docs.opensearch.org/latest/ingest-pipelines/create-ingest/
 type IngestPutPipelineResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -136,21 +136,22 @@ func (r IngestPutPipelineResp) RawBody() io.Reader {
 //
 // The ingest definition.
 type IngestPutPipelineBody struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// The description for the ingest pipeline.
+	// Description is the description for the ingest pipeline.
 	Description *string `json:"description,omitempty"`
 
-	// The new processor to run immediately after another processor fails. The
-	// processors specified in the `on_failure` parameter run sequentially in
-	// the order specified. If no pipeline are specified in `on_failure` array
-	// is specified, OpenSearch will not attempt to run the pipeline's
-	// remaining processors.
+	// OnFailure is the new processor to run immediately after another
+	// processor fails. The processors specified in the `on_failure` parameter
+	// run sequentially in the order specified. If no pipeline are specified in
+	// `on_failure` array is specified, OpenSearch will not attempt to run the
+	// pipeline's remaining processors.
 	OnFailure []IngestProcessorContainer `json:"on_failure,omitempty"`
 
-	// The processors used to perform transformations on documents before
-	// indexing. Processors run sequentially in the order specified.
+	// Processors is the processors used to perform transformations on
+	// documents before indexing. Processors run sequentially in the order
+	// specified.
 	Processors []IngestProcessorContainer `json:"processors,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`
@@ -163,12 +164,12 @@ type IngestPutPipelineBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://docs.opensearch.org/latest/ingest-pipelines/create-ingest/
-func (c ingestClient) PutPipeline(ctx context.Context, req IngestPutPipelineReq) (*IngestPutPipelineResp, error) {
+func (c IngestClient) PutPipeline(ctx context.Context, req IngestPutPipelineReq) (*IngestPutPipelineResp, error) {
 	var (
 		data IngestPutPipelineResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

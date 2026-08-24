@@ -77,6 +77,7 @@ func TestIngestPutPipeline_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -96,6 +97,7 @@ func TestIngestPutPipeline_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Ingest.PutPipeline(t.Context(), opensearchapi.IngestPutPipelineReq{ID: "test", BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)

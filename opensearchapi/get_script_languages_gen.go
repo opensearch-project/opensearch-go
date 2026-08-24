@@ -129,7 +129,7 @@ func (c Client) GetScriptLanguages(ctx context.Context, req *GetScriptLanguagesR
 		data GetScriptLanguagesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodGet,

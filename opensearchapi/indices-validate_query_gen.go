@@ -241,15 +241,15 @@ func (r IndicesValidateQueryResp) RawBody() io.Reader {
 //
 // The validation results for an index query.
 type IndicesValidateQueryIndicesValidationExplanation struct {
-	// The error message if validation failed.
+	// Error is the error message if validation failed.
 	Error *string `json:"error,omitempty"`
 
-	// The explanation of why the query is valid or invalid.
+	// Explanation is the explanation of why the query is valid or invalid.
 	Explanation *string `json:"explanation,omitempty"`
 
 	Index string `json:"index"`
 
-	// Whether the query is valid for the index.
+	// Valid. Whether the query is valid for the index.
 	Valid bool `json:"valid"`
 }
 
@@ -302,7 +302,7 @@ func (r *IndicesValidateQueryResp) PartialFailures(mask errmask.ErrorMask) []err
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ValidateQuery(ctx context.Context, req *IndicesValidateQueryReq) (*IndicesValidateQueryResp, error) {
+func (c IndicesClient) ValidateQuery(ctx context.Context, req *IndicesValidateQueryReq) (*IndicesValidateQueryResp, error) {
 	if req == nil {
 		req = &IndicesValidateQueryReq{}
 	}
@@ -315,7 +315,7 @@ func (c indicesClient) ValidateQuery(ctx context.Context, req *IndicesValidateQu
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

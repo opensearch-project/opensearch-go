@@ -87,7 +87,7 @@ func (r StopPolicyParams) get() map[string]string {
 //
 // Available: >= 2.1.0.
 type StopPolicyResp struct {
-	// Whether the API acknowledged the stop operation.
+	// Acknowledged. Whether the API acknowledged the stop operation.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
 	response *opensearch.Response

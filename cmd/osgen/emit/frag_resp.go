@@ -14,6 +14,12 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
+// GoTypeRawMessage is the Go type expression the walker emits when a schema could
+// not be resolved to a named type. The emit package matches against it to decide
+// whether a rendered file needs the encoding/json import, and uses it as the
+// element type for response shapes with no resolved element.
+const GoTypeRawMessage = "json.RawMessage"
+
 // RespFragment renders the Resp struct and its Inspect() method.
 type RespFragment struct {
 	Op       *ir.Operation
@@ -85,6 +91,7 @@ func (f *RespFragment) Body() (string, error) {
 		"comment":          CommentWrap,
 		"wrapLine":         WrapLine,
 		"wrapField":        WrapField,
+		"fieldComment":     FieldComment,
 		"availabilityNote": AvailabilityNote,
 		"needsSep":         needsSepIR,
 		"qualify":          qualify,
@@ -98,7 +105,7 @@ func (f *RespFragment) Body() (string, error) {
 }
 
 func (f *RespFragment) renderMapResp() (string, error) {
-	elemType := "json.RawMessage"
+	elemType := GoTypeRawMessage
 	if f.Op.RespElemType != nil {
 		elemType = f.qualifyElemType(f.Op.RespElemType.Name)
 	}
@@ -127,7 +134,7 @@ func (f *RespFragment) renderMapResp() (string, error) {
 }
 
 func (f *RespFragment) renderArrayResp() (string, error) {
-	elemType := "json.RawMessage"
+	elemType := GoTypeRawMessage
 	if f.Op.RespElemType != nil {
 		elemType = f.qualifyElemType(f.Op.RespElemType.Name)
 	}
@@ -189,13 +196,13 @@ func (f *RespFragment) hasJSONRaw() bool {
 		return false
 	}
 	for _, field := range f.Op.Response.Fields {
-		if strings.Contains(field.GoType, "json.RawMessage") {
+		if strings.Contains(field.GoType, GoTypeRawMessage) {
 			return true
 		}
 	}
 	for _, st := range f.Op.SiblingTypes {
 		for _, field := range st.Fields {
-			if strings.Contains(field.GoType, "json.RawMessage") {
+			if strings.Contains(field.GoType, GoTypeRawMessage) {
 				return true
 			}
 		}
@@ -231,7 +238,7 @@ type {{.TypePrefix}}Resp struct {
 {{- if needsSep $.RespFields $i}}
 {{end}}
 {{- if $f.Comment}}
-	{{wrapField $f.Comment}}
+	{{fieldComment $f.GoName $f.Comment}}
 {{- end}}
 {{- with availabilityNote $f.VersionAdded $f.VersionDeprecated $f.DeprecationMsg}}
 {{- if $f.Comment}}

@@ -135,10 +135,10 @@ func (r CatRepositoriesResp) RawBody() io.Reader {
 
 // CatRepositoriesRecord is a typed component of the cat.repositories operation.
 type CatRepositoriesRecord struct {
-	// The unique repository identifier.
+	// ID is the unique repository identifier.
 	ID *string `json:"id,omitempty"`
 
-	// The repository type.
+	// Type is the repository type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -149,7 +149,7 @@ type CatRepositoriesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-repositories/
-func (c catClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*CatRepositoriesResp, error) {
+func (c CatClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*CatRepositoriesResp, error) {
 	if req == nil {
 		req = &CatRepositoriesReq{}
 	}
@@ -158,7 +158,7 @@ func (c catClient) Repositories(ctx context.Context, req *CatRepositoriesReq) (*
 		data CatRepositoriesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

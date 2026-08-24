@@ -123,8 +123,8 @@ func (r ClusterPutComponentTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/#use-component-templates-to-create-an-index-template
 type ClusterPutComponentTemplateResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -148,16 +148,17 @@ func (r ClusterPutComponentTemplateResp) RawBody() io.Reader {
 //
 // The template definition.
 type ClusterPutComponentTemplateBody struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// This setting overrides the `action.auto_create_index` cluster setting.
-	// When set to `true` in a component template, indexes are automatically
-	// created using that template. When set to `false`, data streams matching
-	// the component template must always be explicitly created.
+	// AllowAutoCreate. This setting overrides the `action.auto_create_index`
+	// cluster setting. When set to `true` in a component template, indexes are
+	// automatically created using that template. When set to `false`, data
+	// streams matching the component template must always be explicitly
+	// created.
 	AllowAutoCreate *bool `json:"allow_auto_create,omitempty"`
 
-	// The state configuration of an index.
+	// Template is the state configuration of an index.
 	Template IndicesIndexState `json:"template"`
 
 	Version *int64 `json:"version,omitempty"`
@@ -172,12 +173,12 @@ type ClusterPutComponentTemplateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/#use-component-templates-to-create-an-index-template
-func (c clusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutComponentTemplateReq) (*ClusterPutComponentTemplateResp, error) {
+func (c ClusterClient) PutComponentTemplate(ctx context.Context, req ClusterPutComponentTemplateReq) (*ClusterPutComponentTemplateResp, error) {
 	var (
 		data ClusterPutComponentTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

@@ -91,7 +91,7 @@ type CatNodesParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
-	Time string
+	Time TimeUnit
 }
 
 func (r CatNodesParams) get() map[string]string {
@@ -121,7 +121,7 @@ func (r CatNodesParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -164,244 +164,246 @@ func (r CatNodesResp) RawBody() io.Reader {
 
 // CatNodesRecord is a typed component of the cat.nodes operation.
 type CatNodesRecord struct {
-	// The OpenSearch build hash.
+	// Build is the OpenSearch build hash.
 	Build *string `json:"build,omitempty"`
 
-	// The average size in bytes of shard bulk.
+	// BulkAvgSizeInBytes is the average size in bytes of shard bulk.
 	BulkAvgSizeInBytes *string `json:"bulk.avg_size_in_bytes,omitempty"`
 
-	// The average time spend in shard bulk.
+	// BulkAvgTime is the average time spend in shard bulk.
 	BulkAvgTime *string `json:"bulk.avg_time,omitempty"`
 
-	// The number of bulk shard operations.
+	// BulkTotalOperations is the number of bulk shard operations.
 	BulkTotalOperations *string `json:"bulk.total_operations,omitempty"`
 
-	// The total size in bytes of shard bulk.
+	// BulkTotalSizeInBytes is the total size in bytes of shard bulk.
 	BulkTotalSizeInBytes *string `json:"bulk.total_size_in_bytes,omitempty"`
 
-	// The time spend in shard bulk.
+	// BulkTotalTime is the time spend in shard bulk.
 	BulkTotalTime *string `json:"bulk.total_time,omitempty"`
 
-	// Indicates whether the node is the elected cluster-manager node. Returned
-	// values include `*`(elected cluster-manager) and `-`(not elected
-	// cluster-manager).
+	// ClusterManager. Indicates whether the node is the elected
+	// cluster-manager node. Returned values include `*`(elected
+	// cluster-manager) and `-`(not elected cluster-manager).
 	ClusterManager *string `json:"cluster_manager,omitempty"`
 
-	// The size of completion.
+	// CompletionSize is the size of completion.
 	CompletionSize *string `json:"completion.size,omitempty"`
 
-	// The recent system CPU usage as a percentage.
-	Cpu *string `json:"cpu,omitempty"`
+	// CPU is the recent system CPU usage as a percentage.
+	CPU *string `json:"cpu,omitempty"`
 
 	DiskAvail *string `json:"disk.avail,omitempty"`
 	DiskTotal *string `json:"disk.total,omitempty"`
 	DiskUsed  *string `json:"disk.used,omitempty"`
 
-	// The percentage value as a string.
+	// DiskUsedPercent is the percentage value as a string.
 	DiskUsedPercent *string `json:"disk.used_percent,omitempty"`
 
-	// The field data evictions.
+	// FielddataEvictions is the field data evictions.
 	FielddataEvictions *string `json:"fielddata.evictions,omitempty"`
 
-	// The used field data cache.
+	// FielddataMemorySize is the used field data cache.
 	FielddataMemorySize *string `json:"fielddata.memory_size,omitempty"`
 
-	// The used file descriptors.
+	// FileDescCurrent is the used file descriptors.
 	FileDescCurrent *string `json:"file_desc.current,omitempty"`
 
-	// The maximum number of file descriptors.
+	// FileDescMax is the maximum number of file descriptors.
 	FileDescMax *string `json:"file_desc.max,omitempty"`
 
-	// The percentage value as a string.
+	// FileDescPercent is the percentage value as a string.
 	FileDescPercent *string `json:"file_desc.percent,omitempty"`
 
-	// The OpenSearch distribution flavor.
+	// Flavor is the OpenSearch distribution flavor.
 	Flavor *string `json:"flavor,omitempty"`
 
-	// The number of flushes.
+	// FlushTotal is the number of flushes.
 	FlushTotal *string `json:"flush.total,omitempty"`
 
-	// The time spent in flush.
+	// FlushTotalTime is the time spent in flush.
 	FlushTotalTime *string `json:"flush.total_time,omitempty"`
 
-	// The number of current get ops.
+	// GetCurrent is the number of current get ops.
 	GetCurrent *string `json:"get.current,omitempty"`
 
-	// The time spent in successful gets.
+	// GetExistsTime is the time spent in successful gets.
 	GetExistsTime *string `json:"get.exists_time,omitempty"`
 
-	// The number of successful get operations.
+	// GetExistsTotal is the number of successful get operations.
 	GetExistsTotal *string `json:"get.exists_total,omitempty"`
 
-	// The time spent in failed gets.
+	// GetMissingTime is the time spent in failed gets.
 	GetMissingTime *string `json:"get.missing_time,omitempty"`
 
-	// The number of failed gets.
+	// GetMissingTotal is the number of failed gets.
 	GetMissingTotal *string `json:"get.missing_total,omitempty"`
 
-	// The time spent in get.
+	// GetTime is the time spent in get.
 	GetTime *string `json:"get.time,omitempty"`
 
-	// The number of get ops.
+	// GetTotal is the number of get ops.
 	GetTotal *string `json:"get.total,omitempty"`
 
-	// The used heap.
+	// HeapCurrent is the used heap.
 	HeapCurrent *string `json:"heap.current,omitempty"`
 
-	// The maximum configured heap.
+	// HeapMax is the maximum configured heap.
 	HeapMax *string `json:"heap.max,omitempty"`
 
-	// The percentage value as a string.
+	// HeapPercent is the percentage value as a string.
 	HeapPercent *string `json:"heap.percent,omitempty"`
 
-	// The bound HTTP address.
+	// HTTPAddress is the bound HTTP address.
 	HTTPAddress *string `json:"http_address,omitempty"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
-	// The number of current deletions.
+	// IndexingDeleteCurrent is the number of current deletions.
 	IndexingDeleteCurrent *string `json:"indexing.delete_current,omitempty"`
 
-	// The time spent in deletions.
+	// IndexingDeleteTime is the time spent in deletions.
 	IndexingDeleteTime *string `json:"indexing.delete_time,omitempty"`
 
-	// The number of delete operations.
+	// IndexingDeleteTotal is the number of delete operations.
 	IndexingDeleteTotal *string `json:"indexing.delete_total,omitempty"`
 
-	// The number of current indexing operations.
+	// IndexingIndexCurrent is the number of current indexing operations.
 	IndexingIndexCurrent *string `json:"indexing.index_current,omitempty"`
 
-	// The number of failed indexing operations.
+	// IndexingIndexFailed is the number of failed indexing operations.
 	IndexingIndexFailed *string `json:"indexing.index_failed,omitempty"`
 
-	// The time spent in indexing.
+	// IndexingIndexTime is the time spent in indexing.
 	IndexingIndexTime *string `json:"indexing.index_time,omitempty"`
 
-	// The number of indexing operations.
+	// IndexingIndexTotal is the number of indexing operations.
 	IndexingIndexTotal *string `json:"indexing.index_total,omitempty"`
 
-	// The IP address.
+	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// The Java version.
-	Jdk *string `json:"jdk,omitempty"`
+	// JDK is the Java version.
+	JDK *string `json:"jdk,omitempty"`
 
-	// The load average for the last fifteen minutes.
+	// Load15m is the load average for the last fifteen minutes.
 	Load15m *string `json:"load_15m,omitempty"`
 
-	// The load average for the most recent minute.
+	// Load1m is the load average for the most recent minute.
 	Load1m *string `json:"load_1m,omitempty"`
 
-	// The load average for the last five minutes.
+	// Load5m is the load average for the last five minutes.
 	Load5m *string `json:"load_5m,omitempty"`
 
-	// Indicates whether the node is the elected cluster-manager node. Returned
-	// values include `*`(elected cluster manager) and `-`(not elected cluster
-	// manager).
+	// Master. Indicates whether the node is the elected cluster-manager node.
+	// Returned values include `*`(elected cluster manager) and `-`(not elected
+	// cluster manager).
 	//
 	// Deprecated: since 2.0.0. To promote inclusive language, use
 	// `cluster_manager` instead.
 	Master *string `json:"master,omitempty"`
 
-	// The number of current merges.
+	// MergesCurrent is the number of current merges.
 	MergesCurrent *string `json:"merges.current,omitempty"`
 
-	// The number of current merging docs.
+	// MergesCurrentDocs is the number of current merging docs.
 	MergesCurrentDocs *string `json:"merges.current_docs,omitempty"`
 
-	// The size of current merges.
+	// MergesCurrentSize is the size of current merges.
 	MergesCurrentSize *string `json:"merges.current_size,omitempty"`
 
-	// The number of completed merge operations.
+	// MergesTotal is the number of completed merge operations.
 	MergesTotal *string `json:"merges.total,omitempty"`
 
-	// The docs merged.
+	// MergesTotalDocs is the docs merged.
 	MergesTotalDocs *string `json:"merges.total_docs,omitempty"`
 
-	// The size merged.
+	// MergesTotalSize is the size merged.
 	MergesTotalSize *string `json:"merges.total_size,omitempty"`
 
-	// The time spent in merges.
+	// MergesTotalTime is the time spent in merges.
 	MergesTotalTime *string `json:"merges.total_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// The roles of the node. Returned values include `c`(cold node), `d`(data
-	// node), `f`(frozen node), `h`(hot node), `i`(ingest node), `l`(machine
-	// learning node), `m` (cluster-manager eligible node), `r`(remote cluster
-	// client node), `s`(content node), `t`(transform node), `v`(voting-only
-	// node), `w`(warm node),and `-`(coordinating node only).
+	// NodeRole is the roles of the node. Returned values include `c`(cold
+	// node), `d`(data node), `f`(frozen node), `h`(hot node), `i`(ingest
+	// node), `l`(machine learning node), `m` (cluster-manager eligible node),
+	// `r`(remote cluster client node), `s`(content node), `t`(transform node),
+	// `v`(voting-only node), `w`(warm node),and `-`(coordinating node only).
 	NodeRole *string `json:"node.role,omitempty"`
 
-	// A comma-separated list of the roles of the node. Returned values may
-	// include but are not limited to: `data`, `ingest`, `master`,
+	// NodeRoles is a comma-separated list of the roles of the node. Returned
+	// values may include but are not limited to: `data`, `ingest`, `master`,
 	// `cluster_manager`, `remote_cluster_client`, `search`, and
 	// `-`(coordinating node only).
 	NodeRoles *string `json:"node.roles,omitempty"`
 
-	// The process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
-	// The bound transport port.
+	// Port is the bound transport port.
 	Port *string `json:"port,omitempty"`
 
-	// The query cache evictions.
+	// QueryCacheEvictions is the query cache evictions.
 	QueryCacheEvictions *string `json:"query_cache.evictions,omitempty"`
 
-	// The query cache hit counts.
+	// QueryCacheHitCount is the query cache hit counts.
 	QueryCacheHitCount *string `json:"query_cache.hit_count,omitempty"`
 
-	// The used query cache.
+	// QueryCacheMemorySize is the used query cache.
 	QueryCacheMemorySize *string `json:"query_cache.memory_size,omitempty"`
 
-	// The query cache miss counts.
+	// QueryCacheMissCount is the query cache miss counts.
 	QueryCacheMissCount *string `json:"query_cache.miss_count,omitempty"`
 
-	// The used machine memory.
+	// RamCurrent is the used machine memory.
 	RamCurrent *string `json:"ram.current,omitempty"`
 
-	// The total machine memory.
+	// RamMax is the total machine memory.
 	RamMax *string `json:"ram.max,omitempty"`
 
-	// The percentage value as a string.
+	// RamPercent is the percentage value as a string.
 	RamPercent *string `json:"ram.percent,omitempty"`
 
-	// The time spent in external refreshes.
+	// RefreshExternalTime is the time spent in external refreshes.
 	RefreshExternalTime *string `json:"refresh.external_time,omitempty"`
 
-	// The total external refreshes.
+	// RefreshExternalTotal is the total external refreshes.
 	RefreshExternalTotal *string `json:"refresh.external_total,omitempty"`
 
-	// The number of pending refresh listeners.
+	// RefreshListeners is the number of pending refresh listeners.
 	RefreshListeners *string `json:"refresh.listeners,omitempty"`
 
-	// The time spent in refreshes.
+	// RefreshTime is the time spent in refreshes.
 	RefreshTime *string `json:"refresh.time,omitempty"`
 
-	// The total refreshes.
+	// RefreshTotal is the total refreshes.
 	RefreshTotal *string `json:"refresh.total,omitempty"`
 
-	// The request cache evictions.
+	// RequestCacheEvictions is the request cache evictions.
 	RequestCacheEvictions *string `json:"request_cache.evictions,omitempty"`
 
-	// The request cache hit counts.
+	// RequestCacheHitCount is the request cache hit counts.
 	RequestCacheHitCount *string `json:"request_cache.hit_count,omitempty"`
 
-	// The used request cache.
+	// RequestCacheMemorySize is the used request cache.
 	RequestCacheMemorySize *string `json:"request_cache.memory_size,omitempty"`
 
-	// The request cache miss counts.
+	// RequestCacheMissCount is the request cache miss counts.
 	RequestCacheMissCount *string `json:"request_cache.miss_count,omitempty"`
 
-	// The total compiled scripts evicted from the cache.
+	// ScriptCacheEvictions is the total compiled scripts evicted from the
+	// cache.
 	ScriptCacheEvictions *string `json:"script.cache_evictions,omitempty"`
 
-	// The script cache compilation limit triggered.
+	// ScriptCompilationLimitTriggered is the script cache compilation limit
+	// triggered.
 	ScriptCompilationLimitTriggered *string `json:"script.compilation_limit_triggered,omitempty"`
 
-	// The total script compilations.
+	// ScriptCompilations is the total script compilations.
 	ScriptCompilations *string `json:"script.compilations,omitempty"`
 
 	SearchConcurrentAvgSliceCount *string `json:"search.concurrent_avg_slice_count,omitempty"`
@@ -409,69 +411,70 @@ type CatNodesRecord struct {
 	SearchConcurrentQueryTime     *string `json:"search.concurrent_query_time,omitempty"`
 	SearchConcurrentQueryTotal    *string `json:"search.concurrent_query_total,omitempty"`
 
-	// The current fetch phase operations.
+	// SearchFetchCurrent is the current fetch phase operations.
 	SearchFetchCurrent *string `json:"search.fetch_current,omitempty"`
 
-	// The time spent in fetch phase.
+	// SearchFetchTime is the time spent in fetch phase.
 	SearchFetchTime *string `json:"search.fetch_time,omitempty"`
 
-	// The total fetch operations.
+	// SearchFetchTotal is the total fetch operations.
 	SearchFetchTotal *string `json:"search.fetch_total,omitempty"`
 
-	// The open search contexts.
+	// SearchOpenContexts is the open search contexts.
 	SearchOpenContexts *string `json:"search.open_contexts,omitempty"`
 
 	SearchPointInTimeCurrent *string `json:"search.point_in_time_current,omitempty"`
 	SearchPointInTimeTime    *string `json:"search.point_in_time_time,omitempty"`
 	SearchPointInTimeTotal   *string `json:"search.point_in_time_total,omitempty"`
 
-	// The current query phase operations.
+	// SearchQueryCurrent is the current query phase operations.
 	SearchQueryCurrent *string `json:"search.query_current,omitempty"`
 
-	// The time spent in query phase.
+	// SearchQueryTime is the time spent in query phase.
 	SearchQueryTime *string `json:"search.query_time,omitempty"`
 
-	// The total query phase operations.
+	// SearchQueryTotal is the total query phase operations.
 	SearchQueryTotal *string `json:"search.query_total,omitempty"`
 
-	// The open scroll contexts.
+	// SearchScrollCurrent is the open scroll contexts.
 	SearchScrollCurrent *string `json:"search.scroll_current,omitempty"`
 
-	// The time scroll contexts held open.
+	// SearchScrollTime is the time scroll contexts held open.
 	SearchScrollTime *string `json:"search.scroll_time,omitempty"`
 
-	// The completed scroll contexts.
+	// SearchScrollTotal is the completed scroll contexts.
 	SearchScrollTotal *string `json:"search.scroll_total,omitempty"`
 
-	// The number of segments.
+	// SegmentsCount is the number of segments.
 	SegmentsCount *string `json:"segments.count,omitempty"`
 
-	// The memory used by fixed bit sets for nested object field types and
-	// export type filters for types referred in `_parent` fields.
+	// SegmentsFixedBitsetMemory is the memory used by fixed bit sets for
+	// nested object field types and export type filters for types referred in
+	// `_parent` fields.
 	SegmentsFixedBitsetMemory *string `json:"segments.fixed_bitset_memory,omitempty"`
 
-	// The memory used by the index writer.
+	// SegmentsIndexWriterMemory is the memory used by the index writer.
 	SegmentsIndexWriterMemory *string `json:"segments.index_writer_memory,omitempty"`
 
-	// The memory used by segments.
+	// SegmentsMemory is the memory used by segments.
 	SegmentsMemory *string `json:"segments.memory,omitempty"`
 
-	// The memory used by the version map.
+	// SegmentsVersionMapMemory is the memory used by the version map.
 	SegmentsVersionMapMemory *string `json:"segments.version_map_memory,omitempty"`
 
-	// The number of current suggest operations.
+	// SuggestCurrent is the number of current suggest operations.
 	SuggestCurrent *string `json:"suggest.current,omitempty"`
 
-	// The time spend in suggest.
+	// SuggestTime is the time spend in suggest.
 	SuggestTime *string `json:"suggest.time,omitempty"`
 
-	// The number of suggest operations.
+	// SuggestTotal is the number of suggest operations.
 	SuggestTotal *string `json:"suggest.total,omitempty"`
 
-	// The OpenSearch distribution type.
+	// Type is the OpenSearch distribution type.
 	Type *string `json:"type,omitempty"`
 
-	// The node uptime.
+	// Uptime is the node uptime.
 	Uptime *string `json:"uptime,omitempty"`
 
 	Version *string `json:"version,omitempty"`
@@ -484,7 +487,7 @@ type CatNodesRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-nodes/
-func (c catClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, error) {
+func (c CatClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, error) {
 	if req == nil {
 		req = &CatNodesReq{}
 	}
@@ -493,7 +496,7 @@ func (c catClient) Nodes(ctx context.Context, req *CatNodesReq) (*CatNodesResp, 
 		data CatNodesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

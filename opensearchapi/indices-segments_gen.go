@@ -158,7 +158,7 @@ func (r IndicesSegmentsResp) RawBody() io.Reader {
 //
 // The segment information for an index.
 type IndicesSegmentsIndexSegment struct {
-	// The segment information for each shard.
+	// Shards is the segment information for each shard.
 	Shards map[string]IndicesSegmentsIndexSegmentShardsValue `json:"shards"`
 }
 
@@ -166,16 +166,16 @@ type IndicesSegmentsIndexSegment struct {
 //
 // The segment information for a shard.
 type IndicesSegmentsShardsSegment struct {
-	// The number of committed segments.
+	// NumCommittedSegments is the number of committed segments.
 	NumCommittedSegments int `json:"num_committed_segments"`
 
-	// The number of segments available for search.
+	// NumSearchSegments is the number of segments available for search.
 	NumSearchSegments int `json:"num_search_segments"`
 
-	// The routing information for a shard segment.
+	// Routing is the routing information for a shard segment.
 	Routing IndicesSegmentsShardSegmentRouting `json:"routing"`
 
-	// The detailed information for each segment.
+	// Segments is the detailed information for each segment.
 	Segments map[string]IndicesSegmentsSegment `json:"segments"`
 }
 
@@ -183,13 +183,13 @@ type IndicesSegmentsShardsSegment struct {
 //
 // The routing information for a shard segment.
 type IndicesSegmentsShardSegmentRouting struct {
-	// The node containing the segment.
+	// Node is the node containing the segment.
 	Node string `json:"node"`
 
-	// Whether this is a primary shard.
+	// Primary. Whether this is a primary shard.
 	Primary bool `json:"primary"`
 
-	// The current state of the shard.
+	// State is the current state of the shard.
 	State string `json:"state"`
 }
 
@@ -197,43 +197,47 @@ type IndicesSegmentsShardSegmentRouting struct {
 //
 // The detailed information about a segment.
 type IndicesSegmentsSegment struct {
-	// The attributes of the segment.
+	// Attributes is the attributes of the segment.
 	Attributes map[string]string `json:"attributes"`
 
-	// Whether the segment is committed.
+	// Committed. Whether the segment is committed.
 	Committed bool `json:"committed"`
 
-	// Whether the segment is compound.
+	// Compound. Whether the segment is compound.
 	Compound bool `json:"compound"`
 
-	// The number of deleted documents in the segment.
+	// DeletedDocs is the number of deleted documents in the segment.
 	DeletedDocs int `json:"deleted_docs"`
 
-	// The generation number of the segment.
+	// Generation is the generation number of the segment.
 	Generation int `json:"generation"`
 
-	// The unique identifier of a node.
+	// Memory is the unique identifier of a node.
 	Memory *string `json:"memory,omitempty"`
 
-	// The size in bytes.
+	// MemoryInBytes is the size in bytes.
 	MemoryInBytes *int64 `json:"memory_in_bytes,omitempty"`
 
-	// The number of documents in the segment.
+	// NumDocs is the number of documents in the segment.
 	NumDocs int `json:"num_docs"`
 
-	// Whether the segment is searchable.
+	// Search. Whether the segment is searchable.
 	Search bool `json:"search"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 
 	Version string `json:"version"`
 }
 
-// IndicesSegmentsIndexSegmentShardsValue is a discriminated union type.
+// IndicesSegmentsIndexSegmentShardsValue is a oneOf union whose branches decode from different JSON tokens.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type IndicesSegmentsIndexSegmentShardsValue struct {
@@ -242,14 +246,27 @@ type IndicesSegmentsIndexSegmentShardsValue struct {
 	value any
 }
 
-// IndicesSegmentsIndexSegmentShardsValueType discriminates the branches of IndicesSegmentsIndexSegmentShardsValue.
+// IndicesSegmentsIndexSegmentShardsValueType names which branch of IndicesSegmentsIndexSegmentShardsValue is set.
 type IndicesSegmentsIndexSegmentShardsValueType int
 
 const (
 	IndicesSegmentsIndexSegmentShardsValueUnknownType IndicesSegmentsIndexSegmentShardsValueType = iota
 	IndicesSegmentsIndexSegmentShardsValueArrayType
-	IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
+	IndicesSegmentsIndexSegmentShardsValueShardsSegmentType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesSegmentsIndexSegmentShardsValueType) String() string {
+	switch t {
+	case IndicesSegmentsIndexSegmentShardsValueArrayType:
+		return "Array"
+	case IndicesSegmentsIndexSegmentShardsValueShardsSegmentType:
+		return "ShardsSegment"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns IndicesSegmentsIndexSegmentShardsValueUnknownType if the value has not been decoded.
@@ -272,13 +289,16 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesSegmentsIndexSegmentShardsValueUnknownType
 }
 
-// Array returns the []IndicesSegmentsShardsSegment branch value.
-func (u *IndicesSegmentsIndexSegmentShardsValue) Array() []IndicesSegmentsShardsSegment {
+// Array returns the []IndicesSegmentsShardsSegment branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []IndicesSegmentsShardsSegment in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesSegmentsIndexSegmentShardsValue) Array() ([]IndicesSegmentsShardsSegment, error) {
 	if v, ok := u.value.(*[]IndicesSegmentsShardsSegment); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []IndicesSegmentsShardsSegment
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesSegmentsIndexSegmentShardsValueFromArray returns a IndicesSegmentsIndexSegmentShardsValue populated with v
@@ -290,20 +310,23 @@ func NewIndicesSegmentsIndexSegmentShardsValueFromArray(v []IndicesSegmentsShard
 	}
 }
 
-// IndicesSegmentsShardsSegment returns the IndicesSegmentsShardsSegment branch value.
-func (u *IndicesSegmentsIndexSegmentShardsValue) IndicesSegmentsShardsSegment() IndicesSegmentsShardsSegment {
+// ShardsSegment returns the IndicesSegmentsShardsSegment branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero IndicesSegmentsShardsSegment in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesSegmentsIndexSegmentShardsValue) ShardsSegment() (IndicesSegmentsShardsSegment, error) {
 	if v, ok := u.value.(*IndicesSegmentsShardsSegment); ok {
-		return *v
+		return *v, nil
 	}
 	var zero IndicesSegmentsShardsSegment
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesSegmentsIndexSegmentShardsValue", Want: "ShardsSegment", Got: u.typ.String()}
 }
 
-// NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
-// on the IndicesSegmentsShardsSegment branch.
-func NewIndicesSegmentsIndexSegmentShardsValueFromIndicesSegmentsShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
+// NewIndicesSegmentsIndexSegmentShardsValueFromShardsSegment returns a IndicesSegmentsIndexSegmentShardsValue populated with v
+// on the ShardsSegment branch.
+func NewIndicesSegmentsIndexSegmentShardsValueFromShardsSegment(v IndicesSegmentsShardsSegment) IndicesSegmentsIndexSegmentShardsValue {
 	return IndicesSegmentsIndexSegmentShardsValue{
-		typ:   IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType,
+		typ:   IndicesSegmentsIndexSegmentShardsValueShardsSegmentType,
 		value: &v,
 	}
 }
@@ -328,7 +351,7 @@ func (u *IndicesSegmentsIndexSegmentShardsValue) UnmarshalJSON(data []byte) erro
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = IndicesSegmentsIndexSegmentShardsValueIndicesSegmentsShardsSegmentType
+		u.typ = IndicesSegmentsIndexSegmentShardsValueShardsSegmentType
 		u.value = &v
 	default:
 		return fmt.Errorf("IndicesSegmentsIndexSegmentShardsValue: unexpected JSON token: %s", data[:1])
@@ -385,7 +408,7 @@ func (r *IndicesSegmentsResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*IndicesSegmentsResp, error) {
+func (c IndicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*IndicesSegmentsResp, error) {
 	if req == nil {
 		req = &IndicesSegmentsReq{}
 	}
@@ -394,7 +417,7 @@ func (c indicesClient) Segments(ctx context.Context, req *IndicesSegmentsReq) (*
 		data IndicesSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

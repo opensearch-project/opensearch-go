@@ -131,12 +131,12 @@ func (r SnapshotStatusResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/get-snapshot-status/
-func (c snapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*SnapshotStatusResp, error) {
+func (c SnapshotClient) Status(ctx context.Context, req SnapshotStatusReq) (*SnapshotStatusResp, error) {
 	var (
 		data SnapshotStatusResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

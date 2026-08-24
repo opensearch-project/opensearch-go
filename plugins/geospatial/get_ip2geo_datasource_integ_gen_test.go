@@ -19,17 +19,17 @@ import (
 	plugintest "github.com/opensearch-project/opensearch-go/v5/plugins/geospatial/internal/geospatialtest"
 )
 
-func TestGetIp2geoDatasource(t *testing.T) {
+func TestGetIP2GeoDatasource(t *testing.T) {
 	t.Skip("requires IP2Geo datasource or external network access") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 
 	osClient, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfVersion(t, osClient, "<", "2.11", "GetIp2geoDatasource")
+	testutil.SkipIfVersion(t, osClient, "<", "2.11", "GetIP2GeoDatasource")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Ip2geoDatasource.GetIp2geoDatasource(t.Context(), nil)
+		resp, err := client.IP2GeoDatasource.GetIP2GeoDatasource(t.Context(), nil)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -39,7 +39,7 @@ func TestGetIp2geoDatasource(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.Ip2geoDatasource.GetIp2geoDatasource(t.Context(), nil)
+		res, err := failingClient.IP2GeoDatasource.GetIP2GeoDatasource(t.Context(), nil)
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

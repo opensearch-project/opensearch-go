@@ -111,7 +111,7 @@ func (r UploadChunkParams) get() map[string]string {
 //
 // Available: >= 2.7.0.
 type UploadChunkResp struct {
-	// The status of the chunk upload operation.
+	// Status is the status of the chunk upload operation.
 	Status string `json:"status"`
 
 	response *opensearch.Response
@@ -133,6 +133,6 @@ func (r UploadChunkResp) RawBody() io.Reader {
 
 // MLUploadChunkBody is a typed component of the ml.upload_chunk operation.
 type MLUploadChunkBody struct {
-	// The model chunk.
+	// Chunk is the model chunk.
 	Chunk string `json:"chunk"`
 }

@@ -117,8 +117,8 @@ func (r IndicesPutAliasParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-alias/
 type IndicesPutAliasResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -146,26 +146,27 @@ type IndicesPutAliasBody struct {
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 	Index  *string                       `json:"index,omitempty"`
 
-	// The routing value for the document.
+	// IndexRouting is the routing value for the document.
 	IndexRouting *string `json:"index_routing,omitempty"`
 
-	// If `true`, the alias will be hidden`.
+	// IsHidden. If `true`, the alias will be hidden`.
 	//
 	// Available: >= 2.16.0.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// If `true`, sets the write index or data stream for the alias. If an
-	// alias points to multiple indexes or data streams and `is_write_index`
-	// isn't set, the alias rejects write requests. If an index alias points to
-	// one index and `is_write_index` isn't set, the index automatically acts
-	// as the write index. Data stream aliases don't automatically set a write
-	// data stream, even if the alias points to one data stream.
+	// IsWriteIndex. If `true`, sets the write index or data stream for the
+	// alias. If an alias points to multiple indexes or data streams and
+	// `is_write_index` isn't set, the alias rejects write requests. If an
+	// index alias points to one index and `is_write_index` isn't set, the
+	// index automatically acts as the write index. Data stream aliases don't
+	// automatically set a write data stream, even if the alias points to one
+	// data stream.
 	IsWriteIndex *bool `json:"is_write_index,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// The routing value for the document.
+	// SearchRouting is the routing value for the document.
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
@@ -178,12 +179,12 @@ type IndicesPutAliasBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/update-alias/
-func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
+func (c IndicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
 	var (
 		data IndicesPutAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,
@@ -195,12 +196,12 @@ func (c indicesClient) PutAlias(ctx context.Context, req IndicesPutAliasReq) (*I
 }
 
 // Deprecated: use IndicesPutAlias via the parent client instead.
-func (c aliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
+func (c AliasClient) Put(ctx context.Context, req IndicesPutAliasReq) (*IndicesPutAliasResp, error) {
 	var (
 		data IndicesPutAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

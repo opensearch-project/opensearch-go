@@ -143,7 +143,7 @@ type TermVectorsParams struct {
 	Version int
 
 	// The specific version type.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r TermVectorsParams) get() map[string]string {
@@ -198,7 +198,7 @@ func (r TermVectorsParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -212,12 +212,12 @@ func (r TermVectorsParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type TermVectorsResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index string `json:"_index"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version     int64                            `json:"_version"`
@@ -246,13 +246,13 @@ func (r TermVectorsResp) RawBody() io.Reader {
 //
 // Define parameters and or supply a document to get termvectors for. See documentation.
 type TermVectorsBody struct {
-	// An artificial document (a document not present in the index) for which
-	// you want to retrieve term vectors.
-	Doc json.RawMessage `json:"doc"`
+	// Doc is an artificial document (a document not present in the index) for
+	// which you want to retrieve term vectors.
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	Filter *TermVectorsFilter `json:"filter,omitempty"`
 
-	// Overrides the default per-field analyzer.
+	// PerFieldAnalyzer. Overrides the default per-field analyzer.
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
 }
 
@@ -265,7 +265,7 @@ type TermVectorsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c documentClient) TermVectors(ctx context.Context, req TermVectorsReq) (*TermVectorsResp, error) {
+func (c DocumentClient) TermVectors(ctx context.Context, req TermVectorsReq) (*TermVectorsResp, error) {
 	var (
 		data TermVectorsResp
 		err  error
@@ -274,7 +274,7 @@ func (c documentClient) TermVectors(ctx context.Context, req TermVectorsReq) (*T
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

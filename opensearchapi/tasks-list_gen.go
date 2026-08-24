@@ -145,8 +145,8 @@ func (r TasksListParams) get() map[string]string {
 type TasksListResp struct {
 	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
 
-	// Task information grouped by node, if `group_by` was set to `node` (the
-	// default).
+	// Nodes. Task information grouped by node, if `group_by` was set to `node`
+	// (the default).
 	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
 
 	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`
@@ -176,7 +176,7 @@ func (r TasksListResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/
-func (c tasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListResp, error) {
+func (c TasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListResp, error) {
 	if req == nil {
 		req = &TasksListReq{}
 	}
@@ -185,7 +185,7 @@ func (c tasksClient) List(ctx context.Context, req *TasksListReq) (*TasksListRes
 		data TasksListResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

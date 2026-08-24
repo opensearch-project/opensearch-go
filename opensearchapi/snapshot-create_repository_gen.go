@@ -120,8 +120,8 @@ func (r SnapshotCreateRepositoryParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-repository/
 type SnapshotCreateRepositoryResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -145,10 +145,10 @@ func (r SnapshotCreateRepositoryResp) RawBody() io.Reader {
 //
 // The repository definition.
 type SnapshotCreateRepositoryBody struct {
-	// The name of the repository to store the snapshot.
+	// Repository is the name of the repository to store the snapshot.
 	Repository *SnapshotRepository `json:"repository,omitempty"`
 
-	// The settings for the snapshot repository.
+	// Settings is the settings for the snapshot repository.
 	Settings SnapshotRepositorySettings `json:"settings"`
 
 	Type string `json:"type"`
@@ -163,12 +163,12 @@ type SnapshotCreateRepositoryBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-repository/
-func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
+func (c SnapshotClient) CreateRepository(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
 	var (
 		data SnapshotCreateRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -180,12 +180,12 @@ func (c snapshotClient) CreateRepository(ctx context.Context, req SnapshotCreate
 }
 
 // Deprecated: use SnapshotCreateRepository via the parent client instead.
-func (c repositoryClient) Create(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
+func (c RepositoryClient) Create(ctx context.Context, req SnapshotCreateRepositoryReq) (*SnapshotCreateRepositoryResp, error) {
 	var (
 		data SnapshotCreateRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

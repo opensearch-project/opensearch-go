@@ -131,60 +131,62 @@ func (r CatAllPITSegmentsResp) RawBody() io.Reader {
 
 // CatSegmentsRecord is a typed component of the cat.all_pit_segments operation.
 type CatSegmentsRecord struct {
-	// If `true`, the segment is synced to disk. Segments that are synced can
-	// survive a hard reboot. If `false`, the data from uncommitted segments is
-	// also stored in the transaction log so that OpenSearch is able to replay
-	// changes on the next start.
+	// Committed. If `true`, the segment is synced to disk. Segments that are
+	// synced can survive a hard reboot. If `false`, the data from uncommitted
+	// segments is also stored in the transaction log so that OpenSearch is
+	// able to replay changes on the next start.
 	Committed *string `json:"committed,omitempty"`
 
-	// If `true`, the segment is stored in a compound file. This means Lucene
-	// merged all files from the segment in a single file to save file
-	// descriptors.
+	// Compound. If `true`, the segment is stored in a compound file. This
+	// means Lucene merged all files from the segment in a single file to save
+	// file descriptors.
 	Compound *string `json:"compound,omitempty"`
 
-	// The number of documents in the segment. This excludes deleted documents
-	// and counts any nested documents separately from their parents. It also
-	// excludes documents which were indexed recently and do not yet belong to
-	// a segment.
+	// DocsCount is the number of documents in the segment. This excludes
+	// deleted documents and counts any nested documents separately from their
+	// parents. It also excludes documents which were indexed recently and do
+	// not yet belong to a segment.
 	DocsCount *string `json:"docs.count,omitempty"`
 
-	// The number of deleted documents in the segment, which might be higher or
-	// lower than the number of delete operations you have performed. This
-	// number excludes deletes that were performed recently and do not yet
-	// belong to a segment. Deleted documents are cleaned up by the automatic
-	// merge process if it makes sense to do so. Also, OpenSearch creates extra
-	// deleted documents to internally track the recent history of operations
-	// on a shard.
+	// DocsDeleted is the number of deleted documents in the segment, which
+	// might be higher or lower than the number of delete operations you have
+	// performed. This number excludes deletes that were performed recently and
+	// do not yet belong to a segment. Deleted documents are cleaned up by the
+	// automatic merge process if it makes sense to do so. Also, OpenSearch
+	// creates extra deleted documents to internally track the recent history
+	// of operations on a shard.
 	DocsDeleted *string `json:"docs.deleted,omitempty"`
 
-	// The segment generation number. OpenSearch increments this generation
-	// number for each segment written then uses this number to derive the
-	// segment name.
+	// Generation is the segment generation number. OpenSearch increments this
+	// generation number for each segment written then uses this number to
+	// derive the segment name.
 	Generation *string `json:"generation,omitempty"`
 
-	// The unique identifier of a node.
+	// ID is the unique identifier of a node.
 	ID *string `json:"id,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// The IP address of the node where it lives.
+	// IP is the IP address of the node where it lives.
 	IP *string `json:"ip,omitempty"`
 
-	// The shard type: `primary` or `replica`.
+	// Prirep is the shard type: `primary` or `replica`.
 	Prirep *string `json:"prirep,omitempty"`
 
-	// If `true`, the segment is searchable. If `false`, the segment has most
-	// likely been written to disk but needs a refresh to be searchable.
+	// Searchable. If `true`, the segment is searchable. If `false`, the
+	// segment has most likely been written to disk but needs a refresh to be
+	// searchable.
 	Searchable *string `json:"searchable,omitempty"`
 
-	// The segment name, which is derived from the segment generation and used
-	// internally to create file names in the directory of the shard.
+	// Segment is the segment name, which is derived from the segment
+	// generation and used internally to create file names in the directory of
+	// the shard.
 	Segment *string `json:"segment,omitempty"`
 
-	// The shard name.
+	// Shard is the shard name.
 	Shard *string `json:"shard,omitempty"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
 	SizeMemory *string `json:"size.memory,omitempty"`
@@ -198,7 +200,7 @@ type CatSegmentsRecord struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/
-func (c catClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq) (*CatAllPITSegmentsResp, error) {
+func (c CatClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq) (*CatAllPITSegmentsResp, error) {
 	if req == nil {
 		req = &CatAllPITSegmentsReq{}
 	}
@@ -207,7 +209,7 @@ func (c catClient) AllPITSegments(ctx context.Context, req *CatAllPITSegmentsReq
 		data CatAllPITSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

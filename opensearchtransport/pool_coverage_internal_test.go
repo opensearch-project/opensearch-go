@@ -75,8 +75,8 @@ func TestShouldSkipOverloaded(t *testing.T) {
 	t.Run("overloaded connection returns true", func(t *testing.T) {
 		t.Parallel()
 		conn := createTestConnection("http://node1:9200", "data")
-		// Set overloaded bit
-		conn.state.Store(int64(newConnState(lcActive | lcOverloaded)))
+		// Set overloaded bit (conn is already active from createTestConnection)
+		conn.setLifecycleBit(lcOverloaded)
 		pool := &multiServerPool{name: "test"}
 
 		require.True(t, pool.shouldSkipOverloaded(conn))
@@ -115,7 +115,9 @@ func TestNewConnectionPool(t *testing.T) {
 		u1, _ := url.Parse("http://node1:9200")
 		u2, _ := url.Parse("http://node2:9200")
 		c1 := &Connection{URL: u1}
+		c1.setLifecycleBit(lcActive | lcViable)
 		c2 := &Connection{URL: u2}
+		c2.setLifecycleBit(lcActive | lcViable)
 
 		pool := NewConnectionPool([]*Connection{c1, c2}, nil)
 		mp := pool.(*multiServerPool)
@@ -124,6 +126,63 @@ func TestNewConnectionPool(t *testing.T) {
 		conn, err := mp.Next()
 		require.NoError(t, err)
 		require.NotNil(t, conn)
+	})
+}
+
+func TestSingleServerPool_Next(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil connection returns ErrNoConnections", func(t *testing.T) {
+		t.Parallel()
+		pool := &singleServerPool{}
+
+		conn, err := pool.Next()
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Nil(t, conn)
+	})
+
+	t.Run("discovered node needing hardware returns ErrNoConnections", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://10.42.19.90:9200")
+		// A freshly discovered, never-verified node: dead and still carrying
+		// lcNeedsHardware, its publish_address possibly unroutable. It must not
+		// be handed out, so the seed-URL fallback can serve the request.
+		conn := &Connection{URL: u}
+		conn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Nil(t, got)
+	})
+
+	t.Run("discovered node proven reachable is served", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://10.42.19.90:9200")
+		// Once the node has been proven directly reachable (lcViable latched by
+		// a successful health check/request), it is available for routing.
+		conn := &Connection{URL: u}
+		conn.setLifecycleBit(lcActive | lcViable)
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.NoError(t, err)
+		require.Same(t, conn, got)
+	})
+
+	t.Run("seed connection is always served", func(t *testing.T) {
+		t.Parallel()
+		u, _ := url.Parse("http://seed:9200")
+		// A user-supplied seed short-circuits availableForRouting() to true even
+		// while dead and needing hardware -- a genuine single-seed-node pool must
+		// still serve its connection.
+		conn := &Connection{URL: u, seed: true}
+		conn.setLifecycleBit(lcDead | lcNeedsWarmup | lcNeedsHardware)
+		pool := &singleServerPool{connection: conn}
+
+		got, err := pool.Next()
+		require.NoError(t, err)
+		require.Same(t, conn, got)
 	})
 }
 
@@ -236,9 +295,15 @@ func TestCountByLifecycleWithLock(t *testing.T) {
 		t.Parallel()
 		active := createTestConnection("http://node1:9200", "data")
 		standby := createTestConnection("http://node2:9200", "data")
-		standby.state.Store(int64(newConnState(lcStandby)))
+		// Transition active -> standby.
+		standby.mu.Lock()
+		standby.casLifecycle(standby.loadConnState(), 0, lcStandby, lcActive)
+		standby.mu.Unlock()
 		dead := createTestConnection("http://node3:9200", "data")
-		dead.state.Store(int64(newConnState(lcDead)))
+		// Transition active -> dead.
+		dead.mu.Lock()
+		dead.casLifecycle(dead.loadConnState(), 0, lcDead, lcActive)
+		dead.mu.Unlock()
 
 		pool := &multiServerPool{}
 		pool.mu.ready = []*Connection{active, standby}
@@ -260,20 +325,21 @@ func TestRecalculateWarmupParams(t *testing.T) {
 	t.Run("auto-scales activeListCap", func(t *testing.T) {
 		t.Parallel()
 		pool := &multiServerPool{}
-		pool.recalculateWarmupParams(5)
+		pool.recalculateWarmupParamsWithLock(5)
 
-		require.Equal(t, 5, pool.activeListCap)
-		require.Positive(t, pool.warmupRounds)
-		require.Positive(t, pool.warmupSkipCount)
+		require.Equal(t, 5, pool.mu.activeListCap)
+		require.Positive(t, pool.mu.warmupRounds)
+		require.Positive(t, pool.mu.warmupSkipCount)
 	})
 
 	t.Run("respects explicit cap config", func(t *testing.T) {
 		t.Parallel()
 		explicitCap := 2
-		pool := &multiServerPool{activeListCapConfig: &explicitCap, activeListCap: 2}
-		pool.recalculateWarmupParams(5)
+		pool := &multiServerPool{activeListCapConfig: &explicitCap}
+		pool.mu.activeListCap = 2
+		pool.recalculateWarmupParamsWithLock(5)
 
 		// activeListCap should not change when explicit
-		require.Equal(t, 2, pool.activeListCap)
+		require.Equal(t, 2, pool.mu.activeListCap)
 	})
 }

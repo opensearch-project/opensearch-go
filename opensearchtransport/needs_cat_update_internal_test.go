@@ -61,8 +61,10 @@ func TestNeedsCatUpdate_LifecycleBit(t *testing.T) {
 	t.Run("survives resurrection to active", func(t *testing.T) {
 		t.Parallel()
 		c := newTestConn(t, "node1")
-		// Start as dead
-		c.state.Store(int64(newConnState(lcDead)))
+		// Start as dead: transition active -> dead (set lcUnknown, clear lcReady|lcActive).
+		c.mu.Lock()
+		c.casLifecycle(c.loadConnState(), 0, lcDead, lcReady|lcActive)
+		c.mu.Unlock()
 		c.setNeedsCatUpdate()
 
 		// Simulate resurrection: dead -> ready+active
@@ -79,7 +81,7 @@ func TestNeedsCatUpdate_LifecycleBit(t *testing.T) {
 	t.Run("combinable with other metadata", func(t *testing.T) {
 		t.Parallel()
 		c := newTestConn(t, "node1")
-		c.state.Store(int64(newConnState(lcReady | lcActive)))
+		c.setLifecycleBit(lcReady | lcActive)
 		c.setNeedsCatUpdate()
 		c.setLifecycleBit(lcNeedsWarmup)
 
@@ -312,7 +314,7 @@ func newTestConn(t *testing.T, name string) *Connection {
 		Name:      name,
 		rttRing:   newRTTRing(4),
 	}
-	c.state.Store(int64(newConnState(lcReady | lcActive)))
+	c.setLifecycleBit(lcReady | lcActive)
 	return c
 }
 

@@ -135,16 +135,16 @@ func (r CatClusterManagerResp) RawBody() io.Reader {
 
 // CatClusterManagerRecord is a typed component of the cat.cluster_manager operation.
 type CatClusterManagerRecord struct {
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 }
 
@@ -155,7 +155,7 @@ type CatClusterManagerRecord struct {
 // Available: >= 2.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-cluster_manager/
-func (c catClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq) (*CatClusterManagerResp, error) {
+func (c CatClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq) (*CatClusterManagerResp, error) {
 	if req == nil {
 		req = &CatClusterManagerReq{}
 	}
@@ -164,7 +164,7 @@ func (c catClient) ClusterManager(ctx context.Context, req *CatClusterManagerReq
 		data CatClusterManagerResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

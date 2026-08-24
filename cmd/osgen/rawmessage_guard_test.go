@@ -172,62 +172,6 @@ func TestCollectRawMessageUses(t *testing.T) {
 	}
 }
 
-func TestLoadRawMessageAllowlist(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name    string
-		content string
-		want    []string // sorted keys expected in the set
-	}{
-		{
-			name:    "keys with comments and blanks",
-			content: "# header\n\nSearchHit/_source # bare\n  SearchHit/fields  # map\n\n# trailing\n",
-			want:    []string{"SearchHit/_source", "SearchHit/fields"},
-		},
-		{
-			name:    "group headers ignored",
-			content: "# --- search ---\nSearchResp/-\n# --- cat ---\nCatNodesResp/[records]\n",
-			want:    []string{"CatNodesResp/[records]", "SearchResp/-"},
-		},
-		{
-			name:    "duplicate keys collapse",
-			content: "Dup/k # first\nDup/k # second\nDup/k # third\n",
-			want:    []string{"Dup/k"},
-		},
-		{
-			name:    "empty file",
-			content: "# only comments\n",
-			want:    nil,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			path := filepath.Join(t.TempDir(), "allow.txt")
-			require.NoError(t, os.WriteFile(path, []byte(tt.content), 0o600))
-
-			allowed, err := loadRawMessageAllowlist(path)
-			require.NoError(t, err)
-
-			got := make([]string, 0, len(allowed))
-			for k := range allowed {
-				got = append(got, k)
-			}
-			require.ElementsMatch(t, tt.want, got)
-		})
-	}
-}
-
-func TestLoadRawMessageAllowlist_MissingFile(t *testing.T) {
-	t.Parallel()
-
-	_, err := loadRawMessageAllowlist(filepath.Join(t.TempDir(), "does-not-exist.txt"))
-	require.Error(t, err)
-	require.ErrorContains(t, err, "-update-raw-message-allowlist")
-}
-
 func TestGuardRawMessages(t *testing.T) {
 	t.Parallel()
 
@@ -245,7 +189,7 @@ func TestGuardRawMessages(t *testing.T) {
 		name          string
 		allowlist     string // file content; "" means do not create the file
 		createFile    bool
-		cfg           RawMessageConfig
+		cfg           AllowlistConfig
 		wantErr       bool
 		wantOutSubstr []string
 	}{
@@ -266,7 +210,7 @@ func TestGuardRawMessages(t *testing.T) {
 			name:          "unlisted use with bypass is a warning",
 			allowlist:     "# empty\n",
 			createFile:    true,
-			cfg:           RawMessageConfig{AllowUnlisted: true},
+			cfg:           AllowlistConfig{AllowUnlisted: true},
 			wantErr:       false,
 			wantOutSubstr: []string{"continuing despite", "SearchResp/_source"},
 		},
@@ -285,7 +229,7 @@ func TestGuardRawMessages(t *testing.T) {
 		{
 			name:       "missing file with bypass is not fatal",
 			createFile: false,
-			cfg:        RawMessageConfig{AllowUnlisted: true},
+			cfg:        AllowlistConfig{AllowUnlisted: true},
 			wantErr:    false,
 		},
 	}
@@ -325,20 +269,51 @@ func TestGuardRawMessages_UpdateRoundTrip(t *testing.T) {
 	}}}
 
 	path := filepath.Join(t.TempDir(), "allow.txt")
-	cfg := RawMessageConfig{AllowlistPath: path, Update: true}
+	cfg := AllowlistConfig{AllowlistPath: path, Update: true}
 
 	var out bytes.Buffer
 	require.NoError(t, guardRawMessages(&out, spec, cfg))
 	require.FileExists(t, path)
 
 	// The written file must satisfy a subsequent (non-update) check.
-	check := RawMessageConfig{AllowlistPath: path}
+	check := AllowlistConfig{AllowlistPath: path}
 	require.NoError(t, guardRawMessages(&bytes.Buffer{}, spec, check))
 
 	// And it round-trips to the same use set.
-	allowed, err := loadRawMessageAllowlist(path)
+	allowed, err := loadAllowlist(path, rawMessageNoun, rawMessageUpdateFlag)
 	require.NoError(t, err)
 	require.Contains(t, allowed, "SearchResp/_source")
+}
+
+// TestGuardRawMessages_EmbeddedDefault exercises the default check path: with no
+// AllowlistPath the guard consults the allowlist compiled into the binary, from
+// any working directory. Chdir'ing into an empty dir first is the point - a
+// cwd-relative read of rawmessage_allowlist.txt fails there, so this test breaks
+// if the embed is not wired.
+func TestGuardRawMessages_EmbeddedDefault(t *testing.T) {
+	t.Chdir(t.TempDir()) // t.Chdir forbids t.Parallel
+
+	// InlineGet/_source is a real entry in rawmessage_allowlist.txt.
+	spec := &ir.Spec{Types: []*ir.Type{{
+		Name:   "InlineGet",
+		Fields: []ir.Field{{GoName: "Source", JSONName: "_source", GoType: "json.RawMessage"}},
+	}}}
+
+	var out bytes.Buffer
+	require.NoError(t, guardRawMessages(&out, spec, AllowlistConfig{}))
+	require.NotContains(t, out.String(), "WARNING")
+
+	// The inverse: a use absent from the embedded allowlist is fatal, and both the
+	// error and the warning name the embedded list as what was enforced.
+	unlisted := &ir.Spec{Types: []*ir.Type{{
+		Name:   "NotARealGeneratedType",
+		Fields: []ir.Field{{GoName: "Body", JSONName: "body", GoType: "json.RawMessage"}},
+	}}}
+
+	out.Reset()
+	err := guardRawMessages(&out, unlisted, AllowlistConfig{})
+	require.ErrorContains(t, err, "embedded "+rawMessageAllowlistFile)
+	require.Contains(t, out.String(), "embedded "+rawMessageAllowlistFile)
 }
 
 func TestWriteRawMessageAllowlist_StableSorted(t *testing.T) {
@@ -353,9 +328,9 @@ func TestWriteRawMessageAllowlist_StableSorted(t *testing.T) {
 
 	render := func(in []rawUse) string {
 		cp := append([]rawUse(nil), in...)
-		sortRawUses(cp)
+		sortAllowlistEntries(cp)
 		path := filepath.Join(t.TempDir(), "allow.txt")
-		_, err := writeRawMessageAllowlist(path, cp)
+		_, err := writeAllowlistFile(path, rawMessageAllowlistHeader, cp)
 		require.NoError(t, err)
 		data, err := os.ReadFile(path)
 		require.NoError(t, err)

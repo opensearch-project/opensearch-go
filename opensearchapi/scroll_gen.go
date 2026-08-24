@@ -140,7 +140,29 @@ func (r ScrollParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/scroll/#path-and-http-methods
 type ScrollResp struct {
-	SearchResult
+	Clusters        *ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                `json:"_scroll_id,omitempty"`
+	Shards          ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
+
+	// PhaseTook is the time taken by different phases of the search.
+	//
+	// Available: >= 2.12.0.
+	PhaseTook *PhaseTook `json:"phase_took,omitempty"`
+
+	// PITID is the unique identifier for a resource.
+	PITID *string `json:"pit_id,omitempty"`
+
+	// Available: >= 3.0.0.
+	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
+
+	Profile         *SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                      `json:"terminated_early,omitempty"`
+	TimedOut        bool                       `json:"timed_out"`
+	Took            int64                      `json:"took"`
 
 	response *opensearch.Response
 }
@@ -161,9 +183,10 @@ func (r ScrollResp) RawBody() io.Reader {
 
 // ScrollBody is a typed component of the scroll operation.
 type ScrollBody struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Scroll is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Scroll *string `json:"scroll,omitempty"`
 
 	ScrollID *string `json:"scroll_id,omitempty"`
@@ -208,7 +231,7 @@ func (r *ScrollResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/scroll/#path-and-http-methods
-func (c scrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, error) {
+func (c ScrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, error) {
 	var (
 		data ScrollResp
 		err  error
@@ -217,7 +240,7 @@ func (c scrollClient) Get(ctx context.Context, req ScrollReq) (*ScrollResp, erro
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		method,

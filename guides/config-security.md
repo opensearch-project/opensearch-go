@@ -241,7 +241,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
       Indices: []string{"logs-*"},
       Body:  &opensearchapi.SearchBody{
           Query: &opensearchapi.CommonQueryDSLQueryContainer{
-              MatchAll: &opensearchapi.CommonQueryDSLMatchAllQuery{},
+              MatchAll: &opensearchapi.CommonQueryDSLQueryBase{},
           },
       },
       Params: &opensearchapi.SearchParams{
@@ -292,19 +292,14 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 ```go
 // CORRECT: use the typed Body struct. The compiler enforces the schema
 // and json.Marshal escapes all values.
-//
-// CommonQueryDSLQueryContainerMatchValue is a discriminated union that
-// can be decoded but not constructed by external callers, so this
-// example uses MatchPhrase (a plain map[string]string) for the same
-// "search a field with user input" intent. Reach for BodyReader +
-// opensearchutil.NewJSONReader (below) when only the union-shaped
-// `match` form fits the query you need.
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
     Body: &opensearchapi.SearchBody{
         Query: &opensearchapi.CommonQueryDSLQueryContainer{
-            MatchPhrase: map[string]string{
-                "title": userQuery,
+            Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
+                "title": opensearchapi.NewCommonQueryDSLMatchQueryFromFieldValue(
+                    opensearchapi.NewFieldValueFromString(userQuery),
+                ),
             },
         },
     },
@@ -329,7 +324,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 })
 ```
 
-On the response side, use the typed response fields for structured access. When you need the raw bytes (logging, proxying, custom deserialization), use `RawBody()`:
+On the response side, use the typed response fields for structured access. When you need the raw bytes (logging, debugging, custom deserialization), use `RawBody()`:
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
@@ -340,12 +335,12 @@ if err != nil {
     return err
 }
 
-// Typed access (preferred):
+// Typed access (preferred). Score, Index and ID are pointers on SearchHit.
 for _, hit := range resp.Hits.Hits {
-    fmt.Printf("score=%.2f index=%s id=%s\n", *hit.Score, hit.Index, hit.ID)
+    fmt.Printf("score=%.2f index=%s id=%s\n", *hit.Score, *hit.Index, *hit.ID)
 }
 
-// Raw access (logging, proxying, debugging):
+// Raw access (logging, debugging, etc.):
 raw, err := io.ReadAll(resp.RawBody())
 if err != nil {
     return err
@@ -458,7 +453,7 @@ Each feature fails closed and independently, so a partial privilege set is safe:
 - **Missing `cluster:monitor/nodes/stats`**: discovery and shard routing still work; the congestion window stays at its default instead of adapting to node load.
 - **A privilege revoked at runtime**: a `401`/`403` on a monitoring call disables only that feature, retried later; in-flight requests are unaffected.
 
-To turn the background routing calls off entirely rather than grant privileges, set `OPENSEARCH_GO_ROUTER=false` (see [Default Router Injection](../opensearchapi/README.md#default-router-injection)).
+To turn the background routing calls off entirely rather than grant privileges, set `OPENSEARCH_GO_ROUTER=false` (see [Default router injection](config-envvars.md#default-router-injection)).
 
 ## Quick Reference
 

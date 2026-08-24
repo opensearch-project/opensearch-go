@@ -91,8 +91,8 @@ func (r ClusterDeleteComponentTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type ClusterDeleteComponentTemplateResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -119,12 +119,12 @@ func (r ClusterDeleteComponentTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) DeleteComponentTemplate(ctx context.Context, req ClusterDeleteComponentTemplateReq) (*ClusterDeleteComponentTemplateResp, error) {
+func (c ClusterClient) DeleteComponentTemplate(ctx context.Context, req ClusterDeleteComponentTemplateReq) (*ClusterDeleteComponentTemplateResp, error) {
 	var (
 		data ClusterDeleteComponentTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

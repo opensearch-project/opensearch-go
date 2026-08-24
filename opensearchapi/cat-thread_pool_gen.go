@@ -148,66 +148,69 @@ func (r CatThreadPoolResp) RawBody() io.Reader {
 
 // CatThreadPoolRecord is a typed component of the cat.thread_pool operation.
 type CatThreadPoolRecord struct {
-	// The number of active threads in the current thread pool.
+	// Active is the number of active threads in the current thread pool.
 	Active *string `json:"active,omitempty"`
 
-	// The number of completed tasks.
+	// Completed is the number of completed tasks.
 	Completed *string `json:"completed,omitempty"`
 
-	// The core number of active threads allowed in a scaling thread pool.
+	// Core is the core number of active threads allowed in a scaling thread
+	// pool.
 	Core *string `json:"core"`
 
-	// The ephemeral node identifier.
+	// EphemeralNodeID is the ephemeral node identifier.
 	EphemeralNodeID *string `json:"ephemeral_node_id,omitempty"`
 
-	// The hostname for the current node.
+	// Host is the hostname for the current node.
 	Host *string `json:"host,omitempty"`
 
-	// The IP address for the current node.
+	// IP is the IP address for the current node.
 	IP *string `json:"ip,omitempty"`
 
-	// The thread keep alive time.
+	// KeepAlive is the thread keep alive time.
 	KeepAlive *string `json:"keep_alive"`
 
-	// The highest number of active threads in the current thread pool.
+	// Largest is the highest number of active threads in the current thread
+	// pool.
 	Largest *string `json:"largest,omitempty"`
 
-	// The maximum number of active threads allowed in a scaling thread pool.
+	// Max is the maximum number of active threads allowed in a scaling thread
+	// pool.
 	Max *string `json:"max"`
 
-	// The thread pool name.
+	// Name is the thread pool name.
 	Name *string `json:"name,omitempty"`
 
-	// The unique identifier of a node.
+	// NodeID is the unique identifier of a node.
 	NodeID *string `json:"node_id,omitempty"`
 
-	// The node name.
+	// NodeName is the node name.
 	NodeName *string `json:"node_name,omitempty"`
 
-	// The process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
-	// The number of threads in the current thread pool.
+	// PoolSize is the number of threads in the current thread pool.
 	PoolSize *string `json:"pool_size,omitempty"`
 
-	// The bound transport port for the current node.
+	// Port is the bound transport port for the current node.
 	Port *string `json:"port,omitempty"`
 
-	// The number of tasks currently in queue.
+	// Queue is the number of tasks currently in queue.
 	Queue *string `json:"queue,omitempty"`
 
-	// The maximum number of tasks permitted in the queue.
+	// QueueSize is the maximum number of tasks permitted in the queue.
 	QueueSize *string `json:"queue_size,omitempty"`
 
-	// The number of rejected tasks.
+	// Rejected is the number of rejected tasks.
 	Rejected *string `json:"rejected,omitempty"`
 
-	// The number of active threads allowed in a fixed thread pool.
+	// Size is the number of active threads allowed in a fixed thread pool.
 	Size *string `json:"size"`
 
 	TotalWaitTime *string `json:"total_wait_time,omitempty"`
 
-	// The thread pool type. Returned values include `fixed`,
+	// Type is the thread pool type. Returned values include `fixed`,
 	// `fixed_auto_queue_size`, `direct`, and `scaling`.
 	Type *string `json:"type,omitempty"`
 }
@@ -221,7 +224,7 @@ type CatThreadPoolRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-thread-pool/
-func (c catClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatThreadPoolResp, error) {
+func (c CatClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatThreadPoolResp, error) {
 	if req == nil {
 		req = &CatThreadPoolReq{}
 	}
@@ -230,7 +233,7 @@ func (c catClient) ThreadPool(ctx context.Context, req *CatThreadPoolReq) (*CatT
 		data CatThreadPoolResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

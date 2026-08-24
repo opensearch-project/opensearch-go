@@ -117,7 +117,7 @@ type DeleteByQueryParams struct {
 
 	// What to do if delete by query hits version conflicts: `abort` or
 	// `proceed`.
-	Conflicts string
+	Conflicts Conflicts
 
 	// The default operator for query string query: `AND` or `OR`.
 	DefaultOperator string
@@ -187,7 +187,7 @@ type DeleteByQueryParams struct {
 
 	// The type of the search operation. Available options: `query_then_fetch`,
 	// `dfs_query_then_fetch`.
-	SearchType string
+	SearchType SearchType
 
 	// Deprecated: use `max_docs` instead.
 	Size int
@@ -260,7 +260,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.Conflicts != "" {
-		set("conflicts", r.Conflicts)
+		set("conflicts", string(r.Conflicts))
 	}
 
 	if r.DefaultOperator != "" {
@@ -328,7 +328,7 @@ func (r DeleteByQueryParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.Size != 0 {
@@ -409,13 +409,17 @@ func (r DeleteByQueryResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// DeleteByQueryRespBodyObject1 is a typed component of the delete_by_query operation.
-type DeleteByQueryRespBodyObject1 struct {
-	// The unique identifier of a task.
+// DeleteByQueryRespBodyTask is a typed component of the delete_by_query operation.
+type DeleteByQueryRespBodyTask struct {
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// DeleteByQueryRespBody is a discriminated union type (single-pass merge decode).
+// DeleteByQueryRespBody is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type DeleteByQueryRespBody struct {
@@ -424,14 +428,27 @@ type DeleteByQueryRespBody struct {
 	value any
 }
 
-// DeleteByQueryRespBodyType discriminates the branches of DeleteByQueryRespBody.
+// DeleteByQueryRespBodyType names which branch of DeleteByQueryRespBody is set.
 type DeleteByQueryRespBodyType int
 
 const (
 	DeleteByQueryRespBodyUnknownType DeleteByQueryRespBodyType = iota
 	DeleteByQueryRespBodyBulkByScrollRespBaseType
-	DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
+	DeleteByQueryRespBodyTaskType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t DeleteByQueryRespBodyType) String() string {
+	switch t {
+	case DeleteByQueryRespBodyBulkByScrollRespBaseType:
+		return "BulkByScrollRespBase"
+	case DeleteByQueryRespBodyTaskType:
+		return "Task"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns DeleteByQueryRespBodyUnknownType if the value has not been decoded.
@@ -452,13 +469,16 @@ func (u *DeleteByQueryRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = DeleteByQueryRespBodyUnknownType
 }
 
-// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
-func (u *DeleteByQueryRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero BulkByScrollRespBase in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *DeleteByQueryRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero
+	return zero, &UnionBranchError{Union: "DeleteByQueryRespBody", Want: "BulkByScrollRespBase", Got: u.typ.String()}
 }
 
 // NewDeleteByQueryRespBodyFromBulkByScrollRespBase returns a DeleteByQueryRespBody populated with v
@@ -470,20 +490,23 @@ func NewDeleteByQueryRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) De
 	}
 }
 
-// DeleteByQueryRespBodyObject1 returns the DeleteByQueryRespBodyObject1 branch value.
-func (u *DeleteByQueryRespBody) DeleteByQueryRespBodyObject1() DeleteByQueryRespBodyObject1 {
-	if v, ok := u.value.(*DeleteByQueryRespBodyObject1); ok {
-		return *v
+// Task returns the DeleteByQueryRespBodyTask branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero DeleteByQueryRespBodyTask in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *DeleteByQueryRespBody) Task() (DeleteByQueryRespBodyTask, error) {
+	if v, ok := u.value.(*DeleteByQueryRespBodyTask); ok {
+		return *v, nil
 	}
-	var zero DeleteByQueryRespBodyObject1
-	return zero
+	var zero DeleteByQueryRespBodyTask
+	return zero, &UnionBranchError{Union: "DeleteByQueryRespBody", Want: "Task", Got: u.typ.String()}
 }
 
-// NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1 returns a DeleteByQueryRespBody populated with v
-// on the DeleteByQueryRespBodyObject1 branch.
-func NewDeleteByQueryRespBodyFromDeleteByQueryRespBodyObject1(v DeleteByQueryRespBodyObject1) DeleteByQueryRespBody {
+// NewDeleteByQueryRespBodyFromTask returns a DeleteByQueryRespBody populated with v
+// on the Task branch.
+func NewDeleteByQueryRespBodyFromTask(v DeleteByQueryRespBodyTask) DeleteByQueryRespBody {
 	return DeleteByQueryRespBody{
-		typ:   DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type,
+		typ:   DeleteByQueryRespBodyTaskType,
 		value: &v,
 	}
 }
@@ -496,10 +519,10 @@ func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		DeleteByQueryRespBodyObject1
+		DeleteByQueryRespBodyTask
 		Disc0 json.RawMessage `json:"batches"`
 	}
 	var m merged
@@ -515,8 +538,8 @@ func (u *DeleteByQueryRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = DeleteByQueryRespBodyDeleteByQueryRespBodyObject1Type
-	u.value = &m.DeleteByQueryRespBodyObject1
+	u.typ = DeleteByQueryRespBodyTaskType
+	u.value = &m.DeleteByQueryRespBodyTask
 	return nil
 }
 
@@ -534,12 +557,12 @@ func (u DeleteByQueryRespBody) MarshalJSON() ([]byte, error) {
 //
 // The search definition using the Query DSL
 type DeleteByQueryBody struct {
-	// The maximum number of documents to delete.
+	// MaxDocs is the maximum number of documents to delete.
 	MaxDocs *int `json:"max_docs,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 
@@ -559,7 +582,7 @@ func (c Client) DeleteByQuery(ctx context.Context, req *DeleteByQueryReq) (*Dele
 		data DeleteByQueryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

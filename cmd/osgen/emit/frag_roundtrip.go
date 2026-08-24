@@ -13,7 +13,7 @@ import (
 )
 
 // RoundtripTestFragment renders an httptest-based roundtrip test that exercises
-// the full dispatch method -> do() -> opensearch.Do() -> unmarshal pipeline.
+// the full dispatch method -> request() -> opensearch.Execute() -> unmarshal pipeline.
 type RoundtripTestFragment struct {
 	PkgName    string
 	ImportPath string
@@ -24,6 +24,11 @@ type RoundtripTestFragment struct {
 
 	// IsNoBody is true when the operation returns *opensearch.Response.
 	IsNoBody bool
+
+	// IsPlugin selects the client construction style: plugin clients wrap an
+	// opensearch.Client (pkg.NewClient(osClient)), whereas the core client takes
+	// a config (pkg.NewClient(pkg.Config{...})).
+	IsPlugin bool
 
 	// CallExpr is the Go expression invoking the operation (e.g. "client.Cat.Nodes(t.Context(), nil)").
 	CallExpr string
@@ -79,11 +84,18 @@ var roundtripTestFragTmpl = template.Must(template.New("roundtripTest").Funcs(te
 {{- end}}
 		}))
 		t.Cleanup(ts.Close)
-
+{{if .IsPlugin}}
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
+		client := {{.PkgName}}.NewClient(osClient)
+{{- else}}
 		client, err := {{.PkgName}}.NewClient({{.PkgName}}.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
+{{- end}}
 
 		resp, err := {{.CallExpr}}
 		require.NoError(t, err)
@@ -102,11 +114,18 @@ var roundtripTestFragTmpl = template.Must(template.New("roundtripTest").Funcs(te
 			_, _ = io.WriteString(w, ` + "`" + `{"status":400,"error":{"reason":"test error","type":"invalid_request"}}` + "`" + `)
 		}))
 		t.Cleanup(ts.Close)
-
+{{if .IsPlugin}}
+		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
+		errClient := {{.PkgName}}.NewClient(osClient)
+{{- else}}
 		errClient, err := {{.PkgName}}.NewClient({{.PkgName}}.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
+{{- end}}
 
 		resp, err := {{.ErrCallExpr}}
 		require.Error(t, err)

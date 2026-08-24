@@ -89,7 +89,7 @@ type NodesHotThreadsParams struct {
 	Threads int
 
 	// The type to sample.
-	Type string
+	Type NodesSampleType
 }
 
 func (r NodesHotThreadsParams) get() map[string]string {
@@ -120,7 +120,7 @@ func (r NodesHotThreadsParams) get() map[string]string {
 	}
 
 	if r.Type != "" {
-		set("type", r.Type)
+		set("type", string(r.Type))
 	}
 
 	return params
@@ -158,7 +158,7 @@ func (r NodesHotThreadsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-hot-threads/
-func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*NodesHotThreadsResp, error) {
+func (c NodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*NodesHotThreadsResp, error) {
 	if req == nil {
 		req = &NodesHotThreadsReq{}
 	}
@@ -167,7 +167,7 @@ func (c nodesClient) HotThreads(ctx context.Context, req *NodesHotThreadsReq) (*
 		data NodesHotThreadsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

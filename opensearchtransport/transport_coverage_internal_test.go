@@ -295,57 +295,6 @@ func TestDemoteConnectionPoolWithLock(t *testing.T) {
 	})
 }
 
-func TestApplyConnectionFiltering(t *testing.T) {
-	t.Parallel()
-
-	makeConn := func(name string, roles []string) *Connection {
-		return &Connection{Name: name, Roles: newRoleSet(roles)}
-	}
-
-	t.Run("excludes dedicated cluster managers", func(t *testing.T) {
-		t.Parallel()
-		c := &Transport{includeDedicatedClusterManagers: false}
-
-		data := makeConn("data-1", []string{"data", "ingest"})
-		cm := makeConn("cm-1", []string{"cluster_manager"})
-		mixed := makeConn("mixed-1", []string{"cluster_manager", "data"})
-
-		var filteredReady, filteredDead []*Connection
-		c.applyConnectionFiltering([]*Connection{data, cm, mixed}, nil, &filteredReady, &filteredDead)
-
-		require.Len(t, filteredReady, 2)
-		require.Equal(t, "data-1", filteredReady[0].Name)
-		require.Equal(t, "mixed-1", filteredReady[1].Name)
-	})
-
-	t.Run("includes all when flag is true", func(t *testing.T) {
-		t.Parallel()
-		c := &Transport{includeDedicatedClusterManagers: true}
-
-		data := makeConn("data-1", []string{"data"})
-		cm := makeConn("cm-1", []string{"cluster_manager"})
-
-		var filteredReady, filteredDead []*Connection
-		c.applyConnectionFiltering([]*Connection{data, cm}, nil, &filteredReady, &filteredDead)
-
-		require.Len(t, filteredReady, 2)
-	})
-
-	t.Run("filters dead list too", func(t *testing.T) {
-		t.Parallel()
-		c := &Transport{includeDedicatedClusterManagers: false}
-
-		dataDead := makeConn("data-dead", []string{"data"})
-		cmDead := makeConn("cm-dead", []string{"cluster_manager"})
-
-		var filteredReady, filteredDead []*Connection
-		c.applyConnectionFiltering(nil, []*Connection{dataDead, cmDead}, &filteredReady, &filteredDead)
-
-		require.Len(t, filteredDead, 1)
-		require.Equal(t, "data-dead", filteredDead[0].Name)
-	})
-}
-
 func TestLogRoundTrip_Coverage(t *testing.T) {
 	t.Parallel()
 
@@ -425,6 +374,7 @@ func TestPerform_GzipCompression(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	body := bytes.NewReader([]byte(`{"query":{"match_all":{}}}`))
 	req, _ := http.NewRequest(http.MethodPost, "/_search", io.NopCloser(body))
@@ -450,6 +400,7 @@ func TestPerform_MetricsEnabled(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req)
@@ -476,6 +427,7 @@ func TestPerform_SignError(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req) //nolint:bodyclose // error path
@@ -498,6 +450,7 @@ func TestPerform_TransportError(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	tp.seedFallbackDisabled = true
 	tp.seedFallbackPool = nil
 
@@ -526,6 +479,7 @@ func TestPerform_NetworkErrorRetry(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
 	res, err := tp.Stream(req)

@@ -130,8 +130,8 @@ func (r TasksCancelParams) get() map[string]string {
 type TasksCancelResp struct {
 	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
 
-	// Task information grouped by node, if `group_by` was set to `node` (the
-	// default).
+	// Nodes. Task information grouped by node, if `group_by` was set to `node`
+	// (the default).
 	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
 
 	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`
@@ -161,12 +161,12 @@ func (r TasksCancelResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/tasks/#task-canceling
-func (c tasksClient) Cancel(ctx context.Context, req TasksCancelReq) (*TasksCancelResp, error) {
+func (c TasksClient) Cancel(ctx context.Context, req TasksCancelReq) (*TasksCancelResp, error) {
 	var (
 		data TasksCancelResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

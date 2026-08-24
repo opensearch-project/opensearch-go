@@ -89,21 +89,21 @@ func (r GetConnectorParams) get() map[string]string {
 type GetConnectorResp struct {
 	Actions []opensearchapi.MLAction `json:"actions,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The connector description.
+	// Description is the connector description.
 	Description *string `json:"description,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Parameters *opensearchapi.MLParameters `json:"parameters,omitempty"`
 
-	// The connector protocol.
+	// Protocol is the connector protocol.
 	Protocol *string `json:"protocol,omitempty"`
 
 	Version *string `json:"version,omitempty"`

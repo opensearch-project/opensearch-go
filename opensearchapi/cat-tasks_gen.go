@@ -93,7 +93,7 @@ type CatTasksParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
-	Time string
+	Time TimeUnit
 }
 
 func (r CatTasksParams) get() map[string]string {
@@ -127,7 +127,7 @@ func (r CatTasksParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -170,51 +170,51 @@ func (r CatTasksResp) RawBody() io.Reader {
 
 // CatTasksRecord is a typed component of the cat.tasks operation.
 type CatTasksRecord struct {
-	// The task action.
+	// Action is the task action.
 	Action *string `json:"action,omitempty"`
 
-	// The task action description.
+	// Description is the task action description.
 	Description *string `json:"description,omitempty"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
-	// The IP address for the node.
+	// IP is the IP address for the node.
 	IP *string `json:"ip,omitempty"`
 
-	// The node name.
+	// Node is the node name.
 	Node *string `json:"node,omitempty"`
 
-	// The unique identifier of a node.
+	// NodeID is the unique identifier of a node.
 	NodeID *string `json:"node_id,omitempty"`
 
-	// The parent task identifier.
+	// ParentTaskID is the parent task identifier.
 	ParentTaskID *string `json:"parent_task_id,omitempty"`
 
-	// The bound transport port for the node.
+	// Port is the bound transport port for the node.
 	Port *string `json:"port,omitempty"`
 
-	// The running time.
+	// RunningTime is the running time.
 	RunningTime *string `json:"running_time,omitempty"`
 
-	// The running time in nanoseconds.
+	// RunningTimeNs is the running time in nanoseconds.
 	RunningTimeNs *string `json:"running_time_ns,omitempty"`
 
-	// The start time in milliseconds.
+	// StartTime is the start time in milliseconds.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The unique identifier for a resource.
+	// TaskID is the unique identifier for a resource.
 	TaskID *string `json:"task_id,omitempty"`
 
-	// The start time in `HH:MM:SS` format.
+	// Timestamp is the start time in `HH:MM:SS` format.
 	Timestamp *string `json:"timestamp,omitempty"`
 
-	// The task type.
+	// Type is the task type.
 	Type *string `json:"type,omitempty"`
 
 	Version *string `json:"version,omitempty"`
 
-	// The X-Opaque-ID header.
+	// XOpaqueID is the X-Opaque-ID header.
 	XOpaqueID *string `json:"x_opaque_id,omitempty"`
 }
 
@@ -225,7 +225,7 @@ type CatTasksRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-tasks/
-func (c catClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, error) {
+func (c CatClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, error) {
 	if req == nil {
 		req = &CatTasksReq{}
 	}
@@ -234,7 +234,7 @@ func (c catClient) Tasks(ctx context.Context, req *CatTasksReq) (*CatTasksResp, 
 		data CatTasksResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

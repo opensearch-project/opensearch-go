@@ -184,7 +184,7 @@ type IndicesSplitBody struct {
 	// Aliases for the resulting index.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Configuration options for the target index.
+	// Settings. Configuration options for the target index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 
@@ -197,12 +197,12 @@ type IndicesSplitBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/split/
-func (c indicesClient) Split(ctx context.Context, req IndicesSplitReq) (*IndicesSplitResp, error) {
+func (c IndicesClient) Split(ctx context.Context, req IndicesSplitReq) (*IndicesSplitResp, error) {
 	var (
 		data IndicesSplitResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

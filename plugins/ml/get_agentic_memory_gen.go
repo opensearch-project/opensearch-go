@@ -96,49 +96,49 @@ func (r GetAgenticMemoryParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type GetAgenticMemoryResp struct {
-	// The type of operation.
+	// Action is the type of operation.
 	Action *string `json:"action,omitempty"`
 
 	After  map[string]json.RawMessage `json:"after,omitempty"`
 	Before map[string]json.RawMessage `json:"before,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// Whether inference was enabled.
+	// Infer. Whether inference was enabled.
 	Infer *bool `json:"infer,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The extracted long-term memory fact.
+	// Memory is the extracted long-term memory fact.
 	Memory *string `json:"memory,omitempty"`
 
-	// The ID of the memory container.
+	// MemoryContainerID is the ID of the memory container.
 	MemoryContainerID *string `json:"memory_container_id,omitempty"`
 
 	MemoryEmbedding []float64 `json:"memory_embedding,omitempty"`
 
-	// The ID of the memory.
+	// MemoryID is the ID of the memory.
 	MemoryID *string `json:"memory_id,omitempty"`
 
 	Messages  []opensearchapi.MLMessage  `json:"messages,omitempty"`
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 
-	// The number of namespaces.
+	// NamespaceSize is the number of namespaces.
 	NamespaceSize *int64 `json:"namespace_size,omitempty"`
 
-	// The ID of the memory owner.
+	// OwnerID is the ID of the memory owner.
 	OwnerID *string `json:"owner_id,omitempty"`
 
-	// The type of payload.
+	// PayloadType is the type of payload.
 	PayloadType *string `json:"payload_type,omitempty"`
 
-	// The ID for the strategy instance.
+	// StrategyID is the ID for the strategy instance.
 	StrategyID *string `json:"strategy_id,omitempty"`
 
-	// The strategy type.
+	// StrategyType is the strategy type.
 	StrategyType *string `json:"strategy_type,omitempty"`
 
 	Tags map[string]json.RawMessage `json:"tags,omitempty"`

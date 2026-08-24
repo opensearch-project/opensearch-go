@@ -103,20 +103,21 @@ func (r CreateQueryGroupParams) get() map[string]string {
 //
 // Available: >= 2.17.0.
 type CreateQueryGroupResp struct {
-	// The ID of the query group, which can be used to associate query requests
-	// with the group and enforce the group's resource limits.
+	// ID is the ID of the query group, which can be used to associate query
+	// requests with the group and enforce the group's resource limits.
 	ID string `json:"_id"`
 
-	// The name of the query group.
+	// Name is the name of the query group.
 	Name string `json:"name"`
 
-	// The resiliency mode of the query group.
+	// ResiliencyMode is the resiliency mode of the query group.
 	ResiliencyMode string `json:"resiliency_mode"`
 
-	// The resource limits for query requests in the query group.
+	// ResourceLimits is the resource limits for query requests in the query
+	// group.
 	ResourceLimits opensearchapi.WLMQueryGroupRespResourceLimits `json:"resource_limits"`
 
-	// The time at which the query group was last updated.
+	// UpdatedAt is the time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`
 
 	response *opensearch.Response

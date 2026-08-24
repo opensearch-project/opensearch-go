@@ -1,12 +1,14 @@
 # Index Lifecycle
 
+> **Runnable example:** [`_samples/indexing-index_lifecycle.go`](../_samples/indexing-index_lifecycle.go)
+
 > **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](config-security.md#request-body-construction) for details.
 
 This guide covers OpenSearch Golang Client API actions for Index Lifecycle. You'll learn how to create, get, update settings, update mapping, and delete indices in your OpenSearch cluster. We will also leverage index templates to create default settings and mappings for indices of certain patterns.
 
 ## Setup
 
-In this guide, we will need an OpenSearch cluster with more than one node. Let's use the sample [docker-compose.yml](https://opensearch.org/samples/docker-compose.yml) to start a cluster with two nodes. The cluster's API will be available at `localhost:9200` with basic authentication enabled with default username and password of `admin:< admin password >`.
+In this guide, we will need an OpenSearch cluster with more than one node. Let's use the sample [docker-compose.yml](https://opensearch.org/wp-content/uploads/2025/02/docker-compose.yml) to start a cluster with two nodes. The cluster's API will be available at `localhost:9200` with basic authentication enabled with default username and password of `admin:< admin password >`.
 
 To start the cluster, run the following command:
 

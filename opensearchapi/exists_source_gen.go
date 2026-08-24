@@ -103,7 +103,7 @@ type ExistsSourceParams struct {
 	Version int
 
 	// The specific version type: `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r ExistsSourceParams) get() map[string]string {
@@ -150,7 +150,7 @@ func (r ExistsSourceParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -163,6 +163,6 @@ func (r ExistsSourceParams) get() map[string]string {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) ExistsSource(ctx context.Context, req ExistsSourceReq) (*opensearch.Response, error) {
-	return do(ctx, c.apiClient, http.MethodHead, req, noBody)
+func (c DocumentClient) ExistsSource(ctx context.Context, req ExistsSourceReq) (*opensearch.Response, error) {
+	return request(ctx, c.apiClient, http.MethodHead, req, noBody)
 }

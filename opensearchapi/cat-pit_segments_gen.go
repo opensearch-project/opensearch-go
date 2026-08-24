@@ -160,7 +160,7 @@ type CatPITSegmentsBody struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/
-func (c catClient) PITSegments(ctx context.Context, req *CatPITSegmentsReq) (*CatPITSegmentsResp, error) {
+func (c CatClient) PITSegments(ctx context.Context, req *CatPITSegmentsReq) (*CatPITSegmentsResp, error) {
 	if req == nil {
 		req = &CatPITSegmentsReq{}
 	}
@@ -169,7 +169,7 @@ func (c catClient) PITSegments(ctx context.Context, req *CatPITSegmentsReq) (*Ca
 		data CatPITSegmentsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

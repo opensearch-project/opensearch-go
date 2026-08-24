@@ -87,7 +87,7 @@ func (r WhoAmIParams) get() map[string]string {
 //
 // Available: >= 2.0.0.
 type WhoAmIResp struct {
-	Dn                       *string `json:"dn"`
+	DN                       *string `json:"dn"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 

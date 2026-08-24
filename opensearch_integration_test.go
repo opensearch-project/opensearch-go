@@ -29,6 +29,7 @@
 package opensearch_test
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -136,6 +137,7 @@ func TestClientTransport(t *testing.T) {
 
 		client, err := opensearchapi.NewClient(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		_, err = client.Info(t.Context(), nil)
 		require.Error(t, err)
@@ -186,6 +188,7 @@ func TestClientCustomTransport(t *testing.T) {
 			}
 			client, err = opensearchapi.NewClient(*cfg)
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = client.Close() })
 
 			// Wait for cluster to be ready before running tests
 			testutil.WaitForClusterReady(t, client)
@@ -219,6 +222,7 @@ func TestClientCustomTransport(t *testing.T) {
 			Password:  config.Client.Password,
 			Context:   t.Context(),
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		client := opensearchapi.Client{
 			Client: &opensearch.Client{
@@ -269,6 +273,21 @@ func (tr *TestTransport) Stream(req *http.Request) (*http.Response, error) {
 
 func (tr *TestTransport) Count() uint64 {
 	return tr.counter.Load()
+}
+
+// Request buffers the response body so *TestTransport satisfies
+// opensearchtransport.Interface alongside Stream.
+func (tr *TestTransport) Request(req *http.Request) (*http.Response, error) {
+	res, err := tr.Stream(req)
+	if res != nil && res.Body != nil {
+		body, rerr := io.ReadAll(res.Body)
+		res.Body.Close()
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		if rerr != nil && err == nil {
+			err = rerr
+		}
+	}
+	return res, err
 }
 
 func TestClientReplaceTransport(t *testing.T) {
@@ -333,6 +352,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 		// Create a client with specific configuration
 		osClient, err := opensearch.NewClient(cfg.Client)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 
 		// Retrieve the config
 		retrievedConfig := osClient.GetConfig()
@@ -357,6 +377,7 @@ func TestClientGetConfigIntegration(t *testing.T) {
 		// Verify we can create a new client with the retrieved config
 		newClient, err := opensearch.NewClient(*config)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = newClient.Close() })
 		require.NotNil(t, newClient)
 
 		// Verify the new client works by making a request
@@ -378,6 +399,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Create an opensearchapi.Client from the shared config
 		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = apiClient.Close() })
 		require.NotNil(t, apiClient)
 
 		// Verify the api client can make requests
@@ -394,9 +416,11 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Create a base opensearch.Client and an api client from the same config
 		osClient, err := opensearch.NewClient(cfg.Client)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 
 		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = apiClient.Close() })
 		require.NotNil(t, apiClient.Client.Transport)
 
 		// Verify both clients can make requests successfully
@@ -420,6 +444,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Create an opensearchapi.Client from the shared config
 		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = apiClient.Close() })
 
 		// Retrieve config through the api client's wrapped opensearch client
 		retrievedConfig := apiClient.Client.GetConfig()
@@ -437,6 +462,7 @@ func TestNewFromClientIntegration(t *testing.T) {
 		// Create an opensearchapi.Client from the shared config
 		apiClient, err := opensearchapi.NewClient(opensearchapi.Config{Client: cfg.Client})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = apiClient.Close() })
 
 		// Test a few sub-clients to ensure they're properly initialized
 		// Cat client

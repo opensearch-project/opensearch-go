@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -213,13 +212,17 @@ func (r ReindexResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// ReindexRespBodyObject1 is a typed component of the reindex operation.
-type ReindexRespBodyObject1 struct {
-	// The unique identifier of a task.
+// ReindexRespBodyTask is a typed component of the reindex operation.
+type ReindexRespBodyTask struct {
+	// Task is the unique identifier of a task.
 	Task *string `json:"task,omitempty"`
 }
 
-// ReindexRespBody is a discriminated union type (single-pass merge decode).
+// ReindexRespBody is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type ReindexRespBody struct {
@@ -228,14 +231,27 @@ type ReindexRespBody struct {
 	value any
 }
 
-// ReindexRespBodyType discriminates the branches of ReindexRespBody.
+// ReindexRespBodyType names which branch of ReindexRespBody is set.
 type ReindexRespBodyType int
 
 const (
 	ReindexRespBodyUnknownType ReindexRespBodyType = iota
 	ReindexRespBodyBulkByScrollRespBaseType
-	ReindexRespBodyReindexRespBodyObject1Type
+	ReindexRespBodyTaskType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t ReindexRespBodyType) String() string {
+	switch t {
+	case ReindexRespBodyBulkByScrollRespBaseType:
+		return "BulkByScrollRespBase"
+	case ReindexRespBodyTaskType:
+		return "Task"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns ReindexRespBodyUnknownType if the value has not been decoded.
@@ -256,13 +272,16 @@ func (u *ReindexRespBody) SetRaw(raw json.RawMessage) {
 	u.typ = ReindexRespBodyUnknownType
 }
 
-// BulkByScrollRespBase returns the BulkByScrollRespBase branch value.
-func (u *ReindexRespBody) BulkByScrollRespBase() BulkByScrollRespBase {
+// BulkByScrollRespBase returns the BulkByScrollRespBase branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero BulkByScrollRespBase in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexRespBody) BulkByScrollRespBase() (BulkByScrollRespBase, error) {
 	if v, ok := u.value.(*BulkByScrollRespBase); ok {
-		return *v
+		return *v, nil
 	}
 	var zero BulkByScrollRespBase
-	return zero
+	return zero, &UnionBranchError{Union: "ReindexRespBody", Want: "BulkByScrollRespBase", Got: u.typ.String()}
 }
 
 // NewReindexRespBodyFromBulkByScrollRespBase returns a ReindexRespBody populated with v
@@ -274,20 +293,23 @@ func NewReindexRespBodyFromBulkByScrollRespBase(v BulkByScrollRespBase) ReindexR
 	}
 }
 
-// ReindexRespBodyObject1 returns the ReindexRespBodyObject1 branch value.
-func (u *ReindexRespBody) ReindexRespBodyObject1() ReindexRespBodyObject1 {
-	if v, ok := u.value.(*ReindexRespBodyObject1); ok {
-		return *v
+// Task returns the ReindexRespBodyTask branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero ReindexRespBodyTask in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *ReindexRespBody) Task() (ReindexRespBodyTask, error) {
+	if v, ok := u.value.(*ReindexRespBodyTask); ok {
+		return *v, nil
 	}
-	var zero ReindexRespBodyObject1
-	return zero
+	var zero ReindexRespBodyTask
+	return zero, &UnionBranchError{Union: "ReindexRespBody", Want: "Task", Got: u.typ.String()}
 }
 
-// NewReindexRespBodyFromReindexRespBodyObject1 returns a ReindexRespBody populated with v
-// on the ReindexRespBodyObject1 branch.
-func NewReindexRespBodyFromReindexRespBodyObject1(v ReindexRespBodyObject1) ReindexRespBody {
+// NewReindexRespBodyFromTask returns a ReindexRespBody populated with v
+// on the Task branch.
+func NewReindexRespBodyFromTask(v ReindexRespBodyTask) ReindexRespBody {
 	return ReindexRespBody{
-		typ:   ReindexRespBodyReindexRespBodyObject1Type,
+		typ:   ReindexRespBodyTaskType,
 		value: &v,
 	}
 }
@@ -300,10 +322,10 @@ func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
-		ReindexRespBodyObject1
+		ReindexRespBodyTask
 		Disc0 json.RawMessage `json:"batches"`
 	}
 	var m merged
@@ -319,8 +341,8 @@ func (u *ReindexRespBody) UnmarshalJSON(data []byte) error {
 		u.value = &v
 		return nil
 	}
-	u.typ = ReindexRespBodyReindexRespBodyObject1Type
-	u.value = &m.ReindexRespBodyObject1
+	u.typ = ReindexRespBodyTaskType
+	u.value = &m.ReindexRespBodyTask
 	return nil
 }
 
@@ -338,361 +360,84 @@ func (u ReindexRespBody) MarshalJSON() ([]byte, error) {
 //
 // The search definition using the Query DSL and the prototype for the index request.
 type ReindexBody struct {
-	Conflicts *string            `json:"conflicts,omitempty"`
+	Conflicts *Conflicts         `json:"conflicts,omitempty"`
 	Dest      ReindexDestination `json:"dest"`
 
-	// The maximum number of documents to reindex.
+	// MaxDocs is the maximum number of documents to reindex.
 	MaxDocs *int `json:"max_docs,omitempty"`
 
-	Script *ReindexBodyScript `json:"script,omitempty"`
-	Size   *int               `json:"size,omitempty"`
-	Source ReindexSource      `json:"source"`
+	Script *Script       `json:"script,omitempty"`
+	Size   *int          `json:"size,omitempty"`
+	Source ReindexSource `json:"source"`
 }
 
 // ReindexDestination is a typed component of the reindex operation.
 type ReindexDestination struct {
 	Index  string  `json:"index"`
-	OpType *string `json:"op_type,omitempty"`
+	OpType *OpType `json:"op_type,omitempty"`
 
-	// The name of the pipeline to use.
+	// Pipeline is the name of the pipeline to use.
 	Pipeline *string `json:"pipeline,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	VersionType *string `json:"version_type,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 // ReindexSource is a typed component of the reindex operation.
 type ReindexSource struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Source is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Source *string `json:"_source,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Index is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Index []string `json:"index"`
 
 	Query  *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 	Remote *ReindexRemoteSource          `json:"remote,omitempty"`
 
-	// The number of documents to index per batch. Use the `size` setting when
-	// indexing from a remote cluster. This ensures that batches fit in the
-	// on-heap buffer. The buffer defaults to a maximum size of `100MB`.
+	// Size is the number of documents to index per batch. Use the `size`
+	// setting when indexing from a remote cluster. This ensures that batches
+	// fit in the on-heap buffer. The buffer defaults to a maximum size of
+	// `100MB`.
 	Size *int `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *ReindexSourceSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 }
 
 // ReindexRemoteSource is a typed component of the reindex operation.
 type ReindexRemoteSource struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ConnectTimeout is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ConnectTimeout *string `json:"connect_timeout,omitempty"`
 
-	// An object containing the headers of the request.
+	// Headers is an object containing the headers of the request.
 	Headers map[string]string `json:"headers,omitempty"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host string `json:"host"`
 
-	// The password for authentication.
+	// Password is the password for authentication.
 	Password *string `json:"password,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SocketTimeout is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SocketTimeout *string `json:"socket_timeout,omitempty"`
 
-	// The username for authentication.
+	// Username is the username for authentication.
 	Username *string `json:"username,omitempty"`
-}
-
-// ReindexBodyScript is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type ReindexBodyScript struct {
-	typ   ReindexBodyScriptType
-	raw   json.RawMessage
-	value any
-}
-
-// ReindexBodyScriptType discriminates the branches of ReindexBodyScript.
-type ReindexBodyScriptType int
-
-const (
-	ReindexBodyScriptUnknownType ReindexBodyScriptType = iota
-	ReindexBodyScriptStringType
-	ReindexBodyScriptStoredType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns ReindexBodyScriptUnknownType if the value has not been decoded.
-func (u *ReindexBodyScript) Type() ReindexBodyScriptType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *ReindexBodyScript) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewReindexBodyScriptFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *ReindexBodyScript) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = ReindexBodyScriptUnknownType
-}
-
-// String returns the string branch value.
-func (u *ReindexBodyScript) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewReindexBodyScriptFromString returns a ReindexBodyScript populated with v
-// on the String branch.
-func NewReindexBodyScriptFromString(v string) ReindexBodyScript {
-	return ReindexBodyScript{
-		typ:   ReindexBodyScriptStringType,
-		value: &v,
-	}
-}
-
-// Stored returns the StoredScriptID branch value.
-func (u *ReindexBodyScript) Stored() StoredScriptID {
-	if v, ok := u.value.(*StoredScriptID); ok {
-		return *v
-	}
-	var zero StoredScriptID
-	return zero
-}
-
-// NewReindexBodyScriptFromStored returns a ReindexBodyScript populated with v
-// on the Stored branch.
-func NewReindexBodyScriptFromStored(v StoredScriptID) ReindexBodyScript {
-	return ReindexBodyScript{
-		typ:   ReindexBodyScriptStoredType,
-		value: &v,
-	}
-}
-
-func (u *ReindexBodyScript) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = ReindexBodyScriptUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = ReindexBodyScriptStringType
-		u.value = &v
-	case data[0] == '{':
-		var v StoredScriptID
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = ReindexBodyScriptStoredType
-		u.value = &v
-	default:
-		return fmt.Errorf("ReindexBodyScript: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u ReindexBodyScript) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// ReindexSourceSort is a discriminated union type (try-each, newest version first).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type ReindexSourceSort struct {
-	typ   ReindexSourceSortType
-	raw   json.RawMessage
-	value any
-}
-
-// ReindexSourceSortType discriminates the branches of ReindexSourceSort.
-type ReindexSourceSortType int
-
-const (
-	ReindexSourceSortUnknownType ReindexSourceSortType = iota
-	ReindexSourceSortStringType
-	ReindexSourceSortStringMapType
-	ReindexSourceSortFieldSortMapType
-	ReindexSourceSortOptionsType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns ReindexSourceSortUnknownType if the value has not been decoded.
-func (u *ReindexSourceSort) Type() ReindexSourceSortType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *ReindexSourceSort) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewReindexSourceSortFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *ReindexSourceSort) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = ReindexSourceSortUnknownType
-}
-
-// String returns the string branch value.
-func (u *ReindexSourceSort) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewReindexSourceSortFromString returns a ReindexSourceSort populated with v
-// on the String branch.
-func NewReindexSourceSortFromString(v string) ReindexSourceSort {
-	return ReindexSourceSort{
-		typ:   ReindexSourceSortStringType,
-		value: &v,
-	}
-}
-
-// StringMap returns the map[string]string branch value.
-func (u *ReindexSourceSort) StringMap() map[string]string {
-	if v, ok := u.value.(*map[string]string); ok {
-		return *v
-	}
-	var zero map[string]string
-	return zero
-}
-
-// NewReindexSourceSortFromStringMap returns a ReindexSourceSort populated with v
-// on the StringMap branch.
-func NewReindexSourceSortFromStringMap(v map[string]string) ReindexSourceSort {
-	return ReindexSourceSort{
-		typ:   ReindexSourceSortStringMapType,
-		value: &v,
-	}
-}
-
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *ReindexSourceSort) FieldSortMap() map[string]FieldSort {
-	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
-	}
-	var zero map[string]FieldSort
-	return zero
-}
-
-// NewReindexSourceSortFromFieldSortMap returns a ReindexSourceSort populated with v
-// on the FieldSortMap branch.
-func NewReindexSourceSortFromFieldSortMap(v map[string]FieldSort) ReindexSourceSort {
-	return ReindexSourceSort{
-		typ:   ReindexSourceSortFieldSortMapType,
-		value: &v,
-	}
-}
-
-// Options returns the SortOptions branch value.
-func (u *ReindexSourceSort) Options() SortOptions {
-	if v, ok := u.value.(*SortOptions); ok {
-		return *v
-	}
-	var zero SortOptions
-	return zero
-}
-
-// NewReindexSourceSortFromOptions returns a ReindexSourceSort populated with v
-// on the Options branch.
-func NewReindexSourceSortFromOptions(v SortOptions) ReindexSourceSort {
-	return ReindexSourceSort{
-		typ:   ReindexSourceSortOptionsType,
-		value: &v,
-	}
-}
-
-func (u *ReindexSourceSort) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = ReindexSourceSortUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexSourceSortStringType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexSourceSortStringMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]FieldSort
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexSourceSortFieldSortMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v SortOptions
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = ReindexSourceSortOptionsType
-			u.value = &v
-			return nil
-		}
-	}
-	return fmt.Errorf("ReindexSourceSort: no branch matched JSON: %s", data[:min(len(data), 64)])
-}
-
-func (u ReindexSourceSort) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Reindex allows to copy documents from one index to another, optionally filtering the source.
@@ -714,7 +459,7 @@ func (c Client) Reindex(ctx context.Context, req *ReindexReq) (*ReindexResp, err
 		data ReindexResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		http.MethodPost,

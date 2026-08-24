@@ -5,9 +5,11 @@
       - [Go 1.24](#go-124)
       - [Docker](#docker)
       - [Windows](#windows)
+    - [Go Workspace and Nested Modules](#go-workspace-and-nested-modules)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
+      - [Container Providers](#container-providers)
       - [Execute integration tests from your terminal](#execute-integration-tests-from-your-terminal)
   - [Advanced Cluster Configuration](#advanced-cluster-configuration)
     - [Cluster Scaling](#cluster-scaling)
@@ -22,6 +24,10 @@
     - [Latency Profiles](#latency-profiles)
     - [Inspecting and Clearing Latency](#inspecting-and-clearing-latency)
   - [Code Generation](#code-generation)
+    - [Partial-failure error generation](#partial-failure-error-generation)
+    - [Version-Scoped Generation](#version-scoped-generation)
+    - [Contributing Spec Fixes Upstream](#contributing-spec-fixes-upstream)
+    - [Generation Guards](#generation-guards)
   - [Demo](#demo)
   - [Verification Matrix](#verification-matrix)
     - [Individual Verifications](#individual-verifications)
@@ -60,7 +66,7 @@ OpenSearch Go Client builds using [Go](https://go.dev/doc/install) 1.24 at a min
 
 #### Docker
 
-[Docker](https://docs.docker.com/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
+[Docker](https://docs.docker.com/get-started/get-docker/) is required for building some OpenSearch artifacts and executing integration tests.
 
 #### Windows
 
@@ -71,6 +77,28 @@ Install `make`
 ```
 sudo apt install make
 ```
+
+### Go Workspace and Nested Modules
+
+The repository is a Go workspace. Alongside the root client module there are four nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
+
+| Module          | Purpose                    | Keeps out of the core graph                                  |
+| --------------- | -------------------------- | ------------------------------------------------------------ |
+| `osprom`        | Prometheus metrics sink    | `github.com/prometheus/client_golang`                        |
+| `osotel`        | OpenTelemetry metrics sink | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric` |
+| `cmd/osgen`     | API code generator         | `github.com/getkin/kin-openapi`                              |
+| `cmd/osapilint` | API migration linter       | `golang.org/x/tools`                                         |
+
+`go.work` and `go.work.sum` are committed, so a fresh clone builds across every module with no setup step. From the repository root, `go build ./...` and `go test ./...` span all of them, and `make test-unit` and `make lint.local` additionally run each nested module on its own. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
+
+The workspace is load-bearing rather than a convenience. `osprom` and `osotel` import `opensearchtransport` from the root module while declaring `require github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc3`, and that tag predates the observer API they are written against. The workspace is what resolves them against the local root instead of the published version, so disabling it fails to compile their tests:
+
+```
+GOWORK=off go -C osprom test ./...
+# *Registry does not implement opensearchtransport.ConnectionObserver
+```
+
+This clears once a root tag carrying the current observer API is published and the two `require` lines are bumped to it. Until then, leave `go.work` in place and do not run the suite with `GOWORK=off`. Reach for the workspace rather than a `replace` directive when a nested module needs local root changes: a `replace` in a committed `go.mod` would follow the module to consumers.
 
 ### Unit Testing
 
@@ -102,6 +130,29 @@ make cluster.build cluster.start
 This command will start the OpenSearch container using the `docker-compose.yaml` configuration file. During the build process, the necessary dependencies and files will be downloaded, which may take some time depending on your internet connection and system resources.
 
 Once the container is built and running, you can open a web browser and navigate to localhost:9200 to access the OpenSearch docker container.
+
+#### Container Providers
+
+The cluster targets work with any of three container providers. When you do not specify one, the Makefile auto-detects a provider by CLI presence in this order:
+
+1. **Colima** (`colima` on `PATH`)
+2. **Rancher Desktop** (`rdctl` on `PATH`)
+3. **Docker** / Docker Desktop (`docker` on `PATH`)
+
+Override the choice explicitly with `CONTAINER_PROVIDER`:
+
+```
+CONTAINER_PROVIDER=docker make cluster.start
+```
+
+Selecting a provider does four things:
+
+- Pins the docker context commands talk to (`colima` for Colima, `rancher-desktop` for Rancher; the Docker provider leaves your active context alone). If `DOCKER_CONTEXT` is already set in your environment, it is respected and not overridden.
+- Resolves the CLI runtime `$(CTR)` (defaults to `docker` for every provider). For advanced containerd use you can force `CONTAINER_RUNTIME=nerdctl`, though docker-context pinning does not apply to nerdctl.
+- Ensures the backing VM/daemon is running (`make cluster.provider.ensure`, run automatically by `cluster.start`), starting it if needed.
+- Sets `vm.max_map_count=262144` through the provider's VM (`colima ssh` / `rdctl shell`) or, for the Docker provider, a privileged helper container.
+
+Run `make cluster.runtime` to see the detected provider, docker context, and runtime.
 
 In order to differentiate unit tests from integration tests, Go has a built-in mechanism for allowing you to logically separate your tests with [build tags](https://pkg.go.dev/cmd/go#hdr-Build_constraints). The build tag needs to be placed as close to the top of the file as possible, and must have a blank line beneath it. Hence, create all integration tests with build tag 'integration'.
 
@@ -404,7 +455,7 @@ The `x-error-responses` extension on a spec operation declares the categories of
 
 Operations that declare two or more categories also get a per-op error container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`, used when more than one category fires on a single response.
 
-The user-facing partial-failure model and best-practices guidance live in [`opensearchapi/README.md`](opensearchapi/README.md#partial-failure-errors) and [`guides/usage-error_handling.md`](guides/usage-error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
+The user-facing partial-failure model and best-practices guidance live in [`opensearchapi/README.md`](opensearchapi/README.md) and [`guides/usage-error_handling.md`](guides/usage-error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
 
 To regenerate (downloads the spec automatically if not cached):
 
@@ -445,6 +496,44 @@ make gen GEN_MAX_VERSION="<3.0.0"
 Version flags accept an optional operator prefix (`>=`, `>`, `<=`, `<`). When omitted, `--min-version` defaults to `>=` and `--max-version` defaults to `<=`. The magic values `epoch` (no floor) and `latest` (no ceiling) mean "include everything".
 
 When items are excluded by version filtering, breadcrumb comments are left in the generated code explaining the reason (e.g., `// cat.masterPath: deprecated in OpenSearch 2.0.0 (treated as removed).`). Breadcrumb visibility is configurable per category via `-version-breadcrumb-*` flags.
+
+### Contributing Spec Fixes Upstream
+
+Most generated code defects are not generator bugs. The spec is the input, so a missing doc comment, a wrong type, or an absent version annotation usually has to be fixed in [`opensearch-api-specification`](https://github.com/opensearch-project/opensearch-api-specification) to benefit every language client.
+
+Missing doc comments are the common case. Generated types and fields carry the `description` from their schema, and the generator emits 3,060 of the 3,187 property descriptions the spec provides; the remainder simply have none upstream. To see the gaps:
+
+```
+make report-missing-descriptions
+```
+
+This generates into a temporary directory and prints a report to stderr, so the checked-in generated files are untouched. Output is grouped into types, struct fields, and string-enum members, with the spec component key in brackets:
+
+```
+  - SearchProcessorExecutionDetail [_core.search___ProcessorExecutionDetail]
+  - ScrollResp.ProcessorResults json:"processor_results" [_core.search___SearchResponse]
+
+SUMMARY: 1274 types, 3471 fields, 20 enum members; 4765 total
+```
+
+The bracketed key is what to search for upstream. A gap is reported at both the reference site and the `$ref` target, so adding a description to one shared schema often resolves many lines at once.
+
+> **Editing `opensearch-openapi.yaml` locally.** The vendored spec may be edited for correctness (a wrong type, a missing required field), but changes are visible to every client generated from it, so renames and cosmetic edits belong upstream rather than here. Send a corresponding PR to `opensearch-api-specification` for anything kept locally.
+
+### Generation Guards
+
+Two checks run before any file is written, so a regression aborts generation instead of landing in the tree. Each pins its permitted set in a reviewed, checked-in allowlist:
+
+| Guard              | Allowlist                            | What it catches                                                       |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------------- |
+| `json.RawMessage`  | `cmd/osgen/rawmessage_allowlist.txt` | A type the generator could not resolve, widening the raw-JSON surface |
+| Duplicate JSON tag | `cmd/osgen/tagshadow_allowlist.txt`  | A struct redeclaring a JSON tag its embedded type already carries     |
+
+The duplicate-tag guard covers a defect nothing else catches. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so an outer redeclaration wins and the embedded declaration is never populated -- which is how the per-hit search envelope (`_id`, `_seq_no`, `sort`) became unreachable. `go vet`'s `structtag` analyzer only checks duplicates within one struct, and `golangci-lint` relaxes generated files.
+
+When a guard fails, read the offender it names and decide whether the change is intended. If it is, add the entry with `-update-tagshadow-allowlist` (or `-update-raw-message-allowlist`) and review the resulting allowlist diff as part of the change: adding an entry asserts the shadow is deliberate.
+
+> **`make regen` deletes generated files before writing.** An aborted generation therefore leaves the tree empty. Recover with `git checkout -- opensearchapi/ plugins/ internal/`.
 
 See [`cmd/osgen/README.md`](cmd/osgen/README.md) for the full flag reference and subcommand details.
 

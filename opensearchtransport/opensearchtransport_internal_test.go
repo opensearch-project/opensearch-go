@@ -87,6 +87,7 @@ func (e *mockNetError) Temporary() bool { return false }
 func TestTransport(t *testing.T) {
 	t.Run("Interface", func(t *testing.T) {
 		tp, _ := New(Config{})
+		t.Cleanup(func() { _ = tp.Close() })
 		var _ Interface = tp
 		_ = tp.transport
 	})
@@ -97,6 +98,7 @@ func TestTransport(t *testing.T) {
 		// the DNS-cache dialer) is covered by TestNewDisabledLeavesDefaultTransport
 		// and TestNewEnabledClonesDefaultTransport in dnscache_internal_test.go.
 		tp, _ := New(Config{DNSCacheRefresh: -1})
+		t.Cleanup(func() { _ = tp.Close() })
 		if tp.transport == nil {
 			t.Error("Expected the transport to not be nil")
 		}
@@ -115,6 +117,7 @@ func TestTransport(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 		//nolint:bodyclose // Mock response does not have a body to close
 		res, err := tp.transport.RoundTrip(&http.Request{URL: &url.URL{}})
 		if err != nil {
@@ -130,6 +133,7 @@ func TestTransport(t *testing.T) {
 func TestTransportConfig(t *testing.T) {
 	t.Run("Defaults", func(t *testing.T) {
 		tp, _ := New(Config{})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		if !reflect.DeepEqual(tp.retryOnStatus, []int{http.StatusBadGateway, http.StatusServiceUnavailable, http.StatusGatewayTimeout}) {
 			t.Errorf("Unexpected retryOnStatus: %v", tp.retryOnStatus)
@@ -160,6 +164,7 @@ func TestTransportConfig(t *testing.T) {
 			MaxRetries:           5,
 			CompressRequestBody:  true,
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		if !reflect.DeepEqual(tp.retryOnStatus, []int{http.StatusNotFound, http.StatusRequestTimeout}) {
 			t.Errorf("Unexpected retryOnStatus: %v", tp.retryOnStatus)
@@ -186,6 +191,7 @@ func TestTransportConfig(t *testing.T) {
 func TestTransportConnectionPool(t *testing.T) {
 	t.Run("Single URL", func(t *testing.T) {
 		tp, _ := New(Config{URLs: []*url.URL{{Scheme: "http", Host: "foo1"}}})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		if _, ok := tp.mu.connectionPool.(*singleServerPool); !ok {
 			t.Errorf("Expected connection to be singleServerPool, got: %T", tp)
@@ -214,6 +220,7 @@ func TestTransportConnectionPool(t *testing.T) {
 			},
 			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		if _, ok := tp.mu.connectionPool.(*multiServerPool); !ok {
 			t.Errorf("Expected connection to be multiServerPool, got: %T", tp)
@@ -283,6 +290,7 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 				}
 			},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		if _, ok := tp.mu.connectionPool.(*CustomConnectionPool); !ok {
 			t.Fatalf("Unexpected connection pool, want=CustomConnectionPool, got=%T", tp.mu.connectionPool)
@@ -323,6 +331,7 @@ func TestTransportCustomConnectionPool(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
 				_, ok := tp.mu.connectionPool.(*CustomConnectionPool)
 				require.True(t, ok, "want *CustomConnectionPool, got %T", tp.mu.connectionPool)
 				require.NotNil(t, tp.metrics, "metrics struct always allocated")
@@ -343,6 +352,7 @@ func TestTransportStream(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -360,6 +370,7 @@ func TestTransportStream(t *testing.T) {
 	t.Run("Sets URL", func(t *testing.T) {
 		u, _ := url.Parse("https://foo.com/bar")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		tp.setReqURL(u, req)
@@ -374,6 +385,7 @@ func TestTransportStream(t *testing.T) {
 	t.Run("Sets HTTP Basic Auth from URL", func(t *testing.T) {
 		u, _ := url.Parse("https://foo:bar@example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.setReqAuth(u, req)
@@ -391,6 +403,7 @@ func TestTransportStream(t *testing.T) {
 	t.Run("Sets HTTP Basic Auth from configuration", func(t *testing.T) {
 		u, _ := url.Parse("http://example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}, Username: "foo", Password: "bar"})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.setReqAuth(u, req)
@@ -408,6 +421,7 @@ func TestTransportStream(t *testing.T) {
 	t.Run("Sets UserAgent", func(t *testing.T) {
 		u, _ := url.Parse("http://example.com")
 		tp, _ := New(Config{URLs: []*url.URL{u}})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		tp.setReqUserAgent(req)
@@ -422,6 +436,7 @@ func TestTransportStream(t *testing.T) {
 		hdr.Set("X-Foo", "bar")
 
 		tp, _ := New(Config{Header: hdr})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		{
 			// Set the global HTTP header
@@ -456,6 +471,7 @@ func TestTransportStream(t *testing.T) {
 				},
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		tp.signRequest(req)
@@ -472,6 +488,7 @@ func TestTransportStream(t *testing.T) {
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) { return &http.Response{Status: "MOCK"}, nil }),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -509,6 +526,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -552,6 +570,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -595,6 +614,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -634,6 +654,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
@@ -680,6 +701,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -717,6 +739,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader("FOOBAR"))
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -755,6 +778,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		foobar := "FOOBAR"
 		foobarGzipped := "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xf3\xf7wr\f\x02\x04\x00\x00\xff\xff\x13\xd8\x0en\x06\x00\x00\x00"
@@ -805,6 +829,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(expectedBody))
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -835,6 +860,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -872,6 +898,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				HealthCheck:  NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -915,6 +942,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				return d
 			},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -953,6 +981,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				return nil, req.Context().Err()
 			}),
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 		ctx, cancel := context.WithTimeout(req.Context(), 50*time.Millisecond)
@@ -999,6 +1028,7 @@ func TestTransportStreamRetries(t *testing.T) {
 				return d
 			},
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 
@@ -1033,6 +1063,7 @@ func TestURLs(t *testing.T) {
 			},
 			SkipConnectionShuffle: true, // Disable shuffling for predictable test results
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 		urls := tp.URLs()
 		if len(urls) != 2 {
 			t.Errorf("Expected get 2 urls, but got: %d", len(urls))
@@ -1109,6 +1140,7 @@ func TestMaxRetries(t *testing.T) {
 				DisableRetry:      test.disableRetry,
 				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 			})
+			t.Cleanup(func() { _ = c.Close() })
 
 			//nolint:bodyclose // Mock response does not have a body to close
 			c.Stream(&http.Request{URL: &url.URL{}, Header: make(http.Header)}) // errcheck ignore
@@ -1173,6 +1205,7 @@ func TestRequestCompression(t *testing.T) {
 					return &http.Response{Status: "MOCK"}, nil
 				}),
 			})
+			t.Cleanup(func() { _ = tp.Close() })
 
 			req, _ := http.NewRequest(http.MethodPost, "/abc", bytes.NewBufferString(test.inputBody))
 
@@ -1219,6 +1252,7 @@ func TestStreamBuffering(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, "/test", nil)
 	require.NoError(t, err)
@@ -1259,6 +1293,7 @@ func TestStreamNilBody(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodHead, "/test", nil)
 	require.NoError(t, err)
@@ -1305,6 +1340,7 @@ func TestRequestSigning(t *testing.T) {
 				}),
 			},
 		)
+		t.Cleanup(func() { _ = tp.Close() })
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Stream(req)
@@ -1327,6 +1363,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify we start with a singleServerPool
 		singlePool, ok := client.mu.connectionPool.(*singleServerPool)
@@ -1376,6 +1413,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = statusPool
@@ -1408,6 +1446,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = statusPool
@@ -1429,6 +1468,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = statusPool
@@ -1447,6 +1487,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = statusPool
@@ -1461,6 +1502,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		pool := client.newMultiServerPoolFromClientWithLock("test", nil)
@@ -1496,6 +1538,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u2, _ := url.Parse("http://node2:9200")
 		client, err := New(Config{URLs: []*url.URL{u1, u2}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.RLock()
 		pool, ok := client.mu.connectionPool.(*multiServerPool)
@@ -1537,6 +1580,7 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = existingPool
@@ -1552,86 +1596,80 @@ func TestConnectionPoolPromotion(t *testing.T) {
 		require.Equal(t, customCutoff, newPool.resurrectTimeoutFactorCutoff, "Should preserve custom cutoff factor")
 	})
 
-	t.Run("promoteConnectionPoolWithLock filters dedicated cluster managers", func(t *testing.T) {
-		// Create connections with different roles
-		dataConn := &Connection{
-			URL:   &url.URL{Host: "data:9200"},
-			Name:  "data-node",
-			Roles: newRoleSet([]string{"data"}),
+	t.Run("promoteConnectionPoolWithLock dedicated cluster manager handling", func(t *testing.T) {
+		t.Parallel()
+
+		dataConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "data:9200"}, Name: "data-node", Roles: newRoleSet([]string{"data"})}
 		}
-		clusterManagerConn := &Connection{
-			URL:   &url.URL{Host: "cm:9200"},
-			Name:  "cm-node",
-			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		cmConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "cm:9200"}, Name: "cm-node", Roles: newRoleSet([]string{"cluster_manager"})}
 		}
-		mixedConn := &Connection{
-			URL:   &url.URL{Host: "mixed:9200"},
-			Name:  "mixed-node",
-			Roles: newRoleSet([]string{"cluster_manager", "data"}), // Not dedicated
+		mixedConn := func() *Connection {
+			return &Connection{URL: &url.URL{Host: "mixed:9200"}, Name: "mixed-node", Roles: newRoleSet([]string{"cluster_manager", "data"})}
 		}
 
-		u, _ := url.Parse("http://localhost:9200")
-		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: false, // Default: exclude dedicated CMs
-		})
-		require.NoError(t, err)
-
-		client.mu.Lock()
-		statusPool := client.promoteConnectionPoolWithLock(
-			[]*Connection{dataConn, clusterManagerConn, mixedConn},
-			[]*Connection{},
-		)
-		client.mu.Unlock()
-
-		// Should exclude dedicated cluster manager but include mixed role node
-		require.Len(t, statusPool.mu.ready, 2, "Should exclude dedicated cluster manager")
-
-		names := make([]string, len(statusPool.mu.ready))
-		for i, conn := range statusPool.mu.ready {
-			names[i] = conn.Name
-		}
-		require.Contains(t, names, "data-node", "Should include data node")
-		require.Contains(t, names, "mixed-node", "Should include mixed role node")
-		require.NotContains(t, names, "cm-node", "Should exclude dedicated cluster manager")
-	})
-
-	t.Run("promoteConnectionPoolWithLock includes dedicated cluster managers when configured", func(t *testing.T) {
-		// Create connections with different roles
-		dataConn := &Connection{
-			URL:   &url.URL{Host: "data:9200"},
-			Name:  "data-node",
-			Roles: newRoleSet([]string{"data"}),
-		}
-		clusterManagerConn := &Connection{
-			URL:   &url.URL{Host: "cm:9200"},
-			Name:  "cm-node",
-			Roles: newRoleSet([]string{"cluster_manager"}), // Dedicated cluster manager
+		tests := []struct {
+			name            string
+			ready           []*Connection
+			wantReadyLen    int      // connections held in the inventory ready list
+			wantInInventory []string // names that must be present in the inventory
+			wantNotRoutable []string // dedicated cluster managers Next() must never return
+		}{
+			{
+				name:            "dedicated cluster manager kept in inventory but not routable",
+				ready:           []*Connection{dataConn(), cmConn(), mixedConn()},
+				wantReadyLen:    3,
+				wantInInventory: []string{"data-node", "cm-node", "mixed-node"},
+				wantNotRoutable: []string{"cm-node"},
+			},
+			{
+				name:            "mixed cluster_manager and data role is routable",
+				ready:           []*Connection{dataConn(), mixedConn()},
+				wantReadyLen:    2,
+				wantInInventory: []string{"data-node", "mixed-node"},
+				wantNotRoutable: nil,
+			},
 		}
 
-		u, _ := url.Parse("http://localhost:9200")
-		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: true, // Include dedicated CMs
-		})
-		require.NoError(t, err)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+				u, _ := url.Parse("http://localhost:9200")
+				client, err := New(Config{
+					URLs: []*url.URL{u},
+				})
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = client.Close() })
 
-		client.mu.Lock()
-		statusPool := client.promoteConnectionPoolWithLock(
-			[]*Connection{dataConn, clusterManagerConn},
-			[]*Connection{},
-		)
-		client.mu.Unlock()
+				client.mu.Lock()
+				statusPool := client.promoteConnectionPoolWithLock(tt.ready, []*Connection{})
+				client.mu.Unlock()
 
-		// Should include all connections including dedicated cluster manager
-		require.Len(t, statusPool.mu.ready, 2, "Should include all connections")
+				require.Len(t, statusPool.mu.ready, tt.wantReadyLen, "inventory ready-list length")
+				require.Empty(t, statusPool.mu.dead, "no connections expected in the dead list")
 
-		names := make([]string, len(statusPool.mu.ready))
-		for i, conn := range statusPool.mu.ready {
-			names[i] = conn.Name
+				names := make([]string, len(statusPool.mu.ready))
+				for i, conn := range statusPool.mu.ready {
+					names[i] = conn.Name
+				}
+				for _, want := range tt.wantInInventory {
+					require.Contains(t, names, want, "inventory must contain %q", want)
+				}
+
+				// Dedicated cluster managers stay in the inventory but must not be
+				// handed out by Next().
+				for _, dcm := range tt.wantNotRoutable {
+					for range len(tt.ready) * 4 {
+						conn, nextErr := statusPool.Next()
+						if nextErr != nil {
+							break
+						}
+						require.NotEqual(t, dcm, conn.Name, "dedicated cluster manager %q must not be selected", dcm)
+					}
+				}
+			})
 		}
-		require.Contains(t, names, "data-node", "Should include data node")
-		require.Contains(t, names, "cm-node", "Should include dedicated cluster manager")
 	})
 }
 
@@ -1648,6 +1686,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 			StandbyPromotionChecks:       5,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		pool := client.newMultiServerPoolFromClientWithLock("test-pool", client.metrics)
@@ -1658,10 +1697,10 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 		require.Equal(t, 300*time.Second, pool.resurrectTimeoutMax)
 		require.Equal(t, 7, pool.resurrectTimeoutFactorCutoff)
 		require.Equal(t, 100*time.Millisecond, pool.minimumResurrectTimeout)
-		require.Equal(t, 3, pool.activeListCap)
+		require.Equal(t, 3, pool.mu.activeListCap)
 		require.Equal(t, int64(5), pool.standbyPromotionChecks)
 		require.NotNil(t, pool.ctx, "pool should inherit client context")
-		require.NotNil(t, pool.healthCheck, "pool should inherit client health check")
+		require.NotNil(t, pool.mu.healthCheck, "pool should inherit client health check")
 		require.Equal(t, client.metrics, pool.metrics, "pool should use provided metrics")
 	})
 
@@ -1669,6 +1708,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		pool := client.newMultiServerPoolFromClientWithLock("nil-metrics", nil)
@@ -1686,6 +1726,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 			Observer: obs,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		pool := client.newMultiServerPoolFromClientWithLock("obs-pool", nil)
@@ -1701,6 +1742,7 @@ func TestNewMultiServerPoolFromClientWithLock(t *testing.T) {
 			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify singleServerPool has metrics
 		singlePool, ok := client.mu.connectionPool.(*singleServerPool)
@@ -1775,6 +1817,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 			URLs: []*url.URL{serverURL},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify we start with singleServerPool
 		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
@@ -1822,6 +1865,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 			Router: NewMuxRouter(),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify we start with singleServerPool and router is set
 		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
@@ -1861,6 +1905,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Record initial metrics state
 		originalMetrics := client.metrics
@@ -1917,6 +1962,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 			URLs: []*url.URL{u1, u2},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Verify we start with multiServerPool
 		originalPool, ok := client.mu.connectionPool.(*multiServerPool)
@@ -1964,6 +2010,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Get original pool
 		originalPool, ok := client.mu.connectionPool.(*singleServerPool)
@@ -2013,10 +2060,10 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{
-			URLs:                            []*url.URL{u},
-			IncludeDedicatedClusterManagers: false, // This will trigger debug logging
+			URLs: []*url.URL{u},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		statusPool := client.promoteConnectionPoolWithLock(
@@ -2025,9 +2072,25 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		)
 		client.mu.Unlock()
 
-		// Should exclude dedicated cluster manager and debug log it
-		require.Len(t, statusPool.mu.ready, 1, "Should exclude dedicated cluster manager")
-		require.Equal(t, "data-node", statusPool.mu.ready[0].Name, "Should include data node")
+		// The inventory holds every connection regardless of role, so the
+		// dedicated cluster manager remains present alongside the data node.
+		require.Len(t, statusPool.mu.ready, 2, "Inventory should hold all connections including the dedicated cluster manager")
+
+		names := map[string]bool{}
+		for _, conn := range statusPool.mu.ready {
+			names[conn.Name] = true
+		}
+		require.True(t, names["data-node"], "Inventory should include data node")
+		require.True(t, names["cm-node"], "Inventory should include dedicated cluster manager")
+
+		// The dedicated cluster manager must never be handed out for routing.
+		for i := 0; i < len(statusPool.mu.ready)*4; i++ {
+			conn, err := statusPool.Next()
+			if err != nil {
+				break
+			}
+			require.Equal(t, "data-node", conn.Name, "Only the data node should be selected for routing")
+		}
 	})
 
 	t.Run("promoteConnectionPoolWithLock preserves multiServerPool settings", func(t *testing.T) {
@@ -2050,6 +2113,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		client.mu.Lock()
 		client.mu.connectionPool = existingPool
@@ -2071,6 +2135,7 @@ func TestConnectionPoolPromotionIntegration(t *testing.T) {
 		u, _ := url.Parse("http://localhost:9200")
 		client, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Start with a singleServerPool (not multiServerPool)
 		client.mu.Lock()

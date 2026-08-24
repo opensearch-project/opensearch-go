@@ -95,7 +95,7 @@ type DeleteParams struct {
 	Version int
 
 	// The specific version type: `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 
 	// The number of shard copies that must be active before proceeding with
 	// the operation. Set to `all` or any positive integer up to the total
@@ -135,7 +135,7 @@ func (r DeleteParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	if r.WaitForActiveShards != "" {
@@ -153,25 +153,25 @@ func (r DeleteParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/delete-document/
 type DeleteResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version       int64  `json:"_version"`
 	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Result        Result `json:"result"`
 
 	response *opensearch.Response
 }
@@ -226,12 +226,12 @@ func (r *DeleteResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/delete-document/
-func (c documentClient) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
+func (c DocumentClient) Delete(ctx context.Context, req DeleteReq) (*DeleteResp, error) {
 	var (
 		data DeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

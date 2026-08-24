@@ -149,7 +149,7 @@ type IndicesCreateBody struct {
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 }
 
@@ -160,12 +160,12 @@ type IndicesCreateBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/create-index/
-func (c indicesClient) Create(ctx context.Context, req IndicesCreateReq) (*IndicesCreateResp, error) {
+func (c IndicesClient) Create(ctx context.Context, req IndicesCreateReq) (*IndicesCreateResp, error) {
 	var (
 		data IndicesCreateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

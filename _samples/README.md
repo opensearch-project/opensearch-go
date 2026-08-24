@@ -44,6 +44,7 @@ Writing and managing indices and documents.
 
 General client usage: querying, raw requests, and async operations.
 
+- `usage-quickstart.go` - the README quickstart: create an index, index documents, get, search, and delete.
 - `usage-search.go` - search an index and read hits.
 - `usage-json.go` - issue raw JSON REST requests when no typed method fits.
 - `usage-tasks.go` - submit and poll long-running async tasks.

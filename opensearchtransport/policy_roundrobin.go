@@ -114,10 +114,16 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 	// Recalculate activeListCap and warmup parameters based on projected pool size.
 	// Done before adds/removes so startWarmup calls use the correctly-scaled values.
 	targetPoolSize := len(p.pool.mu.ready) + len(p.pool.mu.dead) + len(added) - len(removed)
-	p.pool.recalculateWarmupParams(targetPoolSize)
+	p.pool.recalculateWarmupParamsWithLock(targetPoolSize)
 
 	// Add new connections based on their health status
 	for _, conn := range added {
+		// Dedicated cluster managers remain in the connection inventory for
+		// discovery but are not admitted to the round-robin pool, so they do
+		// not serve request traffic.
+		if conn.Roles.isDedicatedClusterManager() {
+			continue
+		}
 		// Guard: skip if already a member of this pool.
 		if _, exists := p.pool.mu.members[conn]; exists {
 			continue
@@ -132,7 +138,7 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 			conn.mu.Lock()
 			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
-			rounds, skip := p.pool.getWarmupParams()
+			rounds, skip := p.pool.getWarmupParamsWithLock()
 			conn.startWarmup(rounds, skip)
 			p.pool.appendToReadyActiveWithLock(conn)
 
@@ -196,8 +202,14 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 		}
 	}
 
-	// Update cached enabled state
-	psSetEnabled(&p.policyState, len(p.pool.mu.ready)+len(p.pool.mu.dead) > 0)
+	// Update cached enabled state. A policy is enabled only when it has a
+	// connection worth routing to -- a ready connection, or a dead connection
+	// currently confirmed reachable (lcNeedsHardware clear; see
+	// availableForRouting). Dead connections not currently confirmed reachable
+	// (freshly discovered, or verified-then-failed, possibly unroutable) do not
+	// count, so the request cascades to the seed fallback instead of being
+	// served as a zombie.
+	psSetEnabled(&p.policyState, p.pool.hasAvailableConnsWithLock())
 
 	return nil
 }
@@ -216,6 +228,15 @@ func (p *RoundRobinPolicy) Eval(ctx context.Context, req *http.Request) (NextHop
 	if p.pool == nil {
 		return NextHop{}, nil
 	}
+
+	// Respect the enabled bit from DiscoveryUpdate. With nothing available for
+	// routing, pool.Next() would hand back a zombie from the dead list -- a
+	// transport error, not ErrNoConnections -- masking the seed fallback.
+	// Mirrors the gate in CoordinatorPolicy.Eval and RolePolicy.Eval.
+	if p.policyState.Load()&psEnabled == 0 {
+		return NextHop{}, nil
+	}
+
 	conn, err := p.pool.Next()
 	if err != nil {
 		return NextHop{}, err

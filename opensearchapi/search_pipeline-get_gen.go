@@ -120,12 +120,12 @@ func (r SearchPipelineGetResp) RawBody() io.Reader {
 // GET /_search/pipeline
 //
 // Available: >= 2.9.0.
-func (c searchPipelineClient) Get(ctx context.Context, req SearchPipelineGetReq) (*SearchPipelineGetResp, error) {
+func (c SearchPipelineClient) Get(ctx context.Context, req SearchPipelineGetReq) (*SearchPipelineGetResp, error) {
 	var (
 		data SearchPipelineGetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

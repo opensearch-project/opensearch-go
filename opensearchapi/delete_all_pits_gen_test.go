@@ -22,18 +22,18 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-func TestDeleteAllPitsReq_GetRequest(t *testing.T) {
+func TestDeleteAllPITsReq_GetRequest(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name       string
-		req        opensearchapi.DeleteAllPitsReq
+		req        opensearchapi.DeleteAllPITsReq
 		wantMethod string
 		wantPath   string
 		wantErr    bool
 	}{
 		{
 			name:       "empty request",
-			req:        opensearchapi.DeleteAllPitsReq{},
+			req:        opensearchapi.DeleteAllPITsReq{},
 			wantMethod: http.MethodDelete,
 			wantPath:   "/_search/point_in_time/_all",
 			wantErr:    false,
@@ -54,7 +54,7 @@ func TestDeleteAllPitsReq_GetRequest(t *testing.T) {
 	}
 }
 
-func TestDeleteAllPits_Roundtrip(t *testing.T) {
+func TestDeleteAllPITs_Roundtrip(t *testing.T) {
 	t.Parallel()
 
 	t.Run("success", func(t *testing.T) {
@@ -69,6 +69,7 @@ func TestDeleteAllPits_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.PIT.DeleteAll(t.Context(), nil)
 		require.NoError(t, err)
@@ -88,6 +89,7 @@ func TestDeleteAllPits_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.PIT.DeleteAll(t.Context(), nil)
 		require.Error(t, err)

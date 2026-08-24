@@ -113,7 +113,7 @@ func (r IngestProcessorGrokResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c ingestClient) ProcessorGrok(ctx context.Context, req *IngestProcessorGrokReq) (*IngestProcessorGrokResp, error) {
+func (c IngestClient) ProcessorGrok(ctx context.Context, req *IngestProcessorGrokReq) (*IngestProcessorGrokResp, error) {
 	if req == nil {
 		req = &IngestProcessorGrokReq{}
 	}
@@ -122,7 +122,7 @@ func (c ingestClient) ProcessorGrok(ctx context.Context, req *IngestProcessorGro
 		data IngestProcessorGrokResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

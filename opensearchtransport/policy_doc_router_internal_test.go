@@ -150,7 +150,7 @@ func newDocRouterTestPolicy(t *testing.T, nodeCount int) (*DocRouter, []*Connect
 		}
 		conns[i].rttRing.add(200 * time.Microsecond)
 		conns[i].weight.Store(1)
-		conns[i].state.Store(int64(newConnState(lcActive | lcNeedsWarmup)))
+		conns[i].setLifecycleBit(lcActive | lcNeedsWarmup | lcViable)
 	}
 
 	err := p.DiscoveryUpdate(conns, nil, nil)
@@ -245,6 +245,9 @@ func TestDocRouterDiscoveryUpdate(t *testing.T) {
 		}
 		conn.rttRing.add(200 * time.Microsecond)
 		conn.weight.Store(1)
+		// Model a verified, reachable discovered node so it counts as
+		// availableForRouting (and the policy reports enabled).
+		conn.setLifecycleBit(lcViable)
 
 		err = p.DiscoveryUpdate([]*Connection{conn}, nil, nil)
 		require.NoError(t, err)
@@ -430,7 +433,7 @@ func TestDocRouterEval_ShardExactPath(t *testing.T) {
 		}
 		conns[i].rttRing.add(200 * time.Microsecond)
 		conns[i].weight.Store(1)
-		conns[i].state.Store(int64(newConnState(lcActive)))
+		conns[i].setLifecycleBit(lcActive)
 	}
 
 	err := p.DiscoveryUpdate(conns, nil, nil)
@@ -508,7 +511,7 @@ func TestDocRouterEval_ShardExactWithObserver(t *testing.T) {
 		}
 		conns[i].rttRing.add(200 * time.Microsecond)
 		conns[i].weight.Store(1)
-		conns[i].state.Store(int64(newConnState(lcActive)))
+		conns[i].setLifecycleBit(lcActive)
 	}
 
 	err := p.DiscoveryUpdate(conns, nil, nil)

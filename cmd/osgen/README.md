@@ -84,22 +84,29 @@ Generates API consumer files into `opensearchapi/` and plugin directories.
 
 #### Flags
 
-| Flag                             | Default  | Description                                                             |
-| -------------------------------- | -------- | ----------------------------------------------------------------------- |
-| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
-| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)             |
-| `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)              |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`)                     |
-| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
-| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
-| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |
-| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed        |
-| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them |
-| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`          |
-| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`               |
-| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`       |
-| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`       |
-| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`    |
+| Flag                             | Default  | Description                                                                         |
+| -------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `-spec`                          | required | Path to the combined OpenAPI spec YAML                                              |
+| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)                         |
+| `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)                          |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `plugins/`)                                 |
+| `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                                          |
+| `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                                 |
+| `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                                 |
+| `-remove-deprecated`             | `epoch`  | Treat operations deprecated at or before this version as removed                    |
+| `-min-version-preserve-optional` | `false`  | Keep version-gated fields as pointers even when min-version covers them             |
+| `-version-breadcrumb-operations` | `all`    | Emit comments for excluded operations: `all`, `older`, `newer`                      |
+| `-version-breadcrumb-types`      | `all`    | Emit comments for excluded types: `all`, `older`, `newer`                           |
+| `-version-breadcrumb-fields`     | `all`    | Emit comments for excluded struct fields: `all`, `older`, `newer`                   |
+| `-version-breadcrumb-paths`      | `all`    | Emit comments for excluded path builders: `all`, `older`, `newer`                   |
+| `-version-breadcrumb-params`     | `all`    | Emit comments for excluded query parameters: `all`, `older`, `newer`                |
+| `-raw-message-allowlist`         | embedded | Check against this `json.RawMessage` allowlist file instead of the embedded one     |
+| `-update-raw-message-allowlist`  | `false`  | Rewrite the `json.RawMessage` allowlist from current output instead of checking it  |
+| `-allow-unlisted-raw-message`    | `false`  | Downgrade the `json.RawMessage` check from fatal to a warning                       |
+| `-tagshadow-allowlist`           | embedded | Check against this duplicate-JSON-tag allowlist file instead of the embedded one    |
+| `-update-tagshadow-allowlist`    | `false`  | Rewrite the duplicate-JSON-tag allowlist from current output instead of checking it |
+| `-allow-unlisted-tagshadow`      | `false`  | Downgrade the duplicate-JSON-tag check from fatal to a warning                      |
+| `-report-missing-descriptions`   | `false`  | List generated identifiers whose schema has no `description` (reporting only)       |
 
 #### Examples
 
@@ -157,7 +164,60 @@ go run . api \
 3. Routes each operation to either the core `opensearchapi` package or a plugin package based on the operation group prefix.
 4. Renders Req structs (with path builder embedding, optional body, and header support), Params structs (with typed encode methods), and Resp stubs.
 5. Annotates generated code with availability (`x-version-added`), deprecation (`x-version-deprecated`, `x-deprecation-message`), and distribution exclusion metadata.
-6. Reads each operation's `x-error-responses` extension to emit typed partial-failure errors (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, ...), the corresponding `errmask` bits and env-var tokens, per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`) used internally by the dispatch, and -- for operations declaring two or more categories -- a per-op multi-error container implementing `Unwrap() []error`. The recommended call-site pattern in user code is a `for`/`switch` over `opensearchapi.Errors(err)`, not the per-Resp helpers; see [`DEVELOPER_GUIDE.md` Partial-failure error generation](../../DEVELOPER_GUIDE.md#partial-failure-error-generation) for the generated surface and [`opensearchapi/README.md` Partial Failure Errors](../../opensearchapi/README.md#partial-failure-errors) for the user-facing usage guide.
+6. Reads each operation's `x-error-responses` extension to emit typed partial-failure errors (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, ...), the corresponding `errmask` bits and env-var tokens, per-Resp helper methods (`BulkItemFailures()`, `SearchShardFailures()`, `WriteShardFailures()`, `MultiSearchItemFailures()`, `PartialFailures(mask)`) used internally by the dispatch, and -- for operations declaring two or more categories -- a per-op multi-error container implementing `Unwrap() []error`. The recommended call-site pattern in user code is a `for`/`switch` over `opensearchapi.Errors(err)`, not the per-Resp helpers; see [`DEVELOPER_GUIDE.md` Partial-failure error generation](../../DEVELOPER_GUIDE.md#partial-failure-error-generation) for the generated surface and [`guides/usage-error_handling.md`](../../guides/usage-error_handling.md) for the user-facing usage guide.
+
+## Generation Guards
+
+Two checks run before any file is written, so a failure aborts cleanly rather than committing a regression. Each pins its permitted set in a checked-in allowlist that is compiled into the binary, so the same set is enforced regardless of the working directory.
+
+| Guard              | Allowlist                  | What it catches                                                       |
+| ------------------ | -------------------------- | --------------------------------------------------------------------- |
+| `json.RawMessage`  | `rawmessage_allowlist.txt` | A type the generator could not resolve, widening the raw-JSON surface |
+| Duplicate JSON tag | `tagshadow_allowlist.txt`  | A struct redeclaring a JSON tag its embedded type already carries     |
+
+When a guard fails, read the offender it names and decide whether the change is intended. If it is, add the entry:
+
+```
+cd cmd/osgen
+go run . api -spec ../../opensearch-openapi.yaml -out ../../opensearchapi \
+  -pkg opensearchapi -plugins-out ../../plugins \
+  -update-tagshadow-allowlist
+```
+
+Then review the diff to the allowlist as part of the change. Adding an entry is asserting that the shadow or the raw payload is deliberate, which is why the allowlists are reviewed rather than regenerated blindly.
+
+The duplicate-tag guard exists because nothing else catches the pattern. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so the outer declaration wins and the embedded one is never populated. `go vet`'s `structtag` analyzer only checks duplicates within a single struct, `golangci-lint` relaxes generated files, and the generated-code CI job is advisory. Each entry is labeled with what the winning field does to the payload it hides, so a reviewer can tell a deliberate narrowing (a bucket aggregation replacing an erased `TBucket` with a concrete type) from an erasure that makes fields unreachable or a widening that makes a required value optional.
+
+Because `make regen` deletes the generated files before writing new ones, an aborted generation leaves the tree empty. Recover with `git checkout -- opensearchapi/ plugins/ internal/`.
+
+Alongside the guards, generation reports two non-fatal union diagnostics on stderr. Neither aborts, because neither is a generator defect: both describe what the spec leaves decodable.
+
+| Diagnostic                                  | What it means                                                                                                                                                                                               |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `left on try-each`                          | One permissive branch plus discriminated branch(es), but no required key tells them apart by presence, so a single-pass merge would not be safe                                                             |
+| `decodes to its first matching branch only` | Two branches declare the same required keys, so the probe can never select the later one. It stays constructible and marshals correctly; only decoding is affected, and `Type()` reports the earlier branch |
+
+## Reporting Spec Gaps
+
+Generated types and fields carry the `description` from their OpenAPI schema. When a doc comment is missing, the cause is usually that the spec has none: 3,060 of the 3,187 property descriptions the spec carries are emitted, and the rest of the gaps are upstream.
+
+`-report-missing-descriptions` lists what is missing, so the gaps can be fixed at the source:
+
+```
+make report-missing-descriptions
+```
+
+The target generates into a temporary directory, so the checked-in generated files are untouched and only the report is produced. Output is grouped into types, struct fields, and string-enum members, and each line names the Go identifier with its JSON tag or wire value and the spec component in brackets:
+
+```
+  - SearchProcessorExecutionDetail [_core.search___ProcessorExecutionDetail]
+  - ScrollResp.ProcessorResults json:"processor_results" [_core.search___SearchResponse]
+  - NodeRole.NodeRoleMaster value:"master" [_common___NodeRole]
+```
+
+The bracketed component key is what to search for in [`opensearch-api-specification`](https://github.com/opensearch-project/opensearch-api-specification) when adding the description upstream. A gap is reported at both the reference site and the `$ref` target, so fixing one shared schema can resolve many lines at once.
+
+The flag is diagnostic only: it never changes generated output and never fails generation. Only identifiers the generator actually emits are reported, so schemas that never become Go types are omitted as gaps a contributor cannot act on.
 
 ## Separate Module
 

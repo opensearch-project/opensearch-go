@@ -132,8 +132,8 @@ func (r IndicesPutIndexTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
 type IndicesPutIndexTemplateResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -157,20 +157,20 @@ func (r IndicesPutIndexTemplateResp) RawBody() io.Reader {
 //
 // The template definition
 type IndicesPutIndexTemplateBody struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// An ordered list of component template names. Component templates are
-	// merged in the order specified, meaning that the last component template
-	// specified has the highest precedence.
+	// ComposedOf is an ordered list of component template names. Component
+	// templates are merged in the order specified, meaning that the last
+	// component template specified has the highest precedence.
 	ComposedOf []string `json:"composed_of,omitempty"`
 
-	// The data stream configuration for an index template.
+	// DataStream is the data stream configuration for an index template.
 	DataStream *IndicesIndexTemplateDataStreamConfiguration `json:"data_stream,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// IndexPatterns is a comma-separated list of data streams, indexes, and
+	// aliases used to limit the request. Supports wildcards (`*`). To target
+	// all data streams and indexes, omit this parameter or use `*` or `_all`.
 	IndexPatterns []string `json:"index_patterns,omitempty"`
 
 	// Priority to determine index template precedence when a new data stream
@@ -186,15 +186,15 @@ type IndicesPutIndexTemplateBody struct {
 
 // IndicesPutIndexTemplateIndexTemplateMapping is a typed component of the indices.put_index_template operation.
 type IndicesPutIndexTemplateIndexTemplateMapping struct {
-	// The aliases to add. If the index template includes a `data_stream`
-	// object, these are data stream aliases. Otherwise, these are index
-	// aliases. Data stream aliases ignore the `index_routing`, `routing`, and
-	// `search_routing` options.
+	// Aliases is the aliases to add. If the index template includes a
+	// `data_stream` object, these are data stream aliases. Otherwise, these
+	// are index aliases. Data stream aliases ignore the `index_routing`,
+	// `routing`, and `search_routing` options.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 }
 
@@ -207,12 +207,12 @@ type IndicesPutIndexTemplateIndexTemplateMapping struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-templates/
-func (c indicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndexTemplateReq) (*IndicesPutIndexTemplateResp, error) {
+func (c IndicesClient) PutIndexTemplate(ctx context.Context, req IndicesPutIndexTemplateReq) (*IndicesPutIndexTemplateResp, error) {
 	var (
 		data IndicesPutIndexTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

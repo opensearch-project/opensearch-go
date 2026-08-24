@@ -192,7 +192,7 @@ func (r IndicesGetSettingsResp) RawBody() io.Reader {
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-settings/
-func (c indicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsReq) (*IndicesGetSettingsResp, error) {
+func (c IndicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsReq) (*IndicesGetSettingsResp, error) {
 	if req == nil {
 		req = &IndicesGetSettingsReq{}
 	}
@@ -201,7 +201,7 @@ func (c indicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsR
 		data IndicesGetSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -213,7 +213,7 @@ func (c indicesClient) GetSettings(ctx context.Context, req *IndicesGetSettingsR
 }
 
 // Deprecated: use IndicesGetSettings via the parent client instead.
-func (c settingsClient) Get(ctx context.Context, req *IndicesGetSettingsReq) (*IndicesGetSettingsResp, error) {
+func (c SettingsClient) Get(ctx context.Context, req *IndicesGetSettingsReq) (*IndicesGetSettingsResp, error) {
 	if req == nil {
 		req = &IndicesGetSettingsReq{}
 	}
@@ -222,7 +222,7 @@ func (c settingsClient) Get(ctx context.Context, req *IndicesGetSettingsReq) (*I
 		data IndicesGetSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

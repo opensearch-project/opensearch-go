@@ -172,7 +172,7 @@ func (r IndicesGetFieldMappingResp) RawBody() io.Reader {
 //
 // The field mapping configuration for a type.
 type IndicesGetFieldMappingTypeFieldMappings struct {
-	// The map of field names to their mapping definitions.
+	// Mappings is the map of field names to their mapping definitions.
 	Mappings map[string]CommonMappingField `json:"mappings"`
 }
 
@@ -183,7 +183,7 @@ type IndicesGetFieldMappingTypeFieldMappings struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/field-types/index/
-func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
+func (c IndicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetFieldMappingReq{}
 	}
@@ -192,7 +192,7 @@ func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetField
 		data IndicesGetFieldMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -204,7 +204,7 @@ func (c indicesClient) GetFieldMapping(ctx context.Context, req *IndicesGetField
 }
 
 // Deprecated: use IndicesGetFieldMapping via the parent client instead.
-func (c mappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
+func (c MappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq) (*IndicesGetFieldMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetFieldMappingReq{}
 	}
@@ -213,7 +213,7 @@ func (c mappingClient) Field(ctx context.Context, req *IndicesGetFieldMappingReq
 		data IndicesGetFieldMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

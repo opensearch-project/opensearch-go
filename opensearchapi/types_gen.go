@@ -35,67 +35,67 @@ type ErrorCausePosition struct {
 }
 
 type ErrorCause struct {
-	// The circuit breaker memory limit. Present in
+	// BytesLimit is the circuit breaker memory limit. Present in
 	// `circuit_breaking_exception` responses.
 	BytesLimit *int64 `json:"bytes_limit,omitempty"`
 
-	// The number of bytes that were requested. Present in
+	// BytesWanted is the number of bytes that were requested. Present in
 	// `circuit_breaking_exception` responses.
 	BytesWanted *int64 `json:"bytes_wanted,omitempty"`
 
 	CausedBy *ErrorCause `json:"caused_by,omitempty"`
 
-	// The column number of the parsing error. Present in `parsing_exception`
-	// and `search_parse_exception` responses.
+	// Col is the column number of the parsing error. Present in
+	// `parsing_exception` and `search_parse_exception` responses.
 	Col *int `json:"col,omitempty"`
 
-	// The circuit breaker durability. Present in `circuit_breaking_exception`
-	// responses.
+	// Durability is the circuit breaker durability. Present in
+	// `circuit_breaking_exception` responses.
 	Durability *string `json:"durability,omitempty"`
 
-	// The shard failures. Present in `search_phase_execution_exception`
-	// responses.
+	// FailedShards is the shard failures. Present in
+	// `search_phase_execution_exception` responses.
 	FailedShards []ShardFailure `json:"failed_shards,omitempty"`
 
-	// Whether shard failures are grouped. Present in
+	// Grouped. Whether shard failures are grouped. Present in
 	// `search_phase_execution_exception` responses.
 	Grouped *bool `json:"grouped,omitempty"`
 
-	Header map[string]ErrorCauseHeaderValue `json:"header,omitempty"`
+	Header map[string]StringOrStringArray `json:"header,omitempty"`
 
-	// The scripting language. Present in `script_exception` responses.
+	// Lang is the scripting language. Present in `script_exception` responses.
 	Lang *string `json:"lang,omitempty"`
 
-	// The type of entity that breached the response limit. Present in
-	// `response_limit_breached_exception` responses.
+	// LimitEntity is the type of entity that breached the response limit.
+	// Present in `response_limit_breached_exception` responses.
 	//
 	// Available: >= 3.0.0.
 	LimitEntity *string `json:"limit_entity,omitempty"`
 
-	// The line number of the parsing error. Present in `parsing_exception` and
-	// `search_parse_exception` responses.
+	// Line is the line number of the parsing error. Present in
+	// `parsing_exception` and `search_parse_exception` responses.
 	Line *int `json:"line,omitempty"`
 
-	// The maximum number of buckets allowed. Present in
+	// MaxBuckets is the maximum number of buckets allowed. Present in
 	// `too_many_buckets_exception` responses.
 	MaxBuckets *int `json:"max_buckets,omitempty"`
 
-	// The node ID where the error occurred. Present in `failed_node_exception`
-	// responses.
+	// NodeID is the node ID where the error occurred. Present in
+	// `failed_node_exception` responses.
 	NodeID *string `json:"node_id,omitempty"`
 
-	// The search phase that failed. Present in
+	// Phase is the search phase that failed. Present in
 	// `search_phase_execution_exception` responses.
 	Phase *string `json:"phase,omitempty"`
 
-	// The position of the error in the script. Present in `script_exception`
-	// responses.
+	// Position is the position of the error in the script. Present in
+	// `script_exception` responses.
 	Position *ErrorCausePosition `json:"position,omitempty"`
 
-	// A human-readable explanation of the error, in English.
+	// Reason is a human-readable explanation of the error, in English.
 	Reason *string `json:"reason,omitempty"`
 
-	// The response limit that was breached. Present in
+	// RespLimit is the response limit that was breached. Present in
 	// `response_limit_breached_exception` responses.
 	//
 	// Available: >= 3.0.0.
@@ -103,34 +103,35 @@ type ErrorCause struct {
 
 	RootCause []ErrorCause `json:"root_cause,omitempty"`
 
-	// The script that caused the error. Present in `script_exception`
-	// responses.
+	// Script is the script that caused the error. Present in
+	// `script_exception` responses.
 	Script *string `json:"script,omitempty"`
 
-	// The script stack trace. Present in `script_exception` responses.
+	// ScriptStack is the script stack trace. Present in `script_exception`
+	// responses.
 	ScriptStack []string `json:"script_stack,omitempty"`
 
-	// The server stack trace, present only if the `error_trace=true` parameter
-	// was sent with the request.
+	// StackTrace is the server stack trace, present only if the
+	// `error_trace=true` parameter was sent with the request.
 	StackTrace *string `json:"stack_trace,omitempty"`
 
 	Suppressed []ErrorCause `json:"suppressed,omitempty"`
 
-	// The type of error.
+	// Type is the type of error.
 	Type string `json:"type"`
 }
 
 // Represents a failure to search on a specific shard. Used in search responses.
 type ShardSearchFailure struct {
-	// The index name where the failure occurred.
+	// Index is the index name where the failure occurred.
 	Index *string `json:"index,omitempty"`
 
-	// The node id where the failure occurred.
+	// Node is the node id where the failure occurred.
 	Node *string `json:"node,omitempty"`
 
 	Reason ErrorCause `json:"reason"`
 
-	// The shard id where the failure occurred.
+	// Shard is the shard id where the failure occurred.
 	Shard int `json:"shard"`
 }
 
@@ -143,7 +144,7 @@ type ShardStatistics struct {
 }
 
 type CommonAggregationsAggregateBase struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"meta,omitempty"`
 }
 
@@ -152,41 +153,51 @@ type CommonAggregationsMultiBucketAggregateBase struct {
 	Buckets CommonAggregationsMultiBucketAggregateBaseBuckets `json:"buckets"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucketBuckets `json:"buckets"`
+type CommonAggregationsMultiBucketBase struct {
+	DocCount int64 `json:"doc_count"`
+}
+
+type CommonAggregationsAdjacencyMatrixBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key string `json:"key"`
 }
 
 type CommonAggregationsAdjacencyMatrixAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseAdjacencyMatrixBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsAdjacencyMatrixAggregateBuckets `json:"buckets"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket struct {
+type CommonAggregationsDateHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+
+	// Key is the time unit for milliseconds.
+	Key int64 `json:"key"`
+
+	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
+type CommonAggregationsDateHistogramAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseDateHistogramBucketBuckets `json:"buckets"`
+	Buckets CommonAggregationsDateHistogramAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsAutoDateHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
+	CommonAggregationsDateHistogramAggregate
 
-	// A date histogram interval, similar to `Duration`, with support for
-	// additional units: `w` (week), `M` (month), `q` (quarter), and `y`
-	// (year).
+	// Interval is a date histogram interval, similar to `Duration`, with
+	// support for additional units: `w` (week), `M` (month), `q` (quarter),
+	// and `y` (year).
 	Interval string `json:"interval"`
 }
 
 type CommonAggregationsSingleMetricAggregateBase struct {
 	CommonAggregationsAggregateBase
 
-	// The metric value. A missing value generally means that there was no data
-	// to aggregate, unless specified otherwise.
+	// Value is the metric value. A missing value generally means that there
+	// was no data to aggregate, unless specified otherwise.
 	Value *float64 `json:"value"`
 
 	ValueAsString *string `json:"value_as_string,omitempty"`
-}
-
-type CommonAggregationsAvgAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
 }
 
 type CommonAggregationsBoxPlotAggregate struct {
@@ -222,8 +233,9 @@ type CommonAggregationsSingleBucketAggregateBase struct {
 	DocCount int64 `json:"doc_count"`
 }
 
-type CommonAggregationsChildrenAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
+type CommonAggregationsCompositeBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key map[string]FieldValue `json:"key"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
@@ -233,24 +245,24 @@ type CommonAggregationsMultiBucketAggregateBaseCompositeBucket struct {
 
 type CommonAggregationsCompositeAggregate struct {
 	CommonAggregationsMultiBucketAggregateBaseCompositeBucket
-	AfterKey map[string]CommonAggregationsCompositeAggregateKeyValue `json:"after_key,omitempty"`
+	AfterKey map[string]FieldValue `json:"after_key,omitempty"`
 }
 
-type CommonAggregationsDateHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseDateHistogramBucket
+type CommonAggregationsRangeBucket struct {
+	CommonAggregationsMultiBucketBase
+	From         *float64 `json:"from,omitempty"`
+	FromAsString *string  `json:"from_as_string,omitempty"`
+
+	// Key is the bucket key. Present if the aggregation is not keyed.
+	Key *string `json:"key,omitempty"`
+
+	To         *float64 `json:"to,omitempty"`
+	ToAsString *string  `json:"to_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiBucketAggregateBaseRangeBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
 	Buckets CommonAggregationsMultiBucketAggregateBaseRangeBucketBuckets `json:"buckets"`
-}
-
-type CommonAggregationsRangeAggregateBase struct {
-	CommonAggregationsMultiBucketAggregateBaseRangeBucket
-}
-
-type CommonAggregationsDateRangeAggregate struct {
-	CommonAggregationsRangeAggregateBase
 }
 
 type CommonAggregationsDerivativeAggregate struct {
@@ -265,15 +277,11 @@ type CommonAggregationsTermsAggregateBase struct {
 	SumOtherDocCount        *int64 `json:"sum_other_doc_count,omitempty"`
 }
 
-type CommonAggregationsMultiBucketBase struct {
-	DocCount int64 `json:"doc_count"`
-}
-
 type CommonAggregationsTermsBucketBase struct {
 	CommonAggregationsMultiBucketBase
 
-	// Upper bound of the document count error. Only present when
-	// `show_term_doc_count_error` is true.
+	// DocCountErrorUpperBound. Upper bound of the document count error. Only
+	// present when `show_term_doc_count_error` is true.
 	DocCountErrorUpperBound *int64 `json:"doc_count_error_upper_bound,omitempty"`
 }
 
@@ -283,14 +291,9 @@ type CommonAggregationsDoubleTermsBucket struct {
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseDoubleTermsBucket struct {
+type CommonAggregationsDoubleTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsDoubleTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is some kind of decimal number like a float, double, or distance.
-type CommonAggregationsDoubleTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseDoubleTermsBucket
 }
 
 type CommonAggregationsStatsAggregateBase struct {
@@ -342,126 +345,108 @@ type CommonAggregationsExtendedStatsAggregateBase struct {
 	VarianceSamplingAsString   *string                                            `json:"variance_sampling_as_string,omitempty"`
 }
 
-type CommonAggregationsExtendedStatsAggregate struct {
-	CommonAggregationsExtendedStatsAggregateBase
-}
-
-type CommonAggregationsExtendedStatsBucketAggregate struct {
-	CommonAggregationsExtendedStatsAggregateBase
-}
-
-type CommonAggregationsFilterAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsMultiBucketAggregateBaseFiltersBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseFiltersBucketBuckets `json:"buckets"`
-}
-
 type CommonAggregationsFiltersAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseFiltersBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsFiltersAggregateBuckets `json:"buckets"`
 }
 
 // The bounds specified using coordinate values.
 type CoordsGeoBounds struct {
-	// The bottom boundary latitude.
+	// Bottom is the bottom boundary latitude.
 	Bottom float64 `json:"bottom"`
 
-	// The left boundary longitude.
+	// Left is the left boundary longitude.
 	Left float64 `json:"left"`
 
-	// The right boundary longitude.
+	// Right is the right boundary longitude.
 	Right float64 `json:"right"`
 
-	// The top boundary latitude.
+	// Top is the top boundary latitude.
 	Top float64 `json:"top"`
 }
 
 // The location specified using latitude and longitude coordinates.
 type LatLonGeoLocation struct {
-	// The latitude coordinate.
+	// Lat is the latitude coordinate.
 	Lat float64 `json:"lat"`
 
-	// The longitude coordinate.
+	// Lon is the longitude coordinate.
 	Lon float64 `json:"lon"`
 }
 
 // The location specified using a geohash value.
 type GeoHashLocation struct {
-	// The geohash string representation of a geographical location.
+	// Geohash is the geohash string representation of a geographical location.
 	Geohash string `json:"geohash"`
 }
 
 // The bounds specified using upper-left and lower-right points.
 type TopLeftBottomRightGeoBounds struct {
-	// The lower-right corner coordinates.
-	BottomRight TopLeftBottomRightGeoBoundsBottomRight `json:"bottom_right"`
+	// BottomRight is the lower-right corner coordinates.
+	BottomRight GeoLocation `json:"bottom_right"`
 
-	// The upper-left corner coordinates.
-	TopLeft TopLeftBottomRightGeoBoundsTopLeft `json:"top_left"`
+	// TopLeft is the upper-left corner coordinates.
+	TopLeft GeoLocation `json:"top_left"`
 }
 
 // The bounds specified using upper-right and lower-left points.
 type TopRightBottomLeftGeoBounds struct {
-	// The lower-left corner coordinates.
-	BottomLeft TopRightBottomLeftGeoBoundsBottomLeft `json:"bottom_left"`
+	// BottomLeft is the lower-left corner coordinates.
+	BottomLeft GeoLocation `json:"bottom_left"`
 
-	// The upper-right corner coordinates.
-	TopRight TopRightBottomLeftGeoBoundsTopRight `json:"top_right"`
+	// TopRight is the upper-right corner coordinates.
+	TopRight GeoLocation `json:"top_right"`
 }
 
 // The bounds specified using WKT format.
-type WktGeoBounds struct {
-	// The WKT string representation of the geographical bounds.
-	Wkt string `json:"wkt"`
+type WKTGeoBounds struct {
+	// WKT is the WKT string representation of the geographical bounds.
+	WKT string `json:"wkt"`
 }
 
 type CommonAggregationsGeoBoundsAggregate struct {
 	CommonAggregationsAggregateBase
 
-	// A geo-bounding box. It can be represented in the following ways: - As 4
-	// top/bottom/left/right coordinates. - As 2 top_left/bottom_right points.
-	// - As 2 top_right/bottom_left points. - As a Well Known Text (WKT)
-	// bounding box.
-	Bounds *CommonAggregationsGeoBoundsAggregateBounds `json:"bounds,omitempty"`
+	// Bounds is a geo-bounding box. It can be represented in the following
+	// ways: - As 4 top/bottom/left/right coordinates. - As 2
+	// top_left/bottom_right points. - As 2 top_right/bottom_left points. - As
+	// a Well Known Text (WKT) bounding box.
+	Bounds *GeoBounds `json:"bounds,omitempty"`
 }
 
 type CommonAggregationsGeoCentroidAggregate struct {
 	CommonAggregationsAggregateBase
 	Count int64 `json:"count"`
 
-	// A latitude/longitude as a two-dimensional point. It can be represented
-	// in the following ways: - As a `{lat, long}` object. - As a geohash
-	// value. - As a `[lon, lat]` array. - As a string in `<lat>, <lon>` or WKT
-	// point format.
-	Location *CommonAggregationsGeoCentroidAggregateLocation `json:"location,omitempty"`
+	// Location is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	Location *GeoLocation `json:"location,omitempty"`
 }
 
-type CommonAggregationsGeoDistanceAggregate struct {
-	CommonAggregationsRangeAggregateBase
-}
+type CommonAggregationsGeoHashGridBucket struct {
+	CommonAggregationsMultiBucketBase
 
-type CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucketBuckets `json:"buckets"`
+	// Key is the geohash string representation of a geographical location.
+	Key string `json:"key"`
 }
 
 type CommonAggregationsGeoHashGridAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseGeoHashGridBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsGeoHashGridAggregateBuckets `json:"buckets"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucketBuckets `json:"buckets"`
+type CommonAggregationsGeoTileGridBucket struct {
+	CommonAggregationsMultiBucketBase
+
+	// Key is a map tile reference, represented as `{zoom}/{x}/{y}`.
+	Key string `json:"key"`
 }
 
 type CommonAggregationsGeoTileGridAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseGeoTileGridBucket
-}
-
-type CommonAggregationsGlobalAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsGeoTileGridAggregateBuckets `json:"buckets"`
 }
 
 type CommonAggregationsArrayPercentilesItem struct {
@@ -472,43 +457,41 @@ type CommonAggregationsArrayPercentilesItem struct {
 
 type CommonAggregationsPercentilesAggregateBase struct {
 	CommonAggregationsAggregateBase
-	Values CommonAggregationsPercentilesAggregateBaseValues `json:"values"`
+	Values CommonAggregationsPercentiles `json:"values"`
 }
 
-type CommonAggregationsHdrPercentilesAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsHdrPercentileRanksAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsMultiBucketAggregateBaseHistogramBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseHistogramBucketBuckets `json:"buckets"`
+type CommonAggregationsHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         float64 `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseHistogramBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsHistogramAggregateBuckets `json:"buckets"`
 }
 
-type CommonAggregationsMultiBucketAggregateBaseIPRangeBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseIPRangeBucketBuckets `json:"buckets"`
+type CommonAggregationsIPRangeBucket struct {
+	CommonAggregationsMultiBucketBase
+	From *string `json:"from,omitempty"`
+	Key  *string `json:"key,omitempty"`
+	To   *string `json:"to,omitempty"`
 }
 
 type CommonAggregationsIPRangeAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseIPRangeBucket
-}
-
-type CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucketBuckets `json:"buckets,omitempty"`
+	Buckets CommonAggregationsIPRangeAggregateBuckets `json:"buckets"`
 }
 
-// Result of the `rare_terms` aggregation when the field is some kind of whole number like a integer, long, or a date.
+type CommonAggregationsLongRareTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         int64   `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
+}
+
 type CommonAggregationsLongRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseLongRareTermsBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets *CommonAggregationsLongRareTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsLongTermsBucket struct {
@@ -517,14 +500,9 @@ type CommonAggregationsLongTermsBucket struct {
 	KeyAsString *string                              `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseLongTermsBucket struct {
+type CommonAggregationsLongTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsLongTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is some kind of whole number like a integer, long, or a date.
-type CommonAggregationsLongTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseLongTermsBucket
 }
 
 type CommonAggregationsMatrixStatsFields struct {
@@ -534,8 +512,8 @@ type CommonAggregationsMatrixStatsFields struct {
 	Kurtosis    float64            `json:"kurtosis"`
 	Mean        float64            `json:"mean"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Name is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Name string `json:"name"`
 
 	Skewness float64 `json:"skewness"`
@@ -548,59 +526,22 @@ type CommonAggregationsMatrixStatsAggregate struct {
 	Fields   []CommonAggregationsMatrixStatsFields `json:"fields,omitempty"`
 }
 
-type CommonAggregationsMaxAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMedianAbsoluteDeviationAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMinAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMissingAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsTermsAggregateBaseMultiTermsBucket struct {
-	CommonAggregationsTermsAggregateBase
-	Buckets *CommonAggregationsTermsAggregateBaseMultiTermsBucketBuckets `json:"buckets,omitempty"`
+type CommonAggregationsMultiTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	DocCountErrorUpperBound *int64       `json:"doc_count_error_upper_bound,omitempty"`
+	Key                     []FieldValue `json:"key"`
+	KeyAsString             *string      `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsMultiTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseMultiTermsBucket
-}
-
-type CommonAggregationsNestedAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsParentAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsPercentilesBucketAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsRangeAggregate struct {
-	CommonAggregationsRangeAggregateBase
+	CommonAggregationsTermsAggregateBase
+	Buckets *CommonAggregationsMultiTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsRateAggregate struct {
 	CommonAggregationsAggregateBase
 	Value         float64 `json:"value"`
 	ValueAsString *string `json:"value_as_string,omitempty"`
-}
-
-type CommonAggregationsReverseNestedAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
-}
-
-type CommonAggregationsSamplerAggregate struct {
-	CommonAggregationsSingleBucketAggregateBase
 }
 
 type CommonAggregationsScriptedMetricAggregate struct {
@@ -614,22 +555,31 @@ type CommonAggregationsSignificantTermsAggregateBase struct {
 	DocCount *int64 `json:"doc_count,omitempty"`
 }
 
-type CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket struct {
-	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucketBuckets `json:"buckets,omitempty"`
+type CommonAggregationsSignificantTermsBucketBase struct {
+	CommonAggregationsMultiBucketBase
+	BgCount int64   `json:"bg_count"`
+	Score   float64 `json:"score"`
+}
+
+type CommonAggregationsSignificantLongTermsBucket struct {
+	CommonAggregationsSignificantTermsBucketBase
+	Key         int64   `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
 type CommonAggregationsSignificantLongTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseSignificantLongTermsBucket
+	CommonAggregationsSignificantTermsAggregateBase
+	Buckets *CommonAggregationsSignificantLongTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
-type CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket struct {
-	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucketBuckets `json:"buckets,omitempty"`
+type CommonAggregationsSignificantStringTermsBucket struct {
+	CommonAggregationsSignificantTermsBucketBase
+	Key string `json:"key"`
 }
 
 type CommonAggregationsSignificantStringTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseSignificantStringTermsBucket
+	CommonAggregationsSignificantTermsAggregateBase
+	Buckets *CommonAggregationsSignificantStringTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsCumulativeCardinalityAggregate struct {
@@ -638,26 +588,14 @@ type CommonAggregationsCumulativeCardinalityAggregate struct {
 	ValueAsString *string `json:"value_as_string,omitempty"`
 }
 
-type CommonAggregationsSimpleValueAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
+type CommonAggregationsStringRareTermsBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key string `json:"key"`
 }
 
-type CommonAggregationsStatsAggregate struct {
-	CommonAggregationsStatsAggregateBase
-}
-
-type CommonAggregationsStatsBucketAggregate struct {
-	CommonAggregationsStatsAggregateBase
-}
-
-type CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucketBuckets `json:"buckets,omitempty"`
-}
-
-// Result of the `rare_terms` aggregation when the field is a string.
 type CommonAggregationsStringRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseStringRareTermsBucket
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets *CommonAggregationsStringRareTermsAggregateBuckets `json:"buckets,omitempty"`
 }
 
 type CommonAggregationsStringTermsBucket struct {
@@ -665,26 +603,9 @@ type CommonAggregationsStringTermsBucket struct {
 	Key string `json:"key"`
 }
 
-type CommonAggregationsTermsAggregateBaseStringTermsBucket struct {
+type CommonAggregationsStringTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsStringTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is a string.
-type CommonAggregationsStringTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseStringTermsBucket
-}
-
-type CommonAggregationsSumAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsTDigestPercentilesAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
-}
-
-type CommonAggregationsTDigestPercentileRanksAggregate struct {
-	CommonAggregationsPercentilesAggregateBase
 }
 
 type CommonAggregationsTTestAggregate struct {
@@ -702,8 +623,8 @@ type ExplainExplanation struct {
 type SearchNestedIdentity struct {
 	Nested *SearchNestedIdentity `json:"_nested,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
 	Offset int `json:"offset"`
@@ -716,7 +637,7 @@ type SearchInnerHitsResult struct {
 type SearchHit struct {
 	Explanation *ExplainExplanation `json:"_explanation,omitempty"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Ignored     []string              `json:"_ignored,omitempty"`
@@ -727,13 +648,13 @@ type SearchHit struct {
 	Routing     *string               `json:"_routing,omitempty"`
 	Score       *float64              `json:"_score"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Shard  *string         `json:"_shard,omitempty"`
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version            *int64                           `json:"_version,omitempty"`
@@ -742,46 +663,32 @@ type SearchHit struct {
 	IgnoredFieldValues map[string][]string              `json:"ignored_field_values,omitempty"`
 	InnerHits          map[string]SearchInnerHitsResult `json:"inner_hits,omitempty"`
 
-	// The names of queries that matched the document. When
+	// MatchedQueries is the names of queries that matched the document. When
 	// `include_named_queries_score` is false (default), returns an array of
 	// query names. When true, returns an object mapping query names to their
 	// scores.
 	MatchedQueries *SearchHitMatchedQueries `json:"matched_queries,omitempty"`
 
-	Sort []SortResultsItem `json:"sort,omitempty"`
-}
-
-type SearchHitsMetadataHitsItem struct {
-	SearchHit
-	Source json.RawMessage `json:"_source"`
+	Sort []FieldValue `json:"sort,omitempty"`
 }
 
 type SearchTotalHits struct {
-	Relation string `json:"relation"`
-	Value    int64  `json:"value"`
+	Relation SearchTotalHitsRelation `json:"relation"`
+	Value    int64                   `json:"value"`
 }
 
 type SearchHitsMetadata struct {
-	Hits     []SearchHitsMetadataHitsItem `json:"hits"`
-	MaxScore *float32                     `json:"max_score"`
+	Hits     []SearchHit `json:"hits"`
+	MaxScore *float32    `json:"max_score"`
 
-	// The total number of hits, present only if `track_total_hits` is not set
-	// to `false` in the search request.
+	// Total is the total number of hits, present only if `track_total_hits` is
+	// not set to `false` in the search request.
 	Total *SearchHitsMetadataTotal `json:"total,omitempty"`
-}
-
-type SearchHitsMetadataJSONValueHitsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchHitsMetadataJSONValue struct {
-	SearchHitsMetadata
-	Hits []SearchHitsMetadataJSONValueHitsItem `json:"hits,omitempty"`
 }
 
 type CommonAggregationsTopHitsAggregate struct {
 	CommonAggregationsAggregateBase
-	Hits SearchHitsMetadataJSONValue `json:"hits"`
+	Hits SearchHitsMetadata `json:"hits"`
 }
 
 // Terms bucket for `unsigned_long` field type. The server returns 64-bit unsigned integer values
@@ -792,50 +699,21 @@ type CommonAggregationsTopHitsAggregate struct {
 type CommonAggregationsUnsignedLongTermsBucket struct {
 	CommonAggregationsTermsBucketBase
 
-	// The unsigned 64-bit integer bucket key. While JSON represents this as a
-	// number, values larger than 2^53--1 may lose precision in JSON
+	// Key is the unsigned 64-bit integer bucket key. While JSON represents
+	// this as a number, values larger than 2^53--1 may lose precision in JSON
 	// serialization. The gRPC protocol buffer definition uses uint64 to
 	// preserve full precision. Use `key_as_string` for exact string
 	// representation of large values.
 	Key float64 `json:"key"`
 
-	// String representation of the key. Only present when a custom `format`
-	// parameter is specified in the aggregation request.
+	// KeyAsString. String representation of the key. Only present when a
+	// custom `format` parameter is specified in the aggregation request.
 	KeyAsString *string `json:"key_as_string,omitempty"`
 }
 
-type CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket struct {
+type CommonAggregationsUnsignedLongTermsAggregate struct {
 	CommonAggregationsTermsAggregateBase
 	Buckets []CommonAggregationsUnsignedLongTermsBucket `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is an `unsigned_long` (64-bit unsigned integer).
-// OpenSearch stores `unsigned_long` values as Long or BigInteger internally. In JSON responses,
-// bucket keys are represented as numbers, which may lose precision for values larger than 2^53--1
-// due to IEEE 754 double precision limitations. In protocol buffer representations, keys are
-// manually defined as uint64 to preserve the full 64-bit unsigned range. Use `key_as_string` in
-// buckets for exact string representation of large unsigned long values.
-type CommonAggregationsUnsignedLongTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseUnsignedLongTermsBucket
-}
-
-type CommonAggregationsMultiBucketAggregateBaseVoid struct {
-	CommonAggregationsMultiBucketAggregateBase
-	Buckets *CommonAggregationsMultiBucketAggregateBaseVoidBuckets `json:"buckets,omitempty"`
-}
-
-// Result of a `rare_terms` aggregation when the field is unmapped. `buckets` is always empty.
-type CommonAggregationsUnmappedRareTermsAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseVoid
-}
-
-type CommonAggregationsSignificantTermsAggregateBaseVoid struct {
-	CommonAggregationsSignificantTermsAggregateBase
-	Buckets *CommonAggregationsSignificantTermsAggregateBaseVoidBuckets `json:"buckets,omitempty"`
-}
-
-type CommonAggregationsUnmappedSignificantTermsAggregate struct {
-	CommonAggregationsSignificantTermsAggregateBaseVoid
 }
 
 // The absence of any type. This is commonly used in APIs that don't return a body.
@@ -847,71 +725,162 @@ type CommonAggregationsUnmappedSignificantTermsAggregate struct {
 type Void struct {
 }
 
-type CommonAggregationsTermsAggregateBaseVoid struct {
-	CommonAggregationsTermsAggregateBase
-	Buckets []Void `json:"buckets"`
-}
-
-// Result of a `terms` aggregation when the field is unmapped. `buckets` is always empty.
-type CommonAggregationsUnmappedTermsAggregate struct {
-	CommonAggregationsTermsAggregateBaseVoid
-}
-
-type CommonAggregationsValueCountAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket struct {
+type CommonAggregationsUnmappedRareTermsAggregate struct {
 	CommonAggregationsMultiBucketAggregateBase
-	Buckets CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucketBuckets `json:"buckets"`
+	Buckets *CommonAggregationsUnmappedRareTermsAggregateBuckets `json:"buckets,omitempty"`
+}
+
+type CommonAggregationsUnmappedSignificantTermsAggregate struct {
+	CommonAggregationsSignificantTermsAggregateBase
+	Buckets *CommonAggregationsUnmappedSignificantTermsAggregateBuckets `json:"buckets,omitempty"`
+}
+
+type CommonAggregationsUnmappedTermsAggregate struct {
+	CommonAggregationsTermsAggregateBase
+}
+
+type CommonAggregationsVariableWidthHistogramBucket struct {
+	CommonAggregationsMultiBucketBase
+	Key         float64 `json:"key"`
+	KeyAsString *string `json:"key_as_string,omitempty"`
+	Max         float64 `json:"max"`
+	MaxAsString *string `json:"max_as_string,omitempty"`
+	Min         float64 `json:"min"`
+	MinAsString *string `json:"min_as_string,omitempty"`
 }
 
 type CommonAggregationsVariableWidthHistogramAggregate struct {
-	CommonAggregationsMultiBucketAggregateBaseVariableWidthHistogramBucket
-}
-
-type CommonAggregationsWeightedAvgAggregate struct {
-	CommonAggregationsSingleMetricAggregateBase
-}
-
-type SearchResultHitsHitsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchResultHits struct {
-	SearchHitsMetadata
-	Hits []SearchResultHitsHitsItem `json:"hits,omitempty"`
+	CommonAggregationsMultiBucketAggregateBase
+	Buckets CommonAggregationsVariableWidthHistogramAggregateBuckets `json:"buckets"`
 }
 
 // The time taken by different phases of the search.
 type PhaseTook struct {
-	// The time taken for the `can_match` phase.
+	// CanMatch is the time taken for the `can_match` phase.
 	CanMatch int64 `json:"can_match"`
 
-	// The time taken for the distributed frequency search `pre-query` phase.
-	DfsPreQuery int64 `json:"dfs_pre_query"`
+	// DFSPreQuery is the time taken for the distributed frequency search
+	// `pre-query` phase.
+	DFSPreQuery int64 `json:"dfs_pre_query"`
 
-	// The time taken for the distributed frequency search query phase.
-	DfsQuery int64 `json:"dfs_query"`
+	// DFSQuery is the time taken for the distributed frequency search query
+	// phase.
+	DFSQuery int64 `json:"dfs_query"`
 
-	// The time taken for the `expand` phase.
+	// Expand is the time taken for the `expand` phase.
 	Expand int64 `json:"expand"`
 
-	// The time taken for the `fetch` phase.
+	// Fetch is the time taken for the `fetch` phase.
 	Fetch int64 `json:"fetch"`
 
-	// The time taken for the `query` phase.
+	// Query is the time taken for the `query` phase.
 	Query int64 `json:"query"`
 }
 
 type SearchProcessorExecutionDetail struct {
 	DurationMillis *int64          `json:"duration_millis,omitempty"`
 	Error          *string         `json:"error,omitempty"`
-	InputData      json.RawMessage `json:"input_data"`
-	OutputData     json.RawMessage `json:"output_data"`
+	InputData      json.RawMessage `json:"input_data,omitempty"`
+	OutputData     json.RawMessage `json:"output_data,omitempty"`
 	ProcessorName  *string         `json:"processor_name,omitempty"`
 	Status         *string         `json:"status,omitempty"`
 	Tag            *string         `json:"tag,omitempty"`
+}
+
+type SearchAggregationBreakdown struct {
+	BuildAggregation        int64  `json:"build_aggregation"`
+	BuildAggregationCount   int64  `json:"build_aggregation_count"`
+	BuildLeafCollector      int64  `json:"build_leaf_collector"`
+	BuildLeafCollectorCount int64  `json:"build_leaf_collector_count"`
+	Collect                 int64  `json:"collect"`
+	CollectCount            int64  `json:"collect_count"`
+	Initialize              int64  `json:"initialize"`
+	InitializeCount         int64  `json:"initialize_count"`
+	PostCollection          *int64 `json:"post_collection,omitempty"`
+	PostCollectionCount     *int64 `json:"post_collection_count,omitempty"`
+	Reduce                  int64  `json:"reduce"`
+	ReduceCount             int64  `json:"reduce_count"`
+}
+
+type SearchAggregationProfileDelegateDebugFilter struct {
+	Query                         *string `json:"query,omitempty"`
+	ResultsFromMetadata           *int    `json:"results_from_metadata,omitempty"`
+	SegmentsCountedInConstantTime *int    `json:"segments_counted_in_constant_time,omitempty"`
+	SpecializedFor                *string `json:"specialized_for,omitempty"`
+}
+
+type SearchAggregationProfileDelegateDebug struct {
+	Filters                   []SearchAggregationProfileDelegateDebugFilter `json:"filters,omitempty"`
+	SegmentsCollected         *int                                          `json:"segments_collected,omitempty"`
+	SegmentsCounted           *int                                          `json:"segments_counted,omitempty"`
+	SegmentsWithDeletedDocs   *int                                          `json:"segments_with_deleted_docs,omitempty"`
+	SegmentsWithDocCountField *int                                          `json:"segments_with_doc_count_field,omitempty"`
+}
+
+type SearchAggregationProfileDebug struct {
+	BuiltBuckets                      *int                                   `json:"built_buckets,omitempty"`
+	CharsFetched                      *int                                   `json:"chars_fetched,omitempty"`
+	CollectAnalyzedCount              *int                                   `json:"collect_analyzed_count,omitempty"`
+	CollectAnalyzedNs                 *int                                   `json:"collect_analyzed_ns,omitempty"`
+	CollectionStrategy                *string                                `json:"collection_strategy,omitempty"`
+	DeferredAggregators               []string                               `json:"deferred_aggregators,omitempty"`
+	Delegate                          *string                                `json:"delegate,omitempty"`
+	DelegateDebug                     *SearchAggregationProfileDelegateDebug `json:"delegate_debug,omitempty"`
+	EmptyCollectorsUsed               *int                                   `json:"empty_collectors_used,omitempty"`
+	ExtractCount                      *int                                   `json:"extract_count,omitempty"`
+	ExtractNs                         *int                                   `json:"extract_ns,omitempty"`
+	HasFilter                         *bool                                  `json:"has_filter,omitempty"`
+	MapReducer                        *string                                `json:"map_reducer,omitempty"`
+	NumericCollectorsUsed             *int                                   `json:"numeric_collectors_used,omitempty"`
+	OrdinalsCollectorsOverheadTooHigh *int                                   `json:"ordinals_collectors_overhead_too_high,omitempty"`
+	OrdinalsCollectorsUsed            *int                                   `json:"ordinals_collectors_used,omitempty"`
+	ResultStrategy                    *string                                `json:"result_strategy,omitempty"`
+	SegmentsWithMultiValuedOrds       *int                                   `json:"segments_with_multi_valued_ords,omitempty"`
+	SegmentsWithSingleValuedOrds      *int                                   `json:"segments_with_single_valued_ords,omitempty"`
+	StringHashingCollectorsUsed       *int                                   `json:"string_hashing_collectors_used,omitempty"`
+	SurvivingBuckets                  *int                                   `json:"surviving_buckets,omitempty"`
+	TotalBuckets                      *int                                   `json:"total_buckets,omitempty"`
+	ValuesFetched                     *int                                   `json:"values_fetched,omitempty"`
+}
+
+type SearchAggregationProfile struct {
+	Breakdown   SearchAggregationBreakdown     `json:"breakdown"`
+	Children    []SearchAggregationProfile     `json:"children,omitempty"`
+	Debug       *SearchAggregationProfileDebug `json:"debug,omitempty"`
+	Description string                         `json:"description"`
+
+	// TimeInNanos. Time unit for nanoseconds.
+	TimeInNanos int64 `json:"time_in_nanos"`
+
+	Type string `json:"type"`
+}
+
+type SearchFetchProfileBreakdown struct {
+	LoadSource            *int `json:"load_source,omitempty"`
+	LoadSourceCount       *int `json:"load_source_count,omitempty"`
+	LoadStoredFields      *int `json:"load_stored_fields,omitempty"`
+	LoadStoredFieldsCount *int `json:"load_stored_fields_count,omitempty"`
+	NextReader            *int `json:"next_reader,omitempty"`
+	NextReaderCount       *int `json:"next_reader_count,omitempty"`
+	Process               *int `json:"process,omitempty"`
+	ProcessCount          *int `json:"process_count,omitempty"`
+}
+
+type SearchFetchProfileDebug struct {
+	FastPath     *int     `json:"fast_path,omitempty"`
+	StoredFields []string `json:"stored_fields,omitempty"`
+}
+
+type SearchFetchProfile struct {
+	Breakdown   SearchFetchProfileBreakdown `json:"breakdown"`
+	Children    []SearchFetchProfile        `json:"children,omitempty"`
+	Debug       *SearchFetchProfileDebug    `json:"debug,omitempty"`
+	Description string                      `json:"description"`
+
+	// TimeInNanos. Time unit for nanoseconds.
+	TimeInNanos int64 `json:"time_in_nanos"`
+
+	Type string `json:"type"`
 }
 
 type SearchCollector struct {
@@ -919,7 +888,7 @@ type SearchCollector struct {
 	Name     string            `json:"name"`
 	Reason   string            `json:"reason"`
 
-	// Time unit for nanoseconds.
+	// TimeInNanos. Time unit for nanoseconds.
 	TimeInNanos int64 `json:"time_in_nanos"`
 }
 
@@ -949,7 +918,7 @@ type SearchQueryProfile struct {
 	Children    []SearchQueryProfile `json:"children,omitempty"`
 	Description string               `json:"description"`
 
-	// Time unit for nanoseconds.
+	// TimeInNanos. Time unit for nanoseconds.
 	TimeInNanos int64 `json:"time_in_nanos"`
 
 	Type string `json:"type"`
@@ -961,10 +930,47 @@ type SearchProfile struct {
 	RewriteTime int64                `json:"rewrite_time"`
 }
 
+type SearchShardProfile struct {
+	Aggregations []SearchAggregationProfile `json:"aggregations"`
+	Fetch        *SearchFetchProfile        `json:"fetch,omitempty"`
+	ID           string                     `json:"id"`
+	Searches     []SearchProfile            `json:"searches"`
+}
+
+type SearchProfileResult struct {
+	Shards []SearchShardProfile `json:"shards"`
+}
+
 type SearchSuggestBase struct {
 	Length int    `json:"length"`
 	Offset int    `json:"offset"`
 	Text   string `json:"text"`
+}
+
+type SearchCompletionSuggestOption struct {
+	ID    *string `json:"_id,omitempty"`
+	Index *string `json:"_index,omitempty"`
+
+	// Routing is the routing value for the document.
+	Routing *string `json:"_routing,omitempty"`
+
+	ScoreRaw     *float32                   `json:"_score,omitempty"`
+	Source       json.RawMessage            `json:"_source,omitempty"`
+	CollateMatch *bool                      `json:"collate_match,omitempty"`
+	Contexts     map[string][]SearchContext `json:"contexts,omitempty"`
+	Fields       map[string]json.RawMessage `json:"fields,omitempty"`
+	Score        *float32                   `json:"score,omitempty"`
+	Text         string                     `json:"text"`
+}
+
+type SearchCompletionSuggest struct {
+	SearchSuggestBase
+	Options SearchCompletionSuggestOptions `json:"options"`
+}
+
+type SearchSuggestCompletion struct {
+	SearchCompletionSuggest
+	Options *SearchSuggestCompletionOptions `json:"options,omitempty"`
 }
 
 type SearchPhraseSuggestOption struct {
@@ -993,62 +999,61 @@ type SearchTermSuggest struct {
 }
 
 type SearchResult struct {
-	Clusters        *ClusterStatistics                       `json:"_clusters,omitempty"`
-	ScrollID        *string                                  `json:"_scroll_id,omitempty"`
-	Shards          ShardStatistics                          `json:"_shards"`
-	Aggregations    map[string]SearchResultAggregationsValue `json:"aggregations,omitempty"`
-	Hits            SearchResultHits                         `json:"hits"`
-	NumReducePhases *int                                     `json:"num_reduce_phases,omitempty"`
+	Clusters        *ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                `json:"_scroll_id,omitempty"`
+	Shards          ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
 
-	// The time taken by different phases of the search.
+	// PhaseTook is the time taken by different phases of the search.
+	//
+	// Available: >= 2.12.0.
 	PhaseTook *PhaseTook `json:"phase_took,omitempty"`
 
-	// The unique identifier for a resource.
+	// PITID is the unique identifier for a resource.
 	PITID *string `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
 	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
 
-	Profile         *SearchProfile                            `json:"profile,omitempty"`
-	Suggest         map[string][]SearchResultSuggestValueItem `json:"suggest,omitempty"`
-	TerminatedEarly *bool                                     `json:"terminated_early,omitempty"`
-	TimedOut        bool                                      `json:"timed_out"`
-	Took            int64                                     `json:"took"`
-}
-
-type SearchResponse struct {
-	SearchResult
+	Profile         *SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                      `json:"terminated_early,omitempty"`
+	TimedOut        bool                       `json:"timed_out"`
+	Took            int64                      `json:"took"`
 }
 
 type AsynchronousSearchRespBody struct {
-	ExpirationTimeInMillis *float64        `json:"expiration_time_in_millis,omitempty"`
-	ID                     *string         `json:"id,omitempty"`
-	Response               *SearchResponse `json:"response,omitempty"`
-	StartTimeInMillis      *float64        `json:"start_time_in_millis,omitempty"`
-	State                  *string         `json:"state,omitempty"`
-	Took                   *float64        `json:"took,omitempty"`
+	ExpirationTimeInMillis *float64      `json:"expiration_time_in_millis,omitempty"`
+	ID                     *string       `json:"id,omitempty"`
+	Response               *SearchResult `json:"response,omitempty"`
+	StartTimeInMillis      *float64      `json:"start_time_in_millis,omitempty"`
+	State                  *string       `json:"state,omitempty"`
+	Took                   *float64      `json:"took,omitempty"`
 }
 
 // Contains statistics about the number of nodes selected by the request's node filters.
 type NodeStatistics struct {
-	// The number of nodes that rejected the request or failed to respond. If
-	// this value is not 0, then a reason for the rejection or failure is
-	// included in the response.
+	// Failed is the number of nodes that rejected the request or failed to
+	// respond. If this value is not 0, then a reason for the rejection or
+	// failure is included in the response.
 	Failed int `json:"failed"`
 
 	Failures []ErrorCause `json:"failures,omitempty"`
 
-	// The number of nodes that responded successfully to the request.
+	// Successful is the number of nodes that responded successfully to the
+	// request.
 	Successful int `json:"successful"`
 
-	// The total number of nodes selected by the request.
+	// Total is the total number of nodes selected by the request.
 	Total int `json:"total"`
 }
 
 // Provides base response structure for node-related operations.
 type NodesRespBase struct {
-	// Contains statistics about the number of nodes selected by the request's
-	// node filters.
+	// Nodes. Contains statistics about the number of nodes selected by the
+	// request's node filters.
 	Nodes *NodeStatistics `json:"_nodes,omitempty"`
 }
 
@@ -1083,57 +1088,58 @@ type ShardInfo struct {
 
 // The inline get operation results for user-defined dictionaries.
 type InlineGetDictUserDefined struct {
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"_routing,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
-	// The source of the document.
+	// Source is the source of the document.
 	Source map[string]json.RawMessage `json:"_source,omitempty"`
 
-	// The fields retrieved from the document.
+	// Fields is the fields retrieved from the document.
 	Fields map[string]json.RawMessage `json:"fields,omitempty"`
 
-	// Whether the document was found.
+	// Found. Whether the document was found.
 	Found bool `json:"found"`
 }
 
 type BulkRespItem struct {
-	// The document ID associated with the operation.
+	// ID is the document ID associated with the operation.
 	ID *string `json:"_id,omitempty"`
 
-	// The name of the index associated with the operation. If the operation
-	// targets a data stream, this is the backing index into which the document
-	// was written.
+	// Index is the name of the index associated with the operation. If the
+	// operation targets a data stream, this is the backing index into which
+	// the document was written.
 	Index string `json:"_index"`
 
-	// The primary term assigned to the document for the operation.
+	// PrimaryTerm is the primary term assigned to the document for the
+	// operation.
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Shards *ShardInfo `json:"_shards,omitempty"`
 
-	// The document type.
+	// Type is the document type.
 	Type *string `json:"_type,omitempty"`
 
 	Version       *int64      `json:"_version,omitempty"`
 	Error         *ErrorCause `json:"error,omitempty"`
 	ForcedRefresh *bool       `json:"forced_refresh,omitempty"`
 
-	// The inline get operation results for user-defined dictionaries.
+	// Get is the inline get operation results for user-defined dictionaries.
 	Get *InlineGetDictUserDefined `json:"get,omitempty"`
 
 	// Result of the operation. Successful values are `created`, `deleted`, and
 	// `updated`.
 	Result *string `json:"result,omitempty"`
 
-	// HTTP status code returned for the operation.
+	// Status. HTTP status code returned for the operation.
 	Status int `json:"status"`
 }
 
@@ -1145,220 +1151,220 @@ type BulkItem struct {
 }
 
 type CatIndicesRecord struct {
-	// size of completion
+	// CompletionSize. Size of completion
 	CompletionSize *string `json:"completion.size"`
 
-	// index creation date (millisecond value)
+	// CreationDate. Index creation date (millisecond value)
 	CreationDate *string `json:"creation.date,omitempty"`
 
-	// index creation date (as string)
+	// CreationDateString. Index creation date (as string)
 	CreationDateString *string `json:"creation.date.string,omitempty"`
 
-	// available docs
+	// DocsCount. Available docs
 	DocsCount *string `json:"docs.count"`
 
-	// deleted docs
+	// DocsDeleted. Deleted docs
 	DocsDeleted *string `json:"docs.deleted"`
 
-	// field data evictions
+	// FielddataEvictions. Field data evictions
 	FielddataEvictions *string `json:"fielddata.evictions"`
 
-	// used field data cache
+	// FielddataMemorySize. Used field data cache
 	FielddataMemorySize *string `json:"fielddata.memory_size"`
 
-	// number of flushes
+	// FlushTotal. Number of flushes
 	FlushTotal *string `json:"flush.total"`
 
-	// time spent in flush
+	// FlushTotalTime. Time spent in flush
 	FlushTotalTime *string `json:"flush.total_time"`
 
-	// number of current get ops
+	// GetCurrent. Number of current get ops
 	GetCurrent *string `json:"get.current"`
 
-	// time spent in successful gets
+	// GetExistsTime. Time spent in successful gets
 	GetExistsTime *string `json:"get.exists_time"`
 
-	// number of successful gets
+	// GetExistsTotal. Number of successful gets
 	GetExistsTotal *string `json:"get.exists_total"`
 
-	// time spent in failed gets
+	// GetMissingTime. Time spent in failed gets
 	GetMissingTime *string `json:"get.missing_time"`
 
-	// number of failed gets
+	// GetMissingTotal. Number of failed gets
 	GetMissingTotal *string `json:"get.missing_total"`
 
-	// time spent in get
+	// GetTime. Time spent in get
 	GetTime *string `json:"get.time"`
 
-	// number of get ops
+	// GetTotal. Number of get ops
 	GetTotal *string `json:"get.total"`
 
-	// current health status
+	// Health. Current health status
 	Health *string `json:"health,omitempty"`
 
-	// index name
+	// Index. Index name
 	Index *string `json:"index,omitempty"`
 
-	// number of current deletions
+	// IndexingDeleteCurrent. Number of current deletions
 	IndexingDeleteCurrent *string `json:"indexing.delete_current"`
 
-	// time spent in deletions
+	// IndexingDeleteTime. Time spent in deletions
 	IndexingDeleteTime *string `json:"indexing.delete_time"`
 
-	// number of delete ops
+	// IndexingDeleteTotal. Number of delete ops
 	IndexingDeleteTotal *string `json:"indexing.delete_total"`
 
-	// number of current indexing ops
+	// IndexingIndexCurrent. Number of current indexing ops
 	IndexingIndexCurrent *string `json:"indexing.index_current"`
 
-	// number of failed indexing ops
+	// IndexingIndexFailed. Number of failed indexing ops
 	IndexingIndexFailed *string `json:"indexing.index_failed"`
 
-	// time spent in indexing
+	// IndexingIndexTime. Time spent in indexing
 	IndexingIndexTime *string `json:"indexing.index_time"`
 
-	// number of indexing ops
+	// IndexingIndexTotal. Number of indexing ops
 	IndexingIndexTotal *string `json:"indexing.index_total"`
 
-	// total used memory
+	// MemoryTotal. Total used memory
 	MemoryTotal *string `json:"memory.total,omitempty"`
 
-	// number of current merges
+	// MergesCurrent. Number of current merges
 	MergesCurrent *string `json:"merges.current"`
 
-	// number of current merging docs
+	// MergesCurrentDocs. Number of current merging docs
 	MergesCurrentDocs *string `json:"merges.current_docs"`
 
-	// size of current merges
+	// MergesCurrentSize. Size of current merges
 	MergesCurrentSize *string `json:"merges.current_size"`
 
-	// number of completed merge ops
+	// MergesTotal. Number of completed merge ops
 	MergesTotal *string `json:"merges.total"`
 
-	// docs merged
+	// MergesTotalDocs. Docs merged
 	MergesTotalDocs *string `json:"merges.total_docs"`
 
-	// size merged
+	// MergesTotalSize. Size merged
 	MergesTotalSize *string `json:"merges.total_size"`
 
-	// time spent in merges
+	// MergesTotalTime. Time spent in merges
 	MergesTotalTime *string `json:"merges.total_time"`
 
-	// number of primary shards
+	// Pri. Number of primary shards
 	Pri *string `json:"pri,omitempty"`
 
-	// size of completion
+	// PriCompletionSize. Size of completion
 	PriCompletionSize *string `json:"pri.completion.size"`
 
-	// field data evictions
+	// PriFielddataEvictions. Field data evictions
 	PriFielddataEvictions *string `json:"pri.fielddata.evictions"`
 
-	// used field data cache
+	// PriFielddataMemorySize. Used field data cache
 	PriFielddataMemorySize *string `json:"pri.fielddata.memory_size"`
 
-	// number of flushes
+	// PriFlushTotal. Number of flushes
 	PriFlushTotal *string `json:"pri.flush.total"`
 
-	// time spent in flush
+	// PriFlushTotalTime. Time spent in flush
 	PriFlushTotalTime *string `json:"pri.flush.total_time"`
 
-	// number of current get ops
+	// PriGetCurrent. Number of current get ops
 	PriGetCurrent *string `json:"pri.get.current"`
 
-	// time spent in successful gets
+	// PriGetExistsTime. Time spent in successful gets
 	PriGetExistsTime *string `json:"pri.get.exists_time"`
 
-	// number of successful gets
+	// PriGetExistsTotal. Number of successful gets
 	PriGetExistsTotal *string `json:"pri.get.exists_total"`
 
-	// time spent in failed gets
+	// PriGetMissingTime. Time spent in failed gets
 	PriGetMissingTime *string `json:"pri.get.missing_time"`
 
-	// number of failed gets
+	// PriGetMissingTotal. Number of failed gets
 	PriGetMissingTotal *string `json:"pri.get.missing_total"`
 
-	// time spent in get
+	// PriGetTime. Time spent in get
 	PriGetTime *string `json:"pri.get.time"`
 
-	// number of get ops
+	// PriGetTotal. Number of get ops
 	PriGetTotal *string `json:"pri.get.total"`
 
-	// number of current deletions
+	// PriIndexingDeleteCurrent. Number of current deletions
 	PriIndexingDeleteCurrent *string `json:"pri.indexing.delete_current"`
 
-	// time spent in deletions
+	// PriIndexingDeleteTime. Time spent in deletions
 	PriIndexingDeleteTime *string `json:"pri.indexing.delete_time"`
 
-	// number of delete ops
+	// PriIndexingDeleteTotal. Number of delete ops
 	PriIndexingDeleteTotal *string `json:"pri.indexing.delete_total"`
 
-	// number of current indexing ops
+	// PriIndexingIndexCurrent. Number of current indexing ops
 	PriIndexingIndexCurrent *string `json:"pri.indexing.index_current"`
 
-	// number of failed indexing ops
+	// PriIndexingIndexFailed. Number of failed indexing ops
 	PriIndexingIndexFailed *string `json:"pri.indexing.index_failed"`
 
-	// time spent in indexing
+	// PriIndexingIndexTime. Time spent in indexing
 	PriIndexingIndexTime *string `json:"pri.indexing.index_time"`
 
-	// number of indexing ops
+	// PriIndexingIndexTotal. Number of indexing ops
 	PriIndexingIndexTotal *string `json:"pri.indexing.index_total"`
 
-	// total user memory
+	// PriMemoryTotal. Total user memory
 	PriMemoryTotal *string `json:"pri.memory.total,omitempty"`
 
-	// number of current merges
+	// PriMergesCurrent. Number of current merges
 	PriMergesCurrent *string `json:"pri.merges.current"`
 
-	// number of current merging docs
+	// PriMergesCurrentDocs. Number of current merging docs
 	PriMergesCurrentDocs *string `json:"pri.merges.current_docs"`
 
-	// size of current merges
+	// PriMergesCurrentSize. Size of current merges
 	PriMergesCurrentSize *string `json:"pri.merges.current_size"`
 
-	// number of completed merge ops
+	// PriMergesTotal. Number of completed merge ops
 	PriMergesTotal *string `json:"pri.merges.total"`
 
-	// docs merged
+	// PriMergesTotalDocs. Docs merged
 	PriMergesTotalDocs *string `json:"pri.merges.total_docs"`
 
-	// size merged
+	// PriMergesTotalSize. Size merged
 	PriMergesTotalSize *string `json:"pri.merges.total_size"`
 
-	// time spent in merges
+	// PriMergesTotalTime. Time spent in merges
 	PriMergesTotalTime *string `json:"pri.merges.total_time"`
 
-	// query cache evictions
+	// PriQueryCacheEvictions. Query cache evictions
 	PriQueryCacheEvictions *string `json:"pri.query_cache.evictions"`
 
-	// used query cache
+	// PriQueryCacheMemorySize. Used query cache
 	PriQueryCacheMemorySize *string `json:"pri.query_cache.memory_size"`
 
-	// time spent in external refreshes
+	// PriRefreshExternalTime. Time spent in external refreshes
 	PriRefreshExternalTime *string `json:"pri.refresh.external_time"`
 
-	// total external refreshes
+	// PriRefreshExternalTotal. Total external refreshes
 	PriRefreshExternalTotal *string `json:"pri.refresh.external_total"`
 
-	// number of pending refresh listeners
+	// PriRefreshListeners. Number of pending refresh listeners
 	PriRefreshListeners *string `json:"pri.refresh.listeners"`
 
-	// time spent in refreshes
+	// PriRefreshTime. Time spent in refreshes
 	PriRefreshTime *string `json:"pri.refresh.time"`
 
-	// total refreshes
+	// PriRefreshTotal. Total refreshes
 	PriRefreshTotal *string `json:"pri.refresh.total"`
 
-	// request cache evictions
+	// PriRequestCacheEvictions. Request cache evictions
 	PriRequestCacheEvictions *string `json:"pri.request_cache.evictions"`
 
-	// request cache hit count
+	// PriRequestCacheHitCount. Request cache hit count
 	PriRequestCacheHitCount *string `json:"pri.request_cache.hit_count"`
 
-	// used request cache
+	// PriRequestCacheMemorySize. Used request cache
 	PriRequestCacheMemorySize *string `json:"pri.request_cache.memory_size"`
 
-	// request cache miss count
+	// PriRequestCacheMissCount. Request cache miss count
 	PriRequestCacheMissCount *string `json:"pri.request_cache.miss_count"`
 
 	PriSearchConcurrentAvgSliceCount *string `json:"pri.search.concurrent_avg_slice_count"`
@@ -1366,111 +1372,112 @@ type CatIndicesRecord struct {
 	PriSearchConcurrentQueryTime     *string `json:"pri.search.concurrent_query_time"`
 	PriSearchConcurrentQueryTotal    *string `json:"pri.search.concurrent_query_total"`
 
-	// current fetch phase ops
+	// PriSearchFetchCurrent. Current fetch phase ops
 	PriSearchFetchCurrent *string `json:"pri.search.fetch_current"`
 
-	// time spent in fetch phase
+	// PriSearchFetchTime. Time spent in fetch phase
 	PriSearchFetchTime *string `json:"pri.search.fetch_time"`
 
-	// total fetch ops
+	// PriSearchFetchTotal. Total fetch ops
 	PriSearchFetchTotal *string `json:"pri.search.fetch_total"`
 
-	// open search contexts
+	// PriSearchOpenContexts. Open search contexts
 	PriSearchOpenContexts *string `json:"pri.search.open_contexts"`
 
 	PriSearchPointInTimeCurrent *string `json:"pri.search.point_in_time_current"`
 	PriSearchPointInTimeTime    *string `json:"pri.search.point_in_time_time"`
 	PriSearchPointInTimeTotal   *string `json:"pri.search.point_in_time_total"`
 
-	// current query phase ops
+	// PriSearchQueryCurrent. Current query phase ops
 	PriSearchQueryCurrent *string `json:"pri.search.query_current"`
 
-	// time spent in query phase
+	// PriSearchQueryTime. Time spent in query phase
 	PriSearchQueryTime *string `json:"pri.search.query_time"`
 
-	// total query phase ops
+	// PriSearchQueryTotal. Total query phase ops
 	PriSearchQueryTotal *string `json:"pri.search.query_total"`
 
-	// open scroll contexts
+	// PriSearchScrollCurrent. Open scroll contexts
 	PriSearchScrollCurrent *string `json:"pri.search.scroll_current"`
 
-	// time scroll contexts held open
+	// PriSearchScrollTime. Time scroll contexts held open
 	PriSearchScrollTime *string `json:"pri.search.scroll_time"`
 
-	// completed scroll contexts
+	// PriSearchScrollTotal. Completed scroll contexts
 	PriSearchScrollTotal *string `json:"pri.search.scroll_total"`
 
-	// number of segments
+	// PriSegmentsCount. Number of segments
 	PriSegmentsCount *string `json:"pri.segments.count"`
 
-	// memory used by fixed bit sets for nested object field types and export
-	// type filters for types referred in `_parent` fields
+	// PriSegmentsFixedBitsetMemory. Memory used by fixed bit sets for nested
+	// object field types and export type filters for types referred in
+	// `_parent` fields
 	PriSegmentsFixedBitsetMemory *string `json:"pri.segments.fixed_bitset_memory"`
 
-	// memory used by index writer
+	// PriSegmentsIndexWriterMemory. Memory used by index writer
 	PriSegmentsIndexWriterMemory *string `json:"pri.segments.index_writer_memory"`
 
-	// memory used by segments
+	// PriSegmentsMemory. Memory used by segments
 	PriSegmentsMemory *string `json:"pri.segments.memory"`
 
-	// memory used by version map
+	// PriSegmentsVersionMapMemory. Memory used by version map
 	PriSegmentsVersionMapMemory *string `json:"pri.segments.version_map_memory"`
 
-	// store size of primaries
+	// PriStoreSize. Store size of primaries
 	PriStoreSize *string `json:"pri.store.size"`
 
-	// number of current suggest ops
+	// PriSuggestCurrent. Number of current suggest ops
 	PriSuggestCurrent *string `json:"pri.suggest.current"`
 
-	// time spend in suggest
+	// PriSuggestTime. Time spend in suggest
 	PriSuggestTime *string `json:"pri.suggest.time"`
 
-	// number of suggest ops
+	// PriSuggestTotal. Number of suggest ops
 	PriSuggestTotal *string `json:"pri.suggest.total"`
 
-	// current warmer ops
+	// PriWarmerCurrent. Current warmer ops
 	PriWarmerCurrent *string `json:"pri.warmer.current"`
 
-	// total warmer ops
+	// PriWarmerTotal. Total warmer ops
 	PriWarmerTotal *string `json:"pri.warmer.total"`
 
-	// time spent in warmers
+	// PriWarmerTotalTime. Time spent in warmers
 	PriWarmerTotalTime *string `json:"pri.warmer.total_time"`
 
-	// query cache evictions
+	// QueryCacheEvictions. Query cache evictions
 	QueryCacheEvictions *string `json:"query_cache.evictions"`
 
-	// used query cache
+	// QueryCacheMemorySize. Used query cache
 	QueryCacheMemorySize *string `json:"query_cache.memory_size"`
 
-	// time spent in external refreshes
+	// RefreshExternalTime. Time spent in external refreshes
 	RefreshExternalTime *string `json:"refresh.external_time"`
 
-	// total external refreshes
+	// RefreshExternalTotal. Total external refreshes
 	RefreshExternalTotal *string `json:"refresh.external_total"`
 
-	// number of pending refresh listeners
+	// RefreshListeners. Number of pending refresh listeners
 	RefreshListeners *string `json:"refresh.listeners"`
 
-	// time spent in refreshes
+	// RefreshTime. Time spent in refreshes
 	RefreshTime *string `json:"refresh.time"`
 
-	// total refreshes
+	// RefreshTotal. Total refreshes
 	RefreshTotal *string `json:"refresh.total"`
 
-	// number of replica shards
+	// Rep. Number of replica shards
 	Rep *string `json:"rep,omitempty"`
 
-	// request cache evictions
+	// RequestCacheEvictions. Request cache evictions
 	RequestCacheEvictions *string `json:"request_cache.evictions"`
 
-	// request cache hit count
+	// RequestCacheHitCount. Request cache hit count
 	RequestCacheHitCount *string `json:"request_cache.hit_count"`
 
-	// used request cache
+	// RequestCacheMemorySize. Used request cache
 	RequestCacheMemorySize *string `json:"request_cache.memory_size"`
 
-	// request cache miss count
+	// RequestCacheMissCount. Request cache miss count
 	RequestCacheMissCount *string `json:"request_cache.miss_count"`
 
 	SearchConcurrentAvgSliceCount *string `json:"search.concurrent_avg_slice_count"`
@@ -1478,229 +1485,232 @@ type CatIndicesRecord struct {
 	SearchConcurrentQueryTime     *string `json:"search.concurrent_query_time"`
 	SearchConcurrentQueryTotal    *string `json:"search.concurrent_query_total"`
 
-	// current fetch phase ops
+	// SearchFetchCurrent. Current fetch phase ops
 	SearchFetchCurrent *string `json:"search.fetch_current"`
 
-	// time spent in fetch phase
+	// SearchFetchTime. Time spent in fetch phase
 	SearchFetchTime *string `json:"search.fetch_time"`
 
-	// total fetch ops
+	// SearchFetchTotal. Total fetch ops
 	SearchFetchTotal *string `json:"search.fetch_total"`
 
-	// open search contexts
+	// SearchOpenContexts. Open search contexts
 	SearchOpenContexts *string `json:"search.open_contexts"`
 
 	SearchPointInTimeCurrent *string `json:"search.point_in_time_current"`
 	SearchPointInTimeTime    *string `json:"search.point_in_time_time"`
 	SearchPointInTimeTotal   *string `json:"search.point_in_time_total"`
 
-	// current query phase ops
+	// SearchQueryCurrent. Current query phase ops
 	SearchQueryCurrent *string `json:"search.query_current"`
 
-	// time spent in query phase
+	// SearchQueryTime. Time spent in query phase
 	SearchQueryTime *string `json:"search.query_time"`
 
-	// total query phase ops
+	// SearchQueryTotal. Total query phase ops
 	SearchQueryTotal *string `json:"search.query_total"`
 
-	// open scroll contexts
+	// SearchScrollCurrent. Open scroll contexts
 	SearchScrollCurrent *string `json:"search.scroll_current"`
 
-	// time scroll contexts held open
+	// SearchScrollTime. Time scroll contexts held open
 	SearchScrollTime *string `json:"search.scroll_time"`
 
-	// completed scroll contexts
+	// SearchScrollTotal. Completed scroll contexts
 	SearchScrollTotal *string `json:"search.scroll_total"`
 
-	// indicates if the index is search throttled
+	// SearchThrottled. Indicates if the index is search throttled
 	SearchThrottled *string `json:"search.throttled,omitempty"`
 
-	// number of segments
+	// SegmentsCount. Number of segments
 	SegmentsCount *string `json:"segments.count"`
 
-	// memory used by fixed bit sets for nested object field types and export
-	// type filters for types referred in `_parent` fields
+	// SegmentsFixedBitsetMemory. Memory used by fixed bit sets for nested
+	// object field types and export type filters for types referred in
+	// `_parent` fields
 	SegmentsFixedBitsetMemory *string `json:"segments.fixed_bitset_memory"`
 
-	// memory used by index writer
+	// SegmentsIndexWriterMemory. Memory used by index writer
 	SegmentsIndexWriterMemory *string `json:"segments.index_writer_memory"`
 
-	// memory used by segments
+	// SegmentsMemory. Memory used by segments
 	SegmentsMemory *string `json:"segments.memory"`
 
-	// memory used by version map
+	// SegmentsVersionMapMemory. Memory used by version map
 	SegmentsVersionMapMemory *string `json:"segments.version_map_memory"`
 
-	// open/close status
+	// Status. Open/close status
 	Status *string `json:"status,omitempty"`
 
-	// store size of primaries and replicas
+	// StoreSize. Store size of primaries and replicas
 	StoreSize *string `json:"store.size"`
 
-	// number of current suggest ops
+	// SuggestCurrent. Number of current suggest ops
 	SuggestCurrent *string `json:"suggest.current"`
 
-	// time spend in suggest
+	// SuggestTime. Time spend in suggest
 	SuggestTime *string `json:"suggest.time"`
 
-	// number of suggest ops
+	// SuggestTotal. Number of suggest ops
 	SuggestTotal *string `json:"suggest.total"`
 
-	// index UUID
+	// UUID. Index UUID
 	UUID *string `json:"uuid,omitempty"`
 
-	// current warmer ops
+	// WarmerCurrent. Current warmer ops
 	WarmerCurrent *string `json:"warmer.current"`
 
-	// total warmer ops
+	// WarmerTotal. Total warmer ops
 	WarmerTotal *string `json:"warmer.total"`
 
-	// time spent in warmers
+	// WarmerTotalTime. Time spent in warmers
 	WarmerTotalTime *string `json:"warmer.total_time"`
 }
 
 type CatShardsRecord struct {
-	// The average size in bytes of shard bulk operations.
+	// BulkAvgSizeInBytes is the average size in bytes of shard bulk
+	// operations.
 	BulkAvgSizeInBytes *string `json:"bulk.avg_size_in_bytes"`
 
-	// The average time spent in shard bulk operations.
+	// BulkAvgTime is the average time spent in shard bulk operations.
 	BulkAvgTime *string `json:"bulk.avg_time"`
 
-	// The number of bulk shard operations.
+	// BulkTotalOperations is the number of bulk shard operations.
 	BulkTotalOperations *string `json:"bulk.total_operations"`
 
-	// The total size in bytes of shard bulk operations.
+	// BulkTotalSizeInBytes is the total size in bytes of shard bulk
+	// operations.
 	BulkTotalSizeInBytes *string `json:"bulk.total_size_in_bytes"`
 
-	// The time spent in shard bulk operations.
+	// BulkTotalTime is the time spent in shard bulk operations.
 	BulkTotalTime *string `json:"bulk.total_time"`
 
-	// The size of completion.
+	// CompletionSize is the size of completion.
 	CompletionSize *string `json:"completion.size"`
 
-	// The number of documents in the shard.
+	// Docs is the number of documents in the shard.
 	Docs *string `json:"docs"`
 
 	DocsDeleted *string `json:"docs.deleted"`
 
-	// The field data cache evictions.
+	// FielddataEvictions is the field data cache evictions.
 	FielddataEvictions *string `json:"fielddata.evictions"`
 
-	// The used field data cache memory.
+	// FielddataMemorySize is the used field data cache memory.
 	FielddataMemorySize *string `json:"fielddata.memory_size"`
 
-	// The number of flushes.
+	// FlushTotal is the number of flushes.
 	FlushTotal *string `json:"flush.total"`
 
-	// The time spent in flush.
+	// FlushTotalTime is the time spent in flush.
 	FlushTotalTime *string `json:"flush.total_time"`
 
-	// The number of current get operations.
+	// GetCurrent is the number of current get operations.
 	GetCurrent *string `json:"get.current"`
 
-	// The time spent in successful get operations.
+	// GetExistsTime is the time spent in successful get operations.
 	GetExistsTime *string `json:"get.exists_time"`
 
-	// The number of successful get operations.
+	// GetExistsTotal is the number of successful get operations.
 	GetExistsTotal *string `json:"get.exists_total"`
 
-	// The time spent in failed get operations.
+	// GetMissingTime is the time spent in failed get operations.
 	GetMissingTime *string `json:"get.missing_time"`
 
-	// The number of failed get operations.
+	// GetMissingTotal is the number of failed get operations.
 	GetMissingTotal *string `json:"get.missing_total"`
 
-	// The time spent in get operations.
+	// GetTime is the time spent in get operations.
 	GetTime *string `json:"get.time"`
 
-	// The number of get operations.
+	// GetTotal is the number of get operations.
 	GetTotal *string `json:"get.total"`
 
-	// The unique identifier for the node.
+	// ID is the unique identifier for the node.
 	ID *string `json:"id"`
 
-	// The index name.
+	// Index is the index name.
 	Index *string `json:"index,omitempty"`
 
-	// The number of current deletion operations.
+	// IndexingDeleteCurrent is the number of current deletion operations.
 	IndexingDeleteCurrent *string `json:"indexing.delete_current"`
 
-	// The time spent in deletion operations.
+	// IndexingDeleteTime is the time spent in deletion operations.
 	IndexingDeleteTime *string `json:"indexing.delete_time"`
 
-	// The number of delete operations.
+	// IndexingDeleteTotal is the number of delete operations.
 	IndexingDeleteTotal *string `json:"indexing.delete_total"`
 
-	// The number of current indexing operations.
+	// IndexingIndexCurrent is the number of current indexing operations.
 	IndexingIndexCurrent *string `json:"indexing.index_current"`
 
-	// The number of failed indexing operations.
+	// IndexingIndexFailed is the number of failed indexing operations.
 	IndexingIndexFailed *string `json:"indexing.index_failed"`
 
-	// The time spent in indexing operations.
+	// IndexingIndexTime is the time spent in indexing operations.
 	IndexingIndexTime *string `json:"indexing.index_time"`
 
-	// The number of indexing operations.
+	// IndexingIndexTotal is the number of indexing operations.
 	IndexingIndexTotal *string `json:"indexing.index_total"`
 
-	// The IP address of the node.
+	// IP is the IP address of the node.
 	IP *string `json:"ip"`
 
-	// The number of current merge operations.
+	// MergesCurrent is the number of current merge operations.
 	MergesCurrent *string `json:"merges.current"`
 
-	// The number of current merging documents.
+	// MergesCurrentDocs is the number of current merging documents.
 	MergesCurrentDocs *string `json:"merges.current_docs"`
 
-	// The size of current merge operations.
+	// MergesCurrentSize is the size of current merge operations.
 	MergesCurrentSize *string `json:"merges.current_size"`
 
-	// The number of completed merge operations.
+	// MergesTotal is the number of completed merge operations.
 	MergesTotal *string `json:"merges.total"`
 
-	// The number of merged documents.
+	// MergesTotalDocs is the number of merged documents.
 	MergesTotalDocs *string `json:"merges.total_docs"`
 
-	// The size of current merges.
+	// MergesTotalSize is the size of current merges.
 	MergesTotalSize *string `json:"merges.total_size"`
 
-	// The time spent merging documents.
+	// MergesTotalTime is the time spent merging documents.
 	MergesTotalTime *string `json:"merges.total_time"`
 
-	// The name of node.
+	// Node is the name of node.
 	Node *string `json:"node"`
 
-	// The shard data path.
+	// PathData is the shard data path.
 	PathData *string `json:"path.data"`
 
-	// The shard state path.
+	// PathState is the shard state path.
 	PathState *string `json:"path.state"`
 
-	// The shard type: `primary` or `replica`.
+	// Prirep is the shard type: `primary` or `replica`.
 	Prirep *string `json:"prirep,omitempty"`
 
-	// The query cache evictions.
+	// QueryCacheEvictions is the query cache evictions.
 	QueryCacheEvictions *string `json:"query_cache.evictions"`
 
-	// The used query cache memory.
+	// QueryCacheMemorySize is the used query cache memory.
 	QueryCacheMemorySize *string `json:"query_cache.memory_size"`
 
-	// The type of recovery source.
+	// RecoverysourceType is the type of recovery source.
 	RecoverysourceType *string `json:"recoverysource.type"`
 
-	// The time spent in external refreshes.
+	// RefreshExternalTime is the time spent in external refreshes.
 	RefreshExternalTime *string `json:"refresh.external_time"`
 
-	// The total number of external refreshes.
+	// RefreshExternalTotal is the total number of external refreshes.
 	RefreshExternalTotal *string `json:"refresh.external_total"`
 
-	// The number of pending refresh listeners.
+	// RefreshListeners is the number of pending refresh listeners.
 	RefreshListeners *string `json:"refresh.listeners"`
 
-	// The time spent in refreshes.
+	// RefreshTime is the time spent in refreshes.
 	RefreshTime *string `json:"refresh.time"`
 
-	// The total number of refreshes.
+	// RefreshTotal is the total number of refreshes.
 	RefreshTotal *string `json:"refresh.total"`
 
 	SearchConcurrentAvgSliceCount *string `json:"search.concurrent_avg_slice_count"`
@@ -1708,139 +1718,141 @@ type CatShardsRecord struct {
 	SearchConcurrentQueryTime     *string `json:"search.concurrent_query_time"`
 	SearchConcurrentQueryTotal    *string `json:"search.concurrent_query_total"`
 
-	// The current fetch phase operations.
+	// SearchFetchCurrent is the current fetch phase operations.
 	SearchFetchCurrent *string `json:"search.fetch_current"`
 
-	// The time spent in fetch phase.
+	// SearchFetchTime is the time spent in fetch phase.
 	SearchFetchTime *string `json:"search.fetch_time"`
 
-	// The total number of fetch operations.
+	// SearchFetchTotal is the total number of fetch operations.
 	SearchFetchTotal *string `json:"search.fetch_total"`
 
-	// The number of open search contexts.
+	// SearchOpenContexts is the number of open search contexts.
 	SearchOpenContexts *string `json:"search.open_contexts"`
 
 	SearchPointInTimeCurrent *string `json:"search.point_in_time_current"`
 	SearchPointInTimeTime    *string `json:"search.point_in_time_time"`
 	SearchPointInTimeTotal   *string `json:"search.point_in_time_total"`
 
-	// The current query phase operations.
+	// SearchQueryCurrent is the current query phase operations.
 	SearchQueryCurrent *string `json:"search.query_current"`
 
-	// The time spent in query phase.
+	// SearchQueryTime is the time spent in query phase.
 	SearchQueryTime *string `json:"search.query_time"`
 
-	// The total number of query phase operations.
+	// SearchQueryTotal is the total number of query phase operations.
 	SearchQueryTotal *string `json:"search.query_total"`
 
-	// The open scroll contexts.
+	// SearchScrollCurrent is the open scroll contexts.
 	SearchScrollCurrent *string `json:"search.scroll_current"`
 
-	// The time scroll contexts were held open.
+	// SearchScrollTime is the time scroll contexts were held open.
 	SearchScrollTime *string `json:"search.scroll_time"`
 
-	// The number of completed scroll contexts.
+	// SearchScrollTotal is the number of completed scroll contexts.
 	SearchScrollTotal *string `json:"search.scroll_total"`
 
 	SearchSearchIdleReactivateCountTotal *string `json:"search.search_idle_reactivate_count_total"`
 
-	// The number of segments.
+	// SegmentsCount is the number of segments.
 	SegmentsCount *string `json:"segments.count"`
 
-	// The memory used by fixed bit sets for nested object field types and
-	// export type filters for types referred in `_parent` fields.
+	// SegmentsFixedBitsetMemory is the memory used by fixed bit sets for
+	// nested object field types and export type filters for types referred in
+	// `_parent` fields.
 	SegmentsFixedBitsetMemory *string `json:"segments.fixed_bitset_memory"`
 
-	// The memory used by the index writer.
+	// SegmentsIndexWriterMemory is the memory used by the index writer.
 	SegmentsIndexWriterMemory *string `json:"segments.index_writer_memory"`
 
-	// The memory used by segments.
+	// SegmentsMemory is the memory used by segments.
 	SegmentsMemory *string `json:"segments.memory"`
 
-	// The memory used by the version map.
+	// SegmentsVersionMapMemory is the memory used by the version map.
 	SegmentsVersionMapMemory *string `json:"segments.version_map_memory"`
 
-	// The global checkpoint.
+	// SeqNoGlobalCheckpoint is the global checkpoint.
 	SeqNoGlobalCheckpoint *string `json:"seq_no.global_checkpoint"`
 
-	// The local checkpoint.
+	// SeqNoLocalCheckpoint is the local checkpoint.
 	SeqNoLocalCheckpoint *string `json:"seq_no.local_checkpoint"`
 
-	// The maximum sequence number.
+	// SeqNoMax is the maximum sequence number.
 	SeqNoMax *string `json:"seq_no.max"`
 
-	// The shard name.
+	// Shard is the shard name.
 	Shard *string `json:"shard,omitempty"`
 
-	// The shard state. Returned values include: `INITIALIZING`: The shard is
-	// recovering from a peer shard or gateway. `RELOCATING`: The shard is
-	// relocating. `STARTED`: The shard has started. `UNASSIGNED`: The shard is
-	// not assigned to any node.
+	// State is the shard state. Returned values include: `INITIALIZING`: The
+	// shard is recovering from a peer shard or gateway. `RELOCATING`: The
+	// shard is relocating. `STARTED`: The shard has started. `UNASSIGNED`: The
+	// shard is not assigned to any node.
 	State *string `json:"state,omitempty"`
 
-	// The disk space used by the shard.
+	// Store is the disk space used by the shard.
 	Store *string `json:"store"`
 
-	// The sync identifier.
+	// SyncID is the sync identifier.
 	SyncID *string `json:"sync_id"`
 
-	// The time at which the shard became unassigned in Coordinated Universal
-	// Time (UTC).
+	// UnassignedAt is the time at which the shard became unassigned in
+	// Coordinated Universal Time (UTC).
 	UnassignedAt *string `json:"unassigned.at"`
 
-	// Additional details as to why the shard became unassigned. It does not
-	// explain why the shard is not assigned; use the cluster allocation
-	// explain API for that information.
+	// UnassignedDetails. Additional details as to why the shard became
+	// unassigned. It does not explain why the shard is not assigned; use the
+	// cluster allocation explain API for that information.
 	UnassignedDetails *string `json:"unassigned.details"`
 
-	// The time at which the shard was requested to be unassigned in
-	// Coordinated Universal Time (UTC).
+	// UnassignedFor is the time at which the shard was requested to be
+	// unassigned in Coordinated Universal Time (UTC).
 	UnassignedFor *string `json:"unassigned.for"`
 
-	// The reason for the last change to the state of an unassigned shard. It
-	// does not explain why the shard is currently unassigned; use the cluster
-	// allocation explain API for that information. Returned values include:
-	// `ALLOCATION_FAILED`: Unassigned as a result of a failed allocation of
-	// the shard. `CLUSTER_RECOVERED`: Unassigned as a result of a full cluster
-	// recovery. `DANGLING_INDEX_IMPORTED`: Unassigned as a result of importing
-	// a dangling index. `EXISTING_INDEX_RESTORED`: Unassigned as a result of
-	// restoring into a closed index. `FORCED_EMPTY_PRIMARY`: The shard's
-	// allocation was last modified by forcing an empty primary using the
-	// cluster reroute API. `INDEX_CLOSED`: Unassigned because the index was
-	// closed. `INDEX_CREATED`: Unassigned as a result of an API creation of an
-	// index. `INDEX_REOPENED`: Unassigned as a result of opening a closed
-	// index. `MANUAL_ALLOCATION`: The shard's allocation was last modified by
-	// the cluster reroute API. `NEW_INDEX_RESTORED`: Unassigned as a result of
-	// restoring into a new index. `NODE_LEFT`: Unassigned as a result of the
-	// node hosting it leaving the cluster. `NODE_RESTARTING`: Similar to
-	// `NODE_LEFT`, except that the node was registered as restarting using the
-	// node shutdown API. `PRIMARY_FAILED`: The shard was initializing as a
-	// replica, but the primary shard failed before the initialization
-	// completed. `REALLOCATED_REPLICA`: A better replica location is
-	// identified and causes the existing replica allocation to be cancelled.
-	// `REINITIALIZED`: When a shard moves from started back to initializing.
-	// `REPLICA_ADDED`: Unassigned as a result of explicit addition of a
-	// replica. `REROUTE_CANCELLED`: Unassigned as a result of explicit cancel
-	// reroute command.
+	// UnassignedReason is the reason for the last change to the state of an
+	// unassigned shard. It does not explain why the shard is currently
+	// unassigned; use the cluster allocation explain API for that information.
+	// Returned values include: `ALLOCATION_FAILED`: Unassigned as a result of
+	// a failed allocation of the shard. `CLUSTER_RECOVERED`: Unassigned as a
+	// result of a full cluster recovery. `DANGLING_INDEX_IMPORTED`: Unassigned
+	// as a result of importing a dangling index. `EXISTING_INDEX_RESTORED`:
+	// Unassigned as a result of restoring into a closed index.
+	// `FORCED_EMPTY_PRIMARY`: The shard's allocation was last modified by
+	// forcing an empty primary using the cluster reroute API. `INDEX_CLOSED`:
+	// Unassigned because the index was closed. `INDEX_CREATED`: Unassigned as
+	// a result of an API creation of an index. `INDEX_REOPENED`: Unassigned as
+	// a result of opening a closed index. `MANUAL_ALLOCATION`: The shard's
+	// allocation was last modified by the cluster reroute API.
+	// `NEW_INDEX_RESTORED`: Unassigned as a result of restoring into a new
+	// index. `NODE_LEFT`: Unassigned as a result of the node hosting it
+	// leaving the cluster. `NODE_RESTARTING`: Similar to `NODE_LEFT`, except
+	// that the node was registered as restarting using the node shutdown API.
+	// `PRIMARY_FAILED`: The shard was initializing as a replica, but the
+	// primary shard failed before the initialization completed.
+	// `REALLOCATED_REPLICA`: A better replica location is identified and
+	// causes the existing replica allocation to be cancelled. `REINITIALIZED`:
+	// When a shard moves from started back to initializing. `REPLICA_ADDED`:
+	// Unassigned as a result of explicit addition of a replica.
+	// `REROUTE_CANCELLED`: Unassigned as a result of explicit cancel reroute
+	// command.
 	UnassignedReason *string `json:"unassigned.reason"`
 
-	// The number of current warmer operations.
+	// WarmerCurrent is the number of current warmer operations.
 	WarmerCurrent *string `json:"warmer.current"`
 
-	// The total number of warmer operations.
+	// WarmerTotal is the total number of warmer operations.
 	WarmerTotal *string `json:"warmer.total"`
 
-	// The time spent in warmer operations.
+	// WarmerTotalTime is the time spent in warmer operations.
 	WarmerTotalTime *string `json:"warmer.total_time"`
 }
 
 type ClusterAllocationExplainUnassignedInformation struct {
 	AllocationStatus *string `json:"allocation_status,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// At is a date and time, either as a string whose format depends on the
+	// context (defaulting to ISO_8601) or the number of milliseconds since the
+	// epoch. OpenSearch accepts both as an input but will generally output a
+	// string. representation.
 	At string `json:"at"`
 
 	Delayed                  *bool   `json:"delayed,omitempty"`
@@ -1851,63 +1863,65 @@ type ClusterAllocationExplainUnassignedInformation struct {
 }
 
 type AcknowledgedRespBase struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 }
 
 type CommonQueryDSLQueryBase struct {
 	Name *string `json:"_name,omitempty"`
 
-	// Floating point number used to decrease or increase the relevance scores
-	// of the query. Boost values are relative to the default value of 1.0. A
-	// boost value between 0 and 1.0 decreases the relevance score. A value
-	// greater than 1.0 increases the relevance score.
+	// Boost. Floating point number used to decrease or increase the relevance
+	// scores of the query. Boost values are relative to the default value of
+	// 1.0. A boost value between 0 and 1.0 decreases the relevance score. A
+	// value greater than 1.0 increases the relevance score.
 	Boost *float32 `json:"boost,omitempty"`
 }
 
 type CommonQueryDSLAgenticQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The memory ID from a previous response, used to continue a conversation
-	// with prior context. Applicable for conversational agents only.
+	// MemoryID is the memory ID from a previous response, used to continue a
+	// conversation with prior context. Applicable for conversational agents
+	// only.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	// A list of index fields that the agent should consider when generating
-	// the search query.
+	// QueryFields is a list of index fields that the agent should consider
+	// when generating the search query.
 	QueryFields []string `json:"query_fields,omitempty"`
 
-	// The natural language question to be answered by the agent.
+	// QueryText is the natural language question to be answered by the agent.
 	QueryText string `json:"query_text"`
 }
 
 type CommonQueryDSLBoolQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Ensures correct behavior when a query contains only `must_not` clauses.
-	// By default set to true, OpenSearch adds a match-all clause to ensure
-	// results are returned from Lucene, with the `must_not` conditions applied
-	// as filters. If set to false, the query may return no results, as Lucene
-	// typically requires at least one positive condition.
+	// AdjustPureNegative. Ensures correct behavior when a query contains only
+	// `must_not` clauses. By default set to true, OpenSearch adds a match-all
+	// clause to ensure results are returned from Lucene, with the `must_not`
+	// conditions applied as filters. If set to false, the query may return no
+	// results, as Lucene typically requires at least one positive condition.
 	AdjustPureNegative *bool `json:"adjust_pure_negative,omitempty"`
 
-	// The clause (query) must appear in matching documents. However, unlike
-	// `must`, the score of the query will be ignored.
+	// Filter is the clause (query) must appear in matching documents. However,
+	// unlike `must`, the score of the query will be ignored.
 	Filter *CommonQueryDSLBoolQueryFilter `json:"filter,omitempty"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLBoolQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
-	// The clause (query) must appear in matching documents and will contribute
-	// to the score.
+	// Must is the clause (query) must appear in matching documents and will
+	// contribute to the score.
 	Must *CommonQueryDSLBoolQueryMust `json:"must,omitempty"`
 
-	// The clause (query) must not appear in the matching documents. Because
-	// scoring is ignored, a score of `0` is returned for all documents.
+	// MustNot is the clause (query) must not appear in the matching documents.
+	// Because scoring is ignored, a score of `0` is returned for all
+	// documents.
 	MustNot *CommonQueryDSLBoolQueryMustNot `json:"must_not,omitempty"`
 
-	// The clause (query) should appear in the matching document.
+	// Should is the clause (query) should appear in the matching document.
 	Should *CommonQueryDSLBoolQueryShould `json:"should,omitempty"`
 }
 
@@ -1915,8 +1929,8 @@ type CommonQueryDSLBoostingQuery struct {
 	CommonQueryDSLQueryBase
 	Negative CommonQueryDSLQueryContainer `json:"negative"`
 
-	// Floating point number between 0 and 1.0 used to decrease the relevance
-	// scores of documents matching the `negative` query.
+	// NegativeBoost. Floating point number between 0 and 1.0 used to decrease
+	// the relevance scores of documents matching the `negative` query.
 	NegativeBoost float32 `json:"negative_boost"`
 
 	Positive CommonQueryDSLQueryContainer `json:"positive"`
@@ -1925,26 +1939,41 @@ type CommonQueryDSLBoostingQuery struct {
 type CommonQueryDSLCombinedFieldsQuery struct {
 	CommonQueryDSLQueryBase
 
-	// If `true`, match phrase queries are automatically created for multi-term
-	// synonyms.
+	// AutoGenerateSynonymsPhraseQuery. If `true`, match phrase queries are
+	// automatically created for multi-term synonyms.
 	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
 
-	// List of fields to search. Field wildcard patterns are allowed. Only
-	// `text` fields are supported, and they must all have the same search
+	// Fields. List of fields to search. Field wildcard patterns are allowed.
+	// Only `text` fields are supported, and they must all have the same search
 	// `analyzer`.
 	Fields []string `json:"fields"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLCombinedFieldsQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	Operator *string `json:"operator,omitempty"`
 
-	// Text to search for in the provided `fields`. The `combined_fields` query
-	// analyzes the provided text before performing a search.
+	// Query. Text to search for in the provided `fields`. The
+	// `combined_fields` query analyzes the provided text before performing a
+	// search.
 	Query string `json:"query"`
 
 	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
+}
+
+type CommonQueryDSLCommonTermsQueryQuery struct {
+	CommonQueryDSLQueryBase
+	Analyzer         *string  `json:"analyzer,omitempty"`
+	CutoffFrequency  *float32 `json:"cutoff_frequency,omitempty"`
+	HighFreqOperator *string  `json:"high_freq_operator,omitempty"`
+	LowFreqOperator  *string  `json:"low_freq_operator,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Query string `json:"query"`
 }
 
 type CommonQueryDSLConstantScoreQuery struct {
@@ -1955,21 +1984,53 @@ type CommonQueryDSLConstantScoreQuery struct {
 type CommonQueryDSLDisMaxQuery struct {
 	CommonQueryDSLQueryBase
 
-	// One or more query clauses. Returned documents must match one or more of
-	// these queries. If a document matches multiple queries, OpenSearch uses
-	// the highest relevance score.
+	// Queries. One or more query clauses. Returned documents must match one or
+	// more of these queries. If a document matches multiple queries,
+	// OpenSearch uses the highest relevance score.
 	Queries []CommonQueryDSLQueryContainer `json:"queries"`
 
-	// Floating point number between 0 and 1.0 used to increase the relevance
-	// scores of documents matching multiple query clauses.
+	// TieBreaker. Floating point number between 0 and 1.0 used to increase the
+	// relevance scores of documents matching multiple query clauses.
 	TieBreaker *float32 `json:"tie_breaker,omitempty"`
+}
+
+type CommonQueryDSLDistanceFeatureQueryObject0 struct {
+	CommonQueryDSLQueryBase
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	// Origin is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	Origin GeoLocation `json:"origin"`
+
+	Pivot string `json:"pivot"`
+}
+
+type CommonQueryDSLDistanceFeatureQueryObject1 struct {
+	CommonQueryDSLQueryBase
+
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
+	Field string `json:"field"`
+
+	Origin string `json:"origin"`
+
+	// Pivot is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	Pivot string `json:"pivot"`
 }
 
 type CommonQueryDSLExistsQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 }
 
@@ -1982,7 +2043,7 @@ type CommonQueryDSLSpanContainingQuery struct {
 type CommonQueryDSLSpanFirstQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Controls the maximum end position permitted in a match.
+	// End. Controls the maximum end position permitted in a match.
 	End int `json:"end"`
 
 	Match CommonQueryDSLSpanQuery `json:"match"`
@@ -1996,13 +2057,13 @@ type CommonQueryDSLSpanMultiTermQuery struct {
 type CommonQueryDSLSpanNearQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Array of one or more other span type queries.
+	// Clauses. Array of one or more other span type queries.
 	Clauses []CommonQueryDSLSpanQuery `json:"clauses"`
 
-	// Controls whether matches are required to be in-order.
+	// InOrder. Controls whether matches are required to be in-order.
 	InOrder *bool `json:"in_order,omitempty"`
 
-	// Controls the maximum number of intervening unmatched positions
+	// Slop. Controls the maximum number of intervening unmatched positions
 	// permitted.
 	Slop *int `json:"slop,omitempty"`
 }
@@ -2010,28 +2071,33 @@ type CommonQueryDSLSpanNearQuery struct {
 type CommonQueryDSLSpanNotQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The number of tokens from within the include span that can't have
-	// overlap with the exclude span. Equivalent to setting both `pre` and
+	// Dist is the number of tokens from within the include span that can't
+	// have overlap with the exclude span. Equivalent to setting both `pre` and
 	// `post`.
 	Dist *int `json:"dist,omitempty"`
 
 	Exclude CommonQueryDSLSpanQuery `json:"exclude"`
 	Include CommonQueryDSLSpanQuery `json:"include"`
 
-	// The number of tokens after the include span that can't have overlap with
-	// the exclude span.
+	// Post is the number of tokens after the include span that can't have
+	// overlap with the exclude span.
 	Post *int `json:"post,omitempty"`
 
-	// The number of tokens before the include span that can't have overlap
-	// with the exclude span.
+	// Pre is the number of tokens before the include span that can't have
+	// overlap with the exclude span.
 	Pre *int `json:"pre,omitempty"`
 }
 
 type CommonQueryDSLSpanOrQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Array of one or more other span type queries.
+	// Clauses. Array of one or more other span type queries.
 	Clauses []CommonQueryDSLSpanQuery `json:"clauses"`
+}
+
+type CommonQueryDSLSpanTermQueryValue struct {
+	CommonQueryDSLQueryBase
+	Value string `json:"value"`
 }
 
 type CommonQueryDSLSpanWithinQuery struct {
@@ -2045,7 +2111,7 @@ type CommonQueryDSLSpanQuery struct {
 	SpanContaining   *CommonQueryDSLSpanContainingQuery   `json:"span_containing,omitempty"`
 	SpanFirst        *CommonQueryDSLSpanFirstQuery        `json:"span_first,omitempty"`
 
-	// Can only be used as a clause in a `span_near` query.
+	// SpanGap. Can only be used as a clause in a `span_near` query.
 	SpanGap map[string]int `json:"span_gap,omitempty"`
 
 	SpanMulti *CommonQueryDSLSpanMultiTermQuery `json:"span_multi,omitempty"`
@@ -2053,8 +2119,9 @@ type CommonQueryDSLSpanQuery struct {
 	SpanNot   *CommonQueryDSLSpanNotQuery       `json:"span_not,omitempty"`
 	SpanOr    *CommonQueryDSLSpanOrQuery        `json:"span_or,omitempty"`
 
-	// The equivalent of the `term` query but for use with other span queries.
-	SpanTerm map[string]string `json:"span_term,omitempty"`
+	// SpanTerm is the equivalent of the `term` query but for use with other
+	// span queries.
+	SpanTerm map[string]CommonQueryDSLSpanTermQuery `json:"span_term,omitempty"`
 
 	SpanWithin *CommonQueryDSLSpanWithinQuery `json:"span_within,omitempty"`
 }
@@ -2062,8 +2129,8 @@ type CommonQueryDSLSpanQuery struct {
 type CommonQueryDSLSpanFieldMaskingQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
 	Query CommonQueryDSLSpanQuery `json:"query"`
@@ -2078,44 +2145,54 @@ type CommonQueryDSLDecayFunction struct {
 }
 
 type CommonQueryDSLFieldValueFactorScoreFunction struct {
-	// Optional factor to multiply the field value with.
+	// Factor. Optional factor to multiply the field value with.
 	Factor *float32 `json:"factor,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// Value used if the document doesn't have that field. The modifier and
-	// factor are still applied to it as though it were read from the document.
+	// Missing. Value used if the document doesn't have that field. The
+	// modifier and factor are still applied to it as though it were read from
+	// the document.
 	Missing *float64 `json:"missing,omitempty"`
 
 	Modifier *string `json:"modifier,omitempty"`
 }
 
 type CommonQueryDSLRandomScoreFunction struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field *string `json:"field,omitempty"`
 
 	Seed *CommonQueryDSLRandomScoreFunctionSeed `json:"seed,omitempty"`
 }
 
 type ScriptBase struct {
-	// Specifies any named parameters that are passed into the script as
-	// variables. Use parameters instead of hard-coded values to decrease
+	// Params. Specifies any named parameters that are passed into the script
+	// as variables. Use parameters instead of hard-coded values to decrease
 	// compilation time.
 	Params map[string]json.RawMessage `json:"params,omitempty"`
+}
+
+type InlineScriptSource struct {
+	ScriptBase
+	Lang    *string           `json:"lang,omitempty"`
+	Options map[string]string `json:"options,omitempty"`
+
+	// Source is the script source.
+	Source string `json:"source"`
 }
 
 type StoredScriptID struct {
 	ScriptBase
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 }
 
 type CommonQueryDSLScriptScoreFunction struct {
-	Script CommonQueryDSLScriptScoreFunctionScript `json:"script"`
+	Script Script `json:"script"`
 }
 
 type CommonQueryDSLFunctionScoreContainer struct {
@@ -2133,26 +2210,48 @@ type CommonQueryDSLFunctionScoreQuery struct {
 	CommonQueryDSLQueryBase
 	BoostMode *string `json:"boost_mode,omitempty"`
 
-	// One or more functions that compute a new score for each document
-	// returned by the query.
+	// Functions. One or more functions that compute a new score for each
+	// document returned by the query.
 	Functions []CommonQueryDSLFunctionScoreContainer `json:"functions,omitempty"`
 
-	// Restricts the new score to not exceed the provided limit.
+	// MaxBoost. Restricts the new score to not exceed the provided limit.
 	MaxBoost *float32 `json:"max_boost,omitempty"`
 
-	// Excludes documents that do not meet the provided score threshold.
+	// MinScore. Excludes documents that do not meet the provided score
+	// threshold.
 	MinScore *float32 `json:"min_score,omitempty"`
 
 	Query     *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 	ScoreMode *string                       `json:"score_mode,omitempty"`
 }
 
+type CommonQueryDSLFuzzyQueryValue struct {
+	CommonQueryDSLQueryBase
+	Fuzziness *string `json:"fuzziness,omitempty"`
+
+	// MaxExpansions. Maximum number of variations created.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged when
+	// creating expansions.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Transpositions. Indicates whether edits include transpositions of two
+	// adjacent characters (for example, `ab` to `ba`).
+	Transpositions *bool `json:"transpositions,omitempty"`
+
+	// Value. Term you wish to find in the provided field.
+	Value *FieldValue `json:"value"`
+}
+
 type CommonQueryDSLGeoBoundingBoxQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Set to `true` to ignore an unmapped field and not match any documents
-	// for this query. Set to `false` to throw an exception if the field is not
-	// mapped.
+	// IgnoreUnmapped. Set to `true` to ignore an unmapped field and not match
+	// any documents for this query. Set to `false` to throw an exception if
+	// the field is not mapped.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	Type             *string `json:"type,omitempty"`
@@ -2161,16 +2260,16 @@ type CommonQueryDSLGeoBoundingBoxQuery struct {
 
 type CommonQueryDSLGeoDistanceQuery struct {
 	CommonQueryDSLQueryBase
-	Distance     string  `json:"distance"`
-	DistanceType *string `json:"distance_type,omitempty"`
+	Distance     string           `json:"distance"`
+	DistanceType *GeoDistanceType `json:"distance_type,omitempty"`
 
-	// Set to `true` to ignore an unmapped field and not match any documents
-	// for this query. Set to `false` to throw an exception if the field is not
-	// mapped.
+	// IgnoreUnmapped. Set to `true` to ignore an unmapped field and not match
+	// any documents for this query. Set to `false` to throw an exception if
+	// the field is not mapped.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
-	// The unit of distance measurement.
-	Unit *string `json:"unit,omitempty"`
+	// Unit is the unit of distance measurement.
+	Unit *DistanceUnit `json:"unit,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
 }
@@ -2178,9 +2277,9 @@ type CommonQueryDSLGeoDistanceQuery struct {
 type CommonQueryDSLGeoPolygonQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Set to `true` to ignore an unmapped field and not match any documents
-	// for this query. Set to `false` to throw an exception if the field is not
-	// mapped.
+	// IgnoreUnmapped. Set to `true` to ignore an unmapped field and not match
+	// any documents for this query. Set to `false` to throw an exception if
+	// the field is not mapped.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
@@ -2189,51 +2288,42 @@ type CommonQueryDSLGeoPolygonQuery struct {
 type CommonQueryDSLGeoShapeQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Set to `true` to ignore an unmapped field and not match any documents
-	// for this query. Set to `false` to throw an exception if the field is not
-	// mapped.
+	// IgnoreUnmapped. Set to `true` to ignore an unmapped field and not match
+	// any documents for this query. Set to `false` to throw an exception if
+	// the field is not mapped.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 }
 
-type SearchInnerHitsSourceObject1 struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+type SearchSourceFilterExcludesIncludes struct {
+	// Excludes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Excludes *string `json:"excludes,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Includes is a comma-separated list or a wildcard expression specifying
+	// the fields to include in the statistics. Used as the default list unless
+	// a specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Includes *string `json:"includes,omitempty"`
 }
 
 type SearchFieldCollapse struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The number of inner hits and their sort order.
+	// InnerHits is the number of inner hits and their sort order.
 	InnerHits *SearchFieldCollapseInnerHits `json:"inner_hits,omitempty"`
 
-	// The number of concurrent requests that are allowed to be retrieved by
-	// the `inner_hits` parameter per group.
+	// MaxConcurrentGroupSearches is the number of concurrent requests that are
+	// allowed to be retrieved by the `inner_hits` parameter per group.
 	MaxConcurrentGroupSearches *int `json:"max_concurrent_group_searches,omitempty"`
 }
 
-type SearchInnerHitsDocvalueFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type SearchInnerHitsFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+type CommonQueryDSLFieldAndFormatField struct {
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
 	// Format in which the values are returned.
@@ -2241,86 +2331,87 @@ type SearchInnerHitsFieldsItemObject1 struct {
 }
 
 type SearchHighlightBase struct {
-	// A string that contains each boundary character.
+	// BoundaryChars is a string that contains each boundary character.
 	BoundaryChars *string `json:"boundary_chars,omitempty"`
 
-	// How far to scan for boundary characters.
+	// BoundaryMaxScan. How far to scan for boundary characters.
 	BoundaryMaxScan *int `json:"boundary_max_scan,omitempty"`
 
 	BoundaryScanner *string `json:"boundary_scanner,omitempty"`
 
-	// Controls which locale is used to search for sentence and word
-	// boundaries. This parameter takes the form of a language tag, for
-	// example, `"en-US"`, `"fr-FR"`, or `"ja-JP"`.
+	// BoundaryScannerLocale. Controls which locale is used to search for
+	// sentence and word boundaries. This parameter takes the form of a
+	// language tag, for example, `"en-US"`, `"fr-FR"`, or `"ja-JP"`.
 	BoundaryScannerLocale *string `json:"boundary_scanner_locale,omitempty"`
 
 	ForceSource    *bool `json:"force_source,omitempty"`
 	FragmentOffset *int  `json:"fragment_offset,omitempty"`
 
-	// The size of the highlighted fragment in characters.
+	// FragmentSize is the size of the highlighted fragment in characters.
 	FragmentSize *int `json:"fragment_size,omitempty"`
 
 	Fragmenter      *string                       `json:"fragmenter,omitempty"`
 	HighlightFilter *bool                         `json:"highlight_filter,omitempty"`
 	HighlightQuery  *CommonQueryDSLQueryContainer `json:"highlight_query,omitempty"`
 
-	// If set to a non-negative value, highlighting stops at this defined
-	// maximum limit. The rest of the text is not processed or highlighted, and
-	// no error is returned. The `max_analyzer_offset` query setting does not
-	// override the `index.highlight.max_analyzed_offset` setting, which takes
-	// precedence when it is set to a lower value than the query setting.
+	// MaxAnalyzerOffset. If set to a non-negative value, highlighting stops at
+	// this defined maximum limit. The rest of the text is not processed or
+	// highlighted, and no error is returned. The `max_analyzer_offset` query
+	// setting does not override the `index.highlight.max_analyzed_offset`
+	// setting, which takes precedence when it is set to a lower value than the
+	// query setting.
 	MaxAnalyzerOffset *int `json:"max_analyzer_offset,omitempty"`
 
 	MaxFragmentLength *int `json:"max_fragment_length,omitempty"`
 
-	// The amount of text you want to return from the beginning of the field if
-	// there are no matching fragments to highlight.
+	// NoMatchSize is the amount of text you want to return from the beginning
+	// of the field if there are no matching fragments to highlight.
 	NoMatchSize *int `json:"no_match_size,omitempty"`
 
-	// The maximum number of fragments to return. When the number of fragments
-	// is set to `0`, no fragments are returned. Instead, the entirety of a
-	// field's contents are highlighted and returned. This is useful when you
-	// need to highlight short texts, such as a title or address, in which
-	// fragmentation is not required. If `number_of_fragments` is set to `0`,
-	// the `fragment_size` is ignored.
+	// NumberOfFragments is the maximum number of fragments to return. When the
+	// number of fragments is set to `0`, no fragments are returned. Instead,
+	// the entirety of a field's contents are highlighted and returned. This is
+	// useful when you need to highlight short texts, such as a title or
+	// address, in which fragmentation is not required. If
+	// `number_of_fragments` is set to `0`, the `fragment_size` is ignored.
 	NumberOfFragments *int `json:"number_of_fragments,omitempty"`
 
 	Options map[string]json.RawMessage `json:"options,omitempty"`
 	Order   *string                    `json:"order,omitempty"`
 
-	// Controls the number of matching phrases in a document that are
-	// considered. This prevents the `fvh` highlighter from analyzing too many
-	// phrases and consuming too much memory. When using `matched_fields`,
+	// PhraseLimit. Controls the number of matching phrases in a document that
+	// are considered. This prevents the `fvh` highlighter from analyzing too
+	// many phrases and consuming too much memory. When using `matched_fields`,
 	// phrase-limited phrases per matched field are considered. Raising the
 	// limit increases the query time and consumes more memory. This setting is
 	// only supported by the `fvh` highlighter.
 	PhraseLimit *int `json:"phrase_limit,omitempty"`
 
-	// When used in conjunction with `pre_tags`, defines the HTML tags to use
-	// for the highlighted text. By default, highlighted text is wrapped in
-	// `<em>` and `</em>` tags.
+	// PostTags. When used in conjunction with `pre_tags`, defines the HTML
+	// tags to use for the highlighted text. By default, highlighted text is
+	// wrapped in `<em>` and `</em>` tags.
 	PostTags []string `json:"post_tags,omitempty"`
 
-	// When used in conjunction with `post_tags`, defines the HTML tags to use
-	// for the highlighted text. By default, highlighted text is wrapped in
-	// `<em>` and `</em>` tags.
+	// PreTags. When used in conjunction with `post_tags`, defines the HTML
+	// tags to use for the highlighted text. By default, highlighted text is
+	// wrapped in `<em>` and `</em>` tags.
 	PreTags []string `json:"pre_tags,omitempty"`
 
-	// By default, only fields that contains a query match are highlighted. Set
-	// to `false` to highlight all fields.
+	// RequireFieldMatch. By default, only fields that contains a query match
+	// are highlighted. Set to `false` to highlight all fields.
 	RequireFieldMatch *bool `json:"require_field_match,omitempty"`
 
-	TagsSchema *string `json:"tags_schema,omitempty"`
-	Type       *string `json:"type,omitempty"`
+	TagsSchema *string                       `json:"tags_schema,omitempty"`
+	Type       *SearchBuiltinHighlighterType `json:"type,omitempty"`
 }
 
 type SearchHighlightField struct {
 	SearchHighlightBase
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// MatchedFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	MatchedFields *string `json:"matched_fields,omitempty"`
 }
 
@@ -2332,93 +2423,94 @@ type SearchHighlight struct {
 
 // The configuration for a script field.
 type ScriptField struct {
-	// Whether to ignore failures during script execution.
+	// IgnoreFailure. Whether to ignore failures during script execution.
 	IgnoreFailure *bool `json:"ignore_failure,omitempty"`
 
-	// The script to execute for this field.
-	Script ScriptFieldScript `json:"script"`
+	// Script is the script to execute for this field.
+	Script Script `json:"script"`
 }
 
 // The nested path sort options.
 type NestedSortValue struct {
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
-	// The maximum number of children to consider for sorting.
+	// MaxChildren is the maximum number of children to consider for sorting.
 	MaxChildren *int `json:"max_children,omitempty"`
 
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
-	// The path to the nested objects.
+	// Path is the path to the nested objects.
 	Path string `json:"path"`
 }
 
 // The detailed field sort options.
 type FieldSort struct {
-	// The value to use when the field is missing.
-	Missing *FieldSortMissing `json:"missing"`
+	// Missing is the value to use when the field is missing.
+	Missing *FieldValue `json:"missing"`
 
-	// The mode for sorting on array fields.
-	Mode *string `json:"mode,omitempty"`
+	// Mode is the mode for sorting on array fields.
+	Mode *SortMode `json:"mode,omitempty"`
 
-	// The nested path sort options.
+	// Nested is the nested path sort options.
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
-	// The numeric type to use for sorting.
-	NumericType *string `json:"numeric_type,omitempty"`
+	// NumericType is the numeric type to use for sorting.
+	NumericType *FieldSortNumericType `json:"numeric_type,omitempty"`
 
-	// The sort order direction.
+	// Order is the sort order direction.
 	Order *string `json:"order,omitempty"`
 
-	// The type to use for unmapped fields.
+	// UnmappedType is the type to use for unmapped fields.
 	UnmappedType *string `json:"unmapped_type,omitempty"`
 }
 
 // The options for sorting by geo distance.
 type GeoDistanceSort struct {
-	// The algorithm to use for distance calculation.
-	DistanceType *string `json:"distance_type,omitempty"`
+	// DistanceType is the algorithm to use for distance calculation.
+	DistanceType *GeoDistanceType `json:"distance_type,omitempty"`
 
-	// Whether to ignore unmapped fields and not sort based on them.
+	// IgnoreUnmapped. Whether to ignore unmapped fields and not sort based on
+	// them.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
-	// The mode for sorting on array or multi-valued fields.
-	Mode *string `json:"mode,omitempty"`
+	// Mode is the mode for sorting on array or multi-valued fields.
+	Mode *SortMode `json:"mode,omitempty"`
 
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
-	// The direction of the sort order.
+	// Order is the direction of the sort order.
 	Order *string `json:"order,omitempty"`
 
-	// The unit of distance measurement.
-	Unit *string `json:"unit,omitempty"`
+	// Unit is the unit of distance measurement.
+	Unit *DistanceUnit `json:"unit,omitempty"`
 
 	ValidationMethod *string `json:"validation_method,omitempty"`
 }
 
 type ScoreSort struct {
-	// The direction of the sort order.
+	// Order is the direction of the sort order.
 	Order *string `json:"order,omitempty"`
 }
 
 type ScriptSort struct {
-	// The mode for sorting on array or multi-valued fields.
-	Mode *string `json:"mode,omitempty"`
+	// Mode is the mode for sorting on array or multi-valued fields.
+	Mode *SortMode `json:"mode,omitempty"`
 
-	// The nested path and filter for nested sorting.
+	// Nested is the nested path and filter for nested sorting.
 	Nested *NestedSortValue `json:"nested,omitempty"`
 
-	// The direction of the sort order.
+	// Order is the direction of the sort order.
 	Order *string `json:"order,omitempty"`
 
-	// The script to use for sorting.
-	Script ScriptSortScript `json:"script"`
+	// Script is the script to use for sorting.
+	Script Script `json:"script"`
 
-	// The type of the script sort value.
-	Type *string `json:"type,omitempty"`
+	// Type is the type of the script sort value.
+	Type *ScriptSortType `json:"type,omitempty"`
 }
 
 type SortOptions struct {
-	// The options for sorting by geo distance.
+	// GeoDistance is the options for sorting by geo distance.
 	GeoDistance *GeoDistanceSort `json:"_geo_distance,omitempty"`
 
 	Score  *ScoreSort  `json:"_score,omitempty"`
@@ -2426,36 +2518,36 @@ type SortOptions struct {
 }
 
 type SearchInnerHits struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
-	Source *SearchInnerHitsSource `json:"_source,omitempty"`
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	Collapse       *SearchFieldCollapse                `json:"collapse,omitempty"`
-	DocvalueFields []SearchInnerHitsDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
-	Explain        *bool                               `json:"explain,omitempty"`
-	Fields         []SearchInnerHitsFieldsItem         `json:"fields,omitempty"`
+	Collapse       *SearchFieldCollapse           `json:"collapse,omitempty"`
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
+	Explain        *bool                          `json:"explain,omitempty"`
+	Fields         []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
-	// The inner hit that initiates document offset.
+	// From is the inner hit that initiates document offset.
 	From *int `json:"from,omitempty"`
 
 	Highlight      *SearchHighlight `json:"highlight,omitempty"`
 	IgnoreUnmapped *bool            `json:"ignore_unmapped,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	ScriptFields     map[string]ScriptField `json:"script_fields,omitempty"`
 	SeqNoPrimaryTerm *bool                  `json:"seq_no_primary_term,omitempty"`
 
-	// The maximum number of hits to return per `inner_hits`.
+	// Size is the maximum number of hits to return per `inner_hits`.
 	Size *int `json:"size,omitempty"`
 
-	Sort *SearchInnerHitsSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	TrackScores *bool `json:"track_scores,omitempty"`
@@ -2465,57 +2557,62 @@ type SearchInnerHits struct {
 type CommonQueryDSLHasChildQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Indicates whether to ignore an unmapped `type` and not return any
-	// documents instead of an error.
+	// IgnoreUnmapped. Indicates whether to ignore an unmapped `type` and not
+	// return any documents instead of an error.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	InnerHits *SearchInnerHits `json:"inner_hits,omitempty"`
 
-	// Maximum number of child documents that match the query allowed for a
-	// returned parent document. If the parent document exceeds this limit, it
-	// is excluded from the search results.
+	// MaxChildren. Maximum number of child documents that match the query
+	// allowed for a returned parent document. If the parent document exceeds
+	// this limit, it is excluded from the search results.
 	MaxChildren *int `json:"max_children,omitempty"`
 
-	// Minimum number of child documents that match the query required to match
-	// the query for a returned parent document. If the parent document does
-	// not meet this limit, it is excluded from the search results.
+	// MinChildren. Minimum number of child documents that match the query
+	// required to match the query for a returned parent document. If the
+	// parent document does not meet this limit, it is excluded from the search
+	// results.
 	MinChildren *int `json:"min_children,omitempty"`
 
 	Query     CommonQueryDSLQueryContainer `json:"query"`
 	ScoreMode *string                      `json:"score_mode,omitempty"`
 
-	// The name of a relation in a join field.
+	// Type is the name of a relation in a join field.
 	Type string `json:"type"`
 }
 
 type CommonQueryDSLHasParentQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Indicates whether to ignore an unmapped `parent_type` and not return any
-	// documents instead of an error. You can use this parameter to query
-	// multiple indexes that may not contain the `parent_type`.
+	// IgnoreUnmapped. Indicates whether to ignore an unmapped `parent_type`
+	// and not return any documents instead of an error. You can use this
+	// parameter to query multiple indexes that may not contain the
+	// `parent_type`.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	InnerHits *SearchInnerHits `json:"inner_hits,omitempty"`
 
-	// The name of a relation in a join field.
+	// ParentType is the name of a relation in a join field.
 	ParentType string `json:"parent_type"`
 
 	Query CommonQueryDSLQueryContainer `json:"query"`
 
-	// Indicates whether the relevance score of a matching parent document is
-	// aggregated into its child documents.
+	// Score. Indicates whether the relevance score of a matching parent
+	// document is aggregated into its child documents.
 	Score *bool `json:"score,omitempty"`
 }
 
 type CommonQueryDSLHybridQuery struct {
 	CommonQueryDSLQueryBase
-	Filter          *CommonQueryDSLQueryContainer  `json:"filter,omitempty"`
+
+	// Available: >= 3.0.0.
+	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
+
 	PaginationDepth *int                           `json:"pagination_depth,omitempty"`
 	Queries         []CommonQueryDSLQueryContainer `json:"queries,omitempty"`
 }
 
-type CommonQueryDSLIdsQuery struct {
+type CommonQueryDSLIDsQuery struct {
 	CommonQueryDSLQueryBase
 	Values *string `json:"values,omitempty"`
 }
@@ -2523,7 +2620,7 @@ type CommonQueryDSLIdsQuery struct {
 type CommonQueryDSLIntervalsAnyOf struct {
 	Filter *CommonQueryDSLIntervalsFilter `json:"filter,omitempty"`
 
-	// An array of rules to match.
+	// Intervals is an array of rules to match.
 	Intervals []CommonQueryDSLIntervalsContainer `json:"intervals"`
 }
 
@@ -2533,18 +2630,19 @@ type CommonQueryDSLIntervalsFuzzy struct {
 
 	Fuzziness *string `json:"fuzziness,omitempty"`
 
-	// Number of beginning characters left unchanged when creating expansions.
+	// PrefixLength. Number of beginning characters left unchanged when
+	// creating expansions.
 	PrefixLength *int `json:"prefix_length,omitempty"`
 
-	// The term to match.
+	// Term is the term to match.
 	Term string `json:"term"`
 
-	// Indicates whether edits include transpositions of two adjacent
-	// characters (for example, `ab` to `ba`).
+	// Transpositions. Indicates whether edits include transpositions of two
+	// adjacent characters (for example, `ab` to `ba`).
 	Transpositions *bool `json:"transpositions,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// UseField is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	UseField *string `json:"use_field,omitempty"`
 }
 
@@ -2554,18 +2652,18 @@ type CommonQueryDSLIntervalsMatch struct {
 
 	Filter *CommonQueryDSLIntervalsFilter `json:"filter,omitempty"`
 
-	// Maximum number of positions between the matching terms. Terms further
-	// apart than this are not considered matches.
+	// MaxGaps. Maximum number of positions between the matching terms. Terms
+	// further apart than this are not considered matches.
 	MaxGaps *int `json:"max_gaps,omitempty"`
 
-	// If `true`, matching terms must appear in their specified order.
+	// Ordered. If `true`, matching terms must appear in their specified order.
 	Ordered *bool `json:"ordered,omitempty"`
 
-	// Text you wish to find in the provided field.
+	// Query. Text you wish to find in the provided field.
 	Query string `json:"query"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// UseField is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	UseField *string `json:"use_field,omitempty"`
 }
 
@@ -2573,11 +2671,12 @@ type CommonQueryDSLIntervalsPrefix struct {
 	// Analyzer used to analyze the `prefix`.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// Beginning characters of terms you wish to find in the top-level field.
+	// Prefix. Beginning characters of terms you wish to find in the top-level
+	// field.
 	Prefix string `json:"prefix"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// UseField is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	UseField *string `json:"use_field,omitempty"`
 }
 
@@ -2586,11 +2685,11 @@ type CommonQueryDSLIntervalsWildcard struct {
 	// field's analyzer.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// Wildcard pattern used to find matching terms.
+	// Pattern. Wildcard pattern used to find matching terms.
 	Pattern string `json:"pattern"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// UseField is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	UseField *string `json:"use_field,omitempty"`
 }
 
@@ -2604,31 +2703,31 @@ type CommonQueryDSLIntervalsContainer struct {
 }
 
 type CommonQueryDSLIntervalsFilter struct {
-	After          *CommonQueryDSLIntervalsContainer    `json:"after,omitempty"`
-	Before         *CommonQueryDSLIntervalsContainer    `json:"before,omitempty"`
-	ContainedBy    *CommonQueryDSLIntervalsContainer    `json:"contained_by,omitempty"`
-	Containing     *CommonQueryDSLIntervalsContainer    `json:"containing,omitempty"`
-	NotContainedBy *CommonQueryDSLIntervalsContainer    `json:"not_contained_by,omitempty"`
-	NotContaining  *CommonQueryDSLIntervalsContainer    `json:"not_containing,omitempty"`
-	NotOverlapping *CommonQueryDSLIntervalsContainer    `json:"not_overlapping,omitempty"`
-	Overlapping    *CommonQueryDSLIntervalsContainer    `json:"overlapping,omitempty"`
-	Script         *CommonQueryDSLIntervalsFilterScript `json:"script,omitempty"`
+	After          *CommonQueryDSLIntervalsContainer `json:"after,omitempty"`
+	Before         *CommonQueryDSLIntervalsContainer `json:"before,omitempty"`
+	ContainedBy    *CommonQueryDSLIntervalsContainer `json:"contained_by,omitempty"`
+	Containing     *CommonQueryDSLIntervalsContainer `json:"containing,omitempty"`
+	NotContainedBy *CommonQueryDSLIntervalsContainer `json:"not_contained_by,omitempty"`
+	NotContaining  *CommonQueryDSLIntervalsContainer `json:"not_containing,omitempty"`
+	NotOverlapping *CommonQueryDSLIntervalsContainer `json:"not_overlapping,omitempty"`
+	Overlapping    *CommonQueryDSLIntervalsContainer `json:"overlapping,omitempty"`
+	Script         *Script                           `json:"script,omitempty"`
 }
 
 type CommonQueryDSLIntervalsAllOf struct {
 	Filter *CommonQueryDSLIntervalsFilter `json:"filter,omitempty"`
 
-	// An array of rules to combine. All rules must produce a match in a
-	// document for the overall source to match.
+	// Intervals is an array of rules to combine. All rules must produce a
+	// match in a document for the overall source to match.
 	Intervals []CommonQueryDSLIntervalsContainer `json:"intervals"`
 
-	// Maximum number of positions between the matching terms. Intervals
-	// produced by the rules further apart than this are not considered
-	// matches.
+	// MaxGaps. Maximum number of positions between the matching terms.
+	// Intervals produced by the rules further apart than this are not
+	// considered matches.
 	MaxGaps *int `json:"max_gaps,omitempty"`
 
-	// If `true`, intervals produced by the rules should appear in the order in
-	// which they are specified.
+	// Ordered. If `true`, intervals produced by the rules should appear in the
+	// order in which they are specified.
 	Ordered *bool `json:"ordered,omitempty"`
 }
 
@@ -2654,11 +2753,11 @@ type CommonQueryDSLKNNQuery struct {
 
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
-	// The total number of nearest neighbors to return as top hits.
+	// K is the total number of nearest neighbors to return as top hits.
 	K *int `json:"k,omitempty"`
 
-	// The maximum physical vector space distance required in order for a
-	// neighbor to be considered a hit.
+	// MaxDistance is the maximum physical vector space distance required in
+	// order for a neighbor to be considered a hit.
 	//
 	// Available: >= 2.14.0.
 	MaxDistance *float32 `json:"max_distance,omitempty"`
@@ -2666,120 +2765,229 @@ type CommonQueryDSLKNNQuery struct {
 	// Available: >= 2.16.0.
 	MethodParameters map[string]json.RawMessage `json:"method_parameters,omitempty"`
 
-	// The minimum similarity score required in order for a neighbor to be
-	// considered a hit.
+	// MinScore is the minimum similarity score required in order for a
+	// neighbor to be considered a hit.
 	//
 	// Available: >= 2.14.0.
 	MinScore *float32 `json:"min_score,omitempty"`
 
+	// Available: >= 2.17.0.
 	Rescore *CommonQueryDSLKNNQueryRescore `json:"rescore,omitempty"`
-	Vector  []float32                      `json:"vector"`
+
+	Vector []float32 `json:"vector"`
 }
 
-type CommonQueryDSLMatchAllQuery struct {
+type CommonQueryDSLMatchQueryQuery struct {
 	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// AutoGenerateSynonymsPhraseQuery. If `true`, match phrase queries are
+	// automatically created for multi-term synonyms.
+	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
+
+	// Deprecated: since 2.0.0.
+	CutoffFrequency *float32 `json:"cutoff_frequency,omitempty"`
+
+	Fuzziness    *string `json:"fuzziness,omitempty"`
+	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
+
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
+	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
+
+	// Lenient. If `true`, format-based errors, such as providing a text query
+	// value for a numeric field, are ignored.
+	Lenient *bool `json:"lenient,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the query will expand.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Operator *string `json:"operator,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged for fuzzy
+	// matching.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	// Query. Text, number, Boolean value or date you wish to find in the
+	// provided field.
+	Query *FieldValue `json:"query"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
-type CommonQueryDSLMatchNoneQuery struct {
+type CommonQueryDSLMatchBoolPrefixQueryQuery struct {
 	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	Fuzziness    *string `json:"fuzziness,omitempty"`
+	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
+
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
+	// Can be applied to the term subqueries constructed for all terms but the
+	// final term.
+	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the query will expand.
+	// Can be applied to the term subqueries constructed for all terms but the
+	// final term.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
+
+	Operator *string `json:"operator,omitempty"`
+
+	// PrefixLength. Number of beginning characters left unchanged for fuzzy
+	// matching. Can be applied to the term subqueries constructed for all
+	// terms but the final term.
+	PrefixLength *int `json:"prefix_length,omitempty"`
+
+	// Query. Terms you wish to find in the provided field. The last term is
+	// used in a prefix query.
+	Query string `json:"query"`
+}
+
+type CommonQueryDSLMatchPhraseQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert the text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// Query terms that are analyzed and turned into a phrase query.
+	Query string `json:"query"`
+
+	// Slop. Maximum number of positions allowed between matching tokens.
+	Slop *int `json:"slop,omitempty"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
+}
+
+type CommonQueryDSLMatchPhrasePrefixQueryQuery struct {
+	CommonQueryDSLQueryBase
+
+	// Analyzer used to convert text in the query value into tokens.
+	Analyzer *string `json:"analyzer,omitempty"`
+
+	// MaxExpansions. Maximum number of terms to which the last provided term
+	// of the query value will expand.
+	MaxExpansions *int `json:"max_expansions,omitempty"`
+
+	// Query. Text you wish to find in the provided field.
+	Query string `json:"query"`
+
+	// Slop. Maximum number of positions allowed between matching tokens.
+	Slop *int `json:"slop,omitempty"`
+
+	ZeroTermsQuery *string `json:"zero_terms_query,omitempty"`
 }
 
 type CommonQueryDSLLikeDocument struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
-	// A document not present in the index.
-	Doc json.RawMessage `json:"doc"`
+	// Doc is a document not present in the index.
+	Doc json.RawMessage `json:"doc,omitempty"`
 
 	Fields           []string          `json:"fields,omitempty"`
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 type CommonQueryDSLMoreLikeThisQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The analyzer that is used to analyze the free form text. Defaults to the
-	// analyzer associated with the first field in fields.
+	// Analyzer is the analyzer that is used to analyze the free form text.
+	// Defaults to the analyzer associated with the first field in fields.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// Each term in the formed query could be further boosted by their tf-idf
-	// score. This sets the boost factor to use when using this feature.
-	// Defaults to deactivated (0).
+	// BoostTerms. Each term in the formed query could be further boosted by
+	// their tf-idf score. This sets the boost factor to use when using this
+	// feature. Defaults to deactivated (0).
 	BoostTerms *float32 `json:"boost_terms,omitempty"`
 
-	// Controls whether the query should fail (throw an exception) if any of
-	// the specified fields are not of the supported types (`text` or
-	// `keyword`).
+	// FailOnUnsupportedField. Controls whether the query should fail (throw an
+	// exception) if any of the specified fields are not of the supported types
+	// (`text` or `keyword`).
 	FailOnUnsupportedField *bool `json:"fail_on_unsupported_field,omitempty"`
 
-	// A list of fields to fetch and analyze the text from. Defaults to the
-	// `index.query.default_field` index setting, which has a default value of
-	// `*`.
+	// Fields is a list of fields to fetch and analyze the text from. Defaults
+	// to the `index.query.default_field` index setting, which has a default
+	// value of `*`.
 	Fields []string `json:"fields,omitempty"`
 
-	// Specifies whether the input documents should also be included in the
-	// search results returned.
+	// Include. Specifies whether the input documents should also be included
+	// in the search results returned.
 	Include *bool `json:"include,omitempty"`
 
-	// Specifies free form text and/or a single or multiple documents for which
-	// you want to find similar documents.
+	// Like. Specifies free form text and/or a single or multiple documents for
+	// which you want to find similar documents.
 	Like CommonQueryDSLMoreLikeThisQueryLike `json:"like"`
 
-	// The maximum document frequency above which the terms are ignored from
-	// the input document.
+	// MaxDocFreq is the maximum document frequency above which the terms are
+	// ignored from the input document.
 	MaxDocFreq *int `json:"max_doc_freq,omitempty"`
 
-	// The maximum number of query terms that can be selected.
+	// MaxQueryTerms is the maximum number of query terms that can be selected.
 	MaxQueryTerms *int `json:"max_query_terms,omitempty"`
 
-	// The maximum word length above which the terms are ignored. Defaults to
-	// unbounded (`0`).
+	// MaxWordLength is the maximum word length above which the terms are
+	// ignored. Defaults to unbounded (`0`).
 	MaxWordLength *int `json:"max_word_length,omitempty"`
 
-	// The minimum document frequency below which the terms are ignored from
-	// the input document.
+	// MinDocFreq is the minimum document frequency below which the terms are
+	// ignored from the input document.
 	MinDocFreq *int `json:"min_doc_freq,omitempty"`
 
-	// The minimum term frequency below which the terms are ignored from the
-	// input document.
+	// MinTermFreq is the minimum term frequency below which the terms are
+	// ignored from the input document.
 	MinTermFreq *int `json:"min_term_freq,omitempty"`
 
-	// The minimum word length below which the terms are ignored.
+	// MinWordLength is the minimum word length below which the terms are
+	// ignored.
 	MinWordLength *int `json:"min_word_length,omitempty"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLMoreLikeThisQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
-	// Overrides the default analyzer.
+	// PerFieldAnalyzer. Overrides the default analyzer.
 	PerFieldAnalyzer map[string]string `json:"per_field_analyzer,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	StopWords *CommonQueryDSLMoreLikeThisQueryStopWords `json:"stop_words,omitempty"`
+	// StopWords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	StopWords *CommonAnalysisStopWords `json:"stop_words,omitempty"`
 
-	// Used in combination with `like` to exclude documents that match a set of
-	// terms.
+	// Unlike. Used in combination with `like` to exclude documents that match
+	// a set of terms.
 	Unlike *CommonQueryDSLMoreLikeThisQueryUnlike `json:"unlike,omitempty"`
 
-	Version     *int64  `json:"version,omitempty"`
-	VersionType *string `json:"version_type,omitempty"`
+	Version     *int64       `json:"version,omitempty"`
+	VersionType *VersionType `json:"version_type,omitempty"`
 }
 
 type CommonQueryDSLMultiMatchQuery struct {
@@ -2788,52 +2996,54 @@ type CommonQueryDSLMultiMatchQuery struct {
 	// Analyzer used to convert the text in the query value into tokens.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// If `true`, match phrase queries are automatically created for multi-term
-	// synonyms.
+	// AutoGenerateSynonymsPhraseQuery. If `true`, match phrase queries are
+	// automatically created for multi-term synonyms.
 	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
 
 	// Deprecated: since 2.0.0.
 	CutoffFrequency *float32 `json:"cutoff_frequency,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Fields is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Fields *string `json:"fields,omitempty"`
 
 	Fuzziness    *string `json:"fuzziness,omitempty"`
 	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
 
-	// If `true`, edits for fuzzy matching include transpositions of two
-	// adjacent characters (for example, `ab` to `ba`). Can be applied to the
-	// term subqueries constructed for all terms but the final term.
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
+	// Can be applied to the term subqueries constructed for all terms but the
+	// final term.
 	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
 
-	// If `true`, format-based errors, such as providing a text query value for
-	// a numeric field, are ignored.
+	// Lenient. If `true`, format-based errors, such as providing a text query
+	// value for a numeric field, are ignored.
 	Lenient *bool `json:"lenient,omitempty"`
 
-	// Maximum number of terms to which the query will expand.
+	// MaxExpansions. Maximum number of terms to which the query will expand.
 	MaxExpansions *int `json:"max_expansions,omitempty"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLMultiMatchQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	Operator *string `json:"operator,omitempty"`
 
-	// Number of beginning characters left unchanged for fuzzy matching.
+	// PrefixLength. Number of beginning characters left unchanged for fuzzy
+	// matching.
 	PrefixLength *int `json:"prefix_length,omitempty"`
 
-	// Text, number, Boolean value or date you wish to find in the provided
-	// field.
+	// Query. Text, number, Boolean value or date you wish to find in the
+	// provided field.
 	Query string `json:"query"`
 
-	// Maximum number of positions allowed between matching tokens.
+	// Slop. Maximum number of positions allowed between matching tokens.
 	Slop *int `json:"slop,omitempty"`
 
-	// Determines how scores for each per-term blended query and scores across
-	// groups are combined.
+	// TieBreaker. Determines how scores for each per-term blended query and
+	// scores across groups are combined.
 	TieBreaker *float32 `json:"tie_breaker,omitempty"`
 
 	Type           *string `json:"type,omitempty"`
@@ -2843,14 +3053,14 @@ type CommonQueryDSLMultiMatchQuery struct {
 type CommonQueryDSLNestedQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Indicates whether to ignore an unmapped path and not return any
-	// documents instead of an error.
+	// IgnoreUnmapped. Indicates whether to ignore an unmapped path and not
+	// return any documents instead of an error.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
 	InnerHits *SearchInnerHits `json:"inner_hits,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Path string `json:"path"`
 
 	Query     CommonQueryDSLQueryContainer `json:"query"`
@@ -2871,128 +3081,150 @@ type CommonQueryDSLNeuralQuery struct {
 type CommonQueryDSLParentIDQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
-	// Indicates whether to ignore an unmapped `type` and not return any
-	// documents instead of an error.
+	// IgnoreUnmapped. Indicates whether to ignore an unmapped `type` and not
+	// return any documents instead of an error.
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 
-	// The name of a relation in a join field.
+	// Type is the name of a relation in a join field.
 	Type *string `json:"type,omitempty"`
 }
 
 type CommonQueryDSLPercolateQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The source of the document being percolated.
-	Document json.RawMessage `json:"document"`
+	// Document is the source of the document being percolated.
+	Document json.RawMessage `json:"document,omitempty"`
 
-	// An array of sources of the documents being percolated.
+	// Documents is an array of sources of the documents being percolated.
 	Documents []json.RawMessage `json:"documents,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// The suffix used for the `_percolator_document_slot` field when multiple
-	// `percolate` queries are specified.
+	// Name is the suffix used for the `_percolator_document_slot` field when
+	// multiple `percolate` queries are specified.
 	Name *string `json:"name,omitempty"`
 
 	// Preference used to fetch document to percolate.
 	Preference *string `json:"preference,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`
 }
 
+type CommonQueryDSLPrefixQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows ASCII case insensitive matching of the value
+	// with the indexed field values when set to `true`. Default is `false`
+	// which means the case sensitivity of matching depends on the underlying
+	// field's mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Beginning characters of terms you wish to find in the provided
+	// field.
+	Value string `json:"value"`
+}
+
 type CommonQueryDSLQueryStringQuery struct {
 	CommonQueryDSLQueryBase
 
-	// If `true`, the wildcard characters `*` and `?` are allowed as the first
-	// character of the query string.
+	// AllowLeadingWildcard. If `true`, the wildcard characters `*` and `?` are
+	// allowed as the first character of the query string.
 	AllowLeadingWildcard *bool `json:"allow_leading_wildcard,omitempty"`
 
-	// If `true`, the query attempts to analyze wildcard terms in the query
-	// string.
+	// AnalyzeWildcard. If `true`, the query attempts to analyze wildcard terms
+	// in the query string.
 	AnalyzeWildcard *bool `json:"analyze_wildcard,omitempty"`
 
 	// Analyzer used to convert text in the query string into tokens.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// If `true`, match phrase queries are automatically created for multi-term
-	// synonyms.
+	// AutoGenerateSynonymsPhraseQuery. If `true`, match phrase queries are
+	// automatically created for multi-term synonyms.
 	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// DefaultField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	DefaultField *string `json:"default_field,omitempty"`
 
 	DefaultOperator *string `json:"default_operator,omitempty"`
 
-	// If `true`, enable position increments in queries constructed from a
-	// `query_string` search.
+	// EnablePositionIncrements. If `true`, enable position increments in
+	// queries constructed from a `query_string` search.
 	EnablePositionIncrements *bool `json:"enable_position_increments,omitempty"`
 
 	Escape *bool `json:"escape,omitempty"`
 
-	// Array of fields to search. Supports wildcards (`*`).
+	// Fields. Array of fields to search. Supports wildcards (`*`).
 	Fields []string `json:"fields,omitempty"`
 
 	Fuzziness *string `json:"fuzziness,omitempty"`
 
-	// Maximum number of terms to which the query expands for fuzzy matching.
+	// FuzzyMaxExpansions. Maximum number of terms to which the query expands
+	// for fuzzy matching.
 	FuzzyMaxExpansions *int `json:"fuzzy_max_expansions,omitempty"`
 
-	// Number of beginning characters left unchanged for fuzzy matching.
+	// FuzzyPrefixLength. Number of beginning characters left unchanged for
+	// fuzzy matching.
 	FuzzyPrefixLength *int `json:"fuzzy_prefix_length,omitempty"`
 
 	FuzzyRewrite *string `json:"fuzzy_rewrite,omitempty"`
 
-	// If `true`, edits for fuzzy matching include transpositions of two
-	// adjacent characters (for example, `ab` to `ba`).
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
 	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
 
-	// If `true`, format-based errors, such as providing a text value for a
-	// numeric field, are ignored.
+	// Lenient. If `true`, format-based errors, such as providing a text value
+	// for a numeric field, are ignored.
 	Lenient *bool `json:"lenient,omitempty"`
 
-	// Maximum number of automaton states required for the query.
+	// MaxDeterminizedStates. Maximum number of automaton states required for
+	// the query.
 	MaxDeterminizedStates *int `json:"max_determinized_states,omitempty"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLQueryStringQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
-	// Maximum number of positions allowed between matching tokens for phrases.
+	// PhraseSlop. Maximum number of positions allowed between matching tokens
+	// for phrases.
 	PhraseSlop *int `json:"phrase_slop,omitempty"`
 
 	// Query string you wish to parse and use for search.
 	Query string `json:"query"`
 
-	// Analyzer used to convert quoted text in the query string into tokens.
-	// For quoted text, this parameter overrides the analyzer specified in the
-	// `analyzer` parameter.
+	// QuoteAnalyzer. Analyzer used to convert quoted text in the query string
+	// into tokens. For quoted text, this parameter overrides the analyzer
+	// specified in the `analyzer` parameter.
 	QuoteAnalyzer *string `json:"quote_analyzer,omitempty"`
 
-	// Suffix appended to quoted text in the query string. You can use this
-	// suffix to use a different analysis method for exact matches.
+	// QuoteFieldSuffix. Suffix appended to quoted text in the query string.
+	// You can use this suffix to use a different analysis method for exact
+	// matches.
 	QuoteFieldSuffix *string `json:"quote_field_suffix,omitempty"`
 
 	Rewrite *string `json:"rewrite,omitempty"`
 
-	// How to combine the queries generated from the individual search terms in
-	// the resulting `dis_max` query.
+	// TieBreaker. How to combine the queries generated from the individual
+	// search terms in the resulting `dis_max` query.
 	TieBreaker *float32 `json:"tie_breaker,omitempty"`
 
-	// The time zone identifier.
+	// TimeZone is the time zone identifier.
 	TimeZone *string `json:"time_zone,omitempty"`
 
 	Type *string `json:"type,omitempty"`
@@ -3007,22 +3239,22 @@ type CommonQueryDSLNumberRangeQuery struct {
 	CommonQueryDSLRangeQueryBase
 	From *CommonQueryDSLNumberRangeQueryFrom `json:"from"`
 
-	// Greater than.
+	// Gt. Greater than.
 	Gt *float64 `json:"gt,omitempty"`
 
-	// Greater than or equal to.
+	// Gte. Greater than or equal to.
 	Gte *float64 `json:"gte,omitempty"`
 
-	// Include the lower bound
+	// IncludeLower. Include the lower bound
 	IncludeLower *bool `json:"include_lower,omitempty"`
 
-	// Include the upper bound
+	// IncludeUpper. Include the upper bound
 	IncludeUpper *bool `json:"include_upper,omitempty"`
 
-	// Less than.
+	// Lt. Less than.
 	Lt *float64 `json:"lt,omitempty"`
 
-	// Less than or equal to.
+	// Lte. Less than or equal to.
 	Lte *float64 `json:"lte,omitempty"`
 
 	To *CommonQueryDSLNumberRangeQueryTo `json:"to"`
@@ -3031,23 +3263,23 @@ type CommonQueryDSLNumberRangeQuery struct {
 type CommonQueryDSLDateRangeQuery struct {
 	CommonQueryDSLRangeQueryBase
 
-	// The date format pattern.
+	// Format is the date format pattern.
 	Format *string `json:"format,omitempty"`
 
 	From *string `json:"from"`
 	Gt   *string `json:"gt,omitempty"`
 	Gte  *string `json:"gte,omitempty"`
 
-	// Include the lower bound
+	// IncludeLower. Include the lower bound
 	IncludeLower *bool `json:"include_lower,omitempty"`
 
-	// Include the upper bound
+	// IncludeUpper. Include the upper bound
 	IncludeUpper *bool `json:"include_upper,omitempty"`
 
 	Lt  *string `json:"lt,omitempty"`
 	Lte *string `json:"lte,omitempty"`
 
-	// The time zone identifier.
+	// TimeZone is the time zone identifier.
 	TimeZone *string `json:"time_zone,omitempty"`
 
 	To *string `json:"to"`
@@ -3056,113 +3288,149 @@ type CommonQueryDSLDateRangeQuery struct {
 type CommonQueryDSLRankFeatureFunction struct {
 }
 
-type CommonQueryDSLRankFeatureFunctionLinear struct {
-	CommonQueryDSLRankFeatureFunction
-}
-
 type CommonQueryDSLRankFeatureFunctionLogarithm struct {
 	CommonQueryDSLRankFeatureFunction
 
-	// Configurable scaling factor.
+	// ScalingFactor. Configurable scaling factor.
 	ScalingFactor float32 `json:"scaling_factor"`
 }
 
 type CommonQueryDSLRankFeatureFunctionSaturation struct {
 	CommonQueryDSLRankFeatureFunction
 
-	// Configurable pivot value so that the result will be less than 0.5.
+	// Pivot. Configurable pivot value so that the result will be less than
+	// 0.5.
 	Pivot *float32 `json:"pivot,omitempty"`
 }
 
 type CommonQueryDSLRankFeatureFunctionSigmoid struct {
 	CommonQueryDSLRankFeatureFunction
 
-	// Configurable Exponent.
+	// Exponent. Configurable Exponent.
 	Exponent float32 `json:"exponent"`
 
-	// Configurable pivot value so that the result will be less than 0.5.
+	// Pivot. Configurable pivot value so that the result will be less than
+	// 0.5.
 	Pivot float32 `json:"pivot"`
 }
 
 type CommonQueryDSLRankFeatureQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	Linear     *CommonQueryDSLRankFeatureFunctionLinear     `json:"linear,omitempty"`
+	Linear     *CommonQueryDSLRankFeatureFunction           `json:"linear,omitempty"`
 	Log        *CommonQueryDSLRankFeatureFunctionLogarithm  `json:"log,omitempty"`
 	Saturation *CommonQueryDSLRankFeatureFunctionSaturation `json:"saturation,omitempty"`
 	Sigmoid    *CommonQueryDSLRankFeatureFunctionSigmoid    `json:"sigmoid,omitempty"`
 }
 
+type CommonQueryDSLRegexpQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows case insensitive matching of the regular
+	// expression value with the indexed field values when set to `true`. When
+	// `false`, case sensitivity of matching depends on the underlying field's
+	// mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	// Flags. Enables optional operators for the regular expression.
+	Flags *string `json:"flags,omitempty"`
+
+	// MaxDeterminizedStates. Maximum number of automaton states required for
+	// the query.
+	MaxDeterminizedStates *int `json:"max_determinized_states,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Regular expression for terms you wish to find in the provided
+	// field.
+	Value string `json:"value"`
+}
+
 type CommonQueryDSLScriptQuery struct {
 	CommonQueryDSLQueryBase
-	Script CommonQueryDSLScriptQueryScript `json:"script"`
+	Script Script `json:"script"`
 }
 
 type CommonQueryDSLScriptScoreQuery struct {
 	CommonQueryDSLQueryBase
 
-	// Documents with a score lower than this floating point number are
-	// excluded from the search results.
+	// MinScore. Documents with a score lower than this floating point number
+	// are excluded from the search results.
 	MinScore *float32 `json:"min_score,omitempty"`
 
-	Query  CommonQueryDSLQueryContainer         `json:"query"`
-	Script CommonQueryDSLScriptScoreQueryScript `json:"script"`
+	Query  CommonQueryDSLQueryContainer `json:"query"`
+	Script Script                       `json:"script"`
 }
 
 type CommonQueryDSLSimpleQueryStringQuery struct {
 	CommonQueryDSLQueryBase
 
-	// If `true`, the query attempts to analyze wildcard terms in the query
-	// string.
+	// AnalyzeWildcard. If `true`, the query attempts to analyze wildcard terms
+	// in the query string.
 	AnalyzeWildcard *bool `json:"analyze_wildcard,omitempty"`
 
 	// Analyzer used to convert text in the query string into tokens.
 	Analyzer *string `json:"analyzer,omitempty"`
 
-	// If `true`, the parser creates a `match_phrase` query for each
-	// multi-position token.
+	// AutoGenerateSynonymsPhraseQuery. If `true`, the parser creates a
+	// `match_phrase` query for each multi-position token.
 	AutoGenerateSynonymsPhraseQuery *bool `json:"auto_generate_synonyms_phrase_query,omitempty"`
 
 	DefaultOperator *string `json:"default_operator,omitempty"`
 
-	// Array of fields you wish to search. Accepts wildcard expressions. You
-	// also can boost relevance scores for matches to particular fields using a
-	// caret (`^`) notation. Defaults to the `index.query.default_field index`
-	// setting, which has a default value of `*`.
+	// Fields. Array of fields you wish to search. Accepts wildcard
+	// expressions. You also can boost relevance scores for matches to
+	// particular fields using a caret (`^`) notation. Defaults to the
+	// `index.query.default_field index` setting, which has a default value of
+	// `*`.
 	Fields []string `json:"fields,omitempty"`
 
-	// Query flags can be either a single flag or a combination of flags (e.g.
-	// `OR|AND|PREFIX`).
+	// Flags. Query flags can be either a single flag or a combination of flags
+	// (e.g. `OR|AND|PREFIX`).
 	Flags *string `json:"flags,omitempty"`
 
-	// Maximum number of terms to which the query expands for fuzzy matching.
+	// FuzzyMaxExpansions. Maximum number of terms to which the query expands
+	// for fuzzy matching.
 	FuzzyMaxExpansions *int `json:"fuzzy_max_expansions,omitempty"`
 
-	// Number of beginning characters left unchanged for fuzzy matching.
+	// FuzzyPrefixLength. Number of beginning characters left unchanged for
+	// fuzzy matching.
 	FuzzyPrefixLength *int `json:"fuzzy_prefix_length,omitempty"`
 
-	// If `true`, edits for fuzzy matching include transpositions of two
-	// adjacent characters (for example, `ab` to `ba`).
+	// FuzzyTranspositions. If `true`, edits for fuzzy matching include
+	// transpositions of two adjacent characters (for example, `ab` to `ba`).
 	FuzzyTranspositions *bool `json:"fuzzy_transpositions,omitempty"`
 
-	// If `true`, format-based errors, such as providing a text value for a
-	// numeric field, are ignored.
+	// Lenient. If `true`, format-based errors, such as providing a text value
+	// for a numeric field, are ignored.
 	Lenient *bool `json:"lenient,omitempty"`
 
-	// The minimum number of terms that should match as an integer, percentage,
-	// or range.
-	MinimumShouldMatch *CommonQueryDSLSimpleQueryStringQueryMinimumShouldMatch `json:"minimum_should_match,omitempty"`
+	// MinimumShouldMatch is the minimum number of terms that should match as
+	// an integer, percentage, or range.
+	MinimumShouldMatch *MinimumShouldMatch `json:"minimum_should_match,omitempty"`
 
 	// Query string in the simple query string syntax you wish to parse and use
 	// for search.
 	Query string `json:"query"`
 
-	// Suffix appended to quoted text in the query string.
+	// QuoteFieldSuffix. Suffix appended to quoted text in the query string.
 	QuoteFieldSuffix *string `json:"quote_field_suffix,omitempty"`
+}
+
+type CommonQueryDSLTermQueryValue struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows ASCII case insensitive matching of the value
+	// with the indexed field values when set to `true`. When `false`, the case
+	// sensitivity of matching depends on the underlying field's mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	// Value is a field value.
+	Value *FieldValue `json:"value"`
 }
 
 // Returns documents that contain one or more exact terms in a provided field.
@@ -3170,20 +3438,21 @@ type CommonQueryDSLTermsQuery struct {
 	Name  *string  `json:"_name,omitempty"`
 	Boost *float32 `json:"boost,omitempty"`
 
-	// Specifies the types of values used for filtering. Valid values are
-	// `default` and `bitmap`. Default is `default`.
+	// ValueType. Specifies the types of values used for filtering. Valid
+	// values are `default` and `bitmap`. Default is `default`.
 	ValueType *string `json:"value_type,omitempty"`
 }
 
 type CommonQueryDSLTermsSetQuery struct {
 	CommonQueryDSLQueryBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// MinimumShouldMatchField is the path to a field or an array of paths.
+	// Some APIs support wildcards in the path, which allows you to select
+	// multiple fields.
 	MinimumShouldMatchField *string `json:"minimum_should_match_field,omitempty"`
 
-	MinimumShouldMatchScript *CommonQueryDSLTermsSetQueryMinimumShouldMatchScript `json:"minimum_should_match_script,omitempty"`
-	Terms                    []string                                             `json:"terms"`
+	MinimumShouldMatchScript *Script  `json:"minimum_should_match_script,omitempty"`
+	Terms                    []string `json:"terms"`
 }
 
 type CommonQueryDSLTypeQuery struct {
@@ -3191,15 +3460,35 @@ type CommonQueryDSLTypeQuery struct {
 	Value string `json:"value"`
 }
 
+type CommonQueryDSLWildcardQueryObject1 struct {
+	CommonQueryDSLQueryBase
+
+	// CaseInsensitive. Allows case insensitive matching of the pattern with
+	// the indexed field values when set to `true`. Default is `false` which
+	// means the case sensitivity of matching depends on the underlying field's
+	// mapping.
+	CaseInsensitive *bool `json:"case_insensitive,omitempty"`
+
+	Rewrite *string `json:"rewrite,omitempty"`
+
+	// Value. Wildcard pattern for terms you wish to find in the provided
+	// field. Required, when wildcard is not set.
+	Value *string `json:"value,omitempty"`
+
+	// Wildcard pattern for terms you wish to find in the provided field.
+	// Required, when value is not set.
+	Wildcard *string `json:"wildcard,omitempty"`
+}
+
 type CommonQueryDSLWrapperQuery struct {
 	CommonQueryDSLQueryBase
 
-	// A base64 encoded query. The binary data format can be any of JSON, YAML,
-	// CBOR or SMILE encodings
+	// Query is a base64 encoded query. The binary data format can be any of
+	// JSON, YAML, CBOR or SMILE encodings
 	Query string `json:"query"`
 }
 
-type CommonQueryDSLXyShapeQuery struct {
+type CommonQueryDSLXYShapeQuery struct {
 	CommonQueryDSLQueryBase
 	IgnoreUnmapped *bool `json:"ignore_unmapped,omitempty"`
 }
@@ -3208,20 +3497,20 @@ type CommonQueryDSLQueryContainer struct {
 	// Available: >= 3.2.0.
 	Agentic *CommonQueryDSLAgenticQuery `json:"agentic,omitempty"`
 
-	Bool             *CommonQueryDSLBoolQuery             `json:"bool,omitempty"`
-	Boosting         *CommonQueryDSLBoostingQuery         `json:"boosting,omitempty"`
-	CombinedFields   *CommonQueryDSLCombinedFieldsQuery   `json:"combined_fields,omitempty"`
-	Common           map[string]string                    `json:"common,omitempty"`
-	ConstantScore    *CommonQueryDSLConstantScoreQuery    `json:"constant_score,omitempty"`
-	DisMax           *CommonQueryDSLDisMaxQuery           `json:"dis_max,omitempty"`
-	DistanceFeature  json.RawMessage                      `json:"distance_feature"`
-	Exists           *CommonQueryDSLExistsQuery           `json:"exists,omitempty"`
-	FieldMaskingSpan *CommonQueryDSLSpanFieldMaskingQuery `json:"field_masking_span,omitempty"`
-	FunctionScore    *CommonQueryDSLFunctionScoreQuery    `json:"function_score,omitempty"`
+	Bool             *CommonQueryDSLBoolQuery                  `json:"bool,omitempty"`
+	Boosting         *CommonQueryDSLBoostingQuery              `json:"boosting,omitempty"`
+	CombinedFields   *CommonQueryDSLCombinedFieldsQuery        `json:"combined_fields,omitempty"`
+	Common           map[string]CommonQueryDSLCommonTermsQuery `json:"common,omitempty"`
+	ConstantScore    *CommonQueryDSLConstantScoreQuery         `json:"constant_score,omitempty"`
+	DisMax           *CommonQueryDSLDisMaxQuery                `json:"dis_max,omitempty"`
+	DistanceFeature  *CommonQueryDSLDistanceFeatureQuery       `json:"distance_feature,omitempty"`
+	Exists           *CommonQueryDSLExistsQuery                `json:"exists,omitempty"`
+	FieldMaskingSpan *CommonQueryDSLSpanFieldMaskingQuery      `json:"field_masking_span,omitempty"`
+	FunctionScore    *CommonQueryDSLFunctionScoreQuery         `json:"function_score,omitempty"`
 
-	// Returns documents that contain terms similar to the search term, as
-	// measured by a Levenshtein edit distance.
-	Fuzzy map[string]CommonQueryDSLQueryContainerFuzzyValue `json:"fuzzy,omitempty"`
+	// Fuzzy. Returns documents that contain terms similar to the search term,
+	// as measured by a Levenshtein edit distance.
+	Fuzzy map[string]CommonQueryDSLFuzzyQuery `json:"fuzzy,omitempty"`
 
 	GeoBoundingBox *CommonQueryDSLGeoBoundingBoxQuery `json:"geo_bounding_box,omitempty"`
 	GeoDistance    *CommonQueryDSLGeoDistanceQuery    `json:"geo_distance,omitempty"`
@@ -3230,33 +3519,36 @@ type CommonQueryDSLQueryContainer struct {
 	HasChild       *CommonQueryDSLHasChildQuery       `json:"has_child,omitempty"`
 	HasParent      *CommonQueryDSLHasParentQuery      `json:"has_parent,omitempty"`
 	Hybrid         *CommonQueryDSLHybridQuery         `json:"hybrid,omitempty"`
-	Ids            *CommonQueryDSLIdsQuery            `json:"ids,omitempty"`
+	IDs            *CommonQueryDSLIDsQuery            `json:"ids,omitempty"`
 
-	// Returns documents based on the order and proximity of matching terms.
+	// Intervals. Returns documents based on the order and proximity of
+	// matching terms.
 	Intervals map[string]CommonQueryDSLIntervalsQuery `json:"intervals,omitempty"`
 
 	KNN map[string]CommonQueryDSLKNNQuery `json:"knn,omitempty"`
 
-	// Returns documents that match a provided text, number, date or Boolean
-	// value. The provided text is analyzed before matching.
-	Match map[string]CommonQueryDSLQueryContainerMatchValue `json:"match,omitempty"`
+	// Match. Returns documents that match a provided text, number, date or
+	// Boolean value. The provided text is analyzed before matching.
+	Match map[string]CommonQueryDSLMatchQuery `json:"match,omitempty"`
 
-	MatchAll *CommonQueryDSLMatchAllQuery `json:"match_all,omitempty"`
+	MatchAll *CommonQueryDSLQueryBase `json:"match_all,omitempty"`
 
-	// Analyzes its input and constructs a `bool` query from the terms. Each
-	// term except the last is used in a `term` query. The last term is used in
-	// a prefix query.
-	MatchBoolPrefix map[string]string `json:"match_bool_prefix,omitempty"`
+	// MatchBoolPrefix. Analyzes its input and constructs a `bool` query from
+	// the terms. Each term except the last is used in a `term` query. The last
+	// term is used in a prefix query.
+	MatchBoolPrefix map[string]CommonQueryDSLMatchBoolPrefixQuery `json:"match_bool_prefix,omitempty"`
 
-	MatchNone *CommonQueryDSLMatchNoneQuery `json:"match_none,omitempty"`
+	MatchNone *CommonQueryDSLQueryBase `json:"match_none,omitempty"`
 
-	// Analyzes the text and creates a phrase query out of the analyzed text.
-	MatchPhrase map[string]string `json:"match_phrase,omitempty"`
+	// MatchPhrase. Analyzes the text and creates a phrase query out of the
+	// analyzed text.
+	MatchPhrase map[string]CommonQueryDSLMatchPhraseQuery `json:"match_phrase,omitempty"`
 
-	// Returns documents that contain the words of a provided text, in the same
-	// order as provided. The last term of the provided text is treated as a
-	// prefix, matching any words that begin with that term.
-	MatchPhrasePrefix map[string]string `json:"match_phrase_prefix,omitempty"`
+	// MatchPhrasePrefix. Returns documents that contain the words of a
+	// provided text, in the same order as provided. The last term of the
+	// provided text is treated as a prefix, matching any words that begin with
+	// that term.
+	MatchPhrasePrefix map[string]CommonQueryDSLMatchPhrasePrefixQuery `json:"match_phrase_prefix,omitempty"`
 
 	MoreLikeThis *CommonQueryDSLMoreLikeThisQuery     `json:"more_like_this,omitempty"`
 	MultiMatch   *CommonQueryDSLMultiMatchQuery       `json:"multi_match,omitempty"`
@@ -3265,18 +3557,20 @@ type CommonQueryDSLQueryContainer struct {
 	ParentID     *CommonQueryDSLParentIDQuery         `json:"parent_id,omitempty"`
 	Percolate    *CommonQueryDSLPercolateQuery        `json:"percolate,omitempty"`
 
-	// Returns documents that contain a specific prefix in a provided field.
-	Prefix map[string]string `json:"prefix,omitempty"`
+	// Prefix. Returns documents that contain a specific prefix in a provided
+	// field.
+	Prefix map[string]CommonQueryDSLPrefixQuery `json:"prefix,omitempty"`
 
 	QueryString *CommonQueryDSLQueryStringQuery `json:"query_string,omitempty"`
 
-	// Returns documents that contain terms within a provided range.
-	Range map[string]CommonQueryDSLQueryContainerRangeValue `json:"range,omitempty"`
+	// Range. Returns documents that contain terms within a provided range.
+	Range map[string]CommonQueryDSLRangeQuery `json:"range,omitempty"`
 
 	RankFeature *CommonQueryDSLRankFeatureQuery `json:"rank_feature,omitempty"`
 
-	// Returns documents that contain terms matching a regular expression.
-	Regexp map[string]string `json:"regexp,omitempty"`
+	// Regexp. Returns documents that contain terms matching a regular
+	// expression.
+	Regexp map[string]CommonQueryDSLRegexpQuery `json:"regexp,omitempty"`
 
 	Script            *CommonQueryDSLScriptQuery            `json:"script,omitempty"`
 	ScriptScore       *CommonQueryDSLScriptScoreQuery       `json:"script_score,omitempty"`
@@ -3288,62 +3582,65 @@ type CommonQueryDSLQueryContainer struct {
 	SpanNot           *CommonQueryDSLSpanNotQuery           `json:"span_not,omitempty"`
 	SpanOr            *CommonQueryDSLSpanOrQuery            `json:"span_or,omitempty"`
 
-	// Matches spans containing a term.
-	SpanTerm map[string]string `json:"span_term,omitempty"`
+	// SpanTerm. Matches spans containing a term.
+	SpanTerm map[string]CommonQueryDSLSpanTermQuery `json:"span_term,omitempty"`
 
 	SpanWithin *CommonQueryDSLSpanWithinQuery `json:"span_within,omitempty"`
 
-	// Return documents using a template query contains placeholders that are
-	// resolved by search request processors during query execution.
+	// Template. Return documents using a template query contains placeholders
+	// that are resolved by search request processors during query execution.
 	Template map[string]json.RawMessage `json:"template,omitempty"`
 
-	// Returns documents that contain an exact term in a provided field. To
-	// return a document, the query term must exactly match the queried field's
-	// value, including white space and capitalization.
-	Term map[string]CommonQueryDSLQueryContainerTermValue `json:"term,omitempty"`
+	// Term. Returns documents that contain an exact term in a provided field.
+	// To return a document, the query term must exactly match the queried
+	// field's value, including white space and capitalization.
+	Term map[string]CommonQueryDSLTermQuery `json:"term,omitempty"`
 
-	// Returns documents that contain one or more exact terms in a provided
-	// field.
+	// Terms. Returns documents that contain one or more exact terms in a
+	// provided field.
 	Terms *CommonQueryDSLTermsQuery `json:"terms,omitempty"`
 
-	// Returns documents that contain a minimum number of exact terms in a
-	// provided field. To return a document, a required number of terms must
-	// exactly match the field values, including white space and
+	// TermsSet. Returns documents that contain a minimum number of exact terms
+	// in a provided field. To return a document, a required number of terms
+	// must exactly match the field values, including white space and
 	// capitalization.
 	TermsSet map[string]CommonQueryDSLTermsSetQuery `json:"terms_set,omitempty"`
 
 	Type *CommonQueryDSLTypeQuery `json:"type,omitempty"`
 
-	// Returns documents that contain terms matching a wildcard pattern.
-	Wildcard map[string]string `json:"wildcard,omitempty"`
+	// Wildcard. Returns documents that contain terms matching a wildcard
+	// pattern.
+	Wildcard map[string]CommonQueryDSLWildcardQuery `json:"wildcard,omitempty"`
 
 	Wrapper *CommonQueryDSLWrapperQuery `json:"wrapper,omitempty"`
 
 	// Available: >= 2.4.0.
-	XyShape *CommonQueryDSLXyShapeQuery `json:"xy_shape,omitempty"`
+	XYShape *CommonQueryDSLXYShapeQuery `json:"xy_shape,omitempty"`
 }
 
 // The configuration for an index alias.
 type IndicesAliasDefinition struct {
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
-	// The value used to route indexing operations to a specific shard. When
-	// specified, this overwrites the `routing` value for indexing operations.
+	// IndexRouting is the value used to route indexing operations to a
+	// specific shard. When specified, this overwrites the `routing` value for
+	// indexing operations.
 	IndexRouting *string `json:"index_routing,omitempty"`
 
-	// When `true`, the alias is hidden. All indexes for the alias must have
-	// the same `is_hidden` value.
+	// IsHidden. When `true`, the alias is hidden. All indexes for the alias
+	// must have the same `is_hidden` value.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// When `true`, the index is the write index for the alias.
+	// IsWriteIndex. When `true`, the index is the write index for the alias.
 	IsWriteIndex *bool `json:"is_write_index,omitempty"`
 
-	// The value used to route indexing and search operations to a specific
-	// shard.
+	// Routing is the value used to route indexing and search operations to a
+	// specific shard.
 	Routing *string `json:"routing,omitempty"`
 
-	// The value used to route search operations to a specific shard. When
-	// specified, this overwrites the `routing` value for search operations.
+	// SearchRouting is the value used to route search operations to a specific
+	// shard. When specified, this overwrites the `routing` value for search
+	// operations.
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
@@ -3386,15 +3683,15 @@ type CommonMappingAllField struct {
 
 // The configuration for numeric field data.
 type IndicesNumericFielddata struct {
-	// The format for numeric field data.
-	Format string `json:"format"`
+	// Format is the format for numeric field data.
+	Format IndicesNumericFielddataFormat `json:"format"`
 }
 
 type CommonMappingBooleanProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Boost *float64 `json:"boost,omitempty"`
 
-	// The configuration for numeric field data.
+	// Fielddata is the configuration for numeric field data.
 	Fielddata *IndicesNumericFielddata `json:"fielddata,omitempty"`
 
 	Index     *bool  `json:"index,omitempty"`
@@ -3453,13 +3750,13 @@ type CommonMappingSearchAsYouTypeProperty struct {
 
 // The frequency filter configuration for field data.
 type IndicesFielddataFrequencyFilter struct {
-	// The maximum frequency threshold.
+	// Max is the maximum frequency threshold.
 	Max float64 `json:"max"`
 
-	// The minimum frequency threshold.
+	// Min is the minimum frequency threshold.
 	Min float64 `json:"min"`
 
-	// The minimum segment size to apply the filter.
+	// MinSegmentSize is the minimum segment size to apply the filter.
 	MinSegmentSize int `json:"min_segment_size"`
 }
 
@@ -3475,7 +3772,8 @@ type CommonMappingTextProperty struct {
 	EagerGlobalOrdinals *bool    `json:"eager_global_ordinals,omitempty"`
 	Fielddata           *bool    `json:"fielddata,omitempty"`
 
-	// The frequency filter configuration for field data.
+	// FielddataFrequencyFilter is the frequency filter configuration for field
+	// data.
 	FielddataFrequencyFilter *IndicesFielddataFrequencyFilter `json:"fielddata_frequency_filter,omitempty"`
 
 	Index                *bool                           `json:"index,omitempty"`
@@ -3509,10 +3807,10 @@ type CommonMappingDateNanosProperty struct {
 	IgnoreMalformed *bool    `json:"ignore_malformed,omitempty"`
 	Index           *bool    `json:"index,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// NullValue is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	NullValue *string `json:"null_value,omitempty"`
 
 	PrecisionStep *int   `json:"precision_step,omitempty"`
@@ -3523,7 +3821,7 @@ type CommonMappingDateProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Boost *float64 `json:"boost,omitempty"`
 
-	// The configuration for numeric field data.
+	// Fielddata is the configuration for numeric field data.
 	Fielddata *IndicesNumericFielddata `json:"fielddata,omitempty"`
 
 	Format          *string `json:"format,omitempty"`
@@ -3531,10 +3829,10 @@ type CommonMappingDateProperty struct {
 	Index           *bool   `json:"index,omitempty"`
 	Locale          *string `json:"locale,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// NullValue is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	NullValue *string `json:"null_value,omitempty"`
 
 	PrecisionStep *int   `json:"precision_step,omitempty"`
@@ -3570,11 +3868,11 @@ type CommonMappingObjectProperty struct {
 }
 
 type CommonMappingSuggestContext struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Path *string `json:"path,omitempty"`
 
 	Precision *CommonMappingSuggestContextPrecision `json:"precision,omitempty"`
@@ -3595,14 +3893,14 @@ type CommonMappingCompletionProperty struct {
 type CommonMappingConstantKeywordProperty struct {
 	CommonMappingPropertyBase
 	Type  string          `json:"type"`
-	Value json.RawMessage `json:"value"`
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type CommonMappingFieldAliasProperty struct {
 	CommonMappingPropertyBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Path is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Path *string `json:"path,omitempty"`
 
 	Type string `json:"type"`
@@ -3643,11 +3941,11 @@ type CommonMappingGeoPointProperty struct {
 	IgnoreMalformed *bool `json:"ignore_malformed,omitempty"`
 	IgnoreZValue    *bool `json:"ignore_z_value,omitempty"`
 
-	// A latitude/longitude as a two-dimensional point. It can be represented
-	// in the following ways: - As a `{lat, long}` object. - As a geohash
-	// value. - As a `[lon, lat]` array. - As a string in `<lat>, <lon>` or WKT
-	// point format.
-	NullValue *CommonMappingGeoPointPropertyNullValue `json:"null_value,omitempty"`
+	// NullValue is a latitude/longitude as a two-dimensional point. It can be
+	// represented in the following ways: - As a `{lat, long}` object. - As a
+	// geohash value. - As a `[lon, lat]` array. - As a string in `<lat>,
+	// <lon>` or WKT point format.
+	NullValue *GeoLocation `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -3664,30 +3962,31 @@ type CommonMappingGeoShapeProperty struct {
 }
 
 // The location specified using x and y coordinates.
-type XyCartesianCoordinates struct {
-	// The x coordinate.
+type XYCartesianCoordinates struct {
+	// X is the x coordinate.
 	X float64 `json:"x"`
 
-	// The y coordinate.
+	// Y is the y coordinate.
 	Y float64 `json:"y"`
 }
 
-type CommonMappingXyPointProperty struct {
+type CommonMappingXYPointProperty struct {
 	CommonMappingDocValuesPropertyBase
 	IgnoreMalformed *bool `json:"ignore_malformed,omitempty"`
 	IgnoreZValue    *bool `json:"ignore_z_value,omitempty"`
 
-	// A two-dimensional Cartesian point specified by x and y coordinates. It
-	// can be represented in the following ways: - As an `{x, y}` object. - As
-	// an `[x, y]` array. - As a string in `"x, y"` or WKT point format.
+	// NullValue is a two-dimensional Cartesian point specified by x and y
+	// coordinates. It can be represented in the following ways: - As an `{x,
+	// y}` object. - As an `[x, y]` array. - As a string in `"x, y"` or WKT
+	// point format.
 	//
 	// Available: >= 2.4.0.
-	NullValue *CommonMappingXyPointPropertyNullValue `json:"null_value,omitempty"`
+	NullValue *XYLocation `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
 }
 
-type CommonMappingXyShapeProperty struct {
+type CommonMappingXYShapeProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Coerce          *bool   `json:"coerce,omitempty"`
 	IgnoreMalformed *bool   `json:"ignore_malformed,omitempty"`
@@ -3707,7 +4006,7 @@ type CommonMappingNumberPropertyBase struct {
 type CommonMappingByteNumberProperty struct {
 	CommonMappingNumberPropertyBase
 
-	// The byte value.
+	// NullValue is the byte value.
 	NullValue *int `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
@@ -3790,7 +4089,7 @@ type CommonMappingSemanticProperty struct {
 type CommonMappingShortNumberProperty struct {
 	CommonMappingNumberPropertyBase
 
-	// The short integer value.
+	// NullValue is the short integer value.
 	NullValue *int `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
@@ -3799,7 +4098,7 @@ type CommonMappingShortNumberProperty struct {
 type CommonMappingUnsignedLongNumberProperty struct {
 	CommonMappingNumberPropertyBase
 
-	// The unsigned long integer value.
+	// NullValue is the unsigned long integer value.
 	NullValue *float64 `json:"null_value,omitempty"`
 
 	Type string `json:"type"`
@@ -3855,7 +4154,7 @@ type CommonMappingKNNVectorProperty struct {
 	Type             string                        `json:"type"`
 }
 
-type CommonMappingIcuCollationKeywordProperty struct {
+type CommonMappingICUCollationKeywordProperty struct {
 	CommonMappingDocValuesPropertyBase
 	Alternate              *string `json:"alternate,omitempty"`
 	CaseFirst              *string `json:"case_first,omitempty"`
@@ -3874,42 +4173,42 @@ type CommonMappingIcuCollationKeywordProperty struct {
 }
 
 type CommonMappingMatchOnlyTextProperty struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// CopyTo is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	CopyTo *string `json:"copy_to,omitempty"`
 
-	// Multi-fields allow the same string value to be indexed in multiple ways
-	// for different purposes, such as one field for search and a multi-field
-	// for sorting and aggregations, or the same string value analyzed by
-	// different analyzers.
-	Fields map[string]CommonMappingMatchOnlyTextPropertyFieldsValue `json:"fields,omitempty"`
+	// Fields. Multi-fields allow the same string value to be indexed in
+	// multiple ways for different purposes, such as one field for search and a
+	// multi-field for sorting and aggregations, or the same string value
+	// analyzed by different analyzers.
+	Fields map[string]CommonMappingProperty `json:"fields,omitempty"`
 
-	// Metadata about the field.
+	// Meta. Metadata about the field.
 	Meta map[string]string `json:"meta,omitempty"`
 
 	Type string `json:"type"`
 }
 
 type CommonMappingPropertyBase struct {
-	Dynamic     *CommonMappingPropertyBaseDynamic               `json:"dynamic,omitempty"`
-	Fields      map[string]CommonMappingPropertyBaseFieldsValue `json:"fields,omitempty"`
-	IgnoreAbove *int                                            `json:"ignore_above,omitempty"`
+	Dynamic     *CommonMappingDynamic            `json:"dynamic,omitempty"`
+	Fields      map[string]CommonMappingProperty `json:"fields,omitempty"`
+	IgnoreAbove *int                             `json:"ignore_above,omitempty"`
 
-	// Metadata about the field.
+	// Meta. Metadata about the field.
 	Meta map[string]string `json:"meta,omitempty"`
 
-	Properties map[string]CommonMappingPropertyBasePropertiesValue `json:"properties,omitempty"`
+	Properties map[string]CommonMappingProperty `json:"properties,omitempty"`
 }
 
 type CommonMappingCorePropertyBase struct {
 	CommonMappingPropertyBase
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// CopyTo is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	CopyTo *string `json:"copy_to,omitempty"`
 
 	Similarity *string `json:"similarity,omitempty"`
@@ -3944,7 +4243,7 @@ type CommonMappingType struct {
 	DataStreamTimestamp *CommonMappingDataStreamTimestamp `json:"_data_stream_timestamp,omitempty"`
 	FieldNames          *CommonMappingFieldNamesField     `json:"_field_names,omitempty"`
 
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	Routing            *CommonMappingRoutingField                `json:"_routing,omitempty"`
@@ -3952,7 +4251,7 @@ type CommonMappingType struct {
 	Source             *CommonMappingSourceField                 `json:"_source,omitempty"`
 	AllField           *CommonMappingAllField                    `json:"all_field,omitempty"`
 	DateDetection      *bool                                     `json:"date_detection,omitempty"`
-	Dynamic            *CommonMappingTypeDynamic                 `json:"dynamic,omitempty"`
+	Dynamic            *CommonMappingDynamic                     `json:"dynamic,omitempty"`
 	DynamicDateFormats []string                                  `json:"dynamic_date_formats,omitempty"`
 	DynamicTemplates   []map[string]CommonMappingDynamicTemplate `json:"dynamic_templates,omitempty"`
 	Enabled            *bool                                     `json:"enabled,omitempty"`
@@ -3975,11 +4274,11 @@ type CommonAnalysisFingerprintAnalyzer struct {
 	PreserveOriginal bool   `json:"preserve_original"`
 	Separator        string `json:"separator"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisFingerprintAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -3995,11 +4294,11 @@ type CommonAnalysisLanguageAnalyzer struct {
 	Language      string   `json:"language"`
 	StemExclusion []string `json:"stem_exclusion"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisLanguageAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4019,11 +4318,11 @@ type CommonAnalysisPatternAnalyzer struct {
 	Lowercase *bool   `json:"lowercase,omitempty"`
 	Pattern   string  `json:"pattern"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisPatternAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type    string  `json:"type"`
 	Version *string `json:"version,omitempty"`
@@ -4037,21 +4336,21 @@ type CommonAnalysisSimpleAnalyzer struct {
 type CommonAnalysisStandardAnalyzer struct {
 	MaxTokenLength *int `json:"max_token_length,omitempty"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStandardAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type string `json:"type"`
 }
 
 type CommonAnalysisStopAnalyzer struct {
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStopAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4063,7 +4362,7 @@ type CommonAnalysisWhitespaceAnalyzer struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisIcuAnalyzer struct {
+type CommonAnalysisICUAnalyzer struct {
 	Method string `json:"method"`
 	Mode   string `json:"mode"`
 	Type   string `json:"type"`
@@ -4078,22 +4377,22 @@ type CommonAnalysisKuromojiAnalyzer struct {
 type CommonAnalysisSnowballAnalyzer struct {
 	Language string `json:"language"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisSnowballAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type    string  `json:"type"`
 	Version *string `json:"version,omitempty"`
 }
 
 type CommonAnalysisDutchAnalyzer struct {
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisDutchAnalyzerStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	Type string `json:"type"`
 }
@@ -4102,19 +4401,20 @@ type CommonAnalysisSmartcnAnalyzer struct {
 	Type *string `json:"type,omitempty"`
 }
 
-type CommonAnalysisCjkAnalyzer struct {
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisCjkAnalyzerStopwords `json:"stopwords,omitempty"`
+type CommonAnalysisCJKAnalyzer struct {
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          *string `json:"type,omitempty"`
 }
 
 type CommonAnalysisPhoneAnalyzerBase struct {
-	// Optional ISO 3166 country code, defaults to "ZZ" (unknown region).
+	// PhoneRegion. Optional ISO 3166 country code, defaults to "ZZ" (unknown
+	// region).
 	PhoneRegion *string `json:"phone-region,omitempty"`
 }
 
@@ -4132,7 +4432,7 @@ type CommonAnalysisCharFilterBase struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisHtmlStripCharFilter struct {
+type CommonAnalysisHTMLStripCharFilter struct {
 	CommonAnalysisCharFilterBase
 	Type string `json:"type"`
 }
@@ -4152,7 +4452,7 @@ type CommonAnalysisPatternReplaceCharFilter struct {
 	Type        string  `json:"type"`
 }
 
-type CommonAnalysisIcuNormalizationCharFilter struct {
+type CommonAnalysisICUNormalizationCharFilter struct {
 	CommonAnalysisCharFilterBase
 	Mode *string `json:"mode,omitempty"`
 	Name *string `json:"name,omitempty"`
@@ -4173,9 +4473,9 @@ type CommonAnalysisTokenFilterBase struct {
 type CommonAnalysisAsciiFoldingTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4194,9 +4494,9 @@ type CommonAnalysisCommonGramsTokenFilter struct {
 
 type CommonAnalysisConditionTokenFilter struct {
 	CommonAnalysisTokenFilterBase
-	Filter []string                                 `json:"filter"`
-	Script CommonAnalysisConditionTokenFilterScript `json:"script"`
-	Type   string                                   `json:"type"`
+	Filter []string `json:"filter"`
+	Script Script   `json:"script"`
+	Type   string   `json:"type"`
 }
 
 type CommonAnalysisDelimitedPayloadTokenFilter struct {
@@ -4211,9 +4511,9 @@ type CommonAnalysisEdgeNGramTokenFilter struct {
 	MaxGram *int `json:"max_gram,omitempty"`
 	MinGram *int `json:"min_gram,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4226,8 +4526,8 @@ type CommonAnalysisElisionTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Articles []string `json:"articles,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// ArticlesCase. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4309,8 +4609,8 @@ type CommonAnalysisLimitTokenCountTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	ConsumeAllTokens *bool `json:"consume_all_tokens,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxTokenCount. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4329,9 +4629,9 @@ type CommonAnalysisMultiplexerTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Filters []string `json:"filters"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4344,9 +4644,9 @@ type CommonAnalysisNGramTokenFilter struct {
 	MaxGram *int `json:"max_gram,omitempty"`
 	MinGram *int `json:"min_gram,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4364,9 +4664,9 @@ type CommonAnalysisPatternCaptureTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Patterns []string `json:"patterns"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4395,8 +4695,8 @@ type CommonAnalysisPorterStemTokenFilter struct {
 
 type CommonAnalysisPredicateTokenFilter struct {
 	CommonAnalysisTokenFilterBase
-	Script CommonAnalysisPredicateTokenFilterScript `json:"script"`
-	Type   string                                   `json:"type"`
+	Script Script `json:"script"`
+	Type   string `json:"type"`
 }
 
 type CommonAnalysisRemoveDuplicatesTokenFilter struct {
@@ -4413,16 +4713,16 @@ type CommonAnalysisShingleTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	FillerToken *string `json:"filler_token,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxShingleSize. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxShingleSize *string `json:"max_shingle_size,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MinShingleSize. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MinShingleSize *string `json:"min_shingle_size,omitempty"`
@@ -4457,11 +4757,11 @@ type CommonAnalysisStopTokenFilter struct {
 	IgnoreCase     *bool `json:"ignore_case,omitempty"`
 	RemoveTrailing *bool `json:"remove_trailing,omitempty"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	Stopwords *CommonAnalysisStopTokenFilterStopwords `json:"stopwords,omitempty"`
+	// Stopwords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	Stopwords *CommonAnalysisStopWords `json:"stopwords,omitempty"`
 
 	StopwordsPath *string `json:"stopwords_path,omitempty"`
 	Type          string  `json:"type"`
@@ -4523,9 +4823,9 @@ type CommonAnalysisWordDelimiterGraphTokenFilter struct {
 	GenerateWordParts   *bool `json:"generate_word_parts,omitempty"`
 	IgnoreKeywords      *bool `json:"ignore_keywords,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4548,9 +4848,9 @@ type CommonAnalysisWordDelimiterTokenFilter struct {
 	GenerateNumberParts *bool `json:"generate_number_parts,omitempty"`
 	GenerateWordParts   *bool `json:"generate_word_parts,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// PreserveOriginal. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	PreserveOriginal *string `json:"preserve_original,omitempty"`
@@ -4587,13 +4887,13 @@ type CommonAnalysisTokenizerBase struct {
 	Version *string `json:"version,omitempty"`
 }
 
-type CommonAnalysisIcuTokenizer struct {
+type CommonAnalysisICUTokenizer struct {
 	CommonAnalysisTokenizerBase
 	RuleFiles string `json:"rule_files"`
 	Type      string `json:"type"`
 }
 
-type CommonAnalysisIcuCollationTokenFilter struct {
+type CommonAnalysisICUCollationTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Alternate              *string `json:"alternate,omitempty"`
 	CaseFirst              *string `json:"caseFirst,omitempty"`
@@ -4610,19 +4910,19 @@ type CommonAnalysisIcuCollationTokenFilter struct {
 	Variant                *string `json:"variant,omitempty"`
 }
 
-type CommonAnalysisIcuFoldingTokenFilter struct {
+type CommonAnalysisICUFoldingTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Type             string `json:"type"`
 	UnicodeSetFilter string `json:"unicode_set_filter"`
 }
 
-type CommonAnalysisIcuNormalizationTokenFilter struct {
+type CommonAnalysisICUNormalizationTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Name string `json:"name"`
 	Type string `json:"type"`
 }
 
-type CommonAnalysisIcuTransformTokenFilter struct {
+type CommonAnalysisICUTransformTokenFilter struct {
 	CommonAnalysisTokenFilterBase
 	Dir  *string `json:"dir,omitempty"`
 	ID   string  `json:"id"`
@@ -4713,8 +5013,8 @@ type CommonAnalysisNoriTokenizer struct {
 type CommonAnalysisPathHierarchyTokenizer struct {
 	CommonAnalysisTokenizerBase
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// BufferSize. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4723,14 +5023,14 @@ type CommonAnalysisPathHierarchyTokenizer struct {
 	Delimiter   string  `json:"delimiter"`
 	Replacement *string `json:"replacement,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Reverse. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Reverse string `json:"reverse"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Skip. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -4746,7 +5046,7 @@ type CommonAnalysisStandardTokenizer struct {
 	Type           string `json:"type"`
 }
 
-type CommonAnalysisUaxEmailURLTokenizer struct {
+type CommonAnalysisUAXEmailURLTokenizer struct {
 	CommonAnalysisTokenizerBase
 	MaxTokenLength *int   `json:"max_token_length,omitempty"`
 	Type           string `json:"type"`
@@ -4797,26 +5097,26 @@ type CommonAnalysisSmartcnTokenizer struct {
 
 // The text analysis configuration.
 type IndicesIndexSettingsAnalysis struct {
-	// The custom analyzer configurations.
-	Analyzer map[string]IndicesIndexSettingsAnalysisAnalyzerValue `json:"analyzer,omitempty"`
+	// Analyzer is the custom analyzer configurations.
+	Analyzer map[string]CommonAnalysisAnalyzer `json:"analyzer,omitempty"`
 
-	// The custom character filter configurations.
-	CharFilter map[string]IndicesIndexSettingsAnalysisCharFilterValue `json:"char_filter,omitempty"`
+	// CharFilter is the custom character filter configurations.
+	CharFilter map[string]CommonAnalysisCharFilter `json:"char_filter,omitempty"`
 
-	// The custom token filter configurations.
-	Filter map[string]IndicesIndexSettingsAnalysisFilterValue `json:"filter,omitempty"`
+	// Filter is the custom token filter configurations.
+	Filter map[string]CommonAnalysisTokenFilter `json:"filter,omitempty"`
 
-	// The custom normalizer configurations.
-	Normalizer map[string]IndicesIndexSettingsAnalysisNormalizerValue `json:"normalizer,omitempty"`
+	// Normalizer is the custom normalizer configurations.
+	Normalizer map[string]CommonAnalysisNormalizer `json:"normalizer,omitempty"`
 
-	// The custom tokenizer configurations.
-	Tokenizer map[string]IndicesIndexSettingsAnalysisTokenizerValue `json:"tokenizer,omitempty"`
+	// Tokenizer is the custom tokenizer configurations.
+	Tokenizer map[string]CommonAnalysisTokenizer `json:"tokenizer,omitempty"`
 }
 
 // The configuration for text analysis.
 type IndicesIndexSettingsAnalyze struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxTokenCount. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4825,39 +5125,39 @@ type IndicesIndexSettingsAnalyze struct {
 
 // The block settings that control index operations.
 type IndicesIndexSettingBlocks struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// Metadata. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Metadata *string `json:"metadata,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Read. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Read *string `json:"read,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// ReadOnly. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	ReadOnly *string `json:"read_only,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// ReadOnlyAllowDelete. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	ReadOnlyAllowDelete *string `json:"read_only_allow_delete,omitempty"`
 
-	// When true, the index is in search-only mode, allowing only read
-	// operations
+	// SearchOnly. When true, the index is in search-only mode, allowing only
+	// read operations
 	SearchOnly *string `json:"search_only,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Write. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -4867,8 +5167,8 @@ type IndicesIndexSettingBlocks struct {
 
 // The default settings for star tree indexing.
 type IndicesIndexSettingsStarTreeDefault struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxLeafDocs. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4877,34 +5177,34 @@ type IndicesIndexSettingsStarTreeDefault struct {
 
 // The field-specific settings for star tree indexing.
 type IndicesIndexSettingsStarTreeFieldDefault struct {
-	// The list of date intervals to use.
+	// DateIntervals is the list of date intervals to use.
 	DateIntervals []string `json:"date_intervals,omitempty"`
 
-	// The list of metrics to calculate.
+	// Metrics is the list of metrics to calculate.
 	Metrics []string `json:"metrics,omitempty"`
 }
 
 // The field-specific settings for star tree indexing.
 type IndicesIndexSettingsStarTreeField struct {
-	// The field-specific settings for star tree indexing.
+	// Default is the field-specific settings for star tree indexing.
 	Default *IndicesIndexSettingsStarTreeFieldDefault `json:"default,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxBaseMetrics. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxBaseMetrics *string `json:"max_base_metrics,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxDateIntervals. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxDateIntervals *string `json:"max_date_intervals,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxDimensions. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4913,14 +5213,14 @@ type IndicesIndexSettingsStarTreeField struct {
 
 // The star tree indexing configuration.
 type IndicesIndexSettingsStarTree struct {
-	// The default settings for star tree indexing.
+	// Default is the default settings for star tree indexing.
 	Default *IndicesIndexSettingsStarTreeDefault `json:"default,omitempty"`
 
-	// The field-specific settings for star tree indexing.
+	// Field is the field-specific settings for star tree indexing.
 	Field *IndicesIndexSettingsStarTreeField `json:"field,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxFields. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -4929,93 +5229,95 @@ type IndicesIndexSettingsStarTree struct {
 
 // The configuration for highlighting.
 type IndicesIndexSettingsHighlight struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxAnalyzedOffset. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxAnalyzedOffset *string `json:"max_analyzed_offset,omitempty"`
 }
 
 // The threshold levels for slow log.
 type IndicesSlowlogThresholdLevels struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Debug is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Debug *string `json:"debug,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Info is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Info *string `json:"info,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Trace is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Trace *string `json:"trace,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Warn is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Warn *string `json:"warn,omitempty"`
 }
 
 // The threshold configuration for indexing slow log.
 type IndicesIndexingSlowlogThresholds struct {
-	// The threshold levels for slow log.
+	// Index is the threshold levels for slow log.
 	Index *IndicesSlowlogThresholdLevels `json:"index,omitempty"`
 }
 
 // The configuration for indexing slow log.
 type IndicesIndexingSlowlog struct {
-	// The log level for slow indexing operations.
+	// Level is the log level for slow indexing operations.
 	Level *string `json:"level,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// Reformat. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Reformat *string `json:"reformat,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Source. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Source *string `json:"source,omitempty"`
 
-	// The threshold configuration for indexing slow log.
+	// Threshold is the threshold configuration for indexing slow log.
 	Threshold *IndicesIndexingSlowlogThresholds `json:"threshold,omitempty"`
 }
 
 // The indexing-related settings for an index.
 type IndicesIndexSettingsIndexing struct {
-	// The configuration for indexing slow log.
+	// Slowlog is the configuration for indexing slow log.
 	Slowlog *IndicesIndexingSlowlog `json:"slowlog,omitempty"`
 }
 
 // The memory-related settings for indexing backpressure.
 type IndicesIndexingPressureMemory struct {
-	// The number of outstanding bytes that may be consumed by indexing
-	// requests. When this limit is reached or exceeded, the node will reject
-	// new coordinating and primary operations. When replica operations consume
-	// 1.5x this limit, the node will reject new replica operations. Defaults
-	// to 10% of the heap.
+	// Limit is the number of outstanding bytes that may be consumed by
+	// indexing requests. When this limit is reached or exceeded, the node will
+	// reject new coordinating and primary operations. When replica operations
+	// consume 1.5x this limit, the node will reject new replica operations.
+	// Defaults to 10% of the heap.
 	Limit *IndicesIndexingPressureMemoryLimit `json:"limit,omitempty"`
 }
 
 // The configuration for indexing backpressure.
 type IndicesIndexingPressure struct {
-	// The memory-related settings for indexing backpressure.
+	// Memory is the memory-related settings for indexing backpressure.
 	Memory IndicesIndexingPressureMemory `json:"memory"`
 }
 
 type IndicesIngestionSourcePointerInit struct {
-	// Determines where to start reading from the stream.
+	// Reset. Determines where to start reading from the stream.
 	Reset *string `json:"reset,omitempty"`
 
-	// Specifies the offset value or timestamp in milliseconds.
+	// ResetValue. Specifies the offset value or timestamp in milliseconds.
 	ResetValue *string `json:"reset.value,omitempty"`
 }
 
@@ -5024,115 +5326,122 @@ type IndicesIngestionSourcePointer struct {
 }
 
 type IndicesIngestionSourcePoll struct {
-	// The maximum number of records to retrieve in each poll operation.
+	// MaxBatchSize is the maximum number of records to retrieve in each poll
+	// operation.
 	MaxBatchSize *string `json:"max_batch_size,omitempty"`
 
-	// Determines the Poll timeout value.
+	// Timeout. Determines the Poll timeout value.
 	Timeout *string `json:"timeout,omitempty"`
 }
 
 // The pull-based ingestion settings controlling how data is read from streaming sources.
 type IndicesIngestionSource struct {
-	// Indicates if all-active ingestion is enabled for this index.
+	// AllActive. Indicates if all-active ingestion is enabled for this index.
 	AllActive *string `json:"all_active,omitempty"`
 
-	// Defines the policy for error handling.
+	// ErrorStrategy. Defines the policy for error handling.
 	ErrorStrategy *string `json:"error_strategy,omitempty"`
 
-	// Defines the size of the internal blocking queue in pull-based ingestion.
+	// InternalQueueSize. Defines the size of the internal blocking queue in
+	// pull-based ingestion.
 	InternalQueueSize *string `json:"internal_queue_size,omitempty"`
 
-	// Defines the number of processor or writer threads.
+	// NumProcessorThreads. Defines the number of processor or writer threads.
 	NumProcessorThreads *string `json:"num_processor_threads,omitempty"`
 
-	// Custom parameters for the ingestion source.
+	// Param. Custom parameters for the ingestion source.
 	Param map[string]json.RawMessage `json:"param,omitempty"`
 
 	Pointer *IndicesIngestionSourcePointer `json:"pointer,omitempty"`
 
-	// Determines where to start reading from the stream.
+	// PointerInitReset. Determines where to start reading from the stream.
 	PointerInitReset *string `json:"pointer.init.reset,omitempty"`
 
-	// Specifies the offset value or timestamp in milliseconds.
+	// PointerInitResetValue. Specifies the offset value or timestamp in
+	// milliseconds.
 	PointerInitResetValue *string `json:"pointer.init.reset.value,omitempty"`
 
 	Poll *IndicesIngestionSourcePoll `json:"poll,omitempty"`
 
-	// The maximum number of records to retrieve in each poll operation.
+	// PollMaxBatchSize is the maximum number of records to retrieve in each
+	// poll operation.
 	PollMaxBatchSize *string `json:"poll.max_batch_size,omitempty"`
 
-	// Determines the Poll timeout value.
+	// PollTimeout. Determines the Poll timeout value.
 	PollTimeout *string `json:"poll.timeout,omitempty"`
 
-	// The streaming source type.
+	// Type is the streaming source type.
 	Type *string `json:"type,omitempty"`
 }
 
 // The configuration for the lifecycle step execution.
 type IndicesIndexSettingsLifecycleStep struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// WaitTimeThreshold is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	WaitTimeThreshold *string `json:"wait_time_threshold,omitempty"`
 }
 
 // The index lifecycle management configuration.
 type IndicesIndexSettingsLifecycle struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// IndexingComplete. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	IndexingComplete *string `json:"indexing_complete,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The timestamp used to calculate the index age for its phase transitions.
-	// Use this setting if you create a new index that contains old data and
-	// want to use the original creation date to calculate the index age.
-	// Specified as a Unix epoch value in milliseconds.
-	OriginationDate *IndicesIndexSettingsLifecycleOriginationDate `json:"origination_date,omitempty"`
+	// OriginationDate is the timestamp used to calculate the index age for its
+	// phase transitions. Use this setting if you create a new index that
+	// contains old data and want to use the original creation date to
+	// calculate the index age. Specified as a Unix epoch value in
+	// milliseconds.
+	OriginationDate *StringifiedEpochTimeUnitMillis `json:"origination_date,omitempty"`
 
-	// When `true`, parses the origination date from the index name. This
-	// origination date is used to calculate the index age for its phase
-	// transitions. The index name must match the pattern
+	// ParseOriginationDate. When `true`, parses the origination date from the
+	// index name. This origination date is used to calculate the index age for
+	// its phase transitions. The index name must match the pattern
 	// `^.*-{date_format}-\\d+`, where the `date_format` is `yyyy.MM.dd` and
 	// the trailing digits are optional. An index that was rolled over would
 	// normally match the full format, for example `logs-2016.10.31-000002`).
 	// If the index name doesn't match the pattern, index creation fails.
 	ParseOriginationDate *bool `json:"parse_origination_date,omitempty"`
 
-	// The index alias to update when the index rolls over. Specify when using
-	// a policy that contains a rollover action. When the index rolls over, the
-	// alias is updated to reflect that the index is no longer the write index.
-	// For more information about rolling indexes, see Rollover.
+	// RolloverAlias is the index alias to update when the index rolls over.
+	// Specify when using a policy that contains a rollover action. When the
+	// index rolls over, the alias is updated to reflect that the index is no
+	// longer the write index. For more information about rolling indexes, see
+	// Rollover.
 	RolloverAlias *string `json:"rollover_alias,omitempty"`
 
-	// The configuration for the lifecycle step execution.
+	// Step is the configuration for the lifecycle step execution.
 	Step *IndicesIndexSettingsLifecycleStep `json:"step,omitempty"`
 }
 
 type IndicesIndexSettingsMappingLimitDepth struct {
-	// The maximum depth for a field, which is measured as the number of inner
-	// objects. For instance, if all fields are defined at the root object
-	// level, then the depth is `1`. If there is one object mapping, then the
-	// depth is `2`.
+	// Limit is the maximum depth for a field, which is measured as the number
+	// of inner objects. For instance, if all fields are defined at the root
+	// object level, then the depth is `1`. If there is one object mapping,
+	// then the depth is `2`.
 	Limit *string `json:"limit,omitempty"`
 }
 
 type IndicesIndexSettingsMappingLimitDimensionFields struct {
-	// [preview] This functionality is in technical preview and may be changed
-	// or removed in a future release. OpenSearch will work to fix any issues,
-	// but features in technical preview are not subject to the support SLA of
-	// official GA features.
+	// Limit. [preview] This functionality is in technical preview and may be
+	// changed or removed in a future release. OpenSearch will work to fix any
+	// issues, but features in technical preview are not subject to the support
+	// SLA of official GA features.
 	Limit *string `json:"limit,omitempty"`
 }
 
 type IndicesIndexSettingsMappingLimitFieldNameLength struct {
-	// Setting for the maximum length of a field name. This setting isn't
-	// really something that addresses mappings explosion but might still be
-	// useful if you want to limit the field length. It usually shouldn't be
+	// Limit. Setting for the maximum length of a field name. This setting
+	// isn't really something that addresses mappings explosion but might still
+	// be useful if you want to limit the field length. It usually shouldn't be
 	// necessary to set this setting. The default is okay unless a user starts
 	// to add a huge number of fields with really long names. Default is
 	// `Long.MAX_VALUE` (no limit).
@@ -5140,33 +5449,34 @@ type IndicesIndexSettingsMappingLimitFieldNameLength struct {
 }
 
 type IndicesIndexSettingsMappingLimitNestedFields struct {
-	// The maximum number of distinct nested mappings in an index. The nested
-	// type should only be used in special cases, when arrays of objects need
-	// to be queried independently of each other. To safeguard against poorly
-	// designed mappings, this setting limits the number of unique nested types
-	// per index.
+	// Limit is the maximum number of distinct nested mappings in an index. The
+	// nested type should only be used in special cases, when arrays of objects
+	// need to be queried independently of each other. To safeguard against
+	// poorly designed mappings, this setting limits the number of unique
+	// nested types per index.
 	Limit *string `json:"limit,omitempty"`
 }
 
 type IndicesIndexSettingsMappingLimitNestedObjects struct {
-	// The maximum number of nested JSON objects that a single document can
-	// contain across all nested types. This limit helps to prevent out of
-	// memory errors when a document contains too many nested objects.
+	// Limit is the maximum number of nested JSON objects that a single
+	// document can contain across all nested types. This limit helps to
+	// prevent out of memory errors when a document contains too many nested
+	// objects.
 	Limit *string `json:"limit,omitempty"`
 }
 
 type IndicesIndexSettingsMappingLimitTotalFields struct {
-	// The maximum number of fields in an index. Field and object mappings, as
-	// well as field aliases count towards this limit. The limit is in place to
-	// prevent mappings and searches from becoming too large. Higher values can
-	// lead to performance degradations and memory issues, especially in
-	// clusters with a high load or few resources.
+	// Limit is the maximum number of fields in an index. Field and object
+	// mappings, as well as field aliases count towards this limit. The limit
+	// is in place to prevent mappings and searches from becoming too large.
+	// Higher values can lead to performance degradations and memory issues,
+	// especially in clusters with a high load or few resources.
 	Limit *string `json:"limit,omitempty"`
 }
 
 // The mapping configuration for the index.
 type IndicesIndexSettingsMapping struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Coerce. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -5177,9 +5487,9 @@ type IndicesIndexSettingsMapping struct {
 	DimensionFields *IndicesIndexSettingsMappingLimitDimensionFields `json:"dimension_fields,omitempty"`
 	FieldNameLength *IndicesIndexSettingsMappingLimitFieldNameLength `json:"field_name_length,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// IgnoreMalformed. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	IgnoreMalformed *string `json:"ignore_malformed,omitempty"`
@@ -5191,30 +5501,30 @@ type IndicesIndexSettingsMapping struct {
 
 // The configuration for log byte size merge policy.
 type IndicesIndexSettingsMergeLogByteSizePolicy struct {
-	// The unique identifier of a node.
+	// MaxMergeSegment is the unique identifier of a node.
 	MaxMergeSegment *string `json:"max_merge_segment,omitempty"`
 
-	// The unique identifier of a node.
+	// MaxMergeSegmentForcedMerge is the unique identifier of a node.
 	MaxMergeSegmentForcedMerge *string `json:"max_merge_segment_forced_merge,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxMergedDocs. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxMergedDocs *string `json:"max_merged_docs,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MergeFactor. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MergeFactor *string `json:"merge_factor,omitempty"`
 
-	// The unique identifier of a node.
+	// MinMerge is the unique identifier of a node.
 	MinMerge *string `json:"min_merge,omitempty"`
 
-	NoCfsRatio *string `json:"no_cfs_ratio,omitempty"`
+	NoCFSRatio *string `json:"no_cfs_ratio,omitempty"`
 }
 
 // The configuration for tiered merge policy.
@@ -5222,24 +5532,24 @@ type IndicesIndexSettingsMergeTieredPolicy struct {
 	DeletesPctAllowed     *string `json:"deletes_pct_allowed,omitempty"`
 	ExpungeDeletesAllowed *string `json:"expunge_deletes_allowed,omitempty"`
 
-	// The unique identifier of a node.
+	// FloorSegment is the unique identifier of a node.
 	FloorSegment *string `json:"floor_segment,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxMergeAtOnce. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxMergeAtOnce *string `json:"max_merge_at_once,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxMergeAtOnceExplicit. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxMergeAtOnceExplicit *string `json:"max_merge_at_once_explicit,omitempty"`
 
-	// The unique identifier of a node.
+	// MaxMergedSegment is the unique identifier of a node.
 	MaxMergedSegment *string `json:"max_merged_segment,omitempty"`
 
 	ReclaimDeletesWeight *string `json:"reclaim_deletes_weight,omitempty"`
@@ -5248,23 +5558,23 @@ type IndicesIndexSettingsMergeTieredPolicy struct {
 
 // The configuration for merge scheduling.
 type IndicesIndexSettingsMergeScheduler struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// AutoThrottle. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	AutoThrottle *string `json:"auto_throttle,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxMergeCount. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxMergeCount *string `json:"max_merge_count,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxThreadCount. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxThreadCount *string `json:"max_thread_count,omitempty"`
@@ -5272,38 +5582,38 @@ type IndicesIndexSettingsMergeScheduler struct {
 
 // The configuration for segment merging.
 type IndicesIndexSettingsMerge struct {
-	// The configuration for log byte size merge policy.
+	// LogByteSizePolicy is the configuration for log byte size merge policy.
 	LogByteSizePolicy *IndicesIndexSettingsMergeLogByteSizePolicy `json:"log_byte_size_policy,omitempty"`
 
-	// The policy configuration for segment merging.
+	// Policy is the policy configuration for segment merging.
 	Policy *IndicesIndexSettingsMergePolicy `json:"policy,omitempty"`
 
 	PolicyDeletesPctAllowed     *string `json:"policy.deletes_pct_allowed,omitempty"`
 	PolicyExpungeDeletesAllowed *string `json:"policy.expunge_deletes_allowed,omitempty"`
 
-	// The unique identifier of a node.
+	// PolicyFloorSegment is the unique identifier of a node.
 	PolicyFloorSegment *string `json:"policy.floor_segment,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// PolicyMaxMergeAtOnce. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	PolicyMaxMergeAtOnce *string `json:"policy.max_merge_at_once,omitempty"`
 
-	// The unique identifier of a node.
+	// PolicyMaxMergedSegment is the unique identifier of a node.
 	PolicyMaxMergedSegment *string `json:"policy.max_merged_segment,omitempty"`
 
 	PolicyReclaimDeletesWeight *string `json:"policy.reclaim_deletes_weight,omitempty"`
 	PolicySegmentsPerTier      *string `json:"policy.segments_per_tier,omitempty"`
 
-	// The configuration for merge scheduling.
+	// Scheduler is the configuration for merge scheduling.
 	Scheduler *IndicesIndexSettingsMergeScheduler `json:"scheduler,omitempty"`
 }
 
 // The query cache settings.
 type IndicesIndexSettingsQueriesCache struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Enabled. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -5313,13 +5623,13 @@ type IndicesIndexSettingsQueriesCache struct {
 
 // The configuration for query caching.
 type IndicesIndexSettingsQueries struct {
-	// The query cache settings.
+	// Cache is the query cache settings.
 	Cache *IndicesIndexSettingsQueriesCache `json:"cache,omitempty"`
 }
 
 // The configuration for query string parsing.
 type IndicesIndexSettingsQueryString struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Lenient. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -5329,9 +5639,9 @@ type IndicesIndexSettingsQueryString struct {
 
 // The disk-based allocation settings.
 type IndicesIndexRoutingAllocationDisk struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// ThresholdEnabled. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	ThresholdEnabled *string `json:"threshold_enabled,omitempty"`
@@ -5339,67 +5649,69 @@ type IndicesIndexRoutingAllocationDisk struct {
 
 // The inclusion rules for shard allocation.
 type IndicesIndexRoutingAllocationInclude struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
-	// The data tier preference for the index.
+	// TierPreference is the data tier preference for the index.
 	TierPreference *string `json:"_tier_preference,omitempty"`
 }
 
 // The configuration for initial shard recovery.
 type IndicesIndexRoutingAllocationInitialRecovery struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 }
 
 // The configuration for shard allocation.
 type IndicesIndexRoutingAllocation struct {
-	// The disk-based allocation settings.
+	// Disk is the disk-based allocation settings.
 	Disk *IndicesIndexRoutingAllocationDisk `json:"disk,omitempty"`
 
-	// The options for shard allocation control.
-	Enable *string `json:"enable,omitempty"`
+	// Enable is the options for shard allocation control.
+	Enable *IndicesIndexRoutingAllocationOptions `json:"enable,omitempty"`
 
-	// The inclusion rules for shard allocation.
+	// Include is the inclusion rules for shard allocation.
 	Include *IndicesIndexRoutingAllocationInclude `json:"include,omitempty"`
 
-	// The configuration for initial shard recovery.
+	// InitialRecovery is the configuration for initial shard recovery.
 	InitialRecovery *IndicesIndexRoutingAllocationInitialRecovery `json:"initial_recovery,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// TotalPrimaryShardsPerNode. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	//
+	// Available: >= 3.0.0.
 	TotalPrimaryShardsPerNode *string `json:"total_primary_shards_per_node,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// TotalShardsPerNode. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	TotalShardsPerNode *string `json:"total_shards_per_node,omitempty"`
 }
 
 // The configuration for shard rebalancing.
 type IndicesIndexRoutingRebalance struct {
-	// The options for shard rebalancing control.
-	Enable string `json:"enable"`
+	// Enable is the options for shard rebalancing control.
+	Enable IndicesIndexRoutingRebalanceOptions `json:"enable"`
 }
 
 // The routing configuration for index operations.
 type IndicesIndexRouting struct {
-	// The configuration for shard allocation.
+	// Allocation is the configuration for shard allocation.
 	Allocation *IndicesIndexRoutingAllocation `json:"allocation,omitempty"`
 
-	// The configuration for shard rebalancing.
+	// Rebalance is the configuration for shard rebalancing.
 	Rebalance *IndicesIndexRoutingRebalance `json:"rebalance,omitempty"`
 }
 
 // The configuration for concurrent search operations.
 type IndicesIndexSettingsSearchConcurrent struct {
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxSliceCount. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -5408,48 +5720,49 @@ type IndicesIndexSettingsSearchConcurrent struct {
 
 // The configuration for concurrent segment search.
 type IndicesIndexSettingsSearchConcurrentSegmentSearch struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Enabled. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Enabled *string `json:"enabled,omitempty"`
 
-	// The mode of concurrent segment search.
+	// Mode is the mode of concurrent segment search.
 	Mode *string `json:"mode,omitempty"`
 }
 
 // The configuration for search idle behavior.
 type IndicesSearchIdle struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// After is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	After *string `json:"after,omitempty"`
 }
 
 // The threshold configuration for search slow log.
 type IndicesSearchSlowlogThresholds struct {
-	// The threshold levels for slow log.
+	// Fetch is the threshold levels for slow log.
 	Fetch *IndicesSlowlogThresholdLevels `json:"fetch,omitempty"`
 
-	// The threshold levels for slow log.
+	// Query is the threshold levels for slow log.
 	Query *IndicesSlowlogThresholdLevels `json:"query,omitempty"`
 }
 
 // The configuration for search slow log.
 type IndicesSearchSlowlog struct {
-	// The log level for slow searches.
+	// Level is the log level for slow searches.
 	Level *string `json:"level,omitempty"`
 
-	// Whether to reformat the logged search source.
+	// Reformat. Whether to reformat the logged search source.
 	Reformat *bool `json:"reformat,omitempty"`
 
-	// The threshold configuration for search slow log.
+	// Threshold is the threshold configuration for search slow log.
 	Threshold *IndicesSearchSlowlogThresholds `json:"threshold,omitempty"`
 }
 
 type IndicesIndexSettingsSearchStarTreeIndex struct {
-	// Certain APIs may return values, including numbers such as epoch
+	// Enabled. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
@@ -5459,25 +5772,26 @@ type IndicesIndexSettingsSearchStarTreeIndex struct {
 
 // The configuration for search operations.
 type IndicesIndexSettingsSearch struct {
-	// The configuration for concurrent search operations.
+	// Concurrent is the configuration for concurrent search operations.
 	Concurrent *IndicesIndexSettingsSearchConcurrent `json:"concurrent,omitempty"`
 
-	// The configuration for concurrent segment search.
+	// ConcurrentSegmentSearch is the configuration for concurrent segment
+	// search.
 	ConcurrentSegmentSearch *IndicesIndexSettingsSearchConcurrentSegmentSearch `json:"concurrent_segment_search,omitempty"`
 
-	// The default search pipeline to use.
+	// DefaultPipeline is the default search pipeline to use.
 	DefaultPipeline *string `json:"default_pipeline,omitempty"`
 
-	// The configuration for search idle behavior.
+	// Idle is the configuration for search idle behavior.
 	Idle *IndicesSearchIdle `json:"idle,omitempty"`
 
-	// The configuration for search slow log.
+	// Slowlog is the configuration for search slow log.
 	Slowlog *IndicesSearchSlowlog `json:"slowlog,omitempty"`
 
 	StarTreeIndex *IndicesIndexSettingsSearchStarTreeIndex `json:"star_tree_index,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// Throttled. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
@@ -5485,87 +5799,88 @@ type IndicesIndexSettingsSearch struct {
 }
 
 // The BM25 similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityBm25 struct {
-	// The length normalization parameter.
+type IndicesIndexSettingsSimilarityBM25 struct {
+	// B is the length normalization parameter.
 	B float32 `json:"b"`
 
-	// Whether to discount overlapping tokens.
+	// DiscountOverlaps. Whether to discount overlapping tokens.
 	DiscountOverlaps bool `json:"discount_overlaps"`
 
-	// The term frequency normalization parameter.
+	// K1 is the term frequency normalization parameter.
 	K1 float32 `json:"k1"`
 
-	// The BM25 similarity algorithm.
+	// Type is the BM25 similarity algorithm.
 	Type string `json:"type"`
 }
 
 // The divergence from independence (DFI) similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityDfi struct {
-	IndependenceMeasure string `json:"independence_measure"`
-	Type                string `json:"type"`
+type IndicesIndexSettingsSimilarityDFI struct {
+	IndependenceMeasure DFIIndependenceMeasure `json:"independence_measure"`
+	Type                string                 `json:"type"`
 }
 
 // The divergence from randomness (DFR) similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityDfr struct {
-	AfterEffect   string `json:"after_effect"`
-	BasicModel    string `json:"basic_model"`
-	Normalization string `json:"normalization"`
-	Type          string `json:"type"`
+type IndicesIndexSettingsSimilarityDFR struct {
+	AfterEffect   DFRAfterEffect             `json:"after_effect"`
+	BasicModel    DFRBasicModel              `json:"basic_model"`
+	Normalization TermFrequencyNormalization `json:"normalization"`
+	Type          string                     `json:"type"`
 }
 
 // The information-based similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityIb struct {
-	Distribution  string `json:"distribution"`
-	Lambda        string `json:"lambda"`
-	Normalization string `json:"normalization"`
-	Type          string `json:"type"`
+type IndicesIndexSettingsSimilarityIB struct {
+	Distribution  IBDistribution             `json:"distribution"`
+	Lambda        IBLambda                   `json:"lambda"`
+	Normalization TermFrequencyNormalization `json:"normalization"`
+	Type          string                     `json:"type"`
 }
 
 // The LM Dirichlet similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityLmd struct {
-	// The smoothing parameter.
+type IndicesIndexSettingsSimilarityLMD struct {
+	// Mu is the smoothing parameter.
 	Mu float32 `json:"mu"`
 
 	Type string `json:"type"`
 }
 
 // The LM Jelinek-Mercer similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityLmj struct {
-	// The optimal mixture parameter.
+type IndicesIndexSettingsSimilarityLMJ struct {
+	// Lambda is the optimal mixture parameter.
 	Lambda float32 `json:"lambda"`
 
 	Type string `json:"type"`
 }
 
 // The scripted TF/IDF similarity algorithm configuration.
-type IndicesIndexSettingsSimilarityScriptedTfidf struct {
-	Script IndicesIndexSettingsSimilarityScriptedTfidfScript `json:"script"`
-	Type   string                                            `json:"type"`
+type IndicesIndexSettingsSimilarityScriptedTFIDF struct {
+	Script Script `json:"script"`
+	Type   string `json:"type"`
 }
 
 // The configuration for similarity algorithms.
 type IndicesIndexSettingsSimilarity struct {
-	// The BM25 similarity algorithm configuration.
-	Bm25 *IndicesIndexSettingsSimilarityBm25 `json:"bm25,omitempty"`
+	// BM25 is the BM25 similarity algorithm configuration.
+	BM25 *IndicesIndexSettingsSimilarityBM25 `json:"bm25,omitempty"`
 
-	// The divergence from independence (DFI) similarity algorithm
+	// DFI is the divergence from independence (DFI) similarity algorithm
 	// configuration.
-	Dfi *IndicesIndexSettingsSimilarityDfi `json:"dfi,omitempty"`
+	DFI *IndicesIndexSettingsSimilarityDFI `json:"dfi,omitempty"`
 
-	// The divergence from randomness (DFR) similarity algorithm configuration.
-	Dfr *IndicesIndexSettingsSimilarityDfr `json:"dfr,omitempty"`
+	// DFR is the divergence from randomness (DFR) similarity algorithm
+	// configuration.
+	DFR *IndicesIndexSettingsSimilarityDFR `json:"dfr,omitempty"`
 
-	// The information-based similarity algorithm configuration.
-	Ib *IndicesIndexSettingsSimilarityIb `json:"ib,omitempty"`
+	// IB is the information-based similarity algorithm configuration.
+	IB *IndicesIndexSettingsSimilarityIB `json:"ib,omitempty"`
 
-	// The LM Dirichlet similarity algorithm configuration.
-	Lmd *IndicesIndexSettingsSimilarityLmd `json:"lmd,omitempty"`
+	// LMD is the LM Dirichlet similarity algorithm configuration.
+	LMD *IndicesIndexSettingsSimilarityLMD `json:"lmd,omitempty"`
 
-	// The LM Jelinek-Mercer similarity algorithm configuration.
-	Lmj *IndicesIndexSettingsSimilarityLmj `json:"lmj,omitempty"`
+	// LMJ is the LM Jelinek-Mercer similarity algorithm configuration.
+	LMJ *IndicesIndexSettingsSimilarityLMJ `json:"lmj,omitempty"`
 
-	// The scripted TF/IDF similarity algorithm configuration.
-	ScriptedTfidf *IndicesIndexSettingsSimilarityScriptedTfidf `json:"scripted_tfidf,omitempty"`
+	// ScriptedTFIDF is the scripted TF/IDF similarity algorithm configuration.
+	ScriptedTFIDF *IndicesIndexSettingsSimilarityScriptedTFIDF `json:"scripted_tfidf,omitempty"`
 }
 
 // The retention configuration for soft deletes.
@@ -5575,30 +5890,31 @@ type IndicesSoftDeletesRetention struct {
 
 // The retention lease configuration.
 type IndicesRetentionLease struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Period is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Period string `json:"period"`
 }
 
 // The configuration for soft deletes.
 type IndicesSoftDeletes struct {
-	// Whether soft deletes are enabled on the index.
+	// Enabled. Whether soft deletes are enabled on the index.
 	Enabled *string `json:"enabled,omitempty"`
 
-	// The retention configuration for soft deletes.
+	// Retention is the retention configuration for soft deletes.
 	Retention *IndicesSoftDeletesRetention `json:"retention,omitempty"`
 
-	// The retention lease configuration.
+	// RetentionLease is the retention lease configuration.
 	RetentionLease *IndicesRetentionLease `json:"retention_lease,omitempty"`
 }
 
 // The configuration for segment sorting.
 type IndicesIndexSegmentSort struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Field is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Field *string `json:"field,omitempty"`
 
 	Missing *IndicesIndexSegmentSortMissing `json:"missing,omitempty"`
@@ -5607,85 +5923,87 @@ type IndicesIndexSegmentSort struct {
 }
 
 // The filesystem storage configuration.
-type IndicesIndexSettingsStoreFs struct {
-	// The type of file system lock.
-	FsLock *string `json:"fs_lock,omitempty"`
+type IndicesIndexSettingsStoreFS struct {
+	// FSLock is the type of file system lock.
+	FSLock *IndicesIndexSettingsStoreFSLock `json:"fs_lock,omitempty"`
 }
 
 // The memory-mapped storage configuration.
-type IndicesIndexSettingsStoreHybridMmap struct {
-	// The file extensions to use memory-mapping for.
+type IndicesIndexSettingsStoreHybridMMap struct {
+	// Extensions is the file extensions to use memory-mapping for.
 	Extensions []string `json:"extensions,omitempty"`
 }
 
 // The NIO storage configuration.
-type IndicesIndexSettingsStoreHybridNio struct {
-	// The file extensions to use NIO for.
+type IndicesIndexSettingsStoreHybridNIO struct {
+	// Extensions is the file extensions to use NIO for.
 	Extensions []string `json:"extensions,omitempty"`
 }
 
 // The hybrid storage type configuration.
 type IndicesIndexSettingsStoreHybrid struct {
-	// The memory-mapped storage configuration.
-	Mmap *IndicesIndexSettingsStoreHybridMmap `json:"mmap,omitempty"`
+	// MMap is the memory-mapped storage configuration.
+	MMap *IndicesIndexSettingsStoreHybridMMap `json:"mmap,omitempty"`
 
-	// The NIO storage configuration.
-	Nio *IndicesIndexSettingsStoreHybridNio `json:"nio,omitempty"`
+	// NIO is the NIO storage configuration.
+	NIO *IndicesIndexSettingsStoreHybridNIO `json:"nio,omitempty"`
 }
 
 type IndicesIndexSettingsStore struct {
-	// Whether memory-mapping is allowed. You can restrict the use of the
-	// `mmapfs` and the related `hybridfs` store types with the setting
+	// AllowMMap. Whether memory-mapping is allowed. You can restrict the use
+	// of the `mmapfs` and the related `hybridfs` store types with the setting
 	// `node.store.allow_mmap`. This setting is useful, for example, if you are
 	// in an environment where you can not control the ability to create a lot
 	// of memory maps so you need disable the ability to use memory-mapping.
-	AllowMmap *string `json:"allow_mmap,omitempty"`
+	AllowMMap *string `json:"allow_mmap,omitempty"`
 
-	// The filesystem storage configuration.
-	Fs *IndicesIndexSettingsStoreFs `json:"fs,omitempty"`
+	// FS is the filesystem storage configuration.
+	FS *IndicesIndexSettingsStoreFS `json:"fs,omitempty"`
 
-	// The hybrid storage type configuration.
+	// Hybrid is the hybrid storage type configuration.
 	Hybrid *IndicesIndexSettingsStoreHybrid `json:"hybrid,omitempty"`
 
-	// The list of files to preload into memory.
+	// Preload is the list of files to preload into memory.
 	Preload []string `json:"preload,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// StatsRefreshInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	StatsRefreshInterval *string `json:"stats_refresh_interval,omitempty"`
 
-	Type string `json:"type"`
+	Type IndicesBuiltinStorageType `json:"type"`
 }
 
 // The retention configuration for the translog.
 type IndicesTranslogRetention struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Age is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Age *string `json:"age,omitempty"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 }
 
 // The translog configuration.
 type IndicesTranslog struct {
-	// The durability settings for the translog.
-	Durability *string `json:"durability,omitempty"`
+	// Durability is the durability settings for the translog.
+	Durability *IndicesTranslogDurability `json:"durability,omitempty"`
 
-	// The unique identifier of a node.
+	// FlushThresholdSize is the unique identifier of a node.
 	FlushThresholdSize *string `json:"flush_threshold_size,omitempty"`
 
-	// The unique identifier of a node.
+	// GenerationThresholdSize is the unique identifier of a node.
 	GenerationThresholdSize *string `json:"generation_threshold_size,omitempty"`
 
-	// The retention configuration for the translog.
+	// Retention is the retention configuration for the translog.
 	Retention *IndicesTranslogRetention `json:"retention,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SyncInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SyncInterval *string `json:"sync_interval,omitempty"`
 }
 
@@ -5693,375 +6011,380 @@ type IndicesTranslog struct {
 type IndicesIndexVersioning struct {
 	Created *string `json:"created,omitempty"`
 
-	// The string representation of the version when the index was created.
+	// CreatedString is the string representation of the version when the index
+	// was created.
 	CreatedString *string `json:"created_string,omitempty"`
 }
 
 // The configuration settings for an index.
 type IndicesIndexSettings struct {
-	// The text analysis configuration.
+	// Analysis is the text analysis configuration.
 	Analysis *IndicesIndexSettingsAnalysis `json:"analysis,omitempty"`
 
-	// The configuration for text analysis.
+	// Analyze is the configuration for text analysis.
 	Analyze *IndicesIndexSettingsAnalyze `json:"analyze,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// AnalyzeMaxTokenCount. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	AnalyzeMaxTokenCount *string `json:"analyze.max_token_count,omitempty"`
 
-	// The range of replicas to maintain.
+	// AutoExpandReplicas is the range of replicas to maintain.
 	AutoExpandReplicas *string `json:"auto_expand_replicas,omitempty"`
 
-	// The block settings that control index operations.
+	// Blocks is the block settings that control index operations.
 	Blocks *IndicesIndexSettingBlocks `json:"blocks,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// BlocksMetadata. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	BlocksMetadata *string `json:"blocks.metadata,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// BlocksRead. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	BlocksRead *string `json:"blocks.read,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// BlocksReadOnly. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	BlocksReadOnly *string `json:"blocks.read_only,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// BlocksReadOnlyAllowDelete. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	BlocksReadOnlyAllowDelete *string `json:"blocks.read_only_allow_delete,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// BlocksWrite. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	BlocksWrite *string `json:"blocks.write,omitempty"`
 
-	// The type of check to perform when starting an index.
+	// CheckOnStartup is the type of check to perform when starting an index.
 	CheckOnStartup *string `json:"check_on_startup,omitempty"`
 
-	// The compression type for stored data.
+	// Codec is the compression type for stored data.
 	Codec *string `json:"codec,omitempty"`
 
-	// The star tree indexing configuration.
+	// CompositeIndexStarTree is the star tree indexing configuration.
 	CompositeIndexStarTree *IndicesIndexSettingsStarTree `json:"composite_index.star_tree,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// CreationDate. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	CreationDate *IndicesIndexSettingsCreationDate `json:"creation_date,omitempty"`
+	CreationDate *StringifiedEpochTimeUnitMillis `json:"creation_date,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// CreationDateString is a date and time, either as a string whose format
+	// depends on the context (defaulting to ISO_8601) or the number of
+	// milliseconds since the epoch. OpenSearch accepts both as an input but
+	// will generally output a string. representation.
 	CreationDateString *string `json:"creation_date_string,omitempty"`
 
 	DefaultPipeline *string `json:"default_pipeline,omitempty"`
 	FinalPipeline   *string `json:"final_pipeline,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Format. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Format *string `json:"format,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
-	GcDeletes *string `json:"gc_deletes,omitempty"`
+	// GCDeletes is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	GCDeletes *string `json:"gc_deletes,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Hidden. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Hidden *string `json:"hidden,omitempty"`
 
-	// The configuration for highlighting.
+	// Highlight is the configuration for highlighting.
 	Highlight *IndicesIndexSettingsHighlight `json:"highlight,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// HighlightMaxAnalyzedOffset. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	HighlightMaxAnalyzedOffset *string `json:"highlight.max_analyzed_offset,omitempty"`
 
-	// The configuration settings for an index.
+	// Index is the configuration settings for an index.
 	Index *IndicesIndexSettings `json:"index,omitempty"`
 
-	// The indexing-related settings for an index.
+	// Indexing is the indexing-related settings for an index.
 	Indexing *IndicesIndexSettingsIndexing `json:"indexing,omitempty"`
 
-	// The configuration for indexing backpressure.
+	// IndexingPressure is the configuration for indexing backpressure.
 	IndexingPressure *IndicesIndexingPressure `json:"indexing_pressure,omitempty"`
 
-	// The pull-based ingestion settings controlling how data is read from
-	// streaming sources.
+	// IngestionSource is the pull-based ingestion settings controlling how
+	// data is read from streaming sources.
 	IngestionSource *IndicesIngestionSource `json:"ingestion_source,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// KNN. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	KNN *string `json:"knn,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// KNNAlgoParamEfSearch. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	KNNAlgoParamEfSearch *string `json:"knn.algo_param.ef_search,omitempty"`
 
-	// The index lifecycle management configuration.
+	// Lifecycle is the index lifecycle management configuration.
 	Lifecycle *IndicesIndexSettingsLifecycle `json:"lifecycle,omitempty"`
 
-	// The name of a resource or configuration element.
+	// LifecycleName is the name of a resource or configuration element.
 	LifecycleName *string `json:"lifecycle.name,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// LoadFixedBitsetFiltersEagerly. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	LoadFixedBitsetFiltersEagerly *string `json:"load_fixed_bitset_filters_eagerly,omitempty"`
 
-	// The mapping configuration for the index.
+	// Mapping is the mapping configuration for the index.
 	Mapping *IndicesIndexSettingsMapping `json:"mapping,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxDocvalueFieldsSearch. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxDocvalueFieldsSearch *string `json:"max_docvalue_fields_search,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxInnerResultWindow. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxInnerResultWindow *string `json:"max_inner_result_window,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxNgramDiff. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxNgramDiff *string `json:"max_ngram_diff,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxRefreshListeners. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxRefreshListeners *string `json:"max_refresh_listeners,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxRegexLength. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxRegexLength *string `json:"max_regex_length,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxRescoreWindow. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxRescoreWindow *string `json:"max_rescore_window,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxResultWindow. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxResultWindow *string `json:"max_result_window,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxScriptFields. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxScriptFields *string `json:"max_script_fields,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// MaxShingleDiff. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxShingleDiff *string `json:"max_shingle_diff,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MaxSlicesPerScroll. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MaxSlicesPerScroll *string `json:"max_slices_per_scroll,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// MaxTermsCount. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	MaxTermsCount *string `json:"max_terms_count,omitempty"`
 
-	// The configuration for segment merging.
+	// Merge is the configuration for segment merging.
 	Merge *IndicesIndexSettingsMerge `json:"merge,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// MergeSchedulerMaxThreadCount. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	MergeSchedulerMaxThreadCount *string `json:"merge.scheduler.max_thread_count,omitempty"`
 
 	Mode *string `json:"mode,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// NumberOfReplicas. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	NumberOfReplicas *string `json:"number_of_replicas,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// NumberOfRoutingShards. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	NumberOfRoutingShards *string `json:"number_of_routing_shards,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// NumberOfShards. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	NumberOfShards *string `json:"number_of_shards,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
+	// Priority. Certain APIs may return values, including numbers such as
+	// epoch timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
 	Priority *string `json:"priority,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ProvidedName is the name of a resource or configuration element.
 	ProvidedName *string `json:"provided_name,omitempty"`
 
-	// The configuration for query caching.
+	// Queries is the configuration for query caching.
 	Queries *IndicesIndexSettingsQueries `json:"queries,omitempty"`
 
-	// The configuration for query string parsing.
+	// QueryString is the configuration for query string parsing.
 	QueryString *IndicesIndexSettingsQueryString `json:"query_string,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// QueryStringLenient. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	QueryStringLenient *string `json:"query_string.lenient,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// RefreshInterval is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	RefreshInterval *string `json:"refresh_interval,omitempty"`
 
-	// Defines the replication type.
+	// ReplicationType. Defines the replication type.
 	ReplicationType *string `json:"replication.type,omitempty"`
 
-	// The routing configuration for index operations.
+	// Routing is the routing configuration for index operations.
 	Routing *IndicesIndexRouting `json:"routing,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// RoutingPartitionSize. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	RoutingPartitionSize *string `json:"routing_partition_size,omitempty"`
 
-	RoutingPath *IndicesIndexSettingsRoutingPath `json:"routing_path,omitempty"`
+	RoutingPath *StringOrStringArray `json:"routing_path,omitempty"`
 
-	// The configuration for search operations.
+	// Search is the configuration for search operations.
 	Search *IndicesIndexSettingsSearch `json:"search,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SearchIdleAfter is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SearchIdleAfter *string `json:"search.idle.after,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 
-	// The configuration for similarity algorithms.
+	// Similarity is the configuration for similarity algorithms.
 	Similarity *IndicesIndexSettingsSimilarity `json:"similarity,omitempty"`
 
-	// The configuration for soft deletes.
+	// SoftDeletes is the configuration for soft deletes.
 	SoftDeletes *IndicesSoftDeletes `json:"soft_deletes,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SoftDeletesRetentionLeasePeriod is a duration. Units can be `nanos`,
+	// `micros`, `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours)
+	// and `d` (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SoftDeletesRetentionLeasePeriod *string `json:"soft_deletes.retention_lease.period,omitempty"`
 
-	// The configuration for segment sorting.
+	// Sort is the configuration for segment sorting.
 	Sort *IndicesIndexSegmentSort `json:"sort,omitempty"`
 
 	Store *IndicesIndexSettingsStore `json:"store,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// TopMetricsMaxSize. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	TopMetricsMaxSize *string `json:"top_metrics_max_size,omitempty"`
 
-	// The translog configuration.
+	// Translog is the translog configuration.
 	Translog *IndicesTranslog `json:"translog,omitempty"`
 
-	// The durability settings for the translog.
-	TranslogDurability *string `json:"translog.durability,omitempty"`
+	// TranslogDurability is the durability settings for the translog.
+	TranslogDurability *IndicesTranslogDurability `json:"translog.durability,omitempty"`
 
-	// The unique identifier of a node.
+	// TranslogFlushThresholdSize is the unique identifier of a node.
 	TranslogFlushThresholdSize *string `json:"translog.flush_threshold_size,omitempty"`
 
-	// The universally unique identifier.
+	// UUID is the universally unique identifier.
 	UUID *string `json:"uuid,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
+	// VerifiedBeforeClose. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
 	VerifiedBeforeClose *string `json:"verified_before_close,omitempty"`
 
-	// The versioning information for the index.
+	// Version is the versioning information for the index.
 	Version *IndicesIndexVersioning `json:"version,omitempty"`
 }
 
 type ClusterComponentTemplateSummary struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	Aliases  map[string]IndicesAliasDefinition `json:"aliases,omitempty"`
@@ -6071,7 +6394,7 @@ type ClusterComponentTemplateSummary struct {
 }
 
 type ClusterComponentTemplateNode struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	Template ClusterComponentTemplateSummary `json:"template"`
@@ -6081,371 +6404,386 @@ type ClusterComponentTemplateNode struct {
 type ClusterComponentTemplate struct {
 	ComponentTemplate ClusterComponentTemplateNode `json:"component_template"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
 // The memory usage statistics for a field.
 type FieldSizeUsage struct {
-	// The human-readable size of memory used.
+	// Size is the human-readable size of memory used.
 	Size *string `json:"size,omitempty"`
 
-	// The size of memory used in bytes.
+	// SizeInBytes is the size of memory used in bytes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 }
 
 type CompletionStats struct {
-	// The per-field completion statistics.
+	// Fields is the per-field completion statistics.
 	Fields map[string]FieldSizeUsage `json:"fields,omitempty"`
 
-	// The human-readable size of memory used for completion.
+	// Size is the human-readable size of memory used for completion.
 	Size *string `json:"size,omitempty"`
 
-	// The total amount, in bytes, of memory used for completion across all
-	// shards assigned to the selected nodes.
+	// SizeInBytes is the total amount, in bytes, of memory used for completion
+	// across all shards assigned to the selected nodes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 }
 
 // The document-level statistics.
 type DocStats struct {
-	// The total number of non-deleted documents across all primary shards
-	// assigned to the selected nodes. This number is based on documents in
-	// Lucene segments and may include documents from nested fields.
+	// Count is the total number of non-deleted documents across all primary
+	// shards assigned to the selected nodes. This number is based on documents
+	// in Lucene segments and may include documents from nested fields.
 	Count int64 `json:"count"`
 
-	// The total number of deleted documents across all primary shards assigned
-	// to the selected nodes. This number is based on the number of documents
-	// stored in Lucene segments. OpenSearch reclaims the disk space previously
-	// occupied by the deleted Lucene documents when a segment is merged.
+	// Deleted is the total number of deleted documents across all primary
+	// shards assigned to the selected nodes. This number is based on the
+	// number of documents stored in Lucene segments. OpenSearch reclaims the
+	// disk space previously occupied by the deleted Lucene documents when a
+	// segment is merged.
 	Deleted *int64 `json:"deleted,omitempty"`
 }
 
 // The per-field field data statistics.
 type FieldMemoryUsage struct {
-	// The human-readable amount of memory used.
+	// MemorySize is the human-readable amount of memory used.
 	MemorySize *string `json:"memory_size,omitempty"`
 
-	// The amount of memory used in bytes.
+	// MemorySizeInBytes is the amount of memory used in bytes.
 	MemorySizeInBytes int64 `json:"memory_size_in_bytes"`
 }
 
 // The statistics about field data memory usage.
 type FielddataStats struct {
-	// The number of times field data was evicted from memory.
+	// Evictions is the number of times field data was evicted from memory.
 	Evictions *int64 `json:"evictions,omitempty"`
 
 	Fields map[string]FieldMemoryUsage `json:"fields,omitempty"`
 
-	// The human-readable amount of memory used for field data.
+	// MemorySize is the human-readable amount of memory used for field data.
 	MemorySize *string `json:"memory_size,omitempty"`
 
-	// The amount of memory used for field data in bytes.
+	// MemorySizeInBytes is the amount of memory used for field data in bytes.
 	MemorySizeInBytes int64 `json:"memory_size_in_bytes"`
 }
 
 // The statistics about query cache usage.
 type QueryCacheStats struct {
-	// The total number of entries added to the query cache across all shards
-	// assigned to the selected nodes. This number includes all current and
-	// evicted entries.
+	// CacheCount is the total number of entries added to the query cache
+	// across all shards assigned to the selected nodes. This number includes
+	// all current and evicted entries.
 	CacheCount int64 `json:"cache_count"`
 
-	// The total number of entries currently stored in the query cache across
-	// all shards assigned to the selected nodes.
+	// CacheSize is the total number of entries currently stored in the query
+	// cache across all shards assigned to the selected nodes.
 	CacheSize int64 `json:"cache_size"`
 
-	// The total number of query cache evictions across all shards assigned to
-	// the selected nodes.
+	// Evictions is the total number of query cache evictions across all shards
+	// assigned to the selected nodes.
 	Evictions int64 `json:"evictions"`
 
-	// The total number of query cache hits across all shards assigned to the
-	// selected nodes.
+	// HitCount is the total number of query cache hits across all shards
+	// assigned to the selected nodes.
 	HitCount int64 `json:"hit_count"`
 
-	// The human-readable amount of memory used for the query cache.
+	// MemorySize is the human-readable amount of memory used for the query
+	// cache.
 	MemorySize *string `json:"memory_size,omitempty"`
 
-	// The total amount, in bytes, of memory used for the query cache across
-	// all shards assigned to the selected nodes.
+	// MemorySizeInBytes is the total amount, in bytes, of memory used for the
+	// query cache across all shards assigned to the selected nodes.
 	MemorySizeInBytes int64 `json:"memory_size_in_bytes"`
 
-	// The total number of query cache misses across all shards assigned to the
-	// selected nodes.
+	// MissCount is the total number of query cache misses across all shards
+	// assigned to the selected nodes.
 	MissCount int64 `json:"miss_count"`
 
-	// The total number of hits and misses stored in the query cache across all
-	// shards assigned to the selected nodes.
+	// TotalCount is the total number of hits and misses stored in the query
+	// cache across all shards assigned to the selected nodes.
 	TotalCount int64 `json:"total_count"`
 }
 
 // The size information for shard files.
 type IndicesStatsShardFileSizeInfo struct {
-	// The size in bytes.
+	// AverageSizeInBytes is the size in bytes.
 	AverageSizeInBytes *int64 `json:"average_size_in_bytes,omitempty"`
 
-	// The number of files.
+	// Count is the number of files.
 	Count *int64 `json:"count,omitempty"`
 
-	// The description of the file type.
+	// Description is the description of the file type.
 	Description string `json:"description"`
 
-	// The size in bytes.
+	// MaxSizeInBytes is the size in bytes.
 	MaxSizeInBytes *int64 `json:"max_size_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// MinSizeInBytes is the size in bytes.
 	MinSizeInBytes *int64 `json:"min_size_in_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 }
 
 // The total amount of data downloaded from the remote segment store.
 type RemoteStoreUploadDownloadStats struct {
-	// The number of bytes that failed to upload to/from the remote segment
-	// store.
+	// Failed is the number of bytes that failed to upload to/from the remote
+	// segment store.
 	Failed *string `json:"failed,omitempty"`
 
-	// The number of bytes that failed to upload to/from the remote segment
-	// store.
+	// FailedBytes is the number of bytes that failed to upload to/from the
+	// remote segment store.
 	FailedBytes int64 `json:"failed_bytes"`
 
-	// The number of bytes to upload/download to/from the remote segment store
-	// after the upload/download has started.
+	// Started is the number of bytes to upload/download to/from the remote
+	// segment store after the upload/download has started.
 	Started *string `json:"started,omitempty"`
 
-	// The number of bytes to upload/download to/from the remote segment store
-	// after the upload/download has started.
+	// StartedBytes is the number of bytes to upload/download to/from the
+	// remote segment store after the upload/download has started.
 	StartedBytes int64 `json:"started_bytes"`
 
-	// The number of bytes successfully uploaded/downloaded to/from the remote
-	// segment store.
+	// Succeeded is the number of bytes successfully uploaded/downloaded
+	// to/from the remote segment store.
 	Succeeded *string `json:"succeeded,omitempty"`
 
-	// The number of bytes successfully uploaded/downloaded to/from the remote
-	// segment store.
+	// SucceededBytes is the number of bytes successfully uploaded/downloaded
+	// to/from the remote segment store.
 	SucceededBytes int64 `json:"succeeded_bytes"`
 }
 
 // Any statistics related to downloads to the remote segment store.
 type RemoteStoreDownloadStats struct {
-	// The total amount of data downloaded from the remote segment store.
+	// TotalDownloadSize is the total amount of data downloaded from the remote
+	// segment store.
 	TotalDownloadSize RemoteStoreUploadDownloadStats `json:"total_download_size"`
 
-	// The total amount of time spent on downloads from the remote segment
-	// store.
+	// TotalTimeSpent is the total amount of time spent on downloads from the
+	// remote segment store.
 	TotalTimeSpent *string `json:"total_time_spent,omitempty"`
 
-	// The total duration, in milliseconds, spent on downloads from the remote
-	// segment store.
+	// TotalTimeSpentInMillis is the total duration, in milliseconds, spent on
+	// downloads from the remote segment store.
 	TotalTimeSpentInMillis int64 `json:"total_time_spent_in_millis"`
 }
 
 // Statistics related to segment store upload backpressure.
 type RemoteStoreUploadPressureStats struct {
-	// The total number of requests rejected due to segment store upload
-	// backpressure.
+	// TotalRejections is the total number of requests rejected due to segment
+	// store upload backpressure.
 	TotalRejections int64 `json:"total_rejections"`
 }
 
 // The amount of lag during upload between the remote segment store and the local store.
 type RemoteStoreUploadRefreshSizeLagStats struct {
-	// The maximum amount of lag, in bytes, during the upload refresh between
-	// the remote segment store and the local store.
+	// Max is the maximum amount of lag, in bytes, during the upload refresh
+	// between the remote segment store and the local store.
 	Max *string `json:"max,omitempty"`
 
-	// The maximum amount of lag, in bytes, during the upload refresh between
-	// the remote segment store and the local store.
+	// MaxBytes is the maximum amount of lag, in bytes, during the upload
+	// refresh between the remote segment store and the local store.
 	MaxBytes int64 `json:"max_bytes"`
 
-	// The total number of bytes that lagged during the upload refresh between
-	// the remote segment store and the local store.
+	// Total is the total number of bytes that lagged during the upload refresh
+	// between the remote segment store and the local store.
 	Total *string `json:"total,omitempty"`
 
-	// The total number of bytes that lagged during the upload refresh between
-	// the remote segment store and the local store.
+	// TotalBytes is the total number of bytes that lagged during the upload
+	// refresh between the remote segment store and the local store.
 	TotalBytes int64 `json:"total_bytes"`
 }
 
 // Any statistics related to uploads to the remote segment store.
 type RemoteStoreUploadStats struct {
-	// The maximum duration that the remote refresh is behind the local
-	// refresh.
+	// MaxRefreshTimeLag is the maximum duration that the remote refresh is
+	// behind the local refresh.
 	MaxRefreshTimeLag *string `json:"max_refresh_time_lag,omitempty"`
 
-	// The maximum duration, in milliseconds, that the remote refresh is behind
-	// the local refresh.
+	// MaxRefreshTimeLagInMillis is the maximum duration, in milliseconds, that
+	// the remote refresh is behind the local refresh.
 	MaxRefreshTimeLagInMillis int64 `json:"max_refresh_time_lag_in_millis"`
 
-	// Statistics related to segment store upload backpressure.
+	// Pressure. Statistics related to segment store upload backpressure.
 	Pressure *RemoteStoreUploadPressureStats `json:"pressure,omitempty"`
 
-	// The amount of lag during upload between the remote segment store and the
-	// local store.
+	// RefreshSizeLag is the amount of lag during upload between the remote
+	// segment store and the local store.
 	RefreshSizeLag RemoteStoreUploadRefreshSizeLagStats `json:"refresh_size_lag"`
 
-	// The total amount of time spent on uploads to the remote segment store.
+	// TotalTimeSpent is the total amount of time spent on uploads to the
+	// remote segment store.
 	TotalTimeSpent *string `json:"total_time_spent,omitempty"`
 
-	// The total amount of time, in milliseconds, spent on uploads to the
-	// remote segment store.
+	// TotalTimeSpentInMillis is the total amount of time, in milliseconds,
+	// spent on uploads to the remote segment store.
 	TotalTimeSpentInMillis int64 `json:"total_time_spent_in_millis"`
 
-	// The amount of data, in bytes, uploaded or downloaded to/from the remote
-	// segment store.
+	// TotalUploadSize is the amount of data, in bytes, uploaded or downloaded
+	// to/from the remote segment store.
 	TotalUploadSize RemoteStoreUploadDownloadStats `json:"total_upload_size"`
 }
 
 // The statistics related to remote segment store operations.
 type RemoteStoreStats struct {
-	// Any statistics related to downloads to the remote segment store.
+	// Download. Any statistics related to downloads to the remote segment
+	// store.
 	Download RemoteStoreDownloadStats `json:"download"`
 
-	// Any statistics related to uploads to the remote segment store.
+	// Upload. Any statistics related to uploads to the remote segment store.
 	Upload RemoteStoreUploadStats `json:"upload"`
 }
 
 // The segment replication statistics for versions 2.10.0 to 2.12.0.
-type SegmentsStatsSegmentReplicationObject0 struct {
-	// The maximum number of bytes the replica is behind the primary.
+type SegmentReplicationStatsObject0 struct {
+	// MaxBytesBehind is the maximum number of bytes the replica is behind the
+	// primary.
 	MaxBytesBehind string `json:"max_bytes_behind"`
 
-	// The maximum replication lag between primary and replica shards.
+	// MaxReplicationLag is the maximum replication lag between primary and
+	// replica shards.
 	MaxReplicationLag string `json:"max_replication_lag"`
 
-	// The total number of bytes all replicas are behind their primaries.
+	// TotalBytesBehind is the total number of bytes all replicas are behind
+	// their primaries.
 	TotalBytesBehind string `json:"total_bytes_behind"`
 }
 
 // The segment replication statistics for version 2.12.0 and later.
-type SegmentsStatsSegmentReplicationObject1 struct {
-	// The maximum number of bytes the replica is behind the primary.
+type SegmentReplicationStatsObject1 struct {
+	// MaxBytesBehind is the maximum number of bytes the replica is behind the
+	// primary.
 	MaxBytesBehind int64 `json:"max_bytes_behind"`
 
-	// The maximum replication lag between primary and replica shards in
-	// milliseconds.
+	// MaxReplicationLag is the maximum replication lag between primary and
+	// replica shards in milliseconds.
 	MaxReplicationLag int64 `json:"max_replication_lag"`
 
-	// The total number of bytes all replicas are behind their primaries.
+	// TotalBytesBehind is the total number of bytes all replicas are behind
+	// their primaries.
 	TotalBytesBehind int64 `json:"total_bytes_behind"`
 }
 
 // The statistics about segments.
 type SegmentsStats struct {
-	// The total number of segments across all shards assigned to the selected
-	// nodes.
+	// Count is the total number of segments across all shards assigned to the
+	// selected nodes.
 	Count int `json:"count"`
 
-	// The human-readable amount of memory used for doc values.
+	// DocValuesMemory is the human-readable amount of memory used for doc
+	// values.
 	DocValuesMemory *string `json:"doc_values_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for document values across
-	// all shards assigned to the selected nodes.
+	// DocValuesMemoryInBytes is the total amount, in bytes, of memory used for
+	// document values across all shards assigned to the selected nodes.
 	DocValuesMemoryInBytes int64 `json:"doc_values_memory_in_bytes"`
 
-	// This object is not populated by the cluster stats API. To get
+	// FileSizes. This object is not populated by the cluster stats API. To get
 	// information on segment files, use the node stats API.
 	FileSizes map[string]IndicesStatsShardFileSizeInfo `json:"file_sizes"`
 
-	// The unique identifier of a node.
+	// FixedBitSet is the unique identifier of a node.
 	FixedBitSet *string `json:"fixed_bit_set,omitempty"`
 
-	// The total amount of memory, in bytes, used by fixed bit sets across all
-	// shards assigned to the selected nodes.
+	// FixedBitSetMemoryInBytes is the total amount of memory, in bytes, used
+	// by fixed bit sets across all shards assigned to the selected nodes.
 	FixedBitSetMemoryInBytes int64 `json:"fixed_bit_set_memory_in_bytes"`
 
-	// The maximum amount of memory, in bytes, used by index writers.
+	// IndexWriterMaxMemoryInBytes is the maximum amount of memory, in bytes,
+	// used by index writers.
 	IndexWriterMaxMemoryInBytes *int64 `json:"index_writer_max_memory_in_bytes,omitempty"`
 
-	// The human-readable amount of memory used by index writers.
+	// IndexWriterMemory is the human-readable amount of memory used by index
+	// writers.
 	IndexWriterMemory *string `json:"index_writer_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used by all index writers across
-	// all shards assigned to the selected nodes.
+	// IndexWriterMemoryInBytes is the total amount, in bytes, of memory used
+	// by all index writers across all shards assigned to the selected nodes.
 	IndexWriterMemoryInBytes int64 `json:"index_writer_memory_in_bytes"`
 
-	// The Unix timestamp, in milliseconds, of the most recently retried
-	// indexing request.
+	// MaxUnsafeAutoIDTimestamp is the Unix timestamp, in milliseconds, of the
+	// most recently retried indexing request.
 	MaxUnsafeAutoIDTimestamp int64 `json:"max_unsafe_auto_id_timestamp"`
 
-	// The total amount of memory used for segments across all shards assigned
-	// to the selected nodes.
+	// Memory is the total amount of memory used for segments across all shards
+	// assigned to the selected nodes.
 	Memory *string `json:"memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for segments across all
-	// shards assigned to the selected nodes.
+	// MemoryInBytes is the total amount, in bytes, of memory used for segments
+	// across all shards assigned to the selected nodes.
 	MemoryInBytes int64 `json:"memory_in_bytes"`
 
-	// The total amount of memory used for normalization factors across all
-	// shards assigned to the selected nodes.
+	// NormsMemory is the total amount of memory used for normalization factors
+	// across all shards assigned to the selected nodes.
 	NormsMemory *string `json:"norms_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for normalization factors
-	// across all shards assigned to the selected nodes.
+	// NormsMemoryInBytes is the total amount, in bytes, of memory used for
+	// normalization factors across all shards assigned to the selected nodes.
 	NormsMemoryInBytes int64 `json:"norms_memory_in_bytes"`
 
-	// The total amount of memory used for points across all shards assigned to
-	// the selected nodes.
+	// PointsMemory is the total amount of memory used for points across all
+	// shards assigned to the selected nodes.
 	PointsMemory *string `json:"points_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for points across all shards
-	// assigned to the selected nodes.
+	// PointsMemoryInBytes is the total amount, in bytes, of memory used for
+	// points across all shards assigned to the selected nodes.
 	PointsMemoryInBytes int64 `json:"points_memory_in_bytes"`
 
-	// The statistics related to remote segment store operations.
+	// RemoteStore is the statistics related to remote segment store
+	// operations.
 	RemoteStore *RemoteStoreStats `json:"remote_store,omitempty"`
 
 	// Available: >= 2.10.0.
-	SegmentReplication *SegmentsStatsSegmentReplication `json:"segment_replication,omitempty"`
+	SegmentReplication *SegmentReplicationStats `json:"segment_replication,omitempty"`
 
-	// The total amount of memory used for stored fields across all shards
-	// assigned to the selected nodes.
+	// StoredFieldsMemory is the total amount of memory used for stored fields
+	// across all shards assigned to the selected nodes.
 	StoredFieldsMemory *string `json:"stored_fields_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for stored fields across all
-	// shards assigned to the selected nodes.
+	// StoredFieldsMemoryInBytes is the total amount, in bytes, of memory used
+	// for stored fields across all shards assigned to the selected nodes.
 	StoredFieldsMemoryInBytes int64 `json:"stored_fields_memory_in_bytes"`
 
-	// The total amount of memory used for term vectors across all shards
-	// assigned to the selected nodes.
+	// TermVectorsMemory is the total amount of memory used for term vectors
+	// across all shards assigned to the selected nodes.
 	TermVectorsMemory *string `json:"term_vectors_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for term vectors across all
-	// shards assigned to the selected nodes.
+	// TermVectorsMemoryInBytes is the total amount, in bytes, of memory used
+	// for term vectors across all shards assigned to the selected nodes.
 	TermVectorsMemoryInBytes int64 `json:"term_vectors_memory_in_bytes"`
 
-	// The total amount of memory used for terms across all shards assigned to
-	// the selected nodes.
+	// TermsMemory is the total amount of memory used for terms across all
+	// shards assigned to the selected nodes.
 	TermsMemory *string `json:"terms_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used for terms across all shards
-	// assigned to the selected nodes.
+	// TermsMemoryInBytes is the total amount, in bytes, of memory used for
+	// terms across all shards assigned to the selected nodes.
 	TermsMemoryInBytes int64 `json:"terms_memory_in_bytes"`
 
-	// The total amount of memory used by all version maps across all shards
-	// assigned to the selected nodes.
+	// VersionMapMemory is the total amount of memory used by all version maps
+	// across all shards assigned to the selected nodes.
 	VersionMapMemory *string `json:"version_map_memory,omitempty"`
 
-	// The total amount, in bytes, of memory used by all version maps across
-	// all shards assigned to the selected nodes.
+	// VersionMapMemoryInBytes is the total amount, in bytes, of memory used by
+	// all version maps across all shards assigned to the selected nodes.
 	VersionMapMemoryInBytes int64 `json:"version_map_memory_in_bytes"`
 }
 
 type StoreStats struct {
-	// The unique identifier of a node.
+	// Reserved is the unique identifier of a node.
 	Reserved *string `json:"reserved,omitempty"`
 
-	// A prediction, in bytes, of how much larger the shard stores will
-	// eventually grow due to ongoing peer recoveries, restoring snapshots, and
-	// similar activities.
+	// ReservedInBytes is a prediction, in bytes, of how much larger the shard
+	// stores will eventually grow due to ongoing peer recoveries, restoring
+	// snapshots, and similar activities.
 	ReservedInBytes int64 `json:"reserved_in_bytes"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
-	// The total size, in bytes, of all shards assigned to the selected nodes.
+	// SizeInBytes is the total size, in bytes, of all shards assigned to the
+	// selected nodes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 }
 
@@ -6458,7 +6796,7 @@ type PluginStats struct {
 	JavaVersion         string   `json:"java_version"`
 	Licensed            *bool    `json:"licensed,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
 	OpensearchVersion string `json:"opensearch_version"`
@@ -6471,84 +6809,87 @@ type PluginStats struct {
 
 // The base response for write operations.
 type WriteRespBase struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version       int64  `json:"_version"`
 	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Result        Result `json:"result"`
 }
 
 // The retry statistics for bulk and search operations.
 type Retries struct {
-	// The number of bulk operation retries.
+	// Bulk is the number of bulk operation retries.
 	Bulk int64 `json:"bulk"`
 
-	// The number of search operation retries.
+	// Search is the number of search operation retries.
 	Search int64 `json:"search"`
 }
 
 // The base response for bulk by scroll operations.
 type BulkByScrollTaskStatus struct {
-	// The number of scroll responses pulled back by the reindex operation.
+	// Batches is the number of scroll responses pulled back by the reindex
+	// operation.
 	Batches int `json:"batches"`
 
 	Canceled *string `json:"canceled,omitempty"`
 
-	// The number of documents that were successfully created.
+	// Created is the number of documents that were successfully created.
 	Created *int64 `json:"created,omitempty"`
 
-	// The number of documents that were successfully deleted.
+	// Deleted is the number of documents that were successfully deleted.
 	Deleted int64 `json:"deleted"`
 
-	// The number of documents that were ignored.
+	// Noops is the number of documents that were ignored.
 	Noops int64 `json:"noops"`
 
-	// The number of requests per second effectively executed during the
-	// reindex operation.
+	// RequestsPerSecond is the number of requests per second effectively
+	// executed during the reindex operation.
 	RequestsPerSecond float32 `json:"requests_per_second"`
 
-	// The retry statistics for bulk and search operations.
+	// Retries is the retry statistics for bulk and search operations.
 	Retries Retries `json:"retries"`
 
-	SliceID *int                               `json:"slice_id,omitempty"`
-	Slices  []BulkByScrollTaskStatusSlicesItem `json:"slices,omitempty"`
+	SliceID *int                                `json:"slice_id,omitempty"`
+	Slices  []BulkByScrollTaskStatusOrException `json:"slices,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Throttled is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Throttled *string `json:"throttled,omitempty"`
 
-	// The time unit for milliseconds.
+	// ThrottledMillis is the time unit for milliseconds.
 	ThrottledMillis int64 `json:"throttled_millis"`
 
-	// The amount time before the throttling will end.
+	// ThrottledUntil is the amount time before the throttling will end.
 	ThrottledUntil *string `json:"throttled_until,omitempty"`
 
-	// When the throttling will end in milliseconds.
+	// ThrottledUntilMillis. When the throttling will end in milliseconds.
 	ThrottledUntilMillis int64 `json:"throttled_until_millis"`
 
-	// The number of documents that were successfully processed.
+	// Total is the number of documents that were successfully processed.
 	Total int64 `json:"total"`
 
-	// The number of documents that were successfully updated after the reindex
-	// operation.
+	// Updated is the number of documents that were successfully updated after
+	// the reindex operation.
 	Updated *int64 `json:"updated,omitempty"`
 
-	// The number of version conflicts encountered by the reindex operation.
+	// VersionConflicts is the number of version conflicts encountered by the
+	// reindex operation.
 	VersionConflicts int64 `json:"version_conflicts"`
 }
 
@@ -6556,7 +6897,7 @@ type BulkByScrollTaskStatus struct {
 type BulkItemRespFailure struct {
 	Cause ErrorCause `json:"cause"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
 	Index  string `json:"index"`
@@ -6575,70 +6916,70 @@ type ScrollableHitSourceSearchFailure struct {
 type BulkByScrollRespBase struct {
 	BulkByScrollTaskStatus
 
-	// The list of failures that occurred during the operation.
-	Failures []BulkByScrollRespBaseFailuresItem `json:"failures"`
+	// Failures is the list of failures that occurred during the operation.
+	Failures []BulkByScrollFailure `json:"failures"`
 
-	// Whether the operation timed out.
+	// TimedOut. Whether the operation timed out.
 	TimedOut bool `json:"timed_out"`
 
-	// The time taken by the operation in milliseconds.
+	// Took is the time taken by the operation in milliseconds.
 	Took int64 `json:"took"`
 }
 
 // The base information about a node.
 type BaseNode struct {
-	// The attributes of the node.
+	// Attributes is the attributes of the node.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host *string `json:"host,omitempty"`
 
-	// The IP address.
+	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	// Roles is the role assigned to the node.
+	Roles []NodeRole `json:"roles,omitempty"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`
 }
 
 // Any statistics about CPU and memory usage.
 type ResourceStat struct {
-	// Time unit for nanoseconds.
-	CpuTimeInNanos int64 `json:"cpu_time_in_nanos"`
+	// CPUTimeInNanos. Time unit for nanoseconds.
+	CPUTimeInNanos int64 `json:"cpu_time_in_nanos"`
 
-	// The size in bytes.
+	// MemoryInBytes is the size in bytes.
 	MemoryInBytes int64 `json:"memory_in_bytes"`
 }
 
 // The information about thread usage.
 type ThreadInfo struct {
-	// The number of currently active threads.
+	// ActiveThreads is the number of currently active threads.
 	ActiveThreads float64 `json:"active_threads"`
 
-	// The number of thread executions.
+	// ThreadExecutions is the number of thread executions.
 	ThreadExecutions float64 `json:"thread_executions"`
 }
 
 // The statistics about resource usage.
 type ResourceStats struct {
-	// Any statistics about CPU and memory usage.
+	// Average. Any statistics about CPU and memory usage.
 	Average ResourceStat `json:"average"`
 
-	// Any statistics about CPU and memory usage.
+	// Max. Any statistics about CPU and memory usage.
 	Max ResourceStat `json:"max"`
 
-	// Any statistics about CPU and memory usage.
+	// Min. Any statistics about CPU and memory usage.
 	Min ResourceStat `json:"min"`
 
-	// The information about thread usage.
+	// ThreadInfo is the information about thread usage.
 	ThreadInfo ThreadInfo `json:"thread_info"`
 
-	// Any statistics about CPU and memory usage.
+	// Total. Any statistics about CPU and memory usage.
 	Total ResourceStat `json:"total"`
 }
 
@@ -6650,11 +6991,11 @@ type TasksPersistentTaskStatus struct {
 	State string `json:"state"`
 }
 
-type TasksTaskInfoBase struct {
+type TasksTaskInfo struct {
 	Action      string `json:"action"`
 	Cancellable bool   `json:"cancellable"`
 
-	// The time unit for milliseconds.
+	// CancellationTimeMillis is the time unit for milliseconds.
 	CancellationTimeMillis *int64 `json:"cancellation_time_millis,omitempty"`
 
 	Cancelled   *bool             `json:"cancelled,omitempty"`
@@ -6662,34 +7003,31 @@ type TasksTaskInfoBase struct {
 	Headers     map[string]string `json:"headers"`
 	ID          int64             `json:"id"`
 
-	// The unique identifier of a node.
+	// Node is the unique identifier of a node.
 	Node string `json:"node"`
 
-	// The unique identifier of a task.
+	// ParentTaskID is the unique identifier of a task.
 	ParentTaskID *string `json:"parent_task_id,omitempty"`
 
-	// The statistics about resource usage.
+	// ResourceStats is the statistics about resource usage.
 	ResourceStats *ResourceStats `json:"resource_stats,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// RunningTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	RunningTime *string `json:"running_time,omitempty"`
 
-	// Time unit for nanoseconds.
+	// RunningTimeInNanos. Time unit for nanoseconds.
 	RunningTimeInNanos int64 `json:"running_time_in_nanos"`
 
-	// The time unit for milliseconds.
+	// StartTimeInMillis is the time unit for milliseconds.
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
-	// Task status information can vary wildly from task to task.
-	Status *TasksTaskInfoBaseStatus `json:"status,omitempty"`
+	// Status. Task status information can vary wildly from task to task.
+	Status *TasksStatus `json:"status,omitempty"`
 
 	Type string `json:"type"`
-}
-
-type TasksTaskInfo struct {
-	TasksTaskInfoBase
 }
 
 type TasksTaskExecutingNode struct {
@@ -6699,23 +7037,23 @@ type TasksTaskExecutingNode struct {
 
 // The details of a task failure.
 type TaskFailure struct {
-	// The unique identifier of a node.
+	// NodeID is the unique identifier of a node.
 	NodeID string `json:"node_id"`
 
 	Reason ErrorCause `json:"reason"`
 
-	// The status of the failed task.
+	// Status is the status of the failed task.
 	Status string `json:"status"`
 
-	// The ID of the failed task.
+	// TaskID is the ID of the failed task.
 	TaskID int `json:"task_id"`
 }
 
 type TasksTaskListRespBase struct {
 	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
 
-	// Task information grouped by node, if `group_by` was set to `node` (the
-	// default).
+	// Nodes. Task information grouped by node, if `group_by` was set to `node`
+	// (the default).
 	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
 
 	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`
@@ -6724,36 +7062,36 @@ type TasksTaskListRespBase struct {
 
 // The result of an inline get operation.
 type InlineGet struct {
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"_routing,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
-	// The source of the document.
-	Source json.RawMessage `json:"_source"`
+	// Source is the source of the document.
+	Source json.RawMessage `json:"_source,omitempty"`
 
-	// The fields retrieved from the document.
+	// Fields is the fields retrieved from the document.
 	Fields map[string]json.RawMessage `json:"fields,omitempty"`
 
-	// Whether the document was found.
+	// Found. Whether the document was found.
 	Found bool `json:"found"`
 }
 
 type GeospatialGeoSpatialGeojsonUploadResponse struct {
-	// Whether there were any errors.
+	// Errors. Whether there were any errors.
 	Errors bool `json:"errors"`
 
-	// Number of features that failed to upload.
+	// Failure. Number of features that failed to upload.
 	Failure int `json:"failure"`
 
-	// Number of features successfully uploaded.
+	// Success. Number of features successfully uploaded.
 	Success int `json:"success"`
 
-	// The time unit for milliseconds.
+	// Took is the time unit for milliseconds.
 	Took int64 `json:"took"`
 
 	// Total number of features processed.
@@ -6765,36 +7103,36 @@ type GeospatialDatabase struct {
 	Provider   *string  `json:"provider,omitempty"`
 	Sha256Hash *string  `json:"sha256_hash,omitempty"`
 
-	// The time unit for milliseconds.
+	// UpdatedAtInEpochMillis is the time unit for milliseconds.
 	UpdatedAtInEpochMillis *int64 `json:"updated_at_in_epoch_millis,omitempty"`
 
 	ValidForInDays *int `json:"valid_for_in_days,omitempty"`
 }
 
 type GeospatialUpdateStats struct {
-	// The time unit for milliseconds.
+	// LastProcessingTimeInMillis is the time unit for milliseconds.
 	LastProcessingTimeInMillis *int64 `json:"last_processing_time_in_millis,omitempty"`
 
-	// The time unit for milliseconds.
+	// LastSucceededAtInEpochMillis is the time unit for milliseconds.
 	LastSucceededAtInEpochMillis *int64 `json:"last_succeeded_at_in_epoch_millis,omitempty"`
 }
 
 type GeospatialDataSource struct {
 	Database GeospatialDatabase `json:"database"`
 
-	// URL endpoint for the data source.
+	// Endpoint. URL endpoint for the data source.
 	Endpoint string `json:"endpoint"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The time unit for milliseconds.
+	// NextUpdateAtInEpochMillis is the time unit for milliseconds.
 	NextUpdateAtInEpochMillis int64 `json:"next_update_at_in_epoch_millis"`
 
 	// State of the data source.
 	State string `json:"state"`
 
-	// Update interval.
+	// UpdateIntervalInDays. Update interval.
 	UpdateIntervalInDays int `json:"update_interval_in_days"`
 
 	UpdateStats GeospatialUpdateStats `json:"update_stats"`
@@ -6805,42 +7143,42 @@ type GeospatialGetDataSourceResponse struct {
 }
 
 type GeospatialUploadStatsMetric struct {
-	// The time unit for milliseconds.
+	// Duration is the time unit for milliseconds.
 	Duration int64 `json:"duration"`
 
-	// Number of failed features in this upload.
+	// Failed. Number of failed features in this upload.
 	Failed int `json:"failed"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// The unique identifier of a node.
+	// NodeID is the unique identifier of a node.
 	NodeID string `json:"node_id"`
 
-	// Number of successful features in this upload.
+	// Success. Number of successful features in this upload.
 	Success int `json:"success"`
 
 	// Type of upload (such as "GeoJSON").
 	Type string `json:"type"`
 
-	// Number of features in this upload.
+	// Upload. Number of features in this upload.
 	Upload int `json:"upload"`
 }
 
 type GeospatialUploadStatsTotal struct {
-	// The time unit for milliseconds.
+	// Duration is the time unit for milliseconds.
 	Duration int64 `json:"duration"`
 
-	// Total failed uploads.
+	// Failed. Total failed uploads.
 	Failed int `json:"failed"`
 
-	// Total number of upload requests.
+	// RequestCount. Total number of upload requests.
 	RequestCount int `json:"request_count"`
 
-	// Total successful uploads.
+	// Success. Total successful uploads.
 	Success int `json:"success"`
 
-	// Total number of uploads.
+	// Upload. Total number of uploads.
 	Upload int `json:"upload"`
 }
 
@@ -6853,10 +7191,10 @@ type GeospatialGeoSpatialUploadStats struct {
 type StoredScript struct {
 	Lang string `json:"lang"`
 
-	// The options for the script.
+	// Options is the options for the script.
 	Options map[string]string `json:"options,omitempty"`
 
-	// The location of the source code for the script.
+	// Source is the location of the source code for the script.
 	Source string `json:"source"`
 }
 
@@ -6867,20 +7205,20 @@ type ShardsOperationRespBase struct {
 
 // The statistics for a data stream.
 type IndicesDataStreamStats struct {
-	// Current number of backing indexes for the data stream.
+	// BackingIndices. Current number of backing indexes for the data stream.
 	BackingIndices int `json:"backing_indices"`
 
-	// The name of a resource or configuration element.
+	// DataStream is the name of a resource or configuration element.
 	DataStream string `json:"data_stream"`
 
-	// The time unit for milliseconds.
+	// MaximumTimestamp is the time unit for milliseconds.
 	MaximumTimestamp int64 `json:"maximum_timestamp"`
 
-	// The unique identifier of a node.
+	// StoreSize is the unique identifier of a node.
 	StoreSize *string `json:"store_size,omitempty"`
 
-	// The total size, in bytes, of all shards for the data stream's backing
-	// indexes.
+	// StoreSizeBytes is the total size, in bytes, of all shards for the data
+	// stream's backing indexes.
 	StoreSizeBytes int64 `json:"store_size_bytes"`
 }
 
@@ -6893,110 +7231,114 @@ type IndicesRespBase struct {
 type IndicesAlias struct {
 	Filter *CommonQueryDSLQueryContainer `json:"filter,omitempty"`
 
-	// The routing value for the document.
+	// IndexRouting is the routing value for the document.
 	IndexRouting *string `json:"index_routing,omitempty"`
 
-	// When `true`, the alias is hidden. All indexes for the alias must have
-	// the same `is_hidden` value.
+	// IsHidden. When `true`, the alias is hidden. All indexes for the alias
+	// must have the same `is_hidden` value.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// When `true`, the index is the write index for the alias.
+	// IsWriteIndex. When `true`, the index is the write index for the alias.
 	IsWriteIndex *bool `json:"is_write_index,omitempty"`
 
-	// The routing value for the document.
+	// Routing is the routing value for the document.
 	Routing *string `json:"routing,omitempty"`
 
-	// The routing value for the document.
+	// SearchRouting is the routing value for the document.
 	SearchRouting *string `json:"search_routing,omitempty"`
 }
 
 // The state configuration of an index.
 type IndicesIndexState struct {
-	// The aliases associated with the index.
+	// Aliases is the aliases associated with the index.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
 	DataStream *string `json:"data_stream,omitempty"`
 
-	// The configuration settings for an index.
+	// Defaults is the configuration settings for an index.
 	Defaults *IndicesIndexSettings `json:"defaults,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 }
 
 // The configuration for a data stream's backing index.
 type IndicesDataStreamIndex struct {
-	// The name of a resource or configuration element.
+	// IlmPolicy is the name of a resource or configuration element.
 	IlmPolicy *string `json:"ilm_policy,omitempty"`
 
 	IndexName string `json:"index_name"`
 
-	// The universally unique identifier.
+	// IndexUUID is the universally unique identifier.
 	IndexUUID string `json:"index_uuid"`
 
-	// The component managing the data stream or index.
+	// ManagedBy is the component managing the data stream or index.
 	ManagedBy *string `json:"managed_by,omitempty"`
 
-	// Indicates if ILM should take precedence over DSL in case both are
-	// configured to manage this index.
+	// PreferIlm. Indicates if ILM should take precedence over DSL in case both
+	// are configured to manage this index.
 	PreferIlm *bool `json:"prefer_ilm,omitempty"`
 }
 
 // The timestamp field configuration for a data stream.
 type IndicesDataStreamTimestampField struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Name is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Name string `json:"name"`
 }
 
 type IndicesDataStream struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// When `true`, the data stream allows custom routing on write request.
+	// AllowCustomRouting. When `true`, the data stream allows custom routing
+	// on write request.
 	AllowCustomRouting *bool `json:"allow_custom_routing,omitempty"`
 
-	// The current generation number for the data stream. This number acts as a
-	// cumulative count of the stream's rollovers, starting at 1.
+	// Generation is the current generation number for the data stream. This
+	// number acts as a cumulative count of the stream's rollovers, starting at
+	// 1.
 	Generation int64 `json:"generation"`
 
-	// When `true`, the data stream is hidden.
+	// Hidden. When `true`, the data stream is hidden.
 	Hidden *bool `json:"hidden,omitempty"`
 
-	// The name of a resource or configuration element.
+	// IlmPolicy is the name of a resource or configuration element.
 	IlmPolicy *string `json:"ilm_policy,omitempty"`
 
-	// An array of objects containing information about the data stream's
-	// backing indexes. The last item in this array contains information about
-	// the stream's current write index.
+	// Indices is an array of objects containing information about the data
+	// stream's backing indexes. The last item in this array contains
+	// information about the stream's current write index.
 	Indices []IndicesDataStreamIndex `json:"indices"`
 
 	Name string `json:"name"`
 
-	// The component managing the data stream or index.
+	// NextGenerationManagedBy is the component managing the data stream or
+	// index.
 	NextGenerationManagedBy *string `json:"next_generation_managed_by,omitempty"`
 
-	// Indicates if ILM should take precedence over DSL in case both are
-	// configured to managed this data stream.
+	// PreferIlm. Indicates if ILM should take precedence over DSL in case both
+	// are configured to managed this data stream.
 	PreferIlm *bool `json:"prefer_ilm,omitempty"`
 
-	// When `true`, the data stream is created and managed by cross-cluster
-	// replication and the local cluster can not write into this data stream or
-	// change its mappings.
+	// Replicated. When `true`, the data stream is created and managed by
+	// cross-cluster replication and the local cluster can not write into this
+	// data stream or change its mappings.
 	Replicated *bool `json:"replicated,omitempty"`
 
 	Status string `json:"status"`
 
-	// When `true`, the data stream is created and managed by an OpenSearch
-	// stack component and cannot be modified through normal user interaction.
+	// System. When `true`, the data stream is created and managed by an
+	// OpenSearch stack component and cannot be modified through normal user
+	// interaction.
 	System *bool `json:"system,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Template is the name of a resource or configuration element.
 	Template string `json:"template"`
 
-	// The timestamp field configuration for a data stream.
+	// TimestampField is the timestamp field configuration for a data stream.
 	TimestampField IndicesDataStreamTimestampField `json:"timestamp_field"`
 }
 
@@ -7007,58 +7349,60 @@ type CommonMappingField struct {
 
 // The data stream configuration for an index template.
 type IndicesIndexTemplateDataStreamConfiguration struct {
-	// When `true`, the data stream supports custom routing.
+	// AllowCustomRouting. When `true`, the data stream supports custom
+	// routing.
 	AllowCustomRouting *bool `json:"allow_custom_routing,omitempty"`
 
-	// When `true`, the data stream is hidden.
+	// Hidden. When `true`, the data stream is hidden.
 	Hidden *bool `json:"hidden,omitempty"`
 
-	// The timestamp field configuration for a data stream.
+	// TimestampField is the timestamp field configuration for a data stream.
 	TimestampField *IndicesDataStreamTimestampField `json:"timestamp_field,omitempty"`
 }
 
 // The summary configuration for an index template.
 type IndicesIndexTemplateSummary struct {
-	// The aliases to add. If the index template includes a `data_stream`
-	// object, these are data stream aliases. Otherwise, these are index
-	// aliases. Data stream aliases ignore the `index_routing`, `routing`, and
-	// `search_routing` options.
+	// Aliases is the aliases to add. If the index template includes a
+	// `data_stream` object, these are data stream aliases. Otherwise, these
+	// are index aliases. Data stream aliases ignore the `index_routing`,
+	// `routing`, and `search_routing` options.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings *IndicesIndexSettings `json:"settings,omitempty"`
 }
 
 // The configuration for an index template.
 type IndicesIndexTemplate struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// Whether the template allows automatic index creation.
+	// AllowAutoCreate. Whether the template allows automatic index creation.
 	AllowAutoCreate *bool `json:"allow_auto_create,omitempty"`
 
-	// An ordered list of component template names. Component templates are
-	// merged in the order specified, meaning that the last component template
-	// specified has the highest precedence.
+	// ComposedOf is an ordered list of component template names. Component
+	// templates are merged in the order specified, meaning that the last
+	// component template specified has the highest precedence.
 	ComposedOf []string `json:"composed_of,omitempty"`
 
-	// The data stream configuration for an index template.
+	// DataStream is the data stream configuration for an index template.
 	DataStream *IndicesIndexTemplateDataStreamConfiguration `json:"data_stream,omitempty"`
 
-	// A comma-separated list of aliases to retrieve. Supports wildcards (`*`).
-	// To retrieve all aliases, omit this parameter or use `*` or `_all`.
+	// IndexPatterns is a comma-separated list of aliases to retrieve. Supports
+	// wildcards (`*`). To retrieve all aliases, omit this parameter or use `*`
+	// or `_all`.
 	IndexPatterns []string `json:"index_patterns"`
 
-	// The priority to determine index template precedence when a new data
-	// stream or index is created. The index template with the highest priority
-	// is chosen. If no priority is specified the template is treated as though
-	// it is of priority 0 (lowest priority). This number is not automatically
-	// generated by OpenSearch.
+	// Priority is the priority to determine index template precedence when a
+	// new data stream or index is created. The index template with the highest
+	// priority is chosen. If no priority is specified the template is treated
+	// as though it is of priority 0 (lowest priority). This number is not
+	// automatically generated by OpenSearch.
 	Priority *int64 `json:"priority,omitempty"`
 
-	// The summary configuration for an index template.
+	// Template is the summary configuration for an index template.
 	Template *IndicesIndexTemplateSummary `json:"template,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`
@@ -7070,10 +7414,10 @@ type IndicesTemplateMapping struct {
 	IndexPatterns []string                `json:"index_patterns"`
 	Mappings      CommonMappingType       `json:"mappings"`
 
-	// The order in which the template should be applied.
+	// Order is the order in which the template should be applied.
 	Order int `json:"order"`
 
-	// The index settings to apply.
+	// Settings is the index settings to apply.
 	Settings map[string]json.RawMessage `json:"settings"`
 
 	Version *int64 `json:"version,omitempty"`
@@ -7081,155 +7425,167 @@ type IndicesTemplateMapping struct {
 
 // The upgrade status details for an index.
 type IndicesUpgradeStatus struct {
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeAncientInBytes is the size in bytes.
 	SizeToUpgradeAncientInBytes *int64 `json:"size_to_upgrade_ancient_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeInBytes is the size in bytes.
 	SizeToUpgradeInBytes *int64 `json:"size_to_upgrade_in_bytes,omitempty"`
 }
 
 // The upgrade status information for indexes.
 type IndicesIndexGetUpgradeStatus struct {
-	// The upgrade status for individual indexes.
+	// Indices is the upgrade status for individual indexes.
 	Indices map[string]IndicesUpgradeStatus `json:"indices,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeAncientInBytes is the size in bytes.
 	SizeToUpgradeAncientInBytes *int64 `json:"size_to_upgrade_ancient_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeInBytes is the size in bytes.
 	SizeToUpgradeInBytes *int64 `json:"size_to_upgrade_in_bytes,omitempty"`
 }
 
 // The statistics about flush operations.
 type FlushStats struct {
-	// The number of periodic flush operations.
+	// Periodic is the number of periodic flush operations.
 	Periodic int64 `json:"periodic"`
 
-	// The total number of flush operations.
+	// Total is the total number of flush operations.
 	Total int64 `json:"total"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
 // The statistics about get operations.
 type GetStats struct {
-	// The number of current get operations.
+	// Current is the number of current get operations.
 	Current int64 `json:"current"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ExistsTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ExistsTime *string `json:"exists_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// ExistsTimeInMillis is the time unit for milliseconds.
 	ExistsTimeInMillis int64 `json:"exists_time_in_millis"`
 
-	// The total number of successful get operations.
+	// ExistsTotal is the total number of successful get operations.
 	ExistsTotal int64 `json:"exists_total"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// GetTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	//
+	// Deprecated: since 2.19.0.
 	GetTime *string `json:"getTime,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// MissingTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	MissingTime *string `json:"missing_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// MissingTimeInMillis is the time unit for milliseconds.
 	MissingTimeInMillis int64 `json:"missing_time_in_millis"`
 
-	// The total number of failed get operations due to missing documents.
+	// MissingTotal is the total number of failed get operations due to missing
+	// documents.
 	MissingTotal int64 `json:"missing_total"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
+	//
+	// Available: >= 2.19.0.
 	Time *string `json:"time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInMillis is the time unit for milliseconds.
 	TimeInMillis int64 `json:"time_in_millis"`
 
-	// The total number of get operations.
+	// Total is the total number of get operations.
 	Total int64 `json:"total"`
 }
 
 // The item level HTTP response status code during indexing.
 type DocStatus struct {
-	// The number of informational responses.
+	// N1xx is the number of informational responses.
 	N1xx *int64 `json:"1xx,omitempty"`
 
-	// The number of successful responses.
+	// N2xx is the number of successful responses.
 	N2xx *int64 `json:"2xx,omitempty"`
 
-	// The number of redirection responses.
+	// N3xx is the number of redirection responses.
 	N3xx *int64 `json:"3xx,omitempty"`
 
-	// The number of client error responses.
+	// N4xx is the number of client error responses.
 	N4xx *int64 `json:"4xx,omitempty"`
 
-	// The number of server error responses.
+	// N5xx is the number of server error responses.
 	N5xx *int64 `json:"5xx,omitempty"`
 }
 
 // The statistics about indexing operations.
 type IndexingStats struct {
-	// The number of current delete operations.
+	// DeleteCurrent is the number of current delete operations.
 	DeleteCurrent int64 `json:"delete_current"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// DeleteTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	DeleteTime *string `json:"delete_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// DeleteTimeInMillis is the time unit for milliseconds.
 	DeleteTimeInMillis int64 `json:"delete_time_in_millis"`
 
-	// The total number of delete operations.
+	// DeleteTotal is the total number of delete operations.
 	DeleteTotal int64 `json:"delete_total"`
 
-	// The item level HTTP response status code during indexing.
+	// DocStatus is the item level HTTP response status code during indexing.
 	DocStatus *DocStatus `json:"doc_status,omitempty"`
 
-	// The number of current indexing operations.
+	// IndexCurrent is the number of current indexing operations.
 	IndexCurrent int64 `json:"index_current"`
 
-	// The number of failed indexing operations.
+	// IndexFailed is the number of failed indexing operations.
 	IndexFailed int64 `json:"index_failed"`
 
-	// The total amount of time spent on indexing operations.
+	// IndexTime is the total amount of time spent on indexing operations.
 	IndexTime *string `json:"index_time,omitempty"`
 
-	// The total amount of time spent on indexing operations in milliseconds.
+	// IndexTimeInMillis is the total amount of time spent on indexing
+	// operations in milliseconds.
 	IndexTimeInMillis int64 `json:"index_time_in_millis"`
 
-	// The total number of indexing operations.
+	// IndexTotal is the total number of indexing operations.
 	IndexTotal int64 `json:"index_total"`
 
-	// Whether indexing is currently throttled.
+	// IsThrottled. Whether indexing is currently throttled.
 	IsThrottled bool `json:"is_throttled"`
 
-	// The total number of noop update operations.
+	// NoopUpdateTotal is the total number of noop update operations.
 	NoopUpdateTotal int64 `json:"noop_update_total"`
 
-	// The total amount of time spent throttling indexing operations.
+	// ThrottleTime is the total amount of time spent throttling indexing
+	// operations.
 	ThrottleTime *string `json:"throttle_time,omitempty"`
 
-	// The total amount of time spent throttling indexing operations in
-	// milliseconds.
+	// ThrottleTimeInMillis is the total amount of time spent throttling
+	// indexing operations in milliseconds.
 	ThrottleTimeInMillis int64 `json:"throttle_time_in_millis"`
 
 	Types map[string]IndexingStats `json:"types,omitempty"`
@@ -7237,326 +7593,363 @@ type IndexingStats struct {
 
 // The statistics about merge operations.
 type MergesStats struct {
-	// The number of current merge operations.
+	// Current is the number of current merge operations.
 	Current int64 `json:"current"`
 
-	// The number of documents in current merge operations.
+	// CurrentDocs is the number of documents in current merge operations.
 	CurrentDocs int64 `json:"current_docs"`
 
-	// The size of current merge operations in a human-readable format.
+	// CurrentSize is the size of current merge operations in a human-readable
+	// format.
 	CurrentSize *string `json:"current_size,omitempty"`
 
-	// The size of current merge operations in bytes.
+	// CurrentSizeInBytes is the size of current merge operations in bytes.
 	CurrentSizeInBytes int64 `json:"current_size_in_bytes"`
 
-	// The total number of merge operations.
+	// Total is the total number of merge operations.
 	Total int64 `json:"total"`
 
-	// The total auto-throttle size in a human-readable format.
+	// TotalAutoThrottle is the total auto-throttle size in a human-readable
+	// format.
 	TotalAutoThrottle *string `json:"total_auto_throttle,omitempty"`
 
-	// The total auto-throttle size in bytes.
+	// TotalAutoThrottleInBytes is the total auto-throttle size in bytes.
 	TotalAutoThrottleInBytes int64 `json:"total_auto_throttle_in_bytes"`
 
-	// The total number of documents that have been merged.
+	// TotalDocs is the total number of documents that have been merged.
 	TotalDocs int64 `json:"total_docs"`
 
-	// The total size of merge operations in a human-readable format.
+	// TotalSize is the total size of merge operations in a human-readable
+	// format.
 	TotalSize *string `json:"total_size,omitempty"`
 
-	// The total size of merge operations in bytes.
+	// TotalSizeInBytes is the total size of merge operations in bytes.
 	TotalSizeInBytes int64 `json:"total_size_in_bytes"`
 
-	// The total amount of time merge operations have been stopped.
+	// TotalStoppedTime is the total amount of time merge operations have been
+	// stopped.
 	TotalStoppedTime *string `json:"total_stopped_time,omitempty"`
 
-	// The total amount of time merge operations have been stopped in
-	// milliseconds.
+	// TotalStoppedTimeInMillis is the total amount of time merge operations
+	// have been stopped in milliseconds.
 	TotalStoppedTimeInMillis int64 `json:"total_stopped_time_in_millis"`
 
-	// The total amount of time merge operations have been throttled.
+	// TotalThrottledTime is the total amount of time merge operations have
+	// been throttled.
 	TotalThrottledTime *string `json:"total_throttled_time,omitempty"`
 
-	// The total amount of time merge operations have been throttled in
-	// milliseconds.
+	// TotalThrottledTimeInMillis is the total amount of time merge operations
+	// have been throttled in milliseconds.
 	TotalThrottledTimeInMillis int64 `json:"total_throttled_time_in_millis"`
 
-	// The total amount of time spent on merge operations.
+	// TotalTime is the total amount of time spent on merge operations.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The total amount of time spent on merge operations in milliseconds.
+	// TotalTimeInMillis is the total amount of time spent on merge operations
+	// in milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 
-	// The number of unreferenced file cleanups performed.
+	// UnreferencedFileCleanupsPerformed is the number of unreferenced file
+	// cleanups performed.
 	UnreferencedFileCleanupsPerformed *int64 `json:"unreferenced_file_cleanups_performed,omitempty"`
 }
 
 // The statistics about recovery operations.
 type RecoveryStats struct {
-	// The number of ongoing recoveries for which this node is the source.
+	// CurrentAsSource is the number of ongoing recoveries for which this node
+	// is the source.
 	CurrentAsSource int64 `json:"current_as_source"`
 
-	// The number of ongoing recoveries for which this node is the target.
+	// CurrentAsTarget is the number of ongoing recoveries for which this node
+	// is the target.
 	CurrentAsTarget int64 `json:"current_as_target"`
 
-	// The total amount of time recovery operations have been throttled.
+	// ThrottleTime is the total amount of time recovery operations have been
+	// throttled.
 	ThrottleTime *string `json:"throttle_time,omitempty"`
 
-	// The total amount of time recovery operations have been throttled in
-	// milliseconds.
+	// ThrottleTimeInMillis is the total amount of time recovery operations
+	// have been throttled in milliseconds.
 	ThrottleTimeInMillis int64 `json:"throttle_time_in_millis"`
 }
 
 // The statistics about refresh operations.
 type RefreshStats struct {
-	// The total number of external refresh operations.
+	// ExternalTotal is the total number of external refresh operations.
 	ExternalTotal int64 `json:"external_total"`
 
-	// The total amount of time spent on external refresh operations.
+	// ExternalTotalTime is the total amount of time spent on external refresh
+	// operations.
 	ExternalTotalTime *string `json:"external_total_time,omitempty"`
 
-	// The total amount of time spent on external refresh operations in
-	// milliseconds.
+	// ExternalTotalTimeInMillis is the total amount of time spent on external
+	// refresh operations in milliseconds.
 	ExternalTotalTimeInMillis int64 `json:"external_total_time_in_millis"`
 
-	// The number of refresh listeners.
+	// Listeners is the number of refresh listeners.
 	Listeners int64 `json:"listeners"`
 
-	// The total number of refresh operations.
+	// Total is the total number of refresh operations.
 	Total int64 `json:"total"`
 
-	// The total amount of time spent on refresh operations.
+	// TotalTime is the total amount of time spent on refresh operations.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The total amount of time spent on refresh operations in milliseconds.
+	// TotalTimeInMillis is the total amount of time spent on refresh
+	// operations in milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
 // The statistics about request cache operations.
 type RequestCacheStats struct {
-	// The number of request cache evictions.
+	// Evictions is the number of request cache evictions.
 	Evictions int64 `json:"evictions"`
 
-	// The number of request cache hits.
+	// HitCount is the number of request cache hits.
 	HitCount int64 `json:"hit_count"`
 
-	// The size of the request cache in a human-readable format.
+	// MemorySize is the size of the request cache in a human-readable format.
 	MemorySize *string `json:"memory_size,omitempty"`
 
-	// The size of the request cache in bytes.
+	// MemorySizeInBytes is the size of the request cache in bytes.
 	MemorySizeInBytes int64 `json:"memory_size_in_bytes"`
 
-	// The number of request cache misses.
+	// MissCount is the number of request cache misses.
 	MissCount int64 `json:"miss_count"`
 }
 
 // The statistics about request operations.
 type RequestStats struct {
-	// The number of current request operations.
+	// Current is the number of current request operations.
 	Current *int64 `json:"current,omitempty"`
 
-	// The total time spent on request operations.
+	// Time is the total time spent on request operations.
 	Time *string `json:"time,omitempty"`
 
-	// The total time spent on request operations in milliseconds.
+	// TimeInMillis is the total time spent on request operations in
+	// milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 
-	// The total number of request operations.
+	// Total is the total number of request operations.
 	Total *int64 `json:"total,omitempty"`
 }
 
 // The statistics about search operations.
 type SearchStats struct {
-	// The average slice count of all search requests. This is computed as the
-	// total slice count divided by the total number of concurrent search
-	// requests.
+	// ConcurrentAvgSliceCount is the average slice count of all search
+	// requests. This is computed as the total slice count divided by the total
+	// number of concurrent search requests.
 	ConcurrentAvgSliceCount *float64 `json:"concurrent_avg_slice_count,omitempty"`
 
-	// The number of currently running query operations using concurrent
-	// segment search.
+	// ConcurrentQueryCurrent is the number of currently running query
+	// operations using concurrent segment search.
 	ConcurrentQueryCurrent *int64 `json:"concurrent_query_current,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// ConcurrentQueryTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	ConcurrentQueryTime *string `json:"concurrent_query_time,omitempty"`
 
-	// The total amount of time taken by all query operations using concurrent
-	// segment search, in milliseconds.
+	// ConcurrentQueryTimeInMillis is the total amount of time taken by all
+	// query operations using concurrent segment search, in milliseconds.
 	ConcurrentQueryTimeInMillis *int64 `json:"concurrent_query_time_in_millis,omitempty"`
 
-	// The total number of query operations using concurrent segment search.
+	// ConcurrentQueryTotal is the total number of query operations using
+	// concurrent segment search.
 	ConcurrentQueryTotal *int64 `json:"concurrent_query_total,omitempty"`
 
-	// The number of currently running shard fetch operations.
+	// FetchCurrent is the number of currently running shard fetch operations.
 	FetchCurrent int64 `json:"fetch_current"`
 
-	// The total amount of time taken to complete all shard fetch operations.
+	// FetchTime is the total amount of time taken to complete all shard fetch
+	// operations.
 	FetchTime *string `json:"fetch_time,omitempty"`
 
-	// The total amount of time taken to complete all shard fetch operations,
-	// in milliseconds.
+	// FetchTimeInMillis is the total amount of time taken to complete all
+	// shard fetch operations, in milliseconds.
 	FetchTimeInMillis int64 `json:"fetch_time_in_millis"`
 
-	// The total number of shard fetch operations.
+	// FetchTotal is the total number of shard fetch operations.
 	FetchTotal int64 `json:"fetch_total"`
 
-	// The search statistics grouped by search groups.
+	// Groups is the search statistics grouped by search groups.
 	Groups map[string]SearchStats `json:"groups,omitempty"`
 
-	// The number of open search contexts.
+	// OpenContexts is the number of open search contexts.
 	OpenContexts *int64 `json:"open_contexts,omitempty"`
 
-	// The number of currently open shard PIT contexts.
+	// PointInTimeCurrent is the number of currently open shard PIT contexts.
 	PointInTimeCurrent *int64 `json:"point_in_time_current,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// PointInTimeTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	PointInTimeTime *string `json:"point_in_time_time,omitempty"`
 
-	// The amount of time that shard PIT contexts have been held open since the
-	// node last restarted, in milliseconds.
+	// PointInTimeTimeInMillis is the amount of time that shard PIT contexts
+	// have been held open since the node last restarted, in milliseconds.
 	PointInTimeTimeInMillis *int64 `json:"point_in_time_time_in_millis,omitempty"`
 
-	// The total number of shard Point in Time (PIT) contexts created
-	// (completed and active) since the node last restarted.
+	// PointInTimeTotal is the total number of shard Point in Time (PIT)
+	// contexts created (completed and active) since the node last restarted.
 	PointInTimeTotal *int64 `json:"point_in_time_total,omitempty"`
 
-	// The number of currently running shard query operations.
+	// QueryCurrent is the number of currently running shard query operations.
 	QueryCurrent int64 `json:"query_current"`
 
-	// The total amount of time taken to complete all shard query operations.
+	// QueryTime is the total amount of time taken to complete all shard query
+	// operations.
 	QueryTime *string `json:"query_time,omitempty"`
 
-	// The total amount of time taken to complete all shard query operations,
-	// in milliseconds.
+	// QueryTimeInMillis is the total amount of time taken to complete all
+	// shard query operations, in milliseconds.
 	QueryTimeInMillis int64 `json:"query_time_in_millis"`
 
-	// The total number of shard query operations.
+	// QueryTotal is the total number of shard query operations.
 	QueryTotal int64 `json:"query_total"`
 
-	// Statistics related to coordinator search operations for the node.
+	// Request. Statistics related to coordinator search operations for the
+	// node.
 	Request map[string]RequestStats `json:"request,omitempty"`
 
-	// The number of shard scroll operations that are currently running.
+	// ScrollCurrent is the number of shard scroll operations that are
+	// currently running.
 	ScrollCurrent int64 `json:"scroll_current"`
 
-	// The total amount of time taken to complete all shard scroll operations.
+	// ScrollTime is the total amount of time taken to complete all shard
+	// scroll operations.
 	ScrollTime *string `json:"scroll_time,omitempty"`
 
-	// The total amount of time taken to complete all shard scroll operations,
-	// in milliseconds.
+	// ScrollTimeInMillis is the total amount of time taken to complete all
+	// shard scroll operations, in milliseconds.
 	ScrollTimeInMillis int64 `json:"scroll_time_in_millis"`
 
-	// The total number of shard scroll operations.
+	// ScrollTotal is the total number of shard scroll operations.
 	ScrollTotal int64 `json:"scroll_total"`
 
-	// The total number of idle search reactivations.
+	// SearchIdleReactivateCountTotal is the total number of idle search
+	// reactivations.
 	SearchIdleReactivateCountTotal *int64 `json:"search_idle_reactivate_count_total,omitempty"`
 
-	// The number of currently running shard suggest operations.
+	// SuggestCurrent is the number of currently running shard suggest
+	// operations.
 	SuggestCurrent int64 `json:"suggest_current"`
 
-	// The total amount of time take to complete all shard suggest operations.
+	// SuggestTime is the total amount of time take to complete all shard
+	// suggest operations.
 	SuggestTime *string `json:"suggest_time,omitempty"`
 
-	// The total amount of time taken to complete all shard suggest operations,
-	// in milliseconds.
+	// SuggestTimeInMillis is the total amount of time taken to complete all
+	// shard suggest operations, in milliseconds.
 	SuggestTimeInMillis int64 `json:"suggest_time_in_millis"`
 
-	// The total number of shard suggest operations.
+	// SuggestTotal is the total number of shard suggest operations.
 	SuggestTotal int64 `json:"suggest_total"`
 }
 
 // The total amount of data uploaded to the remote translog store.
 type RemoteStoreTranslogUploadTotalUploadSizeStats struct {
-	// The number of bytes that failed to upload to the remote translog store.
+	// Failed is the number of bytes that failed to upload to the remote
+	// translog store.
 	Failed *string `json:"failed,omitempty"`
 
-	// The number of bytes that failed to upload to the remote translog store.
+	// FailedBytes is the number of bytes that failed to upload to the remote
+	// translog store.
 	FailedBytes int64 `json:"failed_bytes"`
 
-	// The number of bytes successfully uploaded to the remote translog store.
+	// Started is the number of bytes successfully uploaded to the remote
+	// translog store.
 	Started *string `json:"started,omitempty"`
 
-	// The number of bytes successfully uploaded to the remote translog store.
+	// StartedBytes is the number of bytes successfully uploaded to the remote
+	// translog store.
 	StartedBytes int64 `json:"started_bytes"`
 
-	// The number of bytes successfully uploaded to the remote translog store.
+	// Succeeded is the number of bytes successfully uploaded to the remote
+	// translog store.
 	Succeeded *string `json:"succeeded,omitempty"`
 
-	// The number of bytes successfully uploaded to the remote translog store.
+	// SucceededBytes is the number of bytes successfully uploaded to the
+	// remote translog store.
 	SucceededBytes int64 `json:"succeeded_bytes"`
 }
 
 // The number of syncs to the remote translog store.
 type RemoteStoreTranslogUploadTotalUploadsStats struct {
-	// The number of failed upload syncs to the remote translog store.
+	// Failed is the number of failed upload syncs to the remote translog
+	// store.
 	Failed int64 `json:"failed"`
 
-	// The number of upload syncs to the remote translog store that have
-	// started.
+	// Started is the number of upload syncs to the remote translog store that
+	// have started.
 	Started int64 `json:"started"`
 
-	// The number of successful upload syncs to the remote translog store.
+	// Succeeded is the number of successful upload syncs to the remote
+	// translog store.
 	Succeeded int64 `json:"succeeded"`
 }
 
 // The statistics related to uploads to the remote translog store.
 type RemoteStoreTranslogUploadStats struct {
-	// The total amount of data uploaded to the remote translog store.
+	// TotalUploadSize is the total amount of data uploaded to the remote
+	// translog store.
 	TotalUploadSize RemoteStoreTranslogUploadTotalUploadSizeStats `json:"total_upload_size"`
 
-	// The number of syncs to the remote translog store.
+	// TotalUploads is the number of syncs to the remote translog store.
 	TotalUploads RemoteStoreTranslogUploadTotalUploadsStats `json:"total_uploads"`
 }
 
 // The statistics related to remote translog operations.
 type RemoteStoreTranslogStats struct {
-	// The statistics related to uploads to the remote translog store.
+	// Upload is the statistics related to uploads to the remote translog
+	// store.
 	Upload RemoteStoreTranslogUploadStats `json:"upload"`
 }
 
 // The statistics about translog operations.
 type TranslogStats struct {
-	// The age of the oldest translog entry.
+	// EarliestLastModifiedAge is the age of the oldest translog entry.
 	EarliestLastModifiedAge int64 `json:"earliest_last_modified_age"`
 
-	// The number of operations in the translog.
+	// Operations is the number of operations in the translog.
 	Operations int `json:"operations"`
 
-	// The statistics related to remote translog operations.
+	// RemoteStore is the statistics related to remote translog operations.
 	RemoteStore *RemoteStoreTranslogStats `json:"remote_store,omitempty"`
 
-	// The size of the translog in a human-readable format.
+	// Size is the size of the translog in a human-readable format.
 	Size *string `json:"size,omitempty"`
 
-	// The size of the translog in bytes.
+	// SizeInBytes is the size of the translog in bytes.
 	SizeInBytes int64 `json:"size_in_bytes"`
 
-	// The number of uncommitted operations in the translog.
+	// UncommittedOperations is the number of uncommitted operations in the
+	// translog.
 	UncommittedOperations int `json:"uncommitted_operations"`
 
-	// The size of uncommitted operations in a human-readable format.
+	// UncommittedSize is the size of uncommitted operations in a
+	// human-readable format.
 	UncommittedSize *string `json:"uncommitted_size,omitempty"`
 
-	// The size of uncommitted operations in bytes.
+	// UncommittedSizeInBytes is the size of uncommitted operations in bytes.
 	UncommittedSizeInBytes int64 `json:"uncommitted_size_in_bytes"`
 }
 
 // The statistics about index warmer operations.
 type WarmerStats struct {
-	// The number of current warmer operations.
+	// Current is the number of current warmer operations.
 	Current int64 `json:"current"`
 
-	// The total number of warmer operations.
+	// Total is the total number of warmer operations.
 	Total int64 `json:"total"`
 
-	// The total time spent on warmer operations.
+	// TotalTime is the total time spent on warmer operations.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The total time spent on warmer operations in milliseconds.
+	// TotalTimeInMillis is the total time spent on warmer operations in
+	// milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
@@ -7568,34 +7961,36 @@ type IndicesUpgradeVersionStatus struct {
 
 // The version information for OpenSearch.
 type OpenSearchVersionInfo struct {
-	// When the version was built.
+	// BuildDate. When the version was built.
 	BuildDate string `json:"build_date"`
 
-	// The flavor of the build.
+	// BuildFlavor is the flavor of the build.
 	BuildFlavor *string `json:"build_flavor,omitempty"`
 
-	// The hash of the build.
+	// BuildHash is the hash of the build.
 	BuildHash string `json:"build_hash"`
 
-	// Whether this is a snapshot build.
+	// BuildSnapshot. Whether this is a snapshot build.
 	BuildSnapshot bool `json:"build_snapshot"`
 
-	// The type of the build.
+	// BuildType is the type of the build.
 	BuildType string `json:"build_type"`
 
-	// The distribution name.
+	// Distribution is the distribution name.
 	Distribution string `json:"distribution"`
 
-	// The version of Lucene being used.
+	// LuceneVersion is the version of Lucene being used.
 	LuceneVersion string `json:"lucene_version"`
 
-	// The minimum compatible index version.
+	// MinimumIndexCompatibilityVersion is the minimum compatible index
+	// version.
 	MinimumIndexCompatibilityVersion string `json:"minimum_index_compatibility_version"`
 
-	// The minimum compatible wire protocol version.
+	// MinimumWireCompatibilityVersion is the minimum compatible wire protocol
+	// version.
 	MinimumWireCompatibilityVersion string `json:"minimum_wire_compatibility_version"`
 
-	// The version number.
+	// Number is the version number.
 	Number string `json:"number"`
 }
 
@@ -7604,139 +7999,144 @@ type IngestProcessorBase struct {
 	// processor or its configuration.
 	Description *string `json:"description,omitempty"`
 
-	// Conditionally execute the processor.
+	// If. Conditionally execute the processor.
 	If *string `json:"if,omitempty"`
 
-	// Ignore failures for the processor.
+	// IgnoreFailure. Ignore failures for the processor.
 	IgnoreFailure *bool `json:"ignore_failure,omitempty"`
 
-	// Handle failures for the processor.
+	// OnFailure. Handle failures for the processor.
 	OnFailure []IngestProcessorContainer `json:"on_failure,omitempty"`
 
-	// Identifier for the processor. Useful for debugging and metrics.
+	// Tag. Identifier for the processor. Useful for debugging and metrics.
 	Tag *string `json:"tag,omitempty"`
 }
 
 type IngestAppendProcessor struct {
 	IngestProcessorBase
 
-	// If `false`, the processor does not append values already present in the
-	// field.
+	// AllowDuplicates. If `false`, the processor does not append values
+	// already present in the field.
 	AllowDuplicates *bool `json:"allow_duplicates,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The value to be appended. Supports template snippets.
+	// Value is the value to be appended. Supports template snippets.
 	Value []json.RawMessage `json:"value"`
 }
 
 type IngestAttachmentProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and field does not exist, the processor quietly exits without
-	// modifying the document.
+	// IgnoreMissing. If `true` and field does not exist, the processor quietly
+	// exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The number of chars being used for extraction to prevent huge fields.
-	// Use `-1` for no limit.
+	// IndexedChars is the number of chars being used for extraction to prevent
+	// huge fields. Use `-1` for no limit.
 	IndexedChars *int64 `json:"indexed_chars,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// IndexedCharsField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	IndexedCharsField *string `json:"indexed_chars_field,omitempty"`
 
-	// Array of properties to select to be stored. Can be `content`, `title`,
-	// `name`, `author`, `keywords`, `date`, `content_type`, `content_length`,
-	// `language`.
+	// Properties. Array of properties to select to be stored. Can be
+	// `content`, `title`, `name`, `author`, `keywords`, `date`,
+	// `content_type`, `content_length`, `language`.
 	Properties []string `json:"properties,omitempty"`
 
-	// Field containing the name of the resource to decode. If specified, the
-	// processor passes this resource name to the underlying Tika library to
-	// enable Resource Name Based Detection.
+	// ResourceName. Field containing the name of the resource to decode. If
+	// specified, the processor passes this resource name to the underlying
+	// Tika library to enable Resource Name Based Detection.
 	ResourceName *string `json:"resource_name,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestBytesProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestCircleProcessor struct {
 	IngestProcessorBase
 
-	// The difference between the resulting inscribed distance from center to
-	// side and the circle's radius (measured in meters for `geo_shape`,
-	// unit-less for `shape`).
+	// ErrorDistance is the difference between the resulting inscribed distance
+	// from center to side and the circle's radius (measured in meters for
+	// `geo_shape`, unit-less for `shape`).
 	ErrorDistance float64 `json:"error_distance"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
 	ShapeType string `json:"shape_type"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestConvertProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 
 	Type string `json:"type"`
 }
 
-type IngestCsvProcessor struct {
+type IngestCSVProcessor struct {
 	IngestProcessorBase
 
-	// Value used to fill empty fields. Empty fields are skipped if this is not
-	// provided. An empty field is one with no value (2 consecutive separators)
-	// or empty quotes (`""`).
-	EmptyValue json.RawMessage `json:"empty_value"`
+	// EmptyValue. Value used to fill empty fields. Empty fields are skipped if
+	// this is not provided. An empty field is one with no value (2 consecutive
+	// separators) or empty quotes (`""`).
+	EmptyValue json.RawMessage `json:"empty_value,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
 	// Quote used in CSV, has to be single character string.
@@ -7745,10 +8145,10 @@ type IngestCsvProcessor struct {
 	// Separator used in CSV, has to be single character string.
 	Separator *string `json:"separator,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// TargetFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	TargetFields string `json:"target_fields"`
 
 	// Trim white spaces in unquoted fields.
@@ -7758,111 +8158,114 @@ type IngestCsvProcessor struct {
 type IngestDateProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// An array of the expected date formats. Can be a java time pattern or one
-	// of the following formats: ISO8601, UNIX, UNIX_MS, or TAI64N.
+	// Formats is an array of the expected date formats. Can be a java time
+	// pattern or one of the following formats: ISO8601, UNIX, UNIX_MS, or
+	// TAI64N.
 	Formats []string `json:"formats"`
 
-	// The locale to use when parsing the date, relevant when parsing month
-	// names or week days. Supports template snippets.
+	// Locale is the locale to use when parsing the date, relevant when parsing
+	// month names or week days. Supports template snippets.
 	Locale *string `json:"locale,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 
-	// The time zone to use when parsing the date. Supports template snippets.
+	// Timezone is the time zone to use when parsing the date. Supports
+	// template snippets.
 	Timezone *string `json:"timezone,omitempty"`
 }
 
 type IngestDateIndexNameProcessor struct {
 	IngestProcessorBase
 
-	// An array of the expected date formats for parsing dates/timestamps in
-	// the document being preprocessed. Can be a java time pattern or one of
-	// the following formats: `ISO8601`, `UNIX`, `UNIX_MS`, or `TAI64N`.
+	// DateFormats is an array of the expected date formats for parsing
+	// dates/timestamps in the document being preprocessed. Can be a java time
+	// pattern or one of the following formats: `ISO8601`, `UNIX`, `UNIX_MS`,
+	// or `TAI64N`.
 	DateFormats []string `json:"date_formats"`
 
-	// How to round the date when formatting the date into the index name.
-	// Valid values are: `y` (year), `M` (month), `w` (week), `d` (day), `h`
-	// (hour), `m` (minute) and `s` (second). Supports template snippets.
+	// DateRounding. How to round the date when formatting the date into the
+	// index name. Valid values are: `y` (year), `M` (month), `w` (week), `d`
+	// (day), `h` (hour), `m` (minute) and `s` (second). Supports template
+	// snippets.
 	DateRounding string `json:"date_rounding"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The format to be used when printing the parsed date into the index name.
-	// A valid java time pattern is expected here. Supports template snippets.
+	// IndexNameFormat is the format to be used when printing the parsed date
+	// into the index name. A valid java time pattern is expected here.
+	// Supports template snippets.
 	IndexNameFormat *string `json:"index_name_format,omitempty"`
 
-	// A prefix of the index name to be prepended before the printed date.
-	// Supports template snippets.
+	// IndexNamePrefix is a prefix of the index name to be prepended before the
+	// printed date. Supports template snippets.
 	IndexNamePrefix *string `json:"index_name_prefix,omitempty"`
 
-	// The locale to use when parsing the date from the document being
-	// preprocessed, relevant when parsing month names or week days.
+	// Locale is the locale to use when parsing the date from the document
+	// being preprocessed, relevant when parsing month names or week days.
 	Locale *string `json:"locale,omitempty"`
 
-	// The time zone to use when parsing the date and when date math index
-	// supports resolves expressions into concrete index names.
+	// Timezone is the time zone to use when parsing the date and when date
+	// math index supports resolves expressions into concrete index names.
 	Timezone *string `json:"timezone,omitempty"`
 }
 
 type IngestDissectProcessor struct {
 	IngestProcessorBase
 
-	// The character(s) that separate the appended fields.
+	// AppendSeparator is the character(s) that separate the appended fields.
 	AppendSeparator *string `json:"append_separator,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The pattern to apply to the field.
+	// Pattern is the pattern to apply to the field.
 	Pattern string `json:"pattern"`
 }
 
 type IngestDotExpanderProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The field that contains the field to expand. Only required if the field
-	// to expand is part another object field, because the `field` option can
-	// only understand leaf fields.
+	// Path is the field that contains the field to expand. Only required if
+	// the field to expand is part another object field, because the `field`
+	// option can only understand leaf fields.
 	Path *string `json:"path,omitempty"`
-}
-
-type IngestDropProcessor struct {
-	IngestProcessorBase
 }
 
 type IngestFailProcessor struct {
 	IngestProcessorBase
 
-	// The error message thrown by the processor. Supports template snippets.
+	// Message is the error message thrown by the processor. Supports template
+	// snippets.
 	Message string `json:"message"`
 }
 
 type IngestForeachProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true`, the processor silently exits without changing the document if
-	// the `field` is `null` or missing.
+	// IgnoreMissing. If `true`, the processor silently exits without changing
+	// the document if the `field` is `null` or missing.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
 	Processor IngestProcessorContainer `json:"processor"`
@@ -7871,292 +8274,308 @@ type IngestForeachProcessor struct {
 type IngestGeoIPProcessor struct {
 	IngestProcessorBase
 
-	// The database filename referring to a database the module ships with
-	// (`GeoLite2-City.mmdb`, `GeoLite2-Country.mmdb`, or `GeoLite2-ASN.mmdb`)
-	// or a custom database in the `ingest-geoip` config directory.
+	// DatabaseFile is the database filename referring to a database the module
+	// ships with (`GeoLite2-City.mmdb`, `GeoLite2-Country.mmdb`, or
+	// `GeoLite2-ASN.mmdb`) or a custom database in the `ingest-geoip` config
+	// directory.
 	DatabaseFile *string `json:"database_file,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true`, only the first found geoip data will be returned, even if the
-	// field contains an array.
+	// FirstOnly. If `true`, only the first found geoip data will be returned,
+	// even if the field contains an array.
 	FirstOnly *bool `json:"first_only,omitempty"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// Controls what properties are added to the `target_field` based on the
-	// geoip lookup.
+	// Properties. Controls what properties are added to the `target_field`
+	// based on the geoip lookup.
 	Properties []string `json:"properties,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestGrokProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// A map of pattern-name and pattern tuples defining custom patterns to be
-	// used by the current processor. Patterns matching existing names will
-	// override the pre-existing definition.
+	// PatternDefinitions is a map of pattern-name and pattern tuples defining
+	// custom patterns to be used by the current processor. Patterns matching
+	// existing names will override the pre-existing definition.
 	PatternDefinitions map[string]string `json:"pattern_definitions,omitempty"`
 
-	// An ordered list of grok expression to match and extract named captures
-	// with. Returns on the first expression in the list that matches.
+	// Patterns is an ordered list of grok expression to match and extract
+	// named captures with. Returns on the first expression in the list that
+	// matches.
 	Patterns []string `json:"patterns"`
 
-	// When `true`, `_ingest._grok_match_index` will be inserted into your
-	// matched document's metadata with the index into the pattern found in
-	// `patterns` that matched.
+	// TraceMatch. When `true`, `_ingest._grok_match_index` will be inserted
+	// into your matched document's metadata with the index into the pattern
+	// found in `patterns` that matched.
 	TraceMatch *bool `json:"trace_match,omitempty"`
 }
 
 type IngestGsubProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The pattern to be replaced.
+	// Pattern is the pattern to be replaced.
 	Pattern string `json:"pattern"`
 
-	// The string to replace the matching patterns with.
+	// Replacement is the string to replace the matching patterns with.
 	Replacement string `json:"replacement"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestJoinProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The separator character.
+	// Separator is the separator character.
 	Separator string `json:"separator"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestJSONProcessor struct {
 	IngestProcessorBase
 
-	// Flag that forces the parsed JSON to be added at the top level of the
-	// document. `target_field` must not be set when this option is chosen.
+	// AddToRoot. Flag that forces the parsed JSON to be added at the top level
+	// of the document. `target_field` must not be set when this option is
+	// chosen.
 	AddToRoot *bool `json:"add_to_root,omitempty"`
 
 	AddToRootConflictStrategy *string `json:"add_to_root_conflict_strategy,omitempty"`
 
-	// When set to `true`, the JSON parser will not fail if the JSON contains
-	// duplicate keys. Instead, the last encountered value for any duplicate
-	// key wins.
+	// AllowDuplicateKeys. When set to `true`, the JSON parser will not fail if
+	// the JSON contains duplicate keys. Instead, the last encountered value
+	// for any duplicate key wins.
 	AllowDuplicateKeys *bool `json:"allow_duplicate_keys,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestKeyValueProcessor struct {
 	IngestProcessorBase
 
-	// List of keys to exclude from document.
+	// ExcludeKeys. List of keys to exclude from document.
 	ExcludeKeys []string `json:"exclude_keys,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// Regex pattern to use for splitting key-value pairs.
+	// FieldSplit. Regex pattern to use for splitting key-value pairs.
 	FieldSplit string `json:"field_split"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// List of keys to filter and insert into document. Defaults to including
-	// all keys.
+	// IncludeKeys. List of keys to filter and insert into document. Defaults
+	// to including all keys.
 	IncludeKeys []string `json:"include_keys,omitempty"`
 
 	// Prefix to be added to extracted keys.
 	Prefix *string `json:"prefix,omitempty"`
 
-	// If `true`. strip brackets `()`, `<>`, `[]` as well as quotes `'` and `"`
-	// from extracted values.
+	// StripBrackets. If `true`. strip brackets `()`, `<>`, `[]` as well as
+	// quotes `'` and `"` from extracted values.
 	StripBrackets *bool `json:"strip_brackets,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 
-	// String of characters to trim from extracted keys.
+	// TrimKey. String of characters to trim from extracted keys.
 	TrimKey *string `json:"trim_key,omitempty"`
 
-	// String of characters to trim from extracted values.
+	// TrimValue. String of characters to trim from extracted values.
 	TrimValue *string `json:"trim_value,omitempty"`
 
-	// Regex pattern to use for splitting the key from the value within a
-	// key-value pair.
+	// ValueSplit. Regex pattern to use for splitting the key from the value
+	// within a key-value pair.
 	ValueSplit string `json:"value_split"`
 }
 
 type IngestLowercaseProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestPipelineProcessor struct {
 	IngestProcessorBase
 
-	// Whether to ignore missing pipelines instead of failing.
+	// IgnoreMissingPipeline. Whether to ignore missing pipelines instead of
+	// failing.
 	IgnoreMissingPipeline *bool `json:"ignore_missing_pipeline,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
 type IngestRemoveProcessor struct {
 	IngestProcessorBase
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// Field is a comma-separated list or a wildcard expression specifying the
+	// fields to include in the statistics. Used as the default list unless a
+	// specific field list is provided in the `completion_fields` or
+	// `fielddata_fields` parameters.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 }
 
 type IngestRenameProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField string `json:"target_field"`
 }
 
 type IngestSetProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// CopyFrom is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	CopyFrom *string `json:"copy_from,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `value` is a template snippet that evaluates to `null` or
-	// the empty string, the processor quietly exits without modifying the
-	// document.
+	// IgnoreEmptyValue. If `true` and `value` is a template snippet that
+	// evaluates to `null` or the empty string, the processor quietly exits
+	// without modifying the document.
 	IgnoreEmptyValue *bool `json:"ignore_empty_value,omitempty"`
 
-	// The media type for encoding `value`. Applies only when value is a
-	// template snippet. Must be one of `application/json`, `text/plain`, or
-	// `application/x-www-form-urlencoded`.
+	// MediaType is the media type for encoding `value`. Applies only when
+	// value is a template snippet. Must be one of `application/json`,
+	// `text/plain`, or `application/x-www-form-urlencoded`.
 	MediaType *string `json:"media_type,omitempty"`
 
-	// If `true` processor will update fields with pre-existing non-null-valued
-	// field. When set to `false`, such fields will not be touched.
+	// Override. If `true` processor will update fields with pre-existing
+	// non-null-valued field. When set to `false`, such fields will not be
+	// touched.
 	Override *bool `json:"override,omitempty"`
 
-	// The value to be set for the field. Supports template snippets. May
-	// specify only one of `value` or `copy_from`.
-	Value json.RawMessage `json:"value"`
+	// Value is the value to be set for the field. Supports template snippets.
+	// May specify only one of `value` or `copy_from`.
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type IngestSetSecurityUserProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// Controls what user related properties are added to the field.
+	// Properties. Controls what user related properties are added to the
+	// field.
 	Properties []string `json:"properties,omitempty"`
 }
 
 type IngestSortProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// The direction of the sort order.
+	// Order is the direction of the sort order.
 	Order *string `json:"order,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestSplitProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// Preserves empty trailing fields, if any.
+	// PreserveTrailing. Preserves empty trailing fields, if any.
 	PreserveTrailing *bool `json:"preserve_trailing,omitempty"`
 
-	// A regex which matches the separator, for example, `,` or `\s+`.
+	// Separator is a regex which matches the separator, for example, `,` or
+	// `\s+`.
 	Separator string `json:"separator"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
@@ -8164,84 +8583,88 @@ type IngestTextEmbeddingProcessor struct {
 	IngestProcessorBase
 	BatchSize *int `json:"batch_size,omitempty"`
 
-	// Contains key-value pairs that specify the mapping of a text field to a
-	// vector field.
+	// FieldMap. Contains key-value pairs that specify the mapping of a text
+	// field to a vector field.
 	FieldMap map[string]string `json:"field_map"`
 
-	// The unique identifier for a resource.
+	// ModelID is the unique identifier for a resource.
 	ModelID string `json:"model_id"`
 }
 
 type IngestTrimProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestUppercaseProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestURLDecodeProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist or is `null`, the processor quietly
-	// exits without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist or is `null`, the
+	// processor quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 type IngestUserAgentProcessor struct {
 	IngestProcessorBase
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// Field is the path to a field or an array of paths. Some APIs support
+	// wildcards in the path, which allows you to select multiple fields.
 	Field string `json:"field"`
 
-	// If `true` and `field` does not exist, the processor quietly exits
-	// without modifying the document.
+	// IgnoreMissing. If `true` and `field` does not exist, the processor
+	// quietly exits without modifying the document.
 	IgnoreMissing *bool `json:"ignore_missing,omitempty"`
 
 	Options []string `json:"options,omitempty"`
 
-	// The name of the file in the `config/ingest-user-agent` directory
-	// containing the regular expressions for parsing the user agent string.
-	// Both the directory and the file have to be created before starting
-	// OpenSearch. If not specified, ingest-user-agent will use the
+	// RegexFile is the name of the file in the `config/ingest-user-agent`
+	// directory containing the regular expressions for parsing the user agent
+	// string. Both the directory and the file have to be created before
+	// starting OpenSearch. If not specified, ingest-user-agent will use the
 	// `regexes.yaml` from uap-core it ships with.
 	RegexFile *string `json:"regex_file,omitempty"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TargetField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
@@ -8251,12 +8674,12 @@ type IngestProcessorContainer struct {
 	Bytes           *IngestBytesProcessor           `json:"bytes,omitempty"`
 	Circle          *IngestCircleProcessor          `json:"circle,omitempty"`
 	Convert         *IngestConvertProcessor         `json:"convert,omitempty"`
-	Csv             *IngestCsvProcessor             `json:"csv,omitempty"`
+	CSV             *IngestCSVProcessor             `json:"csv,omitempty"`
 	Date            *IngestDateProcessor            `json:"date,omitempty"`
 	DateIndexName   *IngestDateIndexNameProcessor   `json:"date_index_name,omitempty"`
 	Dissect         *IngestDissectProcessor         `json:"dissect,omitempty"`
 	DotExpander     *IngestDotExpanderProcessor     `json:"dot_expander,omitempty"`
-	Drop            *IngestDropProcessor            `json:"drop,omitempty"`
+	Drop            *IngestProcessorBase            `json:"drop,omitempty"`
 	Fail            *IngestFailProcessor            `json:"fail,omitempty"`
 	Foreach         *IngestForeachProcessor         `json:"foreach,omitempty"`
 	Geoip           *IngestGeoIPProcessor           `json:"geoip,omitempty"`
@@ -8269,7 +8692,7 @@ type IngestProcessorContainer struct {
 	Pipeline        *IngestPipelineProcessor        `json:"pipeline,omitempty"`
 	Remove          *IngestRemoveProcessor          `json:"remove,omitempty"`
 	Rename          *IngestRenameProcessor          `json:"rename,omitempty"`
-	Script          *IngestProcessorContainerScript `json:"script,omitempty"`
+	Script          *Script                         `json:"script,omitempty"`
 	Set             *IngestSetProcessor             `json:"set,omitempty"`
 	SetSecurityUser *IngestSetSecurityUserProcessor `json:"set_security_user,omitempty"`
 	Sort            *IngestSortProcessor            `json:"sort,omitempty"`
@@ -8282,13 +8705,13 @@ type IngestProcessorContainer struct {
 }
 
 type IngestPipeline struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	// Description of the ingest pipeline.
 	Description *string `json:"description,omitempty"`
 
-	// Processors to run immediately after a processor failure.
+	// OnFailure. Processors to run immediately after a processor failure.
 	OnFailure []IngestProcessorContainer `json:"on_failure,omitempty"`
 
 	// Processors used to perform transformations on documents before indexing.
@@ -8299,70 +8722,70 @@ type IngestPipeline struct {
 }
 
 type IngestionShardState struct {
-	// Indicates the shard pointer from where the poller will resume during
-	// shard recovery.
+	// BatchStartPointer. Indicates the shard pointer from where the poller
+	// will resume during shard recovery.
 	BatchStartPointer *string `json:"batch_start_pointer,omitempty"`
 
-	// Indicates the policy used to handle failed messages.
+	// ErrorPolicy. Indicates the policy used to handle failed messages.
 	ErrorPolicy *string `json:"error_policy,omitempty"`
 
-	// Indicates if the poller has been paused.
+	// PollerPaused. Indicates if the poller has been paused.
 	PollerPaused *bool `json:"poller_paused,omitempty"`
 
-	// Indicates the current state of the poller.
+	// PollerState. Indicates the current state of the poller.
 	PollerState *string `json:"poller_state,omitempty"`
 
-	// The shard number.
+	// Shard is the shard number.
 	Shard *int `json:"shard,omitempty"`
 
-	// Indicates if a write block has been created.
+	// WriteBlockEnabled. Indicates if a write block has been created.
 	WriteBlockEnabled *bool `json:"write_block_enabled,omitempty"`
 }
 
 type IngestionGetStateResponse struct {
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 
-	// Ingestion state for a given index and its shards.
+	// IngestionState. Ingestion state for a given index and its shards.
 	IngestionState map[string][]IngestionShardState `json:"ingestion_state,omitempty"`
 
-	// Specifies the next page token. Pass this token in the request to
-	// retrieve contents of the next page.
+	// NextPageToken. Specifies the next page token. Pass this token in the
+	// request to retrieve contents of the next page.
 	NextPageToken *string `json:"next_page_token,omitempty"`
 }
 
 type IngestionStateShardFailure struct {
-	// Indicates the shard level error message.
+	// Error. Indicates the shard level error message.
 	Error string `json:"error"`
 
-	// The shard number.
+	// Shard is the shard number.
 	Shard int `json:"shard"`
 }
 
 type IngestionPauseResponse struct {
-	// Indicates if the pause request has been acknowledged.
+	// Acknowledged. Indicates if the pause request has been acknowledged.
 	Acknowledged bool `json:"acknowledged"`
 
 	Error *string `json:"error,omitempty"`
 
-	// Shard-level failures grouped by index name.
+	// Failures. Shard-level failures grouped by index name.
 	Failures map[string][]IngestionStateShardFailure `json:"failures,omitempty"`
 
-	// Indicates if the pause request has been acknowledged by individual
-	// shards.
+	// ShardsAcknowledged. Indicates if the pause request has been acknowledged
+	// by individual shards.
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
 
 type IngestionResumeResponse struct {
-	// Indicates if the resume request has been acknowledged.
+	// Acknowledged. Indicates if the resume request has been acknowledged.
 	Acknowledged bool `json:"acknowledged"`
 
 	Error *string `json:"error,omitempty"`
 
-	// Shard-level failures grouped by index name.
+	// Failures. Shard-level failures grouped by index name.
 	Failures map[string][]IngestionStateShardFailure `json:"failures,omitempty"`
 
-	// Indicates if the resume request has been acknowledged by individual
-	// shards.
+	// ShardsAcknowledged. Indicates if the resume request has been
+	// acknowledged by individual shards.
 	ShardsAcknowledged bool `json:"shards_acknowledged"`
 }
 
@@ -8373,202 +8796,174 @@ type InsightsMeasurement struct {
 }
 
 type InsightsMeasurements struct {
-	Cpu     *InsightsMeasurement `json:"cpu,omitempty"`
+	CPU     *InsightsMeasurement `json:"cpu,omitempty"`
 	Latency *InsightsMeasurement `json:"latency,omitempty"`
 	Memory  *InsightsMeasurement `json:"memory,omitempty"`
 }
 
-type InsightsSourceSourceObject1 struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
-type InsightsSourceDocvalueFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type InsightsSourceFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
 type SearchPointInTimeReference struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"id"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// KeepAlive is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	KeepAlive *string `json:"keep_alive,omitempty"`
 }
 
 // The configuration for a sliced scroll request.
 type SlicedScroll struct {
-	// The field to slice on.
+	// Field is the field to slice on.
 	Field *string `json:"field,omitempty"`
 
-	// The ID of the slice.
+	// ID is the ID of the slice.
 	ID int `json:"id"`
 
-	// The maximum number of slices.
+	// Max is the maximum number of slices.
 	Max int `json:"max"`
 }
 
 type SearchSuggester struct {
-	// The global suggest text, which avoids repetition when the same text is
-	// used in several suggesters.
+	// Text is the global suggest text, which avoids repetition when the same
+	// text is used in several suggesters.
 	Text *string `json:"text,omitempty"`
 }
 
 type InsightsSource struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
-	Source *InsightsSourceSource `json:"_source,omitempty"`
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
-	Aggregations json.RawMessage `json:"aggregations"`
+	// Aggregations. Defines the aggregations that are run as part of the
+	// search request.
+	Aggregations json.RawMessage `json:"aggregations,omitempty"`
 
 	Collapse *SearchFieldCollapse `json:"collapse,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns doc values for
-	// field names matching these patterns in the `hits.fields` property of the
-	// response.
-	DocvalueFields []InsightsSourceDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
+	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
+	// doc values for field names matching these patterns in the `hits.fields`
+	// property of the response.
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
 
-	// If `true`, returns detailed information about score computation as part
-	// of a hit.
+	// Explain. If `true`, returns detailed information about score computation
+	// as part of a hit.
 	Explain *bool `json:"explain,omitempty"`
 
-	// Configuration of search extensions defined by OpenSearch plugins.
+	// Ext. Configuration of search extensions defined by OpenSearch plugins.
 	Ext map[string]json.RawMessage `json:"ext,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns values for field
-	// names matching these patterns in the `hits.fields` property of the
+	// Fields. Array of wildcard (`*`) patterns. The request returns values for
+	// field names matching these patterns in the `hits.fields` property of the
 	// response.
-	Fields []InsightsSourceFieldsItem `json:"fields,omitempty"`
+	Fields []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
-	// Starting document offset. Needs to be non-negative. By default, you
-	// cannot page through more than 10,000 hits using the `from` and `size`
-	// parameters. To page through more hits, use the `search_after` parameter.
+	// From. Starting document offset. Needs to be non-negative. By default,
+	// you cannot page through more than 10,000 hits using the `from` and
+	// `size` parameters. To page through more hits, use the `search_after`
+	// parameter.
 	From *float64 `json:"from,omitempty"`
 
 	Highlight *SearchHighlight `json:"highlight,omitempty"`
 
-	// Boosts the `_score` of documents from specified indexes.
+	// IndicesBoost. Boosts the `_score` of documents from specified indexes.
 	IndicesBoost []map[string]float64 `json:"indices_boost,omitempty"`
 
-	// Minimum `_score` for matching documents. Documents with a lower `_score`
-	// are not included in the search results.
+	// MinScore. Minimum `_score` for matching documents. Documents with a
+	// lower `_score` are not included in the search results.
 	MinScore *float64 `json:"min_score,omitempty"`
 
 	PIT        *SearchPointInTimeReference   `json:"pit,omitempty"`
 	PostFilter *CommonQueryDSLQueryContainer `json:"post_filter,omitempty"`
 
-	// Set to `true` to return detailed timing information about the execution
-	// of individual components in a search request. NOTE: This is a debugging
-	// tool and adds significant overhead to search execution.
+	// Profile. Set to `true` to return detailed timing information about the
+	// execution of individual components in a search request. NOTE: This is a
+	// debugging tool and adds significant overhead to search execution.
 	Profile *bool `json:"profile,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// Retrieve a script evaluation (based on different fields) for each hit.
+	// ScriptFields. Retrieve a script evaluation (based on different fields)
+	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
-	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
+	SearchAfter []FieldValue `json:"search_after,omitempty"`
 
-	// If `true`, returns sequence number and primary term of the last
-	// modification of each hit.
+	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
+	// the last modification of each hit.
 	SeqNoPrimaryTerm *bool `json:"seq_no_primary_term,omitempty"`
 
-	// The number of hits to return. By default, you cannot page through more
-	// than 10,000 hits using the `from` and `size` parameters. To page through
-	// more hits, use the `search_after` parameter.
+	// Size is the number of hits to return. By default, you cannot page
+	// through more than 10,000 hits using the `from` and `size` parameters. To
+	// page through more hits, use the `search_after` parameter.
 	Size *float64 `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *InsightsSourceSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// Stats groups to associate with the search. Each group maintains a
 	// statistics aggregation for its associated searches. You can retrieve
 	// these stats using the indexes stats API.
 	Stats []string `json:"stats,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	Suggest *SearchSuggester `json:"suggest,omitempty"`
 
-	// Maximum number of documents to collect for each shard. If a query
-	// reaches this limit, OpenSearch terminates the query early. OpenSearch
-	// collects documents before sorting. Use with caution. OpenSearch applies
-	// this parameter to each shard handling the request. When possible, let
-	// OpenSearch perform early termination automatically. Avoid specifying
-	// this parameter for requests that target data streams with backing
-	// indexes across multiple data tiers. If set to `0` (default), the query
-	// does not terminate early.
+	// TerminateAfter. Maximum number of documents to collect for each shard.
+	// If a query reaches this limit, OpenSearch terminates the query early.
+	// OpenSearch collects documents before sorting. Use with caution.
+	// OpenSearch applies this parameter to each shard handling the request.
+	// When possible, let OpenSearch perform early termination automatically.
+	// Avoid specifying this parameter for requests that target data streams
+	// with backing indexes across multiple data tiers. If set to `0`
+	// (default), the query does not terminate early.
 	TerminateAfter *int `json:"terminate_after,omitempty"`
 
-	// Specifies the period of time to wait for a response from each shard. If
-	// no response is received before the timeout expires, the request fails
-	// and returns an error. Defaults to no timeout.
+	// Timeout. Specifies the period of time to wait for a response from each
+	// shard. If no response is received before the timeout expires, the
+	// request fails and returns an error. Defaults to no timeout.
 	Timeout *string `json:"timeout,omitempty"`
 
-	// If `true`, calculate and return document scores, even if the scores are
-	// not used for sorting.
+	// TrackScores. If `true`, calculate and return document scores, even if
+	// the scores are not used for sorting.
 	TrackScores *bool `json:"track_scores,omitempty"`
 
-	// The number of hits matching the query. When `true`, the exact number of
-	// hits is returned at the cost of some performance. When `false`, the
-	// response does not include the total number of hits matching the query.
-	// Default is `10,000` hits.
-	TrackTotalHits *InsightsSourceTrackTotalHits `json:"track_total_hits,omitempty"`
+	// TrackTotalHits is the number of hits matching the query. When `true`,
+	// the exact number of hits is returned at the cost of some performance.
+	// When `false`, the response does not include the total number of hits
+	// matching the query. Default is `10,000` hits.
+	TrackTotalHits *SearchTrackHits `json:"track_total_hits,omitempty"`
 
-	// If `true`, returns document version as part of a hit.
+	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
 }
 
 type InsightsTaskResourceUsage struct {
-	// The CPU time used in nanoseconds.
-	CpuTimeInNanos *int `json:"cpu_time_in_nanos,omitempty"`
+	// CPUTimeInNanos is the CPU time used in nanoseconds.
+	CPUTimeInNanos *int `json:"cpu_time_in_nanos,omitempty"`
 
-	// The memory usage in bytes.
+	// MemoryInBytes is the memory usage in bytes.
 	MemoryInBytes *int `json:"memory_in_bytes,omitempty"`
 }
 
 type InsightsTaskResourceUsages struct {
-	// The action type of the task.
+	// Action is the action type of the task.
 	Action *string `json:"action,omitempty"`
 
-	// The node ID where the task was executed.
+	// NodeID is the node ID where the task was executed.
 	NodeID *string `json:"nodeId,omitempty"`
 
-	// The parent task ID.
+	// ParentTaskID is the parent task ID.
 	ParentTaskID *int `json:"parentTaskId,omitempty"`
 
-	// The task ID.
+	// TaskID is the task ID.
 	TaskID *int `json:"taskId,omitempty"`
 
 	TaskResourceUsage *InsightsTaskResourceUsage `json:"taskResourceUsage,omitempty"`
@@ -8578,32 +8973,32 @@ type InsightsTopQuery struct {
 	GroupBy *string `json:"group_by,omitempty"`
 	ID      *string `json:"id,omitempty"`
 
-	// The indexes involved in the query.
+	// Indices is the indexes involved in the query.
 	Indices []string `json:"indices,omitempty"`
 
-	// Additional labels for the query.
-	Labels json.RawMessage `json:"labels"`
+	// Labels. Additional labels for the query.
+	Labels json.RawMessage `json:"labels,omitempty"`
 
 	Measurements *InsightsMeasurements `json:"measurements,omitempty"`
 
-	// The node ID associated with the query.
+	// NodeID is the node ID associated with the query.
 	NodeID *string `json:"node_id,omitempty"`
 
-	PhaseLatencyMap json.RawMessage `json:"phase_latency_map"`
+	PhaseLatencyMap json.RawMessage `json:"phase_latency_map,omitempty"`
 
-	// The hash code of the query.
+	// QueryHashcode is the hash code of the query.
 	QueryHashcode *string `json:"query_hashcode,omitempty"`
 
-	// The search query type (for example, `query_then_fetch`).
+	// SearchType is the search query type (for example, `query_then_fetch`).
 	SearchType *string `json:"search_type,omitempty"`
 
 	Source             *InsightsSource              `json:"source,omitempty"`
 	TaskResourceUsages []InsightsTaskResourceUsages `json:"task_resource_usages,omitempty"`
 
-	// The timestamp of the query execution.
+	// Timestamp is the timestamp of the query execution.
 	Timestamp *int `json:"timestamp,omitempty"`
 
-	// The total number of shards involved in the query.
+	// TotalShards is the total number of shards involved in the query.
 	TotalShards *int `json:"total_shards,omitempty"`
 }
 
@@ -8612,55 +9007,55 @@ type InsightsTopQueriesResponse struct {
 }
 
 type ISMFailedIndex struct {
-	// The name of the failed index.
+	// IndexName is the name of the failed index.
 	IndexName *string `json:"index_name,omitempty"`
 
-	// The UUID of the failed index.
+	// IndexUUID is the UUID of the failed index.
 	IndexUUID *string `json:"index_uuid,omitempty"`
 
-	// The reason for the failure.
+	// Reason is the reason for the failure.
 	Reason *string `json:"reason,omitempty"`
 }
 
 type ISMChangeResponse struct {
-	// The list of indices that failed to update.
+	// FailedIndices is the list of indices that failed to update.
 	FailedIndices []ISMFailedIndex `json:"failed_indices,omitempty"`
 
-	// Whether there were any failures.
+	// Failures. Whether there were any failures.
 	Failures *bool `json:"failures,omitempty"`
 
-	// The number of updated indices.
+	// UpdatedIndices is the number of updated indices.
 	UpdatedIndices *float64 `json:"updated_indices,omitempty"`
 }
 
 type ISMExplainIndexResponse struct {
-	// The total number of managed indices.
+	// TotalManagedIndices is the total number of managed indices.
 	TotalManagedIndices *float64 `json:"total_managed_indices,omitempty"`
 }
 
 type ISMMetadata struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm *float64 `json:"_primary_term,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Version *int64 `json:"_version,omitempty"`
 }
 
 type ISMChannel struct {
-	// The ID of the notification channel.
+	// ID is the ID of the notification channel.
 	ID *string `json:"id,omitempty"`
 }
 
 type ISMErrorNotificationDestination struct {
-	// When the notification destination was last updated.
+	// LastUpdateTime. When the notification destination was last updated.
 	LastUpdateTime *int `json:"last_update_time,omitempty"`
 
-	// The name of the notification destination.
+	// Name is the name of the notification destination.
 	Name *string `json:"name,omitempty"`
 }
 
@@ -8668,39 +9063,39 @@ type ISMErrorNotification struct {
 	Channel     *ISMChannel                      `json:"channel,omitempty"`
 	Destination *ISMErrorNotificationDestination `json:"destination,omitempty"`
 
-	// The template for error notification messages.
+	// MessageTemplate is the template for error notification messages.
 	MessageTemplate map[string]json.RawMessage `json:"message_template,omitempty"`
 }
 
 type ISMTemplate struct {
-	// The index patterns for the ISM template.
+	// IndexPatterns is the index patterns for the ISM template.
 	IndexPatterns []string `json:"index_patterns,omitempty"`
 
-	// When the ISM template was last updated.
+	// LastUpdatedTime. When the ISM template was last updated.
 	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
 
-	// The priority of the ISM template.
+	// Priority is the priority of the ISM template.
 	Priority *float64 `json:"priority,omitempty"`
 }
 
 // Adds or removes an index alias.
 type ISMActionAlias struct {
-	// The alias actions to perform.
+	// Actions is the alias actions to perform.
 	Actions map[string]json.RawMessage `json:"actions,omitempty"`
 }
 
 // Sets the allocations settings for index.
 type ISMActionAllocation struct {
-	// The excluded allocation attributes.
+	// Exclude is the excluded allocation attributes.
 	Exclude map[string]json.RawMessage `json:"exclude,omitempty"`
 
-	// The included allocation attributes.
+	// Include is the included allocation attributes.
 	Include map[string]json.RawMessage `json:"include,omitempty"`
 
-	// The required allocation attributes.
+	// Require is the required allocation attributes.
 	Require map[string]json.RawMessage `json:"require,omitempty"`
 
-	// Whether to wait for the allocation to complete.
+	// WaitFor. Whether to wait for the allocation to complete.
 	WaitFor *bool `json:"wait_for,omitempty"`
 }
 
@@ -8714,13 +9109,13 @@ type ISMActionDelete struct {
 
 // Force merges an index.
 type ISMActionForceMerge struct {
-	// The maximum number of segments to merge to.
+	// MaxNumSegments is the maximum number of segments to merge to.
 	MaxNumSegments *int `json:"max_num_segments,omitempty"`
 }
 
 // The priority level of the index.
 type ISMActionIndexPriority struct {
-	// The priority to set for the index.
+	// Priority is the priority to set for the index.
 	Priority *float64 `json:"priority,omitempty"`
 }
 
@@ -8738,169 +9133,171 @@ type ISMActionReadWrite struct {
 
 // The number of replicas for the index.
 type ISMActionReplicaCount struct {
-	// The number of replicas to set.
+	// NumberOfReplicas is the number of replicas to set.
 	NumberOfReplicas *float64 `json:"number_of_replicas,omitempty"`
 }
 
 // The number of times to retry the action.
 type ISMActionRetry struct {
-	// The backoff strategy for retries.
+	// Backoff is the backoff strategy for retries.
 	Backoff *string `json:"backoff,omitempty"`
 
-	// The number of retry attempts.
+	// Count is the number of retry attempts.
 	Count *int `json:"count,omitempty"`
 
-	// The delay between retry attempts.
+	// Delay is the delay between retry attempts.
 	Delay *string `json:"delay,omitempty"`
 }
 
 // Sets a rollover policy for the index.
 type ISMActionRollover struct {
-	// Whether to copy the alias to the new index.
+	// CopyAlias. Whether to copy the alias to the new index.
 	CopyAlias *bool `json:"copy_alias,omitempty"`
 
-	// The minimum document count to trigger rollover.
+	// MinDocCount is the minimum document count to trigger rollover.
 	MinDocCount *float64 `json:"min_doc_count,omitempty"`
 
-	// The minimum index age to trigger rollover.
+	// MinIndexAge is the minimum index age to trigger rollover.
 	MinIndexAge *string `json:"min_index_age,omitempty"`
 
-	// The minimum primary shard size to trigger rollover.
+	// MinPrimaryShardSize is the minimum primary shard size to trigger
+	// rollover.
 	MinPrimaryShardSize *string `json:"min_primary_shard_size,omitempty"`
 
-	// The minimum size to trigger rollover.
+	// MinSize is the minimum size to trigger rollover.
 	MinSize *string `json:"min_size,omitempty"`
 }
 
 // Takes a snapshot of the index.
 type ISMActionSnapshot struct {
-	// Whether to include the global state in the snapshot.
+	// IncludeGlobalState. Whether to include the global state in the snapshot.
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// The repository to store the snapshot.
+	// Repository is the repository to store the snapshot.
 	Repository *string `json:"repository,omitempty"`
 
-	// The name of the snapshot.
+	// Snapshot is the name of the snapshot.
 	Snapshot *string `json:"snapshot,omitempty"`
 }
 
 // The amount of time to wait before the action fails.
 type ISMActionTimeout struct {
-	// The timeout configuration for the action.
-	Timeout json.RawMessage `json:"timeout"`
+	// Timeout is the timeout configuration for the action.
+	Timeout json.RawMessage `json:"timeout,omitempty"`
 }
 
 // An action to perform.
 type ISMAction struct {
-	// Adds or removes an index alias.
+	// Alias. Adds or removes an index alias.
 	Alias *ISMActionAlias `json:"alias,omitempty"`
 
-	// Sets the allocations settings for index.
+	// Allocation. Sets the allocations settings for index.
 	Allocation *ISMActionAllocation `json:"allocation,omitempty"`
 
-	// Closes an index.
+	// Close. Closes an index.
 	Close *ISMActionClose `json:"close,omitempty"`
 
-	// Enables custom operations to be performed on the index.
+	// Custom. Enables custom operations to be performed on the index.
 	Custom map[string]json.RawMessage `json:"custom,omitempty"`
 
-	// Deletes an index.
+	// Delete. Deletes an index.
 	Delete *ISMActionDelete `json:"delete,omitempty"`
 
-	// Force merges an index.
+	// ForceMerge. Force merges an index.
 	ForceMerge *ISMActionForceMerge `json:"force_merge,omitempty"`
 
-	// The priority level of the index.
+	// IndexPriority is the priority level of the index.
 	IndexPriority *ISMActionIndexPriority `json:"index_priority,omitempty"`
 
-	// Sets a policy which determines when to send a notification regarding the
-	// index.
+	// Notification. Sets a policy which determines when to send a notification
+	// regarding the index.
 	Notification map[string]json.RawMessage `json:"notification,omitempty"`
 
-	// Opens an index.
+	// Open. Opens an index.
 	Open *ISMActionOpen `json:"open,omitempty"`
 
-	// Changes the index permissions to read-only.
+	// ReadOnly. Changes the index permissions to read-only.
 	ReadOnly *ISMActionReadOnly `json:"read_only,omitempty"`
 
-	// Changes the index permissions to read-write.
+	// ReadWrite. Changes the index permissions to read-write.
 	ReadWrite *ISMActionReadWrite `json:"read_write,omitempty"`
 
-	// The number of replicas for the index.
+	// ReplicaCount is the number of replicas for the index.
 	ReplicaCount *ISMActionReplicaCount `json:"replica_count,omitempty"`
 
-	// The number of times to retry the action.
+	// Retry is the number of times to retry the action.
 	Retry *ISMActionRetry `json:"retry,omitempty"`
 
-	// Sets a rollover policy for the index.
+	// Rollover. Sets a rollover policy for the index.
 	Rollover *ISMActionRollover `json:"rollover,omitempty"`
 
-	// Determines when to perform an index rollup.
+	// Rollup. Determines when to perform an index rollup.
 	Rollup map[string]json.RawMessage `json:"rollup,omitempty"`
 
-	// Determines when to shrink the index.
+	// Shrink. Determines when to shrink the index.
 	Shrink map[string]json.RawMessage `json:"shrink,omitempty"`
 
-	// Takes a snapshot of the index.
+	// Snapshot. Takes a snapshot of the index.
 	Snapshot *ISMActionSnapshot `json:"snapshot,omitempty"`
 
-	// The amount of time to wait before the action fails.
+	// Timeout is the amount of time to wait before the action fails.
 	Timeout *ISMActionTimeout `json:"timeout,omitempty"`
 
-	// Determines when to perform an index transform.
+	// Transform. Determines when to perform an index transform.
 	Transform map[string]json.RawMessage `json:"transform,omitempty"`
 }
 
 // A transition into a new state.
 type ISMTransition struct {
-	// The conditions for the transition.
+	// Conditions is the conditions for the transition.
 	Conditions map[string]json.RawMessage `json:"conditions,omitempty"`
 
-	// The name of the state to transition to.
+	// StateName is the name of the state to transition to.
 	StateName *string `json:"state_name,omitempty"`
 }
 
 // The list of actions to perform and transitions to enter a new state.
 type ISMStates struct {
-	// The list of actions to perform.
+	// Actions is the list of actions to perform.
 	Actions []ISMAction `json:"actions,omitempty"`
 
-	// The name of the state.
+	// Name is the name of the state.
 	Name *string `json:"name,omitempty"`
 
-	// The list of transitions to enter a new state.
+	// Transitions is the list of transitions to enter a new state.
 	Transitions []ISMTransition `json:"transitions,omitempty"`
 }
 
 // The policy defines how an index is managed throughout its lifetime.
 type ISMPolicy struct {
-	// The default state an index is in.
+	// DefaultState is the default state an index is in.
 	DefaultState *string `json:"default_state,omitempty"`
 
-	// The description of the policy.
+	// Description is the description of the policy.
 	Description *string `json:"description,omitempty"`
 
-	// The configuration for error notifications.
+	// ErrorNotification is the configuration for error notifications.
 	ErrorNotification *ISMErrorNotification `json:"error_notification"`
 
-	// The ISM template configuration.
+	// ISMTemplate is the ISM template configuration.
 	ISMTemplate *ISMPolicyTemplate `json:"ism_template"`
 
-	// When the policy was last updated.
+	// LastUpdatedTime. When the policy was last updated.
 	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
 
-	// The unique identifier for the policy.
+	// PolicyID is the unique identifier for the policy.
 	PolicyID *string `json:"policy_id,omitempty"`
 
-	// The version of the policy schema.
+	// SchemaVersion is the version of the policy schema.
 	SchemaVersion *float64 `json:"schema_version,omitempty"`
 
-	// The list of states for the index to transition between.
+	// States is the list of states for the index to transition between.
 	States []ISMStates `json:"states,omitempty"`
 }
 
 type ISMPolicyEnvelope struct {
-	// The policy defines how an index is managed throughout its lifetime.
+	// Policy is the policy defines how an index is managed throughout its
+	// lifetime.
 	Policy *ISMPolicy `json:"policy,omitempty"`
 }
 
@@ -8910,10 +9307,10 @@ type ISMPolicyWithMetadata struct {
 }
 
 type ISMGetPoliciesResponse struct {
-	// The list of policies.
+	// Policies is the list of policies.
 	Policies []ISMPolicyWithMetadata `json:"policies,omitempty"`
 
-	// The total number of policies.
+	// TotalPolicies is the total number of policies.
 	TotalPolicies *float64 `json:"total_policies,omitempty"`
 }
 
@@ -8923,17 +9320,18 @@ type ISMPutPolicyResponse struct {
 }
 
 type ISMRefreshSearchAnalyzersRespDetails struct {
-	// The name of the index.
+	// Index is the name of the index.
 	Index *string `json:"index,omitempty"`
 
-	// The list of refreshed analyzers.
+	// RefreshedAnalyzers is the list of refreshed analyzers.
 	RefreshedAnalyzers []string `json:"refreshed_analyzers,omitempty"`
 }
 
 type ISMRefreshSearchAnalyzersResponse struct {
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 
-	// The details of successful analyzer refreshes.
+	// SuccessfulRefreshDetails is the details of successful analyzer
+	// refreshes.
 	SuccessfulRefreshDetails []ISMRefreshSearchAnalyzersRespDetails `json:"successful_refresh_details,omitempty"`
 }
 
@@ -8942,29 +9340,20 @@ type KNNDeletedModel struct {
 	Result  string `json:"result"`
 }
 
-type SearchResultJSONValueHitsHitsItem struct {
-	Source json.RawMessage `json:"_source"`
+type SearchResultJSONValueSuggestValueItemCompletionOptionsSource struct {
+	Source json.RawMessage `json:"_source,omitempty"`
 }
 
-type SearchResultJSONValueHits struct {
-	Hits []SearchResultJSONValueHitsHitsItem `json:"hits,omitempty"`
+type SearchResultJSONValueSuggestValueItemCompletionOptionsItem struct {
+	Source json.RawMessage `json:"_source,omitempty"`
 }
 
-type SearchResultJSONValueSuggestValueItemObject0OptionsObject0 struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchResultJSONValueSuggestValueItemObject0OptionsItem struct {
-	Source json.RawMessage `json:"_source"`
-}
-
-type SearchResultJSONValueSuggestValueItemObject0 struct {
-	Options *SearchResultJSONValueSuggestValueItemObject0Options `json:"options,omitempty"`
+type SearchResultJSONValueSuggestValueItemCompletion struct {
+	Options *SearchResultJSONValueSuggestValueItemCompletionOptions `json:"options,omitempty"`
 }
 
 type SearchResultJSONValue struct {
 	SearchResult
-	Hits    *SearchResultJSONValueHits                         `json:"hits,omitempty"`
 	Suggest map[string][]SearchResultJSONValueSuggestValueItem `json:"suggest,omitempty"`
 }
 
@@ -8972,23 +9361,23 @@ type KNNGraphMergeStats struct {
 	Current     *int64 `json:"current,omitempty"`
 	CurrentDocs *int64 `json:"current_docs,omitempty"`
 
-	// The size in bytes.
+	// CurrentSizeInBytes is the size in bytes.
 	CurrentSizeInBytes *int64 `json:"current_size_in_bytes,omitempty"`
 
 	Total     *int64 `json:"total,omitempty"`
 	TotalDocs *int64 `json:"total_docs,omitempty"`
 
-	// The size in bytes.
+	// TotalSizeInBytes is the size in bytes.
 	TotalSizeInBytes *int64 `json:"total_size_in_bytes,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis *int64 `json:"total_time_in_millis,omitempty"`
 }
 
 type KNNGraphRefreshStats struct {
 	Total *int64 `json:"total,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis *int64 `json:"total_time_in_millis,omitempty"`
 }
 
@@ -9000,18 +9389,18 @@ type KNNGraphStats struct {
 type KNNRemoteVectorIndexBuildStatsDetails struct {
 	RemoteIndexBuildCurrentFlushOperations *int64 `json:"remote_index_build_current_flush_operations,omitempty"`
 
-	// The size in bytes.
+	// RemoteIndexBuildCurrentFlushSize is the size in bytes.
 	RemoteIndexBuildCurrentFlushSize *int64 `json:"remote_index_build_current_flush_size,omitempty"`
 
 	RemoteIndexBuildCurrentMergeOperations *int64 `json:"remote_index_build_current_merge_operations,omitempty"`
 
-	// The size in bytes.
+	// RemoteIndexBuildCurrentMergeSize is the size in bytes.
 	RemoteIndexBuildCurrentMergeSize *int64 `json:"remote_index_build_current_merge_size,omitempty"`
 
-	// The time unit for milliseconds.
+	// RemoteIndexBuildFlushTimeInMillis is the time unit for milliseconds.
 	RemoteIndexBuildFlushTimeInMillis *int64 `json:"remote_index_build_flush_time_in_millis,omitempty"`
 
-	// The time unit for milliseconds.
+	// RemoteIndexBuildMergeTimeInMillis is the time unit for milliseconds.
 	RemoteIndexBuildMergeTimeInMillis *int64 `json:"remote_index_build_merge_time_in_millis,omitempty"`
 }
 
@@ -9023,7 +9412,7 @@ type KNNRemoteVectorIndexClientStats struct {
 	StatusRequestFailureCount *int64 `json:"status_request_failure_count,omitempty"`
 	StatusRequestSuccessCount *int64 `json:"status_request_success_count,omitempty"`
 
-	// The time unit for milliseconds.
+	// WaitingTimeInMs is the time unit for milliseconds.
 	WaitingTimeInMs *int64 `json:"waiting_time_in_ms,omitempty"`
 }
 
@@ -9031,10 +9420,10 @@ type KNNRemoteVectorIndexRepositoryStats struct {
 	ReadFailureCount *int64 `json:"read_failure_count,omitempty"`
 	ReadSuccessCount *int64 `json:"read_success_count,omitempty"`
 
-	// The time unit for milliseconds.
+	// SuccessfulReadTimeInMillis is the time unit for milliseconds.
 	SuccessfulReadTimeInMillis *int64 `json:"successful_read_time_in_millis,omitempty"`
 
-	// The time unit for milliseconds.
+	// SuccessfulWriteTimeInMillis is the time unit for milliseconds.
 	SuccessfulWriteTimeInMillis *int64 `json:"successful_write_time_in_millis,omitempty"`
 
 	WriteFailureCount *int64 `json:"write_failure_count,omitempty"`
@@ -9054,10 +9443,10 @@ type KNNNodeStats struct {
 	GraphIndexErrors     *int64 `json:"graph_index_errors,omitempty"`
 	GraphIndexRequests   *int64 `json:"graph_index_requests,omitempty"`
 
-	// The size in bytes.
+	// GraphMemoryUsage is the size in bytes.
 	GraphMemoryUsage *int64 `json:"graph_memory_usage,omitempty"`
 
-	// The percentage value as a number.
+	// GraphMemoryUsagePercentage is the percentage value as a number.
 	GraphMemoryUsagePercentage *float64 `json:"graph_memory_usage_percentage,omitempty"`
 
 	GraphQueryErrors                   *int64                          `json:"graph_query_errors,omitempty"`
@@ -9083,15 +9472,15 @@ type KNNNodeStats struct {
 	ScriptQueryErrors                  *int64                          `json:"script_query_errors,omitempty"`
 	ScriptQueryRequests                *int64                          `json:"script_query_requests,omitempty"`
 
-	// Time unit for nanoseconds.
+	// TotalLoadTime. Time unit for nanoseconds.
 	TotalLoadTime *int64 `json:"total_load_time,omitempty"`
 
 	TrainingErrors *int64 `json:"training_errors,omitempty"`
 
-	// The size in bytes.
+	// TrainingMemoryUsage is the size in bytes.
 	TrainingMemoryUsage *int64 `json:"training_memory_usage,omitempty"`
 
-	// The percentage value as a number.
+	// TrainingMemoryUsagePercentage is the percentage value as a number.
 	TrainingMemoryUsagePercentage *float64 `json:"training_memory_usage_percentage,omitempty"`
 
 	TrainingRequests *int64 `json:"training_requests,omitempty"`
@@ -9101,7 +9490,7 @@ type KNNStats struct {
 	NodesRespBase
 	CircuitBreakerTriggered *bool `json:"circuit_breaker_triggered,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	ModelIndexStatus *string                 `json:"model_index_status"`
@@ -9112,7 +9501,7 @@ type LTRCacheItemStats struct {
 	// Count of cached items.
 	Count *int `json:"count,omitempty"`
 
-	// Memory usage in bytes.
+	// Ram. Memory usage in bytes.
 	Ram *int `json:"ram,omitempty"`
 }
 
@@ -9133,64 +9522,65 @@ type LTRNodeStatsDetails struct {
 }
 
 type LTRNodeDetails struct {
-	// Node hostname.
+	// Hostname. Node hostname.
 	Hostname *string `json:"hostname,omitempty"`
 
-	// Node name.
+	// Name. Node name.
 	Name *string `json:"name,omitempty"`
 
-	// Cache statistics for a node.
+	// Stats. Cache statistics for a node.
 	Stats *LTRNodeStatsDetails `json:"stats,omitempty"`
 }
 
 type LTRCacheStatsResponse struct {
 	NodesRespBase
 
-	// Aggregate cache statistics across all nodes.
+	// All. Aggregate cache statistics across all nodes.
 	All *LTRCacheAllStats `json:"all,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	// Cache statistics per node.
+	// Nodes. Cache statistics per node.
 	Nodes map[string]LTRNodeDetails `json:"nodes,omitempty"`
 
-	// Cache statistics by store.
-	Stores json.RawMessage `json:"stores"`
+	// Stores. Cache statistics by store.
+	Stores json.RawMessage `json:"stores,omitempty"`
 }
 
 type LTRAcknowledgedResponse struct {
-	// Indicates whether the request was acknowledged.
+	// Acknowledged. Indicates whether the request was acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
-	// The name of the index.
+	// Index is the name of the index.
 	Index *string `json:"index,omitempty"`
 
-	// Indicates whether the required active shards were acknowledged.
+	// ShardsAcknowledged. Indicates whether the required active shards were
+	// acknowledged.
 	ShardsAcknowledged *bool `json:"shards_acknowledged,omitempty"`
 }
 
 type LTRStoreExistsResponse struct {
-	// Indicates whether the store exists.
+	// Exists. Indicates whether the store exists.
 	Exists *bool `json:"exists,omitempty"`
 }
 
 type LTRStoreDetails struct {
-	// Count statistics for this store.
-	Counts json.RawMessage `json:"counts"`
+	// Counts. Count statistics for this store.
+	Counts json.RawMessage `json:"counts,omitempty"`
 
-	// The index name for this store.
+	// Index is the index name for this store.
 	Index *string `json:"index,omitempty"`
 
-	// The name of the store.
+	// Store is the name of the store.
 	Store *string `json:"store,omitempty"`
 
-	// Store version.
+	// Version. Store version.
 	Version *int `json:"version,omitempty"`
 }
 
 type LTRListStoresResponse struct {
-	// Map of available feature stores.
+	// Stores. Map of available feature stores.
 	Stores map[string]LTRStoreDetails `json:"stores"`
 }
 
@@ -9224,7 +9614,7 @@ type LTRStoreStat struct {
 type LTRStats struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Nodes  map[string]LTRNodeStats `json:"nodes,omitempty"`
@@ -9233,65 +9623,65 @@ type LTRStats struct {
 }
 
 type MLDeleteAgenticMemoryResponse struct {
-	// Number of batches processed.
+	// Batches. Number of batches processed.
 	Batches *int64 `json:"batches,omitempty"`
 
-	// Number of documents created.
+	// Created. Number of documents created.
 	Created *int64 `json:"created,omitempty"`
 
-	// Number of documents deleted.
+	// Deleted. Number of documents deleted.
 	Deleted *int64 `json:"deleted,omitempty"`
 
-	// Any failures occurred during the operation.
-	Failures []MLDeleteAgenticMemoryRespFailuresItem `json:"failures,omitempty"`
+	// Failures. Any failures occurred during the operation.
+	Failures []BulkByScrollFailure `json:"failures,omitempty"`
 
-	// Number of no-operation updates.
+	// Noops. Number of no-operation updates.
 	Noops *int64 `json:"noops,omitempty"`
 
-	// Number of requests processed per second.
+	// RequestsPerSecond. Number of requests processed per second.
 	RequestsPerSecond *float32 `json:"requests_per_second,omitempty"`
 
-	// The result of delete operation.
+	// Result is the result of delete operation.
 	Result *string `json:"result,omitempty"`
 
-	// The retry statistics for bulk and search operations.
+	// Retries is the retry statistics for bulk and search operations.
 	Retries *Retries `json:"retries,omitempty"`
 
-	// Time that the request was throttled.
+	// ThrottledMillis. Time that the request was throttled.
 	ThrottledMillis *int64 `json:"throttled_millis,omitempty"`
 
-	// Time until throttling is lifted.
+	// ThrottledUntilMillis. Time until throttling is lifted.
 	ThrottledUntilMillis *int64 `json:"throttled_until_millis,omitempty"`
 
-	// Whether the request timed out.
+	// TimedOut. Whether the request timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// Time taken to execute the request.
+	// Took. Time taken to execute the request.
 	Took *int64 `json:"took,omitempty"`
 
 	// Total number of documents processed.
 	Total *int64 `json:"total,omitempty"`
 
-	// Number of documents updated.
+	// Updated. Number of documents updated.
 	Updated *int64 `json:"updated,omitempty"`
 
-	// Number of version conflicts encountered.
+	// VersionConflicts. Number of version conflicts encountered.
 	VersionConflicts *int64 `json:"version_conflicts,omitempty"`
 }
 
 type MLByteBuffer struct {
-	// The byte buffer array.
+	// Array is the byte buffer array.
 	Array *string `json:"array,omitempty"`
 
-	// The byte buffer order.
+	// Order is the byte buffer order.
 	Order *string `json:"order,omitempty"`
 }
 
 type MLDataAsMap struct {
-	// The streaming content chunk.
+	// Content is the streaming content chunk.
 	Content *string `json:"content,omitempty"`
 
-	// Whether this is the last chunk.
+	// IsLast. Whether this is the last chunk.
 	IsLast *bool `json:"is_last,omitempty"`
 }
 
@@ -9300,13 +9690,13 @@ type MLOutput struct {
 	Data       []float64     `json:"data,omitempty"`
 	DataAsMap  *MLDataAsMap  `json:"dataAsMap,omitempty"`
 
-	// The result data type.
+	// DataType is the result data type.
 	DataType *string `json:"data_type,omitempty"`
 
-	// The output name.
+	// Name is the output name.
 	Name *string `json:"name,omitempty"`
 
-	// The output result.
+	// Result is the output result.
 	Result *string `json:"result,omitempty"`
 
 	Shape []int64 `json:"shape,omitempty"`
@@ -9317,18 +9707,18 @@ type MLInferenceResults struct {
 }
 
 type MLColumnMeta struct {
-	// The column type.
+	// ColumnType is the column type.
 	ColumnType *string `json:"column_type,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 }
 
 type MLValues struct {
-	// The column type.
+	// ColumnType is the column type.
 	ColumnType *string `json:"column_type,omitempty"`
 
-	// The value.
+	// Value is the value.
 	Value *float64 `json:"value,omitempty"`
 }
 
@@ -9345,38 +9735,38 @@ type MLPredictResponse struct {
 	InferenceResults []MLInferenceResults `json:"inference_results,omitempty"`
 	PredictionResult *MLPredictionResult  `json:"prediction_result,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 }
 
 type MLExecuteLocalSampleCalculatorResponse struct {
-	// The result.
+	// Result is the result.
 	Result *float64 `json:"result,omitempty"`
 }
 
 type MLEntity struct {
-	// The base value.
+	// BaseValue is the base value.
 	BaseValue *float64 `json:"base_value,omitempty"`
 
-	// The contribution value.
+	// ContributionValue is the contribution value.
 	ContributionValue *float64 `json:"contribution_value,omitempty"`
 
 	Key []string `json:"key,omitempty"`
 
-	// The new value.
+	// NewValue is the new value.
 	NewValue *float64 `json:"new_value,omitempty"`
 }
 
 type MLBuckets struct {
-	// The end time.
+	// EndTime is the end time.
 	EndTime *int64 `json:"end_time,omitempty"`
 
 	Entities []MLEntity `json:"entities,omitempty"`
 
-	// The overall aggregate value.
+	// OverallAggregateValue is the overall aggregate value.
 	OverallAggregateValue *float64 `json:"overall_aggregate_value,omitempty"`
 
-	// The start time.
+	// StartTime is the start time.
 	StartTime *int64 `json:"start_time,omitempty"`
 }
 
@@ -9389,7 +9779,7 @@ type MLExecuteAnomalyLocalizationResponse struct {
 	Result *MLResult `json:"result,omitempty"`
 }
 
-type MLExecuteAlgorithmRespObject1 struct {
+type MLExecuteAlgorithmRespResults struct {
 	Results []MLExecuteAnomalyLocalizationResponse `json:"results,omitempty"`
 }
 
@@ -9403,48 +9793,50 @@ type MLToolAttributes struct {
 }
 
 type MLMessages struct {
-	// The content of the message.
+	// Content is the content of the message.
 	Content *string `json:"content,omitempty"`
 
-	// The role of the message.
+	// Role is the role of the message.
 	Role *string `json:"role,omitempty"`
 }
 
 type MLParameters struct {
-	LlmInterface *string      `json:"_llm_interface,omitempty"`
+	LLMInterface *string      `json:"_llm_interface,omitempty"`
 	Inputs       *string      `json:"inputs,omitempty"`
 	Messages     []MLMessages `json:"messages,omitempty"`
 	Question     *string      `json:"question,omitempty"`
 }
 
 type MLToolItems struct {
-	Attributes                   *MLToolAttributes `json:"attributes,omitempty"`
-	Description                  *string           `json:"description,omitempty"`
-	IncludeOutputInAgentResponse *bool             `json:"include_output_in_agent_response,omitempty"`
-	Name                         *string           `json:"name,omitempty"`
-	Parameters                   *MLParameters     `json:"parameters,omitempty"`
-	Type                         *string           `json:"type,omitempty"`
+	// Available: >= 3.0.0.
+	Attributes *MLToolAttributes `json:"attributes,omitempty"`
+
+	Description                  *string       `json:"description,omitempty"`
+	IncludeOutputInAgentResponse *bool         `json:"include_output_in_agent_response,omitempty"`
+	Name                         *string       `json:"name,omitempty"`
+	Parameters                   *MLParameters `json:"parameters,omitempty"`
+	Type                         *string       `json:"type,omitempty"`
 }
 
 type MLGetAgentResponse struct {
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The agent description.
+	// Description is the agent description.
 	Description *string `json:"description,omitempty"`
 
-	// Whether the agent is hidden.
+	// IsHidden. Whether the agent is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Tools []MLToolItems `json:"tools,omitempty"`
 
-	// The agent type.
+	// Type is the agent type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -9454,123 +9846,124 @@ type MLContent struct {
 }
 
 type MLMessage struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
 	Content []MLContent `json:"content,omitempty"`
 
-	// The create time.
+	// CreateTime is the create time.
 	CreateTime *string `json:"create_time,omitempty"`
 
-	// The question in the message.
+	// Input is the question in the message.
 	Input *string `json:"input"`
 
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// MessageID is the name of a resource or configuration element.
 	MessageID *string `json:"message_id,omitempty"`
 
-	// The system name that generated the response.
+	// Origin is the system name that generated the response.
 	Origin *string `json:"origin"`
 
-	// The parent message ID.
+	// ParentMessageID is the parent message ID.
 	ParentMessageID *string `json:"parent_message_id"`
 
-	// The prompt template.
+	// PromptTemplate is the prompt template.
 	PromptTemplate *string `json:"prompt_template"`
 
-	// The answer to the question.
+	// Response is the answer to the question.
 	Response *string `json:"response"`
 
-	// The role of the message.
+	// Role is the role of the message.
 	Role *string `json:"role,omitempty"`
 
-	// The trace number.
+	// TraceNumber is the trace number.
 	TraceNumber *int64 `json:"trace_number,omitempty"`
 }
 
 type MLGetAgenticMemoryResponse struct {
-	// The type of operation.
+	// Action is the type of operation.
 	Action *string `json:"action,omitempty"`
 
 	After  map[string]json.RawMessage `json:"after,omitempty"`
 	Before map[string]json.RawMessage `json:"before,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// Whether inference was enabled.
+	// Infer. Whether inference was enabled.
 	Infer *bool `json:"infer,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The extracted long-term memory fact.
+	// Memory is the extracted long-term memory fact.
 	Memory *string `json:"memory,omitempty"`
 
-	// The ID of the memory container.
+	// MemoryContainerID is the ID of the memory container.
 	MemoryContainerID *string `json:"memory_container_id,omitempty"`
 
 	MemoryEmbedding []float64 `json:"memory_embedding,omitempty"`
 
-	// The ID of the memory.
+	// MemoryID is the ID of the memory.
 	MemoryID *string `json:"memory_id,omitempty"`
 
 	Messages  []MLMessage                `json:"messages,omitempty"`
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 
-	// The number of namespaces.
+	// NamespaceSize is the number of namespaces.
 	NamespaceSize *int64 `json:"namespace_size,omitempty"`
 
-	// The ID of the memory owner.
+	// OwnerID is the ID of the memory owner.
 	OwnerID *string `json:"owner_id,omitempty"`
 
-	// The type of payload.
+	// PayloadType is the type of payload.
 	PayloadType *string `json:"payload_type,omitempty"`
 
-	// The ID for the strategy instance.
+	// StrategyID is the ID for the strategy instance.
 	StrategyID *string `json:"strategy_id,omitempty"`
 
-	// The strategy type.
+	// StrategyType is the strategy type.
 	StrategyType *string `json:"strategy_type,omitempty"`
 
 	Tags map[string]json.RawMessage `json:"tags,omitempty"`
 }
 
 type MLMemory struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
-	// The create time.
+	// CreateTime is the create time.
 	CreateTime *string `json:"create_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Type *string `json:"type,omitempty"`
 
-	// The updated time.
+	// UpdatedTime is the updated time.
 	UpdatedTime *string `json:"updated_time,omitempty"`
 
-	// The username of the user.
+	// User is the username of the user.
 	User *string `json:"user,omitempty"`
 }
 
 type MLTool struct {
+	// Available: >= 3.0.0.
 	Attributes *MLToolAttributes `json:"attributes,omitempty"`
 
-	// The tool description.
+	// Description is the tool description.
 	Description *string `json:"description,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// The tool type.
+	// Type is the tool type.
 	Type *string `json:"type,omitempty"`
 
 	Version *string `json:"version,omitempty"`
@@ -9593,39 +9986,39 @@ type MLAction struct {
 type MLGetConnectorResponse struct {
 	Actions []MLAction `json:"actions,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The connector description.
+	// Description is the connector description.
 	Description *string `json:"description,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Parameters *MLParameters `json:"parameters,omitempty"`
 
-	// The connector protocol.
+	// Protocol is the connector protocol.
 	Protocol *string `json:"protocol,omitempty"`
 
 	Version *string `json:"version,omitempty"`
 }
 
 type MLRateLimiter struct {
-	// The maximum limit.
+	// Limit is the maximum limit.
 	Limit string `json:"limit"`
 
-	// The unit of time.
+	// Unit is the unit of time.
 	Unit string `json:"unit"`
 }
 
 type MLIndex struct {
-	// The number of replicas.
+	// NumberOfReplicas is the number of replicas.
 	NumberOfReplicas *string `json:"number_of_replicas,omitempty"`
 
-	// The number of shards.
+	// NumberOfShards is the number of shards.
 	NumberOfShards *string `json:"number_of_shards,omitempty"`
 }
 
@@ -9641,218 +10034,220 @@ type MLIndexSettings struct {
 }
 
 type MLStrategyConfiguration struct {
-	// The LLM ID for strategy.
-	LlmID *string `json:"llm_id,omitempty"`
+	// LLMID is the LLM ID for strategy.
+	LLMID *string `json:"llm_id,omitempty"`
 
-	// JSONPath expression for extracting LLM results from responses.
-	LlmResultPath *string `json:"llm_result_path,omitempty"`
+	// LLMResultPath. JSONPath expression for extracting LLM results from
+	// responses.
+	LLMResultPath *string `json:"llm_result_path,omitempty"`
 
-	// Custom system prompt to override default strategy prompt.
+	// SystemPrompt. Custom system prompt to override default strategy prompt.
 	SystemPrompt *string `json:"system_prompt,omitempty"`
 }
 
 type MLStrategy struct {
 	Configuration *MLStrategyConfiguration `json:"configuration,omitempty"`
 
-	// Whether to enable the strategy.
+	// Enabled. Whether to enable the strategy.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// The strategy ID.
+	// ID is the strategy ID.
 	ID *string `json:"id,omitempty"`
 
-	// The namespace.
+	// Namespace is the namespace.
 	Namespace []string `json:"namespace,omitempty"`
 
-	// The strategy type.
+	// Type is the strategy type.
 	Type *string `json:"type,omitempty"`
 }
 
 type MLMemoryContainerConfiguration struct {
-	// Whether history will be persisted.
+	// DisableHistory. Whether history will be persisted.
 	DisableHistory *bool `json:"disable_history,omitempty"`
 
-	// Whether session will be persisted.
+	// DisableSession. Whether session will be persisted.
 	DisableSession *bool `json:"disable_session,omitempty"`
 
-	// The embedding dimension.
+	// EmbeddingDimension is the embedding dimension.
 	EmbeddingDimension *int64 `json:"embedding_dimension,omitempty"`
 
-	// The embedding model ID.
+	// EmbeddingModelID is the embedding model ID.
 	EmbeddingModelID *string `json:"embedding_model_id,omitempty"`
 
-	// The embedding model type.
+	// EmbeddingModelType is the embedding model type.
 	EmbeddingModelType *string `json:"embedding_model_type,omitempty"`
 
-	// Custom prefix for memory indices.
+	// IndexPrefix. Custom prefix for memory indices.
 	IndexPrefix *string `json:"index_prefix,omitempty"`
 
 	IndexSettings *MLIndexSettings `json:"index_settings,omitempty"`
 
-	// The LLM ID.
-	LlmID *string `json:"llm_id,omitempty"`
+	// LLMID is the LLM ID.
+	LLMID *string `json:"llm_id,omitempty"`
 
-	// The maximum number of similar memories retrieved during consolidation.
+	// MaxInferSize is the maximum number of similar memories retrieved during
+	// consolidation.
 	MaxInferSize *int64 `json:"max_infer_size,omitempty"`
 
 	Parameters *MLParameters `json:"parameters,omitempty"`
 	Strategies []MLStrategy  `json:"strategies,omitempty"`
 
-	// Whether to use system indices.
+	// UseSystemIndex. Whether to use system indices.
 	UseSystemIndex *bool `json:"use_system_index,omitempty"`
 }
 
 type MLOwner struct {
-	// The backend roles.
+	// BackendRoles is the backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The custom attribute names.
+	// CustomAttributeNames is the custom attribute names.
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 
-	// The roles.
+	// Roles is the roles.
 	Roles []string `json:"roles,omitempty"`
 
-	// The user requested tenant.
+	// UserRequestedTenant is the user requested tenant.
 	UserRequestedTenant *string `json:"user_requested_tenant"`
 
-	// The user requested tenant access.
+	// UserRequestedTenantAccess is the user requested tenant access.
 	UserRequestedTenantAccess *string `json:"user_requested_tenant_access,omitempty"`
 }
 
 type MLGetMemoryContainerResponse struct {
 	Configuration *MLMemoryContainerConfiguration `json:"configuration,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The memory container description.
+	// Description is the memory container description.
 	Description *string `json:"description,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Owner *MLOwner `json:"owner,omitempty"`
 }
 
 type MLAdditionalConfig struct {
-	// The distance metric for k-NN search.
+	// SpaceType is the distance metric for k-NN search.
 	SpaceType *string `json:"space_type,omitempty"`
 }
 
 type MLModelConfig struct {
 	AdditionalConfig *MLAdditionalConfig `json:"additional_config,omitempty"`
 
-	// The all config.
+	// AllConfig is the all config.
 	AllConfig *string `json:"all_config,omitempty"`
 
-	// The embedding dimension.
+	// EmbeddingDimension is the embedding dimension.
 	EmbeddingDimension *int64 `json:"embedding_dimension,omitempty"`
 
-	// The framework type.
+	// FrameworkType is the framework type.
 	FrameworkType *string `json:"framework_type,omitempty"`
 
-	// The model type.
+	// ModelType is the model type.
 	ModelType *string `json:"model_type,omitempty"`
 }
 
 type MLModel struct {
-	// The algorithm.
+	// Algorithm is the algorithm.
 	Algorithm *string `json:"algorithm,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// Whether the model is hidden.
+	// IsHidden. Whether the model is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// The last registered time.
+	// LastRegisteredTime is the last registered time.
 	LastRegisteredTime *int64 `json:"last_registered_time,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
 	ModelConfig *MLModelConfig `json:"model_config,omitempty"`
 
-	// The model content hash value.
+	// ModelContentHashValue is the model content hash value.
 	ModelContentHashValue *string `json:"model_content_hash_value,omitempty"`
 
-	// The model content size in bytes.
+	// ModelContentSizeInBytes is the model content size in bytes.
 	ModelContentSizeInBytes *int64 `json:"model_content_size_in_bytes,omitempty"`
 
 	ModelFormat *string `json:"model_format,omitempty"`
 
-	// The model group ID.
+	// ModelGroupID is the model group ID.
 	ModelGroupID *string `json:"model_group_id,omitempty"`
 
-	// The model state.
+	// ModelState is the model state.
 	ModelState string `json:"model_state"`
 
-	// The model version.
+	// ModelVersion is the model version.
 	ModelVersion *string `json:"model_version,omitempty"`
 
-	// The model name.
+	// Name is the model name.
 	Name *string `json:"name,omitempty"`
 
-	// The total chunks.
+	// TotalChunks is the total chunks.
 	TotalChunks *int64 `json:"total_chunks,omitempty"`
 }
 
 type MLModelGroup struct {
-	// The model group access mode.
+	// Access is the model group access mode.
 	Access string `json:"access"`
 
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The model group description.
+	// Description is the model group description.
 	Description string `json:"description"`
 
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The latest version.
+	// LatestVersion is the latest version.
 	LatestVersion int `json:"latest_version"`
 
-	// The model group name.
+	// Name is the model group name.
 	Name string `json:"name"`
 
 	Owner *MLOwner `json:"owner,omitempty"`
 }
 
 type MLModelStats struct {
-	// The failure count.
+	// MLActionFailureCount is the failure count.
 	MLActionFailureCount *int64 `json:"ml_action_failure_count,omitempty"`
 
-	// The request count.
+	// MLActionRequestCount is the request count.
 	MLActionRequestCount *int64 `json:"ml_action_request_count,omitempty"`
 
-	// The executing task count.
+	// MLExecutingTaskCount is the executing task count.
 	MLExecutingTaskCount *int64 `json:"ml_executing_task_count,omitempty"`
 }
 
 type MLPredictRequestStats struct {
-	// The average latency in milliseconds.
+	// Average is the average latency in milliseconds.
 	Average *float64 `json:"average,omitempty"`
 
-	// The total predict requests on this node.
+	// Count is the total predict requests on this node.
 	Count *int64 `json:"count,omitempty"`
 
-	// The maximum latency in milliseconds.
+	// Max is the maximum latency in milliseconds.
 	Max *float64 `json:"max,omitempty"`
 
-	// The minimum latency in milliseconds.
+	// Min is the minimum latency in milliseconds.
 	Min *float64 `json:"min,omitempty"`
 
-	// The 50th percentile latency in milliseconds.
+	// P50 is the 50th percentile latency in milliseconds.
 	P50 *float64 `json:"p50,omitempty"`
 
-	// The 90th percentile latency in milliseconds.
+	// P90 is the 90th percentile latency in milliseconds.
 	P90 *float64 `json:"p90,omitempty"`
 
-	// The 99th percentile latency in milliseconds.
+	// P99 is the 99th percentile latency in milliseconds.
 	P99 *float64 `json:"p99,omitempty"`
 }
 
@@ -9860,34 +10255,34 @@ type MLModelProfile struct {
 	Deploy  *MLModelStats `json:"deploy,omitempty"`
 	Execute *MLModelStats `json:"execute,omitempty"`
 
-	// The estimated memory size in CPU.
-	MemorySizeEstimationCpu *int64 `json:"memory_size_estimation_cpu,omitempty"`
+	// MemorySizeEstimationCPU is the estimated memory size in CPU.
+	MemorySizeEstimationCPU *int64 `json:"memory_size_estimation_cpu,omitempty"`
 
-	// The estimated memory size in GPU.
+	// MemorySizeEstimationGpu is the estimated memory size in GPU.
 	MemorySizeEstimationGpu *int64 `json:"memory_size_estimation_gpu,omitempty"`
 
-	// The model state.
+	// ModelState is the model state.
 	ModelState *string `json:"model_state,omitempty"`
 
 	Predict             *MLModelStats          `json:"predict,omitempty"`
 	PredictRequestStats *MLPredictRequestStats `json:"predict_request_stats,omitempty"`
 
-	// The predictor.
+	// Predictor is the predictor.
 	Predictor *string `json:"predictor,omitempty"`
 
-	Register          *MLModelStats                         `json:"register,omitempty"`
-	TargetWorkerNodes []MLModelProfileTargetWorkerNodesItem `json:"target_worker_nodes,omitempty"`
-	Train             *MLModelStats                         `json:"train,omitempty"`
-	TrainPredict      *MLModelStats                         `json:"train_predict,omitempty"`
-	Undeploy          *MLModelStats                         `json:"undeploy,omitempty"`
-	WorkerNodes       []MLModelProfileWorkerNodesItem       `json:"worker_nodes,omitempty"`
+	Register          *MLModelStats `json:"register,omitempty"`
+	TargetWorkerNodes []NodeIDs     `json:"target_worker_nodes,omitempty"`
+	Train             *MLModelStats `json:"train,omitempty"`
+	TrainPredict      *MLModelStats `json:"train_predict,omitempty"`
+	Undeploy          *MLModelStats `json:"undeploy,omitempty"`
+	WorkerNodes       []NodeIDs     `json:"worker_nodes,omitempty"`
 }
 
 type MLTask struct {
 	CreateTime *int64  `json:"create_time,omitempty"`
 	Error      *string `json:"error,omitempty"`
 
-	// The function name.
+	// FunctionName is the function name.
 	FunctionName *string `json:"function_name,omitempty"`
 
 	IsAsync        *bool   `json:"is_async,omitempty"`
@@ -9896,10 +10291,10 @@ type MLTask struct {
 	State          string  `json:"state"`
 	TaskID         *string `json:"task_id,omitempty"`
 
-	// Task type.
+	// TaskType. Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
-	WorkerNode []MLTaskWorkerNodeItem `json:"worker_node,omitempty"`
+	WorkerNode []NodeIDs `json:"worker_node,omitempty"`
 }
 
 type MLNode struct {
@@ -9924,47 +10319,47 @@ type MLAlgorithmOperations struct {
 type MLNodeStatsDetails struct {
 	Algorithms map[string]MLAlgorithmOperations `json:"algorithms,omitempty"`
 
-	// The circuit breaker trigger count.
+	// MLCircuitBreakerTriggerCount is the circuit breaker trigger count.
 	MLCircuitBreakerTriggerCount *int64 `json:"ml_circuit_breaker_trigger_count,omitempty"`
 
-	// The deployed model count.
+	// MLDeployedModelCount is the deployed model count.
 	MLDeployedModelCount *int64 `json:"ml_deployed_model_count,omitempty"`
 
-	// The executing task count.
+	// MLExecutingTaskCount is the executing task count.
 	MLExecutingTaskCount *int64 `json:"ml_executing_task_count,omitempty"`
 
-	// The failure count.
+	// MLFailureCount is the failure count.
 	MLFailureCount *int64 `json:"ml_failure_count,omitempty"`
 
-	// The JVM heap usage.
-	MLJvmHeapUsage *int64 `json:"ml_jvm_heap_usage,omitempty"`
+	// MLJVMHeapUsage is the JVM heap usage.
+	MLJVMHeapUsage *int64 `json:"ml_jvm_heap_usage,omitempty"`
 
-	// The request count.
+	// MLRequestCount is the request count.
 	MLRequestCount *int64 `json:"ml_request_count,omitempty"`
 
 	Models map[string]MLModelProfile `json:"models,omitempty"`
 }
 
 type MLGetStatsResponse struct {
-	// The config index status.
+	// MLConfigIndexStatus is the config index status.
 	MLConfigIndexStatus *string `json:"ml_config_index_status,omitempty"`
 
-	// The connector count.
+	// MLConnectorCount is the connector count.
 	MLConnectorCount *int64 `json:"ml_connector_count,omitempty"`
 
-	// The connector index status.
+	// MLConnectorIndexStatus is the connector index status.
 	MLConnectorIndexStatus *string `json:"ml_connector_index_status,omitempty"`
 
-	// The controller index status.
+	// MLControllerIndexStatus is the controller index status.
 	MLControllerIndexStatus *string `json:"ml_controller_index_status,omitempty"`
 
-	// The model count.
+	// MLModelCount is the model count.
 	MLModelCount *int64 `json:"ml_model_count,omitempty"`
 
-	// The model index status.
+	// MLModelIndexStatus is the model index status.
 	MLModelIndexStatus *string `json:"ml_model_index_status,omitempty"`
 
-	// The task index status.
+	// MLTaskIndexStatus is the task index status.
 	MLTaskIndexStatus *string `json:"ml_task_index_status,omitempty"`
 
 	Nodes map[string]MLNodeStatsDetails `json:"nodes,omitempty"`
@@ -9974,10 +10369,10 @@ type MLPredictModelOutput struct {
 	ByteBuffer *MLByteBuffer `json:"byte_buffer,omitempty"`
 	Data       []float64     `json:"data"`
 
-	// The result data type.
+	// DataType is the result data type.
 	DataType *string `json:"data_type,omitempty"`
 
-	// The output name.
+	// Name is the output name.
 	Name *string `json:"name,omitempty"`
 
 	Shape []int64 `json:"shape,omitempty"`
@@ -9992,229 +10387,229 @@ type MLPredictModelResponse struct {
 }
 
 type MLModelGroupRegistration struct {
-	// The model group ID.
+	// ModelGroupID is the model group ID.
 	ModelGroupID string `json:"model_group_id"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 }
 
 type MLSource struct {
-	// The model group access mode.
+	// Access is the model group access mode.
 	Access *string `json:"access,omitempty"`
 
 	Actions []MLAction `json:"actions,omitempty"`
 
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
-	// The algorithm.
+	// Algorithm is the algorithm.
 	Algorithm *string `json:"algorithm,omitempty"`
 
-	// The app type.
+	// AppType is the app type.
 	AppType *string `json:"app_type,omitempty"`
 
-	// The application type.
+	// ApplicationType is the application type.
 	ApplicationType *string `json:"application_type"`
 
-	// The auto redeploy retry times.
+	// AutoRedeployRetryTimes is the auto redeploy retry times.
 	AutoRedeployRetryTimes *int64 `json:"auto_redeploy_retry_times,omitempty"`
 
-	// The backend roles.
+	// BackendRoles is the backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The chunk number.
+	// ChunkNumber is the chunk number.
 	ChunkNumber *int64 `json:"chunk_number,omitempty"`
 
 	Configuration *MLMemoryContainerConfiguration `json:"configuration,omitempty"`
 
-	// The connector ID.
+	// ConnectorID is the connector ID.
 	ConnectorID *string `json:"connector_id,omitempty"`
 
-	// The create time.
+	// CreateTime is the create time.
 	CreateTime *MLSourceCreateTime `json:"create_time,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The current worker node count.
+	// CurrentWorkerNodeCount is the current worker node count.
 	CurrentWorkerNodeCount *float64 `json:"current_worker_node_count,omitempty"`
 
-	// Whether to deploy to all nodes.
+	// DeployToAllNodes. Whether to deploy to all nodes.
 	DeployToAllNodes *bool `json:"deploy_to_all_nodes,omitempty"`
 
-	// The model description.
+	// Description is the model description.
 	Description *string `json:"description,omitempty"`
 
-	// The error message.
+	// Error is the error message.
 	Error *string `json:"error,omitempty"`
 
-	// The function name.
+	// FunctionName is the function name.
 	FunctionName *string `json:"function_name,omitempty"`
 
-	// The question in the message.
+	// Input is the question in the message.
 	Input *string `json:"input"`
 
-	// The input type.
+	// InputType is the input type.
 	InputType *string `json:"input_type,omitempty"`
 
-	// Whether the task is asynchronous.
+	// IsAsync. Whether the task is asynchronous.
 	IsAsync *bool `json:"is_async,omitempty"`
 
-	// Whether the model is hidden.
+	// IsHidden. Whether the model is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// The last deployed time.
+	// LastDeployedTime is the last deployed time.
 	LastDeployedTime *int64 `json:"last_deployed_time,omitempty"`
 
-	// The last registered time.
+	// LastRegisteredTime is the last registered time.
 	LastRegisteredTime *int64 `json:"last_registered_time,omitempty"`
 
-	// The last update time.
+	// LastUpdateTime is the last update time.
 	LastUpdateTime *int64 `json:"last_update_time,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The latest version.
+	// LatestVersion is the latest version.
 	LatestVersion *int `json:"latest_version,omitempty"`
 
 	Memory *MLMemory `json:"memory,omitempty"`
 
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
 
 	Metadata    map[string]json.RawMessage `json:"metadata,omitempty"`
 	ModelConfig *MLModelConfig             `json:"model_config,omitempty"`
 
-	// The model content hash value.
+	// ModelContentHashValue is the model content hash value.
 	ModelContentHashValue *string `json:"model_content_hash_value,omitempty"`
 
-	// The model content size in bytes.
+	// ModelContentSizeInBytes is the model content size in bytes.
 	ModelContentSizeInBytes *int64 `json:"model_content_size_in_bytes,omitempty"`
 
 	ModelFormat *string `json:"model_format,omitempty"`
 
-	// The model group ID.
+	// ModelGroupID is the model group ID.
 	ModelGroupID *string `json:"model_group_id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The model state.
+	// ModelState is the model state.
 	ModelState *string `json:"model_state,omitempty"`
 
-	// The model task type.
+	// ModelTaskType is the model task type.
 	ModelTaskType *string `json:"model_task_type,omitempty"`
 
-	// The model version.
+	// ModelVersion is the model version.
 	ModelVersion *string `json:"model_version,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 
-	// The number of namespaces.
+	// NamespaceSize is the number of namespaces.
 	NamespaceSize *int64 `json:"namespace_size,omitempty"`
 
-	// The system name that generated the response.
+	// Origin is the system name that generated the response.
 	Origin *string `json:"origin"`
 
 	Owner *MLOwner `json:"owner,omitempty"`
 
-	// The ID of the memory owner.
+	// OwnerID is the ID of the memory owner.
 	OwnerID *string `json:"owner_id,omitempty"`
 
 	Parameters *MLParameters `json:"parameters,omitempty"`
 
-	// The parent message ID.
+	// ParentMessageID is the parent message ID.
 	ParentMessageID *string `json:"parent_message_id"`
 
-	// The type of payload.
+	// PayloadType is the type of payload.
 	PayloadType *string `json:"payload_type,omitempty"`
 
-	// The planning worker node count.
+	// PlanningWorkerNodeCount is the planning worker node count.
 	PlanningWorkerNodeCount *float64 `json:"planning_worker_node_count,omitempty"`
 
-	PlanningWorkerNodes []MLSourcePlanningWorkerNodesItem `json:"planning_worker_nodes,omitempty"`
+	PlanningWorkerNodes []NodeIDs `json:"planning_worker_nodes,omitempty"`
 
-	// The prompt template.
+	// PromptTemplate is the prompt template.
 	PromptTemplate *string `json:"prompt_template"`
 
-	// The connector protocol.
+	// Protocol is the connector protocol.
 	Protocol *string `json:"protocol,omitempty"`
 
-	// The answer to the question.
+	// Response is the answer to the question.
 	Response *string `json:"response"`
 
-	// The status.
+	// State is the status.
 	State *string `json:"state,omitempty"`
 
-	// Task type.
+	// TaskType. Task type.
 	TaskType *string `json:"task_type,omitempty"`
 
 	Tools []MLToolItems `json:"tools,omitempty"`
 
-	// The total chunks.
+	// TotalChunks is the total chunks.
 	TotalChunks *int64 `json:"total_chunks,omitempty"`
 
-	// The trace number.
+	// TraceNumber is the trace number.
 	TraceNumber *string `json:"trace_number"`
 
-	// The agent type.
+	// Type is the agent type.
 	Type *string `json:"type,omitempty"`
 
-	// The updated time.
+	// UpdatedTime is the updated time.
 	UpdatedTime *string `json:"updated_time,omitempty"`
 
-	// The model URL.
+	// URL is the model URL.
 	URL *string `json:"url,omitempty"`
 
-	// The username of the user.
+	// User is the username of the user.
 	User *string `json:"user,omitempty"`
 
-	Version    *string                  `json:"version,omitempty"`
-	WorkerNode []MLSourceWorkerNodeItem `json:"worker_node,omitempty"`
+	Version    *string   `json:"version,omitempty"`
+	WorkerNode []NodeIDs `json:"worker_node,omitempty"`
 }
 
 type MLSearchHitsHit struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	Index *string `json:"_index,omitempty"`
 
-	// The primary term.
+	// PrimaryTerm is the primary term.
 	PrimaryTerm *int `json:"_primary_term,omitempty"`
 
-	// The score.
+	// Score is the score.
 	Score *float64 `json:"_score"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Source  *MLSource `json:"_source,omitempty"`
 	Version *int64    `json:"_version,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The sort values.
+	// Sort is the sort values.
 	Sort []float32 `json:"sort,omitempty"`
 }
 
 type MLHitsTotal struct {
-	// The relation.
+	// Relation is the relation.
 	Relation string `json:"relation"`
 
-	// The total number of hits.
+	// Value is the total number of hits.
 	Value int64 `json:"value"`
 }
 
 type MLSearchHits struct {
 	Hits []MLSearchHitsHit `json:"hits"`
 
-	// The maximum score.
+	// MaxScore is the maximum score.
 	MaxScore *float64 `json:"max_score"`
 
 	Total MLHitsTotal `json:"total"`
@@ -10224,25 +10619,25 @@ type MLSearchResponse struct {
 	Shards *ShardStatistics `json:"_shards,omitempty"`
 	Hits   MLSearchHits     `json:"hits"`
 
-	// Whether the search timed out.
+	// TimedOut. Whether the search timed out.
 	TimedOut *bool `json:"timed_out,omitempty"`
 
-	// The time taken to execute the search.
+	// Took is the time taken to execute the search.
 	Took *int `json:"took,omitempty"`
 }
 
 type MLTrainResponse struct {
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 }
 
 type MLTrainPredictResponse struct {
 	PredictionResult *MLPredictionResult `json:"prediction_result,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 }
 
@@ -10255,7 +10650,7 @@ type MLUnloadModelNode struct {
 }
 
 type MLUpdateModelGroupResponse struct {
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 }
 
@@ -10263,41 +10658,97 @@ type MLUpdateModelGroupResponse struct {
 type ErrorRespBase struct {
 	Error ErrorCause `json:"error"`
 
-	// The HTTP status code.
+	// Status is the HTTP status code.
 	Status int `json:"status"`
 }
 
+type NeuralStatMetadata struct {
+	StatType string                  `json:"stat_type"`
+	Value    NeuralStatMetadataValue `json:"value"`
+}
+
+type NeuralTimestampedEventCounterStatStatType struct {
+	NeuralStatMetadata
+	MinutesSinceLastEvent *int    `json:"minutes_since_last_event,omitempty"`
+	StatType              *string `json:"stat_type,omitempty"`
+	TrailingIntervalValue *int    `json:"trailing_interval_value,omitempty"`
+}
+
 type NeuralNestedNodeStatsProcessorsIngest struct {
-	SemanticFieldChunkingExecutions        *int `json:"semantic_field_chunking_executions,omitempty"`
-	SemanticFieldExecutions                *int `json:"semantic_field_executions,omitempty"`
-	SkipExistingExecutions                 *int `json:"skip_existing_executions,omitempty"`
-	SparseEncodingExecutions               *int `json:"sparse_encoding_executions,omitempty"`
-	TextChunkingDelimiterExecutions        *int `json:"text_chunking_delimiter_executions,omitempty"`
-	TextChunkingExecutions                 *int `json:"text_chunking_executions,omitempty"`
-	TextChunkingFixedCharLengthExecutions  *int `json:"text_chunking_fixed_char_length_executions,omitempty"`
-	TextChunkingFixedTokenLengthExecutions *int `json:"text_chunking_fixed_token_length_executions,omitempty"`
-	TextEmbeddingExecutions                *int `json:"text_embedding_executions,omitempty"`
-	TextImageEmbeddingExecutions           *int `json:"text_image_embedding_executions,omitempty"`
+	// Available: >= 3.1.0.
+	SemanticFieldChunkingExecutions *NeuralTimestampedEventCounterStat `json:"semantic_field_chunking_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	SemanticFieldExecutions *NeuralTimestampedEventCounterStat `json:"semantic_field_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	SkipExistingExecutions *NeuralTimestampedEventCounterStat `json:"skip_existing_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	SparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"sparse_encoding_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_delimiter_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingFixedCharLengthExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_fixed_char_length_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingFixedTokenLengthExecutions *NeuralTimestampedEventCounterStat `json:"text_chunking_fixed_token_length_executions,omitempty"`
+
+	// Available: >= 3.0.0.
+	TextEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"text_embedding_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"text_image_embedding_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessorsSearchHybrid struct {
-	CombArithmeticExecutions                  *int `json:"comb_arithmetic_executions,omitempty"`
-	CombGeometricExecutions                   *int `json:"comb_geometric_executions,omitempty"`
-	CombHarmonicExecutions                    *int `json:"comb_harmonic_executions,omitempty"`
-	CombRrfExecutions                         *int `json:"comb_rrf_executions,omitempty"`
-	NormL2Executions                          *int `json:"norm_l2_executions,omitempty"`
-	NormMinmaxExecutions                      *int `json:"norm_minmax_executions,omitempty"`
-	NormZscoreExecutions                      *int `json:"norm_zscore_executions,omitempty"`
-	NormalizationProcessorExecutions          *int `json:"normalization_processor_executions,omitempty"`
-	RankBasedNormalizationProcessorExecutions *int `json:"rank_based_normalization_processor_executions,omitempty"`
+	// Available: >= 3.1.0.
+	CombArithmeticExecutions *NeuralTimestampedEventCounterStat `json:"comb_arithmetic_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombGeometricExecutions *NeuralTimestampedEventCounterStat `json:"comb_geometric_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombHarmonicExecutions *NeuralTimestampedEventCounterStat `json:"comb_harmonic_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombRRFExecutions *NeuralTimestampedEventCounterStat `json:"comb_rrf_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormL2Executions *NeuralTimestampedEventCounterStat `json:"norm_l2_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormMinmaxExecutions *NeuralTimestampedEventCounterStat `json:"norm_minmax_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormZscoreExecutions *NeuralTimestampedEventCounterStat `json:"norm_zscore_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"normalization_processor_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	RankBasedNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"rank_based_normalization_processor_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessorsSearch struct {
-	Hybrid                         *NeuralNestedNodeStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
-	NeuralQueryEnricherExecutions  *int                                         `json:"neural_query_enricher_executions,omitempty"`
-	NeuralSparseTwoPhaseExecutions *int                                         `json:"neural_sparse_two_phase_executions,omitempty"`
-	RerankByFieldExecutions        *int                                         `json:"rerank_by_field_executions,omitempty"`
-	RerankMLExecutions             *int                                         `json:"rerank_ml_executions,omitempty"`
+	Hybrid *NeuralNestedNodeStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"neural_query_enricher_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralSparseTwoPhaseExecutions *NeuralTimestampedEventCounterStat `json:"neural_sparse_two_phase_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	RerankByFieldExecutions *NeuralTimestampedEventCounterStat `json:"rerank_by_field_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	RerankMLExecutions *NeuralTimestampedEventCounterStat `json:"rerank_ml_executions,omitempty"`
 }
 
 type NeuralNestedNodeStatsProcessors struct {
@@ -10306,21 +10757,36 @@ type NeuralNestedNodeStatsProcessors struct {
 }
 
 type NeuralNestedNodeStatsQueryHybrid struct {
-	HybridQueryRequests               *int `json:"hybrid_query_requests,omitempty"`
-	HybridQueryWithFilterRequests     *int `json:"hybrid_query_with_filter_requests,omitempty"`
-	HybridQueryWithInnerHitsRequests  *int `json:"hybrid_query_with_inner_hits_requests,omitempty"`
-	HybridQueryWithPaginationRequests *int `json:"hybrid_query_with_pagination_requests,omitempty"`
+	// Available: >= 3.1.0.
+	HybridQueryRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	HybridQueryWithFilterRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_filter_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	HybridQueryWithInnerHitsRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_inner_hits_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	HybridQueryWithPaginationRequests *NeuralTimestampedEventCounterStat `json:"hybrid_query_with_pagination_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQueryNeural struct {
-	NeuralQueryAgainstKNNRequests            *int `json:"neural_query_against_knn_requests,omitempty"`
-	NeuralQueryAgainstSemanticDenseRequests  *int `json:"neural_query_against_semantic_dense_requests,omitempty"`
-	NeuralQueryAgainstSemanticSparseRequests *int `json:"neural_query_against_semantic_sparse_requests,omitempty"`
-	NeuralQueryRequests                      *int `json:"neural_query_requests,omitempty"`
+	// Available: >= 3.1.0.
+	NeuralQueryAgainstKNNRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_knn_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralQueryAgainstSemanticDenseRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_semantic_dense_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralQueryAgainstSemanticSparseRequests *NeuralTimestampedEventCounterStat `json:"neural_query_against_semantic_sparse_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralQueryRequests *NeuralTimestampedEventCounterStat `json:"neural_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQueryNeuralSparse struct {
-	NeuralSparseQueryRequests *int `json:"neural_sparse_query_requests,omitempty"`
+	// Available: >= 3.1.0.
+	NeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"neural_sparse_query_requests,omitempty"`
 }
 
 type NeuralNestedNodeStatsQuery struct {
@@ -10330,7 +10796,8 @@ type NeuralNestedNodeStatsQuery struct {
 }
 
 type NeuralNestedNodeStatsSemanticHighlighting struct {
-	SemanticHighlightingRequestCount *int `json:"semantic_highlighting_request_count,omitempty"`
+	// Available: >= 3.1.0.
+	SemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting_request_count,omitempty"`
 }
 
 type NeuralNestedNodeStats struct {
@@ -10339,35 +10806,85 @@ type NeuralNestedNodeStats struct {
 	SemanticHighlighting *NeuralNestedNodeStatsSemanticHighlighting `json:"semantic_highlighting,omitempty"`
 }
 
+type NeuralInfoStringStatStatType struct {
+	NeuralStatMetadata
+	StatType *string `json:"stat_type,omitempty"`
+}
+
+type NeuralInfoCounterStatStatType struct {
+	NeuralStatMetadata
+	StatType *string `json:"stat_type,omitempty"`
+}
+
 type NeuralNestedInfoStatsProcessorsIngest struct {
-	SkipExistingProcessors                 *int `json:"skip_existing_processors,omitempty"`
-	SparseEncodingProcessors               *int `json:"sparse_encoding_processors,omitempty"`
-	TextChunkingDelimiterProcessors        *int `json:"text_chunking_delimiter_processors,omitempty"`
-	TextChunkingFixedCharLengthProcessors  *int `json:"text_chunking_fixed_char_length_processors,omitempty"`
-	TextChunkingFixedTokenLengthProcessors *int `json:"text_chunking_fixed_token_length_processors,omitempty"`
-	TextChunkingProcessors                 *int `json:"text_chunking_processors,omitempty"`
-	TextEmbeddingProcessorsInPipelines     *int `json:"text_embedding_processors_in_pipelines,omitempty"`
-	TextImageEmbeddingProcessors           *int `json:"text_image_embedding_processors,omitempty"`
+	// Available: >= 3.1.0.
+	SkipExistingProcessors *NeuralInfoCounterStat `json:"skip_existing_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	SparseEncodingProcessors *NeuralInfoCounterStat `json:"sparse_encoding_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingDelimiterProcessors *NeuralInfoCounterStat `json:"text_chunking_delimiter_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingFixedCharLengthProcessors *NeuralInfoCounterStat `json:"text_chunking_fixed_char_length_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingFixedTokenLengthProcessors *NeuralInfoCounterStat `json:"text_chunking_fixed_token_length_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextChunkingProcessors *NeuralInfoCounterStat `json:"text_chunking_processors,omitempty"`
+
+	// Available: >= 3.0.0.
+	TextEmbeddingProcessorsInPipelines *NeuralInfoCounterStat `json:"text_embedding_processors_in_pipelines,omitempty"`
+
+	// Available: >= 3.1.0.
+	TextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"text_image_embedding_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessorsSearchHybrid struct {
-	CombArithmeticProcessors         *int `json:"comb_arithmetic_processors,omitempty"`
-	CombGeometricProcessors          *int `json:"comb_geometric_processors,omitempty"`
-	CombHarmonicProcessors           *int `json:"comb_harmonic_processors,omitempty"`
-	CombRrfProcessors                *int `json:"comb_rrf_processors,omitempty"`
-	NormL2Processors                 *int `json:"norm_l2_processors,omitempty"`
-	NormMinmaxProcessors             *int `json:"norm_minmax_processors,omitempty"`
-	NormZscoreProcessors             *int `json:"norm_zscore_processors,omitempty"`
-	NormalizationProcessors          *int `json:"normalization_processors,omitempty"`
-	RankBasedNormalizationProcessors *int `json:"rank_based_normalization_processors,omitempty"`
+	// Available: >= 3.1.0.
+	CombArithmeticProcessors *NeuralInfoCounterStat `json:"comb_arithmetic_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombGeometricProcessors *NeuralInfoCounterStat `json:"comb_geometric_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombHarmonicProcessors *NeuralInfoCounterStat `json:"comb_harmonic_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	CombRRFProcessors *NeuralInfoCounterStat `json:"comb_rrf_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormL2Processors *NeuralInfoCounterStat `json:"norm_l2_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormMinmaxProcessors *NeuralInfoCounterStat `json:"norm_minmax_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormZscoreProcessors *NeuralInfoCounterStat `json:"norm_zscore_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	NormalizationProcessors *NeuralInfoCounterStat `json:"normalization_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	RankBasedNormalizationProcessors *NeuralInfoCounterStat `json:"rank_based_normalization_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessorsSearch struct {
-	Hybrid                         *NeuralNestedInfoStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
-	NeuralQueryEnricherProcessors  *int                                         `json:"neural_query_enricher_processors,omitempty"`
-	NeuralSparseTwoPhaseProcessors *int                                         `json:"neural_sparse_two_phase_processors,omitempty"`
-	RerankByFieldProcessors        *int                                         `json:"rerank_by_field_processors,omitempty"`
-	RerankMLProcessors             *int                                         `json:"rerank_ml_processors,omitempty"`
+	Hybrid *NeuralNestedInfoStatsProcessorsSearchHybrid `json:"hybrid,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralQueryEnricherProcessors *NeuralInfoCounterStat `json:"neural_query_enricher_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	NeuralSparseTwoPhaseProcessors *NeuralInfoCounterStat `json:"neural_sparse_two_phase_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	RerankByFieldProcessors *NeuralInfoCounterStat `json:"rerank_by_field_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	RerankMLProcessors *NeuralInfoCounterStat `json:"rerank_ml_processors,omitempty"`
 }
 
 type NeuralNestedInfoStatsProcessors struct {
@@ -10376,8 +10893,10 @@ type NeuralNestedInfoStatsProcessors struct {
 }
 
 type NeuralNestedInfoStats struct {
-	ClusterVersion *string                          `json:"cluster_version,omitempty"`
-	Processors     *NeuralNestedInfoStatsProcessors `json:"processors,omitempty"`
+	// Available: >= 3.0.0.
+	ClusterVersion *NeuralInfoStringStat `json:"cluster_version,omitempty"`
+
+	Processors *NeuralNestedInfoStatsProcessors `json:"processors,omitempty"`
 }
 
 type NeuralNestedStats struct {
@@ -10389,64 +10908,172 @@ type NeuralNestedStats struct {
 }
 
 type NeuralFlatNodeStats struct {
-	ProcessorsIngestSemanticFieldChunkingExecutions                 *int `json:"processors.ingest.semantic_field_chunking_executions,omitempty"`
-	ProcessorsIngestSemanticFieldExecutions                         *int `json:"processors.ingest.semantic_field_executions,omitempty"`
-	ProcessorsIngestSkipExistingExecutions                          *int `json:"processors.ingest.skip_existing_executions,omitempty"`
-	ProcessorsIngestSparseEncodingExecutions                        *int `json:"processors.ingest.sparse_encoding_executions,omitempty"`
-	ProcessorsIngestTextChunkingDelimiterExecutions                 *int `json:"processors.ingest.text_chunking_delimiter_executions,omitempty"`
-	ProcessorsIngestTextChunkingExecutions                          *int `json:"processors.ingest.text_chunking_executions,omitempty"`
-	ProcessorsIngestTextChunkingFixedCharLengthExecutions           *int `json:"processors.ingest.text_chunking_fixed_char_length_executions,omitempty"`
-	ProcessorsIngestTextChunkingFixedTokenLengthExecutions          *int `json:"processors.ingest.text_chunking_fixed_token_length_executions,omitempty"`
-	ProcessorsIngestTextEmbeddingExecutions                         *int `json:"processors.ingest.text_embedding_executions,omitempty"`
-	ProcessorsIngestTextImageEmbeddingExecutions                    *int `json:"processors.ingest.text_image_embedding_executions,omitempty"`
-	ProcessorsSearchHybridCombArithmeticExecutions                  *int `json:"processors.search.hybrid.comb_arithmetic_executions,omitempty"`
-	ProcessorsSearchHybridCombGeometricExecutions                   *int `json:"processors.search.hybrid.comb_geometric_executions,omitempty"`
-	ProcessorsSearchHybridCombHarmonicExecutions                    *int `json:"processors.search.hybrid.comb_harmonic_executions,omitempty"`
-	ProcessorsSearchHybridCombRrfExecutions                         *int `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
-	ProcessorsSearchHybridNormL2Executions                          *int `json:"processors.search.hybrid.norm_l2_executions,omitempty"`
-	ProcessorsSearchHybridNormMinmaxExecutions                      *int `json:"processors.search.hybrid.norm_minmax_executions,omitempty"`
-	ProcessorsSearchHybridNormZscoreExecutions                      *int `json:"processors.search.hybrid.norm_zscore_executions,omitempty"`
-	ProcessorsSearchHybridNormalizationProcessorExecutions          *int `json:"processors.search.hybrid.normalization_processor_executions,omitempty"`
-	ProcessorsSearchHybridRankBasedNormalizationProcessorExecutions *int `json:"processors.search.hybrid.rank_based_normalization_processor_executions,omitempty"`
-	ProcessorsSearchNeuralQueryEnricherExecutions                   *int `json:"processors.search.neural_query_enricher_executions,omitempty"`
-	ProcessorsSearchNeuralSparseTwoPhaseExecutions                  *int `json:"processors.search.neural_sparse_two_phase_executions,omitempty"`
-	ProcessorsSearchRerankByFieldExecutions                         *int `json:"processors.search.rerank_by_field_executions,omitempty"`
-	ProcessorsSearchRerankMLExecutions                              *int `json:"processors.search.rerank_ml_executions,omitempty"`
-	QueryHybridHybridQueryRequests                                  *int `json:"query.hybrid.hybrid_query_requests,omitempty"`
-	QueryHybridHybridQueryWithFilterRequests                        *int `json:"query.hybrid.hybrid_query_with_filter_requests,omitempty"`
-	QueryHybridHybridQueryWithInnerHitsRequests                     *int `json:"query.hybrid.hybrid_query_with_inner_hits_requests,omitempty"`
-	QueryHybridHybridQueryWithPaginationRequests                    *int `json:"query.hybrid.hybrid_query_with_pagination_requests,omitempty"`
-	QueryNeuralNeuralQueryAgainstKNNRequests                        *int `json:"query.neural.neural_query_against_knn_requests,omitempty"`
-	QueryNeuralNeuralQueryAgainstSemanticDenseRequests              *int `json:"query.neural.neural_query_against_semantic_dense_requests,omitempty"`
-	QueryNeuralNeuralQueryAgainstSemanticSparseRequests             *int `json:"query.neural.neural_query_against_semantic_sparse_requests,omitempty"`
-	QueryNeuralNeuralQueryRequests                                  *int `json:"query.neural.neural_query_requests,omitempty"`
-	QueryNeuralSparseNeuralSparseQueryRequests                      *int `json:"query.neural_sparse.neural_sparse_query_requests,omitempty"`
-	SemanticHighlightingSemanticHighlightingRequestCount            *int `json:"semantic_highlighting.semantic_highlighting_request_count,omitempty"`
+	// Available: >= 3.1.0.
+	ProcessorsIngestSemanticFieldChunkingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.semantic_field_chunking_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestSemanticFieldExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.semantic_field_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestSkipExistingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.skip_existing_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestSparseEncodingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.sparse_encoding_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingDelimiterExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_delimiter_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingFixedCharLengthExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_fixed_char_length_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingFixedTokenLengthExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_chunking_fixed_token_length_executions,omitempty"`
+
+	// Available: >= 3.0.0.
+	ProcessorsIngestTextEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_embedding_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextImageEmbeddingExecutions *NeuralTimestampedEventCounterStat `json:"processors.ingest.text_image_embedding_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombArithmeticExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_arithmetic_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombGeometricExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_geometric_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombHarmonicExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_harmonic_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombRRFExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.comb_rrf_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormL2Executions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_l2_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormMinmaxExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_minmax_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormZscoreExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.norm_zscore_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.normalization_processor_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridRankBasedNormalizationProcessorExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.hybrid.rank_based_normalization_processor_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchNeuralQueryEnricherExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.neural_query_enricher_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchNeuralSparseTwoPhaseExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.neural_sparse_two_phase_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchRerankByFieldExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.rerank_by_field_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchRerankMLExecutions *NeuralTimestampedEventCounterStat `json:"processors.search.rerank_ml_executions,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryHybridHybridQueryRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryHybridHybridQueryWithFilterRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_filter_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryHybridHybridQueryWithInnerHitsRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_inner_hits_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryHybridHybridQueryWithPaginationRequests *NeuralTimestampedEventCounterStat `json:"query.hybrid.hybrid_query_with_pagination_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryNeuralNeuralQueryAgainstKNNRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_knn_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryNeuralNeuralQueryAgainstSemanticDenseRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_semantic_dense_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryNeuralNeuralQueryAgainstSemanticSparseRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_against_semantic_sparse_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryNeuralNeuralQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural.neural_query_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	QueryNeuralSparseNeuralSparseQueryRequests *NeuralTimestampedEventCounterStat `json:"query.neural_sparse.neural_sparse_query_requests,omitempty"`
+
+	// Available: >= 3.1.0.
+	SemanticHighlightingSemanticHighlightingRequestCount *NeuralTimestampedEventCounterStat `json:"semantic_highlighting.semantic_highlighting_request_count,omitempty"`
 }
 
 type NeuralFlatInfoStats struct {
-	ClusterVersion                                         *string `json:"cluster_version,omitempty"`
-	ProcessorsIngestSkipExistingProcessors                 *int    `json:"processors.ingest.skip_existing_processors,omitempty"`
-	ProcessorsIngestSparseEncodingProcessors               *int    `json:"processors.ingest.sparse_encoding_processors,omitempty"`
-	ProcessorsIngestTextChunkingDelimiterProcessors        *int    `json:"processors.ingest.text_chunking_delimiter_processors,omitempty"`
-	ProcessorsIngestTextChunkingFixedCharLengthProcessors  *int    `json:"processors.ingest.text_chunking_fixed_char_length_processors,omitempty"`
-	ProcessorsIngestTextChunkingFixedTokenLengthProcessors *int    `json:"processors.ingest.text_chunking_fixed_token_length_processors,omitempty"`
-	ProcessorsIngestTextChunkingProcessors                 *int    `json:"processors.ingest.text_chunking_processors,omitempty"`
-	ProcessorsIngestTextEmbeddingProcessorsInPipelines     *int    `json:"processors.ingest.text_embedding_processors_in_pipelines,omitempty"`
-	ProcessorsIngestTextImageEmbeddingProcessors           *int    `json:"processors.ingest.text_image_embedding_processors,omitempty"`
-	ProcessorsSearchHybridCombArithmeticProcessors         *int    `json:"processors.search.hybrid.comb_arithmetic_processors,omitempty"`
-	ProcessorsSearchHybridCombGeometricProcessors          *int    `json:"processors.search.hybrid.comb_geometric_processors,omitempty"`
-	ProcessorsSearchHybridCombHarmonicProcessors           *int    `json:"processors.search.hybrid.comb_harmonic_processors,omitempty"`
-	ProcessorsSearchHybridCombRrfProcessors                *int    `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
-	ProcessorsSearchHybridNormL2Processors                 *int    `json:"processors.search.hybrid.norm_l2_processors,omitempty"`
-	ProcessorsSearchHybridNormMinmaxProcessors             *int    `json:"processors.search.hybrid.norm_minmax_processors,omitempty"`
-	ProcessorsSearchHybridNormZscoreProcessors             *int    `json:"processors.search.hybrid.norm_zscore_processors,omitempty"`
-	ProcessorsSearchHybridNormalizationProcessors          *int    `json:"processors.search.hybrid.normalization_processors,omitempty"`
-	ProcessorsSearchHybridRankBasedNormalizationProcessors *int    `json:"processors.search.hybrid.rank_based_normalization_processors,omitempty"`
-	ProcessorsSearchNeuralQueryEnricherProcessors          *int    `json:"processors.search.neural_query_enricher_processors,omitempty"`
-	ProcessorsSearchNeuralSparseTwoPhaseProcessors         *int    `json:"processors.search.neural_sparse_two_phase_processors,omitempty"`
-	ProcessorsSearchRerankByFieldProcessors                *int    `json:"processors.search.rerank_by_field_processors,omitempty"`
-	ProcessorsSearchRerankMLProcessors                     *int    `json:"processors.search.rerank_ml_processors,omitempty"`
+	// Available: >= 3.0.0.
+	ClusterVersion *NeuralInfoStringStat `json:"cluster_version,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestSkipExistingProcessors *NeuralInfoCounterStat `json:"processors.ingest.skip_existing_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestSparseEncodingProcessors *NeuralInfoCounterStat `json:"processors.ingest.sparse_encoding_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingDelimiterProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_delimiter_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingFixedCharLengthProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_fixed_char_length_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingFixedTokenLengthProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_fixed_token_length_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextChunkingProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_chunking_processors,omitempty"`
+
+	// Available: >= 3.0.0.
+	ProcessorsIngestTextEmbeddingProcessorsInPipelines *NeuralInfoCounterStat `json:"processors.ingest.text_embedding_processors_in_pipelines,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsIngestTextImageEmbeddingProcessors *NeuralInfoCounterStat `json:"processors.ingest.text_image_embedding_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombArithmeticProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_arithmetic_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombGeometricProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_geometric_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombHarmonicProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_harmonic_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridCombRRFProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.comb_rrf_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormL2Processors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_l2_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormMinmaxProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_minmax_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormZscoreProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.norm_zscore_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridNormalizationProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.normalization_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchHybridRankBasedNormalizationProcessors *NeuralInfoCounterStat `json:"processors.search.hybrid.rank_based_normalization_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchNeuralQueryEnricherProcessors *NeuralInfoCounterStat `json:"processors.search.neural_query_enricher_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchNeuralSparseTwoPhaseProcessors *NeuralInfoCounterStat `json:"processors.search.neural_sparse_two_phase_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchRerankByFieldProcessors *NeuralInfoCounterStat `json:"processors.search.rerank_by_field_processors,omitempty"`
+
+	// Available: >= 3.1.0.
+	ProcessorsSearchRerankMLProcessors *NeuralInfoCounterStat `json:"processors.search.rerank_ml_processors,omitempty"`
 }
 
 type NeuralFlatStats struct {
@@ -10483,26 +11110,26 @@ type NotificationsMicrosoftTeamsItem struct {
 	URL string `json:"url"`
 }
 
-type NotificationsSesAccount struct {
+type NotificationsSESAccount struct {
 	FromAddress string  `json:"from_address"`
 	Region      string  `json:"region"`
-	RoleArn     *string `json:"role_arn,omitempty"`
+	RoleARN     *string `json:"role_arn,omitempty"`
 }
 
 type NotificationsSlackItem struct {
 	URL string `json:"url"`
 }
 
-type NotificationsSmtpAccount struct {
+type NotificationsSMTPAccount struct {
 	FromAddress string `json:"from_address"`
 	Host        string `json:"host"`
 	Method      string `json:"method"`
 	Port        int    `json:"port"`
 }
 
-type NotificationsSnsItem struct {
-	RoleArn  *string `json:"role_arn,omitempty"`
-	TopicArn string  `json:"topic_arn"`
+type NotificationsSNSItem struct {
+	RoleARN  *string `json:"role_arn,omitempty"`
+	TopicARN string  `json:"topic_arn"`
 }
 
 type NotificationsWebhook struct {
@@ -10514,7 +11141,7 @@ type NotificationsWebhook struct {
 type NotificationsConfigItem struct {
 	Chime *NotificationsChime `json:"chime,omitempty"`
 
-	// Type of notification configuration.
+	// ConfigType. Type of notification configuration.
 	ConfigType string `json:"config_type"`
 
 	Description    *string                          `json:"description,omitempty"`
@@ -10523,10 +11150,10 @@ type NotificationsConfigItem struct {
 	IsEnabled      *bool                            `json:"is_enabled,omitempty"`
 	MicrosoftTeams *NotificationsMicrosoftTeamsItem `json:"microsoft_teams,omitempty"`
 	Name           string                           `json:"name"`
-	SesAccount     *NotificationsSesAccount         `json:"ses_account,omitempty"`
+	SESAccount     *NotificationsSESAccount         `json:"ses_account,omitempty"`
 	Slack          *NotificationsSlackItem          `json:"slack,omitempty"`
-	SmtpAccount    *NotificationsSmtpAccount        `json:"smtp_account,omitempty"`
-	Sns            *NotificationsSnsItem            `json:"sns,omitempty"`
+	SMTPAccount    *NotificationsSMTPAccount        `json:"smtp_account,omitempty"`
+	SNS            *NotificationsSNSItem            `json:"sns,omitempty"`
 	Webhook        *NotificationsWebhook            `json:"webhook,omitempty"`
 }
 
@@ -10547,7 +11174,7 @@ type NotificationsGetConfigsResponse struct {
 type NotificationsNotificationChannel struct {
 	ConfigID *string `json:"config_id,omitempty"`
 
-	// Type of notification configuration.
+	// ConfigType. Type of notification configuration.
 	ConfigType *string `json:"config_type,omitempty"`
 
 	Description *string `json:"description,omitempty"`
@@ -10576,7 +11203,7 @@ type NotificationsEventStatus struct {
 	ConfigID   *string `json:"config_id,omitempty"`
 	ConfigName *string `json:"config_name,omitempty"`
 
-	// Type of notification configuration.
+	// ConfigType. Type of notification configuration.
 	ConfigType *string `json:"config_type,omitempty"`
 
 	DeliveryStatus       *NotificationsDeliveryStatus        `json:"delivery_status,omitempty"`
@@ -10585,192 +11212,194 @@ type NotificationsEventStatus struct {
 
 // The filter configuration for queries.
 type ObservabilityQueryFilter struct {
-	// The query language used.
+	// Language is the query language used.
 	Language string `json:"language"`
 
-	// The query string.
+	// Query is the query string.
 	Query string `json:"query"`
 }
 
 // The time range configuration for queries and visualizations.
 type ObservabilityTimeRange struct {
-	// The start time of the range.
+	// From is the start time of the range.
 	From string `json:"from"`
 
-	// The end time of the range.
+	// To is the end time of the range.
 	To string `json:"to"`
 }
 
 // The configuration for a single visualization.
 type ObservabilityVisualization struct {
-	// The height of the visualization.
+	// H is the height of the visualization.
 	H int `json:"h"`
 
-	// The unique identifier of the visualization.
+	// ID is the unique identifier of the visualization.
 	ID string `json:"id"`
 
-	// The identifier of the saved visualization.
+	// SavedVisualizationID is the identifier of the saved visualization.
 	SavedVisualizationID string `json:"savedVisualizationId"`
 
-	// The width of the visualization.
+	// W is the width of the visualization.
 	W int `json:"w"`
 
-	// The x-coordinate position of the visualization.
+	// X is the x-coordinate position of the visualization.
 	X int `json:"x"`
 
-	// The y-coordinate position of the visualization.
+	// Y is the y-coordinate position of the visualization.
 	Y int `json:"y"`
 }
 
 // The panel configuration for operational visualizations.
 type ObservabilityOperationalPanel struct {
-	// The identifier of the associated application.
+	// ApplicationID is the identifier of the associated application.
 	ApplicationID string `json:"applicationId"`
 
-	// The name of the operational panel.
+	// Name is the name of the operational panel.
 	Name string `json:"name"`
 
-	// The filter configuration for queries.
+	// QueryFilter is the filter configuration for queries.
 	QueryFilter ObservabilityQueryFilter `json:"queryFilter"`
 
-	// The time range configuration for queries and visualizations.
+	// TimeRange is the time range configuration for queries and
+	// visualizations.
 	TimeRange ObservabilityTimeRange `json:"timeRange"`
 
-	// The list of visualizations in the panel.
+	// Visualizations is the list of visualizations in the panel.
 	Visualizations []ObservabilityVisualization `json:"visualizations"`
 }
 
 // The date range selection configuration.
 type ObservabilitySelectedDateRange struct {
-	// The end date of the range.
+	// End is the end date of the range.
 	End string `json:"end"`
 
-	// The start date of the range.
+	// Start is the start date of the range.
 	Start string `json:"start"`
 
-	// The text representation of the date range.
+	// Text is the text representation of the date range.
 	Text string `json:"text"`
 }
 
 // The configuration for a field token.
 type ObservabilityToken struct {
-	// The name of the token.
+	// Name is the name of the token.
 	Name string `json:"name"`
 
-	// The type of the token.
+	// Type is the type of the token.
 	Type string `json:"type"`
 }
 
 // The field selection configuration.
 type ObservabilitySelectedFields struct {
-	// The text representation of selected fields.
+	// Text is the text representation of selected fields.
 	Text string `json:"text"`
 
-	// The list of field tokens.
+	// Tokens is the list of field tokens.
 	Tokens []ObservabilityToken `json:"tokens"`
 }
 
 // The timestamp field selection configuration.
 type ObservabilitySelectedTimestamp struct {
-	// The name of the selected timestamp field.
+	// Name is the name of the selected timestamp field.
 	Name string `json:"name"`
 
-	// The type of the timestamp field.
+	// Type is the type of the timestamp field.
 	Type string `json:"type"`
 }
 
 // The configuration for a saved query.
 type ObservabilitySavedQuery struct {
-	// The description of the saved query.
+	// Description is the description of the saved query.
 	Description string `json:"description"`
 
-	// The name of the saved query.
+	// Name is the name of the saved query.
 	Name string `json:"name"`
 
-	// The query string.
+	// Query is the query string.
 	Query string `json:"query"`
 
-	// The date range selection configuration.
+	// SelectedDateRange is the date range selection configuration.
 	SelectedDateRange ObservabilitySelectedDateRange `json:"selected_date_range"`
 
-	// The field selection configuration.
+	// SelectedFields is the field selection configuration.
 	SelectedFields ObservabilitySelectedFields `json:"selected_fields"`
 
-	// The timestamp field selection configuration.
+	// SelectedTimestamp is the timestamp field selection configuration.
 	SelectedTimestamp ObservabilitySelectedTimestamp `json:"selected_timestamp"`
 }
 
 // The configuration for a saved visualization.
 type ObservabilitySavedVisualization struct {
-	// The description of the saved visualization.
+	// Description is the description of the saved visualization.
 	Description string `json:"description"`
 
-	// The name of the saved visualization.
+	// Name is the name of the saved visualization.
 	Name string `json:"name"`
 
-	// The query associated with the visualization.
+	// Query is the query associated with the visualization.
 	Query string `json:"query"`
 
-	// The date range selection configuration.
+	// SelectedDateRange is the date range selection configuration.
 	SelectedDateRange ObservabilitySelectedDateRange `json:"selected_date_range"`
 
-	// The field selection configuration.
+	// SelectedFields is the field selection configuration.
 	SelectedFields ObservabilitySelectedFields `json:"selected_fields"`
 
-	// The timestamp field selection configuration.
+	// SelectedTimestamp is the timestamp field selection configuration.
 	SelectedTimestamp ObservabilitySelectedTimestamp `json:"selected_timestamp"`
 
-	// The type of visualization.
+	// Type is the type of visualization.
 	Type string `json:"type"`
 }
 
 // The core observability object containing visualization and query data.
 type ObservabilityObject struct {
-	// When the object was created in milliseconds.
+	// CreatedTimeMs. When the object was created in milliseconds.
 	CreatedTimeMs *int `json:"createdTimeMs,omitempty"`
 
-	// When the object was last updated in milliseconds.
+	// LastUpdatedTimeMs. When the object was last updated in milliseconds.
 	LastUpdatedTimeMs *int `json:"lastUpdatedTimeMs,omitempty"`
 
-	// The unique identifier of the observability object.
+	// ObjectID is the unique identifier of the observability object.
 	ObjectID string `json:"objectId"`
 
-	// The panel configuration for operational visualizations.
+	// OperationalPanel is the panel configuration for operational
+	// visualizations.
 	OperationalPanel *ObservabilityOperationalPanel `json:"operationalPanel,omitempty"`
 
-	// The configuration for a saved query.
+	// SavedQuery is the configuration for a saved query.
 	SavedQuery *ObservabilitySavedQuery `json:"savedQuery,omitempty"`
 
-	// The configuration for a saved visualization.
+	// SavedVisualization is the configuration for a saved visualization.
 	SavedVisualization *ObservabilitySavedVisualization `json:"savedVisualization,omitempty"`
 
-	// The tenant associated with the observability object.
+	// Tenant is the tenant associated with the observability object.
 	Tenant *string `json:"tenant,omitempty"`
 }
 
 // A list of observability objects with pagination details.
 type ObservabilityObjectList struct {
-	// The list of observability objects.
+	// ObservabilityObjectList is the list of observability objects.
 	ObservabilityObjectList []ObservabilityObject `json:"observabilityObjectList"`
 
-	// The starting index of the returned objects.
+	// StartIndex is the starting index of the returned objects.
 	StartIndex int `json:"startIndex"`
 
-	// The relationship of total hits to the query.
+	// TotalHitRelation is the relationship of total hits to the query.
 	TotalHitRelation string `json:"totalHitRelation"`
 
-	// The total number of matching objects.
+	// TotalHits is the total number of matching objects.
 	TotalHits int `json:"totalHits"`
 }
 
 type SQLExplainBody struct {
-	// The child steps in the execution plan.
+	// Children is the child steps in the execution plan.
 	Children []SQLExplainBody `json:"children,omitempty"`
 
-	// The details about the execution step.
-	Description json.RawMessage `json:"description"`
+	// Description is the details about the execution step.
+	Description json.RawMessage `json:"description,omitempty"`
 
-	// The name of the execution step.
+	// Name is the name of the execution step.
 	Name *string `json:"name,omitempty"`
 }
 
@@ -10779,63 +11408,63 @@ type SQLExplainResponse struct {
 }
 
 type SQLQueryResponse struct {
-	// The cursor identifier for pagination.
+	// Cursor is the cursor identifier for pagination.
 	Cursor *string `json:"cursor,omitempty"`
 
-	// The rows of data returned by the query.
+	// Datarows is the rows of data returned by the query.
 	Datarows [][]json.RawMessage `json:"datarows,omitempty"`
 
-	// The schema of the query result.
+	// Schema is the schema of the query result.
 	Schema []json.RawMessage `json:"schema,omitempty"`
 
-	// The number of rows in the current response.
+	// Size is the number of rows in the current response.
 	Size *int `json:"size,omitempty"`
 
-	// The status code of the response.
+	// Status is the status code of the response.
 	Status *int `json:"status,omitempty"`
 
-	// The total number of hits.
+	// Total is the total number of hits.
 	Total *int `json:"total,omitempty"`
 }
 
 type QueryCredentials struct {
-	// The username for authentication.
+	// Password is the username for authentication.
 	Password string `json:"password"`
 
-	// The username for authentication.
+	// Username is the username for authentication.
 	Username string `json:"username"`
 }
 
 type QueryDataSourceConfiguration struct {
 	Credentials QueryCredentials `json:"credentials"`
 
-	// The connection endpoint for the data source.
+	// Endpoint is the connection endpoint for the data source.
 	Endpoint string `json:"endpoint"`
 }
 
 // Represents the fundamental reason for an error.
 type QueryDataSourceRetrieve struct {
-	// The roles allowed to access this data source.
+	// AllowedRoles is the roles allowed to access this data source.
 	AllowedRoles []string `json:"allowedRoles,omitempty"`
 
 	Configuration *QueryDataSourceConfiguration `json:"configuration,omitempty"`
 
-	// The connector type for the data source.
+	// Connector is the connector type for the data source.
 	Connector string `json:"connector"`
 
-	// The description of the data source.
+	// Description is the description of the data source.
 	Description *string `json:"description,omitempty"`
 
-	// The name of the data source.
+	// Name is the name of the data source.
 	Name string `json:"name"`
 
-	// The configuration properties for the data source.
+	// Properties is the configuration properties for the data source.
 	Properties map[string]json.RawMessage `json:"properties"`
 
-	// The index where query results are stored.
+	// ResultIndex is the index where query results are stored.
 	ResultIndex string `json:"resultIndex"`
 
-	// The current status of the data source.
+	// Status is the current status of the data source.
 	Status string `json:"status"`
 }
 
@@ -10843,22 +11472,22 @@ type QueryDataSource struct {
 	AllowedRoles  []string                      `json:"allowedRoles,omitempty"`
 	Configuration *QueryDataSourceConfiguration `json:"configuration,omitempty"`
 
-	// The connector type for the data source.
+	// Connector is the connector type for the data source.
 	Connector string `json:"connector"`
 
-	// The description of the data source.
+	// Description is the description of the data source.
 	Description *string `json:"description,omitempty"`
 
-	// The name of the data source.
+	// Name is the name of the data source.
 	Name string `json:"name"`
 
-	// The configuration properties for the data source.
+	// Properties is the configuration properties for the data source.
 	Properties map[string]json.RawMessage `json:"properties"`
 
-	// The index where query results are stored.
+	// ResultIndex is the index where query results are stored.
 	ResultIndex string `json:"resultIndex"`
 
-	// The current status of the data source.
+	// Status is the current status of the data source.
 	Status string `json:"status"`
 }
 
@@ -10875,223 +11504,248 @@ type RemoteStoreRestoreInfo struct {
 }
 
 type ReplicationAutoFollowStats struct {
-	// The list of indices that failed to replicate for this pattern.
+	// FailedIndices is the list of indices that failed to replicate for this
+	// pattern.
 	FailedIndices []string `json:"failed_indices,omitempty"`
 
-	// When the last execution of this auto-follow pattern occurred.
+	// LastExecutionTime. When the last execution of this auto-follow pattern
+	// occurred.
 	LastExecutionTime *float64 `json:"last_execution_time,omitempty"`
 
-	// The name of the auto-follow pattern.
+	// Name is the name of the auto-follow pattern.
 	Name *string `json:"name,omitempty"`
 
-	// The number of failed calls to the leader cluster for this pattern.
+	// NumFailedLeaderCalls is the number of failed calls to the leader cluster
+	// for this pattern.
 	NumFailedLeaderCalls *float64 `json:"num_failed_leader_calls,omitempty"`
 
-	// The number of failed replication starts for this pattern.
+	// NumFailedStartReplication is the number of failed replication starts for
+	// this pattern.
 	NumFailedStartReplication *float64 `json:"num_failed_start_replication,omitempty"`
 
-	// The number of successful replication starts for this pattern.
+	// NumSuccessStartReplication is the number of successful replication
+	// starts for this pattern.
 	NumSuccessStartReplication *float64 `json:"num_success_start_replication,omitempty"`
 
-	// The pattern used for auto-following indices.
+	// Pattern is the pattern used for auto-following indices.
 	Pattern *string `json:"pattern,omitempty"`
 }
 
 type ReplicationAutoFollowStatus struct {
 	AutofollowStats []ReplicationAutoFollowStats `json:"autofollow_stats,omitempty"`
 
-	// The list of indices that failed to replicate.
+	// FailedIndices is the list of indices that failed to replicate.
 	FailedIndices []string `json:"failed_indices,omitempty"`
 
-	// The number of failed calls to the leader cluster.
+	// NumFailedLeaderCalls is the number of failed calls to the leader
+	// cluster.
 	NumFailedLeaderCalls *float64 `json:"num_failed_leader_calls,omitempty"`
 
-	// The number of failed replication starts.
+	// NumFailedStartReplication is the number of failed replication starts.
 	NumFailedStartReplication *float64 `json:"num_failed_start_replication,omitempty"`
 
-	// The number of successful replication starts.
+	// NumSuccessStartReplication is the number of successful replication
+	// starts.
 	NumSuccessStartReplication *float64 `json:"num_success_start_replication,omitempty"`
 }
 
 type ReplicationIndexFollowerStatus struct {
-	// The number of failed read requests for this index during replication.
+	// FailedReadRequests is the number of failed read requests for this index
+	// during replication.
 	FailedReadRequests *float64 `json:"failed_read_requests,omitempty"`
 
-	// The number of failed write requests for this index during replication.
+	// FailedWriteRequests is the number of failed write requests for this
+	// index during replication.
 	FailedWriteRequests *float64 `json:"failed_write_requests,omitempty"`
 
-	// The current checkpoint of the follower index.
+	// FollowerCheckpoint is the current checkpoint of the follower index.
 	FollowerCheckpoint *float64 `json:"follower_checkpoint,omitempty"`
 
-	// The current checkpoint of the leader index.
+	// LeaderCheckpoint is the current checkpoint of the leader index.
 	LeaderCheckpoint *float64 `json:"leader_checkpoint,omitempty"`
 
-	// The number of operations read for this index during replication.
+	// OperationsRead is the number of operations read for this index during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The number of operations written for this index during replication.
+	// OperationsWritten is the number of operations written for this index
+	// during replication.
 	OperationsWritten *float64 `json:"operations_written,omitempty"`
 
-	// The number of throttled read requests for this index during replication.
+	// ThrottledReadRequests is the number of throttled read requests for this
+	// index during replication.
 	ThrottledReadRequests *float64 `json:"throttled_read_requests,omitempty"`
 
-	// The number of throttled write requests for this index during
-	// replication.
+	// ThrottledWriteRequests is the number of throttled write requests for
+	// this index during replication.
 	ThrottledWriteRequests *float64 `json:"throttled_write_requests,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalWriteTimeMillis *ReplicationIndexFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	// TotalWriteTimeMillis. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalWriteTimeMillis *StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 }
 
 type ReplicationFollowerStatus struct {
-	// The number of failed read requests during replication.
+	// FailedReadRequests is the number of failed read requests during
+	// replication.
 	FailedReadRequests *float64 `json:"failed_read_requests,omitempty"`
 
-	// The number of failed write requests during replication.
+	// FailedWriteRequests is the number of failed write requests during
+	// replication.
 	FailedWriteRequests *float64 `json:"failed_write_requests,omitempty"`
 
-	// The current checkpoint of the follower index.
+	// FollowerCheckpoint is the current checkpoint of the follower index.
 	FollowerCheckpoint *float64 `json:"follower_checkpoint,omitempty"`
 
 	IndexStats map[string]ReplicationIndexFollowerStatus `json:"index_stats,omitempty"`
 
-	// The current checkpoint of the leader index.
+	// LeaderCheckpoint is the current checkpoint of the leader index.
 	LeaderCheckpoint *float64 `json:"leader_checkpoint,omitempty"`
 
-	// The number of indexes currently bootstrapping.
+	// NumBootstrappingIndices is the number of indexes currently
+	// bootstrapping.
 	NumBootstrappingIndices *float64 `json:"num_bootstrapping_indices,omitempty"`
 
-	// The number of indexes that have failed replication.
+	// NumFailedIndices is the number of indexes that have failed replication.
 	NumFailedIndices *float64 `json:"num_failed_indices,omitempty"`
 
-	// The number of active index-level replication tasks.
+	// NumIndexTasks is the number of active index-level replication tasks.
 	NumIndexTasks *float64 `json:"num_index_tasks,omitempty"`
 
-	// The number of indexes currently paused.
+	// NumPausedIndices is the number of indexes currently paused.
 	NumPausedIndices *float64 `json:"num_paused_indices,omitempty"`
 
-	// The number of active shard-level replication tasks.
+	// NumShardTasks is the number of active shard-level replication tasks.
 	NumShardTasks *float64 `json:"num_shard_tasks,omitempty"`
 
-	// The number of indexes currently syncing.
+	// NumSyncingIndices is the number of indexes currently syncing.
 	NumSyncingIndices *float64 `json:"num_syncing_indices,omitempty"`
 
-	// The total number of operations read during replication.
+	// OperationsRead is the total number of operations read during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The total number of operations written during replication.
+	// OperationsWritten is the total number of operations written during
+	// replication.
 	OperationsWritten *float64 `json:"operations_written,omitempty"`
 
-	// The number of throttled read requests during replication.
+	// ThrottledReadRequests is the number of throttled read requests during
+	// replication.
 	ThrottledReadRequests *float64 `json:"throttled_read_requests,omitempty"`
 
-	// The number of throttled write requests during replication.
+	// ThrottledWriteRequests is the number of throttled write requests during
+	// replication.
 	ThrottledWriteRequests *float64 `json:"throttled_write_requests,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalWriteTimeMillis *ReplicationFollowerStatusTotalWriteTimeMillis `json:"total_write_time_millis,omitempty"`
+	// TotalWriteTimeMillis. Certain APIs may return values, including numbers
+	// such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalWriteTimeMillis *StringifiedEpochTimeUnitMillis `json:"total_write_time_millis,omitempty"`
 }
 
 type ReplicationIndexStatus struct {
-	// The size in bytes.
+	// BytesRead is the size in bytes.
 	BytesRead *int64 `json:"bytes_read,omitempty"`
 
-	// The number of operations read for this index during replication.
+	// OperationsRead is the number of operations read for this index during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The number of operations read from Lucene for this index during
-	// replication.
+	// OperationsReadLucene is the number of operations read from Lucene for
+	// this index during replication.
 	OperationsReadLucene *float64 `json:"operations_read_lucene,omitempty"`
 
-	// The number of operations read from the translog for this index during
-	// replication.
+	// OperationsReadTranslog is the number of operations read from the
+	// translog for this index during replication.
 	OperationsReadTranslog *float64 `json:"operations_read_translog,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalReadTimeLuceneMillis *ReplicationIndexStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	// TotalReadTimeLuceneMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalReadTimeLuceneMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_lucene_millis,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalReadTimeTranslogMillis *ReplicationIndexStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalReadTimeTranslogMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_translog_millis,omitempty"`
 
-	// The size in bytes.
+	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
 }
 
 type ReplicationLeaderStatus struct {
-	// The size in bytes.
+	// BytesRead is the size in bytes.
 	BytesRead *int64 `json:"bytes_read,omitempty"`
 
 	IndexStats map[string]ReplicationIndexStatus `json:"index_stats,omitempty"`
 
-	// The number of indexes being replicated.
+	// NumReplicatedIndices is the number of indexes being replicated.
 	NumReplicatedIndices *float64 `json:"num_replicated_indices,omitempty"`
 
-	// The total number of operations read during replication.
+	// OperationsRead is the total number of operations read during
+	// replication.
 	OperationsRead *float64 `json:"operations_read,omitempty"`
 
-	// The number of operations read from Lucene during replication.
+	// OperationsReadLucene is the number of operations read from Lucene during
+	// replication.
 	OperationsReadLucene *float64 `json:"operations_read_lucene,omitempty"`
 
-	// The number of operations read from the translog during replication.
+	// OperationsReadTranslog is the number of operations read from the
+	// translog during replication.
 	OperationsReadTranslog *float64 `json:"operations_read_translog,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalReadTimeLuceneMillis *ReplicationLeaderStatusTotalReadTimeLuceneMillis `json:"total_read_time_lucene_millis,omitempty"`
+	// TotalReadTimeLuceneMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalReadTimeLuceneMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_lucene_millis,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
-	// language, code generators can keep the union or remove it and leniently
-	// parse strings to the target type.
-	TotalReadTimeTranslogMillis *ReplicationLeaderStatusTotalReadTimeTranslogMillis `json:"total_read_time_translog_millis,omitempty"`
+	// TotalReadTimeTranslogMillis. Certain APIs may return values, including
+	// numbers such as epoch timestamps, as strings. This setting captures this
+	// behavior while keeping the semantics of the field type. Depending on the
+	// target language, code generators can keep the union or remove it and
+	// leniently parse strings to the target type.
+	TotalReadTimeTranslogMillis *StringifiedEpochTimeUnitMillis `json:"total_read_time_translog_millis,omitempty"`
 
-	// The size in bytes.
+	// TranslogSizeBytes is the size in bytes.
 	TranslogSizeBytes *int64 `json:"translog_size_bytes,omitempty"`
 }
 
 type ReplicationSyncingDetails struct {
-	// The checkpoint of the follower index in the replication process.
+	// FollowerCheckpoint is the checkpoint of the follower index in the
+	// replication process.
 	FollowerCheckpoint *int `json:"follower_checkpoint,omitempty"`
 
-	// The checkpoint of the leader index in the replication process.
+	// LeaderCheckpoint is the checkpoint of the leader index in the
+	// replication process.
 	LeaderCheckpoint *int `json:"leader_checkpoint,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"seq_no,omitempty"`
 }
 
 type ReplicationStatus struct {
 	FollowerIndex *string `json:"follower_index,omitempty"`
 
-	// The name of an index alias.
+	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
 
 	LeaderIndex *string `json:"leader_index,omitempty"`
 
-	// The reason for the current replication status.
+	// Reason is the reason for the current replication status.
 	Reason *string `json:"reason,omitempty"`
 
-	// The current status of the replication process.
+	// Status is the current status of the replication process.
 	Status *string `json:"status,omitempty"`
 
 	SyncingDetails *ReplicationSyncingDetails `json:"syncing_details,omitempty"`
@@ -11099,202 +11753,215 @@ type ReplicationStatus struct {
 
 // Provides explanation details for a rollup job.
 type RollupsExplain struct {
-	// The metadata ID for the rollup job.
+	// MetadataID is the metadata ID for the rollup job.
 	MetadataID *string `json:"metadata_id"`
 
-	// The metadata associated with the rollup job execution.
+	// RollupMetadata is the metadata associated with the rollup job execution.
 	RollupMetadata json.RawMessage `json:"rollup_metadata"`
 }
 
 // Configures a date histogram dimension for rollup aggregation.
 type RollupsDateHistogramDimension struct {
-	// The calendar interval for the date histogram.
+	// CalendarInterval is the calendar interval for the date histogram.
 	CalendarInterval *string `json:"calendar_interval,omitempty"`
 
-	// The fixed interval for the date histogram.
+	// FixedInterval is the fixed interval for the date histogram.
 	FixedInterval *string `json:"fixed_interval,omitempty"`
 
-	// The date format pattern for the histogram values.
+	// Format is the date format pattern for the histogram values.
 	Format *string `json:"format"`
 
-	// The field from the source documents to use for the date histogram.
+	// SourceField is the field from the source documents to use for the date
+	// histogram.
 	SourceField *string `json:"source_field,omitempty"`
 
-	// The field name to use in the target index for the date histogram
-	// results.
+	// TargetField is the field name to use in the target index for the date
+	// histogram results.
 	TargetField *string `json:"target_field,omitempty"`
 
-	// The timezone for the date histogram calculations.
+	// Timezone is the timezone for the date histogram calculations.
 	Timezone *string `json:"timezone,omitempty"`
 }
 
 // Configures a numeric histogram dimension for rollup aggregation.
 type RollupsHistogramDimension struct {
-	// The interval for the histogram buckets.
+	// Interval is the interval for the histogram buckets.
 	Interval *string `json:"interval,omitempty"`
 
-	// The field from the source documents to use for the histogram.
+	// SourceField is the field from the source documents to use for the
+	// histogram.
 	SourceField *string `json:"source_field,omitempty"`
 
-	// The field name to use in the target index for the histogram results.
+	// TargetField is the field name to use in the target index for the
+	// histogram results.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 // Configures a terms dimension for rollup aggregation.
 type RollupsTermsDimension struct {
-	// The field from the source documents to use for terms aggregation.
+	// SourceField is the field from the source documents to use for terms
+	// aggregation.
 	SourceField *string `json:"source_field,omitempty"`
 
-	// The field name to use in the target index for the terms aggregation
-	// results.
+	// TargetField is the field name to use in the target index for the terms
+	// aggregation results.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 // Defines a dimension for aggregating data in a rollup job.
 type RollupsDimensionsConfigItem struct {
-	// Configures a date histogram dimension for rollup aggregation.
+	// DateHistogram. Configures a date histogram dimension for rollup
+	// aggregation.
 	DateHistogram *RollupsDateHistogramDimension `json:"date_histogram,omitempty"`
 
-	// Configures a numeric histogram dimension for rollup aggregation.
+	// Histogram. Configures a numeric histogram dimension for rollup
+	// aggregation.
 	Histogram *RollupsHistogramDimension `json:"histogram,omitempty"`
 
-	// Configures a terms dimension for rollup aggregation.
+	// Terms. Configures a terms dimension for rollup aggregation.
 	Terms *RollupsTermsDimension `json:"terms,omitempty"`
 }
 
 // Specifies a metric aggregation type to calculate.
 type RollupsMetricsConfigMetrics struct {
-	// Calculates the average value of a field.
-	Avg json.RawMessage `json:"avg"`
+	// Avg. Calculates the average value of a field.
+	Avg json.RawMessage `json:"avg,omitempty"`
 
-	// Finds the maximum value of a field.
-	Max json.RawMessage `json:"max"`
+	// Max. Finds the maximum value of a field.
+	Max json.RawMessage `json:"max,omitempty"`
 
-	// Finds the minimum value of a field.
-	Min json.RawMessage `json:"min"`
+	// Min. Finds the minimum value of a field.
+	Min json.RawMessage `json:"min,omitempty"`
 
-	// Calculates the sum of values for a field.
-	Sum json.RawMessage `json:"sum"`
+	// Sum. Calculates the sum of values for a field.
+	Sum json.RawMessage `json:"sum,omitempty"`
 
-	// Counts the number of values for a field.
-	ValueCount json.RawMessage `json:"value_count"`
+	// ValueCount. Counts the number of values for a field.
+	ValueCount json.RawMessage `json:"value_count,omitempty"`
 }
 
 // Defines metric aggregations for a field in a rollup job.
 type RollupsMetricsConfigItem struct {
-	// The list of metrics to calculate for the field.
+	// Metrics is the list of metrics to calculate for the field.
 	Metrics []RollupsMetricsConfigMetrics `json:"metrics,omitempty"`
 
-	// The field from the source documents to calculate metrics on.
+	// SourceField is the field from the source documents to calculate metrics
+	// on.
 	SourceField *string `json:"source_field,omitempty"`
 
-	// The field name prefix to use in the target index for the metric results.
+	// TargetField is the field name prefix to use in the target index for the
+	// metric results.
 	TargetField *string `json:"target_field,omitempty"`
 }
 
 // Defines a cron schedule for the rollup job execution.
 type RollupsCron struct {
-	// The cron expression that defines the schedule.
+	// Expression is the cron expression that defines the schedule.
 	Expression *string `json:"expression,omitempty"`
 
-	// The timezone for interpreting the cron expression.
+	// Timezone is the timezone for interpreting the cron expression.
 	Timezone *string `json:"timezone,omitempty"`
 }
 
 // Specifies the timing details for rollup job execution.
 type RollupsInterval struct {
-	// The cron schedule configuration for the rollup job.
+	// Cron is the cron schedule configuration for the rollup job.
 	Cron *RollupsIntervalCron `json:"cron,omitempty"`
 
-	// The numerical value for the execution interval.
+	// Period is the numerical value for the execution interval.
 	Period *float64 `json:"period,omitempty"`
 
-	// The delay in milliseconds before starting the rollup process.
+	// ScheduleDelay is the delay in milliseconds before starting the rollup
+	// process.
 	ScheduleDelay *float64 `json:"schedule_delay,omitempty"`
 
-	// When the rollup job should start, in epoch milliseconds.
+	// StartTime. When the rollup job should start, in epoch milliseconds.
 	StartTime *float64 `json:"start_time,omitempty"`
 
-	// The time unit for the execution interval, such as `MINUTES` or `HOURS`.
+	// Unit is the time unit for the execution interval, such as `MINUTES` or
+	// `HOURS`.
 	Unit *string `json:"unit,omitempty"`
 }
 
 // Defines the execution schedule for a rollup job.
 type RollupsSchedule struct {
-	// Specifies the timing details for rollup job execution.
+	// Interval. Specifies the timing details for rollup job execution.
 	Interval *RollupsInterval `json:"interval,omitempty"`
 }
 
 // Defines the configuration for a rollup job.
 type RollupsRollup struct {
-	// Whether the rollup job runs continuously.
+	// Continuous. Whether the rollup job runs continuously.
 	Continuous *bool `json:"continuous,omitempty"`
 
-	// The time delay in milliseconds between consecutive rollup executions.
+	// Delay is the time delay in milliseconds between consecutive rollup
+	// executions.
 	Delay *float64 `json:"delay,omitempty"`
 
-	// The description of the rollup job.
+	// Description is the description of the rollup job.
 	Description *string `json:"description,omitempty"`
 
-	// The dimensions to aggregate data in the rollup.
+	// Dimensions is the dimensions to aggregate data in the rollup.
 	Dimensions []RollupsDimensionsConfigItem `json:"dimensions,omitempty"`
 
-	// Whether the rollup job is enabled.
+	// Enabled. Whether the rollup job is enabled.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// When the rollup job was enabled.
+	// EnabledTime. When the rollup job was enabled.
 	EnabledTime *float64 `json:"enabled_time,omitempty"`
 
-	// Set up a Mustache message template for error notifications. For example,
-	// if an index rollup job fails, the system can send a message to a Slack
-	// channel.
+	// ErrorNotification. Set up a Mustache message template for error
+	// notifications. For example, if an index rollup job fails, the system can
+	// send a message to a Slack channel.
 	ErrorNotification *string `json:"error_notification,omitempty"`
 
-	// When the rollup job was last updated.
+	// LastUpdatedTime. When the rollup job was last updated.
 	LastUpdatedTime *float64 `json:"last_updated_time,omitempty"`
 
-	// The metadata ID associated with the rollup job.
+	// MetadataID is the metadata ID associated with the rollup job.
 	MetadataID *string `json:"metadata_id"`
 
-	// The metrics to calculate in the rollup.
+	// Metrics is the metrics to calculate in the rollup.
 	Metrics []RollupsMetricsConfigItem `json:"metrics,omitempty"`
 
-	// The number of documents to process per iteration.
+	// PageSize is the number of documents to process per iteration.
 	PageSize *float64 `json:"page_size,omitempty"`
 
-	// The ID for the rollup job.
+	// RollupID is the ID for the rollup job.
 	RollupID *string `json:"rollup_id,omitempty"`
 
-	// Defines the execution schedule for a rollup job.
+	// Schedule. Defines the execution schedule for a rollup job.
 	Schedule *RollupsSchedule `json:"schedule,omitempty"`
 
-	// The schema version for the rollup job.
+	// SchemaVersion is the schema version for the rollup job.
 	SchemaVersion *float64 `json:"schema_version,omitempty"`
 
-	// The source index pattern for the rollup job.
+	// SourceIndex is the source index pattern for the rollup job.
 	SourceIndex *string `json:"source_index,omitempty"`
 
-	// The target index where rollup results are stored.
+	// TargetIndex is the target index where rollup results are stored.
 	TargetIndex *string `json:"target_index,omitempty"`
 
-	// The configuration settings for an index.
+	// TargetIndexSettings is the configuration settings for an index.
+	//
+	// Available: >= 3.0.0.
 	TargetIndexSettings *IndicesIndexSettings `json:"target_index_settings,omitempty"`
 }
 
 // A rollup job entity with metadata.
 type RollupsRollupEntity struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Version *int64 `json:"_version,omitempty"`
 
-	// Defines the configuration for a rollup job.
+	// Rollup. Defines the configuration for a rollup job.
 	Rollup *RollupsRollup `json:"rollup,omitempty"`
 }
 
@@ -11319,7 +11986,7 @@ type SearchPipelineNormalizationPhaseResultsProcessor struct {
 	Tag           *string                           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemObject0 struct {
+type SearchPipelinePhaseResultsProcessorNormalizationProcessor struct {
 	NormalizationProcessor SearchPipelineNormalizationPhaseResultsProcessor `json:"normalization-processor"`
 }
 
@@ -11332,12 +11999,12 @@ type SearchPipelineScoreRankerPhaseResultsProcessor struct {
 	Combination SearchPipelineScoreRankerCombination `json:"combination"`
 }
 
-type SearchPipelineStructurePhaseResultsProcessorsItemObject1 struct {
+type SearchPipelinePhaseResultsProcessorScoreRankerProcessor struct {
 	ScoreRankerProcessor SearchPipelineScoreRankerPhaseResultsProcessor `json:"score-ranker-processor"`
 }
 
 type SearchPipelineAgenticQueryTranslatorRequestProcessor struct {
-	// The ID of the agent to use for query translation.
+	// AgentID is the ID of the agent to use for query translation.
 	AgentID string `json:"agent_id"`
 
 	Description   *string `json:"description,omitempty"`
@@ -11345,7 +12012,7 @@ type SearchPipelineAgenticQueryTranslatorRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject0 struct {
+type SearchPipelineRequestProcessorAgenticQueryTranslator struct {
 	// Available: >= 3.2.0.
 	AgenticQueryTranslator SearchPipelineAgenticQueryTranslatorRequestProcessor `json:"agentic_query_translator"`
 }
@@ -11357,7 +12024,7 @@ type SearchPipelineFilterQueryRequestProcessor struct {
 	Tag           *string                       `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject1 struct {
+type SearchPipelineRequestProcessorFilterQuery struct {
 	FilterQuery SearchPipelineFilterQueryRequestProcessor `json:"filter_query"`
 }
 
@@ -11368,7 +12035,7 @@ type SearchPipelineNeuralQueryEnricherRequestProcessor struct {
 	Tag                  *string           `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject2 struct {
+type SearchPipelineRequestProcessorNeuralQueryEnricher struct {
 	NeuralQueryEnricher SearchPipelineNeuralQueryEnricherRequestProcessor `json:"neural_query_enricher"`
 }
 
@@ -11380,7 +12047,7 @@ type SearchPipelineSearchScriptRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject3 struct {
+type SearchPipelineRequestProcessorScript struct {
 	Script SearchPipelineSearchScriptRequestProcessor `json:"script"`
 }
 
@@ -11392,34 +12059,34 @@ type SearchPipelineOversampleRequestProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRequestProcessorsItemObject4 struct {
+type SearchPipelineRequestProcessorOversample struct {
 	Oversample SearchPipelineOversampleRequestProcessor `json:"oversample"`
 }
 
 type SearchPipelineAgenticContextRespProcessor struct {
-	// Whether to include the agent's execution step summary in the response.
-	// Available for conversational agents only.
+	// AgentStepsSummary. Whether to include the agent's execution step summary
+	// in the response. Available for conversational agents only.
 	AgentStepsSummary *bool `json:"agent_steps_summary,omitempty"`
 
 	Description *string `json:"description,omitempty"`
 
-	// Whether to include the generated DSL query in the response. Available
-	// for both conversational and flow agents.
+	// DSLQuery. Whether to include the generated DSL query in the response.
+	// Available for both conversational and flow agents.
 	DSLQuery *bool `json:"dsl_query,omitempty"`
 
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject0 struct {
+type SearchPipelineRespProcessorAgenticContext struct {
 	// Available: >= 3.3.0.
 	AgenticContext SearchPipelineAgenticContextRespProcessor `json:"agentic_context"`
 }
 
 type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
-	CampaignArn   string  `json:"campaign_arn"`
+	CampaignARN   string  `json:"campaign_arn"`
 	Description   *string `json:"description,omitempty"`
-	IamRoleArn    *string `json:"iam_role_arn,omitempty"`
+	IAMRoleARN    *string `json:"iam_role_arn,omitempty"`
 	IgnoreFailure *bool   `json:"ignore_failure,omitempty"`
 	ItemIDField   *string `json:"item_id_field,omitempty"`
 	Recipe        string  `json:"recipe"`
@@ -11427,7 +12094,7 @@ type SearchPipelinePersonalizeSearchRankingRespProcessor struct {
 	Weight        float32 `json:"weight"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject1 struct {
+type SearchPipelineRespProcessorPersonalizeSearchRanking struct {
 	PersonalizeSearchRanking SearchPipelinePersonalizeSearchRankingRespProcessor `json:"personalize_search_ranking"`
 }
 
@@ -11440,7 +12107,7 @@ type SearchPipelineRetrievalAugmentedGenerationRespProcessor struct {
 	UserInstructions *string  `json:"user_instructions,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject2 struct {
+type SearchPipelineRespProcessorRetrievalAugmentedGeneration struct {
 	RetrievalAugmentedGeneration SearchPipelineRetrievalAugmentedGenerationRespProcessor `json:"retrieval_augmented_generation"`
 }
 
@@ -11452,7 +12119,7 @@ type SearchPipelineRenameFieldRespProcessor struct {
 	TargetField   string  `json:"target_field"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject3 struct {
+type SearchPipelineRespProcessorRenameField struct {
 	RenameField SearchPipelineRenameFieldRespProcessor `json:"rename_field"`
 }
 
@@ -11472,7 +12139,7 @@ type SearchPipelineRerankRespProcessor struct {
 	Tag           *string                             `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject4 struct {
+type SearchPipelineRespProcessorRerank struct {
 	Rerank SearchPipelineRerankRespProcessor `json:"rerank"`
 }
 
@@ -11484,7 +12151,7 @@ type SearchPipelineCollapseRespProcessor struct {
 	Tag           *string `json:"tag,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject5 struct {
+type SearchPipelineRespProcessorCollapse struct {
 	Collapse SearchPipelineCollapseRespProcessor `json:"collapse"`
 }
 
@@ -11496,7 +12163,7 @@ type SearchPipelineTruncateHitsRespProcessor struct {
 	TargetSize    *int    `json:"target_size,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject6 struct {
+type SearchPipelineRespProcessorTruncateHits struct {
 	TruncateHits SearchPipelineTruncateHitsRespProcessor `json:"truncate_hits"`
 }
 
@@ -11509,7 +12176,7 @@ type SearchPipelineSortRespProcessor struct {
 	TargetField   *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject7 struct {
+type SearchPipelineRespProcessorSort struct {
 	Sort SearchPipelineSortRespProcessor `json:"sort"`
 }
 
@@ -11523,16 +12190,16 @@ type SearchPipelineSplitRespProcessor struct {
 	TargetField      *string `json:"target_field,omitempty"`
 }
 
-type SearchPipelineStructureRespProcessorsItemObject8 struct {
+type SearchPipelineRespProcessorSplit struct {
 	Split SearchPipelineSplitRespProcessor `json:"split"`
 }
 
 type SearchPipelineStructure struct {
-	Description            *string                                             `json:"description,omitempty"`
-	PhaseResultsProcessors []SearchPipelineStructurePhaseResultsProcessorsItem `json:"phase_results_processors,omitempty"`
-	RequestProcessors      []SearchPipelineStructureRequestProcessorsItem      `json:"request_processors,omitempty"`
-	RespProcessors         []SearchPipelineStructureRespProcessorsItem         `json:"response_processors,omitempty"`
-	Version                *int                                                `json:"version,omitempty"`
+	Description            *string                               `json:"description,omitempty"`
+	PhaseResultsProcessors []SearchPipelinePhaseResultsProcessor `json:"phase_results_processors,omitempty"`
+	RequestProcessors      []SearchPipelineRequestProcessor      `json:"request_processors,omitempty"`
+	RespProcessors         []SearchPipelineRespProcessor         `json:"response_processors,omitempty"`
+	Version                *int                                  `json:"version,omitempty"`
 }
 
 type SearchRelevancePostQuerySetsResponse struct {
@@ -11565,25 +12232,25 @@ type SearchRelevancePutSearchConfigurationResponse struct {
 }
 
 type NodeAttributes struct {
-	// A list of node attributes.
+	// Attributes is a list of node attributes.
 	Attributes map[string]string `json:"attributes"`
 
-	// The unique identifier for a resource.
+	// EphemeralID is the unique identifier for a resource.
 	EphemeralID string `json:"ephemeral_id"`
 
-	// The roles of the node.
+	// ExternalID is the roles of the node.
 	ExternalID *string `json:"external_id,omitempty"`
 
-	// The unique identifier of a node.
+	// ID is the unique identifier of a node.
 	ID *string `json:"id,omitempty"`
 
-	// The name of the node.
+	// Name is the name of the node.
 	Name string `json:"name"`
 
-	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	// Roles is the role assigned to the node.
+	Roles []NodeRole `json:"roles,omitempty"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress string `json:"transport_address"`
 }
 
@@ -11592,78 +12259,82 @@ type NodeShard struct {
 	AllocationID map[string]string `json:"allocation_id,omitempty"`
 	Index        string            `json:"index"`
 
-	// The name of the node.
+	// Node is the name of the node.
 	Node *string `json:"node,omitempty"`
 
 	Primary bool `json:"primary"`
 
-	// The recovery source information for this shard.
+	// RecoverySource is the recovery source information for this shard.
 	RecoverySource map[string]string `json:"recovery_source,omitempty"`
 
 	RelocatingNode *string `json:"relocating_node"`
 
-	// Indicates if this shard is configured for search operations only
+	// SearchOnly. Indicates if this shard is configured for search operations
+	// only
 	SearchOnly *bool `json:"searchOnly,omitempty"`
 
 	Shard int `json:"shard"`
 
-	// The state of shard routing.
+	// State is the state of shard routing.
 	State string `json:"state"`
 
 	UnassignedInfo *ClusterAllocationExplainUnassignedInformation `json:"unassigned_info,omitempty"`
 }
 
 type SecurityAuthInfo struct {
-	// The backend roles associated with the user.
+	// BackendRoles is the backend roles associated with the user.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The name of the attributes associated with the user.
+	// CustomAttributeNames is the name of the attributes associated with the
+	// user.
 	CustomAttributeNames []string `json:"custom_attribute_names,omitempty"`
 
-	// The number of peer certificates related to the user.
-	PeerCertificates json.RawMessage `json:"peer_certificates"`
+	// PeerCertificates is the number of peer certificates related to the user.
+	PeerCertificates json.RawMessage `json:"peer_certificates,omitempty"`
 
-	// The user's principal.
+	// Principal is the user's principal.
 	Principal *string `json:"principal"`
 
-	// The IP address of remote user.
+	// RemoteAddress is the IP address of remote user.
 	RemoteAddress *string `json:"remote_address"`
 
-	// The roles associated with the user.
+	// Roles is the roles associated with the user.
 	Roles []string `json:"roles,omitempty"`
 
-	// The size of the user's backend roles in bytes.
+	// SizeOfBackendroles is the size of the user's backend roles in bytes.
 	SizeOfBackendroles *string `json:"size_of_backendroles,omitempty"`
 
-	// The size of the user's custom attributes in bytes.
+	// SizeOfCustomAttributes is the size of the user's custom attributes in
+	// bytes.
 	SizeOfCustomAttributes *string `json:"size_of_custom_attributes,omitempty"`
 
-	// The size of user contained in memory.
+	// SizeOfUser is the size of user contained in memory.
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
-	// The logout URL.
-	SsoLogoutURL *string `json:"sso_logout_url"`
+	// SSOLogoutURL is the logout URL.
+	SSOLogoutURL *string `json:"sso_logout_url"`
 
-	// The tenants the user has access to with `read-write` or `read-only`
-	// access indicators.
+	// Tenants is the tenants the user has access to with `read-write` or
+	// `read-only` access indicators.
 	Tenants map[string]bool `json:"tenants,omitempty"`
 
-	// A user object as a string.
+	// User is a user object as a string.
 	User *string `json:"user,omitempty"`
 
-	// The username.
+	// UserName is the username.
 	UserName *string `json:"user_name,omitempty"`
 
-	// The name of the tenant the user would like to switch to.
+	// UserRequestedTenant is the name of the tenant the user would like to
+	// switch to.
 	UserRequestedTenant *string `json:"user_requested_tenant"`
 }
 
 type SecurityOk struct {
-	// The message returned as part of an `OK` response.
+	// Message is the message returned as part of an `OK` response.
 	Message *string `json:"message,omitempty"`
 
-	// The HTTP status of the response, as a RestStatus enum name (e.g. "OK",
-	// "CREATED").
+	// Status is the HTTP status of the response, as a RestStatus enum name
+	// (e.g. "OK", "CREATED").
 	Status *RestStatus `json:"status,omitempty"`
 }
 
@@ -11681,7 +12352,8 @@ type SecurityUpgradePerform struct {
 type SecurityAllowListConfig struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// An object with APIs as key and array of HTTP methods as values.
+	// Requests is an object with APIs as key and array of HTTP methods as
+	// values.
 	Requests map[string][]string `json:"requests,omitempty"`
 }
 
@@ -11693,13 +12365,13 @@ type SecurityMultiTenancyConfig struct {
 }
 
 type SecurityGenerateOBOToken struct {
-	// The generated OBO token.
+	// AuthenticationToken is the generated OBO token.
 	AuthenticationToken *string `json:"authenticationToken,omitempty"`
 
-	// The duration of the token.
+	// DurationSeconds is the duration of the token.
 	DurationSeconds *string `json:"durationSeconds,omitempty"`
 
-	// The name of the entity requesting token.
+	// User is the name of the entity requesting token.
 	User *string `json:"user,omitempty"`
 }
 
@@ -11731,11 +12403,11 @@ type SecurityActionGroup struct {
 }
 
 type SecurityCertificatesDetail struct {
-	IssuerDn  *string `json:"issuer_dn,omitempty"`
+	IssuerDN  *string `json:"issuer_dn,omitempty"`
 	NotAfter  *string `json:"not_after,omitempty"`
 	NotBefore *string `json:"not_before,omitempty"`
 	San       *string `json:"san,omitempty"`
-	SubjectDn *string `json:"subject_dn,omitempty"`
+	SubjectDN *string `json:"subject_dn,omitempty"`
 }
 
 type SecurityCertificateTypes struct {
@@ -11746,14 +12418,14 @@ type SecurityCertificateTypes struct {
 type SecurityCertificatesPerNode struct {
 	Certificates map[string]SecurityCertificateTypes `json:"certificates,omitempty"`
 
-	// The name of the node.
+	// Name is the name of the node.
 	Name *string `json:"name,omitempty"`
 }
 
 type SecurityGetCertificatesNew struct {
 	NodesRespBase
 
-	// Name of this cluster.
+	// ClusterName. Name of this cluster.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Nodes map[string]SecurityCertificatesPerNode `json:"nodes,omitempty"`
@@ -11780,7 +12452,7 @@ type SecurityComplianceConfig struct {
 	InternalConfig      *bool           `json:"internal_config,omitempty"`
 	ReadIgnoreUsers     []string        `json:"read_ignore_users,omitempty"`
 	ReadMetadataOnly    *bool           `json:"read_metadata_only,omitempty"`
-	ReadWatchedFields   json.RawMessage `json:"read_watched_fields"`
+	ReadWatchedFields   json.RawMessage `json:"read_watched_fields,omitempty"`
 	WriteIgnoreUsers    []string        `json:"write_ignore_users,omitempty"`
 	WriteLogDiffs       *bool           `json:"write_log_diffs,omitempty"`
 	WriteMetadataOnly   *bool           `json:"write_metadata_only,omitempty"`
@@ -11804,20 +12476,20 @@ type SecurityGetCertificates struct {
 }
 
 type SecurityDynamicOptions struct {
-	AuthFailureListeners         json.RawMessage `json:"auth_failure_listeners"`
-	Authc                        json.RawMessage `json:"authc"`
-	Authz                        json.RawMessage `json:"authz"`
+	AuthFailureListeners         json.RawMessage `json:"auth_failure_listeners,omitempty"`
+	Authc                        json.RawMessage `json:"authc,omitempty"`
+	Authz                        json.RawMessage `json:"authz,omitempty"`
 	DisableIntertransportAuth    *bool           `json:"disable_intertransport_auth,omitempty"`
 	DisableRestAuth              *bool           `json:"disable_rest_auth,omitempty"`
 	DoNotFailOnForbidden         *bool           `json:"do_not_fail_on_forbidden,omitempty"`
 	DoNotFailOnForbiddenEmpty    *bool           `json:"do_not_fail_on_forbidden_empty,omitempty"`
 	FilteredAliasMode            *string         `json:"filtered_alias_mode,omitempty"`
 	HostsResolverMode            *string         `json:"hosts_resolver_mode,omitempty"`
-	HTTP                         json.RawMessage `json:"http"`
-	Kibana                       json.RawMessage `json:"kibana"`
+	HTTP                         json.RawMessage `json:"http,omitempty"`
+	Kibana                       json.RawMessage `json:"kibana,omitempty"`
 	MultiRolespanEnabled         *bool           `json:"multi_rolespan_enabled,omitempty"`
-	OnBehalfOf                   json.RawMessage `json:"on_behalf_of"`
-	OpensearchDashboards         json.RawMessage `json:"opensearch-dashboards"`
+	OnBehalfOf                   json.RawMessage `json:"on_behalf_of,omitempty"`
+	OpensearchDashboards         json.RawMessage `json:"opensearch-dashboards,omitempty"`
 	RespectRequestIndicesOptions *bool           `json:"respect_request_indices_options,omitempty"`
 }
 
@@ -11830,47 +12502,52 @@ type SecurityConfig struct {
 }
 
 type SecurityDashboardsInfo struct {
-	// The default tenant setting for the dashboard.
+	// DefaultTenant is the default tenant setting for the dashboard.
 	DefaultTenant *string `json:"default_tenant,omitempty"`
 
-	// Indicates whether multi-tenancy is enabled.
+	// MultitenancyEnabled. Indicates whether multi-tenancy is enabled.
 	MultitenancyEnabled *bool `json:"multitenancy_enabled,omitempty"`
 
-	// Indicates whether `DNFOF` is enabled.
+	// NotFailOnForbiddenEnabled. Indicates whether `DNFOF` is enabled.
 	NotFailOnForbiddenEnabled *bool `json:"not_fail_on_forbidden_enabled,omitempty"`
 
-	// The name of the dashboard's index.
+	// OpensearchDashboardsIndex is the name of the dashboard's index.
 	OpensearchDashboardsIndex *string `json:"opensearch_dashboards_index,omitempty"`
 
-	// Indicates whether multi-tenancy is enabled.
+	// OpensearchDashboardsMtEnabled. Indicates whether multi-tenancy is
+	// enabled.
 	OpensearchDashboardsMtEnabled *bool `json:"opensearch_dashboards_mt_enabled,omitempty"`
 
-	// The name of the user used to connect dashboard's to the server.
+	// OpensearchDashboardsServerUser is the name of the user used to connect
+	// dashboard's to the server.
 	OpensearchDashboardsServerUser *string `json:"opensearch_dashboards_server_user,omitempty"`
 
-	// The error message when a password validation fails.
+	// PasswordValidationErrorMessage is the error message when a password
+	// validation fails.
 	PasswordValidationErrorMessage *string `json:"password_validation_error_message,omitempty"`
 
-	// The regular expression used perform password validation.
+	// PasswordValidationRegex is the regular expression used perform password
+	// validation.
 	PasswordValidationRegex *string `json:"password_validation_regex,omitempty"`
 
-	// Indicates whether a private tenant is enabled for all users.
+	// PrivateTenantEnabled. Indicates whether a private tenant is enabled for
+	// all users.
 	PrivateTenantEnabled *bool `json:"private_tenant_enabled,omitempty"`
 
-	// A list of available sign-in options.
+	// SignInOptions is a list of available sign-in options.
 	SignInOptions []string `json:"sign_in_options,omitempty"`
 
-	// User's name
+	// UserName. User's name
 	UserName *string `json:"user_name,omitempty"`
 }
 
 type SecurityDistinguishedNames struct {
-	NodesDn []string `json:"nodes_dn,omitempty"`
+	NodesDN []string `json:"nodes_dn,omitempty"`
 }
 
 type SecurityPermissionsInfo struct {
-	// An object with disabled APIs as keys and an array of HTTP methods as
-	// values.
+	// DisabledEndpoints is an object with disabled APIs as keys and an array
+	// of HTTP methods as values.
 	DisabledEndpoints map[string][]string `json:"disabled_endpoints,omitempty"`
 
 	HasAPIAccess *bool   `json:"has_api_access,omitempty"`
@@ -11912,49 +12589,51 @@ type SecurityRoleMapping struct {
 }
 
 type SecuritySSLInfo struct {
-	// A list of domain names from local certificates.
+	// LocalCertificatesList is a list of domain names from local certificates.
 	LocalCertificatesList []string `json:"local_certificates_list,omitempty"`
 
-	// The number of certificates.
+	// PeerCertificates is the number of certificates.
 	PeerCertificates json.RawMessage `json:"peer_certificates"`
 
-	// A list of domain names from peer certificates.
+	// PeerCertificatesList is a list of domain names from peer certificates.
 	PeerCertificatesList json.RawMessage `json:"peer_certificates_list"`
 
-	// The user's principal.
+	// Principal is the user's principal.
 	Principal *string `json:"principal"`
 
-	// The cipher for this SSL setup.
+	// SSLCipher is the cipher for this SSL setup.
 	SSLCipher *string `json:"ssl_cipher"`
 
-	// Whether OpenSSL is available.
+	// SSLOpensslAvailable. Whether OpenSSL is available.
 	SSLOpensslAvailable *bool `json:"ssl_openssl_available,omitempty"`
 
-	// The reason OpenSSL is unavailable.
+	// SSLOpensslNonAvailableCause is the reason OpenSSL is unavailable.
 	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause"`
 
-	// Whether the hostname validation is supported.
+	// SSLOpensslSupportsHostnameValidation. Whether the hostname validation is
+	// supported.
 	SSLOpensslSupportsHostnameValidation *bool `json:"ssl_openssl_supports_hostname_validation,omitempty"`
 
-	// Whether `KMF` is supported.
+	// SSLOpensslSupportsKeyManagerFactory. Whether `KMF` is supported.
 	SSLOpensslSupportsKeyManagerFactory *bool `json:"ssl_openssl_supports_key_manager_factory,omitempty"`
 
-	// Version of OpenSSL.
-	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
+	// SSLOpensslVersion. Version of OpenSSL.
+	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version,omitempty"`
 
-	// The full version string for the OpenSSL version.
+	// SSLOpensslVersionString is the full version string for the OpenSSL
+	// version.
 	SSLOpensslVersionString *string `json:"ssl_openssl_version_string"`
 
-	// The protocol for this SSL setup.
+	// SSLProtocol is the protocol for this SSL setup.
 	SSLProtocol *string `json:"ssl_protocol"`
 
-	// Returns the HTTP provider's name.
+	// SSLProviderHTTP. Returns the HTTP provider's name.
 	SSLProviderHTTP *string `json:"ssl_provider_http"`
 
-	// Returns the transport client's name.
+	// SSLProviderTransportClient. Returns the transport client's name.
 	SSLProviderTransportClient string `json:"ssl_provider_transport_client"`
 
-	// Returns the transport server's name.
+	// SSLProviderTransportServer. Returns the transport server's name.
 	SSLProviderTransportServer string `json:"ssl_provider_transport_server"`
 }
 
@@ -11988,16 +12667,16 @@ type SecurityHealthInfo struct {
 }
 
 type SecurityWhoAmI struct {
-	Dn                       *string `json:"dn"`
+	DN                       *string `json:"dn"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 }
 
 type SMCronExpression struct {
-	// The cron expression that defines the schedule.
+	// Expression is the cron expression that defines the schedule.
 	Expression string `json:"expression"`
 
-	// The timezone used for the cron schedule.
+	// Timezone is the timezone used for the cron schedule.
 	Timezone string `json:"timezone"`
 }
 
@@ -12008,7 +12687,7 @@ type SMCronSchedule struct {
 type SMCreationConfig struct {
 	Schedule SMCronSchedule `json:"schedule"`
 
-	// The maximum amount of time for allowed snapshot creation.
+	// TimeLimit is the maximum amount of time for allowed snapshot creation.
 	TimeLimit *string `json:"time_limit,omitempty"`
 }
 
@@ -12023,7 +12702,8 @@ type SMDeletionConfig struct {
 	Condition *SMDeletionCondition `json:"condition,omitempty"`
 	Schedule  *SMCronSchedule      `json:"schedule,omitempty"`
 
-	// The maximum amount of time allowed for snapshot deletion operations.
+	// TimeLimit is the maximum amount of time allowed for snapshot deletion
+	// operations.
 	TimeLimit *string `json:"time_limit,omitempty"`
 }
 
@@ -12032,16 +12712,19 @@ type SMNotificationChannel struct {
 }
 
 type SMNotificationConditions struct {
-	// Whether to send notifications for a successful snapshot creation.
+	// Creation. Whether to send notifications for a successful snapshot
+	// creation.
 	Creation *bool `json:"creation,omitempty"`
 
-	// Whether to send notifications for a successful snapshot deletion.
+	// Deletion. Whether to send notifications for a successful snapshot
+	// deletion.
 	Deletion *bool `json:"deletion,omitempty"`
 
-	// Whether to send notifications for failed operations.
+	// Failure. Whether to send notifications for failed operations.
 	Failure *bool `json:"failure,omitempty"`
 
-	// Whether to send notifications when operations exceed time limits.
+	// TimeLimitExceeded. Whether to send notifications when operations exceed
+	// time limits.
 	TimeLimitExceeded *bool `json:"time_limit_exceeded,omitempty"`
 }
 
@@ -12051,13 +12734,13 @@ type SMNotificationConfig struct {
 }
 
 type SMIntervalConfig struct {
-	// The number of time units between executions.
+	// Period is the number of time units between executions.
 	Period int `json:"period"`
 
-	// When the interval schedule should start.
+	// StartTime. When the interval schedule should start.
 	StartTime int `json:"start_time"`
 
-	// The time unit for the interval period (Days, Hours, or Minutes).
+	// Unit is the time unit for the interval period (Days, Hours, or Minutes).
 	Unit string `json:"unit"`
 }
 
@@ -12067,26 +12750,26 @@ type SMIntervalSchedule struct {
 }
 
 type SMSnapshotConfig struct {
-	// Default "yyyy-MM-dd'T'HH:mm:ss"
+	// DateFormat. Default "yyyy-MM-dd'T'HH:mm:ss"
 	DateFormat *string `json:"date_format,omitempty"`
 
-	// Default false
+	// IgnoreUnavailable. Default false
 	IgnoreUnavailable *bool `json:"ignore_unavailable,omitempty"`
 
-	// Default true
+	// IncludeGlobalState. Default true
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// Default "*"
+	// Indices. Default "*"
 	Indices *string `json:"indices,omitempty"`
 
 	Metadata map[string]string `json:"metadata,omitempty"`
 
-	// Default false
+	// Partial. Default false
 	Partial *bool `json:"partial,omitempty"`
 
 	Repository string `json:"repository"`
 
-	// Default UTC
+	// Timezone. Default UTC
 	Timezone *string `json:"timezone,omitempty"`
 }
 
@@ -12094,54 +12777,54 @@ type SMSnapshotConfig struct {
 type SMPolicy struct {
 	Creation SMCreationConfig `json:"creation"`
 
-	// The configuration for snapshot deletion.
+	// Deletion is the configuration for snapshot deletion.
 	Deletion *SMDeletionConfig `json:"deletion,omitempty"`
 
 	Description string `json:"description"`
 	Enabled     *bool  `json:"enabled,omitempty"`
 
-	// When the policy was last enabled.
+	// EnabledTime. When the policy was last enabled.
 	EnabledTime *int `json:"enabled_time,omitempty"`
 
-	// When the policy was last modified.
+	// LastUpdatedTime. When the policy was last modified.
 	LastUpdatedTime *int `json:"last_updated_time,omitempty"`
 
-	// The unique identifier for the snapshot policy.
+	// Name is the unique identifier for the snapshot policy.
 	Name string `json:"name"`
 
 	Notification *SMNotificationConfig `json:"notification,omitempty"`
 
-	// The system-generated schedule metadata returned by the API.
+	// Schedule is the system-generated schedule metadata returned by the API.
 	Schedule *SMIntervalSchedule `json:"schedule,omitempty"`
 
-	// The version number of the policy schema.
+	// SchemaVersion is the version number of the policy schema.
 	SchemaVersion *int `json:"schema_version,omitempty"`
 
 	SnapshotConfig SMSnapshotConfig `json:"snapshot_config"`
 }
 
 type SMPolicyResponse struct {
-	// The policy ID.
+	// ID is the policy ID.
 	ID string `json:"_id"`
 
-	// The primary term for optimistic concurrency control.
+	// PrimaryTerm is the primary term for optimistic concurrency control.
 	PrimaryTerm int `json:"_primary_term"`
 
-	// The sequence number for optimistic concurrency control.
+	// SeqNo is the sequence number for optimistic concurrency control.
 	SeqNo int `json:"_seq_no"`
 
-	// The version number of the policy document.
+	// Version is the version number of the policy document.
 	Version int `json:"_version"`
 
-	// The complete snapshot management policy configuration.
+	// SMPolicy is the complete snapshot management policy configuration.
 	SMPolicy SMPolicy `json:"sm_policy"`
 }
 
 type SMExecutionInfo struct {
-	// The reason policy execution failed, if applicable.
+	// Cause is the reason policy execution failed, if applicable.
 	Cause *string `json:"cause,omitempty"`
 
-	// A detailed message about the policy execution result.
+	// Message is a detailed message about the policy execution result.
 	Message *string `json:"message,omitempty"`
 }
 
@@ -12152,27 +12835,27 @@ type SMExecutionMetadata struct {
 
 // Information about any retry attempts that occurred.
 type SMRetryMetadata struct {
-	// The number of retry attempts made.
+	// Count is the number of retry attempts made.
 	Count *int `json:"count,omitempty"`
 }
 
 // Any information about what triggered the policy execution.
 type SMTriggerMetadata struct {
-	// When the policy was triggered.
+	// Time. When the policy was triggered.
 	Time *int `json:"time,omitempty"`
 }
 
 type SMStateMetadata struct {
-	// The current state of the policy execution.
+	// CurrentState is the current state of the policy execution.
 	CurrentState *string `json:"current_state,omitempty"`
 
-	// Details about the most recent policy execution.
+	// LatestExecution. Details about the most recent policy execution.
 	LatestExecution *SMExecutionMetadata `json:"latest_execution,omitempty"`
 
-	// Information about any retry attempts that occurred.
+	// Retry. Information about any retry attempts that occurred.
 	Retry *SMRetryMetadata `json:"retry,omitempty"`
 
-	// Any information about what triggered the policy execution.
+	// Trigger. Any information about what triggered the policy execution.
 	Trigger *SMTriggerMetadata `json:"trigger,omitempty"`
 }
 
@@ -12190,298 +12873,304 @@ type SMPolicyExplanation struct {
 }
 
 type SMListedPolicy struct {
-	// The policy ID.
+	// ID is the policy ID.
 	ID string `json:"_id"`
 
-	// The primary term for optimistic concurrency control.
+	// PrimaryTerm is the primary term for optimistic concurrency control.
 	PrimaryTerm *int `json:"_primary_term,omitempty"`
 
-	// The sequence number for optimistic concurrency control.
+	// SeqNo is the sequence number for optimistic concurrency control.
 	SeqNo *int `json:"_seq_no,omitempty"`
 
-	// The complete snapshot management policy configuration.
+	// SMPolicy is the complete snapshot management policy configuration.
 	SMPolicy SMPolicy `json:"sm_policy"`
 }
 
 type SMGetPoliciesResponse struct {
-	// A list of snapshot management policies.
+	// Policies is a list of snapshot management policies.
 	Policies []SMListedPolicy `json:"policies"`
 
-	// The total number of policies found.
+	// TotalPolicies is the total number of policies found.
 	TotalPolicies int `json:"total_policies"`
 }
 
 type SnapshotShardFailure struct {
-	// The name of the index containing the failed shard.
+	// Index is the name of the index containing the failed shard.
 	Index *string `json:"index,omitempty"`
 
-	// The ID of the node where the shard failure occurred.
+	// NodeID is the ID of the node where the shard failure occurred.
 	NodeID *string `json:"node_id,omitempty"`
 
-	// The reason for the shard failure.
+	// Reason is the reason for the shard failure.
 	Reason *string `json:"reason,omitempty"`
 
-	// The ID of the failed shard.
+	// ShardID is the ID of the failed shard.
 	ShardID *string `json:"shard_id,omitempty"`
 
-	// The status of the failed shard.
+	// Status is the status of the failed shard.
 	Status *string `json:"status,omitempty"`
 }
 
 type SnapshotInfo struct {
-	// The list of data streams included in the snapshot.
+	// DataStreams is the list of data streams included in the snapshot.
 	DataStreams []string `json:"data_streams,omitempty"`
 
-	// The total time taken to complete the snapshot.
+	// Duration is the total time taken to complete the snapshot.
 	Duration *string `json:"duration,omitempty"`
 
-	// The total time taken to complete the snapshot in milliseconds.
+	// DurationInMillis is the total time taken to complete the snapshot in
+	// milliseconds.
 	DurationInMillis *int64 `json:"duration_in_millis,omitempty"`
 
-	// The time when the snapshot completed.
+	// EndTime is the time when the snapshot completed.
 	EndTime *string `json:"end_time,omitempty"`
 
-	// The time when the snapshot completed in milliseconds.
+	// EndTimeInMillis is the time when the snapshot completed in milliseconds.
 	EndTimeInMillis *int64 `json:"end_time_in_millis,omitempty"`
 
-	// The list of shard failures that occurred during the snapshot.
+	// Failures is the list of shard failures that occurred during the
+	// snapshot.
 	Failures []SnapshotShardFailure `json:"failures,omitempty"`
 
-	// Whether the snapshot includes the cluster state.
+	// IncludeGlobalState. Whether the snapshot includes the cluster state.
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// The list of indexes included in the snapshot.
+	// Indices is the list of indexes included in the snapshot.
 	Indices []string `json:"indices,omitempty"`
 
-	// The custom metadata attached to the snapshot.
+	// Metadata is the custom metadata attached to the snapshot.
 	Metadata map[string]json.RawMessage `json:"metadata,omitempty"`
 
-	// The timestamp when the snapshot was pinned.
+	// PinnedTimestamp is the timestamp when the snapshot was pinned.
 	PinnedTimestamp *int64 `json:"pinned_timestamp,omitempty"`
 
-	// The reason for the snapshot creation.
+	// Reason is the reason for the snapshot creation.
 	Reason *string `json:"reason,omitempty"`
 
-	// Whether the snapshot uses remote store index shallow copy.
+	// RemoteStoreIndexShallowCopy. Whether the snapshot uses remote store
+	// index shallow copy.
 	RemoteStoreIndexShallowCopy *bool `json:"remote_store_index_shallow_copy,omitempty"`
 
-	// The statistics about the shards included in the snapshot.
+	// Shards is the statistics about the shards included in the snapshot.
 	Shards *ShardStatistics `json:"shards,omitempty"`
 
-	// The name of the snapshot.
+	// Snapshot is the name of the snapshot.
 	Snapshot *string `json:"snapshot,omitempty"`
 
-	// The time when the snapshot started.
+	// StartTime is the time when the snapshot started.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The time when the snapshot started in milliseconds.
+	// StartTimeInMillis is the time when the snapshot started in milliseconds.
 	StartTimeInMillis *int64 `json:"start_time_in_millis,omitempty"`
 
-	// The current state of the snapshot.
+	// State is the current state of the snapshot.
 	State *string `json:"state,omitempty"`
 
-	// The unique identifier for the snapshot.
+	// UUID is the unique identifier for the snapshot.
 	UUID *string `json:"uuid,omitempty"`
 
-	// The version of OpenSearch when the snapshot was created.
+	// Version is the version of OpenSearch when the snapshot was created.
 	Version *string `json:"version,omitempty"`
 
-	// The internal version number of OpenSearch when the snapshot was created.
+	// VersionID is the internal version number of OpenSearch when the snapshot
+	// was created.
 	VersionID *int64 `json:"version_id,omitempty"`
 }
 
 // The configuration settings for the repository.
 type SnapshotRepositorySettings struct {
-	// The chunk size for the repository.
+	// ChunkSize is the chunk size for the repository.
 	ChunkSize *string `json:"chunk_size,omitempty"`
 
-	// Whether compression is enabled for the repository.
+	// Compress. Whether compression is enabled for the repository.
 	Compress *string `json:"compress,omitempty"`
 
-	// The number of concurrent streams for the repository.
+	// ConcurrentStreams is the number of concurrent streams for the
+	// repository.
 	ConcurrentStreams *string `json:"concurrent_streams,omitempty"`
 
-	// The location where snapshots are stored.
+	// Location is the location where snapshots are stored.
 	Location *string `json:"location,omitempty"`
 
-	// Whether the repository is read-only.
+	// ReadOnly. Whether the repository is read-only.
 	ReadOnly *string `json:"read_only,omitempty"`
 }
 
 // The name of the repository to store the snapshot.
 type SnapshotRepository struct {
-	// The configuration settings for the repository.
+	// Settings is the configuration settings for the repository.
 	Settings *SnapshotRepositorySettings `json:"settings,omitempty"`
 
-	// The type of the snapshot repository.
+	// Type is the type of the snapshot repository.
 	Type *string `json:"type,omitempty"`
 
-	// The unique identifier for the repository.
+	// UUID is the unique identifier for the repository.
 	UUID *string `json:"uuid,omitempty"`
 }
 
 // The incremental statistics for the shard snapshot.
 type SnapshotShardsStatsSummaryItem struct {
-	// The number of files in the shard snapshot.
+	// FileCount is the number of files in the shard snapshot.
 	FileCount *int64 `json:"file_count,omitempty"`
 
-	// The total size of files in the shard snapshot.
+	// SizeInBytes is the total size of files in the shard snapshot.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 }
 
 // The statistical summary of the shard snapshot.
 type SnapshotShardsStatsSummary struct {
-	// The incremental statistics for the shard snapshot.
+	// Incremental is the incremental statistics for the shard snapshot.
 	Incremental *SnapshotShardsStatsSummaryItem `json:"incremental,omitempty"`
 
-	// The processed statistics for the shard snapshot.
+	// Processed is the processed statistics for the shard snapshot.
 	Processed *SnapshotShardsStatsSummaryItem `json:"processed,omitempty"`
 
-	// When the shard snapshot started in milliseconds.
+	// StartTimeInMillis. When the shard snapshot started in milliseconds.
 	StartTimeInMillis *int64 `json:"start_time_in_millis,omitempty"`
 
-	// The total time taken for the shard snapshot.
+	// Time is the total time taken for the shard snapshot.
 	Time *string `json:"time,omitempty"`
 
-	// The total time taken for the shard snapshot in milliseconds.
+	// TimeInMillis is the total time taken for the shard snapshot in
+	// milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 
-	// The total statistics for the shard snapshot.
+	// Total is the total statistics for the shard snapshot.
 	Total *SnapshotShardsStatsSummaryItem `json:"total,omitempty"`
 }
 
 type SnapshotShardsStatus struct {
-	// The ID of the node containing the shard.
+	// Node is the ID of the node containing the shard.
 	Node *string `json:"node,omitempty"`
 
-	// The reason for the current shard status.
+	// Reason is the reason for the current shard status.
 	Reason *string `json:"reason,omitempty"`
 
-	// The current stage of the shard snapshot.
-	Stage string `json:"stage"`
+	// Stage is the current stage of the shard snapshot.
+	Stage SnapshotShardsStatsStage `json:"stage"`
 
-	// The statistical summary of the shard snapshot.
+	// Stats is the statistical summary of the shard snapshot.
 	Stats SnapshotShardsStatsSummary `json:"stats"`
 }
 
 // The statistics about snapshot shards.
 type SnapshotShardsStats struct {
-	// The number of completed shard snapshots.
+	// Done is the number of completed shard snapshots.
 	Done *int64 `json:"done,omitempty"`
 
-	// The number of failed shard snapshots.
+	// Failed is the number of failed shard snapshots.
 	Failed *int64 `json:"failed,omitempty"`
 
-	// The number of finalizing shard snapshots.
+	// Finalizing is the number of finalizing shard snapshots.
 	Finalizing *int64 `json:"finalizing,omitempty"`
 
-	// The number of initializing shard snapshots.
+	// Initializing is the number of initializing shard snapshots.
 	Initializing *int64 `json:"initializing,omitempty"`
 
-	// The number of started shard snapshots.
+	// Started is the number of started shard snapshots.
 	Started *int64 `json:"started,omitempty"`
 
-	// The total number of shard snapshots.
+	// Total is the total number of shard snapshots.
 	Total *int64 `json:"total,omitempty"`
 }
 
 // The incremental statistics for the snapshot.
 type SnapshotFileCountStats struct {
-	// The number of files in the snapshot.
+	// FileCount is the number of files in the snapshot.
 	FileCount *int `json:"file_count,omitempty"`
 
-	// The total size of files in the snapshot.
+	// SizeInBytes is the total size of files in the snapshot.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 }
 
 // The detailed statistics about the snapshot.
 type SnapshotStats struct {
-	// The incremental statistics for the snapshot.
+	// Incremental is the incremental statistics for the snapshot.
 	Incremental *SnapshotFileCountStats `json:"incremental,omitempty"`
 
-	// The processed statistics for the snapshot.
+	// Processed is the processed statistics for the snapshot.
 	Processed *SnapshotFileCountStats `json:"processed,omitempty"`
 
-	// When the snapshot started in milliseconds.
+	// StartTimeInMillis. When the snapshot started in milliseconds.
 	StartTimeInMillis *int64 `json:"start_time_in_millis,omitempty"`
 
-	// The total time taken for the snapshot.
+	// Time is the total time taken for the snapshot.
 	Time *string `json:"time,omitempty"`
 
-	// The total time taken for the snapshot in milliseconds.
+	// TimeInMillis is the total time taken for the snapshot in milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 
-	// The total statistics for the snapshot.
+	// Total is the total statistics for the snapshot.
 	Total *SnapshotFileCountStats `json:"total,omitempty"`
 }
 
 type SnapshotIndexStats struct {
-	// The status of individual shards in the snapshot.
+	// Shards is the status of individual shards in the snapshot.
 	Shards map[string]SnapshotShardsStatus `json:"shards,omitempty"`
 
-	// The statistics about snapshot shards.
+	// ShardsStats is the statistics about snapshot shards.
 	ShardsStats *SnapshotShardsStats `json:"shards_stats,omitempty"`
 
-	// The detailed statistics about the snapshot.
+	// Stats is the detailed statistics about the snapshot.
 	Stats *SnapshotStats `json:"stats,omitempty"`
 }
 
 type SnapshotStatus struct {
-	// Whether the snapshot includes the cluster state.
+	// IncludeGlobalState. Whether the snapshot includes the cluster state.
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// The status of indexes in the snapshot.
+	// Indices is the status of indexes in the snapshot.
 	Indices map[string]SnapshotIndexStats `json:"indices,omitempty"`
 
-	// The name of the repository containing the snapshot.
+	// Repository is the name of the repository containing the snapshot.
 	Repository *string `json:"repository,omitempty"`
 
-	// The statistics about snapshot shards.
+	// ShardsStats is the statistics about snapshot shards.
 	ShardsStats *SnapshotShardsStats `json:"shards_stats,omitempty"`
 
-	// The name of the snapshot.
+	// Snapshot is the name of the snapshot.
 	Snapshot *string `json:"snapshot,omitempty"`
 
-	// The current state of the snapshot.
+	// State is the current state of the snapshot.
 	State *string `json:"state,omitempty"`
 
-	// The detailed statistics about the snapshot.
+	// Stats is the detailed statistics about the snapshot.
 	Stats *SnapshotStats `json:"stats,omitempty"`
 
-	// The unique identifier for the snapshot.
+	// UUID is the unique identifier for the snapshot.
 	UUID *string `json:"uuid,omitempty"`
 }
 
 type SQLCloseResponse struct {
-	// Whether the cursor was closed successfully.
+	// Succeeded. Whether the cursor was closed successfully.
 	Succeeded *bool `json:"succeeded,omitempty"`
 }
 
 type SQLPPL struct {
-	// Whether the PPL plugin is enabled.
+	// Enabled. Whether the PPL plugin is enabled.
 	Enabled *SQLPPLEnabled `json:"enabled,omitempty"`
 }
 
 type SQLPluginsQuery struct {
-	// The maximum memory allowed for queries.
+	// MemoryLimit is the maximum memory allowed for queries.
 	MemoryLimit *string `json:"memory_limit,omitempty"`
 
-	// The maximum result set size.
+	// SizeLimit is the maximum result set size.
 	SizeLimit *SQLPluginsQuerySizeLimit `json:"size_limit,omitempty"`
 }
 
 type SQLCursor struct {
-	// The time to keep cursors alive.
+	// KeepAlive is the time to keep cursors alive.
 	KeepAlive *string `json:"keep_alive,omitempty"`
 }
 
 type SQLSQL struct {
 	Cursor *SQLCursor `json:"cursor,omitempty"`
 
-	// Whether the SQL plugin is enabled.
+	// Enabled. Whether the SQL plugin is enabled.
 	Enabled *SQLEnabled `json:"enabled,omitempty"`
 
-	// The threshold in milliseconds for logging slow queries.
+	// Slowlog is the threshold in milliseconds for logging slow queries.
 	Slowlog *SQLSlowlog `json:"slowlog,omitempty"`
 }
 
@@ -12496,11 +13185,11 @@ type SQLTransient struct {
 }
 
 type SQLSettingsResponse struct {
-	// Whether the settings were acknowledged.
+	// Acknowledged. Whether the settings were acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
-	// The permanent settings that persist through restarts.
-	Persistent json.RawMessage `json:"persistent"`
+	// Persistent is the permanent settings that persist through restarts.
+	Persistent json.RawMessage `json:"persistent,omitempty"`
 
 	Transient *SQLTransient `json:"transient,omitempty"`
 }
@@ -12587,12 +13276,12 @@ type TransformsTransform struct {
 }
 
 type TransformsTransformResponse struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Version   *int64               `json:"_version,omitempty"`
@@ -12608,50 +13297,37 @@ type TransformsResponse struct {
 	Transforms      []TransformsTransformResponse `json:"transforms,omitempty"`
 }
 
-type WLMQueryGroupRespResourceLimitsObject0 struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+type WLMQueryGroupRespResourceLimitsMemory struct {
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
-type WLMQueryGroupRespResourceLimitsObject1 struct {
-	Cpu    float64  `json:"cpu"`
+type WLMQueryGroupRespResourceLimitsCPU struct {
+	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 
 type WLMQueryGroupResponse struct {
-	// The ID of the query group, which can be used to associate query requests
-	// with the group and enforce the group's resource limits.
+	// ID is the ID of the query group, which can be used to associate query
+	// requests with the group and enforce the group's resource limits.
 	ID string `json:"_id"`
 
-	// The name of the query group.
+	// Name is the name of the query group.
 	Name string `json:"name"`
 
-	// The resiliency mode of the query group.
+	// ResiliencyMode is the resiliency mode of the query group.
 	ResiliencyMode string `json:"resiliency_mode"`
 
-	// The resource limits for query requests in the query group.
+	// ResourceLimits is the resource limits for query requests in the query
+	// group.
 	ResourceLimits WLMQueryGroupRespResourceLimits `json:"resource_limits"`
 
-	// The time at which the query group was last updated.
+	// UpdatedAt is the time at which the query group was last updated.
 	UpdatedAt int64 `json:"updated_at"`
 }
 
-type AsynchronousSearchSearchSourceObject1 struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
 type CommonAggregationsAggregation struct {
-	// Custom metadata to associate with the aggregation (optional)
+	// Meta. Custom metadata to associate with the aggregation (optional)
 	Meta map[string]json.RawMessage `json:"meta,omitempty"`
 }
 
@@ -12659,197 +13335,183 @@ type CommonAggregationsAggregationContainer struct {
 	CommonAggregationsAggregation
 }
 
-type AsynchronousSearchSearchDocvalueFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-type AsynchronousSearchSearchFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
 // The search definition using the Query DSL.
 type AsynchronousSearchSearch struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
-	Source *AsynchronousSearchSearchSource `json:"_source,omitempty"`
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
+	// Aggregations. Defines the aggregations that are run as part of the
+	// search request.
 	Aggregations map[string]CommonAggregationsAggregationContainer `json:"aggregations,omitempty"`
 
 	Collapse *SearchFieldCollapse `json:"collapse,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns doc values for
-	// field names matching these patterns in the `hits.fields` property of the
-	// response.
-	DocvalueFields []AsynchronousSearchSearchDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
+	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
+	// doc values for field names matching these patterns in the `hits.fields`
+	// property of the response.
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
 
-	// If `true`, returns detailed information about score computation as part
-	// of a hit.
+	// Explain. If `true`, returns detailed information about score computation
+	// as part of a hit.
 	Explain *bool `json:"explain,omitempty"`
 
-	// Configuration of search extensions defined by OpenSearch plugins.
+	// Ext. Configuration of search extensions defined by OpenSearch plugins.
 	Ext map[string]json.RawMessage `json:"ext,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns values for field
-	// names matching these patterns in the `hits.fields` property of the
+	// Fields. Array of wildcard (`*`) patterns. The request returns values for
+	// field names matching these patterns in the `hits.fields` property of the
 	// response.
-	Fields []AsynchronousSearchSearchFieldsItem `json:"fields,omitempty"`
+	Fields []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
-	// Starting document offset. Needs to be non-negative. By default, you
-	// cannot page through more than 10,000 hits using the `from` and `size`
-	// parameters. To page through more hits, use the `search_after` parameter.
+	// From. Starting document offset. Needs to be non-negative. By default,
+	// you cannot page through more than 10,000 hits using the `from` and
+	// `size` parameters. To page through more hits, use the `search_after`
+	// parameter.
 	From *float64 `json:"from,omitempty"`
 
 	Highlight *SearchHighlight `json:"highlight,omitempty"`
 
-	// Boosts the `_score` of documents from specified indexes.
+	// IndicesBoost. Boosts the `_score` of documents from specified indexes.
 	IndicesBoost []map[string]float64 `json:"indices_boost,omitempty"`
 
-	// Minimum `_score` for matching documents. Documents with a lower `_score`
-	// are not included in the search results.
+	// MinScore. Minimum `_score` for matching documents. Documents with a
+	// lower `_score` are not included in the search results.
 	MinScore *float64 `json:"min_score,omitempty"`
 
 	PIT        *SearchPointInTimeReference   `json:"pit,omitempty"`
 	PostFilter *CommonQueryDSLQueryContainer `json:"post_filter,omitempty"`
 
-	// Set to `true` to return detailed timing information about the execution
-	// of individual components in a search request. NOTE: This is a debugging
-	// tool and adds significant overhead to search execution.
+	// Profile. Set to `true` to return detailed timing information about the
+	// execution of individual components in a search request. NOTE: This is a
+	// debugging tool and adds significant overhead to search execution.
 	Profile *bool `json:"profile,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// Retrieve a script evaluation (based on different fields) for each hit.
+	// ScriptFields. Retrieve a script evaluation (based on different fields)
+	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
-	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
+	SearchAfter []FieldValue `json:"search_after,omitempty"`
 
-	// If `true`, returns sequence number and primary term of the last
-	// modification of each hit.
+	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
+	// the last modification of each hit.
 	SeqNoPrimaryTerm *bool `json:"seq_no_primary_term,omitempty"`
 
-	// The number of hits to return. By default, you cannot page through more
-	// than 10,000 hits using the `from` and `size` parameters. To page through
-	// more hits, use the `search_after` parameter.
+	// Size is the number of hits to return. By default, you cannot page
+	// through more than 10,000 hits using the `from` and `size` parameters. To
+	// page through more hits, use the `search_after` parameter.
 	Size *float64 `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *AsynchronousSearchSearchSort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// Stats groups to associate with the search. Each group maintains a
 	// statistics aggregation for its associated searches. You can retrieve
 	// these stats using the indexes stats API.
 	Stats []string `json:"stats,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	Suggest *SearchSuggester `json:"suggest,omitempty"`
 
-	// Maximum number of documents to collect for each shard. If a query
-	// reaches this limit, OpenSearch terminates the query early. OpenSearch
-	// collects documents before sorting. Use with caution. OpenSearch applies
-	// this parameter to each shard handling the request. When possible, let
-	// OpenSearch perform early termination automatically. Avoid specifying
-	// this parameter for requests that target data streams with backing
-	// indexes across multiple data tiers. If set to `0` (default), the query
-	// does not terminate early.
+	// TerminateAfter. Maximum number of documents to collect for each shard.
+	// If a query reaches this limit, OpenSearch terminates the query early.
+	// OpenSearch collects documents before sorting. Use with caution.
+	// OpenSearch applies this parameter to each shard handling the request.
+	// When possible, let OpenSearch perform early termination automatically.
+	// Avoid specifying this parameter for requests that target data streams
+	// with backing indexes across multiple data tiers. If set to `0`
+	// (default), the query does not terminate early.
 	TerminateAfter *int `json:"terminate_after,omitempty"`
 
-	// Specifies the period of time to wait for a response from each shard. If
-	// no response is received before the timeout expires, the request fails
-	// and returns an error. Defaults to no timeout.
+	// Timeout. Specifies the period of time to wait for a response from each
+	// shard. If no response is received before the timeout expires, the
+	// request fails and returns an error. Defaults to no timeout.
 	Timeout *string `json:"timeout,omitempty"`
 
-	// If `true`, calculate and return document scores, even if the scores are
-	// not used for sorting.
+	// TrackScores. If `true`, calculate and return document scores, even if
+	// the scores are not used for sorting.
 	TrackScores *bool `json:"track_scores,omitempty"`
 
-	// The number of hits matching the query. When `true`, the exact number of
-	// hits is returned at the cost of some performance. When `false`, the
-	// response does not include the total number of hits matching the query.
-	// Default is `10,000` hits.
-	TrackTotalHits *AsynchronousSearchSearchTrackTotalHits `json:"track_total_hits,omitempty"`
+	// TrackTotalHits is the number of hits matching the query. When `true`,
+	// the exact number of hits is returned at the cost of some performance.
+	// When `false`, the response does not include the total number of hits
+	// matching the query. Default is `10,000` hits.
+	TrackTotalHits *SearchTrackHits `json:"track_total_hits,omitempty"`
 
-	// If `true`, returns document version as part of a hit.
+	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
 }
 
 type GeospatialPoint struct {
-	// A Point coordinates array [longitude, latitude]. - longitude must be
-	// between -180 and 180 - latitude must be between -90 and 90.
+	// Coordinates is a Point coordinates array [longitude, latitude]. -
+	// longitude must be between -180 and 180 - latitude must be between -90
+	// and 90.
 	Coordinates []float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialMultiPoint struct {
-	// An array of Point coordinates.
+	// Coordinates is an array of Point coordinates.
 	Coordinates [][]float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialLineString struct {
-	// An array of Point coordinates forming a line.
+	// Coordinates is an array of Point coordinates forming a line.
 	Coordinates [][]float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialMultiLineString struct {
-	// An array of LineString coordinates.
+	// Coordinates is an array of LineString coordinates.
 	Coordinates [][][]float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialPolygon struct {
-	// An array of linear ring coordinate arrays. - First and last points must
-	// be the same to close the polygon - Minimum 4 points required (first and
-	// last being the same).
+	// Coordinates is an array of linear ring coordinate arrays. - First and
+	// last points must be the same to close the polygon - Minimum 4 points
+	// required (first and last being the same).
 	Coordinates [][][]float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialMultiPolygon struct {
-	// An array of Polygon coordinates.
+	// Coordinates is an array of Polygon coordinates.
 	Coordinates [][][][]float64 `json:"coordinates"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialGeometryCollection struct {
-	// Array of geometry objects.
-	Geometries []GeospatialGeometryCollectionGeometriesItem `json:"geometries"`
+	// Geometries. Array of geometry objects.
+	Geometries []GeospatialGeometry `json:"geometries"`
 
 	Type string `json:"type"`
 }
 
 type GeospatialGeoJSONData struct {
-	Geometry   GeospatialGeoJSONDataGeometry `json:"geometry"`
-	Properties json.RawMessage               `json:"properties"`
-	Type       string                        `json:"type"`
+	Geometry   GeospatialGeometry `json:"geometry"`
+	Properties json.RawMessage    `json:"properties,omitempty"`
+	Type       string             `json:"type"`
 }
 
 type GeospatialGeoJSONRequest struct {
-	// Array of GeoJSON features.
+	// Data. Array of GeoJSON features.
 	Data []GeospatialGeoJSONData `json:"data"`
 
 	// Field name for the geospatial data.
@@ -12857,58 +13519,58 @@ type GeospatialGeoJSONRequest struct {
 
 	Index string `json:"index"`
 
-	// Field type for the geospatial data.
+	// Type. Field type for the geospatial data.
 	Type string `json:"type"`
 }
 
 type GeospatialPutIP2GeoDataSourceRequest struct {
-	// URL endpoint for the data source.
+	// Endpoint. URL endpoint for the data source.
 	Endpoint *string `json:"endpoint,omitempty"`
 
-	// Update interval in days.
+	// UpdateIntervalInDays. Update interval in days.
 	UpdateIntervalInDays *int `json:"update_interval_in_days,omitempty"`
 }
 
 type IngestionResetSettings struct {
-	// Reset mode to be used.
+	// Mode. Reset mode to be used.
 	Mode string `json:"mode"`
 
-	// The shard ID to reset.
+	// Shard is the shard ID to reset.
 	Shard int `json:"shard"`
 
-	// The offset or timestamp value to be used to reset the consumer.
+	// Value is the offset or timestamp value to be used to reset the consumer.
 	Value string `json:"value"`
 }
 
 type IngestionResumeRequest struct {
-	// Reset settings to be applied before resuming ingestion on a shard. This
-	// is optional.
+	// ResetSettings. Reset settings to be applied before resuming ingestion on
+	// a shard. This is optional.
 	ResetSettings []IngestionResetSettings `json:"reset_settings,omitempty"`
 }
 
 type ISMAddPolicyRequest struct {
-	// The ID of the policy to add.
+	// PolicyID is the ID of the policy to add.
 	PolicyID string `json:"policy_id"`
 }
 
 type ISMIncludeState struct {
-	// The name of the state to include.
+	// State is the name of the state to include.
 	State *string `json:"state,omitempty"`
 }
 
 type ISMChangePolicyRequest struct {
-	// The states to include in the policy change.
+	// Include is the states to include in the policy change.
 	Include []ISMIncludeState `json:"include,omitempty"`
 
-	// The ID of the new policy.
+	// PolicyID is the ID of the new policy.
 	PolicyID string `json:"policy_id"`
 
-	// The state to transition to.
+	// State is the state to transition to.
 	State *string `json:"state,omitempty"`
 }
 
 type ISMRetryIndexRequest struct {
-	// The state to retry.
+	// State is the state to retry.
 	State string `json:"state"`
 }
 
@@ -12949,7 +13611,7 @@ type MLCredential struct {
 }
 
 type MLAggregation struct {
-	// The field name.
+	// Field is the field name.
 	Field *string `json:"field,omitempty"`
 
 	Max *MLAggregation `json:"max,omitempty"`
@@ -12957,25 +13619,25 @@ type MLAggregation struct {
 }
 
 type MLProfileRequest struct {
-	ModelIds []string `json:"model_ids,omitempty"`
-	NodeIds  []string `json:"node_ids,omitempty"`
+	ModelIDs []string `json:"model_ids,omitempty"`
+	NodeIDs  []string `json:"node_ids,omitempty"`
 
-	// Whether to return all models.
+	// ReturnAllModels. Whether to return all models.
 	ReturnAllModels *bool `json:"return_all_models,omitempty"`
 
-	// Whether to return all tasks.
+	// ReturnAllTasks. Whether to return all tasks.
 	ReturnAllTasks *bool `json:"return_all_tasks,omitempty"`
 
-	TaskIds []string `json:"task_ids,omitempty"`
+	TaskIDs []string `json:"task_ids,omitempty"`
 }
 
 type MLInputQuery struct {
-	// The source fields
+	// Source is the source fields
 	Source []string `json:"_source,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// The size of the query.
+	// Size is the size of the query.
 	Size *int64 `json:"size,omitempty"`
 }
 
@@ -12985,21 +13647,21 @@ type MLLLM struct {
 }
 
 type MLTrainParameters struct {
-	// The centroids.
+	// Centroids is the centroids.
 	Centroids *int64 `json:"centroids,omitempty"`
 
-	// The distance type.
+	// DistanceType is the distance type.
 	DistanceType *string `json:"distance_type,omitempty"`
 
-	// The iterations.
+	// Iterations is the iterations.
 	Iterations *int64 `json:"iterations,omitempty"`
 }
 
 type MLGuardrailsInputOutput struct {
-	// The model ID.
+	// ModelID is the model ID.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The response validation regex.
+	// RespValidationRegex is the response validation regex.
 	RespValidationRegex *string `json:"response_validation_regex,omitempty"`
 }
 
@@ -13007,33 +13669,33 @@ type MLGuardrails struct {
 	IndexName      *string                  `json:"index_name,omitempty"`
 	InputGuardrail *MLGuardrailsInputOutput `json:"input_guardrail,omitempty"`
 
-	// The model ID.
+	// ModelID is the model ID.
 	ModelID *string `json:"model_id,omitempty"`
 
 	OutputGuardrail *MLGuardrailsInputOutput `json:"output_guardrail,omitempty"`
 
-	// The regex used for input/output validation.
-	Regex json.RawMessage `json:"regex"`
+	// Regex is the regex used for input/output validation.
+	Regex json.RawMessage `json:"regex,omitempty"`
 
-	// The response filter.
+	// RespFilter is the response filter.
 	RespFilter *string `json:"response_filter,omitempty"`
 
-	// The response validation regex.
+	// RespValidationRegex is the response validation regex.
 	RespValidationRegex *string `json:"response_validation_regex,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// SourceFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	SourceFields *string `json:"source_fields,omitempty"`
 
-	// Language value, such as `arabic` or `thai`. Defaults to `english`. Each
-	// language value corresponds to a predefined list of stop words in Lucene.
-	// See Stop words by language for supported language values and their stop
-	// words. Also accepts an array of stop words.
-	StopWords *MLGuardrailsStopWords `json:"stop_words,omitempty"`
+	// StopWords. Language value, such as `arabic` or `thai`. Defaults to
+	// `english`. Each language value corresponds to a predefined list of stop
+	// words in Lucene. See Stop words by language for supported language
+	// values and their stop words. Also accepts an array of stop words.
+	StopWords *CommonAnalysisStopWords `json:"stop_words,omitempty"`
 
-	// The guardrails type.
+	// Type is the guardrails type.
 	Type *string `json:"type,omitempty"`
 }
 
@@ -13043,58 +13705,60 @@ type NotificationsConfig struct {
 }
 
 type SQLExplain struct {
-	// The number of results to analyze.
+	// FetchSize is the number of results to analyze.
 	FetchSize *int `json:"fetch_size,omitempty"`
 
-	// The filter to apply when explaining the query.
-	Filter json.RawMessage `json:"filter"`
+	// Filter is the filter to apply when explaining the query.
+	Filter json.RawMessage `json:"filter,omitempty"`
 
-	// The SQL query to explain.
+	// Query is the SQL query to explain.
 	Query *string `json:"query,omitempty"`
 }
 
 type SQLQuery struct {
-	// The number of results to return in each response.
+	// FetchSize is the number of results to return in each response.
 	FetchSize *int `json:"fetch_size,omitempty"`
 
-	// The filter to apply to query results.
-	Filter json.RawMessage `json:"filter"`
+	// Filter is the filter to apply to query results.
+	Filter json.RawMessage `json:"filter,omitempty"`
 
-	// The SQL query string to execute.
+	// Query is the SQL query string to execute.
 	Query *string `json:"query,omitempty"`
 }
 
 type ReplicationUseRoles struct {
-	// The role used for the follower cluster during replication.
+	// FollowerClusterRole is the role used for the follower cluster during
+	// replication.
 	FollowerClusterRole *string `json:"follower_cluster_role,omitempty"`
 
-	// The role used for the leader cluster during replication.
+	// LeaderClusterRole is the role used for the leader cluster during
+	// replication.
 	LeaderClusterRole *string `json:"leader_cluster_role,omitempty"`
 }
 
 type ReplicationCreateRule struct {
-	// The name of an index alias.
+	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
 
-	// The name of the replication rule.
+	// Name is the name of the replication rule.
 	Name *string `json:"name,omitempty"`
 
-	// The pattern used to match indices for replication.
+	// Pattern is the pattern used to match indices for replication.
 	Pattern *string `json:"pattern,omitempty"`
 
 	UseRoles *ReplicationUseRoles `json:"use_roles,omitempty"`
 }
 
 type ReplicationDeleteRule struct {
-	// The name of an index alias.
+	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
 
-	// The name of the replication rule to delete.
+	// Name is the name of the replication rule to delete.
 	Name *string `json:"name,omitempty"`
 }
 
 type ReplicationReplication struct {
-	// The name of an index alias.
+	// LeaderAlias is the name of an index alias.
 	LeaderAlias *string `json:"leader_alias,omitempty"`
 
 	LeaderIndex *string              `json:"leader_index,omitempty"`
@@ -13102,10 +13766,10 @@ type ReplicationReplication struct {
 }
 
 type ReplicationIndexSchema struct {
-	// The number of replicas for the index.
+	// NumberOfReplicas is the number of replicas for the index.
 	NumberOfReplicas *int `json:"number_of_replicas,omitempty"`
 
-	// The number of shards for the index.
+	// NumberOfShards is the number of shards for the index.
 	NumberOfShards *int `json:"number_of_shards,omitempty"`
 }
 
@@ -13114,10 +13778,10 @@ type ReplicationSettingsBody struct {
 }
 
 type ReplicationUpdateSettingsSettings struct {
-	// The number of replicas for the index.
+	// IndexNumberOfReplicas is the number of replicas for the index.
 	IndexNumberOfReplicas *int `json:"index.number_of_replicas,omitempty"`
 
-	// The number of shards for the index.
+	// IndexNumberOfShards is the number of shards for the index.
 	IndexNumberOfShards *int `json:"index.number_of_shards,omitempty"`
 
 	ReplicationSettingsBody
@@ -13128,13 +13792,13 @@ type ReplicationUpdateSettings struct {
 }
 
 type DerivedField struct {
-	Format          *string            `json:"format,omitempty"`
-	IgnoreMalformed *bool              `json:"ignore_malformed,omitempty"`
-	Name            string             `json:"name"`
-	PrefilterField  *string            `json:"prefilter_field,omitempty"`
-	Properties      json.RawMessage    `json:"properties"`
-	Script          DerivedFieldScript `json:"script"`
-	Type            string             `json:"type"`
+	Format          *string         `json:"format,omitempty"`
+	IgnoreMalformed *bool           `json:"ignore_malformed,omitempty"`
+	Name            string          `json:"name"`
+	PrefilterField  *string         `json:"prefilter_field,omitempty"`
+	Properties      json.RawMessage `json:"properties,omitempty"`
+	Script          Script          `json:"script"`
+	Type            string          `json:"type"`
 }
 
 // The schema for creating a query set.
@@ -13223,15 +13887,15 @@ type SearchRelevancePutSearchConfigurationRequest struct {
 }
 
 type SecurityChangePasswordRequestContent struct {
-	// The current password.
+	// CurrentPassword is the current password.
 	CurrentPassword string `json:"current_password"`
 
-	// The new password to set.
+	// Password is the new password to set.
 	Password string `json:"password"`
 }
 
 type SecurityConfigUpgradePayload struct {
-	// A list of configurations to upgrade.
+	// Config is a list of configurations to upgrade.
 	Config []string `json:"config,omitempty"`
 }
 
@@ -13240,70 +13904,75 @@ type SecurityCreateTenantParams struct {
 }
 
 type SecurityOBOToken struct {
-	// The description supplied by the user to describe the token.
+	// Description is the description supplied by the user to describe the
+	// token.
 	Description string `json:"description"`
 
-	// A duration in seconds.
+	// Duration is a duration in seconds.
 	Duration *string `json:"duration,omitempty"`
 
-	// The name of the service when generating a token for that service.
+	// Service is the name of the service when generating a token for that
+	// service.
 	Service *string `json:"service,omitempty"`
 }
 
 type SecurityPatchOperation struct {
-	// The operation to perform, such as `remove`, `add`, `replace`, `move`,
-	// `copy`, or `test`.
+	// Op is the operation to perform, such as `remove`, `add`, `replace`,
+	// `move`, `copy`, or `test`.
 	Op string `json:"op"`
 
-	// The path to the resource.
+	// Path is the path to the resource.
 	Path string `json:"path"`
 
-	// The new values used for the update.
-	Value json.RawMessage `json:"value"`
+	// Value is the new values used for the update.
+	Value json.RawMessage `json:"value,omitempty"`
 }
 
 type SMCreateUpdatePolicyRequest struct {
-	// The configuration for the snapshot creation schedule.
+	// Creation is the configuration for the snapshot creation schedule.
 	Creation SMCreationConfig `json:"creation"`
 
-	// The configuration for snapshot deletion rules and schedule.
+	// Deletion is the configuration for snapshot deletion rules and schedule.
 	Deletion *SMDeletionConfig `json:"deletion,omitempty"`
 
-	// A user-provided description of the snapshot policy.
+	// Description is a user-provided description of the snapshot policy.
 	Description *string `json:"description,omitempty"`
 
-	// Whether the policy should be enabled at creation.
+	// Enabled. Whether the policy should be enabled at creation.
 	Enabled *bool `json:"enabled,omitempty"`
 
-	// The configuration for notification settings and conditions.
+	// Notification is the configuration for notification settings and
+	// conditions.
 	Notification *SMNotificationConfig `json:"notification,omitempty"`
 
-	// The core configuration for how snapshots should be created and managed.
+	// SnapshotConfig is the core configuration for how snapshots should be
+	// created and managed.
 	SnapshotConfig SMSnapshotConfig `json:"snapshot_config"`
 }
 
 type SQLClose struct {
-	// The cursor identifier to close.
+	// Cursor is the cursor identifier to close.
 	Cursor *string `json:"cursor,omitempty"`
 }
 
 type SQLTransientPlain struct {
-	// Whether the PPL plugin is enabled.
+	// PluginsPPLEnabled. Whether the PPL plugin is enabled.
 	PluginsPPLEnabled *bool `json:"plugins.ppl.enabled,omitempty"`
 
-	// The maximum memory allowed for queries.
+	// PluginsQueryMemoryLimit is the maximum memory allowed for queries.
 	PluginsQueryMemoryLimit *string `json:"plugins.query.memory_limit,omitempty"`
 
-	// The maximum result set size.
+	// PluginsQuerySizeLimit is the maximum result set size.
 	PluginsQuerySizeLimit *int `json:"plugins.query.size_limit,omitempty"`
 
-	// The time to keep cursors alive.
+	// PluginsSQLCursorKeepAlive is the time to keep cursors alive.
 	PluginsSQLCursorKeepAlive *string `json:"plugins.sql.cursor.keep_alive,omitempty"`
 
-	// Whether the SQL plugin is enabled.
+	// PluginsSQLEnabled. Whether the SQL plugin is enabled.
 	PluginsSQLEnabled *bool `json:"plugins.sql.enabled,omitempty"`
 
-	// The threshold in milliseconds for logging slow queries.
+	// PluginsSQLSlowlog is the threshold in milliseconds for logging slow
+	// queries.
 	PluginsSQLSlowlog *int `json:"plugins.sql.slowlog,omitempty"`
 }
 
@@ -13319,13 +13988,13 @@ type TransformsTransformRequest struct {
 	Transform TransformsTransform `json:"transform"`
 }
 
-type WLMQueryGroupCreateResourceLimitsObject0 struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+type WLMQueryGroupCreateResourceLimitsMemory struct {
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory float64  `json:"memory"`
 }
 
-type WLMQueryGroupCreateResourceLimitsObject1 struct {
-	Cpu    float64  `json:"cpu"`
+type WLMQueryGroupCreateResourceLimitsCPU struct {
+	CPU    float64  `json:"cpu"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 
@@ -13336,7 +14005,7 @@ type WLMQueryGroupCreate struct {
 }
 
 type WLMResourceLimitsSchema struct {
-	Cpu    *float64 `json:"cpu,omitempty"`
+	CPU    *float64 `json:"cpu,omitempty"`
 	Memory *float64 `json:"memory,omitempty"`
 }
 

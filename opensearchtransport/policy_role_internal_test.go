@@ -354,7 +354,7 @@ func TestInvalidRoleError(t *testing.T) {
 
 // TestRolePolicyDiscoveryUpdateConcurrent guards against the data race that
 // occurs when two DiscoverNodes calls drive DiscoveryUpdate on a shared pool
-// simultaneously. recalculateWarmupParams writes the pool's warmupRounds,
+// simultaneously. recalculateWarmupParamsWithLock writes the pool's warmupRounds,
 // warmupSkipCount, and activeListCap fields; those writes must happen under the
 // pool write lock (as the roundrobin and cluster_coordinator policies already
 // do). Without the lock, concurrent updates race on those fields. Run under
@@ -367,7 +367,7 @@ func TestRolePolicyDiscoveryUpdateConcurrent(t *testing.T) {
 	require.NoError(t, rolePolicy.configurePolicySettings(createTestConfig()))
 
 	// Two connections that alternate in and out of the pool so each goroutine
-	// drives a real add/remove pass through recalculateWarmupParams.
+	// drives a real add/remove pass through recalculateWarmupParamsWithLock.
 	connA := createTestConnection("http://localhost:9200", RoleData)
 	connB := createTestConnection("http://localhost:9201", RoleData)
 

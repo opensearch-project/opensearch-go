@@ -107,25 +107,25 @@ func (r UpdateConnectorParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type UpdateConnectorResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index string `json:"_index"`
 
-	// The primary term of the document.
+	// PrimaryTerm is the primary term of the document.
 	PrimaryTerm int64 `json:"_primary_term"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo int64 `json:"_seq_no"`
 
 	Shards opensearchapi.ShardStatistics `json:"_shards"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
-	Version       int64  `json:"_version"`
-	ForcedRefresh *bool  `json:"forced_refresh,omitempty"`
-	Result        string `json:"result"`
+	Version       int64                `json:"_version"`
+	ForcedRefresh *bool                `json:"forced_refresh,omitempty"`
+	Result        opensearchapi.Result `json:"result"`
 
 	response *opensearch.Response
 }
@@ -146,28 +146,29 @@ func (r UpdateConnectorResp) RawBody() io.Reader {
 
 // MLUpdateConnectorBody is a typed component of the ml.update_connector operation.
 type MLUpdateConnectorBody struct {
-	// The model group access mode.
+	// AccessMode is the model group access mode.
 	AccessMode *string `json:"access_mode,omitempty"`
 
 	Actions []opensearchapi.MLAction `json:"actions,omitempty"`
 
-	// The backend roles.
+	// BackendRoles is the backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
 	Credential *opensearchapi.MLCredential `json:"credential,omitempty"`
 
-	// The connector description.
+	// Description is the connector description.
 	Description *string `json:"description,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Parameters *opensearchapi.MLParameters `json:"parameters,omitempty"`
 
-	// Whether to skip validating missing parameters.
+	// ParametersSkipValidatingMissingParameters. Whether to skip validating
+	// missing parameters.
 	ParametersSkipValidatingMissingParameters *bool `json:"parameters.skip_validating_missing_parameters,omitempty"`
 
-	// The connector protocol.
+	// Protocol is the connector protocol.
 	Protocol *string `json:"protocol,omitempty"`
 
 	Version *int64 `json:"version,omitempty"`

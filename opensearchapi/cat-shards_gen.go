@@ -83,7 +83,7 @@ type CatShardsParams struct {
 	// Default: false.
 	Local *bool
 
-	Time string
+	Time TimeUnit
 }
 
 func (r CatShardsParams) get() map[string]string {
@@ -109,7 +109,7 @@ func (r CatShardsParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -157,7 +157,7 @@ func (r CatShardsResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-shards/
-func (c catClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsResp, error) {
+func (c CatClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsResp, error) {
 	if req == nil {
 		req = &CatShardsReq{}
 	}
@@ -166,7 +166,7 @@ func (c catClient) Shards(ctx context.Context, req *CatShardsReq) (*CatShardsRes
 		data CatShardsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -164,8 +164,8 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 
 	// Compute projected pool size for warmup/activeListCap scaling and
 	// recalculate the warmup parameters under the pool write lock. The lock is
-	// required because recalculateWarmupParams writes the pool's warmupRounds,
-	// warmupSkipCount, and activeListCap fields, which getWarmupParams and the
+	// required because recalculateWarmupParamsWithLock writes the pool's warmupRounds,
+	// warmupSkipCount, and activeListCap fields, which getWarmupParamsWithLock and the
 	// other DiscoveryUpdate callers (roundrobin, cluster_coordinator) read and
 	// write under the same lock. Done before the mutations below so startWarmup
 	// calls during discoveryUpdateAdd use the new values. The lock is released
@@ -183,7 +183,7 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 			targetPoolSize--
 		}
 	}
-	p.pool.recalculateWarmupParams(targetPoolSize)
+	p.pool.recalculateWarmupParamsWithLock(targetPoolSize)
 	p.pool.Unlock()
 
 	if added != nil {
@@ -193,6 +193,17 @@ func (p *RolePolicy) DiscoveryUpdate(added, removed, unchanged []*Connection) er
 	if removed != nil {
 		p.discoveryUpdateRemove(removed)
 	}
+
+	// Recompute the cached enabled bit unconditionally, mirroring RoundRobinPolicy
+	// and CoordinatorPolicy. The discoveryUpdateAdd/Remove helpers only recompute
+	// when they touch the pool, so an unchanged-only cycle (the steady state)
+	// would otherwise leave the bit stale after a health check flips a
+	// connection's routability (dead+lcNeedsHardware -> ready) off the discovery
+	// path. Without this, a freshly verified node never becomes routable and
+	// traffic pins to the seed fallback.
+	p.pool.Lock()
+	psSetEnabled(&p.policyState, p.pool.hasAvailableConnsWithLock())
+	p.pool.Unlock()
 
 	// unchanged connections don't need any action
 	return nil
@@ -237,7 +248,7 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 				conn.mu.Lock()
 				conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 				conn.mu.Unlock()
-				rounds, skip := p.pool.getWarmupParams()
+				rounds, skip := p.pool.getWarmupParamsWithLock()
 				conn.startWarmup(rounds, skip)
 				p.pool.appendToReadyActiveWithLock(conn)
 				p.pool.shuffleActiveWithLock()
@@ -252,10 +263,6 @@ func (p *RolePolicy) discoveryUpdateAdd(added []*Connection) {
 				)
 				p.pool.appendToDeadWithLock(conn)
 			}
-
-			// Update hasMatching state while holding the lock
-			hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-			psSetEnabled(&p.policyState, hasConnections)
 
 			p.pool.Unlock()
 		}
@@ -346,9 +353,6 @@ func (p *RolePolicy) discoveryUpdateRemove(removed []*Connection) {
 	gap := activeCountBefore - p.pool.mu.activeCount
 	p.pool.promoteStandbyGracefullyWithLock(p.pool.poolCtx(), gap)
 
-	// Update hasMatching state while holding the lock
-	hasConnections := len(p.pool.mu.ready) > 0 || len(p.pool.mu.dead) > 0
-	psSetEnabled(&p.policyState, hasConnections)
 	p.pool.Unlock()
 }
 

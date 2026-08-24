@@ -144,22 +144,22 @@ func (r CatFielddataResp) RawBody() io.Reader {
 
 // CatFielddataRecord is a typed component of the cat.fielddata operation.
 type CatFielddataRecord struct {
-	// field name
+	// Field. Field name
 	Field *string `json:"field,omitempty"`
 
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 
-	// field data usage
+	// Size. Field data usage
 	Size *string `json:"size,omitempty"`
 }
 
@@ -170,7 +170,7 @@ type CatFielddataRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-field-data/
-func (c catClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFielddataResp, error) {
+func (c CatClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFielddataResp, error) {
 	if req == nil {
 		req = &CatFielddataReq{}
 	}
@@ -179,7 +179,7 @@ func (c catClient) Fielddata(ctx context.Context, req *CatFielddataReq) (*CatFie
 		data CatFielddataResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

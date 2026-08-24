@@ -91,12 +91,12 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-transforms/transforms-apis/#get-a-transform-jobs-details
 type GetResp struct {
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"_id,omitempty"`
 
 	PrimaryTerm *int64 `json:"_primary_term,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
 	Version   *int64                             `json:"_version,omitempty"`

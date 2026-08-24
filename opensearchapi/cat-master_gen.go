@@ -139,16 +139,16 @@ func (r CatMasterResp) RawBody() io.Reader {
 
 // CatMasterRecord is a typed component of the cat.master operation.
 type CatMasterRecord struct {
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 }
 
@@ -159,7 +159,7 @@ type CatMasterRecord struct {
 // Deprecated: since 2.0.0. Available >= 1.0.0. To promote inclusive language, use '/_cat/cluster_manager' instead.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-cluster_manager/
-func (c catClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterResp, error) {
+func (c CatClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterResp, error) {
 	if req == nil {
 		req = &CatMasterReq{}
 	}
@@ -168,7 +168,7 @@ func (c catClient) Master(ctx context.Context, req *CatMasterReq) (*CatMasterRes
 		data CatMasterResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

@@ -4,6 +4,28 @@ This guide enumerates every code change a v4 caller needs to make to move to the
 
 For runtime semantics (partial-failure errors, default Router) see [`README.md`](README.md). For the version-history rationale see [`../UPGRADING.md`](../UPGRADING.md). For best-practices guidance see [`../guides/usage-error_handling.md`](../guides/usage-error_handling.md).
 
+## Automated migration
+
+Most of the changes below are applied for you by [`osapilint`](../cmd/osapilint/README.md), the API-shape migration tool in this repository. It is a separate Go module. Build the binary from an `opensearch-go` checkout, then run it against your module:
+
+```sh
+# Build the tool from an opensearch-go checkout.
+git clone https://github.com/opensearch-project/opensearch-go
+(cd opensearch-go/cmd/osapilint && go build -o "$(go env GOPATH)/bin/osapilint" .)
+
+# From your module root. Source (v4) is auto-detected from imports; target defaults to v5.
+osapilint rewrite ./...              # dry run: review the intended edits first
+osapilint rewrite -w ./...           # then apply
+
+# Bump the dependency and build.
+go get github.com/opensearch-project/opensearch-go/v5 && go build ./...
+
+# Catch runtime-only hazards the compiler misses (e.g. testify Equal on now-typed fields).
+osapilint vet -fix ./...
+```
+
+`rewrite` performs the import-path bump, type renames (e.g. `DocumentGetReq` -> `GetReq`), field renames (e.g. `DocumentID` -> `ID`, `Timeout` -> `TimedOut`), and value-to-pointer adjustments. Run without `-w` first for a dry-run preview. It prints the behavioral follow-ups it cannot make mechanically (see "Manual follow-ups" below), and fails loudly rather than guess if it encounters an unclassified field change. The sections below document the full set of changes so you can review the tool's output or migrate by hand.
+
 ## Status
 
 In v5 the `opensearchapi` package is code-generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), replacing the hand-written v4 package. The same surface shipped inside the v4 module at `v5preview/opensearchapi/` for early adopters; v5 promotes it to the module root.
@@ -40,17 +62,19 @@ Within `opensearchapi/`, the bulk, NDJSON, and single-document write operations 
 // v4
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  opensearchapi.SearchParams{Size: 20},
+    Params:  opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
 })
 
 // v5
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  &opensearchapi.SearchParams{Size: 20},
+    Params:  &opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
 })
 ```
 
-Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy.
+Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy. `Size` itself has been `*int` since v4.0.0 and is unchanged here -- only the surrounding `Params` value became a pointer.
+
+> On Go 1.26+ you can write `new(20)` in place of `opensearch.ToPointer(20)`; both produce a `*int`.
 
 ### Shared parameters move into embedded structs
 
@@ -92,11 +116,73 @@ The v5 and v4 `opensearchapi/` packages carry the same high-level partial-failur
 
 Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) compiles unchanged. Code that walks the per-shard failure slice needs to switch type names.
 
+### Union types are named after their schema
+
+A `oneOf`/`anyOf` in the spec becomes a Go union: an opaque struct with a `Type()` discriminant and one accessor per branch. Earlier v5 pre-releases keyed each union by the field that referenced it, so a schema referenced from several places was emitted once per reference under a different name each time. A union is now named after the schema itself and emitted once, which collapses 212 union types to 122.
+
+The removals are consolidations, not lost functionality: every branch and accessor survives on the shared type. The names that disappear are the duplicates.
+
+| Was                                             | Now                              |
+| ----------------------------------------------- | -------------------------------- |
+| `MGetRespBodyDocsItem`                          | `MGetRespItem`                   |
+| `MSearchMultiSearchResultResponsesItem`         | `MSearchRespItem`                |
+| `SortResultsItem`                               | `FieldValue`                     |
+| `CommonAggregationsCompositeAggregateKeyValue`  | `FieldValue`                     |
+| `ErrorCauseHeaderValue`                         | `StringOrStringArray`            |
+| `SearchResultAggregationsValue`                 | `CommonAggregationsAggregate`    |
+| `CatRecoveryRecordStartTimeMillis`              | `StringifiedEpochTimeUnitMillis` |
+| `CatRecoveryRecordStopTimeMillis`               | `StringifiedEpochTimeUnitMillis` |
+| `ReplicationFollowerStatusTotalWriteTimeMillis` | `StringifiedEpochTimeUnitMillis` |
+| `IndicesIndexSettingsAnalysisAnalyzerValue`     | `CommonAnalysisAnalyzer`         |
+| `IndicesIndexSettingsAnalysisNormalizerValue`   | `CommonAnalysisNormalizer`       |
+
+Branch accessors also drop the group prefix the union name already carries, so `MGetRespItem.MGetMultiGetError()` is now `.MultiGetError()`, and `SearchHitsMetadataTotal.SearchTotalHits()` is now `.TotalHits()`.
+
+### Unions that name their own branch
+
+Where the spec declares an OpenAPI `discriminator`, the payload names its branch outright and decoding no longer guesses. Six unions gain a `Type()`, discriminant constants, and a decoder that reads one property:
+
+| Union                                 | Discriminator property |
+| ------------------------------------- | ---------------------- |
+| `CommonMappingProperty`               | `type`                 |
+| `CommonAnalysisAnalyzer`              | `type`                 |
+| `CommonAnalysisCharFilterDefinition`  | `type`                 |
+| `CommonAnalysisTokenFilterDefinition` | `type`                 |
+| `CommonAnalysisTokenizerDefinition`   | `type`                 |
+| `CommonAnalysisNormalizer`            | `type`                 |
+| `ClusterRemoteInfoCluster`            | `mode`                 |
+
+```go
+var prop opensearchapi.CommonMappingProperty
+if err := json.Unmarshal(raw, &prop); err != nil {
+    return err // a `type` naming no known branch is an error, not a silent mis-decode
+}
+switch prop.Type() {
+case opensearchapi.CommonMappingPropertyKeywordPropertyType:
+    kw, err := prop.KeywordProperty()
+    ...
+}
+```
+
+`ClusterRemoteInfoResp.Entries` was `map[string]json.RawMessage` and is now `map[string]ClusterRemoteInfoCluster`, so remote-cluster settings are typed rather than raw.
+
+### Unions the response cannot discriminate
+
+Aggregation and suggester unions carry no discriminator, because the branch is chosen by your request rather than announced in the response. `avg`, `sum`, `min`, `max`, and several other metric aggregates all serialize as `{"value": N}` and are genuinely indistinguishable from the payload alone. These keep their `As<Branch>()` accessors and have no `Type()`.
+
+Pass `typed_keys=true` so the response map key carries the type (`avg#my_agg`), and call the accessor matching the aggregation you asked for. An accessor now returns a `*UnionBranchError` when the payload cannot be that branch at all -- previously it returned a zero value and a nil error, which was indistinguishable from a genuine zero:
+
+```go
+sum, err := agg.AsSum()   // errors if the payload is, say, a histogram
+```
+
+It still cannot tell `avg` from `sum`, since those share one wire shape. `UnionBranchError` gains an `Err` field and `Unwrap()`, so the underlying decode failure is reachable through `errors.As`.
+
 ## Default Router injection
 
 `opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. v4 left Router nil.
 
-The `OPENSEARCH_GO_ROUTER` env var acts as an opt-out (`false` / `0` keeps Router nil). See [`README.md` Default Router Injection](README.md#default-router-injection) for the full truth table and rationale.
+The `OPENSEARCH_GO_ROUTER` env var acts as an opt-out (`false` / `0` keeps Router nil). See [`guides/config-envvars.md` Default router injection](../guides/config-envvars.md#default-router-injection) for the full truth table and rationale.
 
 ## Errmask default flips
 
@@ -111,7 +197,7 @@ Concretely: a v4 caller who never set `Config.Errors` does not see partial failu
 
 If you need v4-shaped silence on v5, set `Errors: errmask.New(errmask.All)` explicitly. If you want to opt v4 in to v5-style surfacing, set `Errors: errmask.New()`.
 
-The `OPENSEARCH_GO_ERROR_MASK` env var overrides whatever `Config.Errors` resolves to. See [`README.md` Partial Failure Errors](README.md#partial-failure-errors) for the full guide.
+The `OPENSEARCH_GO_ERROR_MASK` env var overrides whatever `Config.Errors` resolves to. See [`guides/usage-error_handling.md`](../guides/usage-error_handling.md) for the full guide.
 
 ## Client method grouping
 
@@ -173,6 +259,9 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 - Decide whether to set `Config.Errors` explicitly. v5 reports every partial-failure category by default.
 - Decide whether to override `Config.Client.Router` or `OPENSEARCH_GO_ROUTER`. v5 injects the default router.
 - Re-run your test suite. Spec-driven type renames in partial-failure field elements may surface as compile errors at call sites that walk shard-failure slices.
+- Switch any union type named after a field (`MGetRespBodyDocsItem`, `SortResultsItem`, ...) to the schema-named type it consolidated onto, and drop the redundant group prefix from branch accessors (`.MGetMultiGetError()` becomes `.MultiGetError()`).
+- Where a union now has a `Type()`, prefer switching on it over calling accessors speculatively. For aggregation and suggester unions, which have no `Type()`, pass `typed_keys=true` and call the accessor matching the aggregation you requested.
+- Check any code that relied on an accessor returning a usable zero value on a branch mismatch. Those now return a `*UnionBranchError`.
 
 ## See also
 

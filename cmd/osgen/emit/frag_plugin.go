@@ -17,7 +17,7 @@ import (
 
 // PluginSubClient describes a sub-client within a plugin package.
 type PluginSubClient struct {
-	TypeName  string // unexported type name (e.g. "actionGroupClient")
+	TypeName  string // exported type name (e.g. "ActionGroupClient")
 	FieldName string // exported field on Client (e.g. "ActionGroup")
 }
 
@@ -41,7 +41,7 @@ type PluginClientOp struct {
 }
 
 // PluginClientFragment renders the plugin Client struct, NewClient constructor,
-// do() helper, dispatch methods, and noBody sentinel.
+// request() helper, dispatch methods, and noBody sentinel.
 type PluginClientFragment struct {
 	Ops        []PluginClientOp
 	SubClients []PluginSubClient
@@ -145,14 +145,14 @@ func NewClient(client *opensearch.Client) *Client {
 {{- end}}
 }
 
-// do calls [opensearch.Do] and checks the response for errors.
+// request calls [opensearch.Execute] and checks the response for errors.
 //
-// [opensearch.Do] routes through [opensearchtransport.Transport.Stream] and buffers the response body,
-// so resp.Body here is already an [io.NopCloser] over a [bytes.Reader] -- the
-// connection has been drained and returned to the pool. The helper only needs
-// to translate IsError into a typed error.
-func do[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
-	resp, err := opensearch.Do(ctx, c.Client, method, req, dataPointer)
+// [opensearch.Execute] routes through [opensearchtransport.Transport.Request] and buffers
+// the response body, so resp.Body here is already an [io.NopCloser] over a
+// [bytes.Reader] -- the connection has been drained and returned to the pool.
+// The helper only needs to translate IsError into a typed error.
+func request[T any](ctx context.Context, c *Client, method string, req opensearch.Request, dataPointer *T) (*opensearch.Response, error) {
+	resp, err := opensearch.Execute(ctx, c.Client, method, req, dataPointer)
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +167,9 @@ func do[T any](ctx context.Context, c *Client, method string, req opensearch.Req
 	return resp, nil
 }
 {{range .SubClients}}
+// {{.TypeName}} groups a related subset of this plugin's API. {{.TypeName}}
+// values should be obtained from a [Client] created with [NewClient]; the zero
+// value is not usable.
 type {{.TypeName}} struct {
 	client *Client
 }
@@ -180,10 +183,11 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) (
 		req = &{{.TypePrefix}}Req{}
 	}
 {{- if .IsNoBody}}
-	return do(ctx, c, {{.HTTPMethod}}, *req, noBody)
+	return request(ctx, c, {{.HTTPMethod}}, *req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := do(ctx, c, {{.HTTPMethod}}, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, {{.HTTPMethod}}, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -194,10 +198,11 @@ func (c *Client) {{.MethodName}}(ctx context.Context, req *{{.TypePrefix}}Req) (
 func (c *Client) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{- ""}}
 	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 {{- if .IsNoBody}}
-	return do(ctx, c, {{.HTTPMethod}}, req, noBody)
+	return request(ctx, c, {{.HTTPMethod}}, req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := do(ctx, c, {{.HTTPMethod}}, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c, {{.HTTPMethod}}, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -214,10 +219,11 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.Ty
 		req = &{{.TypePrefix}}Req{}
 	}
 {{- if .IsNoBody}}
-	return do(ctx, c.client, {{.HTTPMethod}}, *req, noBody)
+	return request(ctx, c.client, {{.HTTPMethod}}, *req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := do(ctx, c.client, {{.HTTPMethod}}, *req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, {{.HTTPMethod}}, *req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -228,10 +234,11 @@ func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req *{{.Ty
 func (c {{.SubClient.TypeName}}) {{.MethodName}}(ctx context.Context, req {{.TypePrefix}}Req) ({{- ""}}
 	{{- if .IsNoBody}}*opensearch.Response{{else}}*{{.TypePrefix}}Resp{{end}}, error) {
 {{- if .IsNoBody}}
-	return do(ctx, c.client, {{.HTTPMethod}}, req, noBody)
+	return request(ctx, c.client, {{.HTTPMethod}}, req, noBody)
 {{- else}}
 	var resp {{.TypePrefix}}Resp
-	if _, err := do(ctx, c.client, {{.HTTPMethod}}, req, &resp); err != nil {
+	var err error
+	if resp.response, err = request(ctx, c.client, {{.HTTPMethod}}, req, &resp); err != nil {
 		return &resp, err
 	}
 	return &resp, nil
@@ -303,6 +310,7 @@ func NewClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
@@ -330,6 +338,7 @@ func CreateFailingClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
@@ -388,10 +397,37 @@ func NewPluginClientFile(outDir, pkg string, ops []*ir.Operation, byGroup map[st
 	}
 
 	return &File{
-		FilePath:  outDir + "/client_gen.go",
-		Package:   pkg,
-		Fragments: []Fragment{&PluginClientFragment{Ops: clientOps, SubClients: subClients}},
+		FilePath:   outDir + "/client_gen.go",
+		Package:    pkg,
+		PackageDoc: pluginPackageDoc(pkg, subClients),
+		Fragments:  []Fragment{&PluginClientFragment{Ops: clientOps, SubClients: subClients}},
 	}
+}
+
+// pluginPackageDoc builds the package doc comment for a plugin package that has
+// sub-clients, mapping each exported Client field to its sub-client type so the
+// generated godoc offers a navigable index. It returns "" when the package has
+// no sub-clients, in which case no package doc is emitted (every operation is a
+// flat method on Client and is already visible on that one type).
+func pluginPackageDoc(pkg string, subClients []PluginSubClient) string {
+	if len(subClients) == 0 {
+		return ""
+	}
+
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "Package %s wraps the OpenSearch %s plugin API.\n", pkg, pkg)
+	sb.WriteString("\n")
+	sb.WriteString("Operations are grouped into sub-clients reached through exported fields on\n")
+	sb.WriteString("[Client]. Each sub-client below has its own godoc page listing its methods;\n")
+	sb.WriteString("operations that are not grouped are methods on [Client] directly.\n")
+	sb.WriteString("\n")
+	for _, sc := range subClients {
+		// A Markdown-style list (not a preformatted block) so the [TypeName]
+		// doc links resolve; doc links are not parsed inside indented code
+		// blocks.
+		fmt.Fprintf(&sb, "  - client.%s reaches [%s]\n", sc.FieldName, sc.TypeName)
+	}
+	return sb.String()
 }
 
 // NewPluginTestHelperFile builds a Target for a plugin's internal/test/helpers_gen.go.

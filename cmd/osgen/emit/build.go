@@ -202,8 +202,8 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 }
 
 // splitUnionsFromSiblings partitions a sibling-types list into struct-shape
-// types and discriminated unions. Unions need the UnionFragment template
-// (which renders Type/branch accessors and try-each unmarshal); structs go
+// types and unions. Unions need the UnionFragment template
+// (which renders Type/branch accessors and the decode strategy); structs go
 // through SiblingTypesFragment. Without this split, a union sibling
 // rendered as a struct emits as `type Foo struct {}` because its Branches
 // aren't Fields.
@@ -212,7 +212,7 @@ func Build(spec *ir.Spec, cfg BuildConfig) []Target {
 func splitUnionsFromSiblings(types []*ir.Type) ([]*ir.Type, []*ir.Type) {
 	var structs, unions []*ir.Type
 	for _, st := range types {
-		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeLazyUnion {
+		if st.Kind == ir.TypeUnion || st.Kind == ir.TypeAmbiguousWire {
 			unions = append(unions, st)
 		} else {
 			structs = append(structs, st)
@@ -1300,7 +1300,15 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamList:
 			fields = append(fields, fmt.Sprintf("%s: []string{name}", p.GoName))
 		case ir.ParamString:
-			fallthrough
+			// A string-enum param is a named string type (kind ParamString but a
+			// non-"string" GoType), so the plain string var `name` must be
+			// converted; the type is shared, hence corePkg-qualified in the
+			// external _test package.
+			if p.IsStringEnum {
+				fields = append(fields, fmt.Sprintf("%s: %s.%s(name)", p.GoName, corePkg, p.GoType))
+			} else {
+				fields = append(fields, fmt.Sprintf("%s: name", p.GoName))
+			}
 		default:
 			fields = append(fields, fmt.Sprintf("%s: name", p.GoName))
 		}
@@ -1435,10 +1443,6 @@ func hasExistingHelper(dir string) bool {
 }
 
 func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, _ BuildConfig) *RoundtripTestFragment {
-	if op.IsPlugin {
-		return nil
-	}
-
 	route := primaryRouteIR(op)
 	callPrefix := "client."
 	if route.FieldPath != "" {
@@ -1496,6 +1500,7 @@ func buildRoundtripTestFrag(op *ir.Operation, pkg, importPath string, _ BuildCon
 		TypePrefix:   op.TypePrefix,
 		RespFixture:  fixture,
 		IsNoBody:     op.IsNoBody,
+		IsPlugin:     op.IsPlugin,
 		CallExpr:     callExpr,
 		ErrCallExpr:  errCallExpr,
 		NeedsBody:    needsBody,

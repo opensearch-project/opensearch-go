@@ -21,18 +21,18 @@ import (
 	plugintest "github.com/opensearch-project/opensearch-go/v5/plugins/geospatial/internal/geospatialtest"
 )
 
-func TestPutIp2geoDatasourceSettings(t *testing.T) {
+func TestPutIP2GeoDatasourceSettings(t *testing.T) {
 	t.Skip("requires IP2Geo datasource or external network access") //nolint:gocritic // FIXME: implement proper test fixture
 	client, err := plugintest.NewClient(t)
 	require.NoError(t, err)
 
 	osClient, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfVersion(t, osClient, "<", "2.11", "PutIp2geoDatasourceSettings")
-	name := testutil.MustUniqueString(t, "test-put-ip2geo-datasource-settings")
+	testutil.SkipIfVersion(t, osClient, "<", "2.11", "PutIP2GeoDatasourceSettings")
+	name := testutil.MustUniqueString(t, "test-put-i-p2-geo-datasource-settings")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
+		resp, err := client.PutIP2GeoDatasourceSettings(t.Context(), geospatial.PutIP2GeoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)
@@ -42,7 +42,7 @@ func TestPutIp2geoDatasourceSettings(t *testing.T) {
 		failingClient, err := plugintest.CreateFailingClient(t)
 		require.NoError(t, err)
 
-		res, err := failingClient.PutIp2geoDatasourceSettings(t.Context(), geospatial.PutIp2geoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
+		res, err := failingClient.PutIP2GeoDatasourceSettings(t.Context(), geospatial.PutIP2GeoDatasourceSettingsReq{Name: name, Body: &opensearchapi.GeospatialPutIP2GeoDataSourceRequest{}})
 		require.Error(t, err)
 		require.NotNil(t, res)
 		plugintest.VerifyInspect(t, res.Inspect())

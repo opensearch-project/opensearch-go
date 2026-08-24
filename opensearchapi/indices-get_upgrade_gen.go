@@ -117,16 +117,16 @@ func (r IndicesGetUpgradeParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesGetUpgradeResp struct {
-	// The upgrade status for individual indexes.
+	// Indices is the upgrade status for individual indexes.
 	Indices map[string]IndicesUpgradeStatus `json:"indices,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeAncientInBytes is the size in bytes.
 	SizeToUpgradeAncientInBytes *int64 `json:"size_to_upgrade_ancient_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeInBytes is the size in bytes.
 	SizeToUpgradeInBytes *int64 `json:"size_to_upgrade_in_bytes,omitempty"`
 
 	response *opensearch.Response
@@ -153,7 +153,7 @@ func (r IndicesGetUpgradeResp) RawBody() io.Reader {
 // Deprecated: since 1.0.0. Available >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq) (*IndicesGetUpgradeResp, error) {
+func (c IndicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq) (*IndicesGetUpgradeResp, error) {
 	if req == nil {
 		req = &IndicesGetUpgradeReq{}
 	}
@@ -162,7 +162,7 @@ func (c indicesClient) GetUpgrade(ctx context.Context, req *IndicesGetUpgradeReq
 		data IndicesGetUpgradeResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

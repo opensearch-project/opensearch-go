@@ -128,15 +128,15 @@ func (r UploadModelResp) RawBody() io.Reader {
 
 // MLUploadModelBody is a typed component of the ml.upload_model operation.
 type MLUploadModelBody struct {
-	// The model description.
+	// Description is the model description.
 	Description *string `json:"description,omitempty"`
 
 	ModelFormat *string `json:"model_format,omitempty"`
 
-	// The unique identifier for a resource.
+	// ModelGroupID is the unique identifier for a resource.
 	ModelGroupID *string `json:"model_group_id,omitempty"`
 
-	// The model name.
+	// Name is the model name.
 	Name string `json:"name"`
 
 	Version string `json:"version"`

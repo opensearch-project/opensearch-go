@@ -15,50 +15,59 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 )
 
-// classifyUnions inspects every try-each (TypeLazyUnion) union and, where it
-// can, replaces runtime try-each decoding with a single-pass strategy:
+// classifyUnions assigns a decode strategy to every union whose branches collide
+// on JSON token class (ir.TypeAmbiguousWire), where the first byte cannot pick a
+// branch and the payload must be inspected. In precedence order:
 //
-//   - Case A (t.Merge): all-object unions where a primary branch can be embedded
-//     such that every other branch carries a required key the primary lacks. The
-//     primary is decoded in one pass and the other branches are detected by the
-//     presence of those distinguishing keys. Covers success|error response items
+//   - The spec's OpenAPI `discriminator` (t.Discriminator), resolved during parse.
+//     The payload names its own branch in one property, so the decoder reads that
+//     property and decodes exactly one branch. Nothing here can improve on it, so
+//     a discriminated union is left as-is.
+//
+//   - A key-presence merge (t.Merge): all-object unions where a primary branch
+//     can be embedded such that every other branch carries a required key the
+//     primary lacks. The primary decodes in one pass and the other branches are
+//     detected by the presence of those keys. Covers success|error response items
 //     (mget, msearch), two-shape bodies (indices-open), and object unions where
-//     every branch declares required keys but they're mutually distinguishable
+//     every branch declares required keys but they are mutually distinguishable
 //     (BulkByScrollTaskStatus | ErrorCause). See [planMerge].
 //
-//   - Case B (t.LazyAccessors): unions referenced as a caller-keyed map value
-//     that could not be merged. Their branch type is determined by the request,
-//     not the wire (aggregation/suggest result families, "type"-discriminated
-//     mapping/analysis values), so they retain raw bytes and expose
-//     As<Branch>() accessors that decode the requested concrete type on demand.
-//     A non-mergeable union that is NOT caller-keyed (e.g. a reindex body that
-//     can't be told apart) is left on try-each, since As<T>() would force the
+//   - Request selection (t.RequestSelected): unions referenced as a map value
+//     keyed by a caller-supplied name. The spec offers no discriminator because
+//     there is nothing to discriminate: the branch is chosen by the REQUEST and
+//     echoed back only in the map key (see [ir.Type.RequestSelected]). These
+//     retain raw bytes and expose As<Branch>() accessors. A union that is neither
+//     discriminated, mergeable, nor request-selected (e.g. a reindex body that
+//     cannot be told apart) stays on try-each, since As<T>() would force the
 //     caller to guess.
 //
-// Unions that fit neither are left on the existing try-each decoder.
+// Unions that fit none of these keep the try-each decoder of last resort.
 func classifyUnions(spec *ir.Spec) {
 	reg := spec.Registry
 	allTypes := collectTypes(spec)
-	callerKeyed := mapValuedUnions(allTypes, reg)
+	requestSelected := mapValuedUnions(allTypes, reg)
 
 	// A union can appear as several ir.Type instances (shared registry copy +
-	// per-operation copies), so each is classified separately; warn at most
-	// once per union name to avoid duplicate diagnostics.
-	warned := map[string]struct{}{}
+	// per-operation copies), so each is classified separately; warn at most once
+	// per union name and diagnostic to avoid duplicate output.
+	warned := set[string]{}
 
 	for _, t := range allTypes {
-		if t.Kind != ir.TypeLazyUnion { // first-byte switch unions are already cheap
+		if t.Kind != ir.TypeAmbiguousWire { // token-class-separable unions need no payload inspection
 			continue
+		}
+		if t.Discriminator != nil {
+			continue // the spec already says how to read the branch
 		}
 		if !allObjectBranches(t) {
 			continue
 		}
 
 		warn := func(format string, args ...any) {
-			if _, ok := warned[t.Name]; ok {
+			if warned.has(t.Name) {
 				return
 			}
-			warned[t.Name] = struct{}{}
+			warned.add(t.Name)
 			log.Printf(format, args...)
 		}
 
@@ -67,33 +76,175 @@ func classifyUnions(spec *ir.Spec) {
 			continue
 		}
 
-		// Couldn't merge. If the union is referenced as a caller-keyed map value,
-		// the branch type is determined by the request, not the wire (aggregation
-		// and suggest result families): retain raw and expose As<T>() accessors.
-		// This holds whether or not the branches declare required keys, so it
-		// survives allOf-required flattening.
-		if callerKeyed[t.Name] && len(t.Branches) >= 2 {
-			t.LazyAccessors = true
+		// Couldn't merge. If the union is referenced as a map value under a
+		// caller-supplied key, the branch is chosen by the request rather than the
+		// wire (aggregation and suggest result families): retain raw and expose
+		// As<Branch>() accessors. This holds whether or not the branches declare
+		// required keys, so it survives allOf-required flattening.
+		if requestSelected[t.Name] && len(t.Branches) >= 2 {
+			t.RequestSelected = true
 			continue
 		}
 
 		// Warn only for the shape that looks single-pass decodable but isn't:
-		// one permissive branch plus discriminated branch(es) we couldn't tell
-		// apart (a discriminator is missing or undeclared -- e.g. a free-form
-		// status). Other non-merging shapes are legitimate and stay silent:
-		// "type"-value-discriminated DSL unions (analyzers, mappings) have no
-		// permissive branch, and fully permissive bodies (reindex) can't be told
-		// apart at all.
-		permissiveCount := 0
+		// one EMBEDDABLE permissive branch plus discriminated branch(es) we could
+		// not tell apart. Other non-merging shapes are legitimate and stay silent:
+		// fully permissive bodies (reindex) cannot be told apart at all, and the
+		// property-value-discriminated DSL unions (analyzers, mappings) now read
+		// their branch from the spec's discriminator and never reach here.
+		//
+		// Embeddability is part of the test because a merge embeds the primary in
+		// a struct. A permissive branch that is a map or slice can never be the
+		// primary no matter how well the other branches discriminate, so the
+		// refusal is structural and the try-each decoder is the right answer --
+		// TasksTaskInfoStatus reaches here with a map[string]json.RawMessage
+		// permissive branch and discriminators (phase, state, the bulk-by-scroll
+		// key set) that the emitted decoder does probe correctly.
+		permissive := 0
+		embeddablePermissive := 0
 		for _, b := range t.Branches {
-			if len(b.Required) == 0 {
-				permissiveCount++
+			if len(b.Required) > 0 {
+				continue
+			}
+			permissive++
+			if embeddableStruct(b.GoType, reg) {
+				embeddablePermissive++
 			}
 		}
-		if permissiveCount == 1 {
-			warn("osgen: union %q left on try-each: one permissive branch plus discriminated "+
-				"branch(es), but no required key distinguishes them by presence", t.Name)
+		if permissive == 1 && embeddablePermissive == 1 {
+			warn("osgen: union %q left on try-each: one permissive branch plus "+
+				"discriminated branch(es), but no required key distinguishes them by presence", t.Name)
 		}
+	}
+
+	// Every union has now reached its terminal decode strategy, so branch
+	// reachability is decidable.
+	dropUnreachableBranches(allTypes)
+
+	// Probe collisions are reported last, over the branches that survive, and
+	// deliberately outside the loop above: that loop gates on allObjectBranches,
+	// which is a precondition for MERGE analysis rather than for probing. A
+	// try-each union with one non-object branch still emits a key probe per object
+	// branch, so gating the report the same way hid GeospatialGeoShapes, whose six
+	// object branches all require the same two keys alongside a permissive array
+	// branch.
+	reportProbeCollisions(allTypes)
+}
+
+// reportProbeCollisions records and reports, for every union the emitter renders
+// with the try-each decoder, the branches whose required-key set duplicates an
+// earlier branch's. The decoder probes those keys in branch order and keeps the
+// first branch that unmarshals, so a duplicate probe costs the later branch every
+// payload the earlier branch can also decode.
+//
+// How much that costs is NOT decidable from the key set, which is why this reports
+// the collision rather than claiming unreachability. DistanceFeatureQuery's date
+// form loses everything, because the geo form's Origin is a GeoLocation that also
+// accepts a bare string. GeospatialGeoShapes loses only where two branches carry
+// the same Go shape: LineString loses to MultiPoint and Polygon to
+// MultiLineString, while MultiPoint, MultiLineString and MultiPolygon all still
+// decode, because Point's []float64 coordinates reject their nested arrays.
+// Deciding this properly means asking whether one Go type accepts another's
+// payloads, which the generator cannot answer statically.
+//
+// It runs after dropUnreachableBranches so a branch that is reported can never be
+// one the emitter has already removed.
+func reportProbeCollisions(types []*ir.Type) {
+	warned := set[string]{}
+	for _, t := range types {
+		if !rendersAsTryEach(t) {
+			continue
+		}
+		collisions := branchesSharingRequiredKeys(t)
+		if len(collisions) == 0 {
+			continue
+		}
+		t.ProbeCollisionBranches = collisions
+		if warned.has(t.Name) {
+			continue
+		}
+		warned.add(t.Name)
+		log.Printf("osgen: union %q probes these branches after an earlier branch that declares "+
+			"the same required keys, so each loses any payload that earlier branch can also "+
+			"decode: %s", t.Name, strings.Join(collisions, ", "))
+	}
+}
+
+// rendersAsTryEach reports whether the emitter will decode this union by
+// attempting each branch in turn, which is the only strategy that probes required
+// keys. The stronger strategies are checked in the same precedence the template
+// applies: a spec discriminator, then a key-presence merge, then request
+// selection.
+func rendersAsTryEach(t *ir.Type) bool {
+	return t.Kind == ir.TypeAmbiguousWire && t.Discriminator == nil && t.Merge == nil && !t.RequestSelected
+}
+
+// branchesSharingRequiredKeys returns the names of branches whose required-key
+// set equals an earlier branch's, in branch order. The emitted try-each decoder
+// probes required keys to pick a branch, so an equal set puts the later branch
+// behind the earlier one. Permissive branches (no required keys) are excluded:
+// they are decoded by attempt rather than by probe.
+//
+// A later branch requiring a SUPERSET of an earlier branch's keys is queued behind
+// it just as firmly, since encoding/json ignores unknown keys; equality is the
+// conservative half of that and is all this reports.
+func branchesSharingRequiredKeys(t *ir.Type) []string {
+	seen := make(map[string]string, len(t.Branches)) // probe key -> first branch holding it
+	var collisions []string
+	for _, b := range t.Branches {
+		if len(b.Required) == 0 {
+			continue
+		}
+		keys := slices.Sorted(slices.Values(b.Required))
+		probe := strings.Join(keys, ",")
+		if first, ok := seen[probe]; ok {
+			collisions = append(collisions, fmt.Sprintf("%s (same required keys as %s)", b.Name, first))
+			continue
+		}
+		seen[probe] = b.Name
+	}
+	return collisions
+}
+
+// dropUnreachableBranches removes branches whose Go type duplicates an earlier
+// branch's, for every union except the request-selected ones.
+//
+// This is the last state transition a union goes through: by the time it runs,
+// every union has reached its terminal decode strategy (discriminator, merge,
+// request selection, or try-each), and only then is "is this branch reachable?"
+// answerable.
+//
+// A union decoded from the wire walks its branches in order and stops at the
+// first that decodes, so a second branch of the same Go type is unreachable: its
+// accessor could never be the one Type() reports. A request-selected union is the
+// exception -- UnmarshalJSON only retains raw bytes and the caller names the
+// branch, so several As<Branch>() accessors over one Go type are all reachable
+// and each carries distinct intent (AsAvg/AsSum/AsMin over
+// SingleMetricAggregateBase, which the spec models as separate schemas that erase
+// to one shape).
+//
+// A discriminated union is not an exception: distinct wire values that resolve to
+// the same Go type would make Type() ambiguous, and discriminatorValues already
+// refuses a union whose branches do not map to distinct values, so no
+// discriminated union reaches here with a duplicate.
+//
+// The Parse phase deliberately keeps the duplicates: it cannot make this call,
+// because the decode strategy is not assigned until this phase.
+func dropUnreachableBranches(types []*ir.Type) {
+	for _, t := range types {
+		if t.RequestSelected || len(t.Branches) < 2 {
+			continue
+		}
+		seen := make(map[string]bool, len(t.Branches))
+		kept := make([]ir.UnionBranch, 0, len(t.Branches))
+		for _, b := range t.Branches {
+			if seen[b.GoType] {
+				continue
+			}
+			seen[b.GoType] = true
+			kept = append(kept, b)
+		}
+		t.Branches = kept
 	}
 }
 
@@ -130,8 +281,8 @@ func collectTypes(spec *ir.Spec) []*ir.Type {
 
 // mapValuedUnions returns the names of union types referenced as a map value
 // anywhere in the spec (e.g. map[string]Agg or map[string][]Suggest). Such a
-// union is keyed by a caller-supplied name, so the caller determines the branch
-// type from its request -- the precondition for lazy As<T>() accessors.
+// union sits under a caller-supplied key, so the request determines the branch --
+// the precondition for request-selected As<Branch>() accessors.
 func mapValuedUnions(allTypes []*ir.Type, reg *ir.TypeRegistry) map[string]bool {
 	unionNames := map[string]bool{}
 	for _, t := range reg.Unions() {

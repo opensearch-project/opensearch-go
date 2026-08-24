@@ -107,8 +107,8 @@ func (r ClusterDeleteWeightedRoutingParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-awareness/#example-deleting-weights
 type ClusterDeleteWeightedRoutingResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -140,7 +140,7 @@ type ClusterDeleteWeightedRoutingBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-awareness/#example-deleting-weights
-func (c clusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDeleteWeightedRoutingReq) (*ClusterDeleteWeightedRoutingResp, error) {
+func (c ClusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDeleteWeightedRoutingReq) (*ClusterDeleteWeightedRoutingResp, error) {
 	if req == nil {
 		req = &ClusterDeleteWeightedRoutingReq{}
 	}
@@ -149,7 +149,7 @@ func (c clusterClient) DeleteWeightedRouting(ctx context.Context, req *ClusterDe
 		data ClusterDeleteWeightedRoutingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

@@ -176,6 +176,7 @@ func convertQueryParam(p apiQueryParam) ir.QueryParam {
 		Group:             sharedParamGroup(p.ParamName),
 		Required:          p.Required,
 		Deprecated:        p.Deprecated,
+		IsStringEnum:      p.IsStringEnum,
 		VersionAdded:      p.VersionAdded,
 		VersionDeprecated: p.VersionDeprecated,
 		DeprecationMsg:    p.DeprecationMsg,
@@ -275,10 +276,12 @@ func convertType(gt *goType) *ir.Type {
 	}
 
 	switch {
+	case gt.IsStringEnum:
+		t.Kind = ir.TypeStringEnum
 	case gt.IsEnum:
 		t.Kind = ir.TypeEnum
-	case gt.IsUnion && gt.IsLazy:
-		t.Kind = ir.TypeLazyUnion
+	case gt.IsUnion && gt.IsAmbiguousWire:
+		t.Kind = ir.TypeAmbiguousWire
 	case gt.IsUnion:
 		t.Kind = ir.TypeUnion
 	default:
@@ -302,7 +305,26 @@ func convertType(gt *goType) *ir.Type {
 		t.Branches = append(t.Branches, convertUnionBranch(b))
 	}
 
-	t.EnumMembers = convertEnumMembers(gt.Name, gt.EnumValues)
+	t.Discriminator = convertDiscriminator(gt)
+
+	// The int-backed EnumFragment also emits a <Type>Unknown sentinel const in
+	// the same scope; the string-backed StringEnumFragment emits no extra decls.
+	// Reserve the sentinel only for the int path, so on the string path
+	// FooUnknown (from a wire value literally "unknown") stays a valid, desirable
+	// const rather than a reserved name.
+	var reserved set[string]
+	var consts []constEnumValue
+	if gt.IsEnum {
+		reserved = newSet(gt.Name + "Unknown")
+		// The int path carries only wire values (no per-member doc/version data).
+		consts = make([]constEnumValue, len(gt.EnumValues))
+		for i, v := range gt.EnumValues {
+			consts[i] = constEnumValue{Value: v}
+		}
+	} else {
+		consts = gt.EnumConsts
+	}
+	t.EnumMembers = convertEnumMembers(gt.Name, consts, reserved)
 
 	return t
 }
@@ -310,36 +332,55 @@ func convertType(gt *goType) *ir.Type {
 // convertEnumMembers pairs each enum wire value with its generated Go const
 // identifier (<TypeName><PascalValue>), reusing the shared acronym-aware
 // segment titling so values like HTTP_VERSION_NOT_SUPPORTED render correctly.
+// Each member carries its wire value plus the doc/version metadata from its
+// constEnumValue (the int-backed path supplies value-only entries).
+//
+// reserved is the set of other identifiers the enum's fragment emits in the same
+// declaration scope, which a member const must not collide with. The type name
+// itself is always reserved; callers add fragment-specific names (the int-backed
+// path adds its <Type>Unknown sentinel, the string-backed path adds nothing).
 //
 // It panics if a value yields an invalid Go identifier (e.g. an empty value, or
 // one whose segments produce nothing) or if two distinct values collapse to the
-// same const name (e.g. "FOO_BAR" and "FOO__BAR"). Both would otherwise emit
-// uncompilable Go — failing loudly at generation time matches osgen's handling
-// of other invalid-identifier cases (see naming.go).
-func convertEnumMembers(typeName string, values []string) []ir.EnumMember {
-	if len(values) == 0 {
+// same const name (e.g. "FOO_BAR" and "FOO__BAR"), or onto a reserved name. All
+// would otherwise emit uncompilable Go — failing loudly at generation time
+// matches osgen's handling of other invalid-identifier cases (see naming.go).
+// The string-enum path pre-validates and deduplicates its values in
+// parseConstOneOf, so the identifier and dedup guards below never fire for it.
+func convertEnumMembers(typeName string, consts []constEnumValue, reserved set[string]) []ir.EnumMember {
+	if len(consts) == 0 {
 		return nil
 	}
-	members := make([]ir.EnumMember, 0, len(values))
-	// Seed with the reserved names a member must not collide with: the type
-	// name itself and the generated <Type>Unknown sentinel. An empty or
-	// otherwise-degenerate value could produce either and yield uncompilable Go.
+	members := make([]ir.EnumMember, 0, len(consts))
+	// Seed with the reserved names a member must not collide with: the type name
+	// itself, plus any fragment-emitted decls the caller names. An empty or
+	// otherwise-degenerate value could produce one of these and yield
+	// uncompilable Go.
 	seen := map[string]string{
-		typeName:             "<type name>",
-		typeName + "Unknown": "<unknown sentinel>",
+		typeName: "<type name>",
 	}
-	for _, v := range values {
-		constName := typeName + enumValueIdent(v)
+	for r := range sortedKeys(reserved) {
+		seen[r] = "<reserved name>"
+	}
+	for _, cv := range consts {
+		constName := typeName + enumValueIdent(cv.Value)
 		if !token.IsIdentifier(constName) {
 			panic(fmt.Sprintf("convertEnumMembers: enum value %q on type %q produced invalid Go const identifier %q",
-				v, typeName, constName))
+				cv.Value, typeName, constName))
 		}
 		if prev, dup := seen[constName]; dup {
 			panic(fmt.Sprintf("convertEnumMembers: enum values %q and %q on type %q both map to const %q",
-				prev, v, typeName, constName))
+				prev, cv.Value, typeName, constName))
 		}
-		seen[constName] = v
-		members = append(members, ir.EnumMember{ConstName: constName, Value: v})
+		seen[constName] = cv.Value
+		members = append(members, ir.EnumMember{
+			ConstName:         constName,
+			Value:             cv.Value,
+			Comment:           cv.Description,
+			VersionAdded:      cv.VersionAdded,
+			VersionDeprecated: cv.VersionDeprecated,
+			DeprecationMsg:    cv.DeprecationMsg,
+		})
 	}
 	return members
 }
@@ -377,28 +418,50 @@ func convertUnionBranch(b unionBranch) ir.UnionBranch {
 	return ir.UnionBranch{
 		Name:         b.Name,
 		GoType:       b.GoType,
-		TokenClass:   convertTokenClass(b.TokenClass),
+		TokenClass:   b.TokenClass,
 		Required:     b.Required,
 		IsRef:        b.IsRef,
 		VersionAdded: b.VersionAdded,
 	}
 }
 
-func convertTokenClass(tc string) ir.TokenClass {
-	switch tc {
-	case "object":
-		return ir.TokenObject
-	case "array":
-		return ir.TokenArray
-	case "string":
-		return ir.TokenString
-	case "number":
-		return ir.TokenNumber
-	case "bool":
-		return ir.TokenBool
-	default:
-		return ir.TokenObject
+// convertDiscriminator builds the emit-phase view of a union's OpenAPI
+// discriminator: each wire value paired with the discriminant const of the branch
+// it selects. Returns nil when the union declares no usable discriminator.
+//
+// The parse phase records only the wire value on each branch, because the const
+// name depends on the union's final Go name and on accessor-name deduplication,
+// both settled by the time convertType runs. Branch order is the spec's
+// declaration order (see resolveUnionType), so the emitted switch is stable.
+func convertDiscriminator(gt *goType) *ir.UnionDiscriminator {
+	if gt.Discriminator == nil {
+		return nil
 	}
+	out := &ir.UnionDiscriminator{
+		PropertyName: gt.Discriminator.PropertyName,
+		DefaultValue: gt.Discriminator.DefaultValue,
+		Branches:     make([]ir.DiscriminatorBranch, 0, len(gt.Branches)),
+	}
+	for _, b := range gt.Branches {
+		if b.DiscriminatorValue == "" {
+			// resolveUnionType only sets Discriminator when every surviving
+			// branch carries a value (see discriminatorStillCovers), so this is
+			// unreachable; skip rather than emit a case with an empty literal.
+			continue
+		}
+		constName := unionConst(gt.Name, b.Name)
+		out.Branches = append(out.Branches, ir.DiscriminatorBranch{
+			Value:              b.DiscriminatorValue,
+			Const:              constName,
+			Name:               b.Name,
+			GoType:             b.GoType,
+			DiscriminatorField: b.DiscriminatorField,
+		})
+		if b.DiscriminatorValue == gt.Discriminator.DefaultValue {
+			out.DefaultConst = constName
+		}
+	}
+	return out
 }
 
 // resolveErrorWrappers returns the partial-failure wrapper-schema names

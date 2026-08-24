@@ -107,7 +107,7 @@ func (r DeletePITParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
 type DeletePITResp struct {
-	Pits []PITDeleted `json:"pits,omitempty"`
+	PITs []PITDeleted `json:"pits,omitempty"`
 
 	response *opensearch.Response
 }
@@ -140,7 +140,7 @@ type DeletePITBody struct {
 // Available: >= 2.4.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
-func (c pointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
+func (c PointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*DeletePITResp, error) {
 	if req == nil {
 		req = &DeletePITReq{}
 	}
@@ -149,7 +149,7 @@ func (c pointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*Dele
 		data DeletePITResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

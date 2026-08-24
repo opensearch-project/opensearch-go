@@ -30,7 +30,7 @@ func BenchmarkCalcMultiKeyCost(b *testing.B) {
 		name := fmt.Sprintf("n%d", i)
 		u := &url.URL{Scheme: "https", Host: name + ":9200"}
 		c := &Connection{URL: u, URLString: u.String(), Name: name, ID: name, rttRing: newRTTRing(4)}
-		c.state.Store(int64(newConnState(lcActive)))
+		c.setLifecycleBit(lcActive)
 		for range 4 {
 			c.rttRing.add(200 * time.Microsecond)
 		}
@@ -76,7 +76,7 @@ func BenchmarkCalcSingleKeyCost(b *testing.B) {
 		name := fmt.Sprintf("n%d", i)
 		u := &url.URL{Scheme: "https", Host: name + ":9200"}
 		c := &Connection{URL: u, URLString: u.String(), Name: name, ID: name, rttRing: newRTTRing(4)}
-		c.state.Store(int64(newConnState(lcActive)))
+		c.setLifecycleBit(lcActive)
 		for range 4 {
 			c.rttRing.add(200 * time.Microsecond)
 		}
@@ -105,7 +105,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 		name := fmt.Sprintf("n%d", i)
 		u := &url.URL{Scheme: "https", Host: name + ":9200"}
 		c := &Connection{URL: u, URLString: u.String(), Name: name, ID: name, rttRing: newRTTRing(4)}
-		c.state.Store(int64(newConnState(lcActive)))
+		c.setLifecycleBit(lcActive)
 		for range 4 {
 			c.rttRing.add(time.Duration(100+i*50) * time.Microsecond)
 		}

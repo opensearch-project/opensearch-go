@@ -123,7 +123,7 @@ type CatSegmentReplicationParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
-	Time string
+	Time TimeUnit
 }
 
 func (r CatSegmentReplicationParams) get() map[string]string {
@@ -181,7 +181,7 @@ func (r CatSegmentReplicationParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -229,7 +229,7 @@ type CatSegmentReplicationRecord struct {
 	BytesBehind  *string `json:"bytes_behind,omitempty"`
 	BytesFetched *string `json:"bytes_fetched,omitempty"`
 
-	// The percentage value as a string.
+	// BytesPercent is the percentage value as a string.
 	BytesPercent *string `json:"bytes_percent,omitempty"`
 
 	BytesTotal             *string `json:"bytes_total,omitempty"`
@@ -239,7 +239,7 @@ type CatSegmentReplicationRecord struct {
 	Files                  *string `json:"files,omitempty"`
 	FilesFetched           *string `json:"files_fetched,omitempty"`
 
-	// The percentage value as a string.
+	// FilesPercent is the percentage value as a string.
 	FilesPercent *string `json:"files_percent,omitempty"`
 
 	FilesTotal                        *string `json:"files_total,omitempty"`
@@ -267,7 +267,7 @@ type CatSegmentReplicationRecord struct {
 // Available: >= 2.6.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-segment-replication/
-func (c catClient) SegmentReplication(ctx context.Context, req *CatSegmentReplicationReq) (*CatSegmentReplicationResp, error) {
+func (c CatClient) SegmentReplication(ctx context.Context, req *CatSegmentReplicationReq) (*CatSegmentReplicationResp, error) {
 	if req == nil {
 		req = &CatSegmentReplicationReq{}
 	}
@@ -276,7 +276,7 @@ func (c catClient) SegmentReplication(ctx context.Context, req *CatSegmentReplic
 		data CatSegmentReplicationResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

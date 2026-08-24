@@ -106,7 +106,7 @@ func clusterLensFSMCheck(client *opensearchapi.Client, expected int) readiness.F
 			node := cluster.Node(id, strPtr(rec.Name), strPtr(rec.IP))
 
 			switch {
-			case needsStatsReady && strPtr(rec.Cpu) != "" && strPtr(rec.HeapPercent) != "":
+			case needsStatsReady && strPtr(rec.CPU) != "" && strPtr(rec.HeapPercent) != "":
 				node.Advance(readiness.LayerStatsReady, "cat-nodes cpu+heap populated")
 			case clusterJoined:
 				node.Advance(readiness.LayerClusterJoin, "cluster_health number_of_nodes met")

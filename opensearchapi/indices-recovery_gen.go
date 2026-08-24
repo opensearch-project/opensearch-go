@@ -142,31 +142,31 @@ func (r IndicesRecoveryResp) RawBody() io.Reader {
 //
 // The byte-level recovery statistics.
 type IndicesRecoveryBytes struct {
-	// The percentage value as a string.
+	// Percent is the percentage value as a string.
 	Percent string `json:"percent"`
 
-	// The unique identifier of a node.
+	// Recovered is the unique identifier of a node.
 	Recovered *string `json:"recovered,omitempty"`
 
-	// The unique identifier of a node.
+	// RecoveredFromSnapshot is the unique identifier of a node.
 	RecoveredFromSnapshot *string `json:"recovered_from_snapshot,omitempty"`
 
-	// The size in bytes.
+	// RecoveredFromSnapshotInBytes is the size in bytes.
 	RecoveredFromSnapshotInBytes *int64 `json:"recovered_from_snapshot_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// RecoveredInBytes is the size in bytes.
 	RecoveredInBytes int64 `json:"recovered_in_bytes"`
 
-	// The unique identifier of a node.
+	// Reused is the unique identifier of a node.
 	Reused *string `json:"reused,omitempty"`
 
-	// The size in bytes.
+	// ReusedInBytes is the size in bytes.
 	ReusedInBytes int64 `json:"reused_in_bytes"`
 
-	// The unique identifier of a node.
+	// Total is the unique identifier of a node.
 	Total *string `json:"total,omitempty"`
 
-	// The size in bytes.
+	// TotalInBytes is the size in bytes.
 	TotalInBytes int64 `json:"total_in_bytes"`
 }
 
@@ -174,13 +174,13 @@ type IndicesRecoveryBytes struct {
 //
 // The details of a recovered file.
 type IndicesRecoveryFileDetails struct {
-	// The length of the file in bytes.
+	// Length is the length of the file in bytes.
 	Length int64 `json:"length"`
 
-	// The name of the file.
+	// Name is the name of the file.
 	Name string `json:"name"`
 
-	// The number of bytes recovered.
+	// Recovered is the number of bytes recovered.
 	Recovered int64 `json:"recovered"`
 }
 
@@ -188,19 +188,19 @@ type IndicesRecoveryFileDetails struct {
 //
 // The file-level recovery statistics.
 type IndicesRecoveryFiles struct {
-	// The detailed information about recovered files.
+	// Details is the detailed information about recovered files.
 	Details []IndicesRecoveryFileDetails `json:"details,omitempty"`
 
-	// The percentage value as a string.
+	// Percent is the percentage value as a string.
 	Percent string `json:"percent"`
 
-	// The number of recovered files.
+	// Recovered is the number of recovered files.
 	Recovered int64 `json:"recovered"`
 
-	// The number of reused files.
+	// Reused is the number of reused files.
 	Reused int64 `json:"reused"`
 
-	// The total number of files.
+	// Total is the total number of files.
 	Total int64 `json:"total"`
 }
 
@@ -208,37 +208,40 @@ type IndicesRecoveryFiles struct {
 //
 // The index recovery status.
 type IndicesRecoveryIndexStatus struct {
-	// The byte-level recovery statistics.
+	// Bytes is the byte-level recovery statistics.
 	Bytes *IndicesRecoveryBytes `json:"bytes,omitempty"`
 
-	// The file-level recovery statistics.
+	// Files is the file-level recovery statistics.
 	Files IndicesRecoveryFiles `json:"files"`
 
-	// The byte-level recovery statistics.
+	// Size is the byte-level recovery statistics.
 	Size IndicesRecoveryBytes `json:"size"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// SourceThrottleTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	SourceThrottleTime *string `json:"source_throttle_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// SourceThrottleTimeInMillis is the time unit for milliseconds.
 	SourceThrottleTimeInMillis int64 `json:"source_throttle_time_in_millis"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TargetThrottleTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TargetThrottleTime *string `json:"target_throttle_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TargetThrottleTimeInMillis is the time unit for milliseconds.
 	TargetThrottleTimeInMillis int64 `json:"target_throttle_time_in_millis"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
@@ -246,48 +249,49 @@ type IndicesRecoveryIndexStatus struct {
 //
 // The source or target of a recovery operation.
 type IndicesRecoveryOrigin struct {
-	// Whether a new history UUID was bootstrapped.
+	// BootstrapNewHistoryUUID. Whether a new history UUID was bootstrapped.
 	BootstrapNewHistoryUUID *bool `json:"bootstrap_new_history_uuid,omitempty"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host *string `json:"host,omitempty"`
 
-	// The hostname of the node.
+	// Hostname is the hostname of the node.
 	Hostname *string `json:"hostname,omitempty"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// The IP address.
+	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// Whether this is a searchable snapshot.
+	// IsSearchableSnapshot. Whether this is a searchable snapshot.
 	IsSearchableSnapshot *bool `json:"isSearchableSnapshot,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// Whether this is a shallow copy from a remote store.
+	// RemoteStoreIndexShallowCopy. Whether this is a shallow copy from a
+	// remote store.
 	RemoteStoreIndexShallowCopy *bool `json:"remoteStoreIndexShallowCopy,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Repository is the name of a resource or configuration element.
 	Repository *string `json:"repository,omitempty"`
 
-	// The universally unique identifier.
+	// RestoreUUID is the universally unique identifier.
 	RestoreUUID *string `json:"restoreUUID,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Snapshot is the name of a resource or configuration element.
 	Snapshot *string `json:"snapshot,omitempty"`
 
-	// The source remote store repository.
+	// SourceRemoteStoreRepository is the source remote store repository.
 	SourceRemoteStoreRepository *string `json:"sourceRemoteStoreRepository"`
 
-	// The source remote translog repository.
+	// SourceRemoteTranslogRepository is the source remote translog repository.
 	SourceRemoteTranslogRepository *string `json:"sourceRemoteTranslogRepository"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`
 
 	Version *string `json:"version,omitempty"`
@@ -297,20 +301,22 @@ type IndicesRecoveryOrigin struct {
 //
 // The status at the start of recovery.
 type IndicesRecoveryStartStatus struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CheckIndexTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CheckIndexTime *string `json:"check_index_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// CheckIndexTimeInMillis is the time unit for milliseconds.
 	CheckIndexTimeInMillis int64 `json:"check_index_time_in_millis"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
@@ -318,24 +324,25 @@ type IndicesRecoveryStartStatus struct {
 //
 // The transaction log recovery status.
 type IndicesRecoveryTranslogStatus struct {
-	// The percentage value as a string.
+	// Percent is the percentage value as a string.
 	Percent string `json:"percent"`
 
-	// The number of recovered transaction log operations.
+	// Recovered is the number of recovered transaction log operations.
 	Recovered int `json:"recovered"`
 
-	// The total number of transaction log operations.
+	// Total is the total number of transaction log operations.
 	Total int `json:"total"`
 
-	// The number of transaction log operations at start.
+	// TotalOnStart is the number of transaction log operations at start.
 	TotalOnStart int `json:"total_on_start"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
@@ -343,20 +350,22 @@ type IndicesRecoveryTranslogStatus struct {
 //
 // The index verification status.
 type IndicesRecoveryVerifyIndex struct {
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CheckIndexTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CheckIndexTime *string `json:"check_index_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// CheckIndexTimeInMillis is the time unit for milliseconds.
 	CheckIndexTimeInMillis int64 `json:"check_index_time_in_millis"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 }
 
@@ -364,60 +373,61 @@ type IndicesRecoveryVerifyIndex struct {
 //
 // The recovery status of a shard.
 type IndicesRecoveryShard struct {
-	// The shard ID.
+	// ID is the shard ID.
 	ID int `json:"id"`
 
-	// The index recovery status.
+	// Index is the index recovery status.
 	Index IndicesRecoveryIndexStatus `json:"index"`
 
-	// Whether this is a primary shard.
+	// Primary. Whether this is a primary shard.
 	Primary bool `json:"primary"`
 
-	// The source or target of a recovery operation.
+	// Source is the source or target of a recovery operation.
 	Source IndicesRecoveryOrigin `json:"source"`
 
-	// The current recovery stage.
+	// Stage is the current recovery stage.
 	Stage string `json:"stage"`
 
-	// The status at the start of recovery.
+	// Start is the status at the start of recovery.
 	Start *IndicesRecoveryStartStatus `json:"start,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StartTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// StartTimeInMillis is the time unit for milliseconds.
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StopTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StopTime *string `json:"stop_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// StopTimeInMillis is the time unit for milliseconds.
 	StopTimeInMillis *int64 `json:"stop_time_in_millis,omitempty"`
 
-	// The source or target of a recovery operation.
+	// Target is the source or target of a recovery operation.
 	Target IndicesRecoveryOrigin `json:"target"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TotalTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TotalTime *string `json:"total_time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis int64 `json:"total_time_in_millis"`
 
-	// The transaction log recovery status.
+	// Translog is the transaction log recovery status.
 	Translog IndicesRecoveryTranslogStatus `json:"translog"`
 
-	// The type of recovery operation.
+	// Type is the type of recovery operation.
 	Type string `json:"type"`
 
-	// The index verification status.
+	// VerifyIndex is the index verification status.
 	VerifyIndex IndicesRecoveryVerifyIndex `json:"verify_index"`
 }
 
@@ -425,7 +435,7 @@ type IndicesRecoveryShard struct {
 //
 // The status of recovery operations.
 type IndicesRecoveryStatus struct {
-	// The list of shard recovery statuses.
+	// Shards is the list of shard recovery statuses.
 	Shards []IndicesRecoveryShard `json:"shards"`
 }
 
@@ -436,7 +446,7 @@ type IndicesRecoveryStatus struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*IndicesRecoveryResp, error) {
+func (c IndicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*IndicesRecoveryResp, error) {
 	if req == nil {
 		req = &IndicesRecoveryReq{}
 	}
@@ -445,7 +455,7 @@ func (c indicesClient) Recovery(ctx context.Context, req *IndicesRecoveryReq) (*
 		data IndicesRecoveryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

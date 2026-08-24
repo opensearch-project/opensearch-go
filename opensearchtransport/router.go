@@ -121,9 +121,24 @@ func NewDefaultRoutes() []Route {
 		NewNullPolicy(),
 	)
 
+	// Cluster-manager routing: cluster-state operations are served by the
+	// elected cluster manager; prefer cluster_manager nodes, fall back to data
+	// nodes (which coordinate-forward to the manager).
+	clusterMgrPolicy := mustRolePolicy(RoleClusterManager)
+	clusterMgrDataFallbackPolicy := mustRolePolicy(RoleData)
+	clusterMgrIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return clusterMgrPolicy.IsEnabled() },
+		clusterMgrPolicy,
+		NewIfEnabledPolicy(
+			func(ctx context.Context, req *http.Request) bool { return clusterMgrDataFallbackPolicy.IsEnabled() },
+			clusterMgrDataFallbackPolicy,
+			NewNullPolicy(),
+		),
+	)
+
 	// Define routes for different OpenSearch operations
 	// Using the exact same patterns as OpenSearch server
-	return buildRoleRoutes(defaultRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled, dataIfEnabled))
+	return buildRoleRoutes(defaultRoleRoutes(ingestIfEnabled, searchIfEnabled, warmIfEnabled, dataIfEnabled, clusterMgrIfEnabled))
 }
 
 // OpenSearch server-side thread pool names. Used as the pool identifier in
@@ -171,24 +186,33 @@ type roleRoutes struct {
 	searchMgmt Policy
 	// Warm/tier operations -> warm/data nodes, server "management" pool
 	warmMgmt Policy
+	// Cluster-state reads (health, state, settings-get, index/mapping/alias/
+	// template get) -> cluster_manager nodes, server "management" pool
+	clusterMgrRead Policy
+	// Cluster-state writes (settings-put, reroute, index create/delete, mapping/
+	// alias/template put, snapshot, dangling, data-stream writes) ->
+	// cluster_manager nodes, server "write" pool
+	clusterMgrWrite Policy
 }
 
 // defaultRoleRoutes creates a roleRoutes where all routes for a given role
 // use the same policy. This is the non-scoring configuration used by
 // [NewDefaultRoutes] where pool-level differentiation isn't needed.
-func defaultRoleRoutes(ingest, search, warm, data Policy) roleRoutes {
+func defaultRoleRoutes(ingest, search, warm, data, clusterMgr Policy) roleRoutes {
 	return roleRoutes{
-		ingestWrite:    ingest,
-		ingestMgmt:     ingest,
-		searchRead:     search,
-		getRead:        search,
-		dataWrite:      data,
-		dataRefresh:    data,
-		dataFlush:      data,
-		dataForceMerge: data,
-		dataMgmt:       data,
-		searchMgmt:     search,
-		warmMgmt:       warm,
+		ingestWrite:     ingest,
+		ingestMgmt:      ingest,
+		searchRead:      search,
+		getRead:         search,
+		dataWrite:       data,
+		dataRefresh:     data,
+		dataFlush:       data,
+		dataForceMerge:  data,
+		dataMgmt:        data,
+		searchMgmt:      search,
+		warmMgmt:        warm,
+		clusterMgrRead:  clusterMgr,
+		clusterMgrWrite: clusterMgr,
 	}
 }
 
@@ -424,6 +448,188 @@ func buildRoleRoutes(r roleRoutes) []Route {
 		NewRoute("POST /_reindex/{taskId}/_rethrottle", r.dataMgmt).Op(OpReindexRethrottle).MustBuild(),
 		NewRoute("POST /_update_by_query/{taskId}/_rethrottle", r.dataMgmt).Op(OpUBQRethrottle).MustBuild(),
 		NewRoute("POST /_delete_by_query/{taskId}/_rethrottle", r.dataMgmt).Op(OpDBQRethrottle).MustBuild(),
+
+		// -- Cluster state reads -- cluster_manager nodes, "management" pool
+		NewRoute("GET /_cluster/health", r.clusterMgrRead).Op(OpClusterHealth).MustBuild(),
+		NewRoute("GET /_cluster/health/{index}", r.clusterMgrRead).Op(OpClusterHealth).MustBuild(),
+		NewRoute("GET /_cluster/stats", r.clusterMgrRead).Op(OpClusterStats).MustBuild(),
+		NewRoute("GET /_cluster/stats/nodes/{nodeId}", r.clusterMgrRead).Op(OpClusterStats).MustBuild(),
+		NewRoute("GET /_cluster/state", r.clusterMgrRead).Op(OpClusterState).MustBuild(),
+		NewRoute("GET /_cluster/state/{metric}", r.clusterMgrRead).Op(OpClusterState).MustBuild(),
+		NewRoute("GET /_cluster/state/{metric}/{index}", r.clusterMgrRead).Op(OpClusterState).MustBuild(),
+		NewRoute("GET /_cluster/settings", r.clusterMgrRead).Op(OpClusterSettingsGet).MustBuild(),
+		NewRoute("GET /_cluster/pending_tasks", r.clusterMgrRead).Op(OpClusterPendingTasks).MustBuild(),
+		NewRoute("GET /_cluster/allocation/explain", r.clusterMgrRead).Op(OpClusterAllocExplain).MustBuild(),
+		NewRoute("POST /_cluster/allocation/explain", r.clusterMgrRead).Op(OpClusterAllocExplain).MustBuild(),
+		NewRoute("GET /_remote/info", r.clusterMgrRead).Op(OpClusterRemoteInfo).MustBuild(),
+
+		// -- Cluster state writes -- cluster_manager nodes, "write" pool
+		NewRoute("PUT /_cluster/settings", r.clusterMgrWrite).Op(OpClusterSettingsPut).MustBuild(),
+		NewRoute("POST /_cluster/reroute", r.clusterMgrWrite).Op(OpClusterReroute).MustBuild(),
+		NewRoute("POST /_cluster/voting_config_exclusions", r.clusterMgrWrite).Op(OpClusterVotingConfigEx).MustBuild(),
+		NewRoute("DELETE /_cluster/voting_config_exclusions", r.clusterMgrWrite).Op(OpClusterVotingConfigEx).MustBuild(),
+
+		// -- Cat APIs -- reads; cluster-state-derived on management pool, node-local on searchMgmt
+		NewRoute("GET /_cat/indices", r.searchMgmt).Op(OpCatIndices).MustBuild(),
+		NewRoute("GET /_cat/indices/{index}", r.searchMgmt).Op(OpCatIndices).MustBuild(),
+		NewRoute("GET /_cat/nodes", r.searchMgmt).Op(OpCatNodes).MustBuild(),
+		NewRoute("GET /_cat/shards", r.searchMgmt).Op(OpCatShards).MustBuild(),
+		NewRoute("GET /_cat/shards/{index}", r.searchMgmt).Op(OpCatShards).MustBuild(),
+		NewRoute("GET /_cat/health", r.searchMgmt).Op(OpCatHealth).MustBuild(),
+		NewRoute("GET /_cat/allocation", r.searchMgmt).Op(OpCatAllocation).MustBuild(),
+		NewRoute("GET /_cat/allocation/{nodeId}", r.searchMgmt).Op(OpCatAllocation).MustBuild(),
+		NewRoute("GET /_cat/count", r.searchMgmt).Op(OpCatCount).MustBuild(),
+		NewRoute("GET /_cat/count/{index}", r.searchMgmt).Op(OpCatCount).MustBuild(),
+		NewRoute("GET /_cat/fielddata", r.searchMgmt).Op(OpCatFielddata).MustBuild(),
+		NewRoute("GET /_cat/fielddata/{fields}", r.searchMgmt).Op(OpCatFielddata).MustBuild(),
+		NewRoute("GET /_cat/master", r.searchMgmt).Op(OpCatMaster).MustBuild(),
+		NewRoute("GET /_cat/cluster_manager", r.searchMgmt).Op(OpCatClusterMgr).MustBuild(),
+		NewRoute("GET /_cat/nodeattrs", r.searchMgmt).Op(OpCatNodeAttrs).MustBuild(),
+		NewRoute("GET /_cat/pending_tasks", r.searchMgmt).Op(OpCatPendingTask).MustBuild(),
+		NewRoute("GET /_cat/plugins", r.searchMgmt).Op(OpCatPlugins).MustBuild(),
+		NewRoute("GET /_cat/recovery", r.dataMgmt).Op(OpCatRecovery).MustBuild(),
+		NewRoute("GET /_cat/recovery/{index}", r.dataMgmt).Op(OpCatRecovery).MustBuild(),
+		NewRoute("GET /_cat/repositories", r.searchMgmt).Op(OpCatRepos).MustBuild(),
+		NewRoute("GET /_cat/segments", r.dataMgmt).Op(OpCatSegments).MustBuild(),
+		NewRoute("GET /_cat/segments/{index}", r.dataMgmt).Op(OpCatSegments).MustBuild(),
+		NewRoute("GET /_cat/snapshots/{repository}", r.searchMgmt).Op(OpCatSnapshots).MustBuild(),
+		NewRoute("GET /_cat/tasks", r.searchMgmt).Op(OpCatTasks).MustBuild(),
+		NewRoute("GET /_cat/templates", r.searchMgmt).Op(OpCatTemplates).MustBuild(),
+		NewRoute("GET /_cat/templates/{name}", r.searchMgmt).Op(OpCatTemplates).MustBuild(),
+		NewRoute("GET /_cat/thread_pool", r.searchMgmt).Op(OpCatThreadPool).MustBuild(),
+		NewRoute("GET /_cat/thread_pool/{thread_pools}", r.searchMgmt).Op(OpCatThreadPool).MustBuild(),
+		NewRoute("GET /_cat/aliases", r.searchMgmt).Op(OpCatAliases).MustBuild(),
+		NewRoute("GET /_cat/aliases/{name}", r.searchMgmt).Op(OpCatAliases).MustBuild(),
+
+		// -- Nodes APIs -- node-local reads, "management" pool (any node)
+		NewRoute("GET /_nodes", r.searchMgmt).Op(OpNodesInfo).MustBuild(),
+		NewRoute("GET /_nodes/{nodeId}", r.searchMgmt).Op(OpNodesInfo).MustBuild(),
+		NewRoute("GET /_nodes/stats", r.searchMgmt).Op(OpNodesStats).MustBuild(),
+		NewRoute("GET /_nodes/{nodeId}/stats", r.searchMgmt).Op(OpNodesStats).MustBuild(),
+		NewRoute("GET /_nodes/stats/{metric}", r.searchMgmt).Op(OpNodesStats).MustBuild(),
+		NewRoute("GET /_nodes/usage", r.searchMgmt).Op(OpNodesUsage).MustBuild(),
+		NewRoute("GET /_nodes/{nodeId}/usage", r.searchMgmt).Op(OpNodesUsage).MustBuild(),
+		NewRoute("GET /_nodes/hot_threads", r.searchMgmt).Op(OpNodesHotThreads).MustBuild(),
+		NewRoute("GET /_nodes/{nodeId}/hot_threads", r.searchMgmt).Op(OpNodesHotThreads).MustBuild(),
+		NewRoute("POST /_nodes/reload_secure_settings", r.dataMgmt).Op(OpNodesReloadSecurity).MustBuild(),
+		NewRoute("POST /_nodes/{nodeId}/reload_secure_settings", r.dataMgmt).Op(OpNodesReloadSecurity).MustBuild(),
+
+		// -- Tasks APIs -- node-local, "management" pool
+		NewRoute("GET /_tasks", r.searchMgmt).Op(OpTasksList).MustBuild(),
+		NewRoute("GET /_tasks/{taskId}", r.searchMgmt).Op(OpTasksGet).MustBuild(),
+		NewRoute("POST /_tasks/_cancel", r.dataMgmt).Op(OpTasksCancel).MustBuild(),
+		NewRoute("POST /_tasks/{taskId}/_cancel", r.dataMgmt).Op(OpTasksCancel).MustBuild(),
+
+		// -- Snapshot / repository -- cluster_manager operations
+		NewRoute("GET /_snapshot", r.clusterMgrRead).Op(OpSnapshotRepoGet).MustBuild(),
+		NewRoute("GET /_snapshot/{repository}", r.clusterMgrRead).Op(OpSnapshotRepoGet).MustBuild(),
+		NewRoute("PUT /_snapshot/{repository}", r.clusterMgrWrite).Op(OpSnapshotRepoCreate).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}", r.clusterMgrWrite).Op(OpSnapshotRepoCreate).MustBuild(),
+		NewRoute("DELETE /_snapshot/{repository}", r.clusterMgrWrite).Op(OpSnapshotRepoDelete).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/_verify", r.clusterMgrWrite).Op(OpSnapshotRepoVerify).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/_cleanup", r.clusterMgrWrite).Op(OpSnapshotRepoClean).MustBuild(),
+		NewRoute("GET /_snapshot/_status", r.clusterMgrRead).Op(OpSnapshotStatus).MustBuild(),
+		NewRoute("GET /_snapshot/{repository}/_status", r.clusterMgrRead).Op(OpSnapshotStatus).MustBuild(),
+		NewRoute("GET /_snapshot/{repository}/{snapshot}", r.clusterMgrRead).Op(OpSnapshotGet).MustBuild(),
+		NewRoute("PUT /_snapshot/{repository}/{snapshot}", r.clusterMgrWrite).Op(OpSnapshotCreate).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/{snapshot}", r.clusterMgrWrite).Op(OpSnapshotCreate).MustBuild(),
+		NewRoute("DELETE /_snapshot/{repository}/{snapshot}", r.clusterMgrWrite).Op(OpSnapshotDelete).MustBuild(),
+		NewRoute("GET /_snapshot/{repository}/{snapshot}/_status", r.clusterMgrRead).Op(OpSnapshotStatus).MustBuild(),
+		NewRoute("POST /_snapshot/{repository}/{snapshot}/_restore", r.clusterMgrWrite).Op(OpSnapshotRestore).MustBuild(),
+		NewRoute("PUT /_snapshot/{repository}/{snapshot}/_clone/{target_snapshot}", r.clusterMgrWrite).Op(OpSnapshotClone).MustBuild(),
+
+		// -- Stored scripts -- cluster_manager operations (stored in cluster state)
+		NewRoute("GET /_scripts/{id}", r.clusterMgrRead).Op(OpScriptGet).MustBuild(),
+		NewRoute("PUT /_scripts/{id}", r.clusterMgrWrite).Op(OpScriptPut).MustBuild(),
+		NewRoute("PUT /_scripts/{id}/{context}", r.clusterMgrWrite).Op(OpScriptPut).MustBuild(),
+		NewRoute("POST /_scripts/{id}", r.clusterMgrWrite).Op(OpScriptPut).MustBuild(),
+		NewRoute("POST /_scripts/{id}/{context}", r.clusterMgrWrite).Op(OpScriptPut).MustBuild(),
+		NewRoute("DELETE /_scripts/{id}", r.clusterMgrWrite).Op(OpScriptDelete).MustBuild(),
+		NewRoute("GET /_script_context", r.searchMgmt).Op(OpScriptContext).MustBuild(),
+		NewRoute("GET /_script_language", r.searchMgmt).Op(OpScriptLanguage).MustBuild(),
+		NewRoute("GET /_scripts/painless/_execute", r.searchMgmt).Op(OpScriptPainlessExec).MustBuild(),
+		NewRoute("POST /_scripts/painless/_execute", r.searchMgmt).Op(OpScriptPainlessExec).MustBuild(),
+
+		// -- Dangling indices -- cluster_manager operations
+		NewRoute("GET /_dangling", r.clusterMgrRead).Op(OpDanglingGet).MustBuild(),
+		NewRoute("POST /_dangling/{index_uuid}", r.clusterMgrWrite).Op(OpDanglingImport).MustBuild(),
+		NewRoute("DELETE /_dangling/{index_uuid}", r.clusterMgrWrite).Op(OpDanglingDelete).MustBuild(),
+
+		// -- Data streams -- reads are index-metadata; writes mutate cluster state
+		NewRoute("GET /_data_stream", r.clusterMgrRead).Op(OpDataStreamGet).MustBuild(),
+		NewRoute("GET /_data_stream/{name}", r.clusterMgrRead).Op(OpDataStreamGet).MustBuild(),
+		NewRoute("PUT /_data_stream/{name}", r.clusterMgrWrite).Op(OpDataStreamCreate).MustBuild(),
+		NewRoute("DELETE /_data_stream/{name}", r.clusterMgrWrite).Op(OpDataStreamDelete).MustBuild(),
+		NewRoute("GET /_data_stream/{name}/_stats", r.dataMgmt).Op(OpDataStreamStats).MustBuild(),
+
+		// -- Index management -- reads are index-metadata; writes mutate cluster state
+		NewRoute("GET /_resolve/index/{name}", r.clusterMgrRead).Op(OpIndexResolve).MustBuild(),
+		NewRoute("PUT /{index}/_mapping", r.clusterMgrWrite).Op(OpMappingPut).MustBuild(),
+		NewRoute("POST /{index}/_mapping", r.clusterMgrWrite).Op(OpMappingPut).MustBuild(),
+		NewRoute("PUT /_mapping", r.clusterMgrWrite).Op(OpMappingPut).MustBuild(),
+		NewRoute("GET /{index}/_mapping", r.clusterMgrRead).Op(OpMappingGet).MustBuild(),
+		NewRoute("GET /_mapping", r.clusterMgrRead).Op(OpMappingGet).MustBuild(),
+		NewRoute("GET /{index}/_mapping/field/{fields}", r.clusterMgrRead).Op(OpMappingGet).MustBuild(),
+		NewRoute("GET /_mapping/field/{fields}", r.clusterMgrRead).Op(OpMappingGet).MustBuild(),
+		NewRoute("GET /{index}/_alias", r.clusterMgrRead).Op(OpAliasGet).MustBuild(),
+		NewRoute("GET /{index}/_alias/{name}", r.clusterMgrRead).Op(OpAliasGet).MustBuild(),
+		NewRoute("GET /_alias", r.clusterMgrRead).Op(OpAliasGet).MustBuild(),
+		NewRoute("GET /_alias/{name}", r.clusterMgrRead).Op(OpAliasGet).MustBuild(),
+		NewRoute("GET /_aliases", r.clusterMgrRead).Op(OpAliasGet).MustBuild(),
+		NewRoute("PUT /{index}/_alias/{name}", r.clusterMgrWrite).Op(OpAliasPut).MustBuild(),
+		NewRoute("POST /{index}/_alias/{name}", r.clusterMgrWrite).Op(OpAliasPut).MustBuild(),
+		NewRoute("DELETE /{index}/_alias/{name}", r.clusterMgrWrite).Op(OpAliasDelete).MustBuild(),
+		NewRoute("POST /_aliases", r.clusterMgrWrite).Op(OpAliasPut).MustBuild(),
+		NewRoute("GET /{index}/_analyze", r.dataMgmt).Op(OpIndexAnalyze).MustBuild(),
+		NewRoute("POST /{index}/_analyze", r.dataMgmt).Op(OpIndexAnalyze).MustBuild(),
+		NewRoute("GET /_analyze", r.dataMgmt).Op(OpIndexAnalyze).MustBuild(),
+		NewRoute("POST /_analyze", r.dataMgmt).Op(OpIndexAnalyze).MustBuild(),
+		NewRoute("POST /{index}/_open", r.clusterMgrWrite).Op(OpIndexOpen).MustBuild(),
+		NewRoute("POST /{index}/_close", r.clusterMgrWrite).Op(OpIndexClose).MustBuild(),
+		NewRoute("POST /{index}/_clone/{target}", r.clusterMgrWrite).Op(OpIndexClone).MustBuild(),
+		NewRoute("PUT /{index}/_clone/{target}", r.clusterMgrWrite).Op(OpIndexClone).MustBuild(),
+		NewRoute("POST /{index}/_shrink/{target}", r.clusterMgrWrite).Op(OpIndexShrink).MustBuild(),
+		NewRoute("PUT /{index}/_shrink/{target}", r.clusterMgrWrite).Op(OpIndexShrink).MustBuild(),
+		NewRoute("POST /{index}/_split/{target}", r.clusterMgrWrite).Op(OpIndexSplit).MustBuild(),
+		NewRoute("PUT /{index}/_split/{target}", r.clusterMgrWrite).Op(OpIndexSplit).MustBuild(),
+		NewRoute("POST /{index}/_rollover", r.clusterMgrWrite).Op(OpIndexRollover).MustBuild(),
+		NewRoute("POST /{index}/_rollover/{target}", r.clusterMgrWrite).Op(OpIndexRollover).MustBuild(),
+		NewRoute("PUT /{index}/_block/{block}", r.clusterMgrWrite).Op(OpIndexBlock).MustBuild(),
+
+		// -- Index create/get/delete (bare {index}) -- keep AFTER more-specific
+		// /{index}/... routes; the trie prefers exact segments over wildcards, so
+		// these only match a single-segment path.
+		NewRoute("GET /{index}", r.clusterMgrRead).Op(OpIndexGet).MustBuild(),
+		NewRoute("HEAD /{index}", r.clusterMgrRead).Op(OpIndexExists).MustBuild(),
+		NewRoute("PUT /{index}", r.clusterMgrWrite).Op(OpIndexCreate).MustBuild(),
+		NewRoute("DELETE /{index}", r.clusterMgrWrite).Op(OpIndexDelete).MustBuild(),
+
+		// -- Index templates (composable) -- cluster_manager operations
+		NewRoute("GET /_index_template", r.clusterMgrRead).Op(OpIndexTemplateGet).MustBuild(),
+		NewRoute("GET /_index_template/{name}", r.clusterMgrRead).Op(OpIndexTemplateGet).MustBuild(),
+		NewRoute("PUT /_index_template/{name}", r.clusterMgrWrite).Op(OpIndexTemplateCreate).MustBuild(),
+		NewRoute("POST /_index_template/{name}", r.clusterMgrWrite).Op(OpIndexTemplateCreate).MustBuild(),
+		NewRoute("DELETE /_index_template/{name}", r.clusterMgrWrite).Op(OpIndexTemplateDelete).MustBuild(),
+		NewRoute("HEAD /_index_template/{name}", r.clusterMgrRead).Op(OpIndexTemplateExists).MustBuild(),
+		NewRoute("POST /_index_template/_simulate", r.clusterMgrRead).Op(OpIndexTemplateSimulate).MustBuild(),
+		NewRoute("POST /_index_template/_simulate/{name}", r.clusterMgrRead).Op(OpIndexTemplateSimulate).MustBuild(),
+		NewRoute("POST /_index_template/_simulate_index/{name}", r.clusterMgrRead).Op(OpIndexTemplateSimulateIndex).MustBuild(),
+
+		// -- Component templates -- cluster_manager operations
+		NewRoute("GET /_component_template", r.clusterMgrRead).Op(OpComponentTemplateGet).MustBuild(),
+		NewRoute("GET /_component_template/{name}", r.clusterMgrRead).Op(OpComponentTemplateGet).MustBuild(),
+		NewRoute("PUT /_component_template/{name}", r.clusterMgrWrite).Op(OpComponentTemplateCreate).MustBuild(),
+		NewRoute("POST /_component_template/{name}", r.clusterMgrWrite).Op(OpComponentTemplateCreate).MustBuild(),
+		NewRoute("DELETE /_component_template/{name}", r.clusterMgrWrite).Op(OpComponentTemplateDelete).MustBuild(),
+		NewRoute("HEAD /_component_template/{name}", r.clusterMgrRead).Op(OpComponentTemplateExists).MustBuild(),
+
+		// -- Legacy index templates -- cluster_manager operations
+		NewRoute("GET /_template", r.clusterMgrRead).Op(OpLegacyTemplateGet).MustBuild(),
+		NewRoute("GET /_template/{name}", r.clusterMgrRead).Op(OpLegacyTemplateGet).MustBuild(),
+		NewRoute("PUT /_template/{name}", r.clusterMgrWrite).Op(OpLegacyTemplateCreate).MustBuild(),
+		NewRoute("POST /_template/{name}", r.clusterMgrWrite).Op(OpLegacyTemplateCreate).MustBuild(),
+		NewRoute("DELETE /_template/{name}", r.clusterMgrWrite).Op(OpLegacyTemplateDelete).MustBuild(),
+		NewRoute("HEAD /_template/{name}", r.clusterMgrRead).Op(OpLegacyTemplateExists).MustBuild(),
 	}
 }
 
@@ -865,20 +1071,35 @@ func newScoredRoutes(cache *indexSlotCache, costCfg *shardCostConfig) []Route {
 		NewNullPolicy(),
 	)
 
+	// Cluster-manager routing for cluster-state operations, with data fallback.
+	clusterMgrPolicy := mustRolePolicy(RoleClusterManager)
+	clusterMgrDataFallbackPolicy := mustRolePolicy(RoleData)
+	clusterMgrIfEnabled := NewIfEnabledPolicy(
+		func(ctx context.Context, req *http.Request) bool { return clusterMgrPolicy.IsEnabled() },
+		clusterMgrPolicy,
+		NewIfEnabledPolicy(
+			func(ctx context.Context, req *http.Request) bool { return clusterMgrDataFallbackPolicy.IsEnabled() },
+			clusterMgrDataFallbackPolicy,
+			NewNullPolicy(),
+		),
+	)
+
 	// Create per-(role, shardCost, poolName) wrappers. The pool name is
 	// baked into the wrapper at construction time and flows through
 	// NextHop.PoolName --no redundant .Pool() calls on routes needed.
 	return buildRoleRoutes(roleRoutes{
-		ingestWrite:    wrap(ingestIfEnabled, &costCfg.writes, poolWrite, nil),
-		ingestMgmt:     wrap(ingestIfEnabled, &costCfg.reads, poolManagement, nil),
-		searchRead:     wrap(searchIfEnabled, &costCfg.reads, poolSearch, costCfg.scoreFunc),
-		getRead:        wrap(searchIfEnabled, &costCfg.reads, poolGet, costCfg.scoreFunc),
-		dataWrite:      wrap(dataIfEnabled, &costCfg.writes, poolWrite, nil),
-		dataRefresh:    wrap(dataIfEnabled, &costCfg.writes, poolRefresh, nil),
-		dataFlush:      wrap(dataIfEnabled, &costCfg.writes, poolFlush, nil),
-		dataForceMerge: wrap(dataIfEnabled, &costCfg.writes, poolForceMerge, nil),
-		dataMgmt:       wrap(dataIfEnabled, &costCfg.reads, poolManagement, nil),
-		searchMgmt:     wrap(searchIfEnabled, &costCfg.reads, poolManagement, nil),
-		warmMgmt:       wrap(warmIfEnabled, &costCfg.reads, poolManagement, nil),
+		ingestWrite:     wrap(ingestIfEnabled, &costCfg.writes, poolWrite, nil),
+		ingestMgmt:      wrap(ingestIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchRead:      wrap(searchIfEnabled, &costCfg.reads, poolSearch, costCfg.scoreFunc),
+		getRead:         wrap(searchIfEnabled, &costCfg.reads, poolGet, costCfg.scoreFunc),
+		dataWrite:       wrap(dataIfEnabled, &costCfg.writes, poolWrite, nil),
+		dataRefresh:     wrap(dataIfEnabled, &costCfg.writes, poolRefresh, nil),
+		dataFlush:       wrap(dataIfEnabled, &costCfg.writes, poolFlush, nil),
+		dataForceMerge:  wrap(dataIfEnabled, &costCfg.writes, poolForceMerge, nil),
+		dataMgmt:        wrap(dataIfEnabled, &costCfg.reads, poolManagement, nil),
+		searchMgmt:      wrap(searchIfEnabled, &costCfg.reads, poolManagement, nil),
+		warmMgmt:        wrap(warmIfEnabled, &costCfg.reads, poolManagement, nil),
+		clusterMgrRead:  wrap(clusterMgrIfEnabled, &costCfg.reads, poolManagement, nil),
+		clusterMgrWrite: wrap(clusterMgrIfEnabled, &costCfg.writes, poolWrite, nil),
 	})
 }

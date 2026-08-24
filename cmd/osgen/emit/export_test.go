@@ -11,6 +11,7 @@ import "github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
 // Test bridges for unexported helpers used by black-box tests.
 var (
 	LowerFirst              = lowerFirst
+	QualifyType             = qualifyType
 	SplitFirstLine          = splitFirstLine
 	SplitUnionsFromSiblings = splitUnionsFromSiblings
 
@@ -31,8 +32,7 @@ var (
 	WrapperMethodName = wrapperMethodName
 
 	// frag_union.go helpers.
-	TokenClassStr = tokenClassStr
-	QuotedKeys    = quotedKeys
+	QuotedKeys = quotedKeys
 )
 
 // UnionFromResponses returns the resolved union shape for the test
@@ -45,7 +45,7 @@ func UnionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) (string, string, st
 }
 
 // ResolveUnionShape mirrors UnionFromResponses for direct calls
-// against a TypeUnion / TypeLazyUnion (skipping the Responses-field
+// against a TypeUnion / TypeAmbiguousWire (skipping the Responses-field
 // indirection). Returns (unionName, success, errorBranch).
 func ResolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) (string, string, string) {
 	u := resolveUnionShape(t, reg)

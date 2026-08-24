@@ -54,7 +54,7 @@ func TestSplitUnionsFromSiblings(t *testing.T) {
 		},
 		{
 			name:        "all unions (lazy)",
-			input:       []*ir.Type{{Name: "A", Kind: ir.TypeLazyUnion}, {Name: "B", Kind: ir.TypeLazyUnion}},
+			input:       []*ir.Type{{Name: "A", Kind: ir.TypeAmbiguousWire}, {Name: "B", Kind: ir.TypeAmbiguousWire}},
 			wantStructs: 0,
 			wantUnions:  2,
 		},
@@ -62,7 +62,7 @@ func TestSplitUnionsFromSiblings(t *testing.T) {
 			name: "mixed -- the ReindexSourceSort case",
 			input: []*ir.Type{
 				{Name: "ReindexSource", Kind: ir.TypeStruct},
-				{Name: "ReindexSourceSort", Kind: ir.TypeLazyUnion},
+				{Name: "ReindexSourceSort", Kind: ir.TypeAmbiguousWire},
 				{Name: "ReindexRemoteSource", Kind: ir.TypeStruct},
 				{Name: "ReindexSourceSlice", Kind: ir.TypeStruct},
 			},
@@ -72,7 +72,7 @@ func TestSplitUnionsFromSiblings(t *testing.T) {
 		{
 			name: "mixed strict + lazy unions",
 			input: []*ir.Type{
-				{Name: "Lazy", Kind: ir.TypeLazyUnion},
+				{Name: "RequestSel", Kind: ir.TypeAmbiguousWire},
 				{Name: "Struct", Kind: ir.TypeStruct},
 				{Name: "Strict", Kind: ir.TypeUnion},
 			},
@@ -95,10 +95,10 @@ func TestSplitUnionsFromSiblings(t *testing.T) {
 			// Verify no struct ended up in unions and vice versa.
 			for _, s := range structs {
 				require.NotEqual(t, ir.TypeUnion, s.Kind, "struct slice contains union %q", s.Name)
-				require.NotEqual(t, ir.TypeLazyUnion, s.Kind, "struct slice contains lazy union %q", s.Name)
+				require.NotEqual(t, ir.TypeAmbiguousWire, s.Kind, "struct slice contains lazy union %q", s.Name)
 			}
 			for _, u := range unions {
-				require.Contains(t, []ir.TypeKind{ir.TypeUnion, ir.TypeLazyUnion}, u.Kind, "union slice contains non-union %q", u.Name)
+				require.Contains(t, []ir.TypeKind{ir.TypeUnion, ir.TypeAmbiguousWire}, u.Kind, "union slice contains non-union %q", u.Name)
 			}
 		})
 	}

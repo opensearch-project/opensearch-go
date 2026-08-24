@@ -165,9 +165,10 @@ func applyBulkItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
 }
 
 // applyMultiSearchItems checks that the response carries a Responses
-// slice whose element type itself has a Shards field. The current
-// emission still uses the per-shard aggregation path; richer
-// union-aware detection lives in [TODO].
+// slice whose element type itself has a Shards field. Union-aware
+// emission is handled separately by [resolveUnionShape], which detects
+// the error branch and drives the union-discriminator dispatch template;
+// this predicate only gates the per-shard aggregation path.
 func applyMultiSearchItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
 	f, ok := lookupResponseField(resp, respFieldResponses, reg)
 	if !ok {
@@ -232,7 +233,7 @@ func elementTypeHasShards(goType string, reg *ir.TypeRegistry) bool {
 	}
 	// Element is a discriminated union -- delegate to union resolution
 	// to see whether any branch carries Shards.
-	if resolved.Kind == ir.TypeLazyUnion || resolved.Kind == ir.TypeUnion {
+	if resolved.Kind == ir.TypeAmbiguousWire || resolved.Kind == ir.TypeUnion {
 		return resolveUnionShape(resolved, reg).success != ""
 	}
 	return false
@@ -282,18 +283,18 @@ func bulkInnerItemType(resp *ir.Type, reg *ir.TypeRegistry) (string, bool) {
 // is whichever branch carries a Shards field (recursively); the error
 // branch matches the spec's ErrorRespBase shape (Status + Error).
 type unionShape struct {
-	unionName   string // e.g. "MSearchMultiSearchResultResponsesItem"
+	unionName   string // e.g. "MSearchRespItem"
 	success     string // success branch accessor Name (Shards-bearing), or ""
 	errorBranch string // error branch accessor Name (Status + Error), or ""
 }
 
-// resolveUnionShape walks a TypeLazyUnion/TypeUnion's branches and
+// resolveUnionShape walks a TypeAmbiguousWire/TypeUnion's branches and
 // classifies them. Branches whose resolved type has a Shards field
 // become the success branch; branches with both Status and Error
 // fields become the error branch. Returns zero-value if the type isn't
 // a union or no branches matched.
 func resolveUnionShape(t *ir.Type, reg *ir.TypeRegistry) unionShape {
-	if t == nil || (t.Kind != ir.TypeLazyUnion && t.Kind != ir.TypeUnion) {
+	if t == nil || (t.Kind != ir.TypeAmbiguousWire && t.Kind != ir.TypeUnion) {
 		return unionShape{}
 	}
 	out := unionShape{unionName: t.Name}
@@ -470,7 +471,8 @@ func (r *{{.RespType}}) SearchShardFailures() *PartialSearchError {
 	var failures []ShardSearchFailure
 	for _, resp := range r.Responses {
 		if resp.Type() == {{.Union.UnionName}}{{.Union.Success}}Type {
-			item := resp.{{.Union.Success}}()
+			// Guarded by the Type() check above, so the branch error cannot fire.
+			item, _ := resp.{{.Union.Success}}()
 			totalShards += item.Shards.Total
 			failedShards += item.Shards.Failed
 			failures = append(failures, item.Shards.Failures...)
@@ -581,9 +583,11 @@ func (r *{{.RespType}}) MultiSearchItemFailures() *MultiSearchItemError {
 	succeeded := 0
 	for i, resp := range r.Responses {
 		if resp.Type() == {{.Union.UnionName}}{{.Union.ErrorBranch}}Type {
+			// Guarded by the Type() check, so the branch error cannot fire.
+			errBranch, _ := resp.{{.Union.ErrorBranch}}()
 			failed = append(failed, MultiSearchItemFailure{
 				Index:             i,
-				ErrorRespBase: resp.{{.Union.ErrorBranch}}(),
+				ErrorRespBase: errBranch,
 			})
 		} else {
 			succeeded++
@@ -650,7 +654,7 @@ func unionFromResponses(resp *ir.Type, reg *ir.TypeRegistry) unionShape {
 	if !ok {
 		return unionShape{}
 	}
-	if resolved.Kind != ir.TypeLazyUnion && resolved.Kind != ir.TypeUnion {
+	if resolved.Kind != ir.TypeAmbiguousWire && resolved.Kind != ir.TypeUnion {
 		return unionShape{}
 	}
 	return resolveUnionShape(resolved, reg)
@@ -744,7 +748,7 @@ func writeOperationConst(group string) string {
 }
 
 // dispatchTemplateText is the per-operation dispatch handler template.
-// Each route renders one Go method that builds the request, calls do(),
+// Each route renders one Go method that builds the request, calls request(),
 // then delegates partial-failure detection to the Resp's PartialFailures
 // aggregator (emitted by [PartialFailureFragment]).
 //
@@ -784,7 +788,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	}
 {{end}}
 {{- if $op.IsNoBody}}
-	return do(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
+	return request(ctx, {{if .TopLevel}}&c{{else}}c.apiClient{{end}}, {{methodConst (primaryMethod $op)}}, req, noBody)
 {{- else}}
 	var (
 		data {{$op.TypePrefix}}Resp
@@ -795,7 +799,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 	if req.Body != nil{{if $op.HasTypedBody}} || req.BodyReader != nil{{end}} {
 		method = {{methodConst (bodyMethodSwitch $op)}}
 	}
-	if data.response, err = do( {{- ""}}
+	if data.response, err = request( {{- ""}}
 		ctx,
 		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
 		method,
@@ -804,7 +808,7 @@ func (c {{.ReceiverType}}) {{.MethodName}}(ctx context.Context, req {{if $op.IsP
 		return &data, err
 	}
 {{- else}}
-	if data.response, err = do( {{- ""}}
+	if data.response, err = request( {{- ""}}
 		ctx,
 		{{if .TopLevel}}&c{{else}}c.apiClient{{end}},
 		{{methodConst (primaryMethod $op)}},

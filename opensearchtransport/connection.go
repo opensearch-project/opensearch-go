@@ -142,6 +142,7 @@ type rwLocker interface {
 type Connection struct {
 	URL        *url.URL
 	URLString  string // Cached URL.String() -- set once at construction, never changes
+	hostPort   string // Cached "scheme://host[:port]" -- set once at construction, never changes
 	ID         string
 	Name       string
 	Roles      roleSet
@@ -233,6 +234,16 @@ type Connection struct {
 			lastAt time.Time
 		}
 	}
+
+	// seed marks a connection built from a user-supplied Config.URLs address
+	// (as opposed to one learned from node discovery). Immutable after
+	// construction; set only at the seed-connection construction sites in
+	// opensearchtransport.New. Seed connections are assumed reachable and are
+	// always available for routing (see availableForRouting) so they can serve
+	// as the last-resort fallback when no discovered node is verified. The zero
+	// value (false) means "not a seed", so any connection not explicitly minted
+	// as a seed is treated as needing verification.
+	seed bool
 }
 
 // timeToNano converts a time.Time to its Unix-nanosecond representation. The
@@ -330,12 +341,31 @@ func (c *Connection) markAsDeadWithLock() {
 // markAsReadyWithLock marks the connection as alive (caller must hold lock).
 func (c *Connection) markAsReadyWithLock() {
 	c.storeDeadSince(time.Time{})
+	// Connection is reachable, therefore set lcViable. See the lcViable const
+	// comment for details. Noop if already set.
+	c.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
 func (c *Connection) markAsHealthyWithLock() {
 	c.storeDeadSince(time.Time{})
 	c.failures.Store(0)
+	// Connection is reachable, therefore set lcViable. See the lcViable const
+	// comment for details. Noop if already set.
+	c.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
+}
+
+// availableForRouting reports whether this connection may be handed to a
+// request -- both for a policy's "has anything to serve" check and as a
+// last-resort zombie. Available when it is a user-supplied seed (always
+// assumed reachable) or has been proven reachable. Lock-free (single atomic
+// load).
+func (c *Connection) availableForRouting() bool {
+	if c.seed {
+		return true // user-supplied seed: assumed reachable
+	}
+	// See the lcViable const comment for why an unproven connection is excluded.
+	return c.loadConnState().lifecycle().has(lcViable)
 }
 
 // RTTMedian returns the median health-check round-trip time for this connection.

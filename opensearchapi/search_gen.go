@@ -287,7 +287,7 @@ type SearchParams struct {
 	SearchPipeline string
 
 	// How distributed term frequencies are calculated for relevance scoring.
-	SearchType string
+	SearchType SearchType
 
 	// If `true`, returns sequence number and primary term of the last
 	// modification of each hit.
@@ -506,7 +506,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.SearchType != "" {
-		set("search_type", r.SearchType)
+		set("search_type", string(r.SearchType))
 	}
 
 	if r.SeqNoPrimaryTerm != nil {
@@ -580,7 +580,29 @@ func (r SearchParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/search/
 type SearchResp struct {
-	SearchResult
+	Clusters        *ClusterStatistics                     `json:"_clusters,omitempty"`
+	ScrollID        *string                                `json:"_scroll_id,omitempty"`
+	Shards          ShardStatistics                        `json:"_shards"`
+	Aggregations    map[string]CommonAggregationsAggregate `json:"aggregations,omitempty"`
+	Hits            SearchHitsMetadata                     `json:"hits"`
+	NumReducePhases *int                                   `json:"num_reduce_phases,omitempty"`
+
+	// PhaseTook is the time taken by different phases of the search.
+	//
+	// Available: >= 2.12.0.
+	PhaseTook *PhaseTook `json:"phase_took,omitempty"`
+
+	// PITID is the unique identifier for a resource.
+	PITID *string `json:"pit_id,omitempty"`
+
+	// Available: >= 3.0.0.
+	ProcessorResults []SearchProcessorExecutionDetail `json:"processor_results,omitempty"`
+
+	Profile         *SearchProfileResult       `json:"profile,omitempty"`
+	Suggest         map[string][]SearchSuggest `json:"suggest,omitempty"`
+	TerminatedEarly *bool                      `json:"terminated_early,omitempty"`
+	TimedOut        bool                       `json:"timed_out"`
+	Took            int64                      `json:"took"`
 
 	response *opensearch.Response
 }
@@ -603,14 +625,16 @@ func (r SearchResp) RawBody() io.Reader {
 //
 // The search definition using the Query DSL
 type SearchBody struct {
-	// Defines how to fetch a source. Fetching can be disabled entirely, or the
-	// source can be filtered.
-	Source *SearchBodySource `json:"_source,omitempty"`
+	// Source. Defines how to fetch a source. Fetching can be disabled
+	// entirely, or the source can be filtered.
+	Source *SearchSourceConfig `json:"_source,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
+	// Aggregations. Defines the aggregations that are run as part of the
+	// search request.
 	Aggregations map[string]CommonAggregationsAggregationContainer `json:"aggregations,omitempty"`
 
-	// Defines the aggregations that are run as part of the search request.
+	// Aggs. Defines the aggregations that are run as part of the search
+	// request.
 	Aggs map[string]CommonAggregationsAggregationContainer `json:"aggs,omitempty"`
 
 	Collapse *SearchFieldCollapse `json:"collapse,omitempty"`
@@ -618,154 +642,125 @@ type SearchBody struct {
 	// Available: >= 2.14.0.
 	Derived map[string]DerivedField `json:"derived,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns doc values for
-	// field names matching these patterns in the `hits.fields` property of the
-	// response.
-	DocvalueFields []SearchBodyDocvalueFieldsItem `json:"docvalue_fields,omitempty"`
+	// DocvalueFields. Array of wildcard (`*`) patterns. The request returns
+	// doc values for field names matching these patterns in the `hits.fields`
+	// property of the response.
+	DocvalueFields []CommonQueryDSLFieldAndFormat `json:"docvalue_fields,omitempty"`
 
-	// If `true`, returns detailed information about score computation as part
-	// of a hit.
+	// Explain. If `true`, returns detailed information about score computation
+	// as part of a hit.
 	Explain *bool `json:"explain,omitempty"`
 
-	// Configuration of search extensions defined by OpenSearch plugins.
+	// Ext. Configuration of search extensions defined by OpenSearch plugins.
 	Ext map[string]json.RawMessage `json:"ext,omitempty"`
 
-	// Array of wildcard (`*`) patterns. The request returns values for field
-	// names matching these patterns in the `hits.fields` property of the
+	// Fields. Array of wildcard (`*`) patterns. The request returns values for
+	// field names matching these patterns in the `hits.fields` property of the
 	// response.
-	Fields []SearchBodyFieldsItem `json:"fields,omitempty"`
+	Fields []CommonQueryDSLFieldAndFormat `json:"fields,omitempty"`
 
-	// Starting document offset. Needs to be non-negative. By default, you
-	// cannot page through more than 10,000 hits using the `from` and `size`
-	// parameters. To page through more hits, use the `search_after` parameter.
+	// From. Starting document offset. Needs to be non-negative. By default,
+	// you cannot page through more than 10,000 hits using the `from` and
+	// `size` parameters. To page through more hits, use the `search_after`
+	// parameter.
 	From *int `json:"from,omitempty"`
 
 	Highlight *SearchHighlight `json:"highlight,omitempty"`
 
-	// Whether to return scores with named queries. Default is false.
+	// IncludeNamedQueriesScore. Whether to return scores with named queries.
+	// Default is false.
 	IncludeNamedQueriesScore *bool `json:"include_named_queries_score,omitempty"`
 
-	// Boosts the `_score` of documents from specified indexes.
+	// IndicesBoost. Boosts the `_score` of documents from specified indexes.
 	IndicesBoost []map[string]float32 `json:"indices_boost,omitempty"`
 
-	// Minimum `_score` for matching documents. Documents with a lower `_score`
-	// are not included in the search results.
+	// MinScore. Minimum `_score` for matching documents. Documents with a
+	// lower `_score` are not included in the search results.
 	MinScore *float32 `json:"min_score,omitempty"`
 
 	PIT        *SearchPointInTimeReference   `json:"pit,omitempty"`
 	PostFilter *CommonQueryDSLQueryContainer `json:"post_filter,omitempty"`
 
-	// Set to `true` to return detailed timing information about the execution
-	// of individual components in a search request. NOTE: This is a debugging
-	// tool and adds significant overhead to search execution.
+	// Profile. Set to `true` to return detailed timing information about the
+	// execution of individual components in a search request. NOTE: This is a
+	// debugging tool and adds significant overhead to search execution.
 	Profile *bool `json:"profile,omitempty"`
 
 	Query *CommonQueryDSLQueryContainer `json:"query,omitempty"`
 
-	// Can be used to improve precision by reordering just the top (for example
-	// 100 - 500) documents returned by the `query` and `post_filter` phases.
+	// Rescore. Can be used to improve precision by reordering just the top
+	// (for example 100 - 500) documents returned by the `query` and
+	// `post_filter` phases.
 	Rescore *SearchBodyRescore `json:"rescore,omitempty"`
 
-	// Retrieve a script evaluation (based on different fields) for each hit.
+	// ScriptFields. Retrieve a script evaluation (based on different fields)
+	// for each hit.
 	ScriptFields map[string]ScriptField `json:"script_fields,omitempty"`
 
-	SearchAfter []SortResultsItem `json:"search_after,omitempty"`
+	SearchAfter []FieldValue `json:"search_after,omitempty"`
 
-	// Customizable sequence of processing stages applied to search queries.
+	// SearchPipeline. Customizable sequence of processing stages applied to
+	// search queries.
 	SearchPipeline *string `json:"search_pipeline,omitempty"`
 
-	// If `true`, returns sequence number and primary term of the last
-	// modification of each hit.
+	// SeqNoPrimaryTerm. If `true`, returns sequence number and primary term of
+	// the last modification of each hit.
 	SeqNoPrimaryTerm *bool `json:"seq_no_primary_term,omitempty"`
 
-	// The number of hits to return. By default, you cannot page through more
-	// than 10,000 hits using the `from` and `size` parameters. To page through
-	// more hits, use the `search_after` parameter.
+	// Size is the number of hits to return. By default, you cannot page
+	// through more than 10,000 hits using the `from` and `size` parameters. To
+	// page through more hits, use the `search_after` parameter.
 	Size *int `json:"size,omitempty"`
 
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 
-	Sort *SearchBodySort `json:"sort,omitempty"`
+	Sort *Sort `json:"sort,omitempty"`
 
 	// Stats groups to associate with the search. Each group maintains a
 	// statistics aggregation for its associated searches. You can retrieve
 	// these stats using the indexes stats API.
 	Stats []string `json:"stats,omitempty"`
 
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
+	// StoredFields is a comma-separated list or a wildcard expression
+	// specifying the fields to include in the statistics. Used as the default
+	// list unless a specific field list is provided in the `completion_fields`
+	// or `fielddata_fields` parameters.
 	StoredFields *string `json:"stored_fields,omitempty"`
 
 	Suggest *SearchSuggester `json:"suggest,omitempty"`
 
-	// Maximum number of documents to collect for each shard. If a query
-	// reaches this limit, OpenSearch terminates the query early. OpenSearch
-	// collects documents before sorting. Use with caution. OpenSearch applies
-	// this parameter to each shard handling the request. When possible, let
-	// OpenSearch perform early termination automatically. Avoid specifying
-	// this parameter for requests that target data streams with backing
-	// indexes across multiple data tiers. If set to `0` (default), the query
-	// does not terminate early.
+	// TerminateAfter. Maximum number of documents to collect for each shard.
+	// If a query reaches this limit, OpenSearch terminates the query early.
+	// OpenSearch collects documents before sorting. Use with caution.
+	// OpenSearch applies this parameter to each shard handling the request.
+	// When possible, let OpenSearch perform early termination automatically.
+	// Avoid specifying this parameter for requests that target data streams
+	// with backing indexes across multiple data tiers. If set to `0`
+	// (default), the query does not terminate early.
 	TerminateAfter *int `json:"terminate_after,omitempty"`
 
-	// Specifies the period of time to wait for a response from each shard. If
-	// no response is received before the timeout expires, the request fails
-	// and returns an error. Defaults to no timeout.
+	// Timeout. Specifies the period of time to wait for a response from each
+	// shard. If no response is received before the timeout expires, the
+	// request fails and returns an error. Defaults to no timeout.
 	Timeout *string `json:"timeout,omitempty"`
 
-	// If `true`, calculate and return document scores, even if the scores are
-	// not used for sorting.
+	// TrackScores. If `true`, calculate and return document scores, even if
+	// the scores are not used for sorting.
 	TrackScores *bool `json:"track_scores,omitempty"`
 
-	// The number of hits matching the query. When `true`, the exact number of
-	// hits is returned at the cost of some performance. When `false`, the
-	// response does not include the total number of hits matching the query.
-	// Default is `10,000` hits.
-	TrackTotalHits *SearchBodyTrackTotalHits `json:"track_total_hits,omitempty"`
+	// TrackTotalHits is the number of hits matching the query. When `true`,
+	// the exact number of hits is returned at the cost of some performance.
+	// When `false`, the response does not include the total number of hits
+	// matching the query. Default is `10,000` hits.
+	TrackTotalHits *SearchTrackHits `json:"track_total_hits,omitempty"`
 
-	// Enables or disables verbose mode for the search pipeline.
+	// VerbosePipeline. Enables or disables verbose mode for the search
+	// pipeline.
 	VerbosePipeline *bool `json:"verbose_pipeline,omitempty"`
 
-	// If `true`, returns document version as part of a hit.
+	// Version. If `true`, returns document version as part of a hit.
 	Version *bool `json:"version,omitempty"`
-}
-
-// SearchBodySourceObject1 is a typed component of the search operation.
-type SearchBodySourceObject1 struct {
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Excludes *string `json:"excludes,omitempty"`
-
-	// A comma-separated list or a wildcard expression specifying the fields to
-	// include in the statistics. Used as the default list unless a specific
-	// field list is provided in the `completion_fields` or `fielddata_fields`
-	// parameters.
-	Includes *string `json:"includes,omitempty"`
-}
-
-// SearchBodyDocvalueFieldsItemObject1 is a typed component of the search operation.
-type SearchBodyDocvalueFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
-}
-
-// SearchBodyFieldsItemObject1 is a typed component of the search operation.
-type SearchBodyFieldsItemObject1 struct {
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
-	Field string `json:"field"`
-
-	// Format in which the values are returned.
-	Format *string `json:"format,omitempty"`
 }
 
 // SearchRescore is a typed component of the search operation.
@@ -776,353 +771,24 @@ type SearchRescore struct {
 
 // SearchRescoreQuery is a typed component of the search operation.
 type SearchRescoreQuery struct {
-	// The relative importance of the original query as compared to the rescore
-	// query.
+	// QueryWeight is the relative importance of the original query as compared
+	// to the rescore query.
 	QueryWeight *float32 `json:"query_weight,omitempty"`
 
 	RescoreQuery CommonQueryDSLQueryContainer `json:"rescore_query"`
 
-	// The relative importance of the rescore query as compared to the original
-	// query.
+	// RescoreQueryWeight is the relative importance of the rescore query as
+	// compared to the original query.
 	RescoreQueryWeight *float32 `json:"rescore_query_weight,omitempty"`
 
 	ScoreMode *string `json:"score_mode,omitempty"`
 }
 
-// SearchBodySource is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchBodySource struct {
-	typ   SearchBodySourceType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchBodySourceType discriminates the branches of SearchBodySource.
-type SearchBodySourceType int
-
-const (
-	SearchBodySourceUnknownType SearchBodySourceType = iota
-	SearchBodySourceStringType
-	SearchBodySourceSearchBodySourceObject1Type
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchBodySourceUnknownType if the value has not been decoded.
-func (u *SearchBodySource) Type() SearchBodySourceType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchBodySource) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchBodySourceFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchBodySource) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchBodySourceUnknownType
-}
-
-// String returns the string branch value.
-func (u *SearchBodySource) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewSearchBodySourceFromString returns a SearchBodySource populated with v
-// on the String branch.
-func NewSearchBodySourceFromString(v string) SearchBodySource {
-	return SearchBodySource{
-		typ:   SearchBodySourceStringType,
-		value: &v,
-	}
-}
-
-// SearchBodySourceObject1 returns the SearchBodySourceObject1 branch value.
-func (u *SearchBodySource) SearchBodySourceObject1() SearchBodySourceObject1 {
-	if v, ok := u.value.(*SearchBodySourceObject1); ok {
-		return *v
-	}
-	var zero SearchBodySourceObject1
-	return zero
-}
-
-// NewSearchBodySourceFromSearchBodySourceObject1 returns a SearchBodySource populated with v
-// on the SearchBodySourceObject1 branch.
-func NewSearchBodySourceFromSearchBodySourceObject1(v SearchBodySourceObject1) SearchBodySource {
-	return SearchBodySource{
-		typ:   SearchBodySourceSearchBodySourceObject1Type,
-		value: &v,
-	}
-}
-
-func (u *SearchBodySource) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchBodySourceUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodySourceStringType
-		u.value = &v
-	case data[0] == '{':
-		var v SearchBodySourceObject1
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodySourceSearchBodySourceObject1Type
-		u.value = &v
-	default:
-		return fmt.Errorf("SearchBodySource: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u SearchBodySource) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// SearchBodyDocvalueFieldsItem is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchBodyDocvalueFieldsItem struct {
-	typ   SearchBodyDocvalueFieldsItemType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchBodyDocvalueFieldsItemType discriminates the branches of SearchBodyDocvalueFieldsItem.
-type SearchBodyDocvalueFieldsItemType int
-
-const (
-	SearchBodyDocvalueFieldsItemUnknownType SearchBodyDocvalueFieldsItemType = iota
-	SearchBodyDocvalueFieldsItemStringType
-	SearchBodyDocvalueFieldsItemSearchBodyDocvalueFieldsItemObject1Type
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchBodyDocvalueFieldsItemUnknownType if the value has not been decoded.
-func (u *SearchBodyDocvalueFieldsItem) Type() SearchBodyDocvalueFieldsItemType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchBodyDocvalueFieldsItem) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchBodyDocvalueFieldsItemFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchBodyDocvalueFieldsItem) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchBodyDocvalueFieldsItemUnknownType
-}
-
-// String returns the string branch value.
-func (u *SearchBodyDocvalueFieldsItem) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewSearchBodyDocvalueFieldsItemFromString returns a SearchBodyDocvalueFieldsItem populated with v
-// on the String branch.
-func NewSearchBodyDocvalueFieldsItemFromString(v string) SearchBodyDocvalueFieldsItem {
-	return SearchBodyDocvalueFieldsItem{
-		typ:   SearchBodyDocvalueFieldsItemStringType,
-		value: &v,
-	}
-}
-
-// SearchBodyDocvalueFieldsItemObject1 returns the SearchBodyDocvalueFieldsItemObject1 branch value.
-func (u *SearchBodyDocvalueFieldsItem) SearchBodyDocvalueFieldsItemObject1() SearchBodyDocvalueFieldsItemObject1 {
-	if v, ok := u.value.(*SearchBodyDocvalueFieldsItemObject1); ok {
-		return *v
-	}
-	var zero SearchBodyDocvalueFieldsItemObject1
-	return zero
-}
-
-// NewSearchBodyDocvalueFieldsItemFromSearchBodyDocvalueFieldsItemObject1 returns a SearchBodyDocvalueFieldsItem populated with v
-// on the SearchBodyDocvalueFieldsItemObject1 branch.
-func NewSearchBodyDocvalueFieldsItemFromSearchBodyDocvalueFieldsItemObject1(v SearchBodyDocvalueFieldsItemObject1) SearchBodyDocvalueFieldsItem {
-	return SearchBodyDocvalueFieldsItem{
-		typ:   SearchBodyDocvalueFieldsItemSearchBodyDocvalueFieldsItemObject1Type,
-		value: &v,
-	}
-}
-
-func (u *SearchBodyDocvalueFieldsItem) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchBodyDocvalueFieldsItemUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyDocvalueFieldsItemStringType
-		u.value = &v
-	case data[0] == '{':
-		var v SearchBodyDocvalueFieldsItemObject1
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyDocvalueFieldsItemSearchBodyDocvalueFieldsItemObject1Type
-		u.value = &v
-	default:
-		return fmt.Errorf("SearchBodyDocvalueFieldsItem: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u SearchBodyDocvalueFieldsItem) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// SearchBodyFieldsItem is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchBodyFieldsItem struct {
-	typ   SearchBodyFieldsItemType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchBodyFieldsItemType discriminates the branches of SearchBodyFieldsItem.
-type SearchBodyFieldsItemType int
-
-const (
-	SearchBodyFieldsItemUnknownType SearchBodyFieldsItemType = iota
-	SearchBodyFieldsItemStringType
-	SearchBodyFieldsItemSearchBodyFieldsItemObject1Type
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchBodyFieldsItemUnknownType if the value has not been decoded.
-func (u *SearchBodyFieldsItem) Type() SearchBodyFieldsItemType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchBodyFieldsItem) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchBodyFieldsItemFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchBodyFieldsItem) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchBodyFieldsItemUnknownType
-}
-
-// String returns the string branch value.
-func (u *SearchBodyFieldsItem) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewSearchBodyFieldsItemFromString returns a SearchBodyFieldsItem populated with v
-// on the String branch.
-func NewSearchBodyFieldsItemFromString(v string) SearchBodyFieldsItem {
-	return SearchBodyFieldsItem{
-		typ:   SearchBodyFieldsItemStringType,
-		value: &v,
-	}
-}
-
-// SearchBodyFieldsItemObject1 returns the SearchBodyFieldsItemObject1 branch value.
-func (u *SearchBodyFieldsItem) SearchBodyFieldsItemObject1() SearchBodyFieldsItemObject1 {
-	if v, ok := u.value.(*SearchBodyFieldsItemObject1); ok {
-		return *v
-	}
-	var zero SearchBodyFieldsItemObject1
-	return zero
-}
-
-// NewSearchBodyFieldsItemFromSearchBodyFieldsItemObject1 returns a SearchBodyFieldsItem populated with v
-// on the SearchBodyFieldsItemObject1 branch.
-func NewSearchBodyFieldsItemFromSearchBodyFieldsItemObject1(v SearchBodyFieldsItemObject1) SearchBodyFieldsItem {
-	return SearchBodyFieldsItem{
-		typ:   SearchBodyFieldsItemSearchBodyFieldsItemObject1Type,
-		value: &v,
-	}
-}
-
-func (u *SearchBodyFieldsItem) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchBodyFieldsItemUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyFieldsItemStringType
-		u.value = &v
-	case data[0] == '{':
-		var v SearchBodyFieldsItemObject1
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyFieldsItemSearchBodyFieldsItemObject1Type
-		u.value = &v
-	default:
-		return fmt.Errorf("SearchBodyFieldsItem: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u SearchBodyFieldsItem) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
 // Can be used to improve precision by reordering just the top (for example 100 - 500) documents returned by the `query` and `post_filter` phases.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type SearchBodyRescore struct {
@@ -1131,14 +797,27 @@ type SearchBodyRescore struct {
 	value any
 }
 
-// SearchBodyRescoreType discriminates the branches of SearchBodyRescore.
+// SearchBodyRescoreType names which branch of SearchBodyRescore is set.
 type SearchBodyRescoreType int
 
 const (
 	SearchBodyRescoreUnknownType SearchBodyRescoreType = iota
-	SearchBodyRescoreSearchRescoreType
+	SearchBodyRescoreRescoreType
 	SearchBodyRescoreArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t SearchBodyRescoreType) String() string {
+	switch t {
+	case SearchBodyRescoreRescoreType:
+		return "Rescore"
+	case SearchBodyRescoreArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns SearchBodyRescoreUnknownType if the value has not been decoded.
@@ -1159,31 +838,37 @@ func (u *SearchBodyRescore) SetRaw(raw json.RawMessage) {
 	u.typ = SearchBodyRescoreUnknownType
 }
 
-// SearchRescore returns the SearchRescore branch value.
-func (u *SearchBodyRescore) SearchRescore() SearchRescore {
+// Rescore returns the SearchRescore branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero SearchRescore in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchBodyRescore) Rescore() (SearchRescore, error) {
 	if v, ok := u.value.(*SearchRescore); ok {
-		return *v
+		return *v, nil
 	}
 	var zero SearchRescore
-	return zero
+	return zero, &UnionBranchError{Union: "SearchBodyRescore", Want: "Rescore", Got: u.typ.String()}
 }
 
-// NewSearchBodyRescoreFromSearchRescore returns a SearchBodyRescore populated with v
-// on the SearchRescore branch.
-func NewSearchBodyRescoreFromSearchRescore(v SearchRescore) SearchBodyRescore {
+// NewSearchBodyRescoreFromRescore returns a SearchBodyRescore populated with v
+// on the Rescore branch.
+func NewSearchBodyRescoreFromRescore(v SearchRescore) SearchBodyRescore {
 	return SearchBodyRescore{
-		typ:   SearchBodyRescoreSearchRescoreType,
+		typ:   SearchBodyRescoreRescoreType,
 		value: &v,
 	}
 }
 
-// Array returns the []SearchRescore branch value.
-func (u *SearchBodyRescore) Array() []SearchRescore {
+// Array returns the []SearchRescore branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []SearchRescore in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *SearchBodyRescore) Array() ([]SearchRescore, error) {
 	if v, ok := u.value.(*[]SearchRescore); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []SearchRescore
-	return zero
+	return zero, &UnionBranchError{Union: "SearchBodyRescore", Want: "Array", Got: u.typ.String()}
 }
 
 // NewSearchBodyRescoreFromArray returns a SearchBodyRescore populated with v
@@ -1208,7 +893,7 @@ func (u *SearchBodyRescore) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = SearchBodyRescoreSearchRescoreType
+		u.typ = SearchBodyRescoreRescoreType
 		u.value = &v
 	case data[0] == '[':
 		var v []SearchRescore
@@ -1224,289 +909,6 @@ func (u *SearchBodyRescore) UnmarshalJSON(data []byte) error {
 }
 
 func (u SearchBodyRescore) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// SearchBodySort is a discriminated union type (try-each, newest version first).
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchBodySort struct {
-	typ   SearchBodySortType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchBodySortType discriminates the branches of SearchBodySort.
-type SearchBodySortType int
-
-const (
-	SearchBodySortUnknownType SearchBodySortType = iota
-	SearchBodySortStringType
-	SearchBodySortStringMapType
-	SearchBodySortFieldSortMapType
-	SearchBodySortOptionsType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchBodySortUnknownType if the value has not been decoded.
-func (u *SearchBodySort) Type() SearchBodySortType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchBodySort) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchBodySortFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchBodySort) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchBodySortUnknownType
-}
-
-// String returns the string branch value.
-func (u *SearchBodySort) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewSearchBodySortFromString returns a SearchBodySort populated with v
-// on the String branch.
-func NewSearchBodySortFromString(v string) SearchBodySort {
-	return SearchBodySort{
-		typ:   SearchBodySortStringType,
-		value: &v,
-	}
-}
-
-// StringMap returns the map[string]string branch value.
-func (u *SearchBodySort) StringMap() map[string]string {
-	if v, ok := u.value.(*map[string]string); ok {
-		return *v
-	}
-	var zero map[string]string
-	return zero
-}
-
-// NewSearchBodySortFromStringMap returns a SearchBodySort populated with v
-// on the StringMap branch.
-func NewSearchBodySortFromStringMap(v map[string]string) SearchBodySort {
-	return SearchBodySort{
-		typ:   SearchBodySortStringMapType,
-		value: &v,
-	}
-}
-
-// FieldSortMap returns the map[string]FieldSort branch value.
-func (u *SearchBodySort) FieldSortMap() map[string]FieldSort {
-	if v, ok := u.value.(*map[string]FieldSort); ok {
-		return *v
-	}
-	var zero map[string]FieldSort
-	return zero
-}
-
-// NewSearchBodySortFromFieldSortMap returns a SearchBodySort populated with v
-// on the FieldSortMap branch.
-func NewSearchBodySortFromFieldSortMap(v map[string]FieldSort) SearchBodySort {
-	return SearchBodySort{
-		typ:   SearchBodySortFieldSortMapType,
-		value: &v,
-	}
-}
-
-// Options returns the SortOptions branch value.
-func (u *SearchBodySort) Options() SortOptions {
-	if v, ok := u.value.(*SortOptions); ok {
-		return *v
-	}
-	var zero SortOptions
-	return zero
-}
-
-// NewSearchBodySortFromOptions returns a SearchBodySort populated with v
-// on the Options branch.
-func NewSearchBodySortFromOptions(v SortOptions) SearchBodySort {
-	return SearchBodySort{
-		typ:   SearchBodySortOptionsType,
-		value: &v,
-	}
-}
-
-func (u *SearchBodySort) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchBodySortUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	// Pass 1: branches that declare required (discriminator) fields. A branch
-	// is eligible only when the payload carries every required key, so a more
-	// specific branch (e.g. an error sub-response keyed by "error") is not
-	// absorbed by a structurally permissive success branch. encoding/json does
-	// not enforce a schema's "required" set, hence the explicit key probe.
-	// Pass 2: permissive branches with no required fields, tried newest-first.
-	{
-		var v string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchBodySortStringType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]string
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchBodySortStringMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v map[string]FieldSort
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchBodySortFieldSortMapType
-			u.value = &v
-			return nil
-		}
-	}
-	{
-		var v SortOptions
-		if err := json.Unmarshal(data, &v); err == nil {
-			u.typ = SearchBodySortOptionsType
-			u.value = &v
-			return nil
-		}
-	}
-	return fmt.Errorf("SearchBodySort: no branch matched JSON: %s", data[:min(len(data), 64)])
-}
-
-func (u SearchBodySort) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// The number of hits matching the query. When `true`, the exact
-// number of hits is returned at the cost of some performance. When `false`, the
-// response does not include the total number of hits matching the query.
-// Default is `10,000` hits.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type SearchBodyTrackTotalHits struct {
-	typ   SearchBodyTrackTotalHitsType
-	raw   json.RawMessage
-	value any
-}
-
-// SearchBodyTrackTotalHitsType discriminates the branches of SearchBodyTrackTotalHits.
-type SearchBodyTrackTotalHitsType int
-
-const (
-	SearchBodyTrackTotalHitsUnknownType SearchBodyTrackTotalHitsType = iota
-	SearchBodyTrackTotalHitsBoolType
-	SearchBodyTrackTotalHitsIntType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns SearchBodyTrackTotalHitsUnknownType if the value has not been decoded.
-func (u *SearchBodyTrackTotalHits) Type() SearchBodyTrackTotalHitsType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *SearchBodyTrackTotalHits) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewSearchBodyTrackTotalHitsFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *SearchBodyTrackTotalHits) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = SearchBodyTrackTotalHitsUnknownType
-}
-
-// Bool returns the bool branch value.
-func (u *SearchBodyTrackTotalHits) Bool() bool {
-	if v, ok := u.value.(*bool); ok {
-		return *v
-	}
-	var zero bool
-	return zero
-}
-
-// NewSearchBodyTrackTotalHitsFromBool returns a SearchBodyTrackTotalHits populated with v
-// on the Bool branch.
-func NewSearchBodyTrackTotalHitsFromBool(v bool) SearchBodyTrackTotalHits {
-	return SearchBodyTrackTotalHits{
-		typ:   SearchBodyTrackTotalHitsBoolType,
-		value: &v,
-	}
-}
-
-// Int returns the int branch value.
-func (u *SearchBodyTrackTotalHits) Int() int {
-	if v, ok := u.value.(*int); ok {
-		return *v
-	}
-	var zero int
-	return zero
-}
-
-// NewSearchBodyTrackTotalHitsFromInt returns a SearchBodyTrackTotalHits populated with v
-// on the Int branch.
-func NewSearchBodyTrackTotalHitsFromInt(v int) SearchBodyTrackTotalHits {
-	return SearchBodyTrackTotalHits{
-		typ:   SearchBodyTrackTotalHitsIntType,
-		value: &v,
-	}
-}
-
-func (u *SearchBodyTrackTotalHits) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = SearchBodyTrackTotalHitsUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == 't' || data[0] == 'f':
-		var v bool
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyTrackTotalHitsBoolType
-		u.value = &v
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = SearchBodyTrackTotalHitsIntType
-		u.value = &v
-	default:
-		return fmt.Errorf("SearchBodyTrackTotalHits: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u SearchBodyTrackTotalHits) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -1568,7 +970,7 @@ func (c Client) Search(ctx context.Context, req *SearchReq) (*SearchResp, error)
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

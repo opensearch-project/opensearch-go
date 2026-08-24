@@ -76,6 +76,7 @@ func TestSearchPipelineDelete_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.SearchPipeline.Delete(t.Context(), opensearchapi.SearchPipelineDeleteReq{ID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestSearchPipelineDelete_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.SearchPipeline.Delete(t.Context(), opensearchapi.SearchPipelineDeleteReq{ID: "test"})
 		require.Error(t, err)

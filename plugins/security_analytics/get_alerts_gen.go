@@ -213,10 +213,10 @@ type SecurityAnalyticsAlertsAlert struct {
 	DetectorID             *string                                        `json:"detector_id,omitempty"`
 	EndTime                *string                                        `json:"end_time"`
 	ErrorMessage           *string                                        `json:"error_message"`
-	FindingIds             []string                                       `json:"finding_ids,omitempty"`
+	FindingIDs             []string                                       `json:"finding_ids,omitempty"`
 	ID                     *string                                        `json:"id,omitempty"`
 	LastNotificationTime   *string                                        `json:"last_notification_time,omitempty"`
-	RelatedDocIds          []string                                       `json:"related_doc_ids,omitempty"`
+	RelatedDocIDs          []string                                       `json:"related_doc_ids,omitempty"`
 	SchemaVersion          *int64                                         `json:"schema_version,omitempty"`
 	Severity               *string                                        `json:"severity,omitempty"`
 	StartTime              *string                                        `json:"start_time,omitempty"`

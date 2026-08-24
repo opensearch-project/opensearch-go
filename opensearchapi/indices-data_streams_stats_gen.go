@@ -94,19 +94,21 @@ func (r IndicesDataStreamsStatsParams) get() map[string]string {
 type IndicesDataStreamsStatsResp struct {
 	Shards ShardStatistics `json:"_shards"`
 
-	// Total number of backing indexes for the selected data streams.
+	// BackingIndices. Total number of backing indexes for the selected data
+	// streams.
 	BackingIndices int `json:"backing_indices"`
 
-	// Total number of selected data streams.
+	// DataStreamCount. Total number of selected data streams.
 	DataStreamCount int `json:"data_stream_count"`
 
-	// Contains statistics for the selected data streams.
+	// DataStreams. Contains statistics for the selected data streams.
 	DataStreams []IndicesDataStreamStats `json:"data_streams"`
 
-	// The unique identifier of a node.
+	// TotalStoreSize is the unique identifier of a node.
 	TotalStoreSize *string `json:"total_store_size,omitempty"`
 
-	// Total size, in bytes, of all shards for the selected data streams.
+	// TotalStoreSizeBytes. Total size, in bytes, of all shards for the
+	// selected data streams.
 	TotalStoreSizeBytes int64 `json:"total_store_size_bytes"`
 
 	response *opensearch.Response
@@ -163,7 +165,7 @@ func (r *IndicesDataStreamsStatsResp) PartialFailures(mask errmask.ErrorMask) []
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStreamsStatsReq) (*IndicesDataStreamsStatsResp, error) {
+func (c IndicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStreamsStatsReq) (*IndicesDataStreamsStatsResp, error) {
 	if req == nil {
 		req = &IndicesDataStreamsStatsReq{}
 	}
@@ -172,7 +174,7 @@ func (c indicesClient) DataStreamsStats(ctx context.Context, req *IndicesDataStr
 		data IndicesDataStreamsStatsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

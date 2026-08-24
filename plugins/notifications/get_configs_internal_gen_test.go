@@ -136,27 +136,27 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ses_account.from_address",
-			params: GetConfigsParams{SesAccountFromAddress: "test-value"},
+			params: GetConfigsParams{SESAccountFromAddress: "test-value"},
 			want:   map[string]string{"ses_account.from_address": "test-value"},
 		},
 		{
 			name:   "ses_account.from_address.keyword",
-			params: GetConfigsParams{SesAccountFromAddressKeyword: "test-value"},
+			params: GetConfigsParams{SESAccountFromAddressKeyword: "test-value"},
 			want:   map[string]string{"ses_account.from_address.keyword": "test-value"},
 		},
 		{
 			name:   "ses_account.region",
-			params: GetConfigsParams{SesAccountRegion: "test-value"},
+			params: GetConfigsParams{SESAccountRegion: "test-value"},
 			want:   map[string]string{"ses_account.region": "test-value"},
 		},
 		{
 			name:   "ses_account.role_arn",
-			params: GetConfigsParams{SesAccountRoleArn: "test-value"},
+			params: GetConfigsParams{SESAccountRoleARN: "test-value"},
 			want:   map[string]string{"ses_account.role_arn": "test-value"},
 		},
 		{
 			name:   "ses_account.role_arn.keyword",
-			params: GetConfigsParams{SesAccountRoleArnKeyword: "test-value"},
+			params: GetConfigsParams{SESAccountRoleARNKeyword: "test-value"},
 			want:   map[string]string{"ses_account.role_arn.keyword": "test-value"},
 		},
 		{
@@ -171,47 +171,47 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "smtp_account.from_address",
-			params: GetConfigsParams{SmtpAccountFromAddress: "test-value"},
+			params: GetConfigsParams{SMTPAccountFromAddress: "test-value"},
 			want:   map[string]string{"smtp_account.from_address": "test-value"},
 		},
 		{
 			name:   "smtp_account.from_address.keyword",
-			params: GetConfigsParams{SmtpAccountFromAddressKeyword: "test-value"},
+			params: GetConfigsParams{SMTPAccountFromAddressKeyword: "test-value"},
 			want:   map[string]string{"smtp_account.from_address.keyword": "test-value"},
 		},
 		{
 			name:   "smtp_account.host",
-			params: GetConfigsParams{SmtpAccountHost: "test-value"},
+			params: GetConfigsParams{SMTPAccountHost: "test-value"},
 			want:   map[string]string{"smtp_account.host": "test-value"},
 		},
 		{
 			name:   "smtp_account.host.keyword",
-			params: GetConfigsParams{SmtpAccountHostKeyword: "test-value"},
+			params: GetConfigsParams{SMTPAccountHostKeyword: "test-value"},
 			want:   map[string]string{"smtp_account.host.keyword": "test-value"},
 		},
 		{
 			name:   "smtp_account.method",
-			params: GetConfigsParams{SmtpAccountMethod: "test-value"},
+			params: GetConfigsParams{SMTPAccountMethod: "test-value"},
 			want:   map[string]string{"smtp_account.method": "test-value"},
 		},
 		{
 			name:   "sns.role_arn",
-			params: GetConfigsParams{SnsRoleArn: "test-value"},
+			params: GetConfigsParams{SNSRoleARN: "test-value"},
 			want:   map[string]string{"sns.role_arn": "test-value"},
 		},
 		{
 			name:   "sns.role_arn.keyword",
-			params: GetConfigsParams{SnsRoleArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSRoleARNKeyword: "test-value"},
 			want:   map[string]string{"sns.role_arn.keyword": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn",
-			params: GetConfigsParams{SnsTopicArn: "test-value"},
+			params: GetConfigsParams{SNSTopicARN: "test-value"},
 			want:   map[string]string{"sns.topic_arn": "test-value"},
 		},
 		{
 			name:   "sns.topic_arn.keyword",
-			params: GetConfigsParams{SnsTopicArnKeyword: "test-value"},
+			params: GetConfigsParams{SNSTopicARNKeyword: "test-value"},
 			want:   map[string]string{"sns.topic_arn.keyword": "test-value"},
 		},
 		{

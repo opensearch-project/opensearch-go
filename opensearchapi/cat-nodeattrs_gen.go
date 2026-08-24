@@ -137,28 +137,28 @@ func (r CatNodeattrsResp) RawBody() io.Reader {
 
 // CatNodeattrsNodeAttributesRecord is a typed component of the cat.nodeattrs operation.
 type CatNodeattrsNodeAttributesRecord struct {
-	// The attribute name.
+	// Attr is the attribute name.
 	Attr *string `json:"attr,omitempty"`
 
-	// The hostname.
+	// Host is the hostname.
 	Host *string `json:"host,omitempty"`
 
-	// The unique node identifier.
+	// ID is the unique node identifier.
 	ID *string `json:"id,omitempty"`
 
-	// The IP address.
+	// IP is the IP address.
 	IP *string `json:"ip,omitempty"`
 
-	// The node name.
+	// Node is the node name.
 	Node *string `json:"node,omitempty"`
 
-	// The process identifier.
-	Pid *string `json:"pid,omitempty"`
+	// PID is the process identifier.
+	PID *string `json:"pid,omitempty"`
 
-	// The bound transport port.
+	// Port is the bound transport port.
 	Port *string `json:"port,omitempty"`
 
-	// The attribute value.
+	// Value is the attribute value.
 	Value *string `json:"value,omitempty"`
 }
 
@@ -171,7 +171,7 @@ type CatNodeattrsNodeAttributesRecord struct {
 // Not available on: amazon-managed, amazon-serverless.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-nodeattrs/
-func (c catClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNodeattrsResp, error) {
+func (c CatClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNodeattrsResp, error) {
 	if req == nil {
 		req = &CatNodeattrsReq{}
 	}
@@ -180,7 +180,7 @@ func (c catClient) Nodeattrs(ctx context.Context, req *CatNodeattrsReq) (*CatNod
 		data CatNodeattrsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

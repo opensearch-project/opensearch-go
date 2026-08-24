@@ -109,13 +109,13 @@ func (r GenerateOboTokenParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/security/access-control/authentication-tokens/#api-endpoint
 type GenerateOboTokenResp struct {
-	// The generated OBO token.
+	// AuthenticationToken is the generated OBO token.
 	AuthenticationToken *string `json:"authenticationToken,omitempty"`
 
-	// The duration of the token.
+	// DurationSeconds is the duration of the token.
 	DurationSeconds *string `json:"durationSeconds,omitempty"`
 
-	// The name of the entity requesting token.
+	// User is the name of the entity requesting token.
 	User *string `json:"user,omitempty"`
 
 	response *opensearch.Response

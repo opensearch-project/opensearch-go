@@ -47,7 +47,7 @@ func e2eTestConn(t *testing.T, name string, rtt time.Duration, processors int, c
 	}
 	c.allocatedProcessors.Store(int32(processors)) //nolint:gosec // test value
 	c.estLoad.clock = clk
-	c.state.Store(int64(newConnState(lcActive)))
+	c.setLifecycleBit(lcActive)
 	return c
 }
 

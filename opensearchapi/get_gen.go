@@ -111,7 +111,7 @@ type GetParams struct {
 	Version int
 
 	// The specific version type: `internal`, `external`, `external_gte`.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r GetParams) get() map[string]string {
@@ -162,7 +162,7 @@ func (r GetParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -176,8 +176,7 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
 type GetResp struct {
-	GetResultBase
-	Source json.RawMessage `json:"_source"`
+	GetResult
 
 	response *opensearch.Response
 }
@@ -196,21 +195,21 @@ func (r GetResp) RawBody() io.Reader {
 	return bytes.NewReader(r.response.RawBody())
 }
 
-// GetResultBase is a typed component of the get operation.
-type GetResultBase struct {
-	// The unique identifier for a resource.
+// GetResult is a typed component of the get operation.
+type GetResult struct {
+	// ID is the unique identifier for a resource.
 	ID string `json:"_id"`
 
 	Index       string  `json:"_index"`
 	PrimaryTerm *int64  `json:"_primary_term,omitempty"`
 	Routing     *string `json:"_routing,omitempty"`
 
-	// The sequence number of the document.
+	// SeqNo is the sequence number of the document.
 	SeqNo *int64 `json:"_seq_no,omitempty"`
 
-	Source json.RawMessage `json:"_source"`
+	Source json.RawMessage `json:"_source,omitempty"`
 
-	// The type of document or resource.
+	// Type is the type of document or resource.
 	Type *string `json:"_type,omitempty"`
 
 	Version *int64                     `json:"_version,omitempty"`
@@ -225,12 +224,12 @@ type GetResultBase struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) Get(ctx context.Context, req GetReq) (*GetResp, error) {
+func (c DocumentClient) Get(ctx context.Context, req GetReq) (*GetResp, error) {
 	var (
 		data GetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

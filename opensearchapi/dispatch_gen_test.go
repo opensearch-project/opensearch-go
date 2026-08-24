@@ -357,10 +357,10 @@ func TestDispatch_Delete(t *testing.T) {
 	var _ func(context.Context, opensearchapi.DeleteReq) (*opensearchapi.DeleteResp, error) = c.Doc.Delete
 }
 
-func TestDispatch_DeleteAllPits(t *testing.T) {
+func TestDispatch_DeleteAllPITs(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.DeleteAllPitsReq) (*opensearchapi.DeleteAllPitsResp, error) = c.PIT.DeleteAll
+	var _ func(context.Context, *opensearchapi.DeleteAllPITsReq) (*opensearchapi.DeleteAllPITsResp, error) = c.PIT.DeleteAll
 }
 
 func TestDispatch_DeleteByQuery(t *testing.T) {
@@ -417,16 +417,16 @@ func TestDispatch_Get(t *testing.T) {
 	var _ func(context.Context, opensearchapi.GetReq) (*opensearchapi.GetResp, error) = c.Doc.Get
 }
 
-func TestDispatch_GetAllPits(t *testing.T) {
+func TestDispatch_GetAllPITs(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.GetAllPitsReq) (*opensearchapi.GetAllPitsResp, error) = c.PIT.GetAll
+	var _ func(context.Context, *opensearchapi.GetAllPITsReq) (*opensearchapi.GetAllPITsResp, error) = c.PIT.GetAll
 }
 
 func TestV4Aliases_PITGet(t *testing.T) {
 	// Compile-time signature assertion.
 	var c opensearchapi.Client
-	var _ func(context.Context, *opensearchapi.GetAllPitsReq) (*opensearchapi.GetAllPitsResp, error) = c.PIT.Get
+	var _ func(context.Context, *opensearchapi.GetAllPITsReq) (*opensearchapi.GetAllPITsResp, error) = c.PIT.Get
 }
 
 func TestDispatch_GetScript(t *testing.T) {

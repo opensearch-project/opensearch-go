@@ -146,7 +146,7 @@ func (r IndicesAddBlockResp) RawBody() io.Reader {
 //
 // The status of a block operation on an index.
 type IndicesAddBlockIndicesBlockStatus struct {
-	// Whether the block operation was successful.
+	// Blocked. Whether the block operation was successful.
 	Blocked bool `json:"blocked"`
 
 	Name string `json:"name"`
@@ -159,12 +159,12 @@ type IndicesAddBlockIndicesBlockStatus struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*IndicesAddBlockResp, error) {
+func (c IndicesClient) AddBlock(ctx context.Context, req IndicesAddBlockReq) (*IndicesAddBlockResp, error) {
 	var (
 		data IndicesAddBlockResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

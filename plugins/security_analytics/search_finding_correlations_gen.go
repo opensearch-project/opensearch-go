@@ -10,7 +10,6 @@ package security_analytics
 
 import (
 	"bytes"
-	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
@@ -115,33 +114,17 @@ func (r SearchFindingCorrelationsParams) get() map[string]string {
 	return params
 }
 
-// SearchFindingCorrelationsResp represents the response for the SearchFindingCorrelations operation.
-// The response body has a dynamic schema and is captured as raw JSON.
+// SearchFindingCorrelationsResp represents the response for the security_analytics.search_finding_correlations operation.
 //
 // List correlations for a finding.
 //
+// Available: >= 2.7.0.
+//
 // See: https://docs.opensearch.org/docs/latest/security-analytics/api-tools/correlation-eng/#list-correlations-for-a-finding-belonging-to-a-log-type
 type SearchFindingCorrelationsResp struct {
-	Body     json.RawMessage `json:"-"`
+	Findings []SecurityAnalyticsFindingsFindingWithScore `json:"findings"`
+
 	response *opensearch.Response
-}
-
-// UnmarshalJSON captures the raw response body.
-//
-//nolint:unparam // error return required by json.Unmarshaler; raw passthrough never fails
-func (r *SearchFindingCorrelationsResp) UnmarshalJSON(b []byte) error {
-	r.Body = append(r.Body[:0], b...)
-	return nil
-}
-
-// MarshalJSON returns the raw response body for comparison testing.
-//
-//nolint:unparam // error return required by json.Marshaler; raw passthrough never fails
-func (r SearchFindingCorrelationsResp) MarshalJSON() ([]byte, error) {
-	if r.Body == nil {
-		return build.NullJSON, nil
-	}
-	return r.Body, nil
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
@@ -156,4 +139,12 @@ func (r SearchFindingCorrelationsResp) RawBody() io.Reader {
 		return nil
 	}
 	return bytes.NewReader(r.response.RawBody())
+}
+
+// SecurityAnalyticsFindingsFindingWithScore is a typed component of the security_analytics.search_finding_correlations operation.
+type SecurityAnalyticsFindingsFindingWithScore struct {
+	DetectorType *string  `json:"detector_type,omitempty"`
+	Finding      *string  `json:"finding,omitempty"`
+	Rules        []string `json:"rules,omitempty"`
+	Score        *float32 `json:"score,omitempty"`
 }

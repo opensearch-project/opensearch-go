@@ -95,8 +95,8 @@ func (r SnapshotDeleteParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/delete-snapshot/
 type SnapshotDeleteResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -123,12 +123,12 @@ func (r SnapshotDeleteResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/delete-snapshot/
-func (c snapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, error) {
+func (c SnapshotClient) Delete(ctx context.Context, req SnapshotDeleteReq) (*SnapshotDeleteResp, error) {
 	var (
 		data SnapshotDeleteResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

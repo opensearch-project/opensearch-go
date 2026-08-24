@@ -410,6 +410,10 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 		}
 	}
 
+	// Expire the zombie-resurrection grace on connections that have been dead
+	// too long, so a node that never comes back stops being blindly retried.
+	c.resetDeadConnViability()
+
 	// Rotate standby connections after discovery completes.
 	// This piggybacks on the discovery interval rather than using a separate timer.
 	// Each rotation health-checks one standby and, if healthy, swaps it with a random active.
@@ -548,6 +552,7 @@ func (c *Transport) createConnection(node nodeInfo) *Connection {
 	conn := &Connection{
 		URL:        node.url,
 		URLString:  node.url.String(),
+		hostPort:   hostPrefixOf(node.url),
 		ID:         node.ID,
 		Name:       node.Name,
 		Roles:      node.roleSet,
@@ -765,7 +770,7 @@ func (c *Transport) updateConnectionPool(
 	// Set up health check function and observer for pools that support it
 	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
 		pool.mu.Lock()
-		pool.healthCheck = c.DefaultHealthCheck
+		pool.mu.healthCheck = c.DefaultHealthCheck
 		pool.mu.Unlock()
 		if obs := c.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
@@ -787,8 +792,11 @@ func (c *Transport) updateConnectionPool(
 	// This handles connections reused by nodeDiscovery() that were never health-checked,
 	// which would otherwise leave rttRing at rttBucketUnknown and break connection scoring.
 	if pool, ok := newConnectionPool.(*multiServerPool); ok {
+		pool.mu.RLock()
+		hc := pool.mu.healthCheck
+		pool.mu.RUnlock()
 		for _, conn := range finalReady {
-			if conn.rttRing != nil && conn.rttRing.medianBucket().IsUnknown() && pool.healthCheck != nil {
+			if conn.rttRing != nil && conn.rttRing.medianBucket().IsUnknown() && hc != nil {
 				go pool.scheduleRTTProbe(conn) //nolint:contextcheck // scheduleRTTProbe uses pool's long-lived context.
 			}
 		}
@@ -976,27 +984,16 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		return c.promoteConnectionPoolWithLock(readyConnections, deadConnections)
 	}
 
-	// Update existing multiServerPool or create new one
-	// Apply client-level filtering for dedicated cluster managers
+	// allConns is the bookkeeping inventory of every discovered connection,
+	// including dedicated cluster managers. Discovery reuses connections by
+	// scanning allConns (findConnectionByURL) and evicts them via the removed
+	// diff computed against allConns. Query traffic is kept off dedicated
+	// cluster managers at the routing-policy layer (see RoundRobinPolicy).
 	allReadyConns := make([]*Connection, 0, len(readyConnections))
 	allDeadConns := make([]*Connection, 0, len(deadConnections))
 
-	for _, conn := range readyConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
-			}
-			continue
-		}
-		allReadyConns = append(allReadyConns, conn)
-	}
-
-	for _, conn := range deadConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			continue
-		}
-		allDeadConns = append(allDeadConns, conn)
-	}
+	allReadyConns = append(allReadyConns, readyConnections...)
+	allDeadConns = append(allDeadConns, deadConnections...)
 
 	// Shuffle connections for load distribution unless disabled
 	if !c.skipConnectionShuffle && len(allReadyConns) > 1 {
@@ -1040,9 +1037,19 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		}
 	}
 
+	// Recalculate warmup parameters and partition the ready list under the pool
+	// write lock. recalculateWarmupParamsWithLock writes mu.activeListCap/warmupRounds/
+	// warmupSkipCount, getWarmupParamsWithLock reads them, and the final assignment sets
+	// mu.activeCount -- all mu-guarded fields that resurrectWithLock also touches
+	// under pool.mu. Holding the lock across the whole section serializes it
+	// against resurrection (c.mu, held by the caller, only serializes it against
+	// metrics.snapshot). Per-connection conn.mu is taken inside the loop, matching
+	// the pool.mu -> conn.mu ordering used by deferredStandbyPromotion.
+	allConnsPool.mu.Lock()
+
 	// Recalculate activeListCap and warmup parameters for the allConns pool before
 	// partitioning so startWarmup calls use the correctly-scaled values.
-	allConnsPool.recalculateWarmupParams(len(allReadyConns) + len(allDeadConns))
+	allConnsPool.recalculateWarmupParamsWithLock(len(allReadyConns) + len(allDeadConns))
 
 	// Partition ready connections by their current lifecycle state.
 	// Reused connections (unchanged in discovery) may already be in standby
@@ -1074,7 +1081,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 			conn.mu.Lock()
 			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
 			conn.mu.Unlock()
-			rounds, skip := allConnsPool.getWarmupParams()
+			rounds, skip := allConnsPool.getWarmupParamsWithLock()
 			conn.startWarmup(rounds, skip)
 			if i != activeCount {
 				allReadyConns[i], allReadyConns[activeCount] = allReadyConns[activeCount], allReadyConns[i]
@@ -1083,6 +1090,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		}
 	}
 	allConnsPool.mu.activeCount = activeCount
+	allConnsPool.mu.Unlock()
 
 	// NOTE: enforceActiveCapWithLock() is intentionally NOT called here.
 	// The allConns pool is a transport-level container for discovery bookkeeping.
@@ -1113,9 +1121,9 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 		return nil, err
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
@@ -1650,6 +1658,53 @@ func (c *Transport) discoveryLoop() {
 	}
 }
 
+// resetDeadConnViability clears the viability mark on any discovered connection
+// that has been continuously dead longer than verifyDeadAfter, so a node that
+// never recovers stops being blindly served as a last-resort zombie (see
+// Connection.availableForRouting and the lcViable const). Seed connections are
+// exempt -- they are always available regardless of this bit.
+//
+// No-op when verifyDeadAfter <= 0 (the feature is disabled). Enumerates the
+// allConns pool; policy pools share the same *Connection pointers, so clearing
+// the bit once via CAS is visible everywhere.
+func (c *Transport) resetDeadConnViability() {
+	if c.verifyDeadAfter <= 0 {
+		return
+	}
+
+	c.mu.RLock()
+	pool, ok := c.mu.connectionPool.(*multiServerPool)
+	c.mu.RUnlock()
+	if !ok {
+		return
+	}
+
+	_, dead := pool.connectionsByState()
+	cutoff := time.Now().Add(-c.verifyDeadAfter)
+
+	for _, conn := range dead {
+		if conn.seed {
+			continue
+		}
+		// Skip connections that aren't currently dead or whose viability mark is
+		// already clear -- nothing to expire.
+		if conn.deadSinceIsZero() || !conn.loadConnState().lifecycle().has(lcViable) {
+			continue
+		}
+		if conn.loadDeadSince().After(cutoff) {
+			continue // not dead long enough yet
+		}
+		conn.mu.Lock()
+		if err := conn.casLifecycle(conn.loadConnState(), 0, 0, lcViable); err == nil {
+			if dl := loadDebugLogger(); dl != nil {
+				dl.Logf("resetDeadConnViability: cleared lcViable on %s (dead since %s)\n",
+					conn.URL, conn.loadDeadSince())
+			}
+		}
+		conn.mu.Unlock()
+	}
+}
+
 // requestCatRefresh signals the discovery loop that shard placement data
 // may be stale (e.g., a connection error suggests a node went down).
 // Lock-free: sets an atomic flag consumed by discoveryLoop.
@@ -1855,9 +1910,9 @@ func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexSha
 		return nil, fmt.Errorf("getting connection for shard placement: %w", err)
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {
@@ -2108,9 +2163,9 @@ func (c *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[s
 		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
 	}
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
-	c.setReqUserAgent(req)
+	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+		return nil, err
+	}
 
 	res, err := c.transport.RoundTrip(req)
 	if err != nil {

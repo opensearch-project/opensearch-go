@@ -11,6 +11,7 @@ package opensearchtransport_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"testing"
@@ -166,18 +167,70 @@ func drainWarmup(transport *opensearchtransport.Transport) {
 	}
 }
 
+// poolCounts breaks a Metrics snapshot down by the states that matter for cap
+// enforcement. ActiveListCap bounds only the fully-warmed active connections;
+// warming connections are allowed in the active partition on top of the cap
+// (see enforceActiveCapWithLock). Callers therefore have to compare against
+// warmedActive rather than the raw active count.
+type poolCounts struct {
+	warmedActive  int // active and finished warmup -- the population the cap bounds
+	warmingActive int // active but still warming up -- exempt from the cap
+	standby       int
+	dead          int
+}
+
+func (p poolCounts) active() int { return p.warmedActive + p.warmingActive }
+
+func (p poolCounts) String() string {
+	return fmt.Sprintf("active=%d (warmed=%d, warming=%d), standby=%d, dead=%d",
+		p.active(), p.warmedActive, p.warmingActive, p.standby, p.dead)
+}
+
+// countPool classifies every connection in a Metrics snapshot. It reads the
+// per-connection state flags instead of deriving active from
+// LiveConnections-StandbyConnections, because that subtraction cannot
+// distinguish warmed from warming active connections.
+func countPool(m opensearchtransport.Metrics) poolCounts {
+	var p poolCounts
+	for _, raw := range m.Connections {
+		cm, ok := raw.(opensearchtransport.ConnectionMetric)
+		if !ok {
+			continue
+		}
+		switch {
+		case cm.IsDead:
+			p.dead++
+		case cm.IsStandby:
+			p.standby++
+		case cm.IsWarmingUp:
+			p.warmingActive++
+		default:
+			p.warmedActive++
+		}
+	}
+	return p
+}
+
 // discoverWithStandby runs DiscoverNodes then pumps requests to complete
-// warmup so that deferred cap enforcement can fire. Retries until the expected
-// number of standby connections is reached or the deadline expires.
+// warmup so that deferred cap enforcement can fire. Retries until cap
+// enforcement has settled (warmed-active connections down to the cap, with the
+// remaining nodes parked in standby or warming) or the deadline expires.
 // Returns the final metrics. Handles transient discovery failures (e.g., EOF)
 // by retrying. Each cycle's DiscoverNodes + drainWarmup provides natural
 // backoff without explicit sleeps.
+//
+// The pool can legitimately settle with more than one active connection: a
+// request that finds no usable active connection promotes a standby through the
+// duress path in Next(), which intentionally ignores ActiveListCap, and the
+// following rotation re-promotes with warmup. Waiting on standby >= 2 therefore
+// deadlocks whenever that happens, so we wait on the invariant the pool
+// actually maintains: warmedActive <= cap.
 func discoverWithStandby(t *testing.T, transport *opensearchtransport.Transport) opensearchtransport.Metrics {
 	t.Helper()
 
 	var m opensearchtransport.Metrics
 	var lastErr error
-	var lastActive, lastStandby, lastDead int
+	var last poolCounts
 
 	// On slower clusters (e.g. v2.0.1 with security plugin), health checks
 	// during discovery can take several seconds per cycle. Allow up to 30s
@@ -211,15 +264,16 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Transport)
 		m, err = transport.Metrics()
 		require.NoError(t, err)
 
-		active := m.LiveConnections - m.StandbyConnections
+		counts := countPool(m)
 		// Only log when state changes to reduce CI noise.
-		if active != lastActive || m.StandbyConnections != lastStandby || m.DeadConnections != lastDead {
-			t.Logf("Discovery attempt %d: active=%d, standby=%d, dead=%d",
-				attempt, active, m.StandbyConnections, m.DeadConnections)
-			lastActive, lastStandby, lastDead = active, m.StandbyConnections, m.DeadConnections
+		if counts != last {
+			t.Logf("Discovery attempt %d: %s", attempt, counts)
+			last = counts
 		}
 
-		if m.StandbyConnections >= 2 {
+		// Settled once the cap is satisfied and the nodes it displaced are
+		// accounted for outside the warmed-active set.
+		if counts.warmedActive <= 1 && counts.standby+counts.warmingActive >= 2 {
 			return m
 		}
 
@@ -236,8 +290,7 @@ func discoverWithStandby(t *testing.T, transport *opensearchtransport.Transport)
 		require.NoError(t, lastErr, "all discovery attempts failed")
 	}
 	require.FailNowf(t, "discoverWithStandby timed out",
-		"pool did not reach 2 standby after %d attempts (active=%d, standby=%d, dead=%d)",
-		attempt, lastActive, lastStandby, lastDead)
+		"cap enforcement did not settle after %d attempts (%s)", attempt, last)
 	return m // unreachable
 }
 
@@ -268,17 +321,25 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Run discovery to find all 3 nodes (seeds only have 2).
 		// Discovery also enforces the active cap and runs rotation.
 		m := discoverWithStandby(t, transport)
 
-		// With 3 discovered nodes and cap=1, we expect 1 active + 2 standby.
-		activeCount := m.LiveConnections - m.StandbyConnections
-		require.Equal(t, 1, activeCount, "expected 1 active connection (ActiveListCap=1)")
-		require.Equal(t, 2, m.StandbyConnections, "expected 2 standby connections")
+		// With 3 discovered nodes and cap=1, at most one connection may be
+		// active-and-warmed; the rest are standby, warming, or dead. The active
+		// connection can itself still be warming (warmed=0), which is a valid
+		// settled state, so the cap is an upper bound rather than equality.
+		counts := countPool(m)
+		require.LessOrEqual(t, counts.warmedActive, 1,
+			"fully-warmed active connections must not exceed ActiveListCap=1, got %s", counts)
+		require.GreaterOrEqual(t, counts.active(), 1,
+			"expected at least one active connection, got %s", counts)
+		require.GreaterOrEqual(t, counts.standby+counts.warmingActive, 2,
+			"expected the 2 capped-out nodes outside the warmed-active set, got %s", counts)
 
-		// Verify per-connection metrics show standby flags
+		// Verify per-connection metrics agree with the standby total.
 		standbyCount := 0
 		for _, conn := range m.Connections {
 			cm, ok := conn.(opensearchtransport.ConnectionMetric)
@@ -289,9 +350,13 @@ func TestStandbyRotation(t *testing.T) {
 				standbyCount++
 			}
 		}
-		require.Equal(t, 2, standbyCount, "expected 2 connections marked as standby in per-connection metrics")
+		require.Equal(t, counts.standby, standbyCount,
+			"per-connection standby flags should match the classified standby count")
 
-		// Perform requests -- only the active connection should serve them
+		// Perform requests -- only active connections should serve them. A
+		// connection still warming is exempt from the cap and can legitimately
+		// take traffic, so the bound is the active partition size (re-read after
+		// the requests, since warmup completion can shift it), not a single node.
 		nodesSeen := make(map[string]bool)
 		for range 6 {
 			req, err := http.NewRequest(http.MethodGet, "/", nil)
@@ -309,9 +374,13 @@ func TestStandbyRotation(t *testing.T) {
 			nodesSeen[info.Name] = true
 		}
 
-		// With cap=1, all requests should hit the same single active node
-		require.Len(t, nodesSeen, 1, "expected all requests to hit the same active node, saw: %v", nodesSeen)
-		t.Logf("Active node: %v", nodesSeen)
+		after, err := transport.Metrics()
+		require.NoError(t, err)
+		afterCounts := countPool(after)
+		require.LessOrEqual(t, len(nodesSeen), max(counts.active(), afterCounts.active()),
+			"requests reached more nodes than were ever active: saw %v (before: %s, after: %s)",
+			nodesSeen, counts, afterCounts)
+		t.Logf("Nodes serving traffic: %v (pool: %s)", nodesSeen, afterCounts)
 	})
 
 	t.Run("Rotation swaps standby into active", func(t *testing.T) {
@@ -322,12 +391,15 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Initial discovery -- establishes 1 active + 2 standby.
 		// Cap enforcement during this phase fires OnStandbyDemote for the 2
 		// connections demoted to standby, but no OnStandbyPromote events yet.
 		m0 := discoverWithStandby(t, transport)
-		require.Equal(t, 2, m0.StandbyConnections, "need 2 standby to test rotation")
+		counts0 := countPool(m0)
+		require.GreaterOrEqual(t, counts0.standby+counts0.warmingActive, 2,
+			"need 2 non-warmed-active connections to test rotation, got %s", counts0)
 
 		// Record which node is currently active
 		req, err := http.NewRequest(http.MethodGet, "/", nil)
@@ -396,11 +468,26 @@ func TestStandbyRotation(t *testing.T) {
 		// Verify pool state from the demotion event snapshot. The observer captures
 		// counts at the exact moment enforceActiveCapWithLock runs (pool lock held).
 		// A transient request failure during drainWarmup can move a connection to
-		// dead, reducing the standby count below 2. The invariant that matters is
-		// that cap enforcement set activeCount to the cap (1).
+		// dead, reducing the standby count below 2.
+		//
+		// ActiveCount in the event counts every connection carrying lcActive,
+		// including ones still warming up, and warming connections sit in the
+		// active partition on top of the cap. So the event can legitimately report
+		// active=2 with cap=1. What the event does prove is that enforcement ran
+		// and parked a connection in standby.
 		t.Logf("Demotion snapshot: active=%d, standby=%d, dead=%d",
 			obs.lastDemotionActiveCount(), obs.lastDemotionStandbyCount(), obs.lastDemotionDeadCount())
-		require.Equal(t, 1, obs.lastDemotionActiveCount(), "active count should equal cap after enforcement")
+		require.GreaterOrEqual(t, obs.lastDemotionActiveCount(), 1,
+			"cap enforcement should leave at least one active connection")
+		require.GreaterOrEqual(t, obs.lastDemotionStandbyCount(), 1,
+			"cap enforcement should have moved at least one connection to standby")
+
+		// The cap invariant itself is only checkable against fully-warmed
+		// connections, which the event does not distinguish. Assert it on a
+		// settled metrics snapshot instead.
+		settled := countPool(discoverWithStandby(t, transport))
+		require.LessOrEqual(t, settled.warmedActive, 1,
+			"fully-warmed active connections must not exceed ActiveListCap=1, got %s", settled)
 
 		// Verify the active connection works for real requests (was warmed up before serving).
 		// Use GET / instead of /_cluster/health because the cluster health endpoint
@@ -466,6 +553,7 @@ func TestStandbyRotation(t *testing.T) {
 
 		transport, err := opensearchtransport.New(cfg)
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Initial discovery -- wait for 2 standby
 		discoverWithStandby(t, transport)

@@ -53,7 +53,7 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	types := []*ir.Type{
 		{
 			Name: "TryEachValue",
-			Kind: ir.TypeLazyUnion,
+			Kind: ir.TypeAmbiguousWire,
 			Branches: []ir.UnionBranch{
 				{Name: "AsMap", GoType: "map[string]any", TokenClass: ir.TokenObject},
 				{Name: "AsSlice", GoType: "[]any", TokenClass: ir.TokenArray},
@@ -69,10 +69,80 @@ func TestUnionFragment_TryEach(t *testing.T) {
 	require.Contains(t, body, "type TryEachValue struct")
 	require.Contains(t, body, "value any")
 	require.Contains(t, body, "TryEachValueType")
-	require.Contains(t, body, "func (u *TryEachValue) AsMap() map[string]any")
+	require.Contains(t, body, "func (u *TryEachValue) AsMap() (map[string]any, error)")
+	require.Contains(t, body, "&UnionBranchError{Union: \"TryEachValue\", Want: \"AsMap\"")
 	require.Contains(t, body, "u.value.(*map[string]any)")
 	require.Contains(t, body, "if err := json.Unmarshal(data, &v); err == nil")
 	require.Contains(t, body, "RawJSON")
+}
+
+// A try-each union decodes by probing required keys, so a branch whose key set
+// duplicates an earlier branch's is queued behind it and the generator records that
+// in ProbeCollisionBranches. The type's own doc comment has to say so: the branch stays
+// constructible and marshals correctly, only Type() can never report it. Without
+// these assertions the whole feature can be deleted with the suite still green.
+func TestUnionFragment_TryEachProbeCollisionCaveat(t *testing.T) {
+	t.Parallel()
+
+	branches := func(firstKey, secondKey string) []ir.UnionBranch {
+		return []ir.UnionBranch{
+			{Name: "First", GoType: "FirstShape", TokenClass: ir.TokenObject, Required: []string{firstKey}},
+			{Name: "Second", GoType: "SecondShape", TokenClass: ir.TokenObject, Required: []string{secondKey}},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		typ     *ir.Type
+		want    []string
+		notWant []string
+	}{
+		{
+			name: "colliding branch is named on the type",
+			typ: &ir.Type{
+				Name:                   "CollidingValue",
+				Kind:                   ir.TypeAmbiguousWire,
+				Branches:               branches("field", "field"),
+				ProbeCollisionBranches: []string{"Second (same required keys as First)"},
+			},
+			want: []string{
+				"// The branches below are probed only after an earlier branch that declares the",
+				"read RawJSON() when you need the payload exactly as it arrived, and",
+				// Rendered as a godoc list item, not interpolated into the prose line.
+				"//   - Second (same required keys as First)",
+				// The caveat sits in the doc block, so it must stay attached to the type.
+				"//   - Second (same required keys as First)\ntype CollidingValue struct",
+				// Both branches keep their full surface: only Type() is affected.
+				"func NewCollidingValueFromSecond(v SecondShape) CollidingValue",
+				"func (u *CollidingValue) Second() (SecondShape, error)",
+			},
+		},
+		{
+			name: "branches with distinct required keys carry no caveat",
+			typ: &ir.Type{
+				Name:     "PlainValue",
+				Kind:     ir.TypeAmbiguousWire,
+				Branches: branches("a", "b"),
+			},
+			notWant: []string{"probed only after an earlier branch"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := (&emit.UnionFragment{Types: []*ir.Type{tt.typ}}).Body()
+			require.NoError(t, err)
+
+			for _, want := range tt.want {
+				require.Contains(t, body, want)
+			}
+			for _, notWant := range tt.notWant {
+				require.NotContains(t, body, notWant)
+			}
+		})
+	}
 }
 
 func TestUnionFragment_MergedDecode(t *testing.T) {
@@ -81,7 +151,7 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	types := []*ir.Type{
 		{
 			Name: "DocsItem",
-			Kind: ir.TypeLazyUnion,
+			Kind: ir.TypeAmbiguousWire,
 			Branches: []ir.UnionBranch{
 				{Name: "GetResult", GoType: "GetResult", TokenClass: ir.TokenObject},
 				{Name: "MultiGetError", GoType: "MultiGetError", TokenClass: ir.TokenObject, Required: []string{"error"}},
@@ -113,14 +183,14 @@ func TestUnionFragment_MergedDecode(t *testing.T) {
 	require.Contains(t, body, "u.raw = data")
 }
 
-func TestUnionFragment_LazyAccessors(t *testing.T) {
+func TestUnionFragment_RequestSelected(t *testing.T) {
 	t.Parallel()
 
 	types := []*ir.Type{
 		{
-			Name:          "AggValue",
-			Kind:          ir.TypeLazyUnion,
-			LazyAccessors: true,
+			Name:            "AggValue",
+			Kind:            ir.TypeAmbiguousWire,
+			RequestSelected: true,
 			Branches: []ir.UnionBranch{
 				{Name: "Avg", GoType: "AvgAggregate", TokenClass: ir.TokenObject},
 				{Name: "Sum", GoType: "SumAggregate", TokenClass: ir.TokenObject},
@@ -131,7 +201,7 @@ func TestUnionFragment_LazyAccessors(t *testing.T) {
 	body, err := (&emit.UnionFragment{Types: types}).Body()
 	require.NoError(t, err)
 
-	// Lazy: UnmarshalJSON only aliases raw; per-branch As<T>() decode on demand.
+	// Request-selected: UnmarshalJSON only aliases raw; per-branch As<T>() decode on demand.
 	require.Contains(t, body, "func (u *AggValue) AsAvg() (AvgAggregate, error)")
 	require.Contains(t, body, "func (u *AggValue) AsSum() (SumAggregate, error)")
 	require.Contains(t, body, "err := json.Unmarshal(u.raw, &v)")
@@ -170,7 +240,7 @@ func TestUnionFragment_Imports(t *testing.T) {
 		},
 		{
 			name:    "try-each needs fmt",
-			types:   []*ir.Type{{Kind: ir.TypeLazyUnion, Branches: []ir.UnionBranch{{TokenClass: ir.TokenObject}}}},
+			types:   []*ir.Type{{Kind: ir.TypeAmbiguousWire, Branches: []ir.UnionBranch{{TokenClass: ir.TokenObject}}}},
 			wantFmt: true,
 		},
 		{
@@ -230,29 +300,6 @@ func TestUnionFragment_Imports(t *testing.T) {
 			require.True(t, hasJSON, "all union fragments need encoding/json")
 			require.Equal(t, tt.wantFmt, hasFmt, "fmt import mismatch")
 			require.Equal(t, tt.wantCoreImport, hasCore, "core import mismatch")
-		})
-	}
-}
-
-func TestTokenClassStr(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		tc   ir.TokenClass
-		want string
-	}{
-		{ir.TokenObject, "object"},
-		{ir.TokenArray, "array"},
-		{ir.TokenString, "string"},
-		{ir.TokenNumber, "number"},
-		{ir.TokenBool, "bool"},
-		{ir.TokenClass(99), "unknown"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.want, func(t *testing.T) {
-			t.Parallel()
-			require.Equal(t, tt.want, emit.TokenClassStr(tt.tc))
 		})
 	}
 }

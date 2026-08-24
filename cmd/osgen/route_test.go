@@ -96,10 +96,10 @@ func TestResourceToTypeName(t *testing.T) {
 		resource string
 		want     string
 	}{
-		{name: "simple", resource: "role", want: "roleClient"},
-		{name: "compound", resource: "action_group", want: "actionGroupClient"},
-		{name: "triple", resource: "role_mapping", want: "roleMappingClient"},
-		{name: "long", resource: "distinguished_name", want: "distinguishedNameClient"},
+		{name: "simple", resource: "role", want: "RoleClient"},
+		{name: "compound", resource: "action_group", want: "ActionGroupClient"},
+		{name: "triple", resource: "role_mapping", want: "RoleMappingClient"},
+		{name: "long", resource: "distinguished_name", want: "DistinguishedNameClient"},
 	}
 
 	for _, tt := range tests {
@@ -186,8 +186,8 @@ func TestResolvePluginSubClients_Security(t *testing.T) {
 	require.Contains(t, scByField, "Tenant")
 	require.Contains(t, scByField, "User")
 
-	require.Equal(t, "actionGroupClient", scByField["ActionGroup"].TypeName)
-	require.Equal(t, "roleClient", scByField["Role"].TypeName)
+	require.Equal(t, "ActionGroupClient", scByField["ActionGroup"].TypeName)
+	require.Equal(t, "RoleClient", scByField["Role"].TypeName)
 
 	// Verify assignments.
 	require.Equal(t, "ActionGroup", result.Assignment["security.get_action_group"])
@@ -284,16 +284,16 @@ func TestUnprefixedSubClientGroups(t *testing.T) {
 		wantMethod   string
 	}{
 		// Point-in-time: the pit/pits tail is trimmed off the method name.
-		{group: "create_pit", wantReceiver: "pointInTimeClient", wantMethod: "Create"},
-		{group: "delete_pit", wantReceiver: "pointInTimeClient", wantMethod: "Delete"},
-		{group: "get_all_pits", wantReceiver: "pointInTimeClient", wantMethod: "GetAll"},
-		{group: "delete_all_pits", wantReceiver: "pointInTimeClient", wantMethod: "DeleteAll"},
+		{group: "create_pit", wantReceiver: "PointInTimeClient", wantMethod: "Create"},
+		{group: "delete_pit", wantReceiver: "PointInTimeClient", wantMethod: "Delete"},
+		{group: "get_all_pits", wantReceiver: "PointInTimeClient", wantMethod: "GetAll"},
+		{group: "delete_all_pits", wantReceiver: "PointInTimeClient", wantMethod: "DeleteAll"},
 		// Document: verb-only group names map straight through.
-		{group: "create", wantReceiver: "documentClient", wantMethod: "Create"},
-		{group: "get", wantReceiver: "documentClient", wantMethod: "Get"},
-		{group: "bulk", wantReceiver: "documentClient", wantMethod: "Bulk"},
-		{group: "mtermvectors", wantReceiver: "documentClient", wantMethod: "MTermVectors"},
-		{group: "get_source", wantReceiver: "documentClient", wantMethod: "GetSource"},
+		{group: "create", wantReceiver: "DocumentClient", wantMethod: "Create"},
+		{group: "get", wantReceiver: "DocumentClient", wantMethod: "Get"},
+		{group: "bulk", wantReceiver: "DocumentClient", wantMethod: "Bulk"},
+		{group: "mtermvectors", wantReceiver: "DocumentClient", wantMethod: "MTermVectors"},
+		{group: "get_source", wantReceiver: "DocumentClient", wantMethod: "GetSource"},
 	}
 
 	for _, tt := range tests {
@@ -314,16 +314,16 @@ func TestResolvePrimaryDispatch_DocumentAndPIT(t *testing.T) {
 	t.Parallel()
 
 	doc := resolvePrimaryDispatch("create", groupPrefix("create"))
-	require.Equal(t, "documentClient", doc.ReceiverType)
+	require.Equal(t, "DocumentClient", doc.ReceiverType)
 	require.Equal(t, "Create", doc.MethodName)
 	require.False(t, doc.TopLevel)
 
 	pit := resolvePrimaryDispatch("create_pit", groupPrefix("create_pit"))
-	require.Equal(t, "pointInTimeClient", pit.ReceiverType)
+	require.Equal(t, "PointInTimeClient", pit.ReceiverType)
 	require.Equal(t, "Create", pit.MethodName)
 	require.False(t, pit.TopLevel)
 
-	// documentClient.Create and pointInTimeClient.Create share a method name on
+	// DocumentClient.Create and PointInTimeClient.Create share a method name on
 	// different receivers; both are valid and must not be conflated.
 	require.NotEqual(t, doc.ReceiverType, pit.ReceiverType)
 }
@@ -339,10 +339,10 @@ func TestUsedSubClientTypes(t *testing.T) {
 
 	t.Run("nested child retains parent chain", func(t *testing.T) {
 		t.Parallel()
-		// Only aliasClient is routed to; its parent indicesClient must be retained.
-		used := usedSubClientTypes([]*ir.Operation{opWithRoute("aliasClient", false)})
-		require.True(t, used["aliasClient"])
-		require.True(t, used["indicesClient"], "parent of a used child must be retained")
+		// Only AliasClient is routed to; its parent IndicesClient must be retained.
+		used := usedSubClientTypes([]*ir.Operation{opWithRoute("AliasClient", false)})
+		require.True(t, used["AliasClient"])
+		require.True(t, used["IndicesClient"], "parent of a used child must be retained")
 	})
 
 	t.Run("top-level and Client routes ignored", func(t *testing.T) {
@@ -357,11 +357,11 @@ func TestUsedSubClientTypes(t *testing.T) {
 	t.Run("document and pit retained when routed", func(t *testing.T) {
 		t.Parallel()
 		used := usedSubClientTypes([]*ir.Operation{
-			opWithRoute("documentClient", false),
-			opWithRoute("pointInTimeClient", false),
+			opWithRoute("DocumentClient", false),
+			opWithRoute("PointInTimeClient", false),
 		})
-		require.True(t, used["documentClient"])
-		require.True(t, used["pointInTimeClient"])
+		require.True(t, used["DocumentClient"])
+		require.True(t, used["PointInTimeClient"])
 	})
 }
 
@@ -370,26 +370,26 @@ func TestFilterSubClients(t *testing.T) {
 
 	t.Run("preserves hierarchy order and drops unused", func(t *testing.T) {
 		t.Parallel()
-		used := map[string]bool{"indicesClient": true, "catClient": true}
+		used := map[string]bool{"IndicesClient": true, "CatClient": true}
 		got := filterSubClients(used)
-		// Order must match subClientHierarchy: catClient precedes indicesClient.
+		// Order must match subClientHierarchy: CatClient precedes IndicesClient.
 		require.Len(t, got, 2)
-		require.Equal(t, "catClient", got[0].TypeName)
-		require.Equal(t, "indicesClient", got[1].TypeName)
+		require.Equal(t, "CatClient", got[0].TypeName)
+		require.Equal(t, "IndicesClient", got[1].TypeName)
 	})
 
 	t.Run("dead template and data-stream clients dropped", func(t *testing.T) {
 		t.Parallel()
-		used := map[string]bool{"documentClient": true}
+		used := map[string]bool{"DocumentClient": true}
 		got := filterSubClients(used)
 		names := make(map[string]bool, len(got))
 		for _, sc := range got {
 			names[sc.TypeName] = true
 		}
-		require.True(t, names["documentClient"])
+		require.True(t, names["DocumentClient"])
 		for _, dead := range []string{
-			"dataStreamClient", "indexTemplateClient",
-			"componentTemplateClient", "templateClient", "scriptClient",
+			"DataStreamClient", "IndexTemplateClient",
+			"ComponentTemplateClient", "TemplateClient", "ScriptClient",
 		} {
 			require.False(t, names[dead], "%s has no routes and must be dropped", dead)
 		}
@@ -408,22 +408,22 @@ func TestCompatForwardersFor(t *testing.T) {
 		wantForward  string
 	}{
 		{
-			// "bulk" canonical route is documentClient.Bulk; the forwarder
+			// "bulk" canonical route is DocumentClient.Bulk; the forwarder
 			// restores top-level Client.Bulk forwarding to Doc.Bulk.
 			name:  "top-level forwarder targets sub-client field path",
 			group: "bulk", wantReceiver: "Client", wantMethod: "Bulk",
 			wantTopLevel: true, wantForward: "Doc.Bulk",
 		},
 		{
-			// get_all_pits canonical is pointInTimeClient.GetAll; the alias keeps
+			// get_all_pits canonical is PointInTimeClient.GetAll; the alias keeps
 			// the historical name Get on the same receiver.
 			name:  "same-receiver name alias forwards to canonical method",
-			group: "get_all_pits", wantReceiver: "pointInTimeClient", wantMethod: "Get",
+			group: "get_all_pits", wantReceiver: "PointInTimeClient", wantMethod: "Get",
 			wantTopLevel: false, wantForward: "GetAll",
 		},
 		{
-			name:  "get_source alias on documentClient",
-			group: "get_source", wantReceiver: "documentClient", wantMethod: "Source",
+			name:  "get_source alias on DocumentClient",
+			group: "get_source", wantReceiver: "DocumentClient", wantMethod: "Source",
 			wantTopLevel: false, wantForward: "GetSource",
 		},
 	}
@@ -453,7 +453,7 @@ func TestResolveDispatchRoutes_IncludesForwarders(t *testing.T) {
 	routes := resolveDispatchRoutes("bulk")
 	// Canonical sub-client route first, then the top-level forwarder.
 	require.GreaterOrEqual(t, len(routes), 2)
-	require.Equal(t, "documentClient", routes[0].ReceiverType)
+	require.Equal(t, "DocumentClient", routes[0].ReceiverType)
 	require.Empty(t, routes[0].Forward, "canonical route is not a forwarder")
 
 	var fwd *dispatchRoute
@@ -491,7 +491,7 @@ func TestApplyCompatPolicy(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			op := &ir.Operation{DispatchRoutes: []ir.DispatchRoute{
-				{ReceiverType: "documentClient", MethodName: "Bulk", FieldPath: "Doc"},
+				{ReceiverType: "DocumentClient", MethodName: "Bulk", FieldPath: "Doc"},
 				{ReceiverType: "Client", MethodName: "Bulk", TopLevel: true, Forward: "Doc.Bulk"},
 			}}
 			applyCompatPolicy([]*ir.Operation{op}, tt.cfg)

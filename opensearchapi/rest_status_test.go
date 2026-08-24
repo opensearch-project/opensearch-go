@@ -174,11 +174,12 @@ func TestRestStatusClientDecode(t *testing.T) {
 
 			client, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = client.Close() })
 
 			var body struct {
 				Status *opensearchapi.RestStatus `json:"status"`
 			}
-			resp, err := opensearch.Do(t.Context(), client, http.MethodGet, staticRequest{url: ts.URL}, &body)
+			resp, err := opensearch.Execute(t.Context(), client, http.MethodGet, staticRequest{url: ts.URL}, &body)
 
 			if !tt.wantErr {
 				require.NoError(t, err)

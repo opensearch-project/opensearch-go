@@ -103,6 +103,7 @@ func getConnectionFromPool(c *Transport, req *http.Request) (*Connection, error)
 // The caller owns the response body and must close it.
 type Interface interface {
 	Stream(*http.Request) (*http.Response, error)
+	Request(*http.Request) (*http.Response, error)
 }
 
 // OpenSearchInfo represents the root endpoint response structure for health checks.
@@ -197,13 +198,6 @@ type Config struct {
 	EnableDebugLogger bool
 
 	DiscoverNodesInterval time.Duration
-
-	// IncludeDedicatedClusterManagers includes dedicated cluster manager nodes in request routing.
-	// When false (default), dedicated cluster manager nodes are excluded from client requests,
-	// following best practices and matching the Java client's NodeSelector.SKIP_DEDICATED_CLUSTER_MASTERS behavior.
-	// When true, all nodes including dedicated cluster managers can receive client requests.
-	// Default: false (excludes dedicated cluster managers for better performance)
-	IncludeDedicatedClusterManagers bool
 
 	// DiscoveryHealthCheckRetries sets the number of health check retries during node discovery.
 	// During cold start, health checks are performed asynchronously without blocking.
@@ -319,6 +313,21 @@ type Config struct {
 	// Default: 3
 	StandbyPromotionChecks int
 
+	// VerifyDeadAfter is the duration a dead connection can be blindly
+	// resurrected for use as a zombie connection when no other healthy
+	// connections are available. A connection proven reachable (viable) is a
+	// zombie candidate until it has been continuously dead for longer than this
+	// window, at which point the discovery loop clears the mark so the node must
+	// health-check clean again before it can be routed to (or served as a
+	// last-resort zombie). Seed connections are always available and never
+	// expire this way. 0 = use the default window, <0 = disabled (a viable
+	// connection stays a zombie candidate indefinitely), >0 = explicit window.
+	//
+	// Can be overridden by the OPENSEARCH_GO_VERIFY_DEAD_AFTER environment
+	// variable: a boolean true selects the default, false disables it, and any
+	// other value is a time.ParseDuration string (e.g. "10m").
+	VerifyDeadAfter time.Duration
+
 	// NodeStatsInterval sets the polling interval for /_nodes/_local/stats/jvm,breaker.
 	// A background goroutine polls each ready node's JVM heap usage and circuit breaker
 	// metrics to detect overloaded nodes and shed load away from them.
@@ -366,6 +375,15 @@ type Config struct {
 	Selector  Selector
 	Router    Router             // Optional router for cluster-aware request routing
 	Observer  ConnectionObserver // Optional observer for connection lifecycle events
+
+	// OperationClassifier maps each request's method and path to the
+	// [RequestEvent.RouteName] label reported to observers. When nil, a
+	// process-wide classifier built from the standard OpenSearch REST layout is
+	// used. Override it only when you route non-standard paths (e.g. a custom
+	// Router with its own patterns) and need RouteName to reflect them; the
+	// classifier is used for the observability label only and never affects
+	// routing. A supplied classifier must be safe for concurrent use.
+	OperationClassifier *OperationClassifier
 
 	// ShardCostConfig configures shard cost multipliers for the router's
 	// connection scoring. Consumed only when a router is being constructed:
@@ -443,12 +461,12 @@ type Transport struct {
 	retryBackoff          func(attempt int) time.Duration
 	requestTimeout        time.Duration
 	discoverNodesInterval time.Duration
+	verifyDeadAfter       time.Duration
 
-	includeDedicatedClusterManagers bool
-	discoveryHealthCheckRetries     int
-	healthCheckTimeout              time.Duration
-	healthCheckMaxRetries           int
-	healthCheckJitter               float64
+	discoveryHealthCheckRetries int
+	healthCheckTimeout          time.Duration
+	healthCheckMaxRetries       int
+	healthCheckJitter           float64
 
 	resurrectTimeoutInitial      time.Duration
 	resurrectTimeoutMax          time.Duration
@@ -497,12 +515,13 @@ type Transport struct {
 
 	metrics *metrics
 
-	transport http.RoundTripper
-	logger    Logger
-	selector  Selector
-	router    Router // Optional router for cluster-aware routing
-	observer  atomic.Pointer[ConnectionObserver]
-	poolFunc  func([]*Connection, Selector) ConnectionPool
+	transport  http.RoundTripper
+	logger     Logger
+	selector   Selector
+	router     Router               // Optional router for cluster-aware routing
+	classifier *OperationClassifier // Maps requests to RouteName; defaults to the shared global
+	observer   atomic.Pointer[ConnectionObserver]
+	poolFunc   func([]*Connection, Selector) ConnectionPool
 
 	// Address resolver
 	addressResolver       AddressResolverFunc
@@ -613,6 +632,23 @@ func New(cfg Config) (*Transport, error) {
 	if envVal, ok := os.LookupEnv(envvars.RequestTimeout); ok && envVal != "" {
 		if d, ok := parseDuration(envVal); ok {
 			requestTimeout = d
+		}
+	}
+
+	// VerifyDeadAfter: 0 = default, <0 = disabled, >0 = explicit.
+	// OPENSEARCH_GO_VERIFY_DEAD_AFTER overrides the programmatic value: bool
+	// true = default, false = disabled, otherwise a duration string. An
+	// unparseable env value is ignored (the programmatic/default value stands).
+	verifyDeadAfter := cfg.VerifyDeadAfter
+	switch {
+	case verifyDeadAfter == 0:
+		verifyDeadAfter = envvars.VerifyDeadAfterDefault
+	case verifyDeadAfter < 0:
+		verifyDeadAfter = 0
+	}
+	if envVal, ok := os.LookupEnv(envvars.VerifyDeadAfter); ok && envVal != "" {
+		if d, err := envvars.ParseVerifyDeadAfter(envVal); err == nil {
+			verifyDeadAfter = d
 		}
 	}
 
@@ -830,9 +866,11 @@ func New(cfg Config) (*Transport, error) {
 
 	conns := make([]*Connection, len(cfg.URLs))
 	for idx, u := range cfg.URLs {
-		conn := &Connection{URL: u, URLString: u.String()}
+		conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 		conn.estLoad.clock = realClock{}
 		conn.weight.Store(1)
+		// Seeds are user-asserted and always a viable routing/zombie candidate.
+		conn.setLifecycleBit(lcViable) //nolint:errcheck // fresh conn; only errLifecycleNoop possible
 		conns[idx] = conn
 	}
 
@@ -907,12 +945,12 @@ func New(cfg Config) (*Transport, error) {
 		retryBackoff:          cfg.RetryBackoff,
 		requestTimeout:        requestTimeout,
 		discoverNodesInterval: cfg.DiscoverNodesInterval,
+		verifyDeadAfter:       verifyDeadAfter,
 
-		includeDedicatedClusterManagers: cfg.IncludeDedicatedClusterManagers,
-		discoveryHealthCheckRetries:     cfg.DiscoveryHealthCheckRetries,
-		healthCheckTimeout:              healthCheckTimeout,
-		healthCheckMaxRetries:           healthCheckMaxRetries,
-		healthCheckJitter:               healthCheckJitter,
+		discoveryHealthCheckRetries: cfg.DiscoveryHealthCheckRetries,
+		healthCheckTimeout:          healthCheckTimeout,
+		healthCheckMaxRetries:       healthCheckMaxRetries,
+		healthCheckJitter:           healthCheckJitter,
 
 		resurrectTimeoutInitial:      resurrectTimeoutInitial,
 		resurrectTimeoutMax:          resurrectTimeoutMax,
@@ -945,11 +983,12 @@ func New(cfg Config) (*Transport, error) {
 
 		compressRequestBody: cfg.CompressRequestBody,
 
-		transport: cfg.Transport,
-		logger:    cfg.Logger,
-		router:    router,
-		selector:  cfg.Selector,
-		poolFunc:  cfg.ConnectionPoolFunc,
+		transport:  cfg.Transport,
+		logger:     cfg.Logger,
+		router:     router,
+		classifier: cfg.OperationClassifier,
+		selector:   cfg.Selector,
+		poolFunc:   cfg.ConnectionPoolFunc,
 
 		addressResolver:       cfg.AddressResolver,
 		maxAddressResolvers:   cfg.MaxAddressResolvers,
@@ -982,11 +1021,11 @@ func New(cfg Config) (*Transport, error) {
 	if !client.seedFallbackDisabled && len(cfg.URLs) > 0 {
 		seedConns := make([]*Connection, len(cfg.URLs))
 		for i, u := range cfg.URLs {
-			conn := &Connection{URL: u, URLString: u.String()}
+			conn := &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u), seed: true}
 			conn.estLoad.clock = realClock{}
 			conn.weight.Store(1)
 			conn.mu.Lock()
-			conn.casLifecycle(conn.loadConnState(), 0, lcActive, lcUnknown|lcStandby) //nolint:errcheck // lock held; only errLifecycleNoop possible
+			conn.casLifecycle(conn.loadConnState(), 0, lcActive|lcViable, lcUnknown|lcStandby) //nolint:errcheck // lock held
 			conn.mu.Unlock()
 			seedConns[i] = conn
 		}
@@ -1054,10 +1093,10 @@ func New(cfg Config) (*Transport, error) {
 				jitterScale:                  jitterScale,
 				serverMaxNewConnsPerSec:      serverMaxNewConnsPerSec,
 				clientsPerServer:             clientsPerServer,
-				activeListCap:                activeListCap,
 				activeListCapConfig:          activeListCapConfig,
 				standbyPromotionChecks:       standbyPromotionChecks,
 			}
+			pool.mu.activeListCap = activeListCap
 			// Initialize all connections as active with proper state.
 			for _, conn := range conns {
 				conn.mu.Lock()
@@ -1081,7 +1120,9 @@ func New(cfg Config) (*Transport, error) {
 
 	// Set up health check function for pools that support it
 	if pool, ok := client.mu.connectionPool.(*multiServerPool); ok {
-		pool.healthCheck = client.healthCheck
+		pool.mu.Lock()
+		pool.mu.healthCheck = client.healthCheck
+		pool.mu.Unlock()
 		if obs := client.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
 		}
@@ -1089,7 +1130,9 @@ func New(cfg Config) (*Transport, error) {
 
 	// Set health check on the seed fallback pool so resurrection works.
 	if client.seedFallbackPool != nil {
-		client.seedFallbackPool.healthCheck = client.healthCheck
+		client.seedFallbackPool.mu.Lock()
+		client.seedFallbackPool.mu.healthCheck = client.healthCheck
+		client.seedFallbackPool.mu.Unlock()
 	}
 
 	if cfg.EnableDebugLogger {
@@ -1235,29 +1278,137 @@ func (c *Transport) Close() error {
 	return nil
 }
 
-// Stream executes the request and returns the raw [http.Response] from the
-// underlying [http.RoundTripper]. The caller owns the response body: Stream
-// does not read or close res.Body. Use Stream when you want to forward or
-// relay raw bytes downstream without interpreting them (for example, a
-// reverse proxy streaming a response to its own client).
+// streamResult carries the timing the stream core measured for the final
+// round-trip attempt, so Stream and Request can build response events without
+// the core needing to know which event to fire. All fields describe the last
+// attempt; they are zero when no round trip occurred (hard transport failure).
+type streamResult struct {
+	attempt     int           // zero-based index of the final attempt
+	ttfb        time.Duration // time-to-first-byte: send until RoundTrip returned
+	sendStart   time.Time     // when the final attempt was sent
+	poolName    string        // pool that dispatched the final attempt (from hop.PoolName)
+	hostPort    string        // "scheme://host[:port]" of the node contacted (from conn.hostPort)
+	routeName   string        // classified operation name (captured pre-rewrite)
+	index       string        // target index extracted from the path (captured pre-rewrite)
+	escapedPath string        // URL-escaped request path as supplied (captured pre-rewrite)
+
+	// ctx is the request context after OnRequestStart runs, handed back to the
+	// caller's response-hook fire site so a tracer's span-carrying context
+	// reaches OnRequestResponse/OnStreamResponse. It is not retained past the
+	// request.
+	ctx context.Context //nolint:containedctx // request-scoped, handed back to the caller, not stored
+}
+
+// Stream executes the request and returns the raw [http.Response] unread. The
+// caller owns the body and must close it; Stream neither reads nor closes it.
+// Use Stream to forward bytes downstream without interpreting them, relaying a
+// response to another client.
 //
-// Stream may return a non-nil *http.Response together with a non-nil error
-// (for example, when the request context is cancelled during retry backoff
-// after a retryable status was received). Callers must therefore treat
-// resp == nil, not err != nil, as the signal for a hard transport failure.
+// Stream rewrites req.URL to the selected backend so signing, retry, and routing
+// operate on the resolved address, and applies retry, signing, header injection,
+// request-body compression, metrics, and seed URL fallback.
 //
-// Stream mutates req.URL to point at the selected backend (Scheme/Host) so
-// that signing, retry, and routing all see the resolved address. It performs
-// retry, signing, header injection, request-body compression, metrics, and
-// the seed URL fallback before returning the raw RoundTrip body.
+// A hard transport failure returns a nil response and an error. A partial
+// failure returns the response together with an error, such as a context
+// cancellation during retry backoff after a retryable status. Callers
+// distinguish the two by testing resp == nil, not err != nil.
 //
-// Pairs with [github.com/opensearch-project/opensearch-go/v5.Do]: use Do[T]
-// for typed, decoded results (the SDK owns the body), use Stream for raw
-// byte forwarding (the caller owns the body).
+// For typed, decoded results where the SDK owns the body, use
+// [github.com/opensearch-project/opensearch-go/v5.Execute] instead.
 func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
+	res, sr, err := c.stream(req)
+
+	// Fire the streaming response event (time-to-first-byte, Content-Length
+	// header) only when an observer is registered, so a request without one
+	// incurs no extra work.
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		statusCode, contentLength := 0, int64(-1)
+		if res != nil {
+			statusCode = res.StatusCode
+			contentLength = res.ContentLength
+		}
+		obs.OnStreamResponse(sr.ctx, StreamResponseEvent{
+			ResponseEvent: ResponseEvent{
+				Request:    newRequestEvent(req, sr),
+				StatusCode: statusCode,
+				Err:        err,
+			},
+			Duration:      sr.ttfb,
+			ContentLength: contentLength,
+		})
+	}
+
+	return res, err
+}
+
+// Request executes the request, then reads and buffers the entire response body
+// before returning. The returned body is an [io.NopCloser] over the buffered
+// bytes, so the connection is already drained and back in the pool; callers may
+// read it without a network round trip and closing it is a formality. Request
+// fires OnRequestResponse with the full-read duration and the exact number of
+// body bytes read.
+//
+// Unlike [net/http.Client.Do], Request buffers the body rather than returning a
+// live stream. Use [Transport.Stream] when you need the raw, unread body for
+// incremental forwarding.
+//
+// A hard transport failure returns a nil response and an error. A partial
+// failure returns the buffered response together with an error, such as
+// [ErrResponseBodyRead] when the body read fails. Callers distinguish the two
+// by testing resp == nil, not err != nil.
+func (c *Transport) Request(req *http.Request) (*http.Response, error) {
+	res, sr, err := c.stream(req)
+
+	// Buffer the body so the connection returns to the pool. This is core
+	// Request behavior and runs regardless of whether an observer is registered.
+	var n int64
+	if res != nil && res.Body != nil {
+		body, rerr := io.ReadAll(res.Body)
+		res.Body.Close()
+		res.Body = io.NopCloser(bytes.NewReader(body))
+		n = int64(len(body))
+		if rerr != nil && err == nil {
+			err = fmt.Errorf("%w: %w", ErrResponseBodyRead, rerr)
+		}
+	}
+
+	// Fire the buffered response event (full-read duration, exact byte count)
+	// only when an observer is registered.
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		statusCode := 0
+		if res != nil {
+			statusCode = res.StatusCode
+		}
+		// sendStart is zero when no round trip occurred (hard transport
+		// failure); report a zero duration rather than time since the epoch.
+		var dur time.Duration
+		if !sr.sendStart.IsZero() {
+			dur = time.Since(sr.sendStart)
+		}
+		obs.OnRequestResponse(sr.ctx, RequestResponseEvent{
+			ResponseEvent: ResponseEvent{
+				Request:    newRequestEvent(req, sr),
+				StatusCode: statusCode,
+				Err:        err,
+			},
+			Duration:      dur,
+			ResponseBytes: n,
+		})
+	}
+
+	return res, err
+}
+
+// stream is the shared transport core behind Stream and Request. It performs
+// routing, signing, header injection, request-body compression, retry, metrics,
+// and seed URL fallback, and returns the raw response alongside the timing of
+// the final attempt. It does not read the body or fire observer events; the
+// callers own those concerns.
+func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, error) {
 	var (
 		res *http.Response
 		err error
+		sr  streamResult
 	)
 
 	if c.metrics != nil {
@@ -1268,12 +1419,40 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 	c.setReqUserAgent(req)
 	c.setReqGlobalHeader(req)
 
+	// Capture request identity while req.URL is still the pristine caller input
+	// (before setReqURL rewrites it to the selected backend and prepends any
+	// connection base path). Done once per request, only when an observer is
+	// wired, so the no-observer path stays allocation-free.
+	sr.ctx = req.Context()
+	if obs := observerFromAtomic(&c.observer); obs != nil {
+		sr.escapedPath = req.URL.EscapedPath()
+		sr.routeName = c.operationClassifier().Classify(req.Method, req.URL.Path).String()
+		sr.index = extractIndexFromPath(req.URL.Path)
+
+		// Give the observer a chance to open a per-request span (or otherwise
+		// derive request-scoped context) before the first round trip. The
+		// returned context flows into every attempt and back to the response
+		// hooks via sr.ctx. Base returns ctx unchanged, so a non-tracing observer
+		// allocates nothing here.
+		startEvent := RequestEvent{
+			Method:       req.Method,
+			Path:         sr.escapedPath,
+			RouteName:    sr.routeName,
+			Index:        sr.index,
+			RequestBytes: req.ContentLength,
+		}
+		if ctx := obs.OnRequestStart(req.Context(), startEvent); ctx != req.Context() {
+			req = req.WithContext(ctx)
+			sr.ctx = ctx
+		}
+	}
+
 	if req.Body != nil && req.Body != http.NoBody {
 		if c.compressRequestBody {
 			buf, err := c.pooledGzipCompressor.compress(req.Body)
 			defer c.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
-				return nil, fmt.Errorf("failed to compress request body: %w", err)
+				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}
 
 			req.GetBody = func() (io.ReadCloser, error) {
@@ -1344,43 +1523,62 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 				res = nil
 				break
 			}
-			return nil, err
+			return nil, sr, err
 		}
 
 		// Update request
 		c.setReqURL(conn.URL, req)
 		c.setReqAuth(conn.URL, req)
+		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
 
 		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
 			body, err := req.GetBody()
 			if err != nil {
-				return nil, fmt.Errorf("cannot get request body: %w", err)
+				return nil, sr, fmt.Errorf("cannot get request body: %w", err)
 			}
 			req.Body = body
 		}
 
 		if err = c.signRequest(req); err != nil {
-			return nil, fmt.Errorf("failed to sign request: %w", err)
+			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
 		// Set up time measures and execute the request
 		if poolName != "" {
 			conn.addInFlight(poolName)
 		}
-		start := time.Now().UTC()
+		// Do not call UTC() here: it strips the monotonic reading, and
+		// time.Since then uses the wall clock. On Windows that clock is
+		// coarse enough that a fast localhost RoundTrip reports 0.
+		start := time.Now()
 
 		// Apply per-attempt timeout if configured. This creates a child context
 		// with a deadline so that each individual RoundTrip is bounded, preventing
 		// indefinite hangs on stalled TCP connections.
 		attemptReq := req
 		var attemptCancel context.CancelFunc
+		attemptCtx := req.Context()
 		if c.requestTimeout > 0 {
-			var attemptCtx context.Context
-			attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
+			attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
+		}
+		// Let an observer open a per-attempt span. Base returns ctx unchanged, so
+		// a non-tracing observer adds no context derivation here.
+		if obs := observerFromAtomic(&c.observer); obs != nil {
+			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
+		}
+		if attemptCtx != req.Context() {
 			attemptReq = req.WithContext(attemptCtx)
 		}
 
 		res, err = c.transport.RoundTrip(attemptReq)
+
+		if obs := observerFromAtomic(&c.observer); obs != nil {
+			statusCode := 0
+			if res != nil {
+				statusCode = res.StatusCode
+			}
+			obs.OnAttemptEnd(attemptCtx, i, statusCode, err)
+		}
 
 		if attemptCancel != nil {
 			// If the response body is non-nil, the caller is responsible for
@@ -1399,6 +1597,10 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 			}
 		}
 		dur := time.Since(start)
+		sr.attempt = i
+		sr.ttfb = dur
+		sr.sendStart = start
+		sr.poolName = poolName
 		if poolName != "" {
 			conn.releaseInFlight(poolName)
 		}
@@ -1409,7 +1611,7 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 				//nolint:errcheck // ignored as this is only for logging
 				req.Body, _ = req.GetBody()
 			}
-			c.logRoundTrip(req, res, err, start, dur)
+			c.logRoundTrip(req, res, err, start.UTC(), dur)
 		}
 
 		if err != nil {
@@ -1589,11 +1791,56 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 	// Seed URL fallback: absolute last resort when the entire retry loop
 	// failed to obtain a connection from any router policy or pool.
 	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
-		res, err = c.performSeedFallback(req.Context(), req)
+		res, err = c.performSeedFallback(req.Context(), req, &sr)
 	}
 
 	// TODO: Consider wrapping the error with request context.
-	return res, err
+	return res, sr, err
+}
+
+// defaultOperationClassifier lazily builds a single [OperationClassifier] shared
+// across all transports. NewOperationClassifier builds a route trie (moderately
+// expensive) and is safe for concurrent use, so it is built once on first use
+// and reused. Classify is a zero-allocation trie match on the hot path.
+//
+//nolint:gochecknoglobals // process-wide immutable classifier, built once
+var defaultOperationClassifier = sync.OnceValue(NewOperationClassifier)
+
+// operationClassifier returns the transport's route-name classifier: the
+// caller-supplied [Config.OperationClassifier] when set, otherwise the shared
+// process-wide default. Used only to derive the observability RouteName label.
+func (c *Transport) operationClassifier() *OperationClassifier {
+	if c.classifier != nil {
+		return c.classifier
+	}
+	return defaultOperationClassifier()
+}
+
+// hostPrefixOf returns the "scheme://host[:port]" prefix of u (Host includes the
+// port when present), or "" for a nil URL. Cached on each [Connection] at
+// construction so the observer path does not rebuild it per request.
+func hostPrefixOf(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
+
+// newRequestEvent builds a RequestEvent snapshot from the outgoing request and
+// the captured stream result. Host comes from sr.hostPort (the node contacted,
+// cached on the connection); Path/RouteName/Index also come from sr, captured
+// before req.URL was rewritten to the backend.
+func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
+	return RequestEvent{
+		Method:       req.Method,
+		Path:         sr.escapedPath,
+		RouteName:    sr.routeName,
+		Index:        sr.index,
+		PoolName:     sr.poolName,
+		Host:         sr.hostPort,
+		Attempt:      sr.attempt,
+		RequestBytes: req.ContentLength,
+	}
 }
 
 // performSeedFallback attempts a single request using the seed URL fallback pool.
@@ -1604,7 +1851,7 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -1620,6 +1867,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) 
 
 	c.setReqURL(conn.URL, req)
 	c.setReqAuth(conn.URL, req)
+	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
 
 	// Reset body for the fallback attempt.
 	if req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
@@ -1634,7 +1882,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) 
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
-	start := time.Now().UTC()
+	start := time.Now()
 
 	// Apply per-attempt timeout if configured.
 	attemptReq := req
@@ -1657,7 +1905,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request) 
 	dur := time.Since(start)
 
 	if c.logger != nil {
-		c.logRoundTrip(req, res, err, start, dur)
+		c.logRoundTrip(req, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {
@@ -1803,6 +2051,33 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 			return
 		}
 	}
+}
+
+// prepareInternalRequest applies the same decoration the stream() path
+// uses -- URL rewrite, User-Agent, Config.Header, basic auth, and the
+// configured Signer -- to a request that will be dispatched via raw
+// RoundTrip rather than stream(). Background health-check, discovery,
+// and node-stats pollers must go through this so SigV4 (and Config.Header)
+// apply to them the same way they apply to user traffic.
+//
+// setReqGlobalHeader runs before setReqAuth, matching stream(). Both are
+// add-if-absent, so a Config.Header Authorization wins over Transport
+// username/password or URL userinfo.
+//
+// applyModifier, if non-nil, runs after header injection and before
+// signing so any headers it adds are included in the signature.
+func (c *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
+	c.setReqURL(u, req)
+	c.setReqUserAgent(req)
+	c.setReqGlobalHeader(req)
+	c.setReqAuth(u, req)
+	if applyModifier != nil {
+		applyModifier(req)
+	}
+	if err := c.signRequest(req); err != nil {
+		return fmt.Errorf("failed to sign request: %w", err)
+	}
+	return nil
 }
 
 func (c *Transport) signRequest(req *http.Request) error {
@@ -1965,12 +2240,8 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2044,12 +2315,8 @@ func (c *Transport) hardwareInfoHealthCheck(
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2176,12 +2443,8 @@ func (c *Transport) fetchClusterHealth(
 
 	req.URL.RawQuery = "local=true"
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, 0, err
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2468,12 +2731,12 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 		jitterScale:                  c.jitterScale,
 		serverMaxNewConnsPerSec:      c.serverMaxNewConnsPerSec,
 		clientsPerServer:             c.clientsPerServer,
-		healthCheck:                  c.healthCheck,
 		metrics:                      m,
-		activeListCap:                c.activeListCap,
 		activeListCapConfig:          c.activeListCapConfig,
 		standbyPromotionChecks:       c.standbyPromotionChecks,
 	}
+	pool.mu.activeListCap = c.activeListCap
+	pool.mu.healthCheck = c.healthCheck
 	if obs := c.observer.Load(); obs != nil {
 		pool.observer.Store(obs)
 	}
@@ -2486,10 +2749,13 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
 	switch currentPool := c.mu.connectionPool.(type) {
 	case *singleServerPool:
-		// Promote from single to multi-node pool using client-configured timeouts
+		// Promote from single to multi-node pool using client-configured timeouts.
+		// allConns is the full connection inventory; routing policies keep query
+		// traffic off dedicated cluster managers (see RoundRobinPolicy).
 		filteredReady := make([]*Connection, 0, len(readyConnections))
 		filteredDead := make([]*Connection, 0, len(deadConnections))
-		c.applyConnectionFiltering(readyConnections, deadConnections, &filteredReady, &filteredDead)
+		filteredReady = append(filteredReady, readyConnections...)
+		filteredDead = append(filteredDead, deadConnections...)
 
 		// Shuffle connections for load distribution unless disabled
 		if !c.skipConnectionShuffle && len(filteredReady) > 1 {
@@ -2580,26 +2846,6 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 
 	default:
 		panic(fmt.Sprintf("unsupported connection pool type for demotion: %T", currentPool))
-	}
-}
-
-// applyConnectionFiltering applies client-level filtering for dedicated cluster managers
-func (c *Transport) applyConnectionFiltering(readyConnections, deadConnections []*Connection, filteredReady, filteredDead *[]*Connection) {
-	for _, conn := range readyConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Excluding dedicated cluster manager %q from connection pool\n", conn.Name)
-			}
-			continue
-		}
-		*filteredReady = append(*filteredReady, conn)
-	}
-
-	for _, conn := range deadConnections {
-		if !c.includeDedicatedClusterManagers && conn.Roles.isDedicatedClusterManager() {
-			continue
-		}
-		*filteredDead = append(*filteredDead, conn)
 	}
 }
 

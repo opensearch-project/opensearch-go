@@ -120,36 +120,43 @@ func (r ClusterPendingTasksResp) RawBody() io.Reader {
 
 // ClusterPendingTasksPendingTask is a typed component of the cluster.pending_tasks operation.
 type ClusterPendingTasksPendingTask struct {
-	// Indicates whether the pending tasks are currently executing or not.
+	// Executing. Indicates whether the pending tasks are currently executing
+	// or not.
 	Executing bool `json:"executing"`
 
-	// The number that represents when the task has been inserted into the task
-	// queue.
+	// InsertOrder is the number that represents when the task has been
+	// inserted into the task queue.
 	InsertOrder int `json:"insert_order"`
 
-	// The priority of the pending task. The valid priorities in descending
-	// priority order are: `IMMEDIATE` > `URGENT` > `HIGH` > `NORMAL` > `LOW` >
-	// `LANGUID`.
+	// Priority is the priority of the pending task. The valid priorities in
+	// descending priority order are: `IMMEDIATE` > `URGENT` > `HIGH` >
+	// `NORMAL` > `LOW` > `LANGUID`.
 	Priority string `json:"priority"`
 
-	// A general description of the cluster task that may include a reason and
-	// origin.
+	// Source is a general description of the cluster task that may include a
+	// reason and origin.
 	Source string `json:"source"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TimeInExecution is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
+	//
+	// Available: >= 3.1.0.
 	TimeInExecution *string `json:"time_in_execution,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInExecutionMillis is the time unit for milliseconds.
+	//
+	// Available: >= 3.1.0.
 	TimeInExecutionMillis *int64 `json:"time_in_execution_millis,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TimeInQueue is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TimeInQueue *string `json:"time_in_queue,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInQueueMillis is the time unit for milliseconds.
 	TimeInQueueMillis int64 `json:"time_in_queue_millis"`
 }
 
@@ -162,7 +169,7 @@ type ClusterPendingTasksPendingTask struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c clusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTasksReq) (*ClusterPendingTasksResp, error) {
+func (c ClusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTasksReq) (*ClusterPendingTasksResp, error) {
 	if req == nil {
 		req = &ClusterPendingTasksReq{}
 	}
@@ -171,7 +178,7 @@ func (c clusterClient) PendingTasks(ctx context.Context, req *ClusterPendingTask
 		data ClusterPendingTasksResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

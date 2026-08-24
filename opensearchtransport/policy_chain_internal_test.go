@@ -119,7 +119,7 @@ func TestPolicyChain(t *testing.T) {
 		require.Nil(t, hop.Conn)
 	})
 
-	t.Run("Eval returns hop from first matching policy", func(t *testing.T) {
+	t.Run("Eval skips not-enabled policy and falls through", func(t *testing.T) {
 		firstPolicy := NewRoundRobinPolicy().(*RoundRobinPolicy)
 		firstPolicy.configurePolicySettings(createTestConfig())
 
@@ -131,9 +131,10 @@ func TestPolicyChain(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 
 		hop, err := policy.Eval(ctx, req)
-		// With no connections in the pool, Next() returns ErrNoConnections,
-		// which the chain propagates.
-		require.Error(t, err)
+		// firstPolicy has a pool but nothing available -> not enabled -> Eval
+		// skips it (mirroring Route), then NullPolicy returns nil too, so the
+		// chain falls through with no conn and no error.
+		require.NoError(t, err)
 		require.Nil(t, hop.Conn)
 	})
 

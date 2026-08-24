@@ -95,8 +95,8 @@ func (r IndicesDeleteAliasParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/#delete-aliases
 type IndicesDeleteAliasResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -123,7 +123,7 @@ func (r IndicesDeleteAliasResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/index-alias/#delete-aliases
-func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
+func (c IndicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
 	if req == nil {
 		req = &IndicesDeleteAliasReq{}
 	}
@@ -132,7 +132,7 @@ func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasR
 		data IndicesDeleteAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,
@@ -144,7 +144,7 @@ func (c indicesClient) DeleteAlias(ctx context.Context, req *IndicesDeleteAliasR
 }
 
 // Deprecated: use IndicesDeleteAlias via the parent client instead.
-func (c aliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
+func (c AliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*IndicesDeleteAliasResp, error) {
 	if req == nil {
 		req = &IndicesDeleteAliasReq{}
 	}
@@ -153,7 +153,7 @@ func (c aliasClient) Delete(ctx context.Context, req *IndicesDeleteAliasReq) (*I
 		data IndicesDeleteAliasResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

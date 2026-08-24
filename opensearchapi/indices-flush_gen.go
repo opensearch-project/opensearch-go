@@ -200,7 +200,7 @@ func (r *IndicesFlushResp) PartialFailures(mask errmask.ErrorMask) []error {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) Flush(ctx context.Context, req *IndicesFlushReq) (*IndicesFlushResp, error) {
+func (c IndicesClient) Flush(ctx context.Context, req *IndicesFlushReq) (*IndicesFlushResp, error) {
 	if req == nil {
 		req = &IndicesFlushReq{}
 	}
@@ -209,7 +209,7 @@ func (c indicesClient) Flush(ctx context.Context, req *IndicesFlushReq) (*Indice
 		data IndicesFlushResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

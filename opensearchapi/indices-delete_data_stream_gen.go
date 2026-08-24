@@ -91,8 +91,8 @@ func (r IndicesDeleteDataStreamParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
 type IndicesDeleteDataStreamResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -119,7 +119,7 @@ func (r IndicesDeleteDataStreamResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/im-plugin/data-streams/
-func (c indicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteDataStreamReq) (*IndicesDeleteDataStreamResp, error) {
+func (c IndicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteDataStreamReq) (*IndicesDeleteDataStreamResp, error) {
 	if req == nil {
 		req = &IndicesDeleteDataStreamReq{}
 	}
@@ -128,7 +128,7 @@ func (c indicesClient) DeleteDataStream(ctx context.Context, req *IndicesDeleteD
 		data IndicesDeleteDataStreamResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

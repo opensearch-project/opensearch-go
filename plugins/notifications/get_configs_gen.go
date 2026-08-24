@@ -130,37 +130,37 @@ type GetConfigsParams struct {
 
 	Query string
 
-	SesAccountFromAddress string
+	SESAccountFromAddress string
 
-	SesAccountFromAddressKeyword string
+	SESAccountFromAddressKeyword string
 
-	SesAccountRegion string
+	SESAccountRegion string
 
-	SesAccountRoleArn string
+	SESAccountRoleARN string
 
-	SesAccountRoleArnKeyword string
+	SESAccountRoleARNKeyword string
 
 	SlackURL string
 
 	SlackURLKeyword string
 
-	SmtpAccountFromAddress string
+	SMTPAccountFromAddress string
 
-	SmtpAccountFromAddressKeyword string
+	SMTPAccountFromAddressKeyword string
 
-	SmtpAccountHost string
+	SMTPAccountHost string
 
-	SmtpAccountHostKeyword string
+	SMTPAccountHostKeyword string
 
-	SmtpAccountMethod string
+	SMTPAccountMethod string
 
-	SnsRoleArn string
+	SNSRoleARN string
 
-	SnsRoleArnKeyword string
+	SNSRoleARNKeyword string
 
-	SnsTopicArn string
+	SNSTopicARN string
 
-	SnsTopicArnKeyword string
+	SNSTopicARNKeyword string
 
 	TextQuery string
 
@@ -264,24 +264,24 @@ func (r GetConfigsParams) get() map[string]string {
 		set("query", r.Query)
 	}
 
-	if r.SesAccountFromAddress != "" {
-		set("ses_account.from_address", r.SesAccountFromAddress)
+	if r.SESAccountFromAddress != "" {
+		set("ses_account.from_address", r.SESAccountFromAddress)
 	}
 
-	if r.SesAccountFromAddressKeyword != "" {
-		set("ses_account.from_address.keyword", r.SesAccountFromAddressKeyword)
+	if r.SESAccountFromAddressKeyword != "" {
+		set("ses_account.from_address.keyword", r.SESAccountFromAddressKeyword)
 	}
 
-	if r.SesAccountRegion != "" {
-		set("ses_account.region", r.SesAccountRegion)
+	if r.SESAccountRegion != "" {
+		set("ses_account.region", r.SESAccountRegion)
 	}
 
-	if r.SesAccountRoleArn != "" {
-		set("ses_account.role_arn", r.SesAccountRoleArn)
+	if r.SESAccountRoleARN != "" {
+		set("ses_account.role_arn", r.SESAccountRoleARN)
 	}
 
-	if r.SesAccountRoleArnKeyword != "" {
-		set("ses_account.role_arn.keyword", r.SesAccountRoleArnKeyword)
+	if r.SESAccountRoleARNKeyword != "" {
+		set("ses_account.role_arn.keyword", r.SESAccountRoleARNKeyword)
 	}
 
 	if r.SlackURL != "" {
@@ -292,40 +292,40 @@ func (r GetConfigsParams) get() map[string]string {
 		set("slack.url.keyword", r.SlackURLKeyword)
 	}
 
-	if r.SmtpAccountFromAddress != "" {
-		set("smtp_account.from_address", r.SmtpAccountFromAddress)
+	if r.SMTPAccountFromAddress != "" {
+		set("smtp_account.from_address", r.SMTPAccountFromAddress)
 	}
 
-	if r.SmtpAccountFromAddressKeyword != "" {
-		set("smtp_account.from_address.keyword", r.SmtpAccountFromAddressKeyword)
+	if r.SMTPAccountFromAddressKeyword != "" {
+		set("smtp_account.from_address.keyword", r.SMTPAccountFromAddressKeyword)
 	}
 
-	if r.SmtpAccountHost != "" {
-		set("smtp_account.host", r.SmtpAccountHost)
+	if r.SMTPAccountHost != "" {
+		set("smtp_account.host", r.SMTPAccountHost)
 	}
 
-	if r.SmtpAccountHostKeyword != "" {
-		set("smtp_account.host.keyword", r.SmtpAccountHostKeyword)
+	if r.SMTPAccountHostKeyword != "" {
+		set("smtp_account.host.keyword", r.SMTPAccountHostKeyword)
 	}
 
-	if r.SmtpAccountMethod != "" {
-		set("smtp_account.method", r.SmtpAccountMethod)
+	if r.SMTPAccountMethod != "" {
+		set("smtp_account.method", r.SMTPAccountMethod)
 	}
 
-	if r.SnsRoleArn != "" {
-		set("sns.role_arn", r.SnsRoleArn)
+	if r.SNSRoleARN != "" {
+		set("sns.role_arn", r.SNSRoleARN)
 	}
 
-	if r.SnsRoleArnKeyword != "" {
-		set("sns.role_arn.keyword", r.SnsRoleArnKeyword)
+	if r.SNSRoleARNKeyword != "" {
+		set("sns.role_arn.keyword", r.SNSRoleARNKeyword)
 	}
 
-	if r.SnsTopicArn != "" {
-		set("sns.topic_arn", r.SnsTopicArn)
+	if r.SNSTopicARN != "" {
+		set("sns.topic_arn", r.SNSTopicARN)
 	}
 
-	if r.SnsTopicArnKeyword != "" {
-		set("sns.topic_arn.keyword", r.SnsTopicArnKeyword)
+	if r.SNSTopicARNKeyword != "" {
+		set("sns.topic_arn.keyword", r.SNSTopicARNKeyword)
 	}
 
 	if r.TextQuery != "" {

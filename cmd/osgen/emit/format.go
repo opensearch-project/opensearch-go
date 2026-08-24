@@ -80,6 +80,90 @@ func WrapLine(text string) string {
 // rewrites the former to the latter so the marker is honored.
 const deprecatedPrefix = "Deprecated"
 
+// nounPhraseArticles are the articles that open a description naming the
+// field's value rather than describing an action, which is what lets
+// FieldComment join the description to the field name with a copula. Matched
+// without regard to case and emitted lowercase, since the article lands
+// mid-sentence after the copula.
+//
+// Declared as a constant rather than a slice so the set stays immutable and
+// needs no package-level variable.
+const nounPhraseArticles = "the a an"
+
+// FieldComment wraps a description for use as a struct field doc comment,
+// leading with the field name as godoc expects.
+//
+// Most spec descriptions are noun phrases naming the value ("The time taken by
+// different phases of the search"), so joining them with "is" reads as a
+// sentence about the field. The rest open with a verb or a conditional
+// ("Whether the document was found", "If `true`, ..."), where a copula would
+// produce "Found is whether ...". Those keep the description as its own
+// sentence after the name.
+//
+// A description that already starts with the field name is left alone, and a
+// deprecation marker is never prefixed: godoc only honors "Deprecated:" at the
+// start of a paragraph.
+func FieldComment(name, text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" || name == "" {
+		return WrapField(text)
+	}
+	if strings.HasPrefix(text, deprecatedPrefix) {
+		return WrapField(text)
+	}
+	if text == name || strings.HasPrefix(text, name+" ") {
+		return WrapField(text)
+	}
+
+	if first, rest, ok := strings.Cut(text, " "); ok {
+		for article := range strings.FieldsSeq(nounPhraseArticles) {
+			if strings.EqualFold(first, article) {
+				return WrapField(name + " is " + article + " " + rest)
+			}
+		}
+	}
+
+	// The description becomes its own sentence, so it has to start like one.
+	// 161 spec descriptions are lowercase fragments ("alias name"), which would
+	// otherwise read as a sentence beginning mid-word.
+	return WrapField(name + ". " + upperFirst(text))
+}
+
+// ConstComment wraps a description for use as an enum member doc comment,
+// leading with the const name as godoc expects.
+//
+// Unlike a struct field, an enum member is one value of a set, and its
+// description says what selecting that value means ("The node can store hot
+// data", "Use the average of all values") rather than naming an attribute of
+// the constant. A copula would therefore read as "NodeRoleDataHot is the node
+// can store hot data", so the description always stays its own sentence.
+func ConstComment(name, text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" || name == "" {
+		return WrapField(text)
+	}
+	if strings.HasPrefix(text, deprecatedPrefix) {
+		return WrapField(text)
+	}
+	if text == name || strings.HasPrefix(text, name+" ") {
+		return WrapField(text)
+	}
+	return WrapField(name + ". " + upperFirst(text))
+}
+
+// upperFirst capitalizes the first rune, leaving an already-capitalized or
+// non-letter opening alone.
+func upperFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	r, size := utf8.DecodeRuneInString(s)
+	if !unicode.IsLower(r) {
+		return s
+	}
+	return string(unicode.ToUpper(r)) + s[size:]
+}
+
 // WrapField wraps a description for use as a struct field doc comment.
 // Output is tab-indented with "// " prefix on each line.
 func WrapField(text string) string {

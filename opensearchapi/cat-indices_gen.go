@@ -101,7 +101,7 @@ type CatIndicesParams struct {
 	Pri *bool
 
 	// Specifies the time units.
-	Time string
+	Time TimeUnit
 }
 
 func (r CatIndicesParams) get() map[string]string {
@@ -143,7 +143,7 @@ func (r CatIndicesParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -191,7 +191,7 @@ func (r CatIndicesResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-indices/
-func (c catClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndicesResp, error) {
+func (c CatClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndicesResp, error) {
 	if req == nil {
 		req = &CatIndicesReq{}
 	}
@@ -200,7 +200,7 @@ func (c catClient) Indices(ctx context.Context, req *CatIndicesReq) (*CatIndices
 		data CatIndicesResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

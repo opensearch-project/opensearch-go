@@ -229,7 +229,7 @@ type SecurityAnalyticsFindingsFinding struct {
 	ID            *string                             `json:"id,omitempty"`
 	Index         *string                             `json:"index,omitempty"`
 	Queries       []SecurityAnalyticsFindingsQuery    `json:"queries,omitempty"`
-	RelatedDocIds []string                            `json:"related_doc_ids,omitempty"`
+	RelatedDocIDs []string                            `json:"related_doc_ids,omitempty"`
 	Timestamp     *int64                              `json:"timestamp,omitempty"`
 }
 

@@ -94,7 +94,7 @@ type ShardsParams struct {
 	Sort string
 
 	// The unit in which to display time values.
-	Time string
+	Time opensearchapi.TimeUnit
 }
 
 func (r ShardsParams) get() map[string]string {
@@ -132,7 +132,7 @@ func (r ShardsParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params

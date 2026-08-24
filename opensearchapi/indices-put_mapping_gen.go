@@ -179,145 +179,39 @@ func (r IndicesPutMappingResp) RawBody() io.Reader {
 type IndicesPutMappingBody struct {
 	FieldNames *CommonMappingFieldNamesField `json:"_field_names,omitempty"`
 
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
 	Routing *CommonMappingRoutingField `json:"_routing,omitempty"`
 	Source  *CommonMappingSourceField  `json:"_source,omitempty"`
 
-	// Controls whether dynamic date detection is enabled.
+	// DateDetection. Controls whether dynamic date detection is enabled.
 	DateDetection *bool `json:"date_detection,omitempty"`
 
-	Dynamic *IndicesPutMappingBodyDynamic `json:"dynamic,omitempty"`
+	Dynamic *CommonMappingDynamic `json:"dynamic,omitempty"`
 
-	// If date detection is enabled then new string fields are checked against
-	// `dynamic_date_formats` and if the value matches then a new date field is
-	// added instead of string.
+	// DynamicDateFormats. If date detection is enabled then new string fields
+	// are checked against `dynamic_date_formats` and if the value matches then
+	// a new date field is added instead of string.
 	DynamicDateFormats []string `json:"dynamic_date_formats,omitempty"`
 
-	// Specify dynamic templates for the mapping.
+	// DynamicTemplates. Specify dynamic templates for the mapping.
 	DynamicTemplates *IndicesPutMappingBodyDynamicTemplates `json:"dynamic_templates,omitempty"`
 
-	// Automatically map strings into numeric data types for all fields.
+	// NumericDetection. Automatically map strings into numeric data types for
+	// all fields.
 	NumericDetection *bool `json:"numeric_detection,omitempty"`
 
-	// Mapping for a field. For new fields, this mapping can include: - Field
-	// name - Field data type - Mapping parameters
+	// Properties. Mapping for a field. For new fields, this mapping can
+	// include: - Field name - Field data type - Mapping parameters
 	Properties map[string]CommonMappingProperty `json:"properties,omitempty"`
 }
 
-// IndicesPutMappingBodyDynamic is a discriminated union type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type IndicesPutMappingBodyDynamic struct {
-	typ   IndicesPutMappingBodyDynamicType
-	raw   json.RawMessage
-	value any
-}
-
-// IndicesPutMappingBodyDynamicType discriminates the branches of IndicesPutMappingBodyDynamic.
-type IndicesPutMappingBodyDynamicType int
-
-const (
-	IndicesPutMappingBodyDynamicUnknownType IndicesPutMappingBodyDynamicType = iota
-	IndicesPutMappingBodyDynamicStringType
-	IndicesPutMappingBodyDynamicBoolType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns IndicesPutMappingBodyDynamicUnknownType if the value has not been decoded.
-func (u *IndicesPutMappingBodyDynamic) Type() IndicesPutMappingBodyDynamicType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *IndicesPutMappingBodyDynamic) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewIndicesPutMappingBodyDynamicFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *IndicesPutMappingBodyDynamic) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = IndicesPutMappingBodyDynamicUnknownType
-}
-
-// String returns the string branch value.
-func (u *IndicesPutMappingBodyDynamic) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewIndicesPutMappingBodyDynamicFromString returns a IndicesPutMappingBodyDynamic populated with v
-// on the String branch.
-func NewIndicesPutMappingBodyDynamicFromString(v string) IndicesPutMappingBodyDynamic {
-	return IndicesPutMappingBodyDynamic{
-		typ:   IndicesPutMappingBodyDynamicStringType,
-		value: &v,
-	}
-}
-
-// Bool returns the bool branch value.
-func (u *IndicesPutMappingBodyDynamic) Bool() bool {
-	if v, ok := u.value.(*bool); ok {
-		return *v
-	}
-	var zero bool
-	return zero
-}
-
-// NewIndicesPutMappingBodyDynamicFromBool returns a IndicesPutMappingBodyDynamic populated with v
-// on the Bool branch.
-func NewIndicesPutMappingBodyDynamicFromBool(v bool) IndicesPutMappingBodyDynamic {
-	return IndicesPutMappingBodyDynamic{
-		typ:   IndicesPutMappingBodyDynamicBoolType,
-		value: &v,
-	}
-}
-
-func (u *IndicesPutMappingBodyDynamic) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = IndicesPutMappingBodyDynamicUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IndicesPutMappingBodyDynamicStringType
-		u.value = &v
-	case data[0] == 't' || data[0] == 'f':
-		var v bool
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = IndicesPutMappingBodyDynamicBoolType
-		u.value = &v
-	default:
-		return fmt.Errorf("IndicesPutMappingBodyDynamic: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u IndicesPutMappingBodyDynamic) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
 // Specify dynamic templates for the mapping.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type IndicesPutMappingBodyDynamicTemplates struct {
@@ -326,7 +220,7 @@ type IndicesPutMappingBodyDynamicTemplates struct {
 	value any
 }
 
-// IndicesPutMappingBodyDynamicTemplatesType discriminates the branches of IndicesPutMappingBodyDynamicTemplates.
+// IndicesPutMappingBodyDynamicTemplatesType names which branch of IndicesPutMappingBodyDynamicTemplates is set.
 type IndicesPutMappingBodyDynamicTemplatesType int
 
 const (
@@ -334,6 +228,19 @@ const (
 	IndicesPutMappingBodyDynamicTemplatesMapType
 	IndicesPutMappingBodyDynamicTemplatesArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t IndicesPutMappingBodyDynamicTemplatesType) String() string {
+	switch t {
+	case IndicesPutMappingBodyDynamicTemplatesMapType:
+		return "Map"
+	case IndicesPutMappingBodyDynamicTemplatesArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns IndicesPutMappingBodyDynamicTemplatesUnknownType if the value has not been decoded.
@@ -356,13 +263,16 @@ func (u *IndicesPutMappingBodyDynamicTemplates) SetRaw(raw json.RawMessage) {
 	u.typ = IndicesPutMappingBodyDynamicTemplatesUnknownType
 }
 
-// Map returns the map[string]json.RawMessage branch value.
-func (u *IndicesPutMappingBodyDynamicTemplates) Map() map[string]json.RawMessage {
+// Map returns the map[string]json.RawMessage branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero map[string]json.RawMessage in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesPutMappingBodyDynamicTemplates) Map() (map[string]json.RawMessage, error) {
 	if v, ok := u.value.(*map[string]json.RawMessage); ok {
-		return *v
+		return *v, nil
 	}
 	var zero map[string]json.RawMessage
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamicTemplates", Want: "Map", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromMap returns a IndicesPutMappingBodyDynamicTemplates populated with v
@@ -374,13 +284,16 @@ func NewIndicesPutMappingBodyDynamicTemplatesFromMap(v map[string]json.RawMessag
 	}
 }
 
-// Array returns the []map[string]CommonMappingDynamicTemplate branch value.
-func (u *IndicesPutMappingBodyDynamicTemplates) Array() []map[string]CommonMappingDynamicTemplate {
+// Array returns the []map[string]CommonMappingDynamicTemplate branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []map[string]CommonMappingDynamicTemplate in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *IndicesPutMappingBodyDynamicTemplates) Array() ([]map[string]CommonMappingDynamicTemplate, error) {
 	if v, ok := u.value.(*[]map[string]CommonMappingDynamicTemplate); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []map[string]CommonMappingDynamicTemplate
-	return zero
+	return zero, &UnionBranchError{Union: "IndicesPutMappingBodyDynamicTemplates", Want: "Array", Got: u.typ.String()}
 }
 
 // NewIndicesPutMappingBodyDynamicTemplatesFromArray returns a IndicesPutMappingBodyDynamicTemplates populated with v
@@ -439,7 +352,7 @@ func (u IndicesPutMappingBodyDynamicTemplates) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/put-mapping/
-func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
+func (c IndicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
 	if req == nil {
 		req = &IndicesPutMappingReq{}
 	}
@@ -448,7 +361,7 @@ func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq
 		data IndicesPutMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -460,7 +373,7 @@ func (c indicesClient) PutMapping(ctx context.Context, req *IndicesPutMappingReq
 }
 
 // Deprecated: use IndicesPutMapping via the parent client instead.
-func (c mappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
+func (c MappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*IndicesPutMappingResp, error) {
 	if req == nil {
 		req = &IndicesPutMappingReq{}
 	}
@@ -469,7 +382,7 @@ func (c mappingClient) Put(ctx context.Context, req *IndicesPutMappingReq) (*Ind
 		data IndicesPutMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

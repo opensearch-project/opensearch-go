@@ -94,8 +94,8 @@ func (r PauseParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/tuning-your-cluster/replication-plugin/api/#pause-replication
 type PauseResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response

@@ -33,21 +33,19 @@ CommonQueryDSLKNNQuery/method_parameters # map
 CommonQueryDSLLikeDocument/doc # bare
 CommonQueryDSLPercolateQuery/document # bare
 CommonQueryDSLPercolateQuery/documents # slice
-CommonQueryDSLQueryContainer/distance_feature # bare
 CommonQueryDSLQueryContainer/template # map
 
 # --- _core.search ---
+SearchCompletionSuggestOption/_source # bare
+SearchCompletionSuggestOption/fields # map
 SearchHighlightBase/options # map
 SearchHit/_source # bare
 SearchHit/fields # map
-SearchHitsMetadataHitsItem/_source # bare
-SearchHitsMetadataJSONValueHitsItem/_source # bare
 SearchProcessorExecutionDetail/input_data # bare
 SearchProcessorExecutionDetail/output_data # bare
-SearchResultHitsHitsItem/_source # bare
 SearchResultJSONValueHitsHitsItem/_source # bare
-SearchResultJSONValueSuggestValueItemObject0OptionsItem/_source # bare
-SearchResultJSONValueSuggestValueItemObject0OptionsObject0/_source # bare
+SearchResultJSONValueSuggestValueItemCompletionOptionsItem/_source # bare
+SearchResultJSONValueSuggestValueItemCompletionOptionsSource/_source # bare
 
 # --- asynchronous_search.search ---
 AsynchronousSearchSearch/ext # map
@@ -55,9 +53,6 @@ AsynchronousSearchSearch/ext # map
 # --- cluster._common ---
 ClusterComponentTemplateNode/_meta # map
 ClusterComponentTemplateSummary/_meta # map
-
-# --- cluster.get_decommission_awareness ---
-ClusterGetDecommissionAwarenessResp/[entries] # map
 
 # --- cluster.get_settings ---
 ClusterGetSettingsResp/defaults # map
@@ -73,9 +68,6 @@ ClusterPutSettingsBody/transient # map
 ClusterPutSettingsResp/persistent # map
 ClusterPutSettingsResp/transient # map
 
-# --- cluster.remote_info ---
-ClusterRemoteInfoResp/[entries] # map
-
 # --- cluster.reroute ---
 ClusterRerouteResp/state # bare
 
@@ -84,12 +76,6 @@ ClusterStateResp/- # bare
 
 # --- delete_by_query ---
 DeleteByQueryResp/- # bare
-
-# --- explain ---
-ExplainRespBodyGet/_source # bare
-
-# --- flow_framework.common ---
-FlowFrameworkCommonFlowFrameworkGetResponse/workflows # bare
 
 # --- flow_framework.create ---
 FlowFrameworkCommonFlowFrameworkCreate/workflows # bare
@@ -101,10 +87,7 @@ GetResp/workflows # bare
 GetStatusResp/- # bare
 
 # --- flow_framework.search ---
-SearchResp/- # bare
-
-# --- flow_framework.search_state ---
-SearchStateResp/- # bare
+FlowFrameworkCommonGetResp/workflows # bare
 
 # --- flow_framework.update ---
 FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
@@ -113,9 +96,8 @@ FlowFrameworkCommonFlowFrameworkUpdate/workflows # bare
 GeospatialGeoJSONData/properties # bare
 
 # --- get ---
-GetResp/_source # bare
-GetResultBase/_source # bare
-GetResultBase/fields # map
+GetResult/_source # bare
+GetResult/fields # map
 
 # --- get_source ---
 GetSourceResp/- # bare
@@ -157,7 +139,7 @@ IndicesSplitBody/settings # map
 
 # --- ingest._common ---
 IngestAppendProcessor/value # slice
-IngestCsvProcessor/empty_value # bare
+IngestCSVProcessor/empty_value # bare
 IngestPipeline/_meta # map
 IngestSetProcessor/value # bare
 
@@ -210,9 +192,6 @@ GetFeatureResp/- # bare
 
 # --- ltr.get_featureset ---
 GetFeaturesetResp/- # bare
-
-# --- mget ---
-GetResult/_source # bare
 
 # --- ml._common ---
 MLGetAgenticMemoryResponse/after # map
@@ -391,9 +370,6 @@ HealthResp/settings # map
 
 # --- security.tenant_info ---
 TenantInfoResp/[entries] # map
-
-# --- security_analytics.search_finding_correlations ---
-SearchFindingCorrelationsResp/- # bare
 
 # --- snapshot._common ---
 SnapshotInfo/metadata # map

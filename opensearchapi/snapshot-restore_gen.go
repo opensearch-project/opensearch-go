@@ -127,8 +127,8 @@ func (r SnapshotRestoreParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/restore-snapshot/
 type SnapshotRestoreResp struct {
-	// Returns `true` if the restore was accepted. Present when the request had
-	// `wait_for_completion` set to `false`.
+	// Accepted. Returns `true` if the restore was accepted. Present when the
+	// request had `wait_for_completion` set to `false`.
 	Accepted *bool `json:"accepted,omitempty"`
 
 	Snapshot *SnapshotRestoreSnapshot `json:"snapshot,omitempty"`
@@ -152,13 +152,13 @@ func (r SnapshotRestoreResp) RawBody() io.Reader {
 
 // SnapshotRestoreSnapshot is a typed component of the snapshot.restore operation.
 type SnapshotRestoreSnapshot struct {
-	// The list of indexes that were restored.
+	// Indices is the list of indexes that were restored.
 	Indices []string `json:"indices"`
 
-	// Any statistics about the restored shards.
+	// Shards. Any statistics about the restored shards.
 	Shards ShardStatistics `json:"shards"`
 
-	// The name of the snapshot that was restored.
+	// Snapshot is the name of the snapshot that was restored.
 	Snapshot string `json:"snapshot"`
 }
 
@@ -166,50 +166,51 @@ type SnapshotRestoreSnapshot struct {
 //
 // Determines which settings and indexes to restore when restoring a snapshot
 type SnapshotRestoreBody struct {
-	// A comma-delimited list of index settings to ignore when restoring
-	// indexes from a snapshot.
+	// IgnoreIndexSettings is a comma-delimited list of index settings to
+	// ignore when restoring indexes from a snapshot.
 	IgnoreIndexSettings []string `json:"ignore_index_settings,omitempty"`
 
-	// How to handle data streams or indexes that are missing or closed. When
-	// `false`, the request returns an error for any data stream or index that
-	// is missing or closed. When `true`, the request ignores data streams and
-	// indexes in indexes that are missing or closed.
+	// IgnoreUnavailable. How to handle data streams or indexes that are
+	// missing or closed. When `false`, the request returns an error for any
+	// data stream or index that is missing or closed. When `true`, the request
+	// ignores data streams and indexes in indexes that are missing or closed.
 	IgnoreUnavailable *bool `json:"ignore_unavailable,omitempty"`
 
-	// How to handle index aliases from the original snapshot. When `true`,
-	// index aliases from the original snapshot are restored. When `false`,
-	// aliases along with associated indexes are not restored.
+	// IncludeAliases. How to handle index aliases from the original snapshot.
+	// When `true`, index aliases from the original snapshot are restored. When
+	// `false`, aliases along with associated indexes are not restored.
 	IncludeAliases *bool `json:"include_aliases,omitempty"`
 
-	// Whether to restore the current cluster state. When `false`, the cluster
-	// state is not restored. When `true`, the current cluster state is
-	// restored.
+	// IncludeGlobalState. Whether to restore the current cluster state. When
+	// `false`, the cluster state is not restored. When `true`, the current
+	// cluster state is restored.
 	IncludeGlobalState *bool `json:"include_global_state,omitempty"`
 
-	// A comma-delimited list of settings to add or change in all restored
-	// indexes. Use this parameter to override index settings during snapshot
-	// restoration. For data streams, these index settings are applied to the
-	// restored backing indexes.
+	// IndexSettings is a comma-delimited list of settings to add or change in
+	// all restored indexes. Use this parameter to override index settings
+	// during snapshot restoration. For data streams, these index settings are
+	// applied to the restored backing indexes.
 	IndexSettings *IndicesIndexSettings `json:"index_settings,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices,omitempty"`
 
-	// How the restore operation will behave if indexes in the snapshot do not
-	// have all primary shards available. When `false`, the entire restore
-	// operation fails if any indexes in the snapshot do not have all primary
-	// shards available. When `true`, allows the restoration of a partial
-	// snapshot of indexes with unavailable shards. Only shards that were
-	// successfully included in the snapshot are restored. All missing shards
-	// are recreated as empty. By default, the entire restore operation fails
-	// if one or more indexes included in the snapshot do not have all primary
-	// shards available. To change this behavior, set `partial` to `true`.
+	// Partial. How the restore operation will behave if indexes in the
+	// snapshot do not have all primary shards available. When `false`, the
+	// entire restore operation fails if any indexes in the snapshot do not
+	// have all primary shards available. When `true`, allows the restoration
+	// of a partial snapshot of indexes with unavailable shards. Only shards
+	// that were successfully included in the snapshot are restored. All
+	// missing shards are recreated as empty. By default, the entire restore
+	// operation fails if one or more indexes included in the snapshot do not
+	// have all primary shards available. To change this behavior, set
+	// `partial` to `true`.
 	Partial *bool `json:"partial,omitempty"`
 
-	// The pattern to apply to the restored aliases. Aliases matching the
-	// rename pattern will be renamed according to the
+	// RenameAliasPattern is the pattern to apply to the restored aliases.
+	// Aliases matching the rename pattern will be renamed according to the
 	// `rename_alias_replacement` setting. The rename pattern is applied as
 	// defined by the regular expression that supports referencing the original
 	// text. If two or more aliases are renamed into the same name, these
@@ -218,43 +219,44 @@ type SnapshotRestoreBody struct {
 	// Available: >= 2.18.0.
 	RenameAliasPattern *string `json:"rename_alias_pattern,omitempty"`
 
-	// The rename replacement string for aliases.
+	// RenameAliasReplacement is the rename replacement string for aliases.
 	//
 	// Available: >= 2.18.0.
 	RenameAliasReplacement *string `json:"rename_alias_replacement,omitempty"`
 
-	// The pattern to apply to the restored data streams and indexes. Data
-	// streams and indexes matching the rename pattern will be renamed
-	// according to the `rename_replacement` setting. The rename pattern is
-	// applied as defined by the regular expression that supports referencing
-	// the original text. The request fails if two or more data streams or
-	// indexes are renamed into the same name. If you rename a restored data
-	// stream, its backing indexes are also renamed. For example, if you rename
-	// the logs data stream to `recovered-logs`, the backing index `.ds-logs-1`
-	// is renamed to `.ds-recovered-logs-1`. If you rename a restored stream,
-	// ensure an index template matches the new stream name. If there are no
-	// matching index template names, the stream cannot roll over and new
-	// backing indexes are not created.
+	// RenamePattern is the pattern to apply to the restored data streams and
+	// indexes. Data streams and indexes matching the rename pattern will be
+	// renamed according to the `rename_replacement` setting. The rename
+	// pattern is applied as defined by the regular expression that supports
+	// referencing the original text. The request fails if two or more data
+	// streams or indexes are renamed into the same name. If you rename a
+	// restored data stream, its backing indexes are also renamed. For example,
+	// if you rename the logs data stream to `recovered-logs`, the backing
+	// index `.ds-logs-1` is renamed to `.ds-recovered-logs-1`. If you rename a
+	// restored stream, ensure an index template matches the new stream name.
+	// If there are no matching index template names, the stream cannot roll
+	// over and new backing indexes are not created.
 	RenamePattern *string `json:"rename_pattern,omitempty"`
 
-	// The rename replacement string.
+	// RenameReplacement is the rename replacement string.
 	RenameReplacement *string `json:"rename_replacement,omitempty"`
 
-	// The name of the remote store repository of the source index being
-	// restored. If not provided, the Snapshot Restore API will use the
-	// repository that was registered when the snapshot was created.
+	// SourceRemoteStoreRepository is the name of the remote store repository
+	// of the source index being restored. If not provided, the Snapshot
+	// Restore API will use the repository that was registered when the
+	// snapshot was created.
 	//
 	// Available: >= 2.10.0.
 	SourceRemoteStoreRepository *string `json:"source_remote_store_repository,omitempty"`
 
-	// Where will be the authoritative store of the restored indexes' data. A
-	// value of `local` indicates that all snapshot metadata and index data
-	// will be downloaded to local storage. A value of `remote_snapshot`
-	// indicates that snapshot metadata will be downloaded to the cluster, but
-	// the remote repository will remain the authoritative store of the index
-	// data. Data will be downloaded and cached as necessary to service
-	// queries. At least one node in the cluster must be configured with the
-	// search role in order to restore a snapshot using the type
+	// StorageType. Where will be the authoritative store of the restored
+	// indexes' data. A value of `local` indicates that all snapshot metadata
+	// and index data will be downloaded to local storage. A value of
+	// `remote_snapshot` indicates that snapshot metadata will be downloaded to
+	// the cluster, but the remote repository will remain the authoritative
+	// store of the index data. Data will be downloaded and cached as necessary
+	// to service queries. At least one node in the cluster must be configured
+	// with the search role in order to restore a snapshot using the type
 	// `remote_snapshot`.
 	//
 	// Available: >= 2.7.0.
@@ -268,12 +270,12 @@ type SnapshotRestoreBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/restore-snapshot/
-func (c snapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, error) {
+func (c SnapshotClient) Restore(ctx context.Context, req SnapshotRestoreReq) (*SnapshotRestoreResp, error) {
 	var (
 		data SnapshotRestoreResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

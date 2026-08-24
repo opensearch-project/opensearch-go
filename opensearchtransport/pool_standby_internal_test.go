@@ -20,14 +20,14 @@ import (
 // newStandbyConn creates a connection in connStandby state.
 func newStandbyConn(host string) *Connection {
 	c := &Connection{URL: &url.URL{Scheme: "http", Host: host}}
-	c.state.Store(int64(newConnState(lcStandby)))
+	c.setLifecycleBit(lcStandby)
 	return c
 }
 
 // newActiveConn creates a connection in connActive state.
 func newActiveConn(host string) *Connection {
 	c := &Connection{URL: &url.URL{Scheme: "http", Host: host}}
-	c.state.Store(int64(newConnState(lcActive)))
+	c.setLifecycleBit(lcActive)
 	return c
 }
 
@@ -44,12 +44,20 @@ func newStandbyPool(active, standby []*Connection) *multiServerPool {
 
 	pool.mu.ready = make([]*Connection, 0, len(active)+len(standby))
 	for _, c := range active {
-		c.state.Store(int64(newConnState(lcActive)))
+		// Normalize to a clean active state (matches the prior newConnState(lcActive)):
+		// set lcActive, clear every other lifecycle bit.
+		c.mu.Lock()
+		c.casLifecycle(c.loadConnState(), 0, lcActive, csLifecycleMask&^lcActive)
+		c.mu.Unlock()
 		pool.mu.ready = append(pool.mu.ready, c)
 	}
 	pool.mu.activeCount = len(active)
 	for _, c := range standby {
-		c.state.Store(int64(newConnState(lcStandby)))
+		// Normalize to a clean standby state (matches the prior newConnState(lcStandby)):
+		// set lcStandby, clear every other lifecycle bit.
+		c.mu.Lock()
+		c.casLifecycle(c.loadConnState(), 0, lcStandby, csLifecycleMask&^lcStandby)
+		c.mu.Unlock()
 		pool.mu.ready = append(pool.mu.ready, c)
 	}
 	pool.mu.dead = []*Connection{}
@@ -72,7 +80,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2"), newActiveConn("a3")},
 			nil,
 		)
-		pool.activeListCap = 0 // disabled
+		pool.mu.activeListCap = 0 // disabled
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -88,7 +96,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2"), newActiveConn("a3"), newActiveConn("a4")},
 			nil,
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		obs := newRecordingObserver()
 		var iface ConnectionObserver = obs
@@ -129,7 +137,7 @@ func TestEnforceReadyCapWithLock(t *testing.T) {
 			[]*Connection{newActiveConn("a1"), newActiveConn("a2")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -217,7 +225,7 @@ func TestEnforceCapDemotesToStandby(t *testing.T) {
 		a3 := newActiveConn("a3")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, []*Connection{s1})
-		pool.activeListCap = 1
+		pool.mu.activeListCap = 1
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -248,7 +256,7 @@ func TestEnforceCapDemotesToStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -286,7 +294,7 @@ func TestFindActiveCandidate(t *testing.T) {
 		s2 := newStandbyConn("s2")
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, []*Connection{s1, s2})
 		// Mark s2 as demoted (already has lcNeedsWarmup from cap enforcement)
-		s2.state.Store(int64(newConnState(lcStandby | lcNeedsWarmup)))
+		s2.setLifecycleBit(lcStandby | lcNeedsWarmup)
 
 		pool.mu.Lock()
 		found := pool.findActiveCandidate()
@@ -312,7 +320,7 @@ func TestFindActiveCandidate(t *testing.T) {
 	t.Run("Skips overloaded standby", func(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, []*Connection{s1})
-		s1.state.Store(int64(newConnState(lcStandby | lcOverloaded)))
+		s1.setLifecycleBit(lcStandby | lcOverloaded)
 
 		pool.mu.Lock()
 		found := pool.findActiveCandidate()
@@ -328,7 +336,7 @@ func TestFindActiveCandidate(t *testing.T) {
 		s2 := newStandbyConn("s2")
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, []*Connection{s1, s2})
 		// s2 is at the tail (searched first); mark it as health-checking
-		s2.state.Store(int64(newConnState(lcStandby | lcHealthChecking)))
+		s2.setLifecycleBit(lcStandby | lcHealthChecking)
 
 		pool.mu.Lock()
 		found := pool.findActiveCandidate()
@@ -345,7 +353,7 @@ func TestFindActiveCandidate(t *testing.T) {
 	t.Run("Falls back to health-checking standby", func(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, []*Connection{s1})
-		s1.state.Store(int64(newConnState(lcStandby | lcHealthChecking)))
+		s1.setLifecycleBit(lcStandby | lcHealthChecking)
 
 		pool.mu.Lock()
 		found := pool.findActiveCandidate()
@@ -363,7 +371,7 @@ func TestFindActiveCandidate(t *testing.T) {
 func TestPerformStandbyHealthCheck(t *testing.T) {
 	t.Run("Passes with healthy check", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -374,7 +382,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 
 	t.Run("Fails on unhealthy check", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -385,7 +393,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 
 	t.Run("Succeeds when no health check configured", func(t *testing.T) {
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = nil
+		pool.mu.healthCheck = nil
 		pool.standbyPromotionChecks = 3
 
 		conn := newStandbyConn("s1")
@@ -397,7 +405,7 @@ func TestPerformStandbyHealthCheck(t *testing.T) {
 	t.Run("Fails on partial health check failure", func(t *testing.T) {
 		calls := 0
 		pool := newStandbyPool(nil, nil)
-		pool.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
 			calls++
 			if calls == 2 {
 				return nil, errors.New("intermittent failure")
@@ -421,7 +429,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		obs := newRecordingObserver()
 		var iface ConnectionObserver = obs
@@ -477,7 +485,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 
 	t.Run("No standby available", func(t *testing.T) {
 		pool := newStandbyPool([]*Connection{newActiveConn("a1")}, nil)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		attempted, rotated, _ := pool.rotateStandbyOnce(context.Background())
 
@@ -493,7 +501,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
@@ -519,7 +527,7 @@ func TestRotateStandbyOnce(t *testing.T) {
 	t.Run("Promotes to active when no active connections exist", func(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool(nil, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		attempted, rotated, err := pool.rotateStandbyOnce(context.Background())
 
@@ -548,7 +556,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{a1, a2},
 			[]*Connection{s1, s2, s3},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
@@ -566,7 +574,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 5)
 
@@ -586,7 +594,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{a1},
 			[]*Connection{s1, s2},
 		)
-		pool.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
 			if c.URL.Host == "s2-bad" {
 				return nil, errors.New("unhealthy")
 			}
@@ -609,7 +617,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1"), newStandbyConn("s2")},
 		)
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 2)
 
@@ -631,7 +639,7 @@ func TestRotateStandby(t *testing.T) {
 			[]*Connection{newActiveConn("a1")},
 			[]*Connection{newStandbyConn("s1")},
 		)
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		rotated, _ := pool.rotateStandby(context.Background(), 0)
 		if rotated != 0 {
@@ -743,7 +751,7 @@ func TestDemoteOverloaded(t *testing.T) {
 		a1 := newActiveConn("a1")
 		pool := newStandbyPool([]*Connection{a1}, nil)
 		deadConn := &Connection{URL: &url.URL{Scheme: "http", Host: "dead1"}}
-		deadConn.state.Store(int64(newConnState(lcUnknown)))
+		deadConn.setLifecycleBit(lcUnknown)
 		pool.mu.dead = append(pool.mu.dead, deadConn)
 
 		pool.demoteOverloaded(deadConn)
@@ -806,7 +814,7 @@ func TestEvictUnknownFromReadyWithLock(t *testing.T) {
 	t.Run("moves unknown from ready to dead", func(t *testing.T) {
 		a1 := newActiveConn("a1")
 		unknown := &Connection{URL: &url.URL{Scheme: "http", Host: "unknown1"}}
-		unknown.state.Store(int64(newConnState(lcUnknown)))
+		unknown.setLifecycleBit(lcUnknown)
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{unknown})
 
 		pool.mu.Lock()
@@ -837,10 +845,12 @@ func TestEnforceCapWithWarmingConnections(t *testing.T) {
 		a3 := newActiveConn("a3-warming")
 
 		pool := newStandbyPool([]*Connection{a1, a2, a3}, nil)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
-		// Set warming state AFTER pool creation (newStandbyPool overwrites state)
-		a3.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 10, 5)))
+		// Set warming state AFTER pool creation (newStandbyPool overwrites state):
+		// flag warmup, then startWarmup populates the warmup managers.
+		a3.setLifecycleBit(lcNeedsWarmup)
+		a3.startWarmup(10, 5)
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -859,10 +869,12 @@ func TestEnforceCapWithWarmingConnections(t *testing.T) {
 		a3 := newActiveConn("a3")
 
 		pool := newStandbyPool([]*Connection{a1, warming, a2, a3}, nil)
-		pool.activeListCap = 2
+		pool.mu.activeListCap = 2
 
-		// Set warming state AFTER pool creation
-		warming.state.Store(int64(warmupState(lcActive|lcNeedsWarmup, 10, 5)))
+		// Set warming state AFTER pool creation: flag warmup, then startWarmup
+		// populates the warmup managers.
+		warming.setLifecycleBit(lcNeedsWarmup)
+		warming.startWarmup(10, 5)
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -900,9 +912,12 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
-			// Simulate concurrent state change to lcUnknown during health check
-			c.state.Store(int64(newConnState(lcUnknown)))
+		pool.mu.healthCheck = func(_ context.Context, c *Connection, _ *url.URL) (*http.Response, error) {
+			// Simulate concurrent state change to lcUnknown during health check:
+			// clear the position bits so the connection reads as dead/unknown.
+			c.mu.Lock()
+			c.casLifecycle(c.loadConnState(), 0, lcUnknown, lcReady|lcActive|lcStandby)
+			c.mu.Unlock()
 			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
 		}
 
@@ -919,7 +934,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysUnhealthy
+		pool.mu.healthCheck = alwaysUnhealthy
 
 		candidate, err := pool.healthcheckStart(context.Background())
 
@@ -934,7 +949,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
+		pool.mu.healthCheck = func(_ context.Context, _ *Connection, _ *url.URL) (*http.Response, error) {
 			// Simulate concurrent removal: remove s1 from ready
 			pool.mu.Lock()
 			pool.mu.ready = pool.mu.ready[:pool.mu.activeCount]
@@ -953,7 +968,7 @@ func TestHealthcheckStartPaths(t *testing.T) {
 		a1 := newActiveConn("a1")
 		s1 := newStandbyConn("s1")
 		pool := newStandbyPool([]*Connection{a1}, []*Connection{s1})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		candidate, err := pool.healthcheckStart(context.Background())
 
@@ -995,7 +1010,7 @@ func TestPartitionConsistency(t *testing.T) {
 			conns[i] = newActiveConn("a" + string(rune('1'+i)))
 		}
 		pool := newStandbyPool(conns, nil)
-		pool.activeListCap = 3
+		pool.mu.activeListCap = 3
 
 		pool.mu.Lock()
 		pool.enforceActiveCapWithLock()
@@ -1022,7 +1037,7 @@ func TestPartitionConsistency(t *testing.T) {
 		s1 := newStandbyConn("s1")
 		s2 := newStandbyConn("s2")
 		pool := newStandbyPool([]*Connection{a1, a2}, []*Connection{s1, s2})
-		pool.healthCheck = alwaysHealthy
+		pool.mu.healthCheck = alwaysHealthy
 
 		pool.rotateStandby(context.Background(), 2)
 

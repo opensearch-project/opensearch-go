@@ -20,7 +20,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 )
 
-// GetIp2geoDatasourceReq represents the request for the geospatial.get_ip2geo_datasource operation.
+// GetIP2GeoDatasourceReq represents the request for the geospatial.get_ip2geo_datasource operation.
 //
 // Get one or more IP2Geo data sources, defaulting to returning all if no names specified.
 //
@@ -29,7 +29,7 @@ import (
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
-type GetIp2geoDatasourceReq struct {
+type GetIP2GeoDatasourceReq struct {
 	// Name specifies the list of path segments for the request URL.
 	Name []string
 
@@ -37,12 +37,12 @@ type GetIp2geoDatasourceReq struct {
 	Header http.Header
 
 	// Params holds optional query parameters for the request.
-	Params *GetIp2geoDatasourceParams
+	Params *GetIP2GeoDatasourceParams
 }
 
 // GetRequest builds the HTTP request from the structured fields.
-func (r GetIp2geoDatasourceReq) GetRequest(method string) (*http.Request, error) {
-	path, err := ospath.GeospatialGetIp2geoDatasourcePath{
+func (r GetIP2GeoDatasourceReq) GetRequest(method string) (*http.Request, error) {
+	path, err := ospath.GeospatialGetIP2GeoDatasourcePath{
 		Name: r.Name,
 	}.Build()
 	if err != nil {
@@ -63,13 +63,13 @@ func (r GetIp2geoDatasourceReq) GetRequest(method string) (*http.Request, error)
 	)
 }
 
-// GetIp2geoDatasourceParams represents query parameters for the GetIp2geoDatasourceReq.
-type GetIp2geoDatasourceParams struct {
+// GetIP2GeoDatasourceParams represents query parameters for the GetIP2GeoDatasourceReq.
+type GetIP2GeoDatasourceParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 }
 
-func (r GetIp2geoDatasourceParams) get() map[string]string {
+func (r GetIP2GeoDatasourceParams) get() map[string]string {
 	var params map[string]string
 	set := func(k, v string) {
 		if params == nil {
@@ -83,27 +83,27 @@ func (r GetIp2geoDatasourceParams) get() map[string]string {
 	return params
 }
 
-// GetIp2geoDatasourceResp represents the response for the geospatial.get_ip2geo_datasource operation.
+// GetIP2GeoDatasourceResp represents the response for the geospatial.get_ip2geo_datasource operation.
 //
 // Get one or more IP2Geo data sources, defaulting to returning all if no names specified.
 //
 // Available: >= 2.11.0.
 //
 // See: https://docs.opensearch.org/docs/latest/ingest-pipelines/processors/ip2geo/#sending-a-get-request
-type GetIp2geoDatasourceResp struct {
+type GetIP2GeoDatasourceResp struct {
 	Datasources []opensearchapi.GeospatialDataSource `json:"datasources"`
 
 	response *opensearch.Response
 }
 
 // Inspect returns the raw OpenSearch response for debugging or advanced use.
-func (r GetIp2geoDatasourceResp) Inspect() Inspect {
+func (r GetIP2GeoDatasourceResp) Inspect() Inspect {
 	return Inspect{Response: r.response}
 }
 
 // RawBody returns a fresh reader over the original response bytes,
 // useful when the typed response struct is incomplete for your use case.
-func (r GetIp2geoDatasourceResp) RawBody() io.Reader {
+func (r GetIP2GeoDatasourceResp) RawBody() io.Reader {
 	if r.response == nil || len(r.response.RawBody()) == 0 {
 		return nil
 	}

@@ -137,12 +137,12 @@ func (r SearchPipelinePutResp) RawBody() io.Reader {
 // Available: >= 2.9.0.
 //
 // See: https://opensearch.org/docs/latest/search-plugins/search-pipelines/creating-search-pipeline/
-func (c searchPipelineClient) Put(ctx context.Context, req SearchPipelinePutReq) (*SearchPipelinePutResp, error) {
+func (c SearchPipelineClient) Put(ctx context.Context, req SearchPipelinePutReq) (*SearchPipelinePutResp, error) {
 	var (
 		data SearchPipelinePutResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPut,

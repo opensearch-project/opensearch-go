@@ -179,6 +179,12 @@ func TestBulkIndexerIntegration(t *testing.T) {
 			)
 		}
 
+		// Registered before the index-delete cleanup below so it runs after it:
+		// cleanups are LIFO, and the delete needs a live client. The indexer
+		// does not own this client (it was passed in, not created implicitly),
+		// so closing the indexer would not release it.
+		t.Cleanup(func() { _ = client.Close() })
+
 		t.Cleanup(func() {
 			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
 				Indices: []string{indexName},

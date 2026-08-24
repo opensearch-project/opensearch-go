@@ -161,7 +161,7 @@ func (r NodesStatsParams) get() map[string]string {
 type NodesStatsResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Nodes map[string]NodesStatsStats `json:"nodes"`
@@ -185,23 +185,23 @@ func (r NodesStatsResp) RawBody() io.Reader {
 
 // NodesStatsStats is a typed component of the nodes.stats operation.
 type NodesStatsStats struct {
-	// Statistics about adaptive replica selection.
+	// AdaptiveSelection. Statistics about adaptive replica selection.
 	AdaptiveSelection map[string]NodesStatsAdaptiveSelection `json:"adaptive_selection,omitempty"`
 
 	AdmissionControl *NodesStatsShardAdmissionControl `json:"admission_control,omitempty"`
 
-	// Contains a list of attributes for the node.
+	// Attributes. Contains a list of attributes for the node.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
-	// Statistics about the field data circuit breaker.
+	// Breakers. Statistics about the field data circuit breaker.
 	Breakers map[string]NodesStatsBreaker `json:"breakers,omitempty"`
 
 	Caches                   map[string]NodesStatsCache               `json:"caches,omitempty"`
 	ClusterManagerThrottling *NodesStatsShardClusterManagerThrottling `json:"cluster_manager_throttling,omitempty"`
 	Discovery                *NodesStatsDiscovery                     `json:"discovery,omitempty"`
-	Fs                       *NodesStatsFileSystem                    `json:"fs,omitempty"`
+	FS                       *NodesStatsFileSystem                    `json:"fs,omitempty"`
 
-	// The hostname or IP address.
+	// Host is the hostname or IP address.
 	Host *string `json:"host,omitempty"`
 
 	HTTP             *NodesStatsHTTP             `json:"http,omitempty"`
@@ -212,20 +212,22 @@ type NodesStatsStats struct {
 	// IP address and port for the node.
 	IP *NodesStatsIP `json:"ip,omitempty"`
 
-	Jvm *NodesStatsJvm `json:"jvm,omitempty"`
+	JVM *NodesStatsJVM `json:"jvm,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	NativeMemory       *NodesStatsNativeMemory                       `json:"native_memory,omitempty"`
-	Os                 *NodesStatsOperatingSystem                    `json:"os,omitempty"`
+	// Available: >= 3.7.0.
+	NativeMemory *NodesStatsNativeMemory `json:"native_memory,omitempty"`
+
+	OS                 *NodesStatsOperatingSystem                    `json:"os,omitempty"`
 	Process            *NodesStatsProcess                            `json:"process,omitempty"`
 	RemoteStore        *NodesStatsRemoteStore                        `json:"remote_store,omitempty"`
 	Repositories       []NodesStatsRepositorySnapshot                `json:"repositories,omitempty"`
 	ResourceUsageStats map[string]NodesStatsShardResourceUsageDetail `json:"resource_usage_stats,omitempty"`
 
-	// The role assigned to the node.
-	Roles []string `json:"roles,omitempty"`
+	// Roles is the role assigned to the node.
+	Roles []NodeRole `json:"roles,omitempty"`
 
 	Script                         *NodesStatsScript                              `json:"script,omitempty"`
 	ScriptCache                    *NodesStatsScriptCache                         `json:"script_cache,omitempty"`
@@ -235,16 +237,16 @@ type NodesStatsStats struct {
 	ShardIndexingPressure          *NodesStatsShardIndexingPressure               `json:"shard_indexing_pressure,omitempty"`
 	TaskCancellation               *NodesStatsShardTaskCancellation               `json:"task_cancellation,omitempty"`
 
-	// Statistics about each thread pool, including current size, queue and
-	// rejected tasks.
+	// ThreadPool. Statistics about each thread pool, including current size,
+	// queue and rejected tasks.
 	ThreadPool map[string]NodesStatsThreadCount `json:"thread_pool,omitempty"`
 
-	// The time unit for milliseconds.
+	// Timestamp is the time unit for milliseconds.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 
 	Transport *NodesStatsTransport `json:"transport,omitempty"`
 
-	// The transport address of a node.
+	// TransportAddress is the transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`
 
 	WeightedRouting *NodesStatsShardWeightedRouting `json:"weighted_routing,omitempty"`
@@ -252,41 +254,45 @@ type NodesStatsStats struct {
 
 // NodesStatsAdaptiveSelection is a typed component of the nodes.stats operation.
 type NodesStatsAdaptiveSelection struct {
-	// The exponentially weighted moving average queue size of search requests
-	// on the keyed node.
+	// AvgQueueSize is the exponentially weighted moving average queue size of
+	// search requests on the keyed node.
 	AvgQueueSize *int64 `json:"avg_queue_size,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// AvgRespTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	AvgRespTime *string `json:"avg_response_time,omitempty"`
 
-	// The exponentially weighted moving average response time, in nanoseconds,
-	// of search requests on the keyed node.
+	// AvgRespTimeNs is the exponentially weighted moving average response
+	// time, in nanoseconds, of search requests on the keyed node.
 	AvgRespTimeNs *int64 `json:"avg_response_time_ns,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// AvgServiceTime is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	AvgServiceTime *string `json:"avg_service_time,omitempty"`
 
-	// The exponentially weighted moving average service time, in nanoseconds,
-	// of search requests on the keyed node.
+	// AvgServiceTimeNs is the exponentially weighted moving average service
+	// time, in nanoseconds, of search requests on the keyed node.
 	AvgServiceTimeNs *int64 `json:"avg_service_time_ns,omitempty"`
 
-	// The number of outstanding search requests to the keyed node from the
-	// node these stats are for.
+	// OutgoingSearches is the number of outstanding search requests to the
+	// keyed node from the node these stats are for.
 	OutgoingSearches *int64 `json:"outgoing_searches,omitempty"`
 
-	// The rank of this node; used for shard selection when routing search
-	// requests.
+	// Rank is the rank of this node; used for shard selection when routing
+	// search requests.
 	Rank *string `json:"rank,omitempty"`
 }
 
 // NodesStatsShardAdmissionControl is a typed component of the nodes.stats operation.
 type NodesStatsShardAdmissionControl struct {
-	GlobalCpuUsage          *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
-	GlobalIoUsage           *NodesStatsUsage `json:"global_io_usage,omitempty"`
+	GlobalCPUUsage *NodesStatsUsage `json:"global_cpu_usage,omitempty"`
+	GlobalIOUsage  *NodesStatsUsage `json:"global_io_usage,omitempty"`
+
+	// Available: >= 3.7.0.
 	GlobalNativeMemoryUsage *NodesStatsUsage `json:"global_native_memory_usage,omitempty"`
 }
 
@@ -302,33 +308,34 @@ type NodesStatsTransportUsage struct {
 
 // NodesStatsBreaker is a typed component of the nodes.stats operation.
 type NodesStatsBreaker struct {
-	// Estimated memory used for the operation.
+	// EstimatedSize. Estimated memory used for the operation.
 	EstimatedSize *string `json:"estimated_size,omitempty"`
 
-	// Estimated memory used, in bytes, for the operation.
+	// EstimatedSizeInBytes. Estimated memory used, in bytes, for the
+	// operation.
 	EstimatedSizeInBytes *int64 `json:"estimated_size_in_bytes,omitempty"`
 
-	// Memory limit for the circuit breaker.
+	// LimitSize. Memory limit for the circuit breaker.
 	LimitSize *string `json:"limit_size,omitempty"`
 
-	// Memory limit, in bytes, for the circuit breaker.
+	// LimitSizeInBytes. Memory limit, in bytes, for the circuit breaker.
 	LimitSizeInBytes *int64 `json:"limit_size_in_bytes,omitempty"`
 
-	// A constant that all estimates for the circuit breaker are multiplied
-	// with to calculate a final estimate.
+	// Overhead is a constant that all estimates for the circuit breaker are
+	// multiplied with to calculate a final estimate.
 	Overhead *float64 `json:"overhead,omitempty"`
 
-	// Total number of times the circuit breaker has been triggered and
-	// prevented an out of memory error.
+	// Tripped. Total number of times the circuit breaker has been triggered
+	// and prevented an out of memory error.
 	Tripped *int64 `json:"tripped,omitempty"`
 }
 
 // NodesStatsCache is a typed component of the nodes.stats operation.
 type NodesStatsCache struct {
 	NodesStatsCacheBase
-	Indices   map[string]NodesStatsCacheIndices `json:"indices,omitempty"`
-	Shards    map[string]NodesStatsCacheShard   `json:"shards,omitempty"`
-	StoreName *string                           `json:"store_name,omitempty"`
+	Indices   map[string]NodesStatsCacheBase `json:"indices,omitempty"`
+	Shards    map[string]NodesStatsCacheBase `json:"shards,omitempty"`
+	StoreName *string                        `json:"store_name,omitempty"`
 }
 
 // NodesStatsCacheBase is a typed component of the nodes.stats operation.
@@ -338,21 +345,11 @@ type NodesStatsCacheBase struct {
 	ItemCount *int64 `json:"item_count,omitempty"`
 	MissCount *int64 `json:"miss_count,omitempty"`
 
-	// The unique identifier of a node.
+	// Size is the unique identifier of a node.
 	Size *string `json:"size,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
-}
-
-// NodesStatsCacheIndices is a typed component of the nodes.stats operation.
-type NodesStatsCacheIndices struct {
-	NodesStatsCacheBase
-}
-
-// NodesStatsCacheShard is a typed component of the nodes.stats operation.
-type NodesStatsCacheShard struct {
-	NodesStatsCacheBase
 }
 
 // NodesStatsShardClusterManagerThrottling is a typed component of the nodes.stats operation.
@@ -375,10 +372,10 @@ type NodesStatsDiscovery struct {
 
 // NodesStatsClusterStateQueue is a typed component of the nodes.stats operation.
 type NodesStatsClusterStateQueue struct {
-	// Number of committed cluster states in queue.
+	// Committed. Number of committed cluster states in queue.
 	Committed *int `json:"committed,omitempty"`
 
-	// Number of pending cluster states in queue.
+	// Pending. Number of pending cluster states in queue.
 	Pending *int `json:"pending,omitempty"`
 
 	// Total number of cluster states in queue.
@@ -394,7 +391,7 @@ type NodesStatsClusterState struct {
 type NodesStatsClusterStateOverall struct {
 	FailedCount *int64 `json:"failed_count,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalTimeInMillis is the time unit for milliseconds.
 	TotalTimeInMillis *int64 `json:"total_time_in_millis,omitempty"`
 
 	UpdateCount *int64 `json:"update_count,omitempty"`
@@ -402,25 +399,27 @@ type NodesStatsClusterStateOverall struct {
 
 // NodesStatsPublishedClusterStates is a typed component of the nodes.stats operation.
 type NodesStatsPublishedClusterStates struct {
-	// Number of compatible differences between published cluster states.
+	// CompatibleDiffs. Number of compatible differences between published
+	// cluster states.
 	CompatibleDiffs *int64 `json:"compatible_diffs,omitempty"`
 
-	// Number of published cluster states.
+	// FullStates. Number of published cluster states.
 	FullStates *int64 `json:"full_states,omitempty"`
 
-	// Number of incompatible differences between published cluster states.
+	// IncompatibleDiffs. Number of incompatible differences between published
+	// cluster states.
 	IncompatibleDiffs *int64 `json:"incompatible_diffs,omitempty"`
 }
 
 // NodesStatsFileSystem is a typed component of the nodes.stats operation.
 type NodesStatsFileSystem struct {
-	// List of all file stores.
+	// Data. List of all file stores.
 	Data []NodesStatsDataPath `json:"data,omitempty"`
 
-	IoStats *NodesStatsIo `json:"io_stats,omitempty"`
+	IOStats *NodesStatsIO `json:"io_stats,omitempty"`
 
-	// Last time the file stores statistics were refreshed. Recorded in
-	// milliseconds since the Unix Epoch.
+	// Timestamp. Last time the file stores statistics were refreshed. Recorded
+	// in milliseconds since the Unix Epoch.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 
 	Total *NodesStatsFileSystemTotal `json:"total,omitempty"`
@@ -428,26 +427,30 @@ type NodesStatsFileSystem struct {
 
 // NodesStatsDataPath is a typed component of the nodes.stats operation.
 type NodesStatsDataPath struct {
-	// Total amount of disk space available to this Java virtual machine on
-	// this file store.
+	// Available. Total amount of disk space available to this Java virtual
+	// machine on this file store.
 	Available *string `json:"available,omitempty"`
 
-	// Total number of bytes available to this Java virtual machine on this
-	// file store.
+	// AvailableInBytes. Total number of bytes available to this Java virtual
+	// machine on this file store.
 	AvailableInBytes *int64 `json:"available_in_bytes,omitempty"`
 
-	// Total number of cache bytes reserved available to this Java virtual
-	// machine on this file store.
+	// CacheReserved. Total number of cache bytes reserved available to this
+	// Java virtual machine on this file store.
+	//
+	// Available: >= 2.7.0.
 	CacheReserved *string `json:"cache_reserved,omitempty"`
 
-	// Total number of cache bytes reserved available to this Java virtual
-	// machine on this file store.
+	// CacheReservedInBytes. Total number of cache bytes reserved available to
+	// this Java virtual machine on this file store.
+	//
+	// Available: >= 2.7.0.
 	CacheReservedInBytes *int64 `json:"cache_reserved_in_bytes,omitempty"`
 
-	// Total amount of unallocated disk space in the file store.
+	// Free. Total amount of unallocated disk space in the file store.
 	Free *string `json:"free,omitempty"`
 
-	// Total number of unallocated bytes in the file store.
+	// FreeInBytes. Total number of unallocated bytes in the file store.
 	FreeInBytes *int64 `json:"free_in_bytes,omitempty"`
 
 	// Mount point of the file store (for example: `/dev/sda2`).
@@ -459,53 +462,53 @@ type NodesStatsDataPath struct {
 	// Total size of the file store.
 	Total *string `json:"total,omitempty"`
 
-	// Total size of the file store in bytes.
+	// TotalInBytes. Total size of the file store in bytes.
 	TotalInBytes *int64 `json:"total_in_bytes,omitempty"`
 
 	// Type of the file store (ex: ext4).
 	Type *string `json:"type,omitempty"`
 }
 
-// NodesStatsIo is a typed component of the nodes.stats operation.
-type NodesStatsIo struct {
-	// Array of disk metrics for each device that is backing an OpenSearch data
-	// path. These disk metrics are probed periodically and averages between
-	// the last probe and the current probe are computed.
-	Devices []NodesStatsIoStatDevice `json:"devices,omitempty"`
+// NodesStatsIO is a typed component of the nodes.stats operation.
+type NodesStatsIO struct {
+	// Devices. Array of disk metrics for each device that is backing an
+	// OpenSearch data path. These disk metrics are probed periodically and
+	// averages between the last probe and the current probe are computed.
+	Devices []NodesStatsIOStatDevice `json:"devices,omitempty"`
 
-	Total *NodesStatsIoStatDevice `json:"total,omitempty"`
+	Total *NodesStatsIOStatDevice `json:"total,omitempty"`
 }
 
-// NodesStatsIoStatDevice is a typed component of the nodes.stats operation.
-type NodesStatsIoStatDevice struct {
-	// The Linux device name.
+// NodesStatsIOStatDevice is a typed component of the nodes.stats operation.
+type NodesStatsIOStatDevice struct {
+	// DeviceName is the Linux device name.
 	DeviceName *string `json:"device_name,omitempty"`
 
-	// The time unit for milliseconds.
-	IoTimeInMillis *int64 `json:"io_time_in_millis,omitempty"`
+	// IOTimeInMillis is the time unit for milliseconds.
+	IOTimeInMillis *int64 `json:"io_time_in_millis,omitempty"`
 
-	// The total number of read and write operations for the device completed
-	// since starting OpenSearch.
+	// Operations is the total number of read and write operations for the
+	// device completed since starting OpenSearch.
 	Operations *int64 `json:"operations,omitempty"`
 
 	QueueSize *int64 `json:"queue_size,omitempty"`
 
-	// The total number of kilobytes read for the device since starting
-	// OpenSearch.
+	// ReadKilobytes is the total number of kilobytes read for the device since
+	// starting OpenSearch.
 	ReadKilobytes *int64 `json:"read_kilobytes,omitempty"`
 
-	// The total number of read operations for the device completed since
-	// starting OpenSearch.
+	// ReadOperations is the total number of read operations for the device
+	// completed since starting OpenSearch.
 	ReadOperations *int64 `json:"read_operations,omitempty"`
 
 	ReadTime *int64 `json:"read_time,omitempty"`
 
-	// The total number of kilobytes written for the device since starting
-	// OpenSearch.
+	// WriteKilobytes is the total number of kilobytes written for the device
+	// since starting OpenSearch.
 	WriteKilobytes *int64 `json:"write_kilobytes,omitempty"`
 
-	// The total number of write operations for the device completed since
-	// starting OpenSearch.
+	// WriteOperations is the total number of write operations for the device
+	// completed since starting OpenSearch.
 	WriteOperations *int64 `json:"write_operations,omitempty"`
 
 	WriteTime *int64 `json:"write_time,omitempty"`
@@ -513,43 +516,48 @@ type NodesStatsIoStatDevice struct {
 
 // NodesStatsFileSystemTotal is a typed component of the nodes.stats operation.
 type NodesStatsFileSystemTotal struct {
-	// Total disk space available to this Java virtual machine on all file
-	// stores. Depending on OS or process level restrictions, this might appear
-	// less than `free`. This is the actual amount of free disk space the
-	// OpenSearch node can utilize.
+	// Available. Total disk space available to this Java virtual machine on
+	// all file stores. Depending on OS or process level restrictions, this
+	// might appear less than `free`. This is the actual amount of free disk
+	// space the OpenSearch node can utilize.
 	Available *string `json:"available,omitempty"`
 
-	// Total number of bytes available to this Java virtual machine on all file
-	// stores. Depending on OS or process level restrictions, this might appear
-	// less than `free_in_bytes`. This is the actual amount of free disk space
-	// the OpenSearch node can utilize.
+	// AvailableInBytes. Total number of bytes available to this Java virtual
+	// machine on all file stores. Depending on OS or process level
+	// restrictions, this might appear less than `free_in_bytes`. This is the
+	// actual amount of free disk space the OpenSearch node can utilize.
 	AvailableInBytes *int64 `json:"available_in_bytes,omitempty"`
 
-	// Total size of cache bytes reserved in all file stores.
+	// CacheReserved. Total size of cache bytes reserved in all file stores.
+	//
+	// Available: >= 2.7.0.
 	CacheReserved *string `json:"cache_reserved,omitempty"`
 
-	// Total size of cache bytes reserved in all file stores.
+	// CacheReservedInBytes. Total size of cache bytes reserved in all file
+	// stores.
+	//
+	// Available: >= 2.7.0.
 	CacheReservedInBytes *int64 `json:"cache_reserved_in_bytes,omitempty"`
 
-	// Total unallocated disk space in all file stores.
+	// Free. Total unallocated disk space in all file stores.
 	Free *string `json:"free,omitempty"`
 
-	// Total number of unallocated bytes in all file stores.
+	// FreeInBytes. Total number of unallocated bytes in all file stores.
 	FreeInBytes *int64 `json:"free_in_bytes,omitempty"`
 
 	// Total size of all file stores.
 	Total *string `json:"total,omitempty"`
 
-	// Total size of all file stores in bytes.
+	// TotalInBytes. Total size of all file stores in bytes.
 	TotalInBytes *int64 `json:"total_in_bytes,omitempty"`
 }
 
 // NodesStatsHTTP is a typed component of the nodes.stats operation.
 type NodesStatsHTTP struct {
-	// Current number of open HTTP connections for the node.
+	// CurrentOpen. Current number of open HTTP connections for the node.
 	CurrentOpen *int64 `json:"current_open,omitempty"`
 
-	// Total number of HTTP connections opened for the node.
+	// TotalOpened. Total number of HTTP connections opened for the node.
 	TotalOpened *int64 `json:"total_opened,omitempty"`
 }
 
@@ -562,11 +570,12 @@ type NodesStatsIndexingPressure struct {
 type NodesStatsIndexingPressureMemory struct {
 	Current *NodesStatsPressureMemory `json:"current,omitempty"`
 
-	// The unique identifier of a node.
+	// Limit is the unique identifier of a node.
 	Limit *string `json:"limit,omitempty"`
 
-	// Configured memory limit, in bytes, for the indexing requests. Replica
-	// requests have an automatic limit that is 1.5x this value.
+	// LimitInBytes. Configured memory limit, in bytes, for the indexing
+	// requests. Replica requests have an automatic limit that is 1.5x this
+	// value.
 	LimitInBytes *int64 `json:"limit_in_bytes,omitempty"`
 
 	Total *NodesStatsPressureMemory `json:"total,omitempty"`
@@ -574,66 +583,66 @@ type NodesStatsIndexingPressureMemory struct {
 
 // NodesStatsPressureMemory is a typed component of the nodes.stats operation.
 type NodesStatsPressureMemory struct {
-	// The unique identifier of a node.
+	// All is the unique identifier of a node.
 	All *string `json:"all,omitempty"`
 
-	// Memory consumed, in bytes, by indexing requests in the coordinating,
-	// primary, or replica stage.
+	// AllInBytes. Memory consumed, in bytes, by indexing requests in the
+	// coordinating, primary, or replica stage.
 	AllInBytes *int64 `json:"all_in_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// CombinedCoordinatingAndPrimary is the unique identifier of a node.
 	CombinedCoordinatingAndPrimary *string `json:"combined_coordinating_and_primary,omitempty"`
 
-	// Memory consumed, in bytes, by indexing requests in the coordinating or
-	// primary stage. This value is not the sum of coordinating and primary as
-	// a node can reuse the coordinating memory if the primary stage is
-	// executed locally.
+	// CombinedCoordinatingAndPrimaryInBytes. Memory consumed, in bytes, by
+	// indexing requests in the coordinating or primary stage. This value is
+	// not the sum of coordinating and primary as a node can reuse the
+	// coordinating memory if the primary stage is executed locally.
 	CombinedCoordinatingAndPrimaryInBytes *int64 `json:"combined_coordinating_and_primary_in_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// Coordinating is the unique identifier of a node.
 	Coordinating *string `json:"coordinating,omitempty"`
 
-	// Memory consumed, in bytes, by indexing requests in the coordinating
-	// stage.
+	// CoordinatingInBytes. Memory consumed, in bytes, by indexing requests in
+	// the coordinating stage.
 	CoordinatingInBytes *int64 `json:"coordinating_in_bytes,omitempty"`
 
-	// Number of indexing requests rejected in the coordinating stage.
+	// CoordinatingRejections. Number of indexing requests rejected in the
+	// coordinating stage.
 	CoordinatingRejections *int64 `json:"coordinating_rejections,omitempty"`
 
-	// The unique identifier of a node.
+	// Primary is the unique identifier of a node.
 	Primary *string `json:"primary,omitempty"`
 
-	// Memory consumed, in bytes, by indexing requests in the primary stage.
+	// PrimaryInBytes. Memory consumed, in bytes, by indexing requests in the
+	// primary stage.
 	PrimaryInBytes *int64 `json:"primary_in_bytes,omitempty"`
 
-	// Number of indexing requests rejected in the primary stage.
+	// PrimaryRejections. Number of indexing requests rejected in the primary
+	// stage.
 	PrimaryRejections *int64 `json:"primary_rejections,omitempty"`
 
-	// The unique identifier of a node.
+	// Replica is the unique identifier of a node.
 	Replica *string `json:"replica,omitempty"`
 
-	// Memory consumed, in bytes, by indexing requests in the replica stage.
+	// ReplicaInBytes. Memory consumed, in bytes, by indexing requests in the
+	// replica stage.
 	ReplicaInBytes *int64 `json:"replica_in_bytes,omitempty"`
 
-	// Number of indexing requests rejected in the replica stage.
+	// ReplicaRejections. Number of indexing requests rejected in the replica
+	// stage.
 	ReplicaRejections *int64 `json:"replica_rejections,omitempty"`
 }
 
 // NodesStatsNodeIndices is a typed component of the nodes.stats operation.
 type NodesStatsNodeIndices struct {
-	IndicesStatsIndexBase
-	Indices map[string]IndicesStatsIndex                     `json:"indices,omitempty"`
-	Shards  map[string][]map[string]NodesStatsNodeIndexShard `json:"shards,omitempty"`
-}
-
-// NodesStatsNodeIndexShard is a typed component of the nodes.stats operation.
-type NodesStatsNodeIndexShard struct {
-	IndicesStatsIndexShardBase
+	IndicesStatsIndex
+	Indices map[string]IndicesStatsIndex                       `json:"indices,omitempty"`
+	Shards  map[string][]map[string]IndicesStatsIndexShardBase `json:"shards,omitempty"`
 }
 
 // NodesStatsIngest is a typed component of the nodes.stats operation.
 type NodesStatsIngest struct {
-	// Contains statistics about ingest pipelines for the node.
+	// Pipelines. Contains statistics about ingest pipelines for the node.
 	Pipelines map[string]NodesStatsIngestTotal `json:"pipelines,omitempty"`
 
 	Total *NodesStatsIngestTotal `json:"total,omitempty"`
@@ -641,25 +650,26 @@ type NodesStatsIngest struct {
 
 // NodesStatsIngestTotal is a typed component of the nodes.stats operation.
 type NodesStatsIngestTotal struct {
-	// Total number of documents ingested during the lifetime of this node.
+	// Count. Total number of documents ingested during the lifetime of this
+	// node.
 	Count *int64 `json:"count,omitempty"`
 
-	// Total number of documents currently being ingested.
+	// Current. Total number of documents currently being ingested.
 	Current *int64 `json:"current,omitempty"`
 
-	// Total number of failed ingest operations during the lifetime of this
-	// node.
+	// Failed. Total number of failed ingest operations during the lifetime of
+	// this node.
 	Failed *int64 `json:"failed,omitempty"`
 
-	// Total number of ingest processors.
+	// Processors. Total number of ingest processors.
 	Processors []map[string]NodesStatsKeyedProcessor `json:"processors,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Time *string `json:"time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInMillis is the time unit for milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 }
 
@@ -671,188 +681,198 @@ type NodesStatsKeyedProcessor struct {
 
 // NodesStatsProcessor is a typed component of the nodes.stats operation.
 type NodesStatsProcessor struct {
-	// Number of documents transformed by the processor.
+	// Count. Number of documents transformed by the processor.
 	Count *int64 `json:"count,omitempty"`
 
-	// Number of documents currently being transformed by the processor.
+	// Current. Number of documents currently being transformed by the
+	// processor.
 	Current *int64 `json:"current,omitempty"`
 
-	// Number of failed operations for the processor.
+	// Failed. Number of failed operations for the processor.
 	Failed *int64 `json:"failed,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Time *string `json:"time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInMillis is the time unit for milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 }
 
-// NodesStatsJvm is a typed component of the nodes.stats operation.
-type NodesStatsJvm struct {
-	// Contains statistics about JVM buffer pools for the node.
+// NodesStatsJVM is a typed component of the nodes.stats operation.
+type NodesStatsJVM struct {
+	// BufferPools. Contains statistics about JVM buffer pools for the node.
 	BufferPools map[string]NodesStatsNodeBufferPool `json:"buffer_pools,omitempty"`
 
-	Classes *NodesStatsJvmClasses       `json:"classes,omitempty"`
-	Gc      *NodesStatsGarbageCollector `json:"gc,omitempty"`
-	Mem     *NodesStatsJvmMemory        `json:"mem,omitempty"`
-	Threads *NodesStatsJvmThreads       `json:"threads,omitempty"`
+	Classes *NodesStatsJVMClasses       `json:"classes,omitempty"`
+	GC      *NodesStatsGarbageCollector `json:"gc,omitempty"`
+	Mem     *NodesStatsJVMMemory        `json:"mem,omitempty"`
+	Threads *NodesStatsJVMThreads       `json:"threads,omitempty"`
 
-	// Last time JVM statistics were refreshed.
+	// Timestamp. Last time JVM statistics were refreshed.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 
-	// Human-readable JVM uptime. Only returned if the `human` query parameter
-	// is `true`.
+	// Uptime. Human-readable JVM uptime. Only returned if the `human` query
+	// parameter is `true`.
 	Uptime *string `json:"uptime,omitempty"`
 
-	// JVM uptime in milliseconds.
+	// UptimeInMillis. JVM uptime in milliseconds.
 	UptimeInMillis *int64 `json:"uptime_in_millis,omitempty"`
 }
 
 // NodesStatsNodeBufferPool is a typed component of the nodes.stats operation.
 type NodesStatsNodeBufferPool struct {
-	// Number of buffer pools.
+	// Count. Number of buffer pools.
 	Count *int64 `json:"count,omitempty"`
 
-	// Total capacity of buffer pools.
+	// TotalCapacity. Total capacity of buffer pools.
 	TotalCapacity *string `json:"total_capacity,omitempty"`
 
-	// Total capacity of buffer pools in bytes.
+	// TotalCapacityInBytes. Total capacity of buffer pools in bytes.
 	TotalCapacityInBytes *int64 `json:"total_capacity_in_bytes,omitempty"`
 
-	// Size of buffer pools.
+	// Used. Size of buffer pools.
 	Used *string `json:"used,omitempty"`
 
-	// Size of buffer pools in bytes.
+	// UsedInBytes. Size of buffer pools in bytes.
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsJvmClasses is a typed component of the nodes.stats operation.
-type NodesStatsJvmClasses struct {
-	// Number of classes currently loaded by JVM.
+// NodesStatsJVMClasses is a typed component of the nodes.stats operation.
+type NodesStatsJVMClasses struct {
+	// CurrentLoadedCount. Number of classes currently loaded by JVM.
 	CurrentLoadedCount *int64 `json:"current_loaded_count,omitempty"`
 
-	// Total number of classes loaded since the JVM started.
+	// TotalLoadedCount. Total number of classes loaded since the JVM started.
 	TotalLoadedCount *int64 `json:"total_loaded_count,omitempty"`
 
-	// Total number of classes unloaded since the JVM started.
+	// TotalUnloadedCount. Total number of classes unloaded since the JVM
+	// started.
 	TotalUnloadedCount *int64 `json:"total_unloaded_count,omitempty"`
 }
 
 // NodesStatsGarbageCollector is a typed component of the nodes.stats operation.
 type NodesStatsGarbageCollector struct {
-	// Contains statistics about JVM garbage collectors for the node.
+	// Collectors. Contains statistics about JVM garbage collectors for the
+	// node.
 	Collectors map[string]NodesStatsGarbageCollectorTotal `json:"collectors,omitempty"`
 }
 
 // NodesStatsGarbageCollectorTotal is a typed component of the nodes.stats operation.
 type NodesStatsGarbageCollectorTotal struct {
-	// Total number of JVM garbage collectors that collect objects.
+	// CollectionCount. Total number of JVM garbage collectors that collect
+	// objects.
 	CollectionCount *int64 `json:"collection_count,omitempty"`
 
-	// Total time spent by JVM collecting objects.
+	// CollectionTime. Total time spent by JVM collecting objects.
 	CollectionTime *string `json:"collection_time,omitempty"`
 
-	// Total time, in milliseconds, spent by JVM collecting objects.
+	// CollectionTimeInMillis. Total time, in milliseconds, spent by JVM
+	// collecting objects.
 	CollectionTimeInMillis *int64 `json:"collection_time_in_millis,omitempty"`
 }
 
-// NodesStatsJvmMemory is a typed component of the nodes.stats operation.
-type NodesStatsJvmMemory struct {
-	// Amount of memory available for use by the heap.
+// NodesStatsJVMMemory is a typed component of the nodes.stats operation.
+type NodesStatsJVMMemory struct {
+	// HeapCommitted. Amount of memory available for use by the heap.
 	HeapCommitted *string `json:"heap_committed,omitempty"`
 
-	// Amount of memory, in bytes, available for use by the heap.
+	// HeapCommittedInBytes. Amount of memory, in bytes, available for use by
+	// the heap.
 	HeapCommittedInBytes *int64 `json:"heap_committed_in_bytes,omitempty"`
 
-	// Maximum amount of memory available for use by the heap.
+	// HeapMax. Maximum amount of memory available for use by the heap.
 	HeapMax *string `json:"heap_max,omitempty"`
 
-	// Maximum amount of memory, in bytes, available for use by the heap.
+	// HeapMaxInBytes. Maximum amount of memory, in bytes, available for use by
+	// the heap.
 	HeapMaxInBytes *int64 `json:"heap_max_in_bytes,omitempty"`
 
-	// Memory currently in use by the heap.
+	// HeapUsed. Memory currently in use by the heap.
 	HeapUsed *string `json:"heap_used,omitempty"`
 
-	// Memory, in bytes, currently in use by the heap.
+	// HeapUsedInBytes. Memory, in bytes, currently in use by the heap.
 	HeapUsedInBytes *int64 `json:"heap_used_in_bytes,omitempty"`
 
-	// Percentage of memory currently in use by the heap.
+	// HeapUsedPercent. Percentage of memory currently in use by the heap.
 	HeapUsedPercent *float64 `json:"heap_used_percent,omitempty"`
 
-	// Amount of non-heap memory available.
+	// NonHeapCommitted. Amount of non-heap memory available.
 	NonHeapCommitted *string `json:"non_heap_committed,omitempty"`
 
-	// Amount of non-heap memory available, in bytes.
+	// NonHeapCommittedInBytes. Amount of non-heap memory available, in bytes.
 	NonHeapCommittedInBytes *int64 `json:"non_heap_committed_in_bytes,omitempty"`
 
-	// Non-heap memory used.
+	// NonHeapUsed. Non-heap memory used.
 	NonHeapUsed *string `json:"non_heap_used,omitempty"`
 
-	// Non-heap memory used, in bytes.
+	// NonHeapUsedInBytes. Non-heap memory used, in bytes.
 	NonHeapUsedInBytes *int64 `json:"non_heap_used_in_bytes,omitempty"`
 
-	// Contains statistics about heap memory usage for the node.
+	// Pools. Contains statistics about heap memory usage for the node.
 	Pools map[string]NodesStatsPool `json:"pools,omitempty"`
 }
 
 // NodesStatsPool is a typed component of the nodes.stats operation.
 type NodesStatsPool struct {
-	// Most recent GC cycle stats for a particular memory pool.
-	LastGcStats *NodesStatsLastGc `json:"last_gc_stats,omitempty"`
+	// LastGCStats. Most recent GC cycle stats for a particular memory pool.
+	LastGCStats *NodesStatsLastGC `json:"last_gc_stats,omitempty"`
 
-	// Maximum amount of memory available for use by the heap.
+	// Max. Maximum amount of memory available for use by the heap.
 	Max *string `json:"max,omitempty"`
 
-	// Maximum amount of memory, in bytes, available for use by the heap.
+	// MaxInBytes. Maximum amount of memory, in bytes, available for use by the
+	// heap.
 	MaxInBytes *int64 `json:"max_in_bytes,omitempty"`
 
-	// Largest amount of memory historically used by the heap.
+	// PeakMax. Largest amount of memory historically used by the heap.
 	PeakMax *string `json:"peak_max,omitempty"`
 
-	// Largest amount of memory, in bytes, historically used by the heap.
+	// PeakMaxInBytes. Largest amount of memory, in bytes, historically used by
+	// the heap.
 	PeakMaxInBytes *int64 `json:"peak_max_in_bytes,omitempty"`
 
-	// Largest amount of memory historically used by the heap.
+	// PeakUsed. Largest amount of memory historically used by the heap.
 	PeakUsed *string `json:"peak_used,omitempty"`
 
-	// Largest amount of memory, in bytes, historically used by the heap.
+	// PeakUsedInBytes. Largest amount of memory, in bytes, historically used
+	// by the heap.
 	PeakUsedInBytes *int64 `json:"peak_used_in_bytes,omitempty"`
 
-	// Memory used by the heap.
+	// Used. Memory used by the heap.
 	Used *string `json:"used,omitempty"`
 
-	// Memory, in bytes, used by the heap.
+	// UsedInBytes. Memory, in bytes, used by the heap.
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsLastGc is a typed component of the nodes.stats operation.
+// NodesStatsLastGC is a typed component of the nodes.stats operation.
 //
 // Most recent GC cycle stats for a particular memory pool.
-type NodesStatsLastGc struct {
-	// The unique identifier of a node.
+type NodesStatsLastGC struct {
+	// Max is the unique identifier of a node.
 	Max *string `json:"max,omitempty"`
 
-	// The size in bytes.
+	// MaxInBytes is the size in bytes.
 	MaxInBytes *int64 `json:"max_in_bytes,omitempty"`
 
-	// The percentage value as a number.
+	// UsagePercent is the percentage value as a number.
 	UsagePercent *float64 `json:"usage_percent,omitempty"`
 
-	// The unique identifier of a node.
+	// Used is the unique identifier of a node.
 	Used *string `json:"used,omitempty"`
 
-	// The size in bytes.
+	// UsedInBytes is the size in bytes.
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
 }
 
-// NodesStatsJvmThreads is a typed component of the nodes.stats operation.
-type NodesStatsJvmThreads struct {
-	// Number of active threads in use by JVM.
+// NodesStatsJVMThreads is a typed component of the nodes.stats operation.
+type NodesStatsJVMThreads struct {
+	// Count. Number of active threads in use by JVM.
 	Count *int64 `json:"count,omitempty"`
 
-	// Highest number of threads used by JVM.
+	// PeakCount. Highest number of threads used by JVM.
 	PeakCount *int64 `json:"peak_count,omitempty"`
 }
 
@@ -861,16 +881,16 @@ type NodesStatsNativeMemory struct {
 	AnalyticsBackend *NodesStatsNativeMemoryAnalyticsBackend `json:"analytics_backend,omitempty"`
 	NativeAllocator  *NodesStatsNativeMemoryAllocator        `json:"native_allocator,omitempty"`
 
-	// The size in bytes.
+	// TotalEstimatedBytes is the size in bytes.
 	TotalEstimatedBytes *int64 `json:"total_estimated_bytes,omitempty"`
 }
 
 // NodesStatsNativeMemoryAnalyticsBackend is a typed component of the nodes.stats operation.
 type NodesStatsNativeMemoryAnalyticsBackend struct {
-	// The size in bytes.
+	// AllocatedBytes is the size in bytes.
 	AllocatedBytes *int64 `json:"allocated_bytes,omitempty"`
 
-	// The size in bytes.
+	// ResidentBytes is the size in bytes.
 	ResidentBytes *int64 `json:"resident_bytes,omitempty"`
 }
 
@@ -882,184 +902,185 @@ type NodesStatsNativeMemoryAllocator struct {
 
 // NodesStatsNativeMemoryAllocatorPool is a typed component of the nodes.stats operation.
 type NodesStatsNativeMemoryAllocatorPool struct {
-	// The size in bytes.
+	// AllocatedBytes is the size in bytes.
 	AllocatedBytes *int64 `json:"allocated_bytes,omitempty"`
 
-	// The size in bytes.
+	// LimitBytes is the size in bytes.
 	LimitBytes *int64 `json:"limit_bytes,omitempty"`
 
-	// The size in bytes.
+	// PeakBytes is the size in bytes.
 	PeakBytes *int64 `json:"peak_bytes,omitempty"`
 }
 
 // NodesStatsOperatingSystem is a typed component of the nodes.stats operation.
 type NodesStatsOperatingSystem struct {
 	Cgroup *NodesStatsCgroup             `json:"cgroup,omitempty"`
-	Cpu    *NodesStatsOperatingSystemCpu `json:"cpu,omitempty"`
+	CPU    *NodesStatsOperatingSystemCPU `json:"cpu,omitempty"`
 	Mem    *NodesStatsExtendedMemory     `json:"mem,omitempty"`
 	Swap   *NodesStatsMemory             `json:"swap,omitempty"`
 
-	// The time unit for milliseconds.
+	// Timestamp is the time unit for milliseconds.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
 // NodesStatsCgroup is a typed component of the nodes.stats operation.
 type NodesStatsCgroup struct {
-	Cpu     *NodesStatsCgroupCpu     `json:"cpu,omitempty"`
-	Cpuacct *NodesStatsCgroupCpuAcct `json:"cpuacct,omitempty"`
+	CPU     *NodesStatsCgroupCPU     `json:"cpu,omitempty"`
+	Cpuacct *NodesStatsCgroupCPUAcct `json:"cpuacct,omitempty"`
 	Memory  *NodesStatsCgroupMemory  `json:"memory,omitempty"`
 }
 
-// NodesStatsCgroupCpu is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpu struct {
-	// The period of time, in microseconds, for how regularly all tasks in the
-	// same cgroup as the OpenSearch process should have their access to CPU
-	// resources reallocated.
-	CfsPeriodMicros *int64 `json:"cfs_period_micros,omitempty"`
+// NodesStatsCgroupCPU is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPU struct {
+	// CFSPeriodMicros is the period of time, in microseconds, for how
+	// regularly all tasks in the same cgroup as the OpenSearch process should
+	// have their access to CPU resources reallocated.
+	CFSPeriodMicros *int64 `json:"cfs_period_micros,omitempty"`
 
-	// The total amount of time, in microseconds, for which all tasks in the
-	// same cgroup as the OpenSearch process can run during one period
-	// `cfs_period_micros`.
-	CfsQuotaMicros *int64 `json:"cfs_quota_micros,omitempty"`
+	// CFSQuotaMicros is the total amount of time, in microseconds, for which
+	// all tasks in the same cgroup as the OpenSearch process can run during
+	// one period `cfs_period_micros`.
+	CFSQuotaMicros *int64 `json:"cfs_quota_micros,omitempty"`
 
-	// The `cpu` control group to which the OpenSearch process belongs.
+	// ControlGroup is the `cpu` control group to which the OpenSearch process
+	// belongs.
 	ControlGroup *string `json:"control_group,omitempty"`
 
-	Stat *NodesStatsCgroupCpuStat `json:"stat,omitempty"`
+	Stat *NodesStatsCgroupCPUStat `json:"stat,omitempty"`
 }
 
-// NodesStatsCgroupCpuStat is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpuStat struct {
-	// The number of reporting periods (as specified by `cfs_period_micros`)
-	// that have elapsed.
+// NodesStatsCgroupCPUStat is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPUStat struct {
+	// NumberOfElapsedPeriods is the number of reporting periods (as specified
+	// by `cfs_period_micros`) that have elapsed.
 	NumberOfElapsedPeriods *int64 `json:"number_of_elapsed_periods,omitempty"`
 
-	// The number of times all tasks in the same cgroup as the OpenSearch
-	// process have been throttled.
+	// NumberOfTimesThrottled is the number of times all tasks in the same
+	// cgroup as the OpenSearch process have been throttled.
 	NumberOfTimesThrottled *int64 `json:"number_of_times_throttled,omitempty"`
 
-	// Time unit for nanoseconds.
+	// TimeThrottledNanos. Time unit for nanoseconds.
 	TimeThrottledNanos *int64 `json:"time_throttled_nanos,omitempty"`
 }
 
-// NodesStatsCgroupCpuAcct is a typed component of the nodes.stats operation.
-type NodesStatsCgroupCpuAcct struct {
-	// The `cpuacct` control group to which the OpenSearch process belongs.
+// NodesStatsCgroupCPUAcct is a typed component of the nodes.stats operation.
+type NodesStatsCgroupCPUAcct struct {
+	// ControlGroup is the `cpuacct` control group to which the OpenSearch
+	// process belongs.
 	ControlGroup *string `json:"control_group,omitempty"`
 
-	// Time unit for nanoseconds.
+	// UsageNanos. Time unit for nanoseconds.
 	UsageNanos *int64 `json:"usage_nanos,omitempty"`
 }
 
 // NodesStatsCgroupMemory is a typed component of the nodes.stats operation.
 type NodesStatsCgroupMemory struct {
-	// The `memory` control group to which the OpenSearch process belongs.
+	// ControlGroup is the `memory` control group to which the OpenSearch
+	// process belongs.
 	ControlGroup *string `json:"control_group,omitempty"`
 
-	// The maximum amount of user memory (including file cache) allowed for all
-	// tasks in the same cgroup as the OpenSearch process. This value can be
-	// too big to store in a `long`, so is returned as a string so that the
-	// value returned can exactly match what the underlying operating system
-	// interface returns. Any value that is too large to parse into a `long`
-	// almost certainly means no limit has been set for the cgroup.
+	// LimitInBytes is the maximum amount of user memory (including file cache)
+	// allowed for all tasks in the same cgroup as the OpenSearch process. This
+	// value can be too big to store in a `long`, so is returned as a string so
+	// that the value returned can exactly match what the underlying operating
+	// system interface returns. Any value that is too large to parse into a
+	// `long` almost certainly means no limit has been set for the cgroup.
 	LimitInBytes *string `json:"limit_in_bytes,omitempty"`
 
-	// The total current memory usage by processes in the cgroup, in bytes, by
-	// all tasks in the same cgroup as the OpenSearch process. This value is
-	// stored as a string for consistency with `limit_in_bytes`.
+	// UsageInBytes is the total current memory usage by processes in the
+	// cgroup, in bytes, by all tasks in the same cgroup as the OpenSearch
+	// process. This value is stored as a string for consistency with
+	// `limit_in_bytes`.
 	UsageInBytes *string `json:"usage_in_bytes,omitempty"`
 }
 
-// NodesStatsOperatingSystemCpu is a typed component of the nodes.stats operation.
-type NodesStatsOperatingSystemCpu struct {
+// NodesStatsOperatingSystemCPU is a typed component of the nodes.stats operation.
+type NodesStatsOperatingSystemCPU struct {
 	LoadAverage map[string]float64 `json:"load_average,omitempty"`
 
-	// The percentage value as a number.
+	// Percent is the percentage value as a number.
 	Percent *float64 `json:"percent,omitempty"`
 }
 
 // NodesStatsExtendedMemory is a typed component of the nodes.stats operation.
 type NodesStatsExtendedMemory struct {
-	NodesStatsMemoryBase
+	NodesStatsMemory
 
-	// Percentage of free memory.
+	// FreePercent. Percentage of free memory.
 	FreePercent *float64 `json:"free_percent,omitempty"`
 
-	// Percentage of used memory.
+	// UsedPercent. Percentage of used memory.
 	UsedPercent *float64 `json:"used_percent,omitempty"`
 }
 
-// NodesStatsMemoryBase is a typed component of the nodes.stats operation.
-type NodesStatsMemoryBase struct {
-	// Amount of free physical memory.
+// NodesStatsMemory is a typed component of the nodes.stats operation.
+type NodesStatsMemory struct {
+	// Free. Amount of free physical memory.
 	Free *string `json:"free,omitempty"`
 
-	// Amount of free physical memory in bytes.
+	// FreeInBytes. Amount of free physical memory in bytes.
 	FreeInBytes *int64 `json:"free_in_bytes,omitempty"`
 
 	// Total amount of physical memory.
 	Total *string `json:"total,omitempty"`
 
-	// Total amount of physical memory in bytes.
+	// TotalInBytes. Total amount of physical memory in bytes.
 	TotalInBytes *int64 `json:"total_in_bytes,omitempty"`
 
-	// Amount of used physical memory.
+	// Used. Amount of used physical memory.
 	Used *string `json:"used,omitempty"`
 
-	// Amount of used physical memory in bytes.
+	// UsedInBytes. Amount of used physical memory in bytes.
 	UsedInBytes *int64 `json:"used_in_bytes,omitempty"`
-}
-
-// NodesStatsMemory is a typed component of the nodes.stats operation.
-type NodesStatsMemory struct {
-	NodesStatsMemoryBase
 }
 
 // NodesStatsProcess is a typed component of the nodes.stats operation.
 type NodesStatsProcess struct {
-	Cpu *NodesStatsProcessCpu `json:"cpu,omitempty"`
+	CPU *NodesStatsProcessCPU `json:"cpu,omitempty"`
 
-	// Maximum number of file descriptors allowed on the system, or `-1` if not
-	// supported.
+	// MaxFileDescriptors. Maximum number of file descriptors allowed on the
+	// system, or `-1` if not supported.
 	MaxFileDescriptors *int64 `json:"max_file_descriptors,omitempty"`
 
 	Mem *NodesStatsProcessMemory `json:"mem,omitempty"`
 
-	// Number of opened file descriptors associated with the current or `-1` if
-	// not supported.
+	// OpenFileDescriptors. Number of opened file descriptors associated with
+	// the current or `-1` if not supported.
 	OpenFileDescriptors *int64 `json:"open_file_descriptors,omitempty"`
 
-	// Last time the statistics were refreshed. Recorded in milliseconds since
-	// the Unix Epoch.
+	// Timestamp. Last time the statistics were refreshed. Recorded in
+	// milliseconds since the Unix Epoch.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
-// NodesStatsProcessCpu is a typed component of the nodes.stats operation.
-type NodesStatsProcessCpu struct {
-	// The percentage value as a number.
+// NodesStatsProcessCPU is a typed component of the nodes.stats operation.
+type NodesStatsProcessCPU struct {
+	// Percent is the percentage value as a number.
 	Percent float64 `json:"percent"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Total is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	Total *string `json:"total,omitempty"`
 
-	// The time unit for milliseconds.
+	// TotalInMillis is the time unit for milliseconds.
 	TotalInMillis int64 `json:"total_in_millis"`
 }
 
 // NodesStatsProcessMemory is a typed component of the nodes.stats operation.
 type NodesStatsProcessMemory struct {
-	// The unique identifier of a node.
+	// TotalVirtual is the unique identifier of a node.
 	TotalVirtual *string `json:"total_virtual,omitempty"`
 
-	// The size in bytes.
+	// TotalVirtualInBytes is the size in bytes.
 	TotalVirtualInBytes *int64 `json:"total_virtual_in_bytes,omitempty"`
 }
 
 // NodesStatsRemoteStore is a typed component of the nodes.stats operation.
 type NodesStatsRemoteStore struct {
-	// Timestamp for the last successful fetch of pinned timestamps.
+	// LastSuccessfulFetchOfPinnedTimestamps. Timestamp for the last successful
+	// fetch of pinned timestamps.
 	LastSuccessfulFetchOfPinnedTimestamps *int64 `json:"last_successful_fetch_of_pinned_timestamps,omitempty"`
 }
 
@@ -1067,73 +1088,73 @@ type NodesStatsRemoteStore struct {
 //
 // Statistics snapshot about a repository.
 type NodesStatsRepositorySnapshot struct {
-	// The location configuration of the repository.
+	// RepositoryLocation is the location configuration of the repository.
 	RepositoryLocation map[string]string `json:"repository_location,omitempty"`
 
-	// The name of the repository.
+	// RepositoryName is the name of the repository.
 	RepositoryName *string `json:"repository_name,omitempty"`
 
-	// The type of the repository.
+	// RepositoryType is the type of the repository.
 	RepositoryType *string `json:"repository_type,omitempty"`
 
-	// The count of requests by operation type (when detailed mode is
-	// disabled).
+	// RequestCounts is the count of requests by operation type (when detailed
+	// mode is disabled).
 	RequestCounts map[string]int64 `json:"request_counts,omitempty"`
 
-	// The count of failed requests by operation type (when detailed mode is
-	// enabled).
+	// RequestFailuresTotal is the count of failed requests by operation type
+	// (when detailed mode is enabled).
 	RequestFailuresTotal map[string]int64 `json:"request_failures_total,omitempty"`
 
-	// The total retry count by operation type (when detailed mode is enabled).
+	// RequestRetryCountTotal is the total retry count by operation type (when
+	// detailed mode is enabled).
 	RequestRetryCountTotal map[string]int64 `json:"request_retry_count_total,omitempty"`
 
-	// The count of successful requests by operation type (when detailed mode
-	// is enabled).
+	// RequestSuccessTotal is the count of successful requests by operation
+	// type (when detailed mode is enabled).
 	RequestSuccessTotal map[string]int64 `json:"request_success_total,omitempty"`
 
-	// The total request time in milliseconds by operation type (when detailed
-	// mode is enabled).
+	// RequestTimeInMillis is the total request time in milliseconds by
+	// operation type (when detailed mode is enabled).
 	RequestTimeInMillis map[string]int64 `json:"request_time_in_millis,omitempty"`
 }
 
 // NodesStatsShardResourceUsageDetail is a typed component of the nodes.stats operation.
 type NodesStatsShardResourceUsageDetail struct {
-	// The percentage value as a string.
-	CpuUtilizationPercent *string `json:"cpu_utilization_percent,omitempty"`
+	// CPUUtilizationPercent is the percentage value as a string.
+	CPUUtilizationPercent *string `json:"cpu_utilization_percent,omitempty"`
 
-	IoUsageStats *NodesStatsShardResourceUsageIoUsageStats `json:"io_usage_stats,omitempty"`
+	IOUsageStats *NodesStatsShardResourceUsageIOUsageStats `json:"io_usage_stats,omitempty"`
 
-	// The percentage value as a string.
+	// MemoryUtilizationPercent is the percentage value as a string.
 	MemoryUtilizationPercent *string `json:"memory_utilization_percent,omitempty"`
 
-	// The percentage value as a string.
+	// NativeMemoryUtilizationPercent is the percentage value as a string.
+	//
+	// Available: >= 3.7.0.
 	NativeMemoryUtilizationPercent *string `json:"native_memory_utilization_percent,omitempty"`
 
-	// The time unit for milliseconds.
+	// Timestamp is the time unit for milliseconds.
 	Timestamp *int64 `json:"timestamp,omitempty"`
 }
 
-// NodesStatsShardResourceUsageIoUsageStats is a typed component of the nodes.stats operation.
-type NodesStatsShardResourceUsageIoUsageStats struct {
-	// The percentage value as a string.
-	MaxIoUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
+// NodesStatsShardResourceUsageIOUsageStats is a typed component of the nodes.stats operation.
+type NodesStatsShardResourceUsageIOUsageStats struct {
+	// MaxIOUtilizationPercent is the percentage value as a string.
+	MaxIOUtilizationPercent *string `json:"max_io_utilization_percent,omitempty"`
 }
 
 // NodesStatsScript is a typed component of the nodes.stats operation.
 type NodesStatsScript struct {
-	NodesStatsScriptBase
-}
-
-// NodesStatsScriptBase is a typed component of the nodes.stats operation.
-type NodesStatsScriptBase struct {
-	// Total number of times the script cache has evicted old data.
+	// CacheEvictions. Total number of times the script cache has evicted old
+	// data.
 	CacheEvictions int64 `json:"cache_evictions"`
 
-	// Total number of times the script compilation circuit breaker has limited
-	// inline script compilations.
+	// CompilationLimitTriggered. Total number of times the script compilation
+	// circuit breaker has limited inline script compilations.
 	CompilationLimitTriggered int64 `json:"compilation_limit_triggered"`
 
-	// Total number of inline script compilations performed by the node.
+	// Compilations. Total number of inline script compilations performed by
+	// the node.
 	Compilations int64 `json:"compilations"`
 }
 
@@ -1145,7 +1166,7 @@ type NodesStatsScriptCache struct {
 
 // NodesStatsScriptContext is a typed component of the nodes.stats operation.
 type NodesStatsScriptContext struct {
-	NodesStatsScriptBase
+	NodesStatsScript
 	Context string `json:"context"`
 }
 
@@ -1171,7 +1192,7 @@ type NodesStatsShardSearchBackpressureTaskCancellation struct {
 	CancellationCount             *int64 `json:"cancellation_count,omitempty"`
 	CancellationLimitReachedCount *int64 `json:"cancellation_limit_reached_count,omitempty"`
 
-	// The percentage value as a number.
+	// CancelledTaskPercentage is the percentage value as a number.
 	CancelledTaskPercentage *float64 `json:"cancelled_task_percentage,omitempty"`
 
 	CurrentCancellationEligibleTasksCount *int64 `json:"current_cancellation_eligible_tasks_count,omitempty"`
@@ -1179,30 +1200,34 @@ type NodesStatsShardSearchBackpressureTaskCancellation struct {
 
 // NodesStatsShardSearchBackpressureTaskResourceTracker is a typed component of the nodes.stats operation.
 type NodesStatsShardSearchBackpressureTaskResourceTracker struct {
-	CpuUsageTracker          *NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker          `json:"cpu_usage_tracker,omitempty"`
-	ElapsedTimeTracker       *NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker       `json:"elapsed_time_tracker,omitempty"`
-	HeapUsageTracker         *NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker         `json:"heap_usage_tracker,omitempty"`
+	CPUUsageTracker    *NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker    `json:"cpu_usage_tracker,omitempty"`
+	ElapsedTimeTracker *NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker `json:"elapsed_time_tracker,omitempty"`
+	HeapUsageTracker   *NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker   `json:"heap_usage_tracker,omitempty"`
+
+	// Available: >= 3.7.0.
 	NativeMemoryUsageTracker *NodesStatsShardSearchBackpressureTaskResourceTrackerNativeMemoryUsageTracker `json:"native_memory_usage_tracker,omitempty"`
 }
 
-// NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker is a typed component of the nodes.stats operation.
-type NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker struct {
+// NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker is a typed component of the nodes.stats operation.
+type NodesStatsShardSearchBackpressureTaskResourceTrackerCPUUsageTracker struct {
 	CancellationCount *int64 `json:"cancellation_count,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CurrentAvg is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CurrentAvg *string `json:"current_avg,omitempty"`
 
-	// The time unit for milliseconds.
+	// CurrentAvgMillis is the time unit for milliseconds.
 	CurrentAvgMillis *int64 `json:"current_avg_millis,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CurrentMax is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CurrentMax *string `json:"current_max,omitempty"`
 
-	// The time unit for milliseconds.
+	// CurrentMaxMillis is the time unit for milliseconds.
 	CurrentMaxMillis *int64 `json:"current_max_millis,omitempty"`
 }
 
@@ -1210,20 +1235,22 @@ type NodesStatsShardSearchBackpressureTaskResourceTrackerCpuUsageTracker struct 
 type NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker struct {
 	CancellationCount *int64 `json:"cancellation_count,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CurrentAvg is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CurrentAvg *string `json:"current_avg,omitempty"`
 
-	// The time unit for milliseconds.
+	// CurrentAvgMillis is the time unit for milliseconds.
 	CurrentAvgMillis *int64 `json:"current_avg_millis,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// CurrentMax is a duration. Units can be `nanos`, `micros`, `ms`
+	// (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	CurrentMax *string `json:"current_max,omitempty"`
 
-	// The time unit for milliseconds.
+	// CurrentMaxMillis is the time unit for milliseconds.
 	CurrentMaxMillis *int64 `json:"current_max_millis,omitempty"`
 }
 
@@ -1231,22 +1258,22 @@ type NodesStatsShardSearchBackpressureTaskResourceTrackerElapsedTimeTracker stru
 type NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker struct {
 	CancellationCount *int64 `json:"cancellation_count,omitempty"`
 
-	// The unique identifier of a node.
+	// CurrentAvg is the unique identifier of a node.
 	CurrentAvg *string `json:"current_avg,omitempty"`
 
-	// The size in bytes.
+	// CurrentAvgBytes is the size in bytes.
 	CurrentAvgBytes *int64 `json:"current_avg_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// CurrentMax is the unique identifier of a node.
 	CurrentMax *string `json:"current_max,omitempty"`
 
-	// The size in bytes.
+	// CurrentMaxBytes is the size in bytes.
 	CurrentMaxBytes *int64 `json:"current_max_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// RollingAvg is the unique identifier of a node.
 	RollingAvg *string `json:"rolling_avg,omitempty"`
 
-	// The size in bytes.
+	// RollingAvgBytes is the size in bytes.
 	RollingAvgBytes *int64 `json:"rolling_avg_bytes,omitempty"`
 }
 
@@ -1254,16 +1281,16 @@ type NodesStatsShardSearchBackpressureTaskResourceTrackerHeapUsageTracker struct
 type NodesStatsShardSearchBackpressureTaskResourceTrackerNativeMemoryUsageTracker struct {
 	CancellationCount *int64 `json:"cancellation_count,omitempty"`
 
-	// The unique identifier of a node.
+	// CurrentAvg is the unique identifier of a node.
 	CurrentAvg *string `json:"current_avg,omitempty"`
 
-	// The size in bytes.
+	// CurrentAvgBytes is the size in bytes.
 	CurrentAvgBytes *int64 `json:"current_avg_bytes,omitempty"`
 
-	// The unique identifier of a node.
+	// CurrentMax is the unique identifier of a node.
 	CurrentMax *string `json:"current_max,omitempty"`
 
-	// The size in bytes.
+	// CurrentMaxBytes is the size in bytes.
 	CurrentMaxBytes *int64 `json:"current_max_bytes,omitempty"`
 }
 
@@ -1288,12 +1315,12 @@ type NodesStatsShardSearchPipelineOperation struct {
 	Current *int64 `json:"current,omitempty"`
 	Failed  *int64 `json:"failed,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Time *string `json:"time,omitempty"`
 
-	// The time unit for milliseconds.
+	// TimeInMillis is the time unit for milliseconds.
 	TimeInMillis *int64 `json:"time_in_millis,omitempty"`
 }
 
@@ -1330,29 +1357,32 @@ type NodesStatsShardIndexingPressurePerShard struct {
 type NodesStatsShardIndexingPressurePerShardIndexing struct {
 	CoordinatingCount int64 `json:"coordinating_count"`
 
-	// The time unit for milliseconds.
+	// CoordinatingTimeInMillis is the time unit for milliseconds.
 	CoordinatingTimeInMillis int64 `json:"coordinating_time_in_millis"`
 
 	PrimaryCount int64 `json:"primary_count"`
 
-	// The time unit for milliseconds.
+	// PrimaryTimeInMillis is the time unit for milliseconds.
 	PrimaryTimeInMillis int64 `json:"primary_time_in_millis"`
 
 	ReplicaCount int64 `json:"replica_count"`
 
-	// The time unit for milliseconds.
+	// ReplicaTimeInMillis is the time unit for milliseconds.
 	ReplicaTimeInMillis int64 `json:"replica_time_in_millis"`
 }
 
 // NodesStatsShardIndexingPressurePerShardLastSuccessfulTimestamp is a typed component of the nodes.stats operation.
 type NodesStatsShardIndexingPressurePerShardLastSuccessfulTimestamp struct {
-	// The time unit for milliseconds.
+	// CoordinatingLastSuccessfulRequestTimestampInMillis is the time unit for
+	// milliseconds.
 	CoordinatingLastSuccessfulRequestTimestampInMillis int64 `json:"coordinating_last_successful_request_timestamp_in_millis"`
 
-	// The time unit for milliseconds.
+	// PrimaryLastSuccessfulRequestTimestampInMillis is the time unit for
+	// milliseconds.
 	PrimaryLastSuccessfulRequestTimestampInMillis int64 `json:"primary_last_successful_request_timestamp_in_millis"`
 
-	// The time unit for milliseconds.
+	// ReplicaLastSuccessfulRequestTimestampInMillis is the time unit for
+	// milliseconds.
 	ReplicaLastSuccessfulRequestTimestampInMillis int64 `json:"replica_last_successful_request_timestamp_in_millis"`
 }
 
@@ -1364,22 +1394,22 @@ type NodesStatsShardIndexingPressurePerShardMemory struct {
 
 // NodesStatsShardIndexingPressurePerShardMemoryDetails is a typed component of the nodes.stats operation.
 type NodesStatsShardIndexingPressurePerShardMemoryDetails struct {
-	// The unique identifier of a node.
+	// Coordinating is the unique identifier of a node.
 	Coordinating *string `json:"coordinating,omitempty"`
 
-	// The size in bytes.
+	// CoordinatingInBytes is the size in bytes.
 	CoordinatingInBytes int64 `json:"coordinating_in_bytes"`
 
-	// The unique identifier of a node.
+	// Primary is the unique identifier of a node.
 	Primary *string `json:"primary,omitempty"`
 
-	// The size in bytes.
+	// PrimaryInBytes is the size in bytes.
 	PrimaryInBytes int64 `json:"primary_in_bytes"`
 
-	// The unique identifier of a node.
+	// Replica is the unique identifier of a node.
 	Replica *string `json:"replica,omitempty"`
 
-	// The size in bytes.
+	// ReplicaInBytes is the size in bytes.
 	ReplicaInBytes int64 `json:"replica_in_bytes"`
 }
 
@@ -1391,19 +1421,19 @@ type NodesStatsShardIndexingPressurePerShardMemoryAllocation struct {
 
 // NodesStatsShardIndexingPressurePerShardMemoryAllocationCurrent is a typed component of the nodes.stats operation.
 type NodesStatsShardIndexingPressurePerShardMemoryAllocationCurrent struct {
-	// The size in bytes.
+	// CurrentCoordinatingAndPrimaryBytes is the size in bytes.
 	CurrentCoordinatingAndPrimaryBytes int64 `json:"current_coordinating_and_primary_bytes"`
 
-	// The size in bytes.
+	// CurrentReplicaBytes is the size in bytes.
 	CurrentReplicaBytes int64 `json:"current_replica_bytes"`
 }
 
 // NodesStatsShardIndexingPressurePerShardMemoryAllocationLimit is a typed component of the nodes.stats operation.
 type NodesStatsShardIndexingPressurePerShardMemoryAllocationLimit struct {
-	// The size in bytes.
+	// CurrentCoordinatingAndPrimaryLimitsInBytes is the size in bytes.
 	CurrentCoordinatingAndPrimaryLimitsInBytes int64 `json:"current_coordinating_and_primary_limits_in_bytes"`
 
-	// The size in bytes.
+	// CurrentReplicaLimitsInBytes is the size in bytes.
 	CurrentReplicaLimitsInBytes int64 `json:"current_replica_limits_in_bytes"`
 }
 
@@ -1456,70 +1486,71 @@ type NodesStatsShardTaskCancellationDetail struct {
 
 // NodesStatsThreadCount is a typed component of the nodes.stats operation.
 type NodesStatsThreadCount struct {
-	// Number of active threads in the thread pool.
+	// Active. Number of active threads in the thread pool.
 	Active *int64 `json:"active,omitempty"`
 
-	// Number of tasks completed by the thread pool executor.
+	// Completed. Number of tasks completed by the thread pool executor.
 	Completed *int64 `json:"completed,omitempty"`
 
-	// Highest number of active threads in the thread pool.
+	// Largest. Highest number of active threads in the thread pool.
 	Largest *int64 `json:"largest,omitempty"`
 
-	// Number of tasks in queue for the thread pool.
+	// Queue. Number of tasks in queue for the thread pool.
 	Queue *int64 `json:"queue,omitempty"`
 
-	// Number of tasks rejected by the thread pool executor.
+	// Rejected. Number of tasks rejected by the thread pool executor.
 	Rejected *int64 `json:"rejected,omitempty"`
 
-	// Number of threads in the thread pool.
+	// Threads. Number of threads in the thread pool.
 	Threads *int64 `json:"threads,omitempty"`
 
-	// The total amount of time that tasks spend waiting in the thread pool
-	// queue. Currently, only `search`, `search_throttled`, and
+	// TotalWaitTime is the total amount of time that tasks spend waiting in
+	// the thread pool queue. Currently, only `search`, `search_throttled`, and
 	// `index_searcher` thread pools support this metric.
 	TotalWaitTime *string `json:"total_wait_time,omitempty"`
 
-	// The total amount of time that tasks spend waiting in the thread pool
-	// queue. Currently, only `search`, `search_throttled`, and
-	// `index_searcher` thread pools support this metric.
+	// TotalWaitTimeInNanos is the total amount of time that tasks spend
+	// waiting in the thread pool queue. Currently, only `search`,
+	// `search_throttled`, and `index_searcher` thread pools support this
+	// metric.
 	TotalWaitTimeInNanos *int64 `json:"total_wait_time_in_nanos,omitempty"`
 }
 
 // NodesStatsTransport is a typed component of the nodes.stats operation.
 type NodesStatsTransport struct {
-	// Total number of RX (receive) packets received by the node during
-	// internal cluster communication.
+	// RxCount. Total number of RX (receive) packets received by the node
+	// during internal cluster communication.
 	RxCount *int64 `json:"rx_count,omitempty"`
 
-	// Size of RX packets received by the node during internal cluster
+	// RxSize. Size of RX packets received by the node during internal cluster
 	// communication.
 	RxSize *string `json:"rx_size,omitempty"`
 
-	// Size, in bytes, of RX packets received by the node during internal
-	// cluster communication.
+	// RxSizeInBytes. Size, in bytes, of RX packets received by the node during
+	// internal cluster communication.
 	RxSizeInBytes *int64 `json:"rx_size_in_bytes,omitempty"`
 
-	// Current number of inbound TCP connections used for internal
+	// ServerOpen. Current number of inbound TCP connections used for internal
 	// communication between nodes.
 	ServerOpen *int64 `json:"server_open,omitempty"`
 
-	// The cumulative number of outbound transport connections that this node
-	// has opened since it started. Each transport connection may comprise
-	// multiple TCP connections but is only counted once in this statistic.
-	// Transport connections are typically long-lived so this statistic should
-	// remain constant in a stable cluster.
+	// TotalOutboundConnections is the cumulative number of outbound transport
+	// connections that this node has opened since it started. Each transport
+	// connection may comprise multiple TCP connections but is only counted
+	// once in this statistic. Transport connections are typically long-lived
+	// so this statistic should remain constant in a stable cluster.
 	TotalOutboundConnections *int64 `json:"total_outbound_connections,omitempty"`
 
-	// Total number of TX (transmit) packets sent by the node during internal
-	// cluster communication.
+	// TxCount. Total number of TX (transmit) packets sent by the node during
+	// internal cluster communication.
 	TxCount *int64 `json:"tx_count,omitempty"`
 
-	// Size of TX packets sent by the node during internal cluster
+	// TxSize. Size of TX packets sent by the node during internal cluster
 	// communication.
 	TxSize *string `json:"tx_size,omitempty"`
 
-	// Size, in bytes, of TX packets sent by the node during internal cluster
-	// communication.
+	// TxSizeInBytes. Size, in bytes, of TX packets sent by the node during
+	// internal cluster communication.
 	TxSizeInBytes *int64 `json:"tx_size_in_bytes,omitempty"`
 }
 
@@ -1534,6 +1565,10 @@ type NodesStatsShardWeightedRoutingDetail struct {
 }
 
 // IP address and port for the node.
+// The spec declares no discriminator, but each branch is a different JSON token
+// class (object, array, string, number, boolean), so the payload's first byte
+// selects one.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
 type NodesStatsIP struct {
@@ -1542,7 +1577,7 @@ type NodesStatsIP struct {
 	value any
 }
 
-// NodesStatsIPType discriminates the branches of NodesStatsIP.
+// NodesStatsIPType names which branch of NodesStatsIP is set.
 type NodesStatsIPType int
 
 const (
@@ -1550,6 +1585,19 @@ const (
 	NodesStatsIPStringType
 	NodesStatsIPArrayType
 )
+
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesStatsIPType) String() string {
+	switch t {
+	case NodesStatsIPStringType:
+		return "String"
+	case NodesStatsIPArrayType:
+		return "Array"
+	default:
+		return "unknown"
+	}
+}
 
 // Type returns which union branch was populated during decoding.
 // Returns NodesStatsIPUnknownType if the value has not been decoded.
@@ -1570,13 +1618,16 @@ func (u *NodesStatsIP) SetRaw(raw json.RawMessage) {
 	u.typ = NodesStatsIPUnknownType
 }
 
-// String returns the string branch value.
-func (u *NodesStatsIP) String() string {
+// String returns the string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NodesStatsIP) String() (string, error) {
 	if v, ok := u.value.(*string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero string
-	return zero
+	return zero, &UnionBranchError{Union: "NodesStatsIP", Want: "String", Got: u.typ.String()}
 }
 
 // NewNodesStatsIPFromString returns a NodesStatsIP populated with v
@@ -1588,13 +1639,16 @@ func NewNodesStatsIPFromString(v string) NodesStatsIP {
 	}
 }
 
-// Array returns the []string branch value.
-func (u *NodesStatsIP) Array() []string {
+// Array returns the []string branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero []string in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NodesStatsIP) Array() ([]string, error) {
 	if v, ok := u.value.(*[]string); ok {
-		return *v
+		return *v, nil
 	}
 	var zero []string
-	return zero
+	return zero, &UnionBranchError{Union: "NodesStatsIP", Want: "Array", Got: u.typ.String()}
 }
 
 // NewNodesStatsIPFromArray returns a NodesStatsIP populated with v
@@ -1651,7 +1705,7 @@ func (u NodesStatsIP) MarshalJSON() ([]byte, error) {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-usage/
-func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, error) {
+func (c NodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStatsResp, error) {
 	if req == nil {
 		req = &NodesStatsReq{}
 	}
@@ -1660,7 +1714,7 @@ func (c nodesClient) Stats(ctx context.Context, req *NodesStatsReq) (*NodesStats
 		data NodesStatsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

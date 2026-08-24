@@ -3,6 +3,7 @@ name: Integration for Compatibility
 on: [push, pull_request]
 
 env:
+  CONTAINER_PROVIDER: docker
   CONTAINER_RUNTIME: docker
 
 jobs:
@@ -20,7 +21,7 @@ jobs:
       matrix:
         secured: ["true", "false"]
         opensearch_version:
-          - 2.19.5
+          - 2.19.6
           - 3.0.0
           - 3.1.0
           - 3.2.0
@@ -29,11 +30,12 @@ jobs:
           - 3.5.0
           - 3.6.0
           - 3.7.0
+          - 3.8.0
           - latest
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
 
-      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with: { go-version-file: 'go.mod' }
 
       - run: go version

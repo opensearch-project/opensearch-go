@@ -29,7 +29,9 @@ func createBenchBaseConnection(urlStr string, id string, roles ...string) *Conne
 	}
 	// Connections start alive for benchmarking (no health check needed).
 	// Set authoritative atomic state so Next() recognizes them as active.
-	conn.state.Store(int64(newConnState(lcActive)))
+	// lcViable marks them proven-reachable so availableForRouting() admits
+	// them without a live health check.
+	conn.setLifecycleBit(lcActive | lcViable)
 	return conn
 }
 
@@ -71,7 +73,7 @@ func configureBenchPolicy(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		policy.pool.mu.ready = append(policy.pool.mu.ready, connections...)
 		for _, conn := range policy.pool.mu.ready {
-			conn.state.Store(int64(newConnState(lcActive)))
+			conn.setLifecycleBit(lcActive)
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
@@ -81,7 +83,7 @@ func configureBenchPolicy(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		for _, conn := range connections {
 			if policy.connectionMatchesRoles(conn) {
-				conn.state.Store(int64(newConnState(lcActive)))
+				conn.setLifecycleBit(lcActive)
 				policy.pool.mu.ready = append(policy.pool.mu.ready, conn)
 			}
 		}
@@ -94,7 +96,7 @@ func configureBenchPolicy(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		for _, conn := range connections {
 			if len(conn.Roles) == 0 || conn.Roles.has(RoleCoordinatingOnly) {
-				conn.state.Store(int64(newConnState(lcActive)))
+				conn.setLifecycleBit(lcActive)
 				policy.pool.mu.ready = append(policy.pool.mu.ready, conn)
 			}
 		}
@@ -147,7 +149,7 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		policy.pool.mu.ready = append(policy.pool.mu.ready, connections...)
 		for _, conn := range policy.pool.mu.ready {
-			conn.state.Store(int64(newConnState(lcActive)))
+			conn.setLifecycleBit(lcActive)
 		}
 		policy.pool.mu.activeCount = len(policy.pool.mu.ready)
 		policy.pool.mu.dead = nil
@@ -157,7 +159,7 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		for _, conn := range connections {
 			if policy.connectionMatchesRoles(conn) {
-				conn.state.Store(int64(newConnState(lcActive)))
+				conn.setLifecycleBit(lcActive)
 				policy.pool.mu.ready = append(policy.pool.mu.ready, conn)
 			}
 		}
@@ -170,7 +172,7 @@ func markPolicyConnectionsAlive(p Policy, connections []*Connection) {
 		policy.pool.Lock()
 		for _, conn := range connections {
 			if len(conn.Roles) == 0 || conn.Roles.has(RoleCoordinatingOnly) {
-				conn.state.Store(int64(newConnState(lcActive)))
+				conn.setLifecycleBit(lcActive)
 				policy.pool.mu.ready = append(policy.pool.mu.ready, conn)
 			}
 		}

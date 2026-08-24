@@ -69,6 +69,7 @@ func TestClusterDeleteVotingConfigExclusions_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Cluster.DeleteVotingConfigExclusions(t.Context(), nil)
 		require.NoError(t, err)
@@ -88,6 +89,7 @@ func TestClusterDeleteVotingConfigExclusions_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Cluster.DeleteVotingConfigExclusions(t.Context(), nil)
 		require.Error(t, err)

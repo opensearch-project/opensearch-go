@@ -33,10 +33,15 @@ type Target interface {
 
 // File is the standard Target implementation that assembles fragments.
 type File struct {
-	FilePath  string
-	Package   string
-	BuildTag  string // e.g. "!integration" or "integration"
-	Fragments []Fragment
+	FilePath string
+	Package  string
+	// PackageDoc, when non-empty, is emitted as a package doc comment
+	// immediately above the package clause. Each line is prefixed with "// ";
+	// no blank line separates it from the package clause, so Go attaches it as
+	// the package documentation.
+	PackageDoc string
+	BuildTag   string // e.g. "!integration" or "integration"
+	Fragments  []Fragment
 }
 
 // Path returns the absolute path the rendered file should be written to.
@@ -83,7 +88,25 @@ func (f *File) Render() ([]byte, error) {
 		sb.WriteString(f.BuildTag)
 		sb.WriteByte('\n')
 	}
-	sb.WriteString("\npackage ")
+	if f.PackageDoc != "" {
+		// Separate the doc comment from the preceding comment group with a
+		// blank line, then emit it as an unbroken run of "// " lines directly
+		// above the package clause (no blank line between) so Go attaches it as
+		// the package documentation.
+		sb.WriteByte('\n')
+		for line := range strings.SplitSeq(f.PackageDoc, "\n") {
+			if line == "" {
+				sb.WriteString("//\n")
+			} else {
+				sb.WriteString("// ")
+				sb.WriteString(line)
+				sb.WriteByte('\n')
+			}
+		}
+		sb.WriteString("package ")
+	} else {
+		sb.WriteString("\npackage ")
+	}
 	sb.WriteString(f.Package)
 	sb.WriteByte('\n')
 

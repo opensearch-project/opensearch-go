@@ -87,7 +87,7 @@ func (r StartPolicyParams) get() map[string]string {
 //
 // Available: >= 2.1.0.
 type StartPolicyResp struct {
-	// Whether the API acknowledged the start operation.
+	// Acknowledged. Whether the API acknowledged the start operation.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
 	response *opensearch.Response

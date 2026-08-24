@@ -98,7 +98,7 @@ func (r NodesUsageParams) get() map[string]string {
 type NodesUsageResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
 	Nodes map[string]NodesUsageNode `json:"nodes"`
@@ -125,10 +125,10 @@ type NodesUsageNode struct {
 	Aggregations map[string]json.RawMessage `json:"aggregations,omitempty"`
 	RestActions  map[string]int64           `json:"rest_actions,omitempty"`
 
-	// The time unit for milliseconds.
+	// Since is the time unit for milliseconds.
 	Since int64 `json:"since"`
 
-	// The time unit for milliseconds.
+	// Timestamp is the time unit for milliseconds.
 	Timestamp int64 `json:"timestamp"`
 }
 
@@ -139,7 +139,7 @@ type NodesUsageNode struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, error) {
+func (c NodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsageResp, error) {
 	if req == nil {
 		req = &NodesUsageReq{}
 	}
@@ -148,7 +148,7 @@ func (c nodesClient) Usage(ctx context.Context, req *NodesUsageReq) (*NodesUsage
 		data NodesUsageResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

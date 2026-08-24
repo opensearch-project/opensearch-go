@@ -79,7 +79,7 @@ type CatPendingTasksParams struct {
 	// Specifies the time units, for example, `5d` or `7h`. For more
 	// information, see [Supported
 	// units](https://opensearch.org/docs/latest/api-reference/units/).
-	Time string
+	Time TimeUnit
 }
 
 func (r CatPendingTasksParams) get() map[string]string {
@@ -101,7 +101,7 @@ func (r CatPendingTasksParams) get() map[string]string {
 	}
 
 	if r.Time != "" {
-		set("time", r.Time)
+		set("time", string(r.Time))
 	}
 
 	return params
@@ -144,16 +144,16 @@ func (r CatPendingTasksResp) RawBody() io.Reader {
 
 // CatPendingTasksRecord is a typed component of the cat.pending_tasks operation.
 type CatPendingTasksRecord struct {
-	// The task insertion order.
+	// InsertOrder is the task insertion order.
 	InsertOrder *string `json:"insertOrder,omitempty"`
 
-	// The task priority.
+	// Priority is the task priority.
 	Priority *string `json:"priority,omitempty"`
 
-	// The task source.
+	// Source is the task source.
 	Source *string `json:"source,omitempty"`
 
-	// Indicates how long the task has been in queue.
+	// TimeInQueue. Indicates how long the task has been in queue.
 	TimeInQueue *string `json:"timeInQueue,omitempty"`
 }
 
@@ -164,7 +164,7 @@ type CatPendingTasksRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cat/cat-pending-tasks/
-func (c catClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*CatPendingTasksResp, error) {
+func (c CatClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*CatPendingTasksResp, error) {
 	if req == nil {
 		req = &CatPendingTasksReq{}
 	}
@@ -173,7 +173,7 @@ func (c catClient) PendingTasks(ctx context.Context, req *CatPendingTasksReq) (*
 		data CatPendingTasksResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

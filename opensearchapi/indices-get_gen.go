@@ -188,7 +188,7 @@ func (r IndicesGetResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/get-index/
-func (c indicesClient) Get(ctx context.Context, req *IndicesGetReq) (*IndicesGetResp, error) {
+func (c IndicesClient) Get(ctx context.Context, req *IndicesGetReq) (*IndicesGetResp, error) {
 	if req == nil {
 		req = &IndicesGetReq{}
 	}
@@ -197,7 +197,7 @@ func (c indicesClient) Get(ctx context.Context, req *IndicesGetReq) (*IndicesGet
 		data IndicesGetResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

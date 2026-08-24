@@ -154,10 +154,10 @@ func (r IndicesCloseResp) RawBody() io.Reader {
 //
 // The result of a close index operation.
 type IndicesCloseIndexResult struct {
-	// Whether the index was successfully closed.
+	// Closed. Whether the index was successfully closed.
 	Closed bool `json:"closed"`
 
-	// The status of individual shards during the close operation.
+	// Shards is the status of individual shards during the close operation.
 	Shards map[string]IndicesCloseShardResult `json:"shards,omitempty"`
 }
 
@@ -165,7 +165,7 @@ type IndicesCloseIndexResult struct {
 //
 // The result of closing shards in an index.
 type IndicesCloseShardResult struct {
-	// The list of failures that occurred while closing shards.
+	// Failures is the list of failures that occurred while closing shards.
 	Failures []ShardFailure `json:"failures"`
 }
 
@@ -176,7 +176,7 @@ type IndicesCloseShardResult struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/close-index/
-func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*IndicesCloseResp, error) {
+func (c IndicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*IndicesCloseResp, error) {
 	if req == nil {
 		req = &IndicesCloseReq{}
 	}
@@ -185,7 +185,7 @@ func (c indicesClient) Close(ctx context.Context, req *IndicesCloseReq) (*Indice
 		data IndicesCloseResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

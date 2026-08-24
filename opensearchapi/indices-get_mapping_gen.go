@@ -181,7 +181,7 @@ type IndicesGetMappingIndexMappingRecord struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/field-types/index/#get-a-mapping
-func (c indicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq) (*IndicesGetMappingResp, error) {
+func (c IndicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq) (*IndicesGetMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetMappingReq{}
 	}
@@ -190,7 +190,7 @@ func (c indicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq
 		data IndicesGetMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -202,7 +202,7 @@ func (c indicesClient) GetMapping(ctx context.Context, req *IndicesGetMappingReq
 }
 
 // Deprecated: use IndicesGetMapping via the parent client instead.
-func (c mappingClient) Get(ctx context.Context, req *IndicesGetMappingReq) (*IndicesGetMappingResp, error) {
+func (c MappingClient) Get(ctx context.Context, req *IndicesGetMappingReq) (*IndicesGetMappingResp, error) {
 	if req == nil {
 		req = &IndicesGetMappingReq{}
 	}
@@ -211,7 +211,7 @@ func (c mappingClient) Get(ctx context.Context, req *IndicesGetMappingReq) (*Ind
 		data IndicesGetMappingResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

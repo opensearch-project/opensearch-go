@@ -113,10 +113,10 @@ func (r NodesReloadSecureSettingsParams) get() map[string]string {
 type NodesReloadSecureSettingsResp struct {
 	NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
-	Nodes map[string]NodesReloadSecureSettingsRespBodyNodesValue `json:"nodes"`
+	Nodes map[string]NodesReloadSecureSettingsNodeReloadResult `json:"nodes"`
 
 	response *opensearch.Response
 }
@@ -137,7 +137,7 @@ func (r NodesReloadSecureSettingsResp) RawBody() io.Reader {
 
 // NodesReloadSecureSettingsNodeReloadResponse is a typed component of the nodes.reload_secure_settings operation.
 type NodesReloadSecureSettingsNodeReloadResponse struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -147,90 +147,113 @@ type NodesReloadSecureSettingsNodeReloadError struct {
 	ReloadException ErrorCause `json:"reload_exception"`
 }
 
-// NodesReloadSecureSettingsRespBodyNodesValue is a discriminated union type (single-pass merge decode).
+// NodesReloadSecureSettingsNodeReloadResult is a oneOf union decoded in a single pass.
+// The spec declares no discriminator, but each branch requires a JSON key the
+// others lack, so one decode both populates the common branch and detects the
+// others by key presence.
+//
 // Use Type() to determine which branch was decoded, then call
 // the corresponding accessor.
-type NodesReloadSecureSettingsRespBodyNodesValue struct {
-	typ   NodesReloadSecureSettingsRespBodyNodesValueType
+type NodesReloadSecureSettingsNodeReloadResult struct {
+	typ   NodesReloadSecureSettingsNodeReloadResultType
 	raw   json.RawMessage
 	value any
 }
 
-// NodesReloadSecureSettingsRespBodyNodesValueType discriminates the branches of NodesReloadSecureSettingsRespBodyNodesValue.
-type NodesReloadSecureSettingsRespBodyNodesValueType int
+// NodesReloadSecureSettingsNodeReloadResultType names which branch of NodesReloadSecureSettingsNodeReloadResult is set.
+type NodesReloadSecureSettingsNodeReloadResultType int
 
 const (
-	NodesReloadSecureSettingsRespBodyNodesValueUnknownType NodesReloadSecureSettingsRespBodyNodesValueType = iota
-	NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadResponseType
-	NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType
+	NodesReloadSecureSettingsNodeReloadResultUnknownType NodesReloadSecureSettingsNodeReloadResultType = iota
+	NodesReloadSecureSettingsNodeReloadResultNodeReloadResponseType
+	NodesReloadSecureSettingsNodeReloadResultNodeReloadErrorType
 )
 
+// String names the branch, for diagnostics. Returns "unknown" when no branch has
+// been decoded.
+func (t NodesReloadSecureSettingsNodeReloadResultType) String() string {
+	switch t {
+	case NodesReloadSecureSettingsNodeReloadResultNodeReloadResponseType:
+		return "NodeReloadResponse"
+	case NodesReloadSecureSettingsNodeReloadResultNodeReloadErrorType:
+		return "NodeReloadError"
+	default:
+		return "unknown"
+	}
+}
+
 // Type returns which union branch was populated during decoding.
-// Returns NodesReloadSecureSettingsRespBodyNodesValueUnknownType if the value has not been decoded.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) Type() NodesReloadSecureSettingsRespBodyNodesValueType {
+// Returns NodesReloadSecureSettingsNodeReloadResultUnknownType if the value has not been decoded.
+func (u *NodesReloadSecureSettingsNodeReloadResult) Type() NodesReloadSecureSettingsNodeReloadResultType {
 	return u.typ
 }
 
 // RawJSON returns the union's JSON bytes. After decoding these are borrowed
 // from the response buffer: valid only while the owning response value is
 // reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) RawJSON() json.RawMessage { return u.raw }
+func (u *NodesReloadSecureSettingsNodeReloadResult) RawJSON() json.RawMessage { return u.raw }
 
 // SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewNodesReloadSecureSettingsRespBodyNodesValueFrom*
+// verbatim when no typed branch is set. Use the NewNodesReloadSecureSettingsNodeReloadResultFrom*
 // constructors to populate a typed branch instead; SetRaw is the typed
 // escape hatch for callers that already have wire-format bytes.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) SetRaw(raw json.RawMessage) {
+func (u *NodesReloadSecureSettingsNodeReloadResult) SetRaw(raw json.RawMessage) {
 	u.raw = raw
 	u.value = nil
-	u.typ = NodesReloadSecureSettingsRespBodyNodesValueUnknownType
+	u.typ = NodesReloadSecureSettingsNodeReloadResultUnknownType
 }
 
-// NodesReloadSecureSettingsNodeReloadResponse returns the NodesReloadSecureSettingsNodeReloadResponse branch value.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadResponse() NodesReloadSecureSettingsNodeReloadResponse {
+// NodeReloadResponse returns the NodesReloadSecureSettingsNodeReloadResponse branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NodesReloadSecureSettingsNodeReloadResponse in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NodesReloadSecureSettingsNodeReloadResult) NodeReloadResponse() (NodesReloadSecureSettingsNodeReloadResponse, error) {
 	if v, ok := u.value.(*NodesReloadSecureSettingsNodeReloadResponse); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesReloadSecureSettingsNodeReloadResponse
-	return zero
+	return zero, &UnionBranchError{Union: "NodesReloadSecureSettingsNodeReloadResult", Want: "NodeReloadResponse", Got: u.typ.String()}
 }
 
-// NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadResponse returns a NodesReloadSecureSettingsRespBodyNodesValue populated with v
-// on the NodesReloadSecureSettingsNodeReloadResponse branch.
-func NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadResponse(v NodesReloadSecureSettingsNodeReloadResponse) NodesReloadSecureSettingsRespBodyNodesValue {
-	return NodesReloadSecureSettingsRespBodyNodesValue{
-		typ:   NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadResponseType,
+// NewNodesReloadSecureSettingsNodeReloadResultFromNodeReloadResponse returns a NodesReloadSecureSettingsNodeReloadResult populated with v
+// on the NodeReloadResponse branch.
+func NewNodesReloadSecureSettingsNodeReloadResultFromNodeReloadResponse(v NodesReloadSecureSettingsNodeReloadResponse) NodesReloadSecureSettingsNodeReloadResult {
+	return NodesReloadSecureSettingsNodeReloadResult{
+		typ:   NodesReloadSecureSettingsNodeReloadResultNodeReloadResponseType,
 		value: &v,
 	}
 }
 
-// NodesReloadSecureSettingsNodeReloadError returns the NodesReloadSecureSettingsNodeReloadError branch value.
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) NodesReloadSecureSettingsNodeReloadError() NodesReloadSecureSettingsNodeReloadError {
+// NodeReloadError returns the NodesReloadSecureSettingsNodeReloadError branch value. It returns a
+// *UnionBranchError when the union holds a different branch, naming the branch
+// that is set; the returned value is the zero NodesReloadSecureSettingsNodeReloadError in that case,
+// which is indistinguishable from a decoded one, so check the error.
+func (u *NodesReloadSecureSettingsNodeReloadResult) NodeReloadError() (NodesReloadSecureSettingsNodeReloadError, error) {
 	if v, ok := u.value.(*NodesReloadSecureSettingsNodeReloadError); ok {
-		return *v
+		return *v, nil
 	}
 	var zero NodesReloadSecureSettingsNodeReloadError
-	return zero
+	return zero, &UnionBranchError{Union: "NodesReloadSecureSettingsNodeReloadResult", Want: "NodeReloadError", Got: u.typ.String()}
 }
 
-// NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadError returns a NodesReloadSecureSettingsRespBodyNodesValue populated with v
-// on the NodesReloadSecureSettingsNodeReloadError branch.
-func NewNodesReloadSecureSettingsRespBodyNodesValueFromNodesReloadSecureSettingsNodeReloadError(v NodesReloadSecureSettingsNodeReloadError) NodesReloadSecureSettingsRespBodyNodesValue {
-	return NodesReloadSecureSettingsRespBodyNodesValue{
-		typ:   NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType,
+// NewNodesReloadSecureSettingsNodeReloadResultFromNodeReloadError returns a NodesReloadSecureSettingsNodeReloadResult populated with v
+// on the NodeReloadError branch.
+func NewNodesReloadSecureSettingsNodeReloadResultFromNodeReloadError(v NodesReloadSecureSettingsNodeReloadError) NodesReloadSecureSettingsNodeReloadResult {
+	return NodesReloadSecureSettingsNodeReloadResult{
+		typ:   NodesReloadSecureSettingsNodeReloadResultNodeReloadErrorType,
 		value: &v,
 	}
 }
 
-func (u *NodesReloadSecureSettingsRespBodyNodesValue) UnmarshalJSON(data []byte) error {
+func (u *NodesReloadSecureSettingsNodeReloadResult) UnmarshalJSON(data []byte) error {
 	u.raw = data
 	u.value = nil
-	u.typ = NodesReloadSecureSettingsRespBodyNodesValueUnknownType
+	u.typ = NodesReloadSecureSettingsNodeReloadResultUnknownType
 	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
 		return nil
 	}
 	// Single decode: embed the permissive (primary) branch and probe for the
-	// discriminating keys of the other branches in one pass. encoding/json
+	// distinguishing keys of the other branches in one pass. encoding/json
 	// populates the embedded primary directly; the probes only test presence.
 	type merged struct {
 		NodesReloadSecureSettingsNodeReloadResponse
@@ -245,16 +268,16 @@ func (u *NodesReloadSecureSettingsRespBodyNodesValue) UnmarshalJSON(data []byte)
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
-		u.typ = NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadErrorType
+		u.typ = NodesReloadSecureSettingsNodeReloadResultNodeReloadErrorType
 		u.value = &v
 		return nil
 	}
-	u.typ = NodesReloadSecureSettingsRespBodyNodesValueNodesReloadSecureSettingsNodeReloadResponseType
+	u.typ = NodesReloadSecureSettingsNodeReloadResultNodeReloadResponseType
 	u.value = &m.NodesReloadSecureSettingsNodeReloadResponse
 	return nil
 }
 
-func (u NodesReloadSecureSettingsRespBodyNodesValue) MarshalJSON() ([]byte, error) {
+func (u NodesReloadSecureSettingsNodeReloadResult) MarshalJSON() ([]byte, error) {
 	if u.value != nil {
 		return json.Marshal(u.value)
 	}
@@ -268,7 +291,7 @@ func (u NodesReloadSecureSettingsRespBodyNodesValue) MarshalJSON() ([]byte, erro
 //
 // An object containing the password for the OpenSearch keystore.
 type NodesReloadSecureSettingsBody struct {
-	// The password for authentication.
+	// SecureSettingsPassword is the password for authentication.
 	SecureSettingsPassword *string `json:"secure_settings_password,omitempty"`
 }
 
@@ -279,7 +302,7 @@ type NodesReloadSecureSettingsBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/nodes-apis/nodes-reload-secure/
-func (c nodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadSecureSettingsReq) (*NodesReloadSecureSettingsResp, error) {
+func (c NodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadSecureSettingsReq) (*NodesReloadSecureSettingsResp, error) {
 	if req == nil {
 		req = &NodesReloadSecureSettingsReq{}
 	}
@@ -288,7 +311,7 @@ func (c nodesClient) ReloadSecureSettings(ctx context.Context, req *NodesReloadS
 		data NodesReloadSecureSettingsResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

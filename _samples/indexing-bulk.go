@@ -3,6 +3,13 @@
 // The OpenSearch Contributors require contributions made to
 // this file be licensed under the Apache-2.0 license or a
 // compatible open source license.
+
+// This sample demonstrates bulk index/update/delete in a single request.
+//
+// Learn more:
+//   - Guide: https://github.com/opensearch-project/opensearch-go/blob/main/guides/indexing-bulk.md
+//   - API reference: https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi
+
 package main
 
 import (

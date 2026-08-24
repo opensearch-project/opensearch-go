@@ -96,7 +96,7 @@ func (r DeprovisionParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/deprovision-workflow/
 type DeprovisionResp struct {
-	// The ID of the workflow.
+	// WorkflowID is the ID of the workflow.
 	WorkflowID *string `json:"workflow_id,omitempty"`
 
 	response *opensearch.Response

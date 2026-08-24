@@ -199,7 +199,7 @@ type SearchShardsShardStoreIndex struct {
 
 // SearchShardsBody is a typed component of the search_shards operation.
 type SearchShardsBody struct {
-	// The configuration for a sliced scroll request.
+	// Slice is the configuration for a sliced scroll request.
 	Slice *SlicedScroll `json:"slice,omitempty"`
 }
 
@@ -225,7 +225,7 @@ func (c Client) SearchShards(ctx context.Context, req *SearchShardsReq) (*Search
 	if req.Body != nil || req.BodyReader != nil {
 		method = http.MethodPost
 	}
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		&c,
 		method,

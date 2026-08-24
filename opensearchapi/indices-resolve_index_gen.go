@@ -127,12 +127,12 @@ func (r IndicesResolveIndexResp) RawBody() io.Reader {
 //
 // The resolved information for an index alias.
 type IndicesResolveIndexAliasItem struct {
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// Indices is a comma-separated list of data streams, indexes, and aliases
+	// used to limit the request. Supports wildcards (`*`). To target all data
+	// streams and indexes, omit this parameter or use `*` or `_all`.
 	Indices []string `json:"indices"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -140,15 +140,16 @@ type IndicesResolveIndexAliasItem struct {
 //
 // The resolved information for a data stream.
 type IndicesResolveIndexDataStreamsItem struct {
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// BackingIndices is a comma-separated list of data streams, indexes, and
+	// aliases used to limit the request. Supports wildcards (`*`). To target
+	// all data streams and indexes, omit this parameter or use `*` or `_all`.
 	BackingIndices []string `json:"backing_indices"`
 
 	Name string `json:"name"`
 
-	// The path to a field or an array of paths. Some APIs support wildcards in
-	// the path, which allows you to select multiple fields.
+	// TimestampField is the path to a field or an array of paths. Some APIs
+	// support wildcards in the path, which allows you to select multiple
+	// fields.
 	TimestampField string `json:"timestamp_field"`
 }
 
@@ -156,15 +157,15 @@ type IndicesResolveIndexDataStreamsItem struct {
 //
 // The resolved information for an index.
 type IndicesResolveIndexItem struct {
-	// The list of aliases associated with the index.
+	// Aliases is the list of aliases associated with the index.
 	Aliases []string `json:"aliases,omitempty"`
 
-	// The list of index attributes.
+	// Attributes is the list of index attributes.
 	Attributes []string `json:"attributes"`
 
 	DataStream *string `json:"data_stream,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -175,7 +176,7 @@ type IndicesResolveIndexItem struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveIndexReq) (*IndicesResolveIndexResp, error) {
+func (c IndicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveIndexReq) (*IndicesResolveIndexResp, error) {
 	if req == nil {
 		req = &IndicesResolveIndexReq{}
 	}
@@ -184,7 +185,7 @@ func (c indicesClient) ResolveIndex(ctx context.Context, req *IndicesResolveInde
 		data IndicesResolveIndexResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,

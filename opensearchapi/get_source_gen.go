@@ -108,7 +108,7 @@ type GetSourceParams struct {
 
 	// The specific version type. One of `internal`, `external`,
 	// `external_gte`.
-	VersionType string
+	VersionType VersionType
 }
 
 func (r GetSourceParams) get() map[string]string {
@@ -155,7 +155,7 @@ func (r GetSourceParams) get() map[string]string {
 	}
 
 	if r.VersionType != "" {
-		set("version_type", r.VersionType)
+		set("version_type", string(r.VersionType))
 	}
 
 	return params
@@ -211,12 +211,12 @@ func (r GetSourceResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) GetSource(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
+func (c DocumentClient) GetSource(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
 	var (
 		data GetSourceResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodGet,
@@ -234,6 +234,6 @@ func (c documentClient) GetSource(ctx context.Context, req GetSourceReq) (*GetSo
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/document-apis/get-documents/
-func (c documentClient) Source(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
+func (c DocumentClient) Source(ctx context.Context, req GetSourceReq) (*GetSourceResp, error) {
 	return c.GetSource(ctx, req)
 }

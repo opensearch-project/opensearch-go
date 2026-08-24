@@ -19,10 +19,10 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 )
 
-func TestGetAllPits(t *testing.T) {
+func TestGetAllPITs(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	testutil.SkipIfVersion(t, client, "<", "2.4", "GetAllPits")
+	testutil.SkipIfVersion(t, client, "<", "2.4", "GetAllPITs")
 
 	t.Run("success", func(t *testing.T) {
 		resp, err := client.PIT.GetAll(t.Context(), nil)

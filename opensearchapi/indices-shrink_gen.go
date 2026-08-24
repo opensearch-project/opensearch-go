@@ -181,10 +181,11 @@ func (r IndicesShrinkResp) RawBody() io.Reader {
 //
 // The configuration for the target index (`settings` and `aliases`)
 type IndicesShrinkBody struct {
-	// The key is the alias name. Index alias names support date math.
+	// Aliases is the key is the alias name. Index alias names support date
+	// math.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Configuration options for the target index.
+	// Settings. Configuration options for the target index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 
@@ -197,12 +198,12 @@ type IndicesShrinkBody struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/index-apis/shrink-index/
-func (c indicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*IndicesShrinkResp, error) {
+func (c IndicesClient) Shrink(ctx context.Context, req IndicesShrinkReq) (*IndicesShrinkResp, error) {
 	var (
 		data IndicesShrinkResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,

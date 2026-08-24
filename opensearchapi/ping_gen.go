@@ -89,5 +89,5 @@ func (c Client) Ping(ctx context.Context, req *PingReq) (*opensearch.Response, e
 		req = &PingReq{}
 	}
 
-	return do(ctx, &c, http.MethodHead, req, noBody)
+	return request(ctx, &c, http.MethodHead, req, noBody)
 }

@@ -184,7 +184,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 		if obs := observerFromAtomic(&p.observer); obs != nil {
 			key := indexName + "/" + docID
-			obs.OnRoute(buildRouteEvent(routeEventParams{
+			dispatchRoute(obs, routeEventParams{
 				indexName:           indexName,
 				key:                 key,
 				fanOut:              len(shardCandidates),
@@ -201,7 +201,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 				shardExactMatch:     true,
 				poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 				scoreFunc:           p.scoreFunc,
-			}))
+			})
 		}
 		candidatesBuf.Release()
 
@@ -239,7 +239,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 
 	if obs := observerFromAtomic(&p.observer); obs != nil {
 		key := indexName + "/" + docID
-		obs.OnRoute(buildRouteEvent(routeEventParams{
+		dispatchRoute(obs, routeEventParams{
 			indexName:           indexName,
 			key:                 key,
 			fanOut:              fanOut,
@@ -254,7 +254,7 @@ func (p *DocRouter) Eval(_ context.Context, req *http.Request) (NextHop, error) 
 			targetShard:         shardNum,
 			poolInfoReady:       loadPoolInfoReady(p.config.poolInfoReady),
 			scoreFunc:           p.scoreFunc,
-		}))
+		})
 	}
 
 	putConnSlice(bp)

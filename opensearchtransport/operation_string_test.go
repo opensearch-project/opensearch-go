@@ -339,90 +339,85 @@ func TestOperationID_MaskingExhaustive(t *testing.T) {
 }
 
 // TestOperationID_AdminOps_String covers the admin-category String
-// branches not exercised by the named-table test. The admin ops
-// (cat/nodes/snapshot/script/dangling/data-stream) currently fall to
-// the fallback path in operation.go's String() because they don't
-// have explicit case branches in the primary switch. This test
-// documents the resulting strings (category_<minor>) so a future
-// rearrangement that promotes one to the primary switch -- and
-// changes its label -- breaks here loudly rather than silently
-// reshaping telemetry.
+// branches (cat/nodes/tasks/snapshot/script/dangling/data-stream). These
+// ops now have explicit case branches in operation.go's String() so they
+// emit stable snake_case labels for telemetry. This test locks those
+// labels so a rename breaks here loudly rather than silently reshaping
+// dashboards.
 func TestOperationID_AdminOps_String(t *testing.T) {
 	t.Parallel()
 
-	// Each entry: op, expected string. Strings come from the fallback
-	// path: catName + "_" + strconv(minor).
 	cases := []struct {
 		op   opensearchtransport.OperationID
 		want string
 	}{
 		// Cat
-		{opensearchtransport.OpCatAllocation, "admin_1"},
-		{opensearchtransport.OpCatClusterMgr, "admin_2"},
-		{opensearchtransport.OpCatCount, "admin_3"},
-		{opensearchtransport.OpCatFielddata, "admin_4"},
-		{opensearchtransport.OpCatHealth, "admin_5"},
-		{opensearchtransport.OpCatIndices, "admin_6"},
-		{opensearchtransport.OpCatMaster, "admin_7"},
-		{opensearchtransport.OpCatNodeAttrs, "admin_8"},
-		{opensearchtransport.OpCatNodes, "admin_9"},
-		{opensearchtransport.OpCatPendingTask, "admin_10"},
-		{opensearchtransport.OpCatPlugins, "admin_11"},
-		{opensearchtransport.OpCatRecovery, "admin_12"},
-		{opensearchtransport.OpCatRepos, "admin_13"},
-		{opensearchtransport.OpCatSegments, "admin_14"},
-		{opensearchtransport.OpCatShards, "admin_15"},
-		{opensearchtransport.OpCatSnapshots, "admin_16"},
-		{opensearchtransport.OpCatTasks, "admin_17"},
-		{opensearchtransport.OpCatTemplates, "admin_18"},
-		{opensearchtransport.OpCatThreadPool, "admin_19"},
+		{opensearchtransport.OpCatAllocation, "cat_allocation"},
+		{opensearchtransport.OpCatClusterMgr, "cat_cluster_manager"},
+		{opensearchtransport.OpCatCount, "cat_count"},
+		{opensearchtransport.OpCatFielddata, "cat_fielddata"},
+		{opensearchtransport.OpCatHealth, "cat_health"},
+		{opensearchtransport.OpCatIndices, "cat_indices"},
+		{opensearchtransport.OpCatMaster, "cat_master"},
+		{opensearchtransport.OpCatNodeAttrs, "cat_nodeattrs"},
+		{opensearchtransport.OpCatNodes, "cat_nodes"},
+		{opensearchtransport.OpCatPendingTask, "cat_pending_tasks"},
+		{opensearchtransport.OpCatPlugins, "cat_plugins"},
+		{opensearchtransport.OpCatRecovery, "cat_recovery"},
+		{opensearchtransport.OpCatRepos, "cat_repositories"},
+		{opensearchtransport.OpCatSegments, "cat_segments"},
+		{opensearchtransport.OpCatShards, "cat_shards"},
+		{opensearchtransport.OpCatSnapshots, "cat_snapshots"},
+		{opensearchtransport.OpCatTasks, "cat_tasks"},
+		{opensearchtransport.OpCatTemplates, "cat_templates"},
+		{opensearchtransport.OpCatThreadPool, "cat_thread_pool"},
 
 		// Nodes
-		{opensearchtransport.OpNodesInfo, "admin_20"},
-		{opensearchtransport.OpNodesStats, "admin_21"},
-		{opensearchtransport.OpNodesUsage, "admin_22"},
-		{opensearchtransport.OpNodesHotThreads, "admin_23"},
-		{opensearchtransport.OpNodesReloadSecurity, "admin_write_24"},
+		{opensearchtransport.OpNodesInfo, "nodes_info"},
+		{opensearchtransport.OpNodesStats, "nodes_stats"},
+		{opensearchtransport.OpNodesUsage, "nodes_usage"},
+		{opensearchtransport.OpNodesHotThreads, "nodes_hot_threads"},
+		{opensearchtransport.OpNodesReloadSecurity, "nodes_reload_secure_settings"},
 
 		// Tasks
-		{opensearchtransport.OpTasksList, "admin_25"},
-		{opensearchtransport.OpTasksGet, "admin_26"},
-		{opensearchtransport.OpTasksCancel, "admin_write_27"},
+		{opensearchtransport.OpTasksList, "tasks_list"},
+		{opensearchtransport.OpTasksGet, "tasks_get"},
+		{opensearchtransport.OpTasksCancel, "tasks_cancel"},
 
 		// Snapshots
-		{opensearchtransport.OpSnapshotCreate, "admin_write_28"},
-		{opensearchtransport.OpSnapshotGet, "admin_29"},
-		{opensearchtransport.OpSnapshotDelete, "admin_write_30"},
-		{opensearchtransport.OpSnapshotClone, "admin_write_31"},
-		{opensearchtransport.OpSnapshotRestore, "admin_write_32"},
-		{opensearchtransport.OpSnapshotStatus, "admin_33"},
-		{opensearchtransport.OpSnapshotRepoCreate, "admin_write_34"},
-		{opensearchtransport.OpSnapshotRepoGet, "admin_35"},
-		{opensearchtransport.OpSnapshotRepoDelete, "admin_write_36"},
-		{opensearchtransport.OpSnapshotRepoVerify, "admin_write_37"},
-		{opensearchtransport.OpSnapshotRepoClean, "admin_write_38"},
+		{opensearchtransport.OpSnapshotCreate, "snapshot_create"},
+		{opensearchtransport.OpSnapshotGet, "snapshot_get"},
+		{opensearchtransport.OpSnapshotDelete, "snapshot_delete"},
+		{opensearchtransport.OpSnapshotClone, "snapshot_clone"},
+		{opensearchtransport.OpSnapshotRestore, "snapshot_restore"},
+		{opensearchtransport.OpSnapshotStatus, "snapshot_status"},
+		{opensearchtransport.OpSnapshotRepoCreate, "snapshot_repo_create"},
+		{opensearchtransport.OpSnapshotRepoGet, "snapshot_repo_get"},
+		{opensearchtransport.OpSnapshotRepoDelete, "snapshot_repo_delete"},
+		{opensearchtransport.OpSnapshotRepoVerify, "snapshot_repo_verify"},
+		{opensearchtransport.OpSnapshotRepoClean, "snapshot_repo_cleanup"},
 
 		// Scripts
-		{opensearchtransport.OpScriptGet, "admin_39"},
-		{opensearchtransport.OpScriptPut, "admin_write_40"},
-		{opensearchtransport.OpScriptDelete, "admin_write_41"},
-		{opensearchtransport.OpScriptContext, "admin_42"},
-		{opensearchtransport.OpScriptLanguage, "admin_43"},
-		{opensearchtransport.OpScriptPainlessExec, "admin_write_44"},
+		{opensearchtransport.OpScriptGet, "script_get"},
+		{opensearchtransport.OpScriptPut, "script_put"},
+		{opensearchtransport.OpScriptDelete, "script_delete"},
+		{opensearchtransport.OpScriptContext, "script_context"},
+		{opensearchtransport.OpScriptLanguage, "script_language"},
+		{opensearchtransport.OpScriptPainlessExec, "script_painless_execute"},
 
 		// Dangling
-		{opensearchtransport.OpDanglingGet, "admin_45"},
-		{opensearchtransport.OpDanglingDelete, "admin_write_46"},
-		{opensearchtransport.OpDanglingImport, "admin_write_47"},
+		{opensearchtransport.OpDanglingGet, "dangling_get"},
+		{opensearchtransport.OpDanglingDelete, "dangling_delete"},
+		{opensearchtransport.OpDanglingImport, "dangling_import"},
 
-		// Data stream (in CatIndex/CatIndexWrite, not CatAdmin)
-		{opensearchtransport.OpDataStreamGet, "index_48"},
-		{opensearchtransport.OpDataStreamCreate, "index_write_49"},
-		{opensearchtransport.OpDataStreamDelete, "index_write_50"},
-		{opensearchtransport.OpDataStreamStats, "index_51"},
+		// Data stream
+		{opensearchtransport.OpDataStreamGet, "data_stream_get"},
+		{opensearchtransport.OpDataStreamCreate, "data_stream_create"},
+		{opensearchtransport.OpDataStreamDelete, "data_stream_delete"},
+		{opensearchtransport.OpDataStreamStats, "data_stream_stats"},
 
-		// Render search template (in CatSearch)
-		{opensearchtransport.OpRenderSearchTemplate, "search_52"},
+		// Render search template
+		{opensearchtransport.OpRenderSearchTemplate, "render_search_template"},
 	}
 
 	for _, tc := range cases {

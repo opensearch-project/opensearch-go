@@ -16,8 +16,8 @@ import (
 )
 
 // scoreTestConn creates a Connection with a known RTT and load for scoring tests.
-func scoreTestConn(t *testing.T, id string, rtt time.Duration, load float64) *Connection {
-	t.Helper()
+func scoreTestConn(tb testing.TB, id string, rtt time.Duration, load float64) *Connection {
+	tb.Helper()
 	u := &url.URL{Scheme: "https", Host: id + ":9200"}
 	c := &Connection{
 		URL:       u,
@@ -243,7 +243,7 @@ func TestConnScoreSelectLargePool(t *testing.T) {
 			conns := make([]*Connection, tt.n)
 			for i := range tt.n {
 				conns[i] = scoreTestConn(t, fmt.Sprintf("node-%d", i), 200*time.Microsecond, 0)
-				conns[i].state.Store(int64(newConnState(lcActive)))
+				conns[i].setLifecycleBit(lcActive)
 			}
 
 			scoreBuf := acquireFloats(len(conns))

@@ -91,8 +91,8 @@ func (r IndicesDeleteTemplateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesDeleteTemplateResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -119,12 +119,12 @@ func (r IndicesDeleteTemplateResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest
-func (c indicesClient) DeleteTemplate(ctx context.Context, req IndicesDeleteTemplateReq) (*IndicesDeleteTemplateResp, error) {
+func (c IndicesClient) DeleteTemplate(ctx context.Context, req IndicesDeleteTemplateReq) (*IndicesDeleteTemplateResp, error) {
 	var (
 		data IndicesDeleteTemplateResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

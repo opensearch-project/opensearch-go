@@ -86,6 +86,20 @@ const OverloadedBreakerRatio = "OPENSEARCH_GO_OVERLOADED_BREAKER_RATIO"
 // ActiveListCap overrides the per-pool active-connection cap.
 const ActiveListCap = "OPENSEARCH_GO_ACTIVE_LIST_CAP"
 
+// VerifyDeadAfter is the duration a dead connection can be blindly resurrected
+// for use as a zombie connection when no other healthy connections are
+// available. Past this window the discovery loop stops treating the node as a
+// zombie candidate until it health-checks clean again. Parsed by
+// [ParseVerifyDeadAfter]: a boolean true selects [VerifyDeadAfterDefault];
+// false disables the expiry (a proven connection stays a zombie candidate
+// indefinitely); any other value is a time.ParseDuration string (e.g. "10m").
+const VerifyDeadAfter = "OPENSEARCH_GO_VERIFY_DEAD_AFTER"
+
+// VerifyDeadAfterDefault is the zombie-resurrection window used when
+// VerifyDeadAfter is unset or set to a truthy boolean. 15m matches the AWS
+// Lambda max timeout, so a proven connection is not force-expired mid-invocation.
+const VerifyDeadAfterDefault = 15 * time.Minute
+
 // StandbyRotationInterval overrides the interval between standby rotation cycles.
 const StandbyRotationInterval = "OPENSEARCH_GO_STANDBY_ROTATION_INTERVAL"
 
@@ -205,4 +219,42 @@ func Falsy(name string) bool {
 	}
 	b, err := strconv.ParseBool(val)
 	return err == nil && !b
+}
+
+// ErrInvalidVerifyDeadAfter is returned by ParseVerifyDeadAfter (wrapped, match
+// with errors.Is) when the value is neither a boolean nor a parseable duration.
+var ErrInvalidVerifyDeadAfter = errors.New("envvars: invalid verify-dead-after value")
+
+// ParseVerifyDeadAfter interprets a VerifyDeadAfter value. A boolean (per
+// strconv.ParseBool) is handled first: true selects VerifyDeadAfterDefault,
+// false disables the expiry. Otherwise the value is parsed as a duration by
+// time.ParseDuration ("10m", "90s") or as a bare number of seconds ("600").
+// A zero or negative result disables the expiry. The returned duration is the
+// resolved window, or 0 when disabled. The error is non-nil (wrapping
+// ErrInvalidVerifyDeadAfter) only when the value cannot be parsed at all; an
+// empty value is treated as "disabled" with a nil error.
+func ParseVerifyDeadAfter(val string) (time.Duration, error) {
+	if val == "" {
+		return 0, nil
+	}
+	if b, err := strconv.ParseBool(val); err == nil {
+		if b {
+			return VerifyDeadAfterDefault, nil
+		}
+		return 0, nil
+	}
+	if d, err := time.ParseDuration(val); err == nil {
+		if d <= 0 {
+			return 0, nil
+		}
+		return d, nil
+	}
+	if secs, err := strconv.ParseFloat(val, 64); err == nil {
+		d := time.Duration(secs * float64(time.Second))
+		if d <= 0 {
+			return 0, nil
+		}
+		return d, nil
+	}
+	return 0, fmt.Errorf("%w: %q", ErrInvalidVerifyDeadAfter, val)
 }

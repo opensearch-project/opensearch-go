@@ -87,8 +87,8 @@ func (r ClusterDeleteDecommissionAwarenessParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-decommission/#example-decommissioning-and-recommissioning-a-zone
 type ClusterDeleteDecommissionAwarenessResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -115,7 +115,7 @@ func (r ClusterDeleteDecommissionAwarenessResp) RawBody() io.Reader {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-decommission/#example-decommissioning-and-recommissioning-a-zone
-func (c clusterClient) DeleteDecommissionAwareness(ctx context.Context, req *ClusterDeleteDecommissionAwarenessReq) (*ClusterDeleteDecommissionAwarenessResp, error) {
+func (c ClusterClient) DeleteDecommissionAwareness(ctx context.Context, req *ClusterDeleteDecommissionAwarenessReq) (*ClusterDeleteDecommissionAwarenessResp, error) {
 	if req == nil {
 		req = &ClusterDeleteDecommissionAwarenessReq{}
 	}
@@ -124,7 +124,7 @@ func (c clusterClient) DeleteDecommissionAwareness(ctx context.Context, req *Clu
 		data ClusterDeleteDecommissionAwarenessResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodDelete,

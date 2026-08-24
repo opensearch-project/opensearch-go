@@ -2,6 +2,10 @@
 
 Version 3.0.0 is a major refactor of the client.
 
+## Automated migration
+
+The [`osapilint`](cmd/osapilint/README.md) tool assists with this upgrade but does not fully automate it. v2 -> v3 is the project's one structural boundary - the function-based request API (`opensearchapi.<X>Request{...}.Do(ctx, client)`) became the typed sub-client API described below - so the tool bumps the import path, rewrites the two seed root-client ops (`Ping`, `Indices.Exists`) best-effort, and reports every other call and response-handling change as a `MANUAL` worklist item rather than guess a rewrite it cannot prove. Treat its dry-run output as a migration checklist for the sections below, not a finished rewrite. See [the v2 -> v3 hop](cmd/osapilint/README.md#the-v2---v3-hop) in the tool README for exactly what it does and does not touch.
+
 ## Client Creation
 
 You now create the client from the opensearchapi package instead of opensearch. This was done to make the different APIs independent from each other. Plugin APIs like Security get their own folder and therefore their own sub-lib.
@@ -15,7 +19,6 @@ client, err := opensearch.NewDefaultClient()
 // with config
 client, err := opensearch.NewClient(
     opensearch.Config{
-	    InsecureSkipVerify: true,
 		Addresses: []string{"https://localhost:9200"},
 		Username:  "admin",
 		Password:  "admin",
@@ -33,7 +36,6 @@ client, err := opensearchapi.NewDefaultClient()
 client, err := opensearchapi.NewClient(
     opensearchapi.Config{
 		Client: opensearch.Config{
-			InsecureSkipVerify: true, // For testing only. Use certificate for validation.
 			Addresses:          []string{"https://localhost:9200"},
 			Username:           "admin", // For testing only. Don't store credentials in code.
 			Password:           "admin",
@@ -161,8 +163,8 @@ if err != nil {
 defer resp.Body.Close()
 
 // Check if the status code is >299
-if createIndexResp.IsError() {
-    fmt.Errorf("Opensearch returned an error. Status: %d", createIndexResp.StatusCode)
+if resp.IsError() {
+    return fmt.Errorf("Opensearch returned an error. Status: %d", resp.StatusCode)
 }
 ```
 
@@ -310,8 +312,8 @@ Version 3.0.0 reorganized APIs into logical sub-clients. The following tables co
 | `client.Count(...)`                      | `client.Indices.Count(ctx, req)`        |
 | `client.FieldCaps(...)`                  | `client.Indices.FieldCaps(ctx, req)`    |
 | `client.Mget(...)`                       | `client.MGet(ctx, req)`                 |
-| `client.MSearch(...)`                    | `client.MSearch(ctx, req)`              |
-| `client.MSearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
+| `client.Msearch(...)`                    | `client.MSearch(ctx, req)`              |
+| `client.MsearchTemplate(...)`            | `client.MSearchTemplate(ctx, req)`      |
 | `client.Mtermvectors(...)`               | `client.MTermvectors(ctx, req)`         |
 | `client.Indices.AddBlock(...)`           | `client.Indices.Block(ctx, req)`        |
 | `client.Indices.ResolveIndex(...)`       | `client.Indices.Resolve(ctx, req)`      |

@@ -112,7 +112,7 @@ func (r SnapshotVerifyRepositoryResp) RawBody() io.Reader {
 
 // SnapshotVerifyRepositoryCompactNodeInfo is a typed component of the snapshot.verify_repository operation.
 type SnapshotVerifyRepositoryCompactNodeInfo struct {
-	// The name of the node that verified the repository.
+	// Name is the name of the node that verified the repository.
 	Name string `json:"name"`
 }
 
@@ -123,12 +123,12 @@ type SnapshotVerifyRepositoryCompactNodeInfo struct {
 // Available: >= 1.0.0.
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/verify-snapshot-repository/
-func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
+func (c SnapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
 	var (
 		data SnapshotVerifyRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
@@ -140,12 +140,12 @@ func (c snapshotClient) VerifyRepository(ctx context.Context, req SnapshotVerify
 }
 
 // Deprecated: use SnapshotVerifyRepository via the parent client instead.
-func (c repositoryClient) Verify(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
+func (c RepositoryClient) Verify(ctx context.Context, req SnapshotVerifyRepositoryReq) (*SnapshotVerifyRepositoryResp, error) {
 	var (
 		data SnapshotVerifyRepositoryResp
 		err  error
 	)
-	if data.response, err = do(
+	if data.response, err = request(
 		ctx,
 		c.apiClient,
 		http.MethodPost,
