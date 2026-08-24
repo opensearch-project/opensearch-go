@@ -43,6 +43,7 @@ jobs:
         with: { go-version-file: 'go.mod' }
       - run: go version
       - run: make test-bench
+      - run: make test-alloc
 
   samples:
     name: Build samples

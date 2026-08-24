@@ -238,9 +238,7 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	start := time.Now()
 	resp, err := hc(ctx, c, c.URL)
 	if err != nil {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("[%s] Health check failed for %q: %s\n", cp.name, c.URL, err)
-		}
+		Debug().Str("pool", cp.name).Str("conn", c.URLString).Err(err).Msg("Health check failed")
 		if obs := observerFromAtomic(&cp.observer); obs != nil {
 			event := newConnectionEvent(cp.name, c, lifecycleCounts{})
 			event.Error = err
@@ -294,11 +292,14 @@ func (cp *multiServerPool) performHealthCheck(ctx context.Context, c *Connection
 	}
 
 	// Log version changes during rolling upgrades (not on initial startup)
-	if dl := loadDebugLogger(); dl != nil {
-		prev := c.loadVersion()
-		if prev != "" && prev != info.Version.Number {
-			dl.Logf("[%s] Version changed for %q: %s -> %s\n", cp.name, c.URL, prev, info.Version.Number)
-		}
+	prev := c.loadVersion()
+	if prev != "" && prev != info.Version.Number {
+		Debug().
+			Str("pool", cp.name).
+			Str("conn", c.URLString).
+			Str("version_from", prev).
+			Str("version_to", info.Version.Number).
+			Msg("Version changed")
 	}
 	// Update the connection version
 	c.storeVersion(info.Version.Number)
@@ -412,9 +413,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 			// Wait for either timeout or context cancellation
 			select {
 			case <-ctx.Done():
-				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("[%s] Health check cancelled for %q: %v\n", cp.name, c.URL, ctx.Err())
-				}
+				Debug().Str("pool", cp.name).Str("conn", c.URLString).Err(ctx.Err()).Msg("Health check cancelled")
 				return
 			case <-time.After(timeout):
 				// Timeout elapsed, proceed with resurrection attempt
@@ -438,9 +437,7 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// Check if connection is still in the pool (ready or dead lists)
 				stillInPool := slices.Contains(cp.mu.ready, c) || slices.Contains(cp.mu.dead, c)
 				if !stillInPool {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("[%s] Connection %q removed from pool by DiscoveryUpdate, stopping health checks\n", cp.name, c.URL)
-					}
+					Debug().Str("pool", cp.name).Str("conn", c.URLString).Msg("Connection removed from pool by DiscoveryUpdate, stopping health checks")
 					return true
 				}
 
@@ -448,9 +445,10 @@ func (cp *multiServerPool) scheduleResurrect(ctx context.Context, c *Connection)
 				// Stop the resurrection scheduler -- the stats poller will promote it back to ready
 				// when metrics improve, or clear lcOverloaded if it can't reach the node.
 				if c.loadConnState().lifecycle().has(lcOverloaded) {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("[%s] Connection %q is overload-demoted, stopping resurrection (stats poller manages lifecycle)\n", cp.name, c.URL)
-					}
+					Debug().
+						Str("pool", cp.name).
+						Str("conn", c.URLString).
+						Msg("Connection is overload-demoted, stopping resurrection (stats poller manages lifecycle)")
 					return true
 				}
 

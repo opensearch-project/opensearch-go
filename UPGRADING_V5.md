@@ -135,6 +135,91 @@ Delete any `EnableMetrics` field from your config; leaving it in place is a comp
 
 `Metrics()` now returns the full snapshot unconditionally, including `Connections`, `Policies`, and `Router` (the latter two populate when a router with policies is active). The returned error is still non-nil only when a snapshot callback fails.
 
+## `DebuggingLogger` replaced by `debuglog.Logger`
+
+`opensearchtransport.DebuggingLogger` and its two printf-shaped methods are removed in favor of `debuglog.Logger`, defined in the new `debuglog` package: a one-method interface returning a chain of typed field methods that `Msg` emits and ends:
+
+```go
+// Before
+type DebuggingLogger interface {
+    Log(a ...any) error
+    Logf(format string, a ...any) error
+}
+
+// After
+type Logger interface {
+    Debug() Event
+}
+
+type Event interface {
+    Str(key, val string) Event
+    Strs(key string, val []string) Event
+    Int(key string, val int) Event
+    Int32(key string, val int32) Event
+    Int64(key string, val int64) Event
+    Uint32(key string, val uint32) Event
+    Float64(key string, val float64) Event
+    Dur(key string, val time.Duration) Event
+    Time(key string, val time.Time) Event
+    Stringer(key string, val fmt.Stringer) Event
+    Err(err error) Event
+    Msg(msg string)
+}
+```
+
+A custom implementation drops the error return, since a debug logger that cannot write has nowhere to report the failure, and trades the two `...any` methods for one method per field type:
+
+```go
+// Before
+type myLogger struct{ w io.Writer }
+
+func (l myLogger) Log(a ...any) error                 { _, err := fmt.Fprint(l.w, a...); return err }
+func (l myLogger) Logf(format string, a ...any) error { _, err := fmt.Fprintf(l.w, format, a...); return err }
+
+// After
+type myLogger struct{ w io.Writer }
+
+func (l myLogger) Debug() debuglog.Event { return myEvent{w: l.w} }
+```
+
+See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a reference implementation, and [Custom Loggers](debuglog/README.md#custom-loggers) for implementation tips.
+
+`opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
+
+`opensearchutil.BulkIndexerConfig.DebugLogger` is a different field and is unchanged. It still takes a `BulkIndexerDebugLogger` (a `Printf` method) and logs the indexer's own worker activity, not the client's internal records.
+
+### Installing a logger
+
+Debug records could previously only go to the client's own stream. `Config.DebugLogger` (on both `opensearch.Config` and `opensearchtransport.Config`) routes them into an application's logger instead:
+
+```go
+client, err := opensearch.NewClient(opensearch.Config{
+    Addresses:   []string{"https://localhost:9200"},
+    DebugLogger: logzerolog.Default(),
+})
+```
+
+```sh
+go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+```
+
+`log-slog` is the equivalent for `log/slog`. Both are separate Go modules, so neither library enters the core client's dependency graph. See [`log-zerolog/README.md`](log-zerolog/README.md) and [`log-slog/README.md`](log-slog/README.md).
+
+A supplied logger takes precedence over `EnableDebugLogger`. Both fields and `OPENSEARCH_GO_DEBUG` otherwise behave as before.
+
+### Output changes for the built-in logger
+
+Records now carry a message and key/value pairs rather than a formatted line:
+
+```
+[15:04:05.000] DEBUG    Node overloaded: heap over threshold conn=https://localhost:9200 heap_used_percent=93 threshold=85
+```
+
+Two behavior changes come with it:
+
+- `EnableDebugLogger: true` writes to stderr. It previously wrote to stdout while `OPENSEARCH_GO_DEBUG=true` wrote to stderr; both now agree, and stderr is what `guides/config-envvars.md` documents. Anything parsing the client's debug output from stdout needs to read stderr.
+- `OPENSEARCH_GO_POLICY_DUMP` writes the policy tree straight to stderr instead of through the logger, so it stays one contiguous block. Sent through a structured logger it would become a single record with every newline escaped, which defeats its purpose of being read and copied from.
+
 ## `opensearchtransport.Client` renamed to `opensearchtransport.Transport`
 
 The concrete `opensearchtransport.Client` type was renamed to `opensearchtransport.Transport`. The type owns HTTP round-trip concerns -- connection pooling, retries, node selection, and discovery -- so `Transport` reflects its role and avoids colliding conceptually with the API clients above it (`opensearch.Client` and `opensearchapi.Client`).

@@ -7,7 +7,7 @@
 package linter
 
 // hop_v3_to_v4.go is the hand-authored v3 -> v4 migration data. It follows the
-// shape of hop_v4_to_v5.go (the fully worked example); see that file for the
+// shape of hop_v4_to_v5.go (the canonical reference); see that file for the
 // rationale behind each field of hop.
 //
 // The v3 -> v4 boundary is far quieter than v4 -> v5. The generated opensearchapi
