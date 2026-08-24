@@ -78,6 +78,31 @@ All three pool their event, so nothing a logger does allocates: the no-Stringer 
 
 The wider gap is time, not allocations. Per record `log-slog` costs three to five times what the other two do, and `TextHandler` costs more than `JSONHandler` at every size.
 
+### Per field
+
+The table above prices whole records. This one prices one field at a time, each row a one-field record, so subtracting the "no fields" row gives what that method adds on top of `Debug` and `Msg`.
+
+| field      | log-zerolog       | log-slog (JSONHandler) | log-slog (TextHandler) | built-in text      |
+| ---------- | ----------------- | ---------------------- | ---------------------- | ------------------ |
+| no fields  | 39.9 ns, 0 allocs | 266.3 ns, 0 allocs     | 298.0 ns, 0 allocs     | 72.5 ns, 0 allocs  |
+| `Str`      | 48.7 ns, 0 allocs | 311.3 ns, 0 allocs     | 342.3 ns, 0 allocs     | 79.2 ns, 0 allocs  |
+| `Strs`     | 59.7 ns, 0 allocs | 412.6 ns, 1 alloc      | 563.9 ns, 5 allocs     | 97.8 ns, 0 allocs  |
+| `Int`      | 47.8 ns, 0 allocs | 307.9 ns, 0 allocs     | 342.0 ns, 0 allocs     | 81.0 ns, 0 allocs  |
+| `Int32`    | 48.0 ns, 0 allocs | 308.4 ns, 0 allocs     | 343.1 ns, 0 allocs     | 80.4 ns, 0 allocs  |
+| `Int64`    | 47.6 ns, 0 allocs | 309.1 ns, 0 allocs     | 341.0 ns, 0 allocs     | 80.5 ns, 0 allocs  |
+| `Uint32`   | 46.8 ns, 0 allocs | 309.2 ns, 0 allocs     | 343.2 ns, 0 allocs     | 80.0 ns, 0 allocs  |
+| `Float64`  | 62.4 ns, 0 allocs | 373.1 ns, 1 alloc      | 360.9 ns, 0 allocs     | 98.6 ns, 0 allocs  |
+| `Dur`      | 69.0 ns, 0 allocs | 316.1 ns, 0 allocs     | 349.6 ns, 0 allocs     | 87.6 ns, 0 allocs  |
+| `Time`     | 70.2 ns, 0 allocs | 353.9 ns, 0 allocs     | 390.2 ns, 0 allocs     | 175.6 ns, 0 allocs |
+| `Stringer` | 79.6 ns, 1 alloc  | 353.1 ns, 1 alloc      | 386.6 ns, 1 alloc      | 106.7 ns, 1 alloc  |
+| `Err`      | 58.1 ns, 0 allocs | 326.2 ns, 0 allocs     | 460.0 ns, 1 alloc      | 79.8 ns, 0 allocs  |
+
+`Stringer` is the only field that allocates on all four, and the allocation is inside the caller's `String()`, not in the logger. The client's own records avoid it: `Connection` caches its address as `URLString` at construction, so every emitting site passes `Str("conn", conn.URLString)` and pays nothing. Reach for `Stringer` when the value is genuinely expensive and might not be rendered at all, which is what it exists for.
+
+The rest is `log-slog`. `JSONHandler` allocates on `Strs`, which it marshals as a slice, and on `Float64`, which it routes through `encoding/json` rather than `strconv`. `TextHandler` renders floats itself but pays five allocations on `Strs` and one on `Err`, both through `fmt`. On the two integer-widening methods, `Int32` and `Uint32`, the widening to 64 bits costs nothing measurable.
+
+`Time` is the dearest field on the built-in logger, roughly doubling a bare record, because it formats a full timestamp layout. It allocates nothing.
+
 Which to pick:
 
 - **`log-zerolog`** if the records go into a pipeline the application already runs and per-record cost is something you measure.

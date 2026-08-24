@@ -25,7 +25,36 @@ var (
 	benchURL      = &url.URL{Scheme: "https", Host: "localhost:9200"}
 	errBench      = errors.New("connection refused")
 	benchConnText = benchURL.String()
+	benchStrs     = []string{"idx-a", "idx-b", "idx-c"}
+	benchTime     = time.Unix(1700000000, 123456789)
 )
+
+// fieldBenchmarks isolates what one [debuglog.Event] method costs. Every row
+// emits a one-field record, so subtracting the "no fields" row leaves the field's
+// own cost: each row also pays Debug, Msg, and the indirect call through this
+// table, and those are the same for every row.
+//
+// The values match the ones the eight-field shape carries, so a per-field number
+// and a whole-record number describe the same work. This table is duplicated in
+// the log-zerolog and built-in logger benchmarks for the same reason the shapes
+// are.
+var fieldBenchmarks = []struct {
+	name  string
+	field func(debuglog.Event) debuglog.Event
+}{
+	{"no fields", func(e debuglog.Event) debuglog.Event { return e }},
+	{"Str", func(e debuglog.Event) debuglog.Event { return e.Str("k", "search") }},
+	{"Strs", func(e debuglog.Event) debuglog.Event { return e.Strs("k", benchStrs) }},
+	{"Int", func(e debuglog.Event) debuglog.Event { return e.Int("k", 3) }},
+	{"Int32", func(e debuglog.Event) debuglog.Event { return e.Int32("k", 8) }},
+	{"Int64", func(e debuglog.Event) debuglog.Event { return e.Int64("k", 3) }},
+	{"Uint32", func(e debuglog.Event) debuglog.Event { return e.Uint32("k", 7) }},
+	{"Float64", func(e debuglog.Event) debuglog.Event { return e.Float64("k", 0.85) }},
+	{"Dur", func(e debuglog.Event) debuglog.Event { return e.Dur("k", 1500*time.Millisecond) }},
+	{"Time", func(e debuglog.Event) debuglog.Event { return e.Time("k", benchTime) }},
+	{"Stringer", func(e debuglog.Event) debuglog.Event { return e.Stringer("k", benchURL) }},
+	{"Err", func(e debuglog.Event) debuglog.Event { return e.Err(errBench) }},
+}
 
 func oneField(dl debuglog.Logger) {
 	dl.Debug().Stringer("conn", benchURL).Msg("Request failed")
@@ -110,6 +139,36 @@ func BenchmarkAdapter(b *testing.B) {
 	}
 }
 
+// BenchmarkAdapterFields measures each field method on its own, so a caller can
+// see what a given field adds rather than only what a whole record costs. Both
+// handlers run, because which fields are dear differs between them: JSONHandler
+// marshals a float64 through encoding/json, and TextHandler renders an error
+// through fmt.
+func BenchmarkAdapterFields(b *testing.B) {
+	handlers := []struct {
+		name string
+		dl   debuglog.Logger
+	}{
+		{"json", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
+			return slog.NewJSONHandler(w, o)
+		})},
+		{"text", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
+			return slog.NewTextHandler(w, o)
+		})},
+	}
+
+	for _, handler := range handlers {
+		for _, f := range fieldBenchmarks {
+			b.Run(handler.name+"/"+f.name, func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					f.field(handler.dl.Debug()).Msg("Request failed")
+				}
+			})
+		}
+	}
+}
+
 // BenchmarkAdapterLevelDisabled measures a record the handler's level rejects.
 // The adapter checks Enabled in Debug and returns debuglog.Nop, so no attributes
 // are accumulated and no caller frame is resolved.
@@ -119,15 +178,15 @@ func BenchmarkAdapter(b *testing.B) {
 // assumed to match.
 func BenchmarkAdapterLevelDisabled(b *testing.B) {
 	handlers := []struct {
-		name string
-		new  func(io.Writer, *slog.HandlerOptions) slog.Handler
+		name       string
+		newHandler func(io.Writer, *slog.HandlerOptions) slog.Handler
 	}{
 		{"json", func(w io.Writer, o *slog.HandlerOptions) slog.Handler { return slog.NewJSONHandler(w, o) }},
 		{"text", func(w io.Writer, o *slog.HandlerOptions) slog.Handler { return slog.NewTextHandler(w, o) }},
 	}
 
 	for _, handler := range handlers {
-		dl := logslog.New(slog.New(handler.new(io.Discard, &slog.HandlerOptions{Level: slog.LevelInfo})))
+		dl := logslog.New(slog.New(handler.newHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelInfo})))
 		b.Run(handler.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
