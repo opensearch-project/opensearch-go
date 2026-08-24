@@ -176,6 +176,14 @@ test-race:  ## Run all tests with race detection enabled
 	@printf "\033[2m-> Running all integration tests with race detection and all tags...\033[0m\n"
 	@$(MAKE) test-integ race=true testintegtags=integration,core,plugins,plugin_security,plugin_index_management,multinode
 
+test-alloc:  ## Run allocation assertions (tests run without -race)
+	@printf "\033[2m-> Running allocation assertions...\033[0m\n"
+	go test -run='Allocations' -count=1 ./...
+	@for mod in $(SUBMODULES); do \
+		printf "\033[2m-> Running %s allocation assertions...\033[0m\n" "$$mod"; \
+		(cd "$$mod" && go test -run='Allocations' -count=1 ./...) || exit $$?; \
+	done
+
 test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...

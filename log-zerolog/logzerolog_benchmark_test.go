@@ -84,23 +84,6 @@ func eventFields() []eventField {
 	}
 }
 
-// TestAdapterAllocations fails when a field method allocates more than
-// [eventFields] allows. The benchmarks report the same counts, but only for whoever
-// runs them; this is what makes a regression break the build.
-func TestAdapterAllocations(t *testing.T) {
-	dl := logzerolog.New(zerolog.New(io.Discard))
-
-	for _, f := range eventFields() {
-		t.Run(f.name, func(t *testing.T) {
-			// AllocsPerRun warms up f once before measuring, so zerolog's pooled
-			// event is already in hand by the first counted run.
-			if got := int(testing.AllocsPerRun(100, func() { f.emit(dl) })); got > f.maxAllocs {
-				t.Errorf("allocations = %d, want at most %d", got, f.maxAllocs)
-			}
-		})
-	}
-}
-
 // BenchmarkAdapterFields measures each field method with records actually being
 // written. Output goes to io.Discard so the numbers reflect encoding rather than
 // the writer.

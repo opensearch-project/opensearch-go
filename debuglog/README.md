@@ -49,7 +49,7 @@ See [USER_GUIDE.md Debugging](../USER_GUIDE.md#debugging) for the usage walkthro
 
 The debug logger is allocation-free.\*
 
-Measured August 2026 on darwin/arm64, Apple M4 Pro, go1.26.4, writing to `io.Discard` through `benchstat`. Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module. Each module's tests assert these allocation counts as upper bounds to ensure behavior regressions are caught. Byte and allocation counts are exact counters, measured every run, whereas times may fluctuate across hardware (and allocations may change across Go releases).
+Measured August 2026 using `make test-alloc` (runs tests without `-race`) on darwin/arm64, Apple M4 Pro, go1.26.4, writing to `io.Discard` through `benchstat`. Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` in `log-zerolog`, `log-slog`, and the root module. Byte and allocation counts are exact counters, measured every run, whereas times may fluctuate across hardware (and allocations may change across Go releases).
 
 ### Built-in Default Text Logger
 
