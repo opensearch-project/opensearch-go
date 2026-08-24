@@ -2219,6 +2219,9 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 		name     string
 		failures []json.RawMessage
 		want     string
+		// wantPrefix is set instead of want when the rest of the message is
+		// encoding/json's, whose wording changes between Go releases.
+		wantPrefix string
 	}{
 		{
 			name:     "nil failures",
@@ -2244,10 +2247,9 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 			want: `[{"node_id":"n1","reason":"timeout"},{"node_id":"n2","reason":"OptionalDataException"}]`,
 		},
 		{
-			name:     "malformed raw JSON triggers marshal error",
-			failures: []json.RawMessage{json.RawMessage("\xff")},
-			want: "[<1 failures, marshal error: json: error calling MarshalJSON " +
-				"for type json.RawMessage: invalid character 'ÿ' looking for beginning of value>]",
+			name:       "malformed raw JSON triggers marshal error",
+			failures:   []json.RawMessage{json.RawMessage("\xff")},
+			wantPrefix: "[<1 failures, marshal error: json: error calling MarshalJSON ",
 		},
 	}
 
@@ -2256,6 +2258,10 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 			t.Parallel()
 			m := &_NodesMeta{Failures: tt.failures}
 			got := m.formatFailures()
+			if tt.wantPrefix != "" {
+				require.True(t, strings.HasPrefix(got, tt.wantPrefix), "got %q", got)
+				return
+			}
 			require.Equal(t, tt.want, got)
 		})
 	}
