@@ -8,6 +8,7 @@ package logslog_test
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/url"
@@ -18,174 +19,194 @@ import (
 	logslog "github.com/opensearch-project/opensearch-go/v5/log-slog"
 )
 
-// The record shapes here are identical to those in log-zerolog's benchmark and in
-// the built-in logger's, so the three sets of numbers are comparable. Changing a
-// shape here means changing it in all three.
-var (
-	benchURL      = &url.URL{Scheme: "https", Host: "localhost:9200"}
-	errBench      = errors.New("connection refused")
-	benchConnText = benchURL.String()
-	benchStrs     = []string{"idx-a", "idx-b", "idx-c"}
-	benchTime     = time.Unix(1700000000, 123456789)
-)
-
-// fieldBenchmarks isolates what one [debuglog.Event] method costs. Every row
-// emits a one-field record, so subtracting the "no fields" row leaves the field's
-// own cost: each row also pays Debug, Msg, and the indirect call through this
-// table, and those are the same for every row.
+// eventField is one [debuglog.Event] method, the record a call to it produces, and
+// the most allocations that record may cost under each of slog's two handlers.
 //
-// The values match the ones the eight-field shape carries, so a per-field number
-// and a whole-record number describe the same work. This table is duplicated in
-// the log-zerolog and built-in logger benchmarks for the same reason the shapes
-// are.
-var fieldBenchmarks = []struct {
-	name  string
-	field func(debuglog.Event) debuglog.Event
-}{
-	{"no fields", func(e debuglog.Event) debuglog.Event { return e }},
-	{"Str", func(e debuglog.Event) debuglog.Event { return e.Str("k", "search") }},
-	{"Strs", func(e debuglog.Event) debuglog.Event { return e.Strs("k", benchStrs) }},
-	{"Int", func(e debuglog.Event) debuglog.Event { return e.Int("k", 3) }},
-	{"Int32", func(e debuglog.Event) debuglog.Event { return e.Int32("k", 8) }},
-	{"Int64", func(e debuglog.Event) debuglog.Event { return e.Int64("k", 3) }},
-	{"Uint32", func(e debuglog.Event) debuglog.Event { return e.Uint32("k", 7) }},
-	{"Float64", func(e debuglog.Event) debuglog.Event { return e.Float64("k", 0.85) }},
-	{"Dur", func(e debuglog.Event) debuglog.Event { return e.Dur("k", 1500*time.Millisecond) }},
-	{"Time", func(e debuglog.Event) debuglog.Event { return e.Time("k", benchTime) }},
-	{"Stringer", func(e debuglog.Event) debuglog.Event { return e.Stringer("k", benchURL) }},
-	{"Err", func(e debuglog.Event) debuglog.Event { return e.Err(errBench) }},
-}
-
-func oneField(dl debuglog.Logger) {
-	dl.Debug().Stringer("conn", benchURL).Msg("Request failed")
-}
-
-// oneFieldNoStringer is the shape the client's own one-field records have: the
-// connection address arrives already resolved, from Connection.URLString. It is
-// the counterpart to oneField, whose single allocation is the deferred Stringer
-// rather than anything a one-field record inherently costs.
-func oneFieldNoStringer(dl debuglog.Logger) {
-	dl.Debug().Str("conn", benchConnText).Msg("Request failed")
-}
-
-// fourFieldsNoStringer is the four-field shape with the deferred Stringer swapped for an
-// already-resolved string. Every other shape here pays one allocation inside
-// (*url.URL).String, so this is the shape that shows what the logger itself
-// allocates, as opposed to what resolving the connection address costs.
-func fourFieldsNoStringer(dl debuglog.Logger) {
-	dl.Debug().
-		Str("conn", benchConnText).
-		Int("attempts", 3).
-		Dur("took", 1500*time.Millisecond).
-		Err(errBench).
-		Msg("Request failed")
-}
-
-func fourFields(dl debuglog.Logger) {
-	dl.Debug().
-		Stringer("conn", benchURL).
-		Int("attempts", 3).
-		Dur("took", 1500*time.Millisecond).
-		Err(errBench).
-		Msg("Request failed")
-}
-
-func eightFields(dl debuglog.Logger) {
-	dl.Debug().
-		Stringer("conn", benchURL).
-		Int("attempts", 3).
-		Dur("took", 1500*time.Millisecond).
-		Err(errBench).
-		Str("pool", "search").
-		Int64("tripped", 3).
-		Float64("ratio", 0.85).
-		Int32("cwnd", 8).
-		Msg("Request failed")
-}
-
-func debugHandlerLogger(h func(io.Writer, *slog.HandlerOptions) slog.Handler) debuglog.Logger {
-	return logslog.New(slog.New(h(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug})))
-}
-
-// BenchmarkAdapter measures the adapter with records actually being written.
+// The counts are asserted by TestAdapterAllocations as ceilings rather than
+// equalities, which matters more here than in the other two implementations: the
+// nonzero entries are slog's handlers rather than this adapter, and they move
+// between Go releases. Strs and Float64 under JSONHandler each cost one allocation
+// on go1.26 and two on go1.27. A ceiling lets the adapter's own guarantee, the rows
+// that are 0, stay strict without a toolchain bump turning the rest red.
 //
-// Both handlers are measured because the choice dominates the result: JSONHandler
-// is the like-for-like comparison against zerolog, which only writes JSON, while
-// TextHandler is what slog gives you by default.
-func BenchmarkAdapter(b *testing.B) {
-	handlers := []struct {
-		name string
-		dl   debuglog.Logger
-	}{
-		{"json", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
-			return slog.NewJSONHandler(w, o)
-		})},
-		{"text", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
-			return slog.NewTextHandler(w, o)
-		})},
+// Two columns because the handler is what allocates: JSONHandler routes a []string
+// and a float64 through encoding/json, while TextHandler renders a []string and an
+// error through fmt.
+type eventField struct {
+	name          string
+	maxJSONAllocs int
+	maxTextAllocs int
+	emit          func(debuglog.Logger)
+}
+
+// resolvedStringer is a fmt.Stringer whose String returns a string it already
+// holds. It separates what [debuglog.Event.Stringer] costs from what the value
+// handed to it costs to render.
+type resolvedStringer string
+
+// String implements fmt.Stringer.
+func (s resolvedStringer) String() string { return string(s) }
+
+// eventFields returns one entry per [debuglog.Event] field method.
+//
+// Stringer allocates under every handler because it calls String on the value it was
+// handed. The allocation is that call's, not the adapter's: the entry below passes a
+// *url.URL, whose String builds a new string each time, while the "Stringer,
+// resolved" entry passes a String that returns a string it already holds and costs
+// nothing.
+//
+// This table is duplicated in the log-zerolog and built-in logger benchmarks so the
+// three sets of numbers describe the same work. Changing an entry here means
+// changing it in all three.
+func eventFields() []eventField {
+	var (
+		connURL  = &url.URL{Scheme: "https", Host: "localhost:9200"}
+		connText = connURL.String()
+		indices  = []string{"idx-a", "idx-b", "idx-c"}
+		stamp    = time.Unix(1700000000, 123456789)
+		errConn  = errors.New("connection refused")
+	)
+
+	// Held as fmt.Stringer, not as resolvedStringer, so the conversion to the
+	// interface happens once here rather than on every call. Boxing a string
+	// allocates, and boxing it inside the closure would charge Stringer for it.
+	// A *url.URL needs no such care: a pointer fits in the interface's data word.
+	var resolved fmt.Stringer = resolvedStringer(connText)
+
+	return []eventField{
+		{"no fields", 0, 0, func(dl debuglog.Logger) { dl.Debug().Msg("bench") }},
+		{"Str", 0, 0, func(dl debuglog.Logger) { dl.Debug().Str("k", connText).Msg("bench") }},
+		{"Strs", 2, 5, func(dl debuglog.Logger) { dl.Debug().Strs("k", indices).Msg("bench") }},
+		{"Int", 0, 0, func(dl debuglog.Logger) { dl.Debug().Int("k", 3).Msg("bench") }},
+		{"Int32", 0, 0, func(dl debuglog.Logger) { dl.Debug().Int32("k", 8).Msg("bench") }},
+		{"Int64", 0, 0, func(dl debuglog.Logger) { dl.Debug().Int64("k", 3).Msg("bench") }},
+		{"Uint32", 0, 0, func(dl debuglog.Logger) { dl.Debug().Uint32("k", 7).Msg("bench") }},
+		{"Float64", 2, 0, func(dl debuglog.Logger) { dl.Debug().Float64("k", 0.85).Msg("bench") }},
+		{"Dur", 0, 0, func(dl debuglog.Logger) { dl.Debug().Dur("k", 1500*time.Millisecond).Msg("bench") }},
+		{"Time", 0, 0, func(dl debuglog.Logger) { dl.Debug().Time("k", stamp).Msg("bench") }},
+		{"Err", 0, 1, func(dl debuglog.Logger) { dl.Debug().Err(errConn).Msg("bench") }},
+		{"Stringer", 1, 1, func(dl debuglog.Logger) { dl.Debug().Stringer("k", connURL).Msg("bench") }},
+		{"Stringer, resolved", 0, 0, func(dl debuglog.Logger) { dl.Debug().Stringer("k", resolved).Msg("bench") }},
+	}
+}
+
+// benchHandler pairs a handler with the column of [eventField] that bounds it.
+type benchHandler struct {
+	name   string
+	dl     debuglog.Logger
+	allocs func(eventField) int
+}
+
+// benchHandlers returns the pair of handlers every test and benchmark here runs
+// against. The choice dominates the result: JSONHandler is the like-for-like
+// comparison against zerolog, which only writes JSON, while TextHandler is what
+// slog gives you by default.
+func benchHandlers() []benchHandler {
+	newLogger := func(h func(io.Writer, *slog.HandlerOptions) slog.Handler) debuglog.Logger {
+		return logslog.New(slog.New(h(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug})))
 	}
 
-	shapes := []struct {
-		name string
-		emit func(debuglog.Logger)
-	}{
-		{"one field", oneField},
-		{"one field, no Stringer", oneFieldNoStringer},
-		{"four fields", fourFields},
-		{"eight fields", eightFields},
-		{"four fields, no Stringer", fourFieldsNoStringer},
+	return []benchHandler{
+		{
+			name: "json",
+			dl: newLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
+				return slog.NewJSONHandler(w, o)
+			}),
+			allocs: func(f eventField) int { return f.maxJSONAllocs },
+		},
+		{
+			name: "text",
+			dl: newLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
+				return slog.NewTextHandler(w, o)
+			}),
+			allocs: func(f eventField) int { return f.maxTextAllocs },
+		},
 	}
+}
 
-	for _, handler := range handlers {
-		for _, shape := range shapes {
-			b.Run(handler.name+"/"+shape.name, func(b *testing.B) {
-				b.ReportAllocs()
-				for b.Loop() {
-					shape.emit(handler.dl)
+// TestAdapterAllocations fails when a field method allocates more than
+// [eventFields] allows. The benchmarks report the same counts, but only for whoever
+// runs them; this is what makes a regression break the build.
+//
+// The rows that matter are the ones bounded at 0, which is the adapter's own
+// guarantee. The nonzero ones bound slog's handlers, and are ceilings so that a Go
+// release which allocates less does not fail here.
+func TestAdapterAllocations(t *testing.T) {
+	for _, handler := range benchHandlers() {
+		for _, f := range eventFields() {
+			t.Run(handler.name+"/"+f.name, func(t *testing.T) {
+				want := handler.allocs(f)
+				// AllocsPerRun warms up f once before measuring, so the pooled
+				// event is already in hand by the first counted run.
+				if got := int(testing.AllocsPerRun(100, func() { f.emit(handler.dl) })); got > want {
+					t.Errorf("allocations = %d, want at most %d", got, want)
 				}
 			})
 		}
 	}
 }
 
-// BenchmarkAdapterFields measures each field method on its own, so a caller can
-// see what a given field adds rather than only what a whole record costs. Both
-// handlers run, because which fields are dear differs between them: JSONHandler
-// marshals a float64 through encoding/json, and TextHandler renders an error
-// through fmt.
+// BenchmarkAdapterFields measures each field method with records actually being
+// written to io.Discard.
+//
+// One field per row is the whole benchmark: a record's cost is the "no fields" row
+// plus one row per field it carries. The one thing that does not follow from the
+// rows is the field count itself, which slog charges for past five and
+// BenchmarkAdapterRecordWidth measures.
 func BenchmarkAdapterFields(b *testing.B) {
-	handlers := []struct {
-		name string
-		dl   debuglog.Logger
-	}{
-		{"json", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
-			return slog.NewJSONHandler(w, o)
-		})},
-		{"text", debugHandlerLogger(func(w io.Writer, o *slog.HandlerOptions) slog.Handler {
-			return slog.NewTextHandler(w, o)
-		})},
-	}
-
-	for _, handler := range handlers {
-		for _, f := range fieldBenchmarks {
+	for _, handler := range benchHandlers() {
+		for _, f := range eventFields() {
 			b.Run(handler.name+"/"+f.name, func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					f.field(handler.dl.Debug()).Msg("Request failed")
+					f.emit(handler.dl)
 				}
 			})
 		}
 	}
 }
 
-// BenchmarkAdapterLevelDisabled measures a record the handler's level rejects.
-// The adapter checks Enabled in Debug and returns debuglog.Nop, so no attributes
-// are accumulated and no caller frame is resolved.
+// BenchmarkAdapterRecordWidth measures how a record's cost scales with the number
+// of fields it carries. Every field is a Str, so no per-field difference is mixed
+// in. The same benchmark exists in log-zerolog and the built-in logger.
 //
-// Both handlers are measured even though the handler never runs, so the table in
-// the README reports two measured numbers rather than one measured and one
-// assumed to match.
+// The widths bracket slog's five-attribute inline limit: slog.Record stores five
+// attributes inline and moves the remainder to the heap, so the step from five to
+// six is that spill and nothing else. The other two implementations stay flat
+// across all four widths.
+func BenchmarkAdapterRecordWidth(b *testing.B) {
+	keys := []string{"k0", "k1", "k2", "k3", "k4", "k5", "k6", "k7"}
+
+	for _, handler := range benchHandlers() {
+		for _, n := range []int{4, 5, 6, 8} {
+			b.Run(fmt.Sprintf("%s/%d fields", handler.name, n), func(b *testing.B) {
+				b.ReportAllocs()
+				for b.Loop() {
+					event := handler.dl.Debug()
+					for i := range n {
+						event = event.Str(keys[i], "search")
+					}
+					event.Msg("bench")
+				}
+			})
+		}
+	}
+}
+
+// BenchmarkAdapterLevelDisabled measures a record the handler's level rejects. The
+// adapter checks Enabled in Debug and returns debuglog.Nop, so no attributes are
+// accumulated and no caller frame is resolved.
+//
+// The record carries a Stringer, the one field that allocates when the level
+// admits it. Nothing is emitted here, so String is never called and the field costs
+// nothing, which is the reason Stringer is in the interface at all.
+//
+// Both handlers are measured even though neither runs, so the README reports two
+// measured numbers rather than one measured and one assumed to match.
 func BenchmarkAdapterLevelDisabled(b *testing.B) {
+	connURL := &url.URL{Scheme: "https", Host: "localhost:9200"}
+	errConn := errors.New("connection refused")
+
 	handlers := []struct {
 		name       string
 		newHandler func(io.Writer, *slog.HandlerOptions) slog.Handler
@@ -199,7 +220,12 @@ func BenchmarkAdapterLevelDisabled(b *testing.B) {
 		b.Run(handler.name, func(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
-				fourFields(dl)
+				dl.Debug().
+					Stringer("conn", connURL).
+					Int("attempts", 3).
+					Dur("took", 1500*time.Millisecond).
+					Err(errConn).
+					Msg("bench")
 			}
 		})
 	}

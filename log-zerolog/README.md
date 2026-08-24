@@ -44,14 +44,10 @@ Records are emitted at zerolog's debug level, which its package-level logger adm
 
 Each `debuglog.Event` method forwards straight to the matching `*zerolog.Event` method: `Int` calls `Int`, `Dur` calls `Dur`, and so on, with no boxing and no pass over the fields beforehand. Whatever the application configured for durations (`DurationFieldUnit`), timestamps (`TimeFieldFormat`), and errors (`ErrorMarshalFunc`) therefore still applies.
 
-`Stringer` is the one field this adapter resolves itself instead of handing to zerolog: it calls `debuglog.StringerText` and writes the result with `Str`, because zerolog's own Stringer dereferences without a nil check. The client's most common debug field is a `*url.URL`, and a nil one would panic.
+`Stringer` resolves its argument through `debuglog.StringerText`, a nil-guarded wrapper around `String()`, and writes the result with `Str`.
 
 `Err` records the error under zerolog's configured `ErrorFieldName` (`"error"` by default) rather than the `"err"` the built-in logger and `log-slog` use, because going through zerolog's own `Err` is what keeps `ErrorMarshalFunc` and `ErrorStackMarshaler` working.
 
 ## Performance
 
-Each `debuglog.Event` method is a typed call straight through to the matching `*zerolog.Event` method, so no value is boxed into an interface on the way. Debug records are off unless a logger is installed, and `opensearchtransport.Debug()` returns a no-op `Event` when none is, so an idle logger costs only the chained calls themselves. This interface is for development-time diagnostics, not the request hot path.
-
-What that buys, and the reason to reach for this module over [`log-slog`](../log-slog): the allocation count per record does not move with the number of fields. Eight fields cost the same as one, and the single allocation that remains is `(*url.URL).String` building the connection address rather than anything the adapter does. The built-in logger reaches the same profile by pooling its event; what this module adds over it is that the records land in the pipeline the application already runs.
-
-Measured numbers for both adapters and the built-in logger, over identical record shapes, live in one place: [Choosing between them](../debuglog/README.md#choosing-between-them). Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...` here and in `../log-slog`.
+See [Cost](../debuglog/README.md#cost) for measured numbers. Reproduce with `go test -run=none -bench=. -benchmem -count=10 ./...`.

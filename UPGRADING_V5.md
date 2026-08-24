@@ -182,7 +182,7 @@ type myLogger struct{ w io.Writer }
 func (l myLogger) Debug() debuglog.Event { return myEvent{w: l.w} }
 ```
 
-Implementing `Event` is twelve methods, which is unwieldy to show inline; see [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a worked implementation. Embedding a `debuglog.Event` to inherit most of it does not work: the promoted field methods return the embedded value, so the chain leaves your type at the first `Str` and your `Msg` never runs. Write all twelve.
+See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logslog.go`](log-slog/logslog.go) for a reference implementation, and [Custom Loggers](debuglog/README.md#custom-loggers) for implementation tips.
 
 `opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
 

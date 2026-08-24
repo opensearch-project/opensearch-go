@@ -478,7 +478,7 @@ type Logger interface {
 }
 ```
 
-Adapters for zerolog and `log/slog` ship as separate modules, so neither library enters the core client's dependency graph:
+Adapters ship as separate modules, so neither logging library enters the core client's dependency graph:
 
 ```bash
 go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
@@ -497,46 +497,15 @@ client, err := opensearchapi.NewClient(
 
 `Default()` reads zerolog's package-level logger, so the records pick up the format, level, and writer already configured. Pass a specific logger with `logzerolog.New(zl)`.
 
-For `log/slog`, the shape is the same:
-
-```bash
-go get github.com/opensearch-project/opensearch-go/v5/log-slog
-```
-
-```go
-client, err := opensearchapi.NewClient(
-    opensearchapi.Config{
-        Client: opensearch.Config{
-            Addresses:   []string{"http://localhost:9200"},
-            DebugLogger: logslog.Default(),
-        },
-    },
-)
-```
-
-One caveat with slog: records are emitted at `slog.LevelDebug`, and slog's default handler discards anything below `LevelInfo`, so nothing appears until a handler admitting debug is installed.
-
-```go
-slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-    Level: slog.LevelDebug,
-})))
-```
-
-zerolog's package-level logger admits debug records with no equivalent step. See [`log-zerolog/README.md`](log-zerolog/README.md) and [`log-slog/README.md`](log-slog/README.md).
+A `log/slog` adapter follows the same shape; see [`log-slog/README.md`](log-slog/README.md).
 
 Supplying a `DebugLogger` enables debug output on its own and takes precedence over `EnableDebugLogger`. The logger is process-global, so the last client constructed wins.
 
 ### Choosing between the adapters
 
-All three pool their event, so nothing the logger itself does allocates; a record carrying a `Stringer` pays one allocation for the value's own `String`, which the client's own records avoid by passing an address it already cached. `log-zerolog` and the built-in logger stay at that one however wide the record gets and are within a few percent of each other on wider records; `log-slog` climbs to three by eight fields and costs three to six times as much per record, but adds no dependency. The built-in logger costs about what `log-zerolog` costs and needs no module, but writes one fixed plain-text format to stderr and cannot be pointed anywhere else.
+The debug logger is allocation-free; see [Cost](debuglog/README.md#cost) for details. The built-in logger is sufficient for most plain-text logging and adds no external module dependencies. `log-zerolog` is recommended for production. A `log/slog` adapter is also available for compatibility, but it is the slowest available logger.
 
-[`debuglog/README.md`](debuglog/README.md#choosing-between-them) has the measured table and the reasons behind each of those.
-
-### Bringing your own logger
-
-The two modules above are conveniences, not the extension point. The extension point is `debuglog.Logger` and `debuglog.Event`, and neither mentions any of the client's own types, so an implementation needs no import beyond the standard library and `debuglog` itself.
-
-[`debuglog/README.md`](debuglog/README.md#implementing-it-yourself) covers what to know before writing one: all twelve methods are required and embedding an `Event` to inherit most of them fails quietly, `StringerText` has to stand in for `String` so a nil `*url.URL` cannot panic, and `Debug()` must be safe for concurrent use because records are emitted from the transport's background goroutines as well as from request paths.
+To implement an adapter for another logging library, see [Custom Loggers](debuglog/README.md#custom-loggers).
 
 ## Policy Overrides
 

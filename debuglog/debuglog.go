@@ -66,9 +66,9 @@ type Logger interface {
 // escape hatch that takes any, because one would reintroduce the boxing this
 // interface exists to avoid.
 //
-// An implementation must not panic on a nil value. [Event.Stringer] is the case
-// that matters, since it defers String to emit time and the client's most common
-// debug value is a *url.URL: use [StringerText] rather than calling String
+// Debug logging must not be able to panic the program it is
+// describing, which is why [Event.Stringer] resolves its arguments
+// through [StringerText] rather than calling String() on the receiver
 // directly.
 //
 // Implement all of it. Embedding an Event to inherit most of the methods fails
@@ -114,18 +114,24 @@ type Event interface { //nolint:interfacebloat // one method per logged type is 
 	Msg(msg string)
 }
 
-// StringerText returns val's String result, or "<nil>" when val is nil or holds
-// a nil pointer.
+// StringerText is a nil-guarded wrapper around val.String. It returns
+// val's String result, or [NilText] when val is nil or holds a nil
+// pointer.
 //
-// Implementations of [Event.Stringer] should use this instead of calling String
-// directly. A nil *url.URL satisfies fmt.Stringer, so the interface value is
-// non-nil while the pointer inside it is not, and (*url.URL).String dereferences
-// its receiver. Debug logging must not be able to panic the program it is
-// describing, and *url.URL is the client's most common debug value.
+// Debug logging must not be able to panic the program it is
+// describing, which is why an implementation of [Event.Stringer] hands
+// its argument to StringerText rather than calling String on it:
 //
-// Only a nil pointer is guarded. A String method on any other nil-able kind
-// either works or is the caller's bug to fix. The reflection happens once per
-// emitted field and never on the path a disabled logger takes.
+//	StringerText(myURL)  // right: nil-checked before String is called
+//	myURL.String()       // wrong: panics when myURL is a nil *url.URL
+//
+// A nil *url.URL satisfies fmt.Stringer, so the interface value is
+// non-nil while (*url.URL).String dereferences its nil receiver.
+//
+// Only a nil pointer is guarded. A String method on any other
+// nil-able kind either works or is the caller's bug to
+// fix. Reflection happens once per emitted field and never on the
+// path a disabled logger takes.
 func StringerText(val fmt.Stringer) string {
 	if val == nil {
 		return NilText

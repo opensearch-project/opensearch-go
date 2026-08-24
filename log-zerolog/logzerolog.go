@@ -130,8 +130,7 @@ func (ev event) Time(key string, val time.Time) debuglog.Event {
 
 // Stringer implements [debuglog.Event], resolving the value through
 // [debuglog.StringerText] rather than zerolog's own Stringer, which dereferences
-// without a nil check. The client's most common debug value is a *url.URL, and a
-// nil one would panic.
+// without a nil check. A nil *url.URL satisfies fmt.Stringer and would panic.
 func (ev event) Stringer(key string, val fmt.Stringer) debuglog.Event {
 	ev.e.Str(key, debuglog.StringerText(val))
 	return ev
