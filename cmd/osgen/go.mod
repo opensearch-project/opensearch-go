@@ -3,7 +3,7 @@ module github.com/opensearch-project/opensearch-go/v5/cmd/osgen
 go 1.25.12
 
 require (
-	github.com/getkin/kin-openapi v0.145.0
+	github.com/getkin/kin-openapi v0.147.0
 	github.com/google/renameio/v2 v2.0.2
 	github.com/stretchr/testify v1.12.0
 	golang.org/x/mod v0.40.0
