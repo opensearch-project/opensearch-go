@@ -2,6 +2,12 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [Unreleased]
+
+### Fixed
+
+- Fix `rendezvousTopK` sorting the live connection list when shard placement is unknown. `rankByHash` sorts in place, and the empty-placement path (`/_cat/shards` not yet populated: first requests, a new index, or `-cat_shards`) aliased the caller's `activeConns`/`sortedConns` slice instead of copying into the pooled buffer the shard-names path already used. Concurrent `Route()` then raced with discovery, and the RTT-bucket order that rendezvous filling "MUST" preserve — rebuilt on health checks, not per request — was destroyed. Both branches now copy before ranking ([#1090](https://github.com/opensearch-project/opensearch-go/pull/1090))
+
 ## [4.7.3]
 
 ### Changed
