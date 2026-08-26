@@ -76,9 +76,11 @@ func rendezvousTopK(
 		k = len(conns)
 	}
 
-	// Copy before ranking. rankByHash sorts in place, and callers pass
-	// the live RTT-ordered list; the empty-placement path used to alias
-	// that slice and reorder it.
+	// Rank on a private copy of conns: rankByHash sorts in place, while
+	// callers pass their live RTT-ordered connection list and hold no lock
+	// for the duration of this call. Sorting that slice would race with
+	// concurrent Route() calls and destroy the RTT-bucket order slot
+	// filling reads, which only health checks rebuild.
 	var shard, nonShard []*Connection
 	partBuf := getConnSlice(len(conns))
 	part := (*partBuf)[:0]
@@ -168,9 +170,9 @@ func fillSlotsFromTiers(keyA, keyB string, conns []*Connection, dst []*Connectio
 }
 
 // rankByHash sorts connections in-place by rendezvous hash weight (descending)
-// for consistent key-to-node assignment within an RTT tier. The input must be
-// a private buffer; rendezvousTopK copies before ranking so the live
-// activeConns/sortedConns list is not reordered.
+// for consistent key-to-node assignment within an RTT tier. conns must be a
+// buffer private to the caller, never a shared connection list such as the
+// pool's activeConns/sortedConns.
 func rankByHash(keyA, keyB string, conns []*Connection) []*Connection {
 	// Pre-compute weights using a pooled map. The map avoids repeated
 	// hashing during sort comparisons.

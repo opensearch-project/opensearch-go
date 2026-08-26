@@ -7,6 +7,7 @@
 package opensearchtransport
 
 import (
+	"fmt"
 	"net/url"
 	"sync"
 	"sync/atomic"
@@ -126,62 +127,56 @@ func TestRankByHash(t *testing.T) {
 	})
 }
 
+// TestRendezvousTopKDoesNotReorderInput pins the caller-slice contract: callers
+// pass their live RTT-ordered connection list, so ranking must touch only a
+// private copy. Run with -race for the concurrent case.
 func TestRendezvousTopKDoesNotReorderInput(t *testing.T) {
 	t.Parallel()
 
-	// Four same-tier nodes and k=2 forces rankByHash (tier larger than
-	// remaining slots). Before the copy, that sort mutated the caller's
-	// slice and broke the RTT-order invariant.
-	conns := []*Connection{
-		testConn(t, "node1:9200", "n1", 1*time.Millisecond),
-		testConn(t, "node2:9200", "n2", 1*time.Millisecond),
-		testConn(t, "node3:9200", "n3", 1*time.Millisecond),
-		testConn(t, "node4:9200", "n4", 1*time.Millisecond),
-	}
-	orig := make([]string, len(conns))
-	for i, c := range conns {
-		orig[i] = c.URLString
-	}
-
-	result := rendezvousTopK("key", "", conns, 2, nil, nil, nil)
-	require.Len(t, result, 2)
-
-	for i, c := range conns {
-		require.Equal(t, orig[i], c.URLString,
-			"input slice must keep its RTT order; rankByHash must not sort it in place")
-	}
-}
-
-func TestRendezvousTopKConcurrentDoesNotRace(t *testing.T) {
-	t.Parallel()
-
-	conns := make([]*Connection, 8)
-	orig := make([]string, len(conns))
-	for i := range conns {
-		host := "node" + string(rune('1'+i)) + ":9200"
-		conns[i] = testConn(t, host, "n"+string(rune('1'+i)), 1*time.Millisecond)
-		orig[i] = conns[i].URLString
+	tests := []struct {
+		name       string
+		nodes      int
+		k          int
+		goroutines int
+		iters      int
+	}{
+		// k below the node count puts every node in one RTT tier that is
+		// larger than the slots to fill, which is the only path that ranks.
+		{name: "single call", nodes: 4, k: 2, goroutines: 1, iters: 1},
+		{name: "concurrent calls", nodes: 8, k: 3, goroutines: 8, iters: 200},
 	}
 
-	const goroutines = 8
-	const iters = 200
-	var wg sync.WaitGroup
-	wg.Add(goroutines)
-	for range goroutines {
-		go func() {
-			defer wg.Done()
-			for range iters {
-				bp := getConnSlice(3)
-				_ = rendezvousTopK("key", "", conns, 3, nil, nil, bp)
-				putConnSlice(bp)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conns := make([]*Connection, tt.nodes)
+			orig := make([]string, tt.nodes)
+			for i := range conns {
+				id := fmt.Sprintf("n%d", i+1)
+				conns[i] = testConn(t, fmt.Sprintf("node%d:9200", i+1), id, 1*time.Millisecond)
+				orig[i] = conns[i].URLString
 			}
-		}()
-	}
-	wg.Wait()
 
-	for i, c := range conns {
-		require.Equal(t, orig[i], c.URLString,
-			"concurrent ranking must not reorder the shared input")
+			var wg sync.WaitGroup
+			wg.Add(tt.goroutines)
+			for range tt.goroutines {
+				go func() {
+					defer wg.Done()
+					for range tt.iters {
+						buf := getConnSlice(tt.k)
+						_ = rendezvousTopK("key", "", conns, tt.k, nil, nil, buf)
+						putConnSlice(buf)
+					}
+				}()
+			}
+			wg.Wait()
+
+			for i, c := range conns {
+				require.Equal(t, orig[i], c.URLString,
+					"position %d: input must keep its RTT order; rankByHash must sort only a private copy", i)
+			}
+		})
 	}
 }
 
