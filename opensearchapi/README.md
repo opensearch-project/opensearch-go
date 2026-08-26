@@ -198,7 +198,7 @@ for _, sub := range opensearchapi.Errors(err) {
 // resp is fully populated; use it regardless of partial failure.
 ```
 
-[`guides/usage-error_handling.md`](../guides/usage-error_handling.md) is the canonical reference for the full model: the error-mask configuration and env-var override, the [error type reference table](../guides/usage-error_handling.md#error-type-reference), the recommended `for`/`switch` pattern, the `IsPartialFailure`/`ToleratePartialFailures`/`RequireSuccessRate` helpers, and why a type switch is preferred over `errors.As`/`Has` or per-Resp helpers. The exhaustive `OPENSEARCH_GO_ERROR_MASK` token list lives in [`guides/config-envvars.md`](../guides/config-envvars.md#opensearch_go_error_mask-tokens).
+[`guides/usage-error_handling.md`](../guides/usage-error_handling.md) is the canonical reference for the full model: the error-mask configuration and env-var override, the [error type reference table](../guides/usage-error_handling.md#error-type-reference), the recommended `for`/`switch` pattern, the `IsPartialFailure`/`ToleratePartialFailures`/`RequireSuccessRate` helpers, and why a type switch is preferred over `errors.As`/`Has` or per-Resp helpers. The exhaustive `OPENSEARCH_GO_ERROR_MASK` token list lives in [`guides/config-envvars.md`](../guides/config-envvars.md#error-masking).
 
 ### Operation constants for `ShardFailureError.Operation`
 

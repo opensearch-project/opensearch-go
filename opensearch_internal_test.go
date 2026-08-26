@@ -44,6 +44,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -805,6 +806,7 @@ func TestConfigKey(t *testing.T) {
 			{"retry backoff", Config{RetryBackoff: func(int) time.Duration { return 0 }}},
 			{"health modifier", Config{HealthCheckRequestModifier: func(*http.Request) {}}},
 			{"operation classifier", Config{OperationClassifier: opensearchtransport.NewOperationClassifier()}},
+			{"debug logger", Config{DebugLogger: noopDebugLogger{}}},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
@@ -814,6 +816,12 @@ func TestConfigKey(t *testing.T) {
 		}
 	})
 }
+
+// noopDebugLogger is a debuglog.Logger that discards records, for configs that
+// only need the field populated.
+type noopDebugLogger struct{}
+
+func (noopDebugLogger) Debug() debuglog.Event { return debuglog.Nop() }
 
 // TestCachedDefaultKeyNotCacheable verifies cachedDefault.Key surfaces
 // ttlcache.ErrNotCacheable for an un-hashable config, so GetOrCreate falls
@@ -827,7 +835,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 48
+	const knownFieldCount = 49
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

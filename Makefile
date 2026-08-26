@@ -176,6 +176,14 @@ test-race:  ## Run all tests with race detection enabled
 	@printf "\033[2m-> Running all integration tests with race detection and all tags...\033[0m\n"
 	@$(MAKE) test-integ race=true testintegtags=integration,core,plugins,plugin_security,plugin_index_management,multinode
 
+test-alloc:  ## Run allocation assertions (tests run without -race)
+	@printf "\033[2m-> Running allocation assertions...\033[0m\n"
+	go test -run='Allocations' -count=1 ./...
+	@for mod in $(SUBMODULES); do \
+		printf "\033[2m-> Running %s allocation assertions...\033[0m\n" "$$mod"; \
+		(cd "$$mod" && go test -run='Allocations' -count=1 ./...) || exit $$?; \
+	done
+
 test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
@@ -216,7 +224,7 @@ build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 OPENAPI_SPEC := $(REPO_ROOT)/opensearch-openapi.yaml
-OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
+OPENAPI_SPEC_URL := https://api-spec.opensearch.org/opensearch-openapi.yaml
 
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
