@@ -46,9 +46,8 @@ func resolveErrorMask(cfg Config) errmask.ErrorMask {
 	if v, ok := os.LookupEnv(envvars.ErrorMask); ok && v != "" {
 		mask, unknown := errmask.Parse(v, base)
 		if len(unknown) > 0 {
-			if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
-				_ = dl.Logf("%s: ignored unknown tokens %q\n", envvars.ErrorMask, unknown)
-			}
+			opensearchtransport.Debug().Str("env", envvars.ErrorMask).Strs("tokens", unknown).
+				Msg("Ignored unknown error-mask tokens")
 		}
 		return mask
 	}

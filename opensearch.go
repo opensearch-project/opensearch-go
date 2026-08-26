@@ -43,6 +43,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/path"
 	"github.com/opensearch-project/opensearch-go/v5/internal/ttlcache"
@@ -208,6 +209,17 @@ type Config struct {
 
 	EnableDebugLogger bool // Enable the debug logging.
 
+	// DebugLogger receives the client's internal debug records. Supplying one
+	// enables debug logging and takes precedence over EnableDebugLogger, which
+	// selects the built-in stderr logger instead. Adapters for zerolog and
+	// log/slog ship as the log-zerolog and log-slog submodules.
+	//
+	// The installed logger is process-global: the last client constructed wins,
+	// and opensearchtransport.Debug returns an event backed by it for every
+	// client in the process. A Config carrying one is never cached, so each such
+	// client is constructed fresh.
+	DebugLogger debuglog.Logger
+
 	// ActiveListCap sets the maximum number of connections in the ready list's active partition per pool.
 	// When discovery adds connections that would exceed this cap, overflow connections
 	// are moved to a standby list for later rotation. This caps the number of active
@@ -345,11 +357,14 @@ type sharedTransport struct {
 
 // ttlcacheDebugf routes ttlcache's should-never-happen diagnostics to the
 // shared debug logger, resolved per call so a logger installed after init is
-// still honored. It is a no-op when none is installed (OPENSEARCH_GO_DEBUG unset).
+// still honored. The record is discarded when none is installed.
+//
+// ttlcache hands us a format string and arguments, so the message is rendered
+// here rather than passed as key/value pairs. That rendering happens whether or
+// not a logger is installed, which is affordable only because ttlcache calls
+// this from one reconciliation path that should never run.
 func ttlcacheDebugf(format string, a ...any) {
-	if dl := opensearchtransport.LoadDebugLogger(); dl != nil {
-		_ = dl.Logf(format+"\n", a...)
-	}
+	opensearchtransport.Debug().Msg(fmt.Sprintf(format, a...))
 }
 
 // cachedDefault is the ttlcache.Cacheable for an implicit default client.
@@ -470,6 +485,8 @@ func NewClient(cfg Config) (*Client, error) {
 
 		EnableDebugLogger: cfg.EnableDebugLogger,
 
+		DebugLogger: cfg.DebugLogger,
+
 		DiscoverNodesInterval: cfg.DiscoverNodesInterval,
 
 		VerifyDeadAfter: cfg.VerifyDeadAfter,
@@ -586,7 +603,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	// two lists stay together.
 	if cfg.Transport != nil || cfg.Logger != nil || cfg.Selector != nil ||
 		cfg.Router != nil || cfg.Observer != nil || cfg.Signer != nil ||
-		cfg.OperationClassifier != nil ||
+		cfg.OperationClassifier != nil || cfg.DebugLogger != nil ||
 		cfg.ConnectionPoolFunc != nil || cfg.AddressResolver != nil ||
 		cfg.AddressResolverRunner != nil || cfg.RetryBackoff != nil ||
 		cfg.HealthCheckRequestModifier != nil || cfg.Context != nil {

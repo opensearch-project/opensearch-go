@@ -29,6 +29,7 @@
 package opensearchtransport
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,6 +43,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport/testutil/mockhttp"
 )
 
@@ -476,19 +480,345 @@ func TestTransportLogger(t *testing.T) {
 	})
 }
 
-func TestDebuggingLogger(t *testing.T) {
-	logger := &debuggingLogger{Output: io.Discard}
+// debugRecordPrefixLen is the width of the fixed timestamp-and-level prefix
+// textDebugLogger writes ahead of every record.
+const debugRecordPrefixLen = len("[15:04:05.000] DEBUG    ")
 
-	t.Run("Log", func(t *testing.T) {
-		if err := logger.Log("Foo"); err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-	})
-	t.Run("Logf", func(t *testing.T) {
-		if err := logger.Logf("Foo %d", 1); err != nil {
-			t.Errorf("Unexpected error: %s", err)
-		}
-	})
+// TestTextDebugLogger pins the built-in logger's rendering, one row per
+// debuglog.Event method. There are no malformed-pair cases to cover: the typed
+// methods make key/value pairing a compile-time fact, so a dangling key or a
+// non-string key cannot be constructed.
+func TestTextDebugLogger(t *testing.T) {
+	t.Parallel()
+
+	var (
+		fixedTime = time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC)
+		nodeURL   = &url.URL{Scheme: "https", Host: "localhost:9200"}
+		nilURL    *url.URL
+	)
+
+	tests := []struct {
+		name   string
+		msg    string
+		fields func(debuglog.Event) debuglog.Event
+		want   string
+	}{
+		{
+			name: "message only",
+			msg:  "Discovery: starting",
+			want: "Discovery: starting\n",
+		},
+		{
+			name: "string and int pair",
+			msg:  "Node overloaded",
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Str("conn", "https://localhost:9200").Int("heap_used_percent", 93)
+			},
+			want: "Node overloaded conn=https://localhost:9200 heap_used_percent=93\n",
+		},
+		{
+			name:   "string slice",
+			msg:    "Discovery: connection removed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Strs("roles", []string{"data", "ingest"}) },
+			want:   "Discovery: connection removed roles=[data ingest]\n",
+		},
+		{
+			name: "sized integers",
+			msg:  "AIMD: adjusted congestion window",
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Int32("cwnd_to", 8).Int64("tripped", 3).Uint32("stream_id", 7)
+			},
+			want: "AIMD: adjusted congestion window cwnd_to=8 tripped=3 stream_id=7\n",
+		},
+		{
+			name:   "float",
+			msg:    "Node overloaded: breaker size over threshold",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Float64("ratio", 0.85) },
+			want:   "Node overloaded: breaker size over threshold ratio=0.85\n",
+		},
+		{
+			name: "duration",
+			msg:  "Promoted singleServerPool to multiServerPool",
+			fields: func(e debuglog.Event) debuglog.Event {
+				return e.Dur("resurrect_timeout_initial", 1500*time.Millisecond)
+			},
+			want: "Promoted singleServerPool to multiServerPool resurrect_timeout_initial=1.5s\n",
+		},
+		{
+			name:   "timestamp",
+			msg:    "resetDeadConnViability: cleared lcViable",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Time("dead_since", fixedTime) },
+			want:   "resetDeadConnViability: cleared lcViable dead_since=2026-08-19 04:13:43 +0000 UTC\n",
+		},
+		{
+			name:   "stringer",
+			msg:    "Request failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", nodeURL) },
+			want:   "Request failed conn=https://localhost:9200\n",
+		},
+		{
+			// A typed-nil pointer satisfies fmt.Stringer while (*url.URL).String
+			// dereferences its receiver, so the nil has to be caught before String
+			// is called. Debug logging must not be able to panic the program.
+			name:   "nil stringer renders rather than panicking",
+			msg:    "Request failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Stringer("conn", nilURL) },
+			want:   "Request failed conn=<nil>\n",
+		},
+		{
+			name:   "error",
+			msg:    "Discovery failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Err(errors.New("connection refused")) },
+			want:   "Discovery failed err=connection refused\n",
+		},
+		{
+			name:   "nil error",
+			msg:    "Discovery failed",
+			fields: func(e debuglog.Event) debuglog.Event { return e.Err(nil) },
+			want:   "Discovery failed err=<nil>\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			event := (&textDebugLogger{Output: &buf}).Debug()
+			if tt.fields != nil {
+				event = tt.fields(event)
+			}
+			event.Msg(tt.msg)
+
+			got := buf.String()
+			require.Greater(t, len(got), debugRecordPrefixLen)
+			require.Regexp(t, `^\[\d{2}:\d{2}:\d{2}\.\d{3}\] DEBUG {4}$`, got[:debugRecordPrefixLen])
+			require.Equal(t, tt.want, got[debugRecordPrefixLen:])
+		})
+	}
+}
+
+// TestTextDebugLoggerChainDiscarded pins that a chain which never reaches Msg
+// writes nothing. The compiler cannot catch a missing terminator, so this records
+// the consequence the debuglog chain guard exists to prevent.
+//
+// The event is held in a variable rather than chained inline because that guard
+// sweeps this repository for exactly the inline shape. Keep it this way, or the
+// guard reports this test as the defect it is describing.
+func TestTextDebugLoggerChainDiscarded(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	event := (&textDebugLogger{Output: &buf}).Debug()
+	event.Str("conn", "node-1").Int("attempts", 2)
+
+	require.Empty(t, buf.String())
+}
+
+func TestResolveDebugLogger(t *testing.T) {
+	t.Parallel()
+
+	supplied := &testDebugLogger{}
+
+	tests := []struct {
+		name string
+		cfg  Config
+		want debuglog.Logger
+	}{
+		{
+			name: "neither set installs nothing",
+			cfg:  Config{},
+			want: nil,
+		},
+		{
+			name: "EnableDebugLogger selects the built-in logger",
+			cfg:  Config{EnableDebugLogger: true},
+			want: &textDebugLogger{Output: os.Stderr},
+		},
+		{
+			name: "supplied logger is used",
+			cfg:  Config{DebugLogger: supplied},
+			want: supplied,
+		},
+		{
+			name: "supplied logger wins over EnableDebugLogger",
+			cfg:  Config{DebugLogger: supplied, EnableDebugLogger: true},
+			want: supplied,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, resolveDebugLogger(tt.cfg))
+		})
+	}
+}
+
+// TestTextDebugLoggerConcurrent pins the concurrency requirement debuglog.Logger
+// states: records reach the output whole, and the write itself is serialized, so
+// the type is safe with any writer rather than only with an atomic one.
+func TestTextDebugLoggerConcurrent(t *testing.T) {
+	t.Parallel()
+
+	const records = 50
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+
+	var wg sync.WaitGroup
+	for i := range records {
+		wg.Go(func() { logger.Debug().Int("i", i).Msg("concurrent record") })
+	}
+	wg.Wait()
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, records)
+	for _, line := range lines {
+		require.Regexp(t, `^\[\d{2}:\d{2}:\d{2}\.\d{3}\] DEBUG {4}concurrent record i=\d+$`, line)
+	}
+}
+
+// TestTextDebugLoggerReusesEvents pins the one hazard pooling introduces: an
+// event handed back by Msg and picked up again by the next Debug must carry none
+// of the previous record's fields.
+//
+// The records differ in field count so that a stale buffer shows up either way
+// round, whichever of them the pool happens to serve first.
+func TestTextDebugLoggerReusesEvents(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+
+	logger.Debug().Str("conn", "node-1").Int("attempts", 2).Msg("first")
+	logger.Debug().Str("conn", "node-2").Msg("second")
+	logger.Debug().Msg("third")
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, 3)
+	require.Equal(t, "first conn=node-1 attempts=2", lines[0][debugRecordPrefixLen:])
+	require.Equal(t, "second conn=node-2", lines[1][debugRecordPrefixLen:])
+	require.Equal(t, "third", lines[2][debugRecordPrefixLen:])
+}
+
+// TestTextDebugEventWorthPooling pins the size cap on what the pool retains.
+// Nothing else exercises the drop side: every record the test suite emits is far
+// under the cap, so an inverted comparison here would keep exactly the oversized
+// events the cap exists to discard and no test would notice.
+//
+// Both buffers are checked independently because either can be the large one: a
+// record with many fields grows fields, a record with a long message grows line.
+func TestTextDebugEventWorthPooling(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		fieldsCap  int
+		lineCap    int
+		wantPooled bool
+	}{
+		{name: "both empty", wantPooled: true},
+		{name: "both under the cap", fieldsCap: 64, lineCap: 128, wantPooled: true},
+		{name: "both exactly at the cap", fieldsCap: maxPooledDebugBuffer, lineCap: maxPooledDebugBuffer, wantPooled: true},
+		{name: "fields one byte over", fieldsCap: maxPooledDebugBuffer + 1, wantPooled: false},
+		{name: "line one byte over", lineCap: maxPooledDebugBuffer + 1, wantPooled: false},
+		{name: "both over", fieldsCap: maxPooledDebugBuffer * 2, lineCap: maxPooledDebugBuffer * 2, wantPooled: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			e := &textDebugEvent{
+				fields: make([]byte, 0, tt.fieldsCap),
+				line:   make([]byte, 0, tt.lineCap),
+			}
+
+			require.Equal(t, tt.wantPooled, e.worthPooling())
+		})
+	}
+}
+
+// TestTextDebugLoggerOversizedRecord pins that a record past the pool cap is
+// still written in full. The cap decides what is kept for reuse, not what gets
+// emitted, so an oversized record must not be truncated or dropped.
+func TestTextDebugLoggerOversizedRecord(t *testing.T) {
+	t.Parallel()
+
+	huge := strings.Repeat("x", maxPooledDebugBuffer+1)
+
+	var buf bytes.Buffer
+	logger := &textDebugLogger{Output: &buf}
+	logger.Debug().Str("payload", huge).Msg("oversized")
+	// A following record must be unaffected by whatever the pool did with the
+	// event the oversized one used.
+	logger.Debug().Str("conn", "node-1").Msg("next")
+
+	lines := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
+	require.Len(t, lines, 2)
+	require.Equal(t, "oversized payload="+huge, lines[0][debugRecordPrefixLen:])
+	require.Equal(t, "next conn=node-1", lines[1][debugRecordPrefixLen:])
+}
+
+// TestTextDebugLoggerTimeMonotonic pins the one place this logger deliberately
+// renders a value differently from the fmt package. time.Time.String appends a
+// monotonic-clock reading for a value that carries one; Time appends through
+// AppendFormat instead, which does not, because that reading is noise in a record
+// and because String allocates.
+//
+// The wall-clock row is the one the client actually produces: its timestamps
+// round-trip through Unix nanoseconds, which strips the monotonic reading, so
+// both paths agree there.
+func TestTextDebugLoggerTimeMonotonic(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		val        time.Time
+		wantSuffix bool // whether time.Time.String would add "m=+..."
+	}{
+		{name: "wall clock only", val: time.Date(2026, 8, 19, 4, 13, 43, 0, time.UTC)},
+		{name: "carries a monotonic reading", val: time.Now(), wantSuffix: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf bytes.Buffer
+			(&textDebugLogger{Output: &buf}).Debug().Time("at", tt.val).Msg("m")
+			got := strings.TrimSuffix(buf.String()[debugRecordPrefixLen:], "\n")
+
+			require.Equal(t, "m at="+tt.val.Format(timeFieldLayout), got)
+			require.NotContains(t, got, " m=+", "the monotonic reading must not reach the record")
+			// Guard the premise: if String stops adding the suffix, this test is no
+			// longer proving anything and the row should go.
+			require.Equal(t, tt.wantSuffix, strings.Contains(tt.val.String(), " m=+"))
+		})
+	}
+}
+
+// TestStoreDebugLoggerClears pins the nil branch of storeDebugLogger: passing nil
+// uninstalls the logger rather than installing a non-nil interface wrapping a nil
+// value, which Debug would then call through and panic on.
+func TestStoreDebugLoggerClears(t *testing.T) {
+	previous := debugLoggerPtr.Load()
+	t.Cleanup(func() { debugLoggerPtr.Store(previous) })
+
+	var buf bytes.Buffer
+	storeDebugLogger(&textDebugLogger{Output: &buf})
+	require.True(t, debugEnabled())
+	Debug().Str("conn", "node-1").Msg("installed")
+	require.Contains(t, buf.String(), "installed conn=node-1")
+
+	storeDebugLogger(nil)
+	require.False(t, debugEnabled())
+
+	buf.Reset()
+	Debug().Str("conn", "node-1").Msg("discarded")
+	require.Empty(t, buf.String(), "a cleared logger must receive nothing")
 }
 
 type CustomLogger struct {

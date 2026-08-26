@@ -8,10 +8,13 @@ package osprom
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -21,6 +24,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 
+	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
@@ -493,4 +498,234 @@ func (o *countingObserver) OnStreamResponse(*opensearchtransport.StreamResponseE
 
 func (o *countingObserver) count() int {
 	return int(o.n.Load())
+}
+
+// debugRecord is one emitted lifecycle message plus the fields chained onto
+// it before Msg, so a test can assert either the message text alone or that
+// the chain reached the logger intact.
+type debugRecord struct {
+	msg    string
+	fields string // "key=val" pairs in call order, space-separated
+}
+
+// captureDebugLogger records the lifecycle messages a Registry emits.
+type captureDebugLogger struct {
+	// mu guards records, appended to by every worker goroutine the Registry runs.
+	mu struct {
+		sync.Mutex
+		records []debugRecord
+	}
+}
+
+func (c *captureDebugLogger) Debug() debuglog.Event {
+	return &captureEvent{c: c}
+}
+
+func (c *captureDebugLogger) messages() []string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	msgs := make([]string, 0, len(c.mu.records))
+	for _, r := range c.mu.records {
+		msgs = append(msgs, r.msg)
+	}
+	return msgs
+}
+
+// fields returns the rendered field chain of the first record whose message
+// equals msg, or "" if no such record was captured.
+func (c *captureDebugLogger) fields(msg string) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, r := range c.mu.records {
+		if r.msg == msg {
+			return r.fields
+		}
+	}
+	return ""
+}
+
+// captureEvent accumulates one record's chained fields. It belongs to the
+// single caller building the chain, so it needs no lock of its own; only the
+// append to the shared captureDebugLogger in Msg takes the mutex, which is
+// what makes concurrent Debug() calls from the registry's workers safe.
+type captureEvent struct {
+	c      *captureDebugLogger
+	fields []string
+}
+
+func (e *captureEvent) add(kv string) debuglog.Event {
+	e.fields = append(e.fields, kv)
+	return e
+}
+
+func (e *captureEvent) Str(key, val string) debuglog.Event { return e.add(key + "=" + val) }
+func (e *captureEvent) Strs(key string, val []string) debuglog.Event {
+	return e.add(key + "=" + strings.Join(val, ","))
+}
+
+func (e *captureEvent) Int(key string, val int) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+
+func (e *captureEvent) Int32(key string, val int32) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+
+func (e *captureEvent) Int64(key string, val int64) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+
+func (e *captureEvent) Uint32(key string, val uint32) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%d", key, val))
+}
+
+func (e *captureEvent) Float64(key string, val float64) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%v", key, val))
+}
+
+func (e *captureEvent) Dur(key string, val time.Duration) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%s", key, val))
+}
+
+func (e *captureEvent) Time(key string, val time.Time) debuglog.Event {
+	return e.add(fmt.Sprintf("%s=%s", key, val))
+}
+
+func (e *captureEvent) Stringer(key string, val fmt.Stringer) debuglog.Event {
+	return e.add(key + "=" + debuglog.StringerText(val))
+}
+
+func (e *captureEvent) Err(err error) debuglog.Event {
+	return e.add(fmt.Sprintf("err=%v", err))
+}
+
+func (e *captureEvent) Msg(msg string) {
+	e.c.mu.Lock()
+	defer e.c.mu.Unlock()
+	e.c.mu.records = append(e.c.mu.records, debugRecord{msg: msg, fields: strings.Join(e.fields, " ")})
+}
+
+// TestLoggerCapturesChainedFields pins that the fields chained before Msg
+// reach the logger, not just the final message text. The emitting sites
+// build a multi-field chain before calling Msg; a chain that forgot Msg
+// would silently log nothing, and the compiler cannot catch that.
+func TestLoggerCapturesChainedFields(t *testing.T) {
+	t.Parallel()
+
+	explicit := &captureDebugLogger{}
+	reg, err := NewWithOptions(prometheus.NewRegistry(), nil, []Option{WithLogger(explicit)})
+	require.NoError(t, err)
+	require.NotPanics(t, runRegistry(t, reg))
+
+	fields := explicit.fields("osprom registry running")
+	require.Contains(t, fields, "observers=0")
+	require.Contains(t, fields, "buffer_size=")
+	require.Contains(t, fields, "workers=")
+}
+
+// TestWithLogger covers both explicit-logger paths: any debuglog.Logger
+// receives the lifecycle records, not only a purpose-built adapter, and a
+// nil one silences them rather than panicking.
+//
+// Two captures, not one. With a single sink the client's own debug records land
+// beside the registry's, and an assertion on that sink passes even when the
+// registry's messages never arrive. The global capture also pins that WithLogger
+// is what routes these records: a nil logger has to silence them, not fall back
+// to the installed default.
+//
+// Not parallel: installing the process-global debug logger mutates process
+// state that the other logger tests in this file read.
+func TestWithLogger(t *testing.T) {
+	tests := []struct {
+		name   string
+		logger func(explicit *captureDebugLogger) debuglog.Logger
+		want   []string
+	}{
+		{
+			name:   "any Logger receives lifecycle records",
+			logger: func(explicit *captureDebugLogger) debuglog.Logger { return explicit },
+			want:   []string{"osprom registry running", "osprom registry stopped"},
+		},
+		{
+			name:   "nil logger silences lifecycle records",
+			logger: func(*captureDebugLogger) debuglog.Logger { return nil },
+			// Empty rather than nil: messages sizes its result from the records it
+			// walks, so no records yields a non-nil slice of none.
+			want: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			explicit, global := &captureDebugLogger{}, &captureDebugLogger{}
+
+			// Installs global as the process-global debug logger, which is the
+			// default WithLogger has to override in both rows.
+			client, err := opensearch.NewClient(opensearch.Config{
+				Addresses:   []string{"http://localhost:9200"},
+				DebugLogger: global,
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = client.Close() })
+
+			reg, err := NewWithOptions(prometheus.NewRegistry(), nil, []Option{WithLogger(tt.logger(explicit))})
+			require.NoError(t, err)
+
+			// A nil logger would panic either inside Run's goroutine, which takes
+			// the test binary down, or on Close, which fails here.
+			require.NotPanics(t, runRegistry(t, reg))
+
+			require.Equal(t, tt.want, explicit.messages())
+			require.NotContains(t, global.messages(), "osprom registry running")
+			require.NotContains(t, global.messages(), "osprom registry stopped")
+		})
+	}
+}
+
+// TestDefaultLoggerResolvesPerMessage pins that the default resolves the
+// process-global logger at each message rather than once at construction.
+//
+// Both halves matter. A Registry is built before the client that installs the
+// logger, since the client takes the Registry as its Observer, so reading the
+// global at construction would capture nil and silence these messages forever.
+// And because the last client constructed wins, swapping the global between two
+// messages has to redirect the second one: a resolve-once-lazily implementation
+// would send both to the first logger.
+func TestDefaultLoggerResolvesPerMessage(t *testing.T) {
+	first, second := &captureDebugLogger{}, &captureDebugLogger{}
+
+	reg, err := NewWithOptions(prometheus.NewRegistry(), nil, nil) // no WithLogger: takes the default
+	require.NoError(t, err)
+
+	// Installs first as the process-global debug logger.
+	c1, err := opensearch.NewClient(opensearch.Config{
+		Addresses:   []string{"http://localhost:9200"},
+		DebugLogger: first,
+		Observer:    reg,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c1.Close() })
+
+	var wg sync.WaitGroup
+	wg.Go(func() { _ = reg.Run(t.Context()) })
+
+	require.Eventually(t, func() bool {
+		return slices.Contains(first.messages(), "osprom registry running")
+	}, time.Second, 10*time.Millisecond, "startup message never reached the installed logger")
+
+	// Replaces the process-global logger: the last client constructed wins.
+	c2, err := opensearch.NewClient(opensearch.Config{
+		Addresses:   []string{"http://localhost:9200"},
+		DebugLogger: second,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = c2.Close() })
+
+	require.NoError(t, reg.Close())
+	wg.Wait()
+
+	require.Contains(t, second.messages(), "osprom registry stopped",
+		"shutdown message did not follow the swapped global")
+	require.NotContains(t, first.messages(), "osprom registry stopped",
+		"shutdown message went to the logger installed at construction time")
 }

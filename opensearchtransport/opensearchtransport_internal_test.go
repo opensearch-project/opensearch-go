@@ -781,7 +781,6 @@ func TestTransportStreamRetries(t *testing.T) {
 		t.Cleanup(func() { _ = tp.Close() })
 
 		foobar := "FOOBAR"
-		foobarGzipped := "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\xffr\xf3\xf7wr\f\x02\x04\x00\x00\xff\xff\x13\xd8\x0en\x06\x00\x00\x00"
 
 		req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(foobar))
 		//nolint:bodyclose // Mock response does not have a body to close
@@ -794,9 +793,22 @@ func TestTransportStreamRetries(t *testing.T) {
 		if n := len(bodies); n != 4 {
 			t.Fatalf("expected 4 requests, got %d", n)
 		}
+		// Compare the decompressed payload rather than the gzip bytes: which block
+		// type flate picks for a given input is not stable across Go releases.
 		for i, body := range bodies {
-			if body != foobarGzipped {
-				t.Fatalf("request %d body: expected %q, got %q", i, foobarGzipped, body)
+			zr, err := gzip.NewReader(strings.NewReader(body))
+			if err != nil {
+				t.Fatalf("request %d body: not gzip: %s", i, err)
+			}
+			got, err := io.ReadAll(zr)
+			if err != nil {
+				t.Fatalf("request %d body: decompress: %s", i, err)
+			}
+			if err := zr.Close(); err != nil {
+				t.Fatalf("request %d body: close: %s", i, err)
+			}
+			if string(got) != foobar {
+				t.Fatalf("request %d body: expected %q, got %q", i, foobar, got)
 			}
 		}
 	})

@@ -37,32 +37,48 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
-var debugLoggerPtr atomic.Pointer[DebuggingLogger]
+var debugLoggerPtr atomic.Pointer[debuglog.Logger]
 
-func loadDebugLogger() DebuggingLogger {
+// Debug begins one debug record: chain fields onto the returned event and end
+// the chain with Msg.
+//
+//	Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
+//
+// It never returns nil. With no logger installed it returns [debuglog.Nop],
+// whose methods discard the record and allocate nothing, so emitting sites need
+// no guard. The arguments to the chained calls are still evaluated either way,
+// because Go cannot abandon a method chain partway, so a field that costs
+// something to compute is passed lazily through Stringer rather than converted
+// at the call site.
+//
+// Other packages in the module use this to emit their own configuration-time
+// diagnostics through the logger the transport already installed.
+func Debug() debuglog.Event {
 	if p := debugLoggerPtr.Load(); p != nil {
-		return *p
+		return (*p).Debug()
 	}
-	return nil
+	return debuglog.Nop()
 }
 
-// LoadDebugLogger returns the currently configured debugging logger, or
-// nil when one has not been installed (e.g. when OPENSEARCH_GO_DEBUG is
-// unset and no caller has supplied one programmatically). It exposes the
-// shared logger so other packages in the module can emit
-// configuration-time diagnostics through the same sink the transport
-// uses for request-level debug output.
-func LoadDebugLogger() DebuggingLogger {
-	return loadDebugLogger()
-}
+// debugEnabled reports whether a debug logger is installed.
+//
+// Emitting a record does not need this: [Debug] handles the absent case itself,
+// and the 85 emitting sites call it unguarded. It exists for the two callers that
+// cannot, because they do work a no-op event cannot undo. The
+// OPENSEARCH_GO_POLICY_DUMP tree writes to stderr directly rather than through
+// the logger, and one AIMD record has to take a mutex to read the fields it
+// carries.
+func debugEnabled() bool { return debugLoggerPtr.Load() != nil }
 
-func storeDebugLogger(dl DebuggingLogger) {
+func storeDebugLogger(dl debuglog.Logger) {
 	if dl == nil {
 		debugLoggerPtr.Store(nil)
 	} else {
@@ -70,9 +86,24 @@ func storeDebugLogger(dl DebuggingLogger) {
 	}
 }
 
+// resolveDebugLogger returns the debug logger a Config asks for: an explicitly
+// supplied one wins, otherwise EnableDebugLogger selects the built-in text
+// logger. It returns nil when the Config asks for neither, so that a logger
+// already installed from the environment is left in place.
+func resolveDebugLogger(cfg Config) debuglog.Logger {
+	switch {
+	case cfg.DebugLogger != nil:
+		return cfg.DebugLogger
+	case cfg.EnableDebugLogger:
+		return &textDebugLogger{Output: os.Stderr}
+	default:
+		return nil
+	}
+}
+
 func init() { //nolint:gochecknoinits // Only set implicitly once at startup
-	if enabled, _ := strconv.ParseBool(os.Getenv(envvars.Debug)); enabled {
-		storeDebugLogger(&debuggingLogger{Output: os.Stderr})
+	if envvars.DebugRequested() {
+		storeDebugLogger(&textDebugLogger{Output: os.Stderr})
 	}
 }
 
@@ -85,12 +116,6 @@ type Logger interface {
 	RequestBodyEnabled() bool
 	// ResponseBodyEnabled makes the client pass a copy of response body to the logger.
 	ResponseBodyEnabled() bool
-}
-
-// DebuggingLogger defines the interface for a debugging logger.
-type DebuggingLogger interface {
-	Log(a ...any) error
-	Logf(format string, a ...any) error
 }
 
 // TextLogger prints the log message in plain text.
@@ -121,9 +146,18 @@ type JSONLogger struct {
 	EnableResponseBody bool
 }
 
-// debuggingLogger prints debug messages as plain text.
-type debuggingLogger struct {
+// textDebugLogger is the built-in [debuglog.Logger], printing records as plain
+// text with a timestamp prefix. It is what OPENSEARCH_GO_LOG=debug and
+// Config.EnableDebugLogger install, so the client has a working debug logger
+// without any logging library in its dependency graph.
+type textDebugLogger struct {
 	Output io.Writer
+
+	// mu serializes writes to Output. debuglog.Logger requires implementations to
+	// be safe for concurrent use, and records are emitted from several transport
+	// goroutines at once. Without it the type would be safe only for a writer
+	// whose Write is itself atomic, which os.Stderr happens to be.
+	mu sync.Mutex
 }
 
 // LogRoundTrip prints the information about request and response.
@@ -434,21 +468,198 @@ func (l *JSONLogger) RequestBodyEnabled() bool { return l.EnableRequestBody }
 // ResponseBodyEnabled returns true when the response body should be logged.
 func (l *JSONLogger) ResponseBodyEnabled() bool { return l.EnableResponseBody }
 
-// Log prints the arguments to output in default format with a timestamp prefix.
-func (l *debuggingLogger) Log(a ...any) error {
-	ts := time.Now().UTC().Format("15:04:05.000")
-	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
-	_, err := fmt.Fprint(l.Output, a...)
-	return err
+// textDebugEventPool holds events between records so that a logger left switched
+// on does not allocate one, plus its two buffers, per record.
+//
+// An event is returned by [textDebugEvent.Msg]. A chain that never reaches Msg
+// simply leaves its event to the garbage collector, which is why the pool is a
+// performance measure and not a correctness one.
+var textDebugEventPool = sync.Pool{New: func() any { return new(textDebugEvent) }}
+
+// Debug begins a record. Fields accumulate on the returned event and Msg writes
+// the assembled line.
+func (l *textDebugLogger) Debug() debuglog.Event {
+	e, _ := textDebugEventPool.Get().(*textDebugEvent)
+	e.logger = l
+	e.fields = e.fields[:0]
+	return e
 }
 
-// Logf formats the arguments and prints them to output with a timestamp prefix.
-func (l *debuggingLogger) Logf(format string, a ...any) error {
-	ts := time.Now().UTC().Format("15:04:05.000")
-	fmt.Fprintf(l.Output, "[%s] DEBUG    ", ts)
-	_, err := fmt.Fprintf(l.Output, format, a...)
-	return err
+// textDebugEvent accumulates one record for [textDebugLogger] as " key=value"
+// fragments, rendering each value the way the fmt package would.
+//
+// Values are appended with the strconv.Append functions rather than through
+// fmt.Fprintf, so the built-in logger neither boxes a value it is handed (the
+// cost the typed [debuglog.Event] methods exist to avoid) nor allocates a string
+// per field on the way into the buffer.
+type textDebugEvent struct {
+	logger *textDebugLogger
+
+	// fields holds the rendered " key=value" fragments in call order. line holds
+	// the whole record, assembled by Msg, which needs its own buffer because the
+	// timestamp and message precede fields that have already been appended.
+	//
+	// Both survive in textDebugEventPool across records, so a steady stream of
+	// records reuses one pair of buffers rather than allocating per record.
+	fields []byte
+	line   []byte
 }
+
+// maxPooledDebugBuffer bounds the buffer capacity the pool retains. A record
+// carrying an unusually long value (a discovery response, a policy tree) would
+// otherwise park its whole buffer in the pool for the life of the process, so an
+// event grown past this is dropped instead and the next one starts fresh.
+//
+// 4 KiB is comfortably above every record the client emits; the longest observed
+// is a few hundred bytes.
+const maxPooledDebugBuffer = 4 << 10
+
+// key appends the separator, the key, and the "=" that the value follows.
+func (e *textDebugEvent) key(key string) {
+	e.fields = append(e.fields, ' ')
+	e.fields = append(e.fields, key...)
+	e.fields = append(e.fields, '=')
+}
+
+// field appends one pair whose value is already a string.
+func (e *textDebugEvent) field(key, val string) debuglog.Event {
+	e.key(key)
+	e.fields = append(e.fields, val...)
+	return e
+}
+
+// Str implements [debuglog.Event].
+func (e *textDebugEvent) Str(key, val string) debuglog.Event { return e.field(key, val) }
+
+// Strs implements [debuglog.Event], rendering the slice as fmt's %v does:
+// space-separated inside square brackets.
+func (e *textDebugEvent) Strs(key string, val []string) debuglog.Event {
+	e.key(key)
+	e.fields = append(e.fields, '[')
+	for i, s := range val {
+		if i > 0 {
+			e.fields = append(e.fields, ' ')
+		}
+		e.fields = append(e.fields, s...)
+	}
+	e.fields = append(e.fields, ']')
+	return e
+}
+
+// Int implements [debuglog.Event].
+func (e *textDebugEvent) Int(key string, val int) debuglog.Event {
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, int64(val), 10)
+	return e
+}
+
+// Int32 implements [debuglog.Event].
+func (e *textDebugEvent) Int32(key string, val int32) debuglog.Event {
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, int64(val), 10)
+	return e
+}
+
+// Int64 implements [debuglog.Event].
+func (e *textDebugEvent) Int64(key string, val int64) debuglog.Event {
+	e.key(key)
+	e.fields = strconv.AppendInt(e.fields, val, 10)
+	return e
+}
+
+// Uint32 implements [debuglog.Event].
+func (e *textDebugEvent) Uint32(key string, val uint32) debuglog.Event {
+	e.key(key)
+	e.fields = strconv.AppendUint(e.fields, uint64(val), 10)
+	return e
+}
+
+// Float64 implements [debuglog.Event].
+func (e *textDebugEvent) Float64(key string, val float64) debuglog.Event {
+	e.key(key)
+	e.fields = strconv.AppendFloat(e.fields, val, 'g', -1, 64)
+	return e
+}
+
+// Dur implements [debuglog.Event].
+func (e *textDebugEvent) Dur(key string, val time.Duration) debuglog.Event {
+	return e.field(key, val.String())
+}
+
+// Time implements [debuglog.Event].
+//
+// Appending in [timeFieldLayout] rather than calling val.String keeps the field
+// allocation-free; String builds and returns a string, which was the one field
+// type in this logger that still allocated.
+func (e *textDebugEvent) Time(key string, val time.Time) debuglog.Event {
+	e.key(key)
+	e.fields = val.AppendFormat(e.fields, timeFieldLayout)
+	return e
+}
+
+// timeFieldLayout renders a timestamp the way [time.Time.String] does, with one
+// difference: String appends a monotonic-clock reading ("m=+0.000192626") when the
+// value carries one, and this does not. That reading is noise in a debug record,
+// and the client's own timestamps round-trip through Unix nanoseconds, which
+// strips it, so today no record renders differently either way.
+const timeFieldLayout = "2006-01-02 15:04:05.999999999 -0700 MST"
+
+// Stringer implements [debuglog.Event], rendering a nil value as <nil> rather
+// than panicking.
+func (e *textDebugEvent) Stringer(key string, val fmt.Stringer) debuglog.Event {
+	return e.field(key, debuglog.StringerText(val))
+}
+
+// Err implements [debuglog.Event], recording the error under the key "err".
+func (e *textDebugEvent) Err(err error) debuglog.Event {
+	if err == nil {
+		return e.field(errFieldKey, debuglog.NilText)
+	}
+	return e.field(errFieldKey, err.Error())
+}
+
+// Msg writes msg and the accumulated fields as one line, prefixed with a
+// timestamp and terminated with a newline, and returns the event to the pool.
+//
+// The line is assembled before the write and the write is serialized by the
+// logger's mutex, so concurrent callers neither interleave fragments nor race on
+// Output.
+func (e *textDebugEvent) Msg(msg string) {
+	e.line = append(e.line[:0], '[')
+	e.line = time.Now().UTC().AppendFormat(e.line, "15:04:05.000")
+	e.line = append(e.line, "] DEBUG    "...)
+	e.line = append(e.line, msg...)
+	e.line = append(e.line, e.fields...)
+	e.line = append(e.line, '\n')
+
+	e.logger.mu.Lock()
+	// Msg returns no error: a debug logger that cannot write has nowhere left to
+	// report it.
+	_, _ = e.logger.Output.Write(e.line)
+	e.logger.mu.Unlock()
+
+	// The event is unreachable to the caller from here: Msg ends the chain, and
+	// nothing it returned escaped. Clear the logger so a pooled event holds no
+	// reference to a writer the application may be finished with.
+	e.logger = nil
+	if e.worthPooling() {
+		textDebugEventPool.Put(e)
+	}
+}
+
+// worthPooling reports whether this event's buffers are small enough to keep.
+//
+// Both buffers are checked, because either one can be the large one: a record
+// with many fields grows fields, while a record with a long message grows line.
+func (e *textDebugEvent) worthPooling() bool {
+	return cap(e.fields) <= maxPooledDebugBuffer && cap(e.line) <= maxPooledDebugBuffer
+}
+
+// errFieldKey is the key [debuglog.Event.Err] records an error under in the
+// built-in logger. An adapter uses whatever key its own library configures, so
+// this is not shared through debuglog. A nil value renders as
+// [debuglog.NilText], which is.
+const errFieldKey = "err"
 
 func logBodyAsText(dst io.Writer, body io.Reader, prefix string) {
 	scanner := bufio.NewScanner(body)

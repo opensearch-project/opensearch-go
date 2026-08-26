@@ -336,6 +336,41 @@ func TestConnState_Hex(t *testing.T) {
 	})
 }
 
+// TestHexStateRendersLikeHex pins the equivalence the two debug sites rely on.
+// They pass a hexState to Stringer so Hex is deferred to emit time; if
+// hexState.String ever stops matching Hex, those records silently change shape
+// and nothing else would notice.
+func TestHexStateRendersLikeHex(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		state connState
+	}{
+		{
+			name:  "zero warmup",
+			state: newConnState(lcReady | lcActive),
+		},
+		{
+			name:  "warmup state",
+			state: packConnState(lcReady|lcActive|lcNeedsWarmup, packWarmupManager(16, 32), packWarmupManager(8, 4)),
+		},
+		{
+			name:  "zero value",
+			state: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			packed := int64(tt.state)
+			require.Equal(t, ConnState{packed: packed}.Hex(), hexState{packed: packed}.String())
+		})
+	}
+}
+
 func TestConnState_String(t *testing.T) {
 	t.Parallel()
 

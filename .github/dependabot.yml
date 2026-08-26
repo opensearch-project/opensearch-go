@@ -13,6 +13,8 @@ updates:
       - "/"
       - "/cmd/osapilint"
       - "/cmd/osgen"
+      - "/log-slog"
+      - "/log-zerolog"
       - "/osotel"
       - "/osprom"
     target-branch: "main"
