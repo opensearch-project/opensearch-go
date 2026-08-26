@@ -1560,33 +1560,46 @@ func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
 	require.NoError(t, bi.Close(t.Context()))
 }
 
+// newParkedBulkTestClient returns a client that parks every bulk request until
+// the test ends, plus a channel that receives once the first such request has
+// arrived. Non-bulk requests are answered normally so the indexer still starts.
+// A parked request holds the worker that issued it, so that worker stops
+// draining its queue, which is how a test sequences Flush without sleeping.
+func newParkedBulkTestClient(t *testing.T) (*opensearchapi.Client, <-chan struct{}) {
+	t.Helper()
+
+	inFlight := make(chan struct{}, 1)
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+
+	return newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		select {
+		case inFlight <- struct{}{}:
+		default:
+		}
+		<-release
+
+		return defaultRoundTripFunc(req)
+	}), inFlight
+}
+
 func TestBulkIndexerFlushReturnsWhenContextCancelledMidDrain(t *testing.T) {
 	t.Parallel()
 
-	// The transport parks inside the bulk request until the test releases it, so
-	// Flush is provably still waiting for its barrier when the context dies. Both
-	// channels carry the handshake, so the test never sleeps to sequence this.
-	inFlight := make(chan struct{}, 1)
-	release := make(chan struct{})
+	// The transport parks inside the bulk request until the test ends, so Flush
+	// is provably still waiting for its barrier when the context dies. The
+	// handshake travels on channels, so the test never sleeps to sequence this.
+	client, inFlight := newParkedBulkTestClient(t)
 
 	bi, err := NewBulkIndexer(BulkIndexerConfig{
 		NumWorkers: 1,
-		Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
-			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
-				return infoResponse()
-			}
-			select {
-			case inFlight <- struct{}{}:
-			default:
-			}
-			<-release
-
-			return defaultRoundTripFunc(req)
-		}),
-		Index: testutil.MustUniqueString(t, "test-index"),
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
 	})
 	require.NoError(t, err)
-	t.Cleanup(func() { close(release) })
 
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Action:     actionIndex,
@@ -1651,29 +1664,16 @@ func TestBulkIndexerFlushReportsDeadWorkersWhenBarrierSendBlocks(t *testing.T) {
 	// and the test can fill it. Parking the transport keeps that worker from
 	// draining the queue, so the barrier send below has nowhere to go and the
 	// construction context is the only case its select can take.
-	inFlight := make(chan struct{}, 1)
-	release := make(chan struct{})
+	client, inFlight := newParkedBulkTestClient(t)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	bi, err := NewBulkIndexer(BulkIndexerConfig{
 		Context:    ctx,
 		NumWorkers: 1,
-		Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
-			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
-				return infoResponse()
-			}
-			select {
-			case inFlight <- struct{}{}:
-			default:
-			}
-			<-release
-
-			return defaultRoundTripFunc(req)
-		}),
-		Index: testutil.MustUniqueString(t, "test-index"),
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
 	})
 	require.NoError(t, err)
-	t.Cleanup(func() { close(release) })
 
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Action:     actionIndex,
