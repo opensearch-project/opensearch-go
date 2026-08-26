@@ -179,6 +179,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Add `ForcedRefresh` field to `IndexResp`, `DocumentDeleteResp`, and `UpdateResp` for consistency with `DocumentCreateResp`
 - Add `Status` and `Primary` fields to `ResponseShardsFailure` for shard failure diagnostics
 - Add `guides/config-envvars.md` as the canonical reference for every `OPENSEARCH_GO_*` environment variable — accepted values, defaults, parsing rules, and the exhaustive `OPENSEARCH_GO_ERROR_MASK` token list. Fix `OPENSEARCH_GO_ROUTER` default in `transport-routing.md` from incorrect `false` to correct `true`. ([#883](https://github.com/opensearch-project/opensearch-go/issues/883))
+- Expand the `opensearchutil.BulkIndexer` interface to include `Flush(context.Context) error`, which sends every item in the queue and leaves the indexer open, so one indexer can drain on demand instead of being rebuilt per unit of work. Code implementing the interface must add the method; see [`UPGRADING_V5.md`](UPGRADING_V5.md#opensearchutilbulkindexer-interface-gained-flush) ([#336](https://github.com/opensearch-project/opensearch-go/issues/336))
 
 ### Changed
 
