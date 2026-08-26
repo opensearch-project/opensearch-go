@@ -72,14 +72,15 @@ type BulkIndexer interface {
 	// actions on one document are sent in the order they were added.
 	Add(context.Context, BulkIndexerItem) error
 
-	// Flush sends every item added before the call and leaves the indexer open,
-	// so one indexer can drain on demand and keep going. Items added
-	// concurrently may land in this drain or the next, and the bulk requests run
-	// on ctx.
+	// Flush sends every item in BulkIndexer's queue before the call was made
+	// and leaves the indexer open, so one indexer can drain on demand and keep
+	// going. Items added concurrently may land in this drain or the next, and
+	// the bulk requests run on ctx.
 	//
 	// A non-nil error means the drain itself failed; documents the cluster
 	// rejected individually go to their OnFailure callback. Safe alongside Add
-	// and other Flush calls, but like Add it panics after Close.
+	// and other concurrent Flush calls. Like Add, any Flush calls after Close
+	// will result in a panic.
 	Flush(context.Context) error
 
 	// Close waits until all added items are flushed and closes the indexer.
