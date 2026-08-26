@@ -1644,6 +1644,74 @@ func TestBulkIndexerFlushDoesNotHangWhenConstructionContextCancelled(t *testing.
 	}
 }
 
+func TestBulkIndexerFlushReportsDeadWorkersWhenBarrierSendBlocks(t *testing.T) {
+	t.Parallel()
+
+	// A queue holds NumWorkers entries, so a single worker gives a queue of one
+	// and the test can fill it. Parking the transport keeps that worker from
+	// draining the queue, so the barrier send below has nowhere to go and the
+	// construction context is the only case its select can take.
+	inFlight := make(chan struct{}, 1)
+	release := make(chan struct{})
+
+	ctx, cancel := context.WithCancel(t.Context())
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Context:    ctx,
+		NumWorkers: 1,
+		Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+				return infoResponse()
+			}
+			select {
+			case inFlight <- struct{}{}:
+			default:
+			}
+			<-release
+
+			return defaultRoundTripFunc(req)
+		}),
+		Index: testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { close(release) })
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	// Park the worker inside the bulk request this Flush drives. It stays
+	// blocked for the rest of the test, so nothing consumes the queue again.
+	parked := make(chan error, 1)
+	go func() { parked <- bi.Flush(t.Context()) }()
+	<-inFlight
+
+	// The worker consumed the item and the barrier before parking, so the queue
+	// is empty and this Add fills it to its capacity of one without blocking.
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_2",
+		Body:       strings.NewReader(`{"b":2}`),
+	}))
+
+	cancel()
+
+	// A live caller context, so the only error Flush can report is the dead
+	// construction context. Without that case it would block on the full queue
+	// until the caller's own context expired, which here is never.
+	done := make(chan error, 1)
+	go func() { done <- bi.Flush(t.Context()) }()
+
+	select {
+	case flushErr := <-done:
+		require.ErrorIs(t, flushErr, context.Canceled)
+		require.NoError(t, t.Context().Err(), "the caller's context must still be live, proving the error came from the construction context")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung on a full queue after its workers were gone")
+	}
+}
+
 func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
 	t.Parallel()
 
