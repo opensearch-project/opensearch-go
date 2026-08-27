@@ -17,6 +17,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -89,6 +91,220 @@ func TestSetReqURL(t *testing.T) {
 
 		require.Equal(t, "/api/v1/opensearch/_cat/indices", req.URL.Path)
 	})
+}
+
+// TestSetReqURLRestoredPath rewrites one *http.Request repeatedly, the shape
+// stream() uses across retries: [restoreReqPath] then setReqURL, once per
+// attempt. nodeURLs supplies the connection for each attempt in order, so a
+// prefixed seed followed by a prefix-less discovered node is a single row.
+func TestSetReqURLRestoredPath(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		nodeURLs     []string
+		reqURL       string
+		wantPaths    []string
+		wantRawPaths []string // asserted only when set; Path carries the decoded form
+	}{
+		{
+			name:      "the same prefixed node is stable across attempts",
+			nodeURLs:  []string{"https://node1:9200/prefix", "https://node1:9200/prefix", "https://node1:9200/prefix"},
+			reqURL:    "/_search",
+			wantPaths: []string{"/prefix/_search", "/prefix/_search", "/prefix/_search"},
+		},
+		{
+			name:      "switching to a prefix-less connection drops the prefix",
+			nodeURLs:  []string{"https://proxy:9200/prefix", "https://node:9200"},
+			reqURL:    "/_search",
+			wantPaths: []string{"/prefix/_search", "/_search"},
+		},
+		{
+			name:         "percent-encoded RawPath is prepended from the original",
+			nodeURLs:     []string{"https://node1:9200/prefix", "https://node1:9200/prefix"},
+			reqURL:       "/idx/_doc/a%2Fb",
+			wantPaths:    []string{"/prefix/idx/_doc/a/b", "/prefix/idx/_doc/a/b"},
+			wantRawPaths: []string{"/prefix/idx/_doc/a%2Fb", "/prefix/idx/_doc/a%2Fb"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			c := &Transport{}
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, tt.reqURL, nil)
+			require.NoError(t, err)
+			origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
+			for i, nodeURL := range tt.nodeURLs {
+				u, err := url.Parse(nodeURL)
+				require.NoError(t, err)
+
+				restoreReqPath(req, origPath, origRawPath)
+				c.setReqURL(u, req)
+
+				require.Equal(t, tt.wantPaths[i], req.URL.Path)
+				require.Equal(t, u.Host, req.URL.Host)
+				if tt.wantRawPaths != nil {
+					require.Equal(t, tt.wantRawPaths[i], req.URL.RawPath)
+				}
+			}
+		})
+	}
+}
+
+// TestStreamRetryPathPrefix is the user-visible form of setReqURL rewriting
+// Path in place: stream reuses one *http.Request, default MaxRetries is > 0,
+// and a reverse-proxy prefix is a supported address shape. Every hop -- retry,
+// Route(), seed fallback, percent-encoded RawPath -- must start from the
+// caller path so setReqURL prepends once. The cases share that fixture; they
+// differ only in which path (wire, Route, EscapedPath) they pin.
+func TestStreamRetryPathPrefix(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		nodeURLs   []string // one connection per attempt, in order; the last repeats
+		reqURL     string
+		maxRetries int
+		failAfter  int32 // recordingRouter: succeed N times, then ErrNoConnections
+		statuses   []int // RoundTrip codes in order; the last value repeats
+		wantStatus int
+		wantWire   []string
+		wantRoute  []string // recording Route() implies a router; empty means pool routing
+		escaped    bool     // record EscapedPath instead of Path
+	}{
+		{
+			name:       "retries do not stack a connection prefix",
+			nodeURLs:   []string{"https://node1:9200/prefix"},
+			reqURL:     "/_search",
+			maxRetries: 2,
+			statuses:   []int{http.StatusBadGateway},
+			wantStatus: http.StatusBadGateway,
+			wantWire:   []string{"/prefix/_search", "/prefix/_search", "/prefix/_search"},
+		},
+		{
+			name:       "Route sees the original path on each attempt",
+			nodeURLs:   []string{"https://node1:9200/prefix"},
+			reqURL:     "/_search",
+			maxRetries: 2,
+			statuses:   []int{http.StatusBadGateway},
+			wantStatus: http.StatusBadGateway,
+			wantRoute:  []string{"/_search", "/_search", "/_search"},
+		},
+		{
+			name:       "a prefix-less node after a prefixed one drops the prefix",
+			nodeURLs:   []string{"https://proxy:9200/prefix", "https://node:9200"},
+			reqURL:     "/_search",
+			maxRetries: 1,
+			statuses:   []int{http.StatusBadGateway, http.StatusOK},
+			wantStatus: http.StatusOK,
+			wantWire:   []string{"/prefix/_search", "/_search"},
+			wantRoute:  []string{"/_search", "/_search"},
+		},
+		{
+			name:       "retry then seed fallback does not stack prefix",
+			nodeURLs:   []string{"http://seed-node:9200/prefix"},
+			reqURL:     "/_search",
+			maxRetries: 1,
+			failAfter:  1,
+			statuses:   []int{http.StatusBadGateway, http.StatusOK},
+			wantStatus: http.StatusOK,
+			wantWire:   []string{"/prefix/_search", "/prefix/_search"},
+			wantRoute:  []string{"/_search", "/_search"},
+		},
+		{
+			name:       "percent-encoded RawPath is restored on retry",
+			nodeURLs:   []string{"https://node1:9200/prefix"},
+			reqURL:     "/idx/_doc/a%2Fb",
+			maxRetries: 1,
+			statuses:   []int{http.StatusBadGateway},
+			wantStatus: http.StatusBadGateway,
+			escaped:    true,
+			wantWire:   []string{"/prefix/idx/_doc/a%2Fb", "/prefix/idx/_doc/a%2Fb"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			urls := make([]*url.URL, 0, len(tt.nodeURLs))
+			for _, nodeURL := range tt.nodeURLs {
+				u, err := url.Parse(nodeURL)
+				require.NoError(t, err)
+				urls = append(urls, u)
+			}
+
+			var router *recordingRouter
+			cfg := Config{
+				URLs:              urls,
+				MaxRetries:        tt.maxRetries,
+				NodeStatsInterval: -1,
+				HealthCheck:       NoOpHealthCheck,
+			}
+			if len(tt.wantRoute) > 0 {
+				conns := make([]*Connection, 0, len(urls))
+				for _, u := range urls {
+					conns = append(conns, &Connection{URL: u, URLString: u.String(), hostPort: hostPrefixOf(u)})
+				}
+				router = &recordingRouter{conns: conns, failAfter: tt.failAfter}
+				cfg.Router = router
+			}
+
+			var (
+				mu struct {
+					sync.Mutex
+					paths []string
+				}
+				n atomic.Int32
+			)
+			cfg.Transport = mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				path := req.URL.Path
+				if tt.escaped {
+					path = req.URL.EscapedPath()
+				}
+				mu.Lock()
+				mu.paths = append(mu.paths, path)
+				mu.Unlock()
+
+				i := int(n.Add(1))
+				code := tt.statuses[len(tt.statuses)-1]
+				if i <= len(tt.statuses) {
+					code = tt.statuses[i-1]
+				}
+				return &http.Response{StatusCode: code, Body: http.NoBody}, nil
+			})
+
+			tp, err := New(cfg)
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+			if tt.failAfter > 0 {
+				require.NotNil(t, tp.seedFallbackPool)
+			}
+
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, tt.reqURL, nil)
+			require.NoError(t, err)
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			require.NotNil(t, res)
+			require.Equal(t, tt.wantStatus, res.StatusCode)
+			if res.Body != nil {
+				res.Body.Close()
+			}
+
+			mu.Lock()
+			got := append([]string(nil), mu.paths...)
+			mu.Unlock()
+			if tt.wantWire != nil {
+				require.Equal(t, tt.wantWire, got)
+			}
+			if tt.wantRoute != nil {
+				require.Equal(t, tt.wantRoute, router.paths())
+			}
+		})
+	}
 }
 
 func TestSetReqAuth(t *testing.T) {
@@ -598,3 +814,43 @@ func TestCalculateNodeStatsInterval(t *testing.T) {
 		require.Equal(t, defaultNodeStatsIntervalMin, interval)
 	})
 }
+
+// recordingRouter records req.URL.Path as Route() saw it (before setReqURL).
+// Each Route() call takes the next connection in conns, then repeats the last,
+// so a prefixed seed followed by a prefix-less discovered node is expressible.
+// If failAfter > 0, Route succeeds that many times then returns ErrNoConnections
+// so stream() can take seed fallback on the next hop.
+type recordingRouter struct {
+	conns     []*Connection
+	failAfter int32
+	n         atomic.Int32
+	mu        struct {
+		sync.Mutex
+		saw []string
+	}
+}
+
+func (r *recordingRouter) Route(_ context.Context, req *http.Request) (NextHop, error) {
+	r.mu.Lock()
+	r.mu.saw = append(r.mu.saw, req.URL.Path)
+	r.mu.Unlock()
+	n := r.n.Add(1)
+	if r.failAfter > 0 && n > r.failAfter {
+		return NextHop{}, ErrNoConnections
+	}
+	return NextHop{Conn: r.conns[min(int(n)-1, len(r.conns)-1)]}, nil
+}
+
+func (r *recordingRouter) paths() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return append([]string(nil), r.mu.saw...)
+}
+
+func (r *recordingRouter) OnSuccess(*Connection)                                {}
+func (r *recordingRouter) OnFailure(*Connection) error                          { return nil }
+func (r *recordingRouter) DiscoveryUpdate(_, _, _ []*Connection) error          { return nil }
+func (r *recordingRouter) CheckDead(_ context.Context, _ HealthCheckFunc) error { return nil }
+func (r *recordingRouter) RotateStandby(_ context.Context, _ int) (int, error)  { return 0, nil }
+
+var _ Router = (*recordingRouter)(nil)

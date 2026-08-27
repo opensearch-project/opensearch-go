@@ -1490,7 +1490,17 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		}
 	}
 
+	// Caller path, captured once for [restoreReqPath].
+	origPath := req.URL.Path
+	origRawPath := req.URL.RawPath
+
 	for i := 0; i <= c.maxRetries; i++ {
+		// Attempt 0 still carries the caller's path; only a retry has had
+		// setReqURL prepend a connection base path onto it.
+		if i > 0 {
+			restoreReqPath(req, origPath, origRawPath)
+		}
+
 		var (
 			conn            *Connection
 			poolName        string
@@ -1794,6 +1804,12 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 
 	// Seed URL fallback: absolute last resort when the entire retry loop
 	// failed to obtain a connection from any router policy or pool.
+	//
+	// req still carries the caller path, which performSeedFallback depends on
+	// because it prepends through setReqURL as well. This branch is reached only
+	// when an attempt failed to obtain a connection, which happens before that
+	// attempt reaches setReqURL, and the loop restores the path on entry to the
+	// same attempt. See [restoreReqPath].
 	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
 		res, err = c.performSeedFallback(req.Context(), req, &sr)
 	}
@@ -2001,6 +2017,28 @@ func (c *Transport) URLs() []*url.URL {
 	return c.mu.connectionPool.URLs()
 }
 
+// restoreReqPath writes the caller-supplied path back onto req. It owns the
+// invariant that every setReqURL call starts from that path; stream() upholds it
+// by calling this on entry to each attempt after the first, which is also what
+// leaves the path intact for the seed-fallback branch.
+//
+// stream() reuses one *http.Request across retries and setReqURL prepends the
+// connection base path in place, so without a restore a prefixed address
+// (https://host/prefix) becomes /prefix/prefix/_search on the next attempt, and
+// a prefix-less discovered node keeps the leftover prefix (setReqURL returns
+// early without assigning Path when the connection has no base path). Route()
+// matches on Path, and leftover /prefix/_search is not a miss: the mux treats it
+// as /{index}/_search with index "prefix", so the retry is classified against
+// the wrong index.
+func restoreReqPath(req *http.Request, path, rawPath string) {
+	req.URL.Path = path
+	req.URL.RawPath = rawPath
+}
+
+// setReqURL rewrites req.URL to target connection u, prepending u's base
+// path onto the current Path/RawPath. It does not remember the original, so
+// callers that retry or fall back on the same *http.Request must reinstate the
+// caller-supplied path first with [restoreReqPath].
 func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
