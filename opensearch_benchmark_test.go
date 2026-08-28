@@ -182,7 +182,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			Indices:    []string{"bench-index"},
 			BodyReader: strings.NewReader(body),
 			Params: &opensearchapi.SearchParams{
-				Size: opensearch.ToPointer(25),
+				Size: ptr(25),
 				DebugParams: opensearchapi.DebugParams{
 					Pretty: true,
 				},
@@ -231,3 +231,6 @@ func BenchmarkClientAPI(b *testing.B) {
 		}
 	})
 }
+
+// ptr returns a pointer to v.
+func ptr[T any](v T) *T { return &v }

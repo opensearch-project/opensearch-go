@@ -84,7 +84,7 @@ func example() error {
 			sourceIndex, destIndex,
 		)),
 		Params: &opensearchapi.ReindexParams{
-			WaitForCompletion: opensearch.ToPointer(false),
+			WaitForCompletion: ptr(false),
 		},
 	})
 	if err != nil {
@@ -162,7 +162,7 @@ func example() error {
 	// Cleanup.
 	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
 		Indices: []string{sourceIndex, destIndex},
-		Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+		Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 	})
 	if err != nil {
 		return err
@@ -171,3 +171,6 @@ func example() error {
 
 	return nil
 }
+
+// ptr returns a pointer to v.
+func ptr[T any](v T) *T { return &v }
