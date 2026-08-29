@@ -16,6 +16,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/tools/txtar"
 )
 
 // TestRewriteCorpus runs the real type-aware rewrite over a fixture module and
@@ -29,8 +30,8 @@ import (
 // an idiom-1 reference to a removed type (opensearchapi.PingRequest), which stays
 // put as a reported MANUAL item, so its golden deliberately does not compile as
 // pure v3 - only the compileClean subset makes that promise. Fixtures compile
-// against a local stub of the source-version API (testdata/corpus/stub-vN), so no
-// opensearch-go download is needed.
+// against a local stub of the source-version API (testdata/corpus/stub-vN.txtar),
+// so no opensearch-go download is needed.
 //
 // Regenerate goldens after an intentional rewrite change with:
 //
@@ -40,8 +41,8 @@ func TestRewriteCorpus(t *testing.T) {
 		name    string
 		src     major
 		dst     major
-		corpus  string   // dir under testdata/corpus holding go.mod + fixtures
-		stub    string   // replace-target dir under testdata/corpus
+		corpus  string   // txtar archive under testdata/corpus holding go.mod + fixtures
+		stub    string   // replace-target archive under testdata/corpus
 		goldens []string // fixture files diffed against <file>.golden
 		// compileClean lists goldens that must be pure compiling target-version
 		// output: no _OSAPILINT_RESOLVE marker and no unused import. The corpus does
@@ -131,20 +132,29 @@ func TestRewriteCorpus(t *testing.T) {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
 			}
 
+			archivePath := filepath.Join("testdata", "corpus", tc.corpus+".txtar")
+			archive, err := txtar.ParseFile(archivePath)
+			require.NoError(t, err, "parse %s", archivePath)
+			updateGolden := os.Getenv("UPDATE_GOLDEN") != ""
+
 			for _, file := range tc.goldens {
 				got, err := os.ReadFile(filepath.Join(dir, file))
 				require.NoError(t, err)
 
-				goldenPath := filepath.Join("testdata", "corpus", tc.corpus, file+".golden")
-				if os.Getenv("UPDATE_GOLDEN") != "" {
-					// goldenPath is built from hardcoded test-table fields, not
-					// external input; this dev-only branch never runs under CI.
-					require.NoError(t, os.WriteFile(goldenPath, got, 0o600)) //nolint:gosec // G703: path from test constants
+				goldenName := file + ".golden"
+				if updateGolden {
+					setTxtarFile(archive, goldenName, got)
 					continue
 				}
-				want, err := os.ReadFile(goldenPath)
-				require.NoError(t, err, "missing golden for %s; regenerate with UPDATE_GOLDEN=1", file)
+				want, ok := txtarFile(archive, goldenName)
+				require.True(t, ok, "missing golden for %s; regenerate with UPDATE_GOLDEN=1", file)
 				require.Equal(t, string(want), string(got), "rewritten %s does not match golden", file)
+			}
+
+			if updateGolden {
+				// archivePath is built from hardcoded test-table fields, not
+				// external input; this dev-only branch never runs under CI.
+				require.NoError(t, os.WriteFile(archivePath, txtar.Format(archive), 0o600)) //nolint:gosec // G703: path from test constants
 			}
 
 			for _, file := range tc.compileClean {
@@ -197,16 +207,16 @@ func assertNoUnusedImports(t *testing.T, file string, src []byte) {
 	}
 }
 
-// stageCorpus copies a corpus module and its stub into a temp dir so the rewrite
-// mutates a throwaway tree rather than the committed fixture. The committed
-// go.mod uses "replace ... => ../<stub>", which still resolves because both dirs
-// are copied as siblings under the temp root.
+// stageCorpus extracts a corpus module and its stub, each committed as a txtar
+// archive, into a temp dir so the rewrite mutates a throwaway tree rather than
+// the committed fixture. The archived go.mod uses "replace ... => ../<stub>",
+// which still resolves because both extract as siblings under the temp root.
 func stageCorpus(t *testing.T, corpus, stub string) string {
 	t.Helper()
 	root := t.TempDir()
 	srcBase := filepath.Join("testdata", "corpus")
-	require.NoError(t, os.CopyFS(filepath.Join(root, corpus), os.DirFS(filepath.Join(srcBase, corpus))))
-	require.NoError(t, os.CopyFS(filepath.Join(root, stub), os.DirFS(filepath.Join(srcBase, stub))))
+	extractTxtar(t, filepath.Join(srcBase, corpus+".txtar"), filepath.Join(root, corpus))
+	extractTxtar(t, filepath.Join(srcBase, stub+".txtar"), filepath.Join(root, stub))
 	return filepath.Join(root, corpus)
 }
 

@@ -209,14 +209,15 @@ func writeModule(t *testing.T, dir string, files map[string]string) {
 }
 
 // stageTwoMajor stages a consumer module that imports two opensearch-go majors
-// (v2 and v3), each resolved to its committed stub via a replace so the import
-// graph loads offline. It returns the consumer module directory.
+// (v2 and v3), each resolved to its committed stub (a txtar archive under
+// testdata/corpus) via a replace so the import graph loads offline. It returns
+// the consumer module directory.
 func stageTwoMajor(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	srcBase := filepath.Join("testdata", "corpus")
-	require.NoError(t, os.CopyFS(filepath.Join(root, "stub-v2"), os.DirFS(filepath.Join(srcBase, "stub-v2"))))
-	require.NoError(t, os.CopyFS(filepath.Join(root, "stub-v3"), os.DirFS(filepath.Join(srcBase, "stub-v3"))))
+	extractTxtar(t, filepath.Join(srcBase, "stub-v2.txtar"), filepath.Join(root, "stub-v2"))
+	extractTxtar(t, filepath.Join(srcBase, "stub-v3.txtar"), filepath.Join(root, "stub-v3"))
 
 	consumer := filepath.Join(root, "consumer")
 	writeModule(t, consumer, map[string]string{
