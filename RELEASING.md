@@ -61,7 +61,7 @@ The release process is standard across repositories in this org and is run by a 
    ### Dependencies
    ```
 
-9. Run `go list` with the new version to refresh [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5), e.g. `go list -m github.com/opensearch-project/opensearch-go/v5@v5.0.0`.
+9. Publishing the GitHub release in step 7 triggers the [Refresh pkg.go.dev](.github/workflows/pkg-go-dev-refresh.yml) workflow, which requests the new tag from the Go module proxy so it shows up on [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5) without anyone asking by hand. If that workflow fails or a release was published without going through it, run the same request locally: `go list -m github.com/opensearch-project/opensearch-go/v5@v5.0.0`. This only covers the root module; nested modules still need the manual refresh described below.
 
 ### Nested modules
 
