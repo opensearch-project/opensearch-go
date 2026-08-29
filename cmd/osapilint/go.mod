@@ -1,6 +1,6 @@
 module github.com/opensearch-project/opensearch-go/v5/cmd/osapilint
 
-go 1.25.12
+go 1.26
 
 require (
 	github.com/stretchr/testify v1.12.1
