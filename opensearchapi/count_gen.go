@@ -133,7 +133,7 @@ type CountParams struct {
 
 	// Sets the minimum `_score` value that documents must have to be included
 	// in the result.
-	MinScore int
+	MinScore float64
 
 	// Specifies the node or shard the operation should be performed on. Random
 	// by default.
@@ -201,7 +201,7 @@ func (r CountParams) get() map[string]string {
 	}
 
 	if r.MinScore != 0 {
-		set("min_score", strconv.Itoa(r.MinScore))
+		set("min_score", strconv.FormatFloat(r.MinScore, 'f', -1, 64))
 	}
 
 	if r.Preference != "" {

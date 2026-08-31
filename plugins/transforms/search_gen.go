@@ -65,13 +65,13 @@ type SearchParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// The starting transform to return. Default is `0`.
-	From int
+	From float64
 
 	// The search term to use to filter results.
 	Search string
 
 	// Specifies the number of transforms to return. Default is `10`.
-	Size int
+	Size float64
 
 	// Specifies the direction to sort results in. Can be `ASC` or `DESC`.
 	// Default is `ASC`.
@@ -93,7 +93,7 @@ func (r SearchParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.From != 0 {
-		set("from", strconv.Itoa(r.From))
+		set("from", strconv.FormatFloat(r.From, 'f', -1, 64))
 	}
 
 	if r.Search != "" {
@@ -101,7 +101,7 @@ func (r SearchParams) get() map[string]string {
 	}
 
 	if r.Size != 0 {
-		set("size", strconv.Itoa(r.Size))
+		set("size", strconv.FormatFloat(r.Size, 'f', -1, 64))
 	}
 
 	if r.SortDirection != "" {

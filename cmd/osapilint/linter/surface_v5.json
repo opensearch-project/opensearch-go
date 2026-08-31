@@ -19664,7 +19664,7 @@
         },
         {
           "name": "MinScore",
-          "type": "int"
+          "type": "float64"
         },
         {
           "name": "Preference",
@@ -20174,7 +20174,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "Routing",
@@ -20301,7 +20301,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },
@@ -44111,7 +44111,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "RequireAlias",
@@ -44226,7 +44226,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },
@@ -55056,7 +55056,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "Routing",
@@ -55224,7 +55224,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },

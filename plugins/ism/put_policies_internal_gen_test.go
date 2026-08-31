@@ -26,8 +26,13 @@ func TestPutPoliciesParams_get(t *testing.T) {
 		{name: "empty", params: PutPoliciesParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: PutPoliciesParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
-			want:   map[string]string{"if_primary_term": "42"},
+			params: PutPoliciesParams{IfPrimaryTerm: func(f float64) *float64 { return &f }(1.5)},
+			want:   map[string]string{"if_primary_term": "1.5"},
+		},
+		{
+			name:   "if_primary_term=0",
+			params: PutPoliciesParams{IfPrimaryTerm: func(f float64) *float64 { return &f }(0)},
+			want:   map[string]string{"if_primary_term": "0"},
 		},
 		{
 			name:   "if_seq_no",

@@ -374,6 +374,39 @@ b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isol
 
 To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.
 
+## Number query parameters are `float64`
+
+`cmd/osgen` typed OpenAPI `number` query parameters as `int`, so fractional values could not be sent and `0` was dropped by the `!= 0` emission guard. `number` now maps to `float64`. Parameters whose `0` is a documented wire value (the `requests_per_second` pause, and plugin `if_primary_term` schemas the spec types as `number`) are `*float64`, matching the `*int` pattern used for zero-meaningful integers.
+
+| Param | Was | Now |
+| --- | --- | --- |
+| `CountParams.MinScore` | `int` | `float64` |
+| `RequestsPerSecond` on reindex / delete-by-query / update-by-query and their rethrottles | `int` | `*float64` (`nil` omits; `&0` pauses) |
+| Plugin `if_primary_term` query params typed as `number` in the spec (`ism.put_policy` / `put_policies`, `rollups.put`, `transforms.put`) | `*int` | `*float64` |
+| `transforms.search` `from` / `size` | `int` | `float64` |
+
+Core document `if_primary_term` (`index` / `update` / `delete`) stays `*int` because those schemas are `type: integer`. Search-body `MinScore` and response `RequestsPerSecond` were already floating-point and are unchanged.
+
+Integer literals still assign to the value-typed fields (`MinScore: 1` compiles). Pointer fields need a `*float64`:
+
+```go
+// Before
+Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
+
+// After
+Params: &opensearchapi.ReindexParams{
+    RequestsPerSecond: opensearch.ToPointer(42.0),
+}
+```
+
+`requests_per_second=0` (pause a running reindex) now reaches the wire:
+
+```go
+Params: &opensearchapi.ReindexRethrottleParams{
+    RequestsPerSecond: opensearch.ToPointer(0.0),
+}
+```
+
 ## Field-scoped query clauses are union-typed
 
 The field-scoped clauses on `CommonQueryDSLQueryContainer` (`match`, `match_phrase`, `term`, `prefix`, and the rest) used to carry only the shorthand value, because the generator dropped the spec branch describing the full form. They now carry the union of both forms, and `distance_feature` is a typed union rather than `json.RawMessage`.

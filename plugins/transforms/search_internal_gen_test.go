@@ -26,8 +26,8 @@ func TestSearchParams_get(t *testing.T) {
 		{name: "empty", params: SearchParams{}, want: nil},
 		{
 			name:   "from",
-			params: SearchParams{From: 42},
-			want:   map[string]string{"from": "42"},
+			params: SearchParams{From: 1.5},
+			want:   map[string]string{"from": "1.5"},
 		},
 		{
 			name:   "search",
@@ -36,8 +36,8 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "size",
-			params: SearchParams{Size: 42},
-			want:   map[string]string{"size": "42"},
+			params: SearchParams{Size: 1.5},
+			want:   map[string]string{"size": "1.5"},
 		},
 		{
 			name:   "sortDirection",

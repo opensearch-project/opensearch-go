@@ -90,7 +90,7 @@ type PutParams struct {
 	opensearchapi.DebugParams
 	// Only performs the operation if the document has the specified primary
 	// term.
-	IfPrimaryTerm *int
+	IfPrimaryTerm *float64
 
 	// Only performs the operation if the document has the specified sequence
 	// number.
@@ -109,7 +109,7 @@ func (r PutParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.IfPrimaryTerm != nil {
-		set("if_primary_term", strconv.Itoa(*r.IfPrimaryTerm))
+		set("if_primary_term", strconv.FormatFloat(*r.IfPrimaryTerm, 'f', -1, 64))
 	}
 
 	if r.IfSeqNo != nil {
