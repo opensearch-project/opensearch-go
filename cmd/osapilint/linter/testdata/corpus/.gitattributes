@@ -1,5 +1,0 @@
-# The rewrite corpus test byte-compares linter output (go/format, always LF)
-# against these committed fixtures and goldens, which are packed into these
-# txtar archives. Pin them to LF so a CRLF checkout on Windows does not
-# spuriously fail TestRewriteCorpus.
-*.txtar text eol=lf
