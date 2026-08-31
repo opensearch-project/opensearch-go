@@ -50,6 +50,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
@@ -677,6 +678,88 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 
 				require.Error(t, indexerError, "expected indexer OnError to be called")
 				require.Equal(t, 1, onErrorCount, "OnError call count")
+			},
+		},
+		{
+			// v5 reports *PartialBulkError when errors:true. flush already
+			// skips handleBulkError and dispatches OnSuccess/OnFailure, but
+			// used to return the partial error, so Close/auto-flush/worker.run
+			// treated a mixed batch as a transport failure.
+			name: "OnError is not called on partial bulk item failures",
+			run: func(t *testing.T) {
+				t.Helper()
+				bodyContent, err := os.ReadFile("testdata/bulk_response_2.json")
+				require.NoError(t, err)
+
+				client, err := opensearchapi.NewClient(
+					opensearchapi.Config{
+						Client: opensearch.Config{
+							Transport: &mockTransport{
+								RoundTripFunc: func(request *http.Request) (*http.Response, error) {
+									if request.URL.Path == "/" {
+										return infoResponse()
+									}
+									return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
+								},
+							},
+						},
+						// Pin BulkItems unmasked so this test still hits
+						// *PartialBulkError if the version default changes.
+						Errors: errmask.New(),
+					},
+				)
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = client.Close() })
+
+				var (
+					onErrorCount    int
+					countSuccessful uint64
+					countFailed     uint64
+				)
+				biCfg := BulkIndexerConfig{
+					NumWorkers: 1,
+					Client:     client,
+					OnError: func(context.Context, error) {
+						onErrorCount++
+					},
+				}
+				if testutil.IsDebugEnabled(t) {
+					biCfg.DebugLogger = log.New(os.Stdout, "", 0)
+				}
+
+				bi, err := NewBulkIndexer(biCfg)
+				require.NoError(t, err)
+
+				successFunc := func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem) {
+					atomic.AddUint64(&countSuccessful, 1)
+				}
+				failureFunc := func(_ context.Context, _ BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+					require.NoError(t, err)
+					atomic.AddUint64(&countFailed, 1)
+				}
+
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "index", DocumentID: "1",
+					Body: strings.NewReader(`{"title":"foo"}`), OnSuccess: successFunc, OnFailure: failureFunc,
+				}))
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "create", DocumentID: "1",
+					Body: strings.NewReader(`{"title":"bar"}`), OnSuccess: successFunc, OnFailure: failureFunc,
+				}))
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "delete", DocumentID: "2",
+					Body: strings.NewReader(`{"title":"baz"}`), OnSuccess: successFunc, OnFailure: failureFunc,
+				}))
+				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
+					Action: "update", DocumentID: "3",
+					Body: strings.NewReader(`{"doc":{"title":"qux"}}`), OnSuccess: successFunc, OnFailure: failureFunc,
+				}))
+
+				require.NoError(t, bi.Close(context.Background()))
+
+				require.Equal(t, 0, onErrorCount, "OnError must not fire for per-item bulk failures")
+				require.Equal(t, uint64(2), countSuccessful, "countSuccessful")
+				require.Equal(t, uint64(2), countFailed, "countFailed")
 			},
 		},
 		{

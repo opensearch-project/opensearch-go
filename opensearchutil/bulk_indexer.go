@@ -815,6 +815,13 @@ func (w *worker) flush(ctx context.Context) error {
 		}
 	}
 
+	// PartialBulkError is success-with-failed-items: the loop above already
+	// called OnSuccess/OnFailure. Returning it would fire indexer OnError at
+	// every flush site (worker.run, auto-flush, Close) as if the request
+	// itself failed.
+	if errors.As(err, &partial) {
+		return nil
+	}
 	return err
 }
 
