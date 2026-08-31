@@ -32,7 +32,7 @@ func sdkReport(results []SDKResult) string {
 // single explicit hop and checks the returned SDKResult shape: one hop v2 -> v3
 // with the documented edits.
 func TestMigrateSDKSingleHop(t *testing.T) {
-	dir := stageCorpus(t, "v2", "stub-v2")
+	dir := stageCorpus(t, "v2")
 	results, err := MigrateSDK(t.Context(), SDKConfig{Dir: dir, Src: 2, Dst: 3, Write: false})
 	require.NoError(t, err)
 	require.Len(t, results, 1)
@@ -49,7 +49,7 @@ func TestMigrateSDKSingleHop(t *testing.T) {
 // dir/src/dst, MigrateSDK's dry-run edits must match the low-level driver the CLI
 // used before the extraction (runTypeAwareRewrite over the same plan).
 func TestMigrateSDKMatchesEngine(t *testing.T) {
-	dir := stageCorpus(t, "v2", "stub-v2")
+	dir := stageCorpus(t, "v2")
 
 	plans, err := planChain(2, 3)
 	require.NoError(t, err)
@@ -75,7 +75,7 @@ func TestMigrateSDKMatchesEngine(t *testing.T) {
 // TestMigrateSDKAutoDetect covers Src == 0: the source is detected from the
 // module's imports (v2 corpus imports v2), with no warnings for a single major.
 func TestMigrateSDKAutoDetect(t *testing.T) {
-	dir := stageCorpus(t, "v2", "stub-v2")
+	dir := stageCorpus(t, "v2")
 	results, err := MigrateSDK(t.Context(), SDKConfig{Dir: dir, Src: 0, Dst: 3, Write: false})
 	require.NoError(t, err)
 	require.NotEmpty(t, results)
@@ -86,7 +86,7 @@ func TestMigrateSDKAutoDetect(t *testing.T) {
 // TestMigrateSDKNewestKnown covers Dst == 0: the target defaults to the newest
 // registered version, producing a contiguous multi-hop chain from the source.
 func TestMigrateSDKNewestKnown(t *testing.T) {
-	dir := stageCorpus(t, "v2", "stub-v2")
+	dir := stageCorpus(t, "v2")
 	results, err := MigrateSDK(t.Context(), SDKConfig{Dir: dir, Src: 2, Dst: 0, Write: false})
 	require.NoError(t, err)
 	require.NotEmpty(t, results)

@@ -1,8 +1,22 @@
--- go.mod --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+Minimal stand-in modules for opensearch-go v2, v3 and v4, published under their
+real module paths so a corpus module's "replace ... => ../stub-vN" resolves
+offline. They are a type-checking API surface, not buildable packages - the
+corpus tests never run `go build` against them. All three ship in one
+archive because every hop stages all three stubs regardless of which majors it
+actually rewrites; splitting them per-major would just move that redundancy
+into the archive layout instead of removing it.
+
+-- stub-v2/go.mod --
 module github.com/opensearch-project/opensearch-go/v2
 
 go 1.24
--- opensearch.go --
+-- stub-v2/opensearch.go --
 // SPDX-License-Identifier: Apache-2.0
 //
 // The OpenSearch Contributors require contributions made to
@@ -51,7 +65,7 @@ func NewClient(cfg Config) (*Client, error) {
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.RoundTrip(req)
 }
--- opensearchapi/opensearchapi.go --
+-- stub-v2/opensearchapi/opensearchapi.go --
 // SPDX-License-Identifier: Apache-2.0
 //
 // The OpenSearch Contributors require contributions made to
@@ -147,4 +161,148 @@ type BulkRequest struct {
 // is the idiom-1 call shape opensearchapi.<X>Request{...}.Do(ctx, client).
 func (r BulkRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	return &Response{}, nil
+}
+-- stub-v3/go.mod --
+module github.com/opensearch-project/opensearch-go/v3
+
+go 1.24
+-- stub-v3/opensearch.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearch is a minimal stand-in for opensearch-go/v3's root package.
+// v3 -> v4 is a quiet hop (the opensearchapi client and its types are identical
+// across the two versions; only error types move package, handled as manual
+// followups), so this stub carries just enough for a fixture to construct a
+// typed client and have the import path bumped to v4. See the sibling v2 stub
+// for the general rationale.
+package opensearch
+
+import "net/http"
+
+// Config is the v3 root client config (nested inside opensearchapi.Config).
+type Config struct {
+	Addresses []string
+	Username  string
+	Password  string
+	Header    http.Header
+}
+
+// Client is the v3 transport-level client wrapped by the opensearchapi Client.
+type Client struct {
+	Transport http.RoundTripper
+}
+
+// Response is the v3 raw response type returned by opensearchapi calls.
+type Response struct {
+	StatusCode int
+}
+
+func (r *Response) IsError() bool { return false }
+-- stub-v3/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v3's
+// opensearchapi package, carrying the nested Config, the typed Client, and a
+// Ping method so a fixture can exercise the v3 typed sub-client API. See the
+// sibling opensearch.go for why this stub exists.
+package opensearchapi
+
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v3"
+)
+
+// Config wraps the root client config, matching v3's exact shape.
+type Config struct {
+	Client opensearch.Config
+}
+
+// Client is the v3 typed API client.
+type Client struct {
+	Client *opensearch.Client
+}
+
+// NewClient builds a typed client from Config.
+func NewClient(config Config) (*Client, error) {
+	return &Client{}, nil
+}
+
+// PingReq is the typed ping request.
+type PingReq struct{}
+
+// Ping is the v3 typed sub-client call shape.
+func (c Client) Ping(ctx context.Context, req *PingReq) (*opensearch.Response, error) {
+	return &opensearch.Response{}, nil
+}
+-- stub-v4/go.mod --
+module github.com/opensearch-project/opensearch-go/v4
+
+go 1.24
+-- stub-v4/opensearch.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearch is a minimal stand-in for opensearch-go/v4's root package,
+// carrying just enough for a fixture to construct a typed client. See the
+// sibling v2/v3 stubs for the general rationale.
+package opensearch
+
+import "net/http"
+
+// Config is the v4 root client config (nested inside opensearchapi.Config).
+type Config struct {
+	Addresses []string
+}
+
+// Client is the v4 transport-level client wrapped by the opensearchapi Client.
+type Client struct {
+	Transport http.RoundTripper
+}
+-- stub-v4/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v4's
+// opensearchapi package. It carries the nested Config, the typed Client, and
+// AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
+// reference the removed type and exercise the cross-hop removed-type diagnostic.
+package opensearchapi
+
+import "github.com/opensearch-project/opensearch-go/v4"
+
+// Config wraps the root client config, matching v4's exact shape.
+type Config struct {
+	Client opensearch.Config
+}
+
+// Client is the v4 typed API client.
+type Client struct {
+	Client *opensearch.Client
+}
+
+// NewClient builds a typed client from Config.
+func NewClient(config Config) (*Client, error) {
+	return &Client{}, nil
+}
+
+// AliasDeleteResp is a v4 response type with no v5 counterpart (removed in the
+// v5 API). A reference to it must trip the removed-type MANUAL diagnostic on the
+// v4 -> v5 hop.
+type AliasDeleteResp struct {
+	Acknowledged bool
 }

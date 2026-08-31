@@ -30,7 +30,7 @@ import (
 // an idiom-1 reference to a removed type (opensearchapi.PingRequest), which stays
 // put as a reported MANUAL item, so its golden deliberately does not compile as
 // pure v3 - only the compileClean subset makes that promise. Fixtures compile
-// against a local stub of the source-version API (testdata/corpus/stub-vN.txtar),
+// against a local stub of the source-version API (testdata/corpus/stubs.txtar),
 // so no opensearch-go download is needed.
 //
 // Regenerate goldens after an intentional rewrite change with:
@@ -42,7 +42,6 @@ func TestRewriteCorpus(t *testing.T) {
 		src     major
 		dst     major
 		corpus  string   // txtar archive under testdata/corpus holding go.mod + fixtures
-		stub    string   // replace-target archive under testdata/corpus
 		goldens []string // fixture files diffed against <file>.golden
 		// compileClean lists goldens that must be pure compiling target-version
 		// output: no _OSAPILINT_RESOLVE marker and no unused import. The corpus does
@@ -58,7 +57,6 @@ func TestRewriteCorpus(t *testing.T) {
 			src:    2,
 			dst:    3,
 			corpus: "v2",
-			stub:   "stub-v2",
 			// seedops: idiom-2 seed ops -> compiling v3. aliasedimport: aliased
 			// opensearchapi import stays single. paramsemit: destParams nests under
 			// Params. carriedrootclient: a carried v2-root-client arg -> marker.
@@ -85,7 +83,6 @@ func TestRewriteCorpus(t *testing.T) {
 			src:     3,
 			dst:     4,
 			corpus:  "v3",
-			stub:    "stub-v3",
 			goldens: []string{"client.go"}, // quiet hop: only the import path bumps
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v3",
@@ -99,7 +96,6 @@ func TestRewriteCorpus(t *testing.T) {
 			src:     4,
 			dst:     5,
 			corpus:  "v4",
-			stub:    "stub-v4",
 			goldens: []string{"removedtype.go"}, // import bumps; the removed-type ref stays put
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
@@ -108,7 +104,7 @@ func TestRewriteCorpus(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			dir := stageCorpus(t, tc.corpus, tc.stub)
+			dir := stageCorpus(t, tc.corpus)
 
 			plans, err := planChain(tc.src, tc.dst)
 			require.NoError(t, err)
@@ -207,16 +203,18 @@ func assertNoUnusedImports(t *testing.T, file string, src []byte) {
 	}
 }
 
-// stageCorpus extracts a corpus module and its stub, each committed as a txtar
-// archive, into a temp dir so the rewrite mutates a throwaway tree rather than
-// the committed fixture. The archived go.mod uses "replace ... => ../<stub>",
-// which still resolves because both extract as siblings under the temp root.
-func stageCorpus(t *testing.T, corpus, stub string) string {
+// stageCorpus extracts a corpus module, each committed as a txtar archive,
+// plus all three API stubs into a temp dir so the rewrite mutates a
+// throwaway tree rather than the committed fixture. The corpus go.mod uses
+// "replace ... => ../stub-vN", which resolves because stubs.txtar lays its
+// modules down as siblings of the corpus module. Every hop stages all three
+// stubs; the unreferenced ones are inert.
+func stageCorpus(t *testing.T, corpus string) string {
 	t.Helper()
 	root := t.TempDir()
 	srcBase := filepath.Join("testdata", "corpus")
 	extractTxtar(t, filepath.Join(srcBase, corpus+".txtar"), filepath.Join(root, corpus))
-	extractTxtar(t, filepath.Join(srcBase, stub+".txtar"), filepath.Join(root, stub))
+	extractTxtar(t, filepath.Join(srcBase, "stubs.txtar"), root)
 	return filepath.Join(root, corpus)
 }
 
