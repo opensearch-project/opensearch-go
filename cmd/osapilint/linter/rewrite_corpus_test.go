@@ -150,7 +150,7 @@ func TestRewriteCorpus(t *testing.T) {
 			if updateGolden {
 				// archivePath is built from hardcoded test-table fields, not
 				// external input; this dev-only branch never runs under CI.
-				require.NoError(t, os.WriteFile(archivePath, txtar.Format(archive), 0o600)) //nolint:gosec // G703: path from test constants
+				require.NoError(t, os.WriteFile(archivePath, txtar.Format(archive), 0o600))
 			}
 
 			for _, file := range tc.compileClean {

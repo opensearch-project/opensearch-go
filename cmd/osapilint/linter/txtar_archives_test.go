@@ -28,8 +28,6 @@ import (
 // staged records, by testdata-relative path (e.g. "corpus/v2.txtar"), every
 // archive extractTxtar has loaded during the test run. TestMain compares this
 // against the archives on disk to catch a fixture nothing stages anymore.
-//
-//nolint:gochecknoglobals // recorder written by extractTxtar, read by TestMain
 var staged struct {
 	sync.Mutex
 	names map[string]struct{}
@@ -170,13 +168,14 @@ func gitTrackedTxtarArchives(t *testing.T, root string) []string {
 		return nil
 	}
 	var archives []string
-	for _, line := range strings.Split(trimmed, "\n") {
+	for line := range strings.SplitSeq(trimmed, "\n") {
 		archives = append(archives, filepath.Join(root, line))
 	}
 	return archives
 }
 
 func checkArchive(t *testing.T, archive string) {
+	t.Helper()
 	raw, err := os.ReadFile(archive)
 	require.NoError(t, err)
 	ar := txtar.Parse(raw)
@@ -212,11 +211,13 @@ func checkArchive(t *testing.T, archive string) {
 	canon := canonicalize(t, raw)
 	if !bytes.Equal(canon, raw) {
 		if update {
+			//nolint:gosec // G703 false positive: archive is a tracked repo path from git ls-files, rewritten in place only under UPDATE_TXTAR
 			require.NoError(t, os.WriteFile(archive, canon, 0o600))
 			return
 		}
 		require.Equal(t, string(canon), string(raw),
-			"%s is not canonical txtar.Format output or has non-goimports-clean .go/.golden sections; fix with: UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives",
+			"%s is not canonical txtar.Format output or has non-goimports-clean .go/.golden sections; "+
+				"fix with: UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives",
 			archive)
 	}
 }
@@ -241,7 +242,7 @@ func canonicalize(t *testing.T, raw []byte) []byte {
 		// imports.Process would delete that import and break the fixture it
 		// exists to test. Even so, imports.Process regroups imports into
 		// std/non-std blocks the same way goimports does - that's goimports
-		// behaviour, not gofmt - and runs the same printer as gofmt, so a
+		// behavior, not gofmt - and runs the same printer as gofmt, so a
 		// separate gofmt/format.Source assertion could never fire on its own
 		// here.
 		formatted, err := imports.Process(f.Name, f.Data, &imports.Options{
