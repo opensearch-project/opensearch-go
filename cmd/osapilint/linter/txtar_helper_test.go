@@ -8,6 +8,7 @@ package linter
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,8 +19,15 @@ import (
 // dir, creating dir if needed. Fixtures live as txtar archives (one file per
 // corpus/stub, rather than a directory of loose .go/.golden/go.mod files) so a
 // scenario is one file to read, diff, and pin to LF in .gitattributes.
+//
+// archivePath is always rooted at "testdata"; extractTxtar records it
+// relative to that root so TestTxtarArchives' zombie check can compare
+// against the same testdata/ walk it uses to enumerate archives on disk.
 func extractTxtar(t *testing.T, archivePath, dir string) {
 	t.Helper()
+	rel, err := filepath.Rel("testdata", archivePath)
+	require.NoError(t, err, "rel %s", archivePath)
+	recordStaged(rel)
 	a, err := txtar.ParseFile(archivePath)
 	require.NoError(t, err, "parse %s", archivePath)
 	fsys, err := txtar.FS(a)

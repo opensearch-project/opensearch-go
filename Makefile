@@ -89,6 +89,9 @@ CTR_COMPOSE = $(CTR) compose --project-directory $(COMPOSE_DIR) $(COMPOSE_FILES)
 format:  ## Format all Go files with goimports
 	goimports -w .;
 
+fix-txtar:  ## Rewrite every tracked txtar fixture archive in the repo into canonical, formatted form
+	cd cmd/osapilint && UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives
+
 ##@ Testing
 test-unit:  ## Run unit tests across all modules (root + every nested go.mod)
 	@printf "\033[2m-> Running unit tests...\033[0m\n"
