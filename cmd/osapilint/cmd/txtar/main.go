@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"maps"
 	"os"
@@ -31,29 +32,44 @@ import (
 	"golang.org/x/tools/txtar"
 )
 
+// Subcommand names, shared with the usage text and the dispatch tests.
+const (
+	cmdUnpack = "unpack"
+	cmdPack   = "pack"
+)
+
 func main() {
-	if len(os.Args) != 4 {
-		usage()
-		os.Exit(2)
-	}
-	var err error
-	switch os.Args[1] {
-	case "unpack":
-		err = unpack(os.Args[2], os.Args[3])
-	case "pack":
-		err = pack(os.Args[2], os.Args[3])
-	default:
-		usage()
-		os.Exit(2)
-	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "txtar:", err)
-		os.Exit(1)
-	}
+	os.Exit(run(os.Args[1:], os.Stderr))
 }
 
-func usage() {
-	fmt.Fprint(os.Stderr, `usage:
+// run dispatches one subcommand and returns the process exit status: 0 on
+// success, 1 when the subcommand fails, 2 on a usage error. Taking the
+// arguments and the error stream as parameters keeps the dispatch reachable
+// from a test without spawning a subprocess.
+func run(args []string, stderr io.Writer) int {
+	if len(args) != 3 {
+		usage(stderr)
+		return 2
+	}
+	var err error
+	switch args[0] {
+	case cmdUnpack:
+		err = unpack(args[1], args[2])
+	case cmdPack:
+		err = pack(args[1], args[2])
+	default:
+		usage(stderr)
+		return 2
+	}
+	if err != nil {
+		fmt.Fprintln(stderr, "txtar:", err)
+		return 1
+	}
+	return 0
+}
+
+func usage(w io.Writer) {
+	fmt.Fprint(w, `usage:
   txtar unpack <archive> <dir>   materialize the archive's sections under dir
   txtar pack   <dir> <archive>   write dir's files back into the archive
 `)

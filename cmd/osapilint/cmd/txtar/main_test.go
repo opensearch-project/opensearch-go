@@ -7,6 +7,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
@@ -141,4 +142,79 @@ func TestPackEmptyDir(t *testing.T) {
 	t.Parallel()
 	err := pack(t.TempDir(), filepath.Join(t.TempDir(), "out.txtar"))
 	require.ErrorContains(t, err, "no files under")
+}
+
+// TestRunUsageErrors covers the argument shapes that must print usage and exit
+// 2 without touching the filesystem.
+func TestRunUsageErrors(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{name: "no arguments", args: nil},
+		{name: "too few arguments", args: []string{cmdUnpack, "only-one"}},
+		{name: "too many arguments", args: []string{cmdUnpack, "a", "b", "c"}},
+		{name: "unknown subcommand", args: []string{"squash", "a", "b"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var stderr bytes.Buffer
+			require.Equal(t, 2, run(tc.args, &stderr))
+			require.Contains(t, stderr.String(), "usage:")
+		})
+	}
+}
+
+// TestRunDispatch covers the exit status run reports for each subcommand, since
+// that status is the tool's contract with whoever is fixing a failing archive.
+func TestRunDispatch(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name     string
+		args     func(t *testing.T) []string
+		wantCode int
+		// wantStderr is a required substring; empty means stderr must stay empty.
+		wantStderr string
+	}{
+		{
+			name: cmdUnpack,
+			args: func(t *testing.T) []string {
+				t.Helper()
+				return []string{cmdUnpack, writeSeed(t), filepath.Join(t.TempDir(), "tree")}
+			},
+			wantCode: 0,
+		},
+		{
+			name: cmdPack,
+			args: func(t *testing.T) []string {
+				t.Helper()
+				archive := writeSeed(t)
+				dir := filepath.Join(t.TempDir(), "tree")
+				require.NoError(t, unpack(archive, dir))
+				return []string{cmdPack, dir, archive}
+			},
+			wantCode: 0,
+		},
+		{
+			name: "missing archive",
+			args: func(t *testing.T) []string {
+				t.Helper()
+				return []string{cmdUnpack, filepath.Join(t.TempDir(), "absent.txtar"), filepath.Join(t.TempDir(), "tree")}
+			},
+			wantCode:   1,
+			wantStderr: "txtar:",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			var stderr bytes.Buffer
+			require.Equal(t, tc.wantCode, run(tc.args(t), &stderr))
+			if tc.wantStderr == "" {
+				require.Empty(t, stderr.String())
+				return
+			}
+			require.Contains(t, stderr.String(), tc.wantStderr)
+		})
+	}
 }
