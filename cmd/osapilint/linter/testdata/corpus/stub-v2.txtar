@@ -51,7 +51,6 @@ func NewClient(cfg Config) (*Client, error) {
 func (c *Client) Perform(req *http.Request) (*http.Response, error) {
 	return c.Transport.RoundTrip(req)
 }
-
 -- opensearchapi/opensearchapi.go --
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -86,11 +85,11 @@ type Response struct {
 	Body       io.ReadCloser
 }
 
-func (r *Response) String() string      { return "" }
-func (r *Response) Status() string      { return "" }
-func (r *Response) IsError() bool       { return false }
-func (r *Response) Warnings() []string  { return nil }
-func (r *Response) HasWarnings() bool   { return false }
+func (r *Response) String() string     { return "" }
+func (r *Response) Status() string     { return "" }
+func (r *Response) IsError() bool      { return false }
+func (r *Response) Warnings() []string { return nil }
+func (r *Response) HasWarnings() bool  { return false }
 
 // Ping is the functional-options request func for the ping API.
 type Ping func(o ...func(*PingRequest)) (*Response, error)
@@ -149,4 +148,3 @@ type BulkRequest struct {
 func (r BulkRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
 	return &Response{}, nil
 }
-
