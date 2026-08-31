@@ -162,20 +162,20 @@ After `osapilint rewrite -w`, `go build` fails at each marker, and `grep -r _OSA
 go test ./...
 ```
 
-| File                                     | Covers                                                                              |
-| ---------------------------------------- | ----------------------------------------------------------------------------------- |
-| `linter/plan_test.go`                    | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces   |
-| `linter/delta_test.go`                   | Drift guards over every hop's type renames and field dispositions                   |
-| `linter/rewrite_corpus_test.go`          | End-to-end rewrite over fixture modules (`testdata/corpus`), diffed against goldens |
-| `linter/hop_v3_to_v4_test.go`            | v3 -> v4 version-specific facts                                                     |
-| `linter/hop_v4_to_v5_test.go`            | v4 -> v5 version-specific facts                                                     |
-| `linter/hop_v2_to_v3_test.go`            | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings      |
-| `linter/detect_test.go`                  | Source detection, version parsing, directory resolution                             |
-| `internal/apirev/delta_internal_test.go` | Surface diffing internals                                                           |
+| File                                     | Covers                                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `linter/plan_test.go`                    | `planChain` and `DeriveDelta` field dispositions, via synthetic v7/v8/v9 surfaces           |
+| `linter/delta_test.go`                   | Drift guards over every hop's type renames and field dispositions                           |
+| `linter/rewrite_corpus_test.go`          | End-to-end rewrite over fixture modules (`testdata/corpus/*.txtar`), diffed against goldens |
+| `linter/hop_v3_to_v4_test.go`            | v3 -> v4 version-specific facts                                                             |
+| `linter/hop_v4_to_v5_test.go`            | v4 -> v5 version-specific facts                                                             |
+| `linter/hop_v2_to_v3_test.go`            | v2 -> v3 facts: no renames, removed-type recording, root-client manual rulings              |
+| `linter/detect_test.go`                  | Source detection, version parsing, directory resolution                                     |
+| `internal/apirev/delta_internal_test.go` | Surface diffing internals                                                                   |
 
 ### Rewrite corpus
 
-`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules under `linter/testdata/corpus` and diffs the output against committed `.golden` files. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stub-vN`), so the test needs no opensearch-go download. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
+`linter/rewrite_corpus_test.go` runs the real type-aware rewrite over small fixture modules staged from `linter/testdata/corpus/v2.txtar` and its siblings, and diffs the output against `.golden` sections in the same archive. Each fixture compiles against a hand-written stub of the source-version API (`linter/testdata/corpus/stub-v2.txtar` and its siblings), so the test needs no opensearch-go download. Fixtures live in `txtar` archives rather than as loose files so repo-wide Go tooling does not walk into them. The v2 corpus covers both idioms: `seedops.go` (idiom 2, rewritten to compiling v3, golden-checked) and `bulk_idiom1.go` (idiom 1, report-only, checked by its removed-type MANUAL line). Fixtures meant to be pure compiling target-version output (e.g. `paramsemit.go`) are additionally asserted marker-free and import-clean, since the test does not run `go build`. The v3 corpus checks the quiet v3 -> v4 import bump. Regenerate goldens after an intentional rewrite change with `UPDATE_GOLDEN=1 go test ./linter -run TestRewriteCorpus`.
 
 ## Limitations
 
