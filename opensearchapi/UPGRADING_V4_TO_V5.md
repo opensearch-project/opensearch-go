@@ -104,6 +104,18 @@ params := opensearchapi.SearchParams{
 
 `opensearch.ToPointer(v)` is a generic helper. It is deprecated; once the module's `go` directive moves to Go 1.26, `new(false)` literals work directly.
 
+### Number query parameters are `float64`
+
+v4 typed `CountParams.MinScore` and the `RequestsPerSecond` query params as `*int`. v5 generates them from the spec: `number` becomes `float64`, and `requests_per_second` is `*float64` so a pause (`0`) is sendable. See [`UPGRADING_V5.md`](../UPGRADING_V5.md#number-query-parameters-are-float64).
+
+```go
+// v4
+Params: opensearchapi.ReindexParams{RequestsPerSecond: opensearch.ToPointer(42)}
+
+// v5
+Params: &opensearchapi.ReindexParams{RequestsPerSecond: opensearch.ToPointer(42.0)}
+```
+
 ### Partial-failure type renames
 
 The v5 and v4 `opensearchapi/` packages carry the same high-level partial-failure error types (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, `*MSearchErrors`, `*MSearchTemplateErrors`). The internal field types diverge because v5 is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):

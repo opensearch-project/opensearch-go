@@ -26,8 +26,13 @@ func TestUpdateByQueryRethrottleParams_get(t *testing.T) {
 		{name: "empty", params: UpdateByQueryRethrottleParams{}, want: nil},
 		{
 			name:   "requests_per_second",
-			params: UpdateByQueryRethrottleParams{RequestsPerSecond: 42},
-			want:   map[string]string{"requests_per_second": "42"},
+			params: UpdateByQueryRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			want:   map[string]string{"requests_per_second": "1.5"},
+		},
+		{
+			name:   "requests_per_second=0",
+			params: UpdateByQueryRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			want:   map[string]string{"requests_per_second": "0"},
 		},
 	}
 	for _, tt := range tests {

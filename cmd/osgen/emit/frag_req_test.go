@@ -152,6 +152,8 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 			{GoName: "Level", WireName: "level", GoType: "string", Kind: ir.ParamString, Default: "cluster"},
 			{GoName: "Size", WireName: "size", GoType: "int", Kind: ir.ParamInt},
 			{GoName: "IfSeqNo", WireName: "if_seq_no", GoType: "*int", Kind: ir.ParamInt},
+			{GoName: "MinScore", WireName: "min_score", GoType: "float64", Kind: ir.ParamFloat},
+			{GoName: "RequestsPerSecond", WireName: "requests_per_second", GoType: "*float64", Kind: ir.ParamFloat},
 		},
 	}
 
@@ -170,6 +172,12 @@ func TestParamsFragment_SimpleOp(t *testing.T) {
 	// Pointer int (0 is meaningful): nil guard, dereferenced value.
 	require.Contains(t, body, "if r.IfSeqNo != nil {")
 	require.Contains(t, body, `set("if_seq_no", strconv.Itoa(*r.IfSeqNo))`)
+	// Plain float64: != 0 guard, FormatFloat.
+	require.Contains(t, body, "if r.MinScore != 0 {")
+	require.Contains(t, body, `set("min_score", strconv.FormatFloat(r.MinScore, 'f', -1, 64))`)
+	// Pointer float64 (0 is meaningful): nil guard, dereferenced FormatFloat.
+	require.Contains(t, body, "if r.RequestsPerSecond != nil {")
+	require.Contains(t, body, `set("requests_per_second", strconv.FormatFloat(*r.RequestsPerSecond, 'f', -1, 64))`)
 	require.Contains(t, body, "// Default: cluster.")
 	require.Contains(t, body, "TimeoutParams")
 	require.Contains(t, body, "DebugParams")
@@ -184,6 +192,7 @@ func TestParamsFragment_Imports(t *testing.T) {
 		QueryParams: []ir.QueryParam{
 			{GoName: "Timeout", WireName: "timeout", GoType: "time.Duration", Kind: ir.ParamDuration},
 			{GoName: "Size", WireName: "size", GoType: "int", Kind: ir.ParamInt},
+			{GoName: "MinScore", WireName: "min_score", GoType: "float64", Kind: ir.ParamFloat},
 			{GoName: "Index", WireName: "index", GoType: "[]string", Kind: ir.ParamList},
 		},
 	}

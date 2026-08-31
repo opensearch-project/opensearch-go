@@ -34,7 +34,7 @@ func (f *ParamsFragment) Imports() []Import {
 			imps = append(imps, Import{Path: "time"})
 		case ir.ParamBool:
 			imps = append(imps, Import{Path: "strconv"})
-		case ir.ParamInt:
+		case ir.ParamInt, ir.ParamFloat:
 			imps = append(imps, Import{Path: "strconv"})
 		case ir.ParamList:
 			imps = append(imps, Import{Path: "strings"})
@@ -123,6 +123,8 @@ func (f *ParamsFragment) Body() (string, error) {
 		"isList":            func(k ir.ParamKind) bool { return k == ir.ParamList },
 		"isInt":             func(k ir.ParamKind) bool { return k == ir.ParamInt },
 		"isIntPtr":          func(p ir.QueryParam) bool { return p.Kind == ir.ParamInt && p.GoType == "*int" },
+		"isFloat":           func(k ir.ParamKind) bool { return k == ir.ParamFloat },
+		"isFloatPtr":        func(p ir.QueryParam) bool { return p.Kind == ir.ParamFloat && p.GoType == "*float64" },
 		"isStringEnum":      func(p ir.QueryParam) bool { return p.IsStringEnum },
 		"hasFormatOverride": HasFormatOverride,
 	}).Parse(paramsTmplStr))
@@ -195,6 +197,14 @@ func (r {{.TypePrefix}}Params) get() map[string]string {
 {{- else if isInt .Kind}}
 	if r.{{.GoName}} != 0 {
 		set("{{.WireName}}", strconv.Itoa(r.{{.GoName}}))
+	}
+{{- else if isFloatPtr .}}
+	if r.{{.GoName}} != nil {
+		set("{{.WireName}}", strconv.FormatFloat(*r.{{.GoName}}, 'f', -1, 64))
+	}
+{{- else if isFloat .Kind}}
+	if r.{{.GoName}} != 0 {
+		set("{{.WireName}}", strconv.FormatFloat(r.{{.GoName}}, 'f', -1, 64))
 	}
 {{- else if isStringEnum .}}
 	if r.{{.GoName}} != "" {

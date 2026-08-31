@@ -191,6 +191,8 @@ func classifyParamKind(p apiQueryParam) ir.ParamKind {
 		return ir.ParamBool
 	case p.IsInt:
 		return ir.ParamInt
+	case p.IsFloat:
+		return ir.ParamFloat
 	case p.IsList:
 		return ir.ParamList
 	default:
