@@ -71,9 +71,9 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Sub-modules are auto-discovered: every go.mod except the root one and testdata
 # fixtures. New nested modules (cmd/*, osprom, osotel, ...) are picked up by
-# test-unit and lint with no Makefile change. testdata/ holds corpus fixtures
-# (stub + golden modules for the rewrite tests), not real modules to build or
-# lint. Paths are sorted for deterministic ordering.
+# test-unit and lint with no Makefile change. The testdata/ filter is defensive:
+# osapilint's rewrite-corpus fixtures ship as txtar archives with no go.mod on
+# disk, but the exclusion still guards against a future testdata module. Paths are sorted for deterministic ordering.
 SUBMODULES := $(shell find . -name go.mod -not -path './go.mod' -not -path '*/.*' -not -path '*/testdata/*' -exec dirname {} \; | sed 's|^\./||' | sort)
 
 # Compose with optional override files for heterogeneous clusters.
@@ -88,6 +88,9 @@ CTR_COMPOSE = $(CTR) compose --project-directory $(COMPOSE_DIR) $(COMPOSE_FILES)
 ##@ Formatting
 format:  ## Format all Go files with goimports
 	goimports -w .;
+
+fix-txtar:  ## Rewrite every tracked txtar fixture archive in the repo into canonical, formatted form
+	cd cmd/osapilint && UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives
 
 ##@ Testing
 test-unit:  ## Run unit tests across all modules (root + every nested go.mod)
