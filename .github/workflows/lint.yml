@@ -42,8 +42,9 @@ jobs:
         # Every nested go.mod (exclude the root module, any dotdirs, and
         # testdata fixtures) as a compact JSON array, so the lint matrix below
         # picks up new modules with no workflow edit. Mirrors the Makefile's
-        # SUBMODULES discovery. testdata/ holds corpus fixtures (stub + golden
-        # modules for the rewrite tests) that are not real modules to lint.
+        # SUBMODULES discovery. The testdata/ exclusion is defensive:
+        # osapilint's rewrite-corpus fixtures ship as txtar archives with no
+        # go.mod on disk, but it still guards against a future testdata module.
         run: |
           set -euo pipefail
           modules=$(find . -name go.mod -not -path './go.mod' -not -path '*/.*' \

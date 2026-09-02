@@ -1,0 +1,308 @@
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+Minimal stand-in modules for opensearch-go v2, v3 and v4, published under their
+real module paths so a corpus module's "replace ... => ../stub-vN" resolves
+offline. They are a type-checking API surface, not buildable packages - the
+corpus tests never run `go build` against them. All three ship in one
+archive because every hop stages all three stubs regardless of which majors it
+actually rewrites; splitting them per-major would just move that redundancy
+into the archive layout instead of removing it.
+
+-- stub-v2/go.mod --
+module github.com/opensearch-project/opensearch-go/v2
+
+go 1.24
+-- stub-v2/opensearch.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearch is a minimal stand-in for opensearch-go/v2's root package,
+// exposing only the shapes osapilint's v2->v3 rewrite recognizes: the Client that
+// embeds the API methods, the flat Config, and NewClient. It exists so the
+// testdata corpus type-checks against the v2 import path without downloading the
+// real module. Keep the exported surface in sync with surface_v2.json; the drift
+// guards validate the rewrite tables, and this stub only has to satisfy the type
+// checker for the fixtures under ../v2.
+package opensearch
+
+import (
+	"net/http"
+
+	"github.com/opensearch-project/opensearch-go/v2/opensearchapi"
+)
+
+// Config is the v2 flat client config. The v2->v3 rewrite wraps a literal of
+// this type into opensearchapi.Config{Client: ...}.
+type Config struct {
+	Addresses []string
+	Username  string
+	Password  string
+	Transport http.RoundTripper
+}
+
+// Client embeds the API method set, exactly as v2's real Client does. The
+// idiom-2 rewrite recognizes calls whose receiver resolves to this type.
+type Client struct {
+	*opensearchapi.API
+	Transport http.RoundTripper
+}
+
+// NewClient constructs a Client. The rewrite repoints this to
+// opensearchapi.NewClient on the v3 side.
+func NewClient(cfg Config) (*Client, error) {
+	return &Client{API: opensearchapi.New()}, nil
+}
+
+// Perform lets *Client satisfy opensearchapi.Transport, so it can be passed as
+// the second argument of the idiom-1 form opensearchapi.<X>Request{...}.Do(ctx, client).
+func (c *Client) Perform(req *http.Request) (*http.Response, error) {
+	return c.Transport.RoundTrip(req)
+}
+-- stub-v2/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v2's
+// opensearchapi package. It carries only the seed-op shapes the rewrite touches:
+// the API method set with Ping and Indices.Exists as functional-options funcs,
+// their request types, and the raw Response with the methods the rewrite either
+// keeps, rewrites (Status), or markers (String, Warnings, HasWarnings). See the
+// sibling opensearch.go for why this stub exists.
+package opensearchapi
+
+import (
+	"context"
+	"io"
+	"net/http"
+)
+
+// Transport is the sink Do writes through; the root Client satisfies it.
+type Transport interface {
+	Perform(*http.Request) (*http.Response, error)
+}
+
+// Response is the v2 raw response. The v3 hop keeps Body/StatusCode/IsError,
+// rewrites Status() to an http.StatusText form, and markers the rest.
+type Response struct {
+	StatusCode int
+	Header     http.Header
+	Body       io.ReadCloser
+}
+
+func (r *Response) String() string     { return "" }
+func (r *Response) Status() string     { return "" }
+func (r *Response) IsError() bool      { return false }
+func (r *Response) Warnings() []string { return nil }
+func (r *Response) HasWarnings() bool  { return false }
+
+// Ping is the functional-options request func for the ping API.
+type Ping func(o ...func(*PingRequest)) (*Response, error)
+
+// PingRequest configures a Ping call.
+type PingRequest struct{}
+
+func (f Ping) WithContext(v context.Context) func(*PingRequest) { return func(*PingRequest) {} }
+func (f Ping) WithPretty() func(*PingRequest)                   { return func(*PingRequest) {} }
+func (f Ping) WithHuman() func(*PingRequest)                    { return func(*PingRequest) {} }
+func (f Ping) WithErrorTrace() func(*PingRequest)               { return func(*PingRequest) {} }
+func (f Ping) WithFilterPath(v ...string) func(*PingRequest)    { return func(*PingRequest) {} }
+
+// IndicesExists is the functional-options request func for the indices-exists API.
+type IndicesExists func(index []string, o ...func(*IndicesExistsRequest)) (*Response, error)
+
+// IndicesExistsRequest configures an Indices.Exists call.
+type IndicesExistsRequest struct{}
+
+func (f IndicesExists) WithContext(v context.Context) func(*IndicesExistsRequest) {
+	return func(*IndicesExistsRequest) {}
+}
+func (f IndicesExists) WithLocal(v bool) func(*IndicesExistsRequest) {
+	return func(*IndicesExistsRequest) {}
+}
+func (f IndicesExists) WithFilterPath(v ...string) func(*IndicesExistsRequest) {
+	return func(*IndicesExistsRequest) {}
+}
+
+// Indices groups the index-scoped APIs. Only Exists is needed for the seed set.
+type Indices struct {
+	Exists IndicesExists
+}
+
+// API is the method set embedded by the root Client. v2's real API has 51
+// method fields; the stub carries the two seed ops plus the Indices group.
+type API struct {
+	Ping    Ping
+	Indices *Indices
+}
+
+// New builds an empty API. The real one wires each field to a transport.
+func New() *API {
+	return &API{Indices: &Indices{}}
+}
+
+// BulkRequest is an idiom-1 (function API) request type. It is removed outright
+// in v3, so any reference to it must surface as a removed-type MANUAL line.
+type BulkRequest struct {
+	Index string
+	Body  io.Reader
+}
+
+// Do executes the request against a Transport, returning the raw Response. This
+// is the idiom-1 call shape opensearchapi.<X>Request{...}.Do(ctx, client).
+func (r BulkRequest) Do(ctx context.Context, transport Transport) (*Response, error) {
+	return &Response{}, nil
+}
+-- stub-v3/go.mod --
+module github.com/opensearch-project/opensearch-go/v3
+
+go 1.24
+-- stub-v3/opensearch.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearch is a minimal stand-in for opensearch-go/v3's root package.
+// v3 -> v4 is a quiet hop (the opensearchapi client and its types are identical
+// across the two versions; only error types move package, handled as manual
+// followups), so this stub carries just enough for a fixture to construct a
+// typed client and have the import path bumped to v4. See the sibling v2 stub
+// for the general rationale.
+package opensearch
+
+import "net/http"
+
+// Config is the v3 root client config (nested inside opensearchapi.Config).
+type Config struct {
+	Addresses []string
+	Username  string
+	Password  string
+	Header    http.Header
+}
+
+// Client is the v3 transport-level client wrapped by the opensearchapi Client.
+type Client struct {
+	Transport http.RoundTripper
+}
+
+// Response is the v3 raw response type returned by opensearchapi calls.
+type Response struct {
+	StatusCode int
+}
+
+func (r *Response) IsError() bool { return false }
+-- stub-v3/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v3's
+// opensearchapi package, carrying the nested Config, the typed Client, and a
+// Ping method so a fixture can exercise the v3 typed sub-client API. See the
+// sibling opensearch.go for why this stub exists.
+package opensearchapi
+
+import (
+	"context"
+
+	"github.com/opensearch-project/opensearch-go/v3"
+)
+
+// Config wraps the root client config, matching v3's exact shape.
+type Config struct {
+	Client opensearch.Config
+}
+
+// Client is the v3 typed API client.
+type Client struct {
+	Client *opensearch.Client
+}
+
+// NewClient builds a typed client from Config.
+func NewClient(config Config) (*Client, error) {
+	return &Client{}, nil
+}
+
+// PingReq is the typed ping request.
+type PingReq struct{}
+
+// Ping is the v3 typed sub-client call shape.
+func (c Client) Ping(ctx context.Context, req *PingReq) (*opensearch.Response, error) {
+	return &opensearch.Response{}, nil
+}
+-- stub-v4/go.mod --
+module github.com/opensearch-project/opensearch-go/v4
+
+go 1.24
+-- stub-v4/opensearch.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearch is a minimal stand-in for opensearch-go/v4's root package,
+// carrying just enough for a fixture to construct a typed client. See the
+// sibling v2/v3 stubs for the general rationale.
+package opensearch
+
+import "net/http"
+
+// Config is the v4 root client config (nested inside opensearchapi.Config).
+type Config struct {
+	Addresses []string
+}
+
+// Client is the v4 transport-level client wrapped by the opensearchapi Client.
+type Client struct {
+	Transport http.RoundTripper
+}
+-- stub-v4/opensearchapi/opensearchapi.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+// Package opensearchapi is a minimal stand-in for opensearch-go/v4's
+// opensearchapi package. It carries the nested Config, the typed Client, and
+// AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
+// reference the removed type and exercise the cross-hop removed-type diagnostic.
+package opensearchapi
+
+import "github.com/opensearch-project/opensearch-go/v4"
+
+// Config wraps the root client config, matching v4's exact shape.
+type Config struct {
+	Client opensearch.Config
+}
+
+// Client is the v4 typed API client.
+type Client struct {
+	Client *opensearch.Client
+}
+
+// NewClient builds a typed client from Config.
+func NewClient(config Config) (*Client, error) {
+	return &Client{}, nil
+}
+
+// AliasDeleteResp is a v4 response type with no v5 counterpart (removed in the
+// v5 API). A reference to it must trip the removed-type MANUAL diagnostic on the
+// v4 -> v5 hop.
+type AliasDeleteResp struct {
+	Acknowledged bool
+}

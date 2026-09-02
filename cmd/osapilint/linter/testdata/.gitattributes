@@ -1,0 +1,6 @@
+# TestRewriteCorpus and TestTypedAssertAnalyzer byte-compare linter output
+# (go/format, always LF) against committed fixtures and goldens, which are
+# packed into these txtar archives. The rule sits here at the testdata/ root,
+# not under corpus/, so it also covers typedassert.txtar. Pin every archive to
+# LF so a CRLF checkout on Windows does not spuriously fail either test.
+*.txtar text eol=lf
