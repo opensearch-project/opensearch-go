@@ -153,7 +153,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
     Params: &opensearchapi.SearchParams{
-        Size:           opensearch.ToPointer(20),
+        Size:           ptr(20),
         From:           40,
         Timeout:        5 * time.Second,
         TrackTotalHits: "true",
@@ -166,15 +166,17 @@ Duration parameters (timeouts, intervals) accept `time.Duration` and are formatt
 
 ### Pointer helpers
 
-Some parameters are optional pointers. Use `opensearch.ToPointer` to set them inline:
+Some parameters are optional pointers. Define a small `ptr` helper to set them inline:
 
 ```go
+func ptr[T any](v T) *T { return &v }
+
 params := opensearchapi.SomeParams{
-    WaitForActiveShards: opensearch.ToPointer("all"),
+    WaitForActiveShards: ptr("all"),
 }
 ```
 
-`ToPointer` is deprecated. Once the module's go directive reaches Go 1.26, callers can drop it in favor of the native `new(value)` literal form (e.g. `new("all")`).
+Once the module's go directive reaches Go 1.26, you can drop the helper and use the native `new(value)` literal form instead (e.g. `new("all")`). See [`UPGRADING_V5.md`](../UPGRADING_V5.md#opensearchtopointer-removed).
 
 ## Partial Failure Errors
 

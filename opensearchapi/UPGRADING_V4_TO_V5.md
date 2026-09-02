@@ -62,19 +62,19 @@ Within `opensearchapi/`, the bulk, NDJSON, and single-document write operations 
 // v4
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
+    Params:  opensearchapi.SearchParams{Size: ptr(20)},
 })
 
 // v5
 client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"products"},
-    Params:  &opensearchapi.SearchParams{Size: opensearch.ToPointer(20)},
+    Params:  &opensearchapi.SearchParams{Size: ptr(20)},
 })
 ```
 
 Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy. `Size` itself has been `*int` since v4.0.0 and is unchanged here -- only the surrounding `Params` value became a pointer.
 
-> On Go 1.26+ you can write `new(20)` in place of `opensearch.ToPointer(20)`; both produce a `*int`.
+> On Go 1.26+ you can write `new(20)` in place of `ptr(20)`; both produce a `*int`.
 
 ### Shared parameters move into embedded structs
 
@@ -98,11 +98,11 @@ A deliberate `false` now reaches the wire. Previously, the zero value of `bool` 
 ```go
 // v5
 params := opensearchapi.SearchParams{
-    AllowNoIndices: opensearch.ToPointer(false), // explicit false
+    AllowNoIndices: ptr(false), // explicit false
 }
 ```
 
-`opensearch.ToPointer(v)` is a generic helper. It is deprecated; once the module's `go` directive moves to Go 1.26, `new(false)` literals work directly.
+`ptr` is a generic helper (`func ptr[T any](v T) *T { return &v }`) -- `opensearch.ToPointer` used to serve this purpose but has been removed. Once the module's `go` directive moves to Go 1.26, `new(false)` literals work directly. See [`UPGRADING_V5.md`](../UPGRADING_V5.md#opensearchtopointer-removed).
 
 ### Partial-failure type renames
 
@@ -254,7 +254,7 @@ Plugin APIs (k-NN, ML, Security, ISM, ...) live under [`plugins/`](../plugins/RE
 - For operations with a typed `Body`, move raw `io.Reader` bodies from `Body` to `BodyReader`.
 - Wrap `Params` literals in `&` (or use the `Params: nil` shorthand).
 - Move `Timeout`/`Pretty`/`Human`/`ErrorTrace` into the embedded `TimeoutParams`/`DebugParams`.
-- Wrap optional `bool` query-param values in `opensearch.ToPointer(...)`.
+- Wrap optional `bool` query-param values in a `ptr(...)` helper (or `new(...)` on Go 1.26+).
 - Route document calls through `client.Doc.*` and point-in-time calls through `client.PIT.*`.
 - Decide whether to set `Config.Errors` explicitly. v5 reports every partial-failure category by default.
 - Decide whether to override `Config.Client.Router` or `OPENSEARCH_GO_ROUTER`. v5 injects the default router.
