@@ -138,6 +138,8 @@ type Config struct {
 	Username string
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
+	// ApiKey for HTTP 
+	APIKey   string // #nosec G117
 
 	Header http.Header
 	CACert []byte
@@ -458,6 +460,7 @@ type Transport struct {
 	urls      []*url.URL
 	username  string
 	password  string
+	apiKey    string
 	header    http.Header
 	userAgent string
 
@@ -943,6 +946,7 @@ func New(cfg Config) (*Transport, error) {
 		urls:     cfg.URLs,
 		username: cfg.Username,
 		password: cfg.Password,
+		apiKey:   cfg.APIKey,
 		header:   cfg.Header,
 
 		signer: cfg.Signer,
@@ -2071,6 +2075,11 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 		if u.User != nil {
 			password, _ := u.User.Password()
 			req.SetBasicAuth(u.User.Username(), password)
+			return
+		}
+
+		if c.apiKey != "" {
+			req.Header.Set("Authorization", "ApiKey "+c.apiKey)
 			return
 		}
 

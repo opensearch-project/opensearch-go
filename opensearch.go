@@ -98,6 +98,8 @@ type Config struct {
 	Username  string   // Username for HTTP Basic Authentication.
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
+	// Api key based authentication
+	APIKey string // #nosec G117
 
 	Header http.Header // Global HTTP request header.
 
@@ -461,6 +463,7 @@ func NewClient(cfg Config) (*Client, error) {
 		URLs:     urls,
 		Username: cfg.Username,
 		Password: cfg.Password,
+		APIKey:   cfg.APIKey,
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,
@@ -614,7 +617,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	for _, a := range cfg.Addresses {
 		b.String(a)
 	}
-	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password)
+	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password).String(cfg.APIKey)
 
 	// Header: sort keys and values for determinism.
 	keys := make([]string, 0, len(cfg.Header))

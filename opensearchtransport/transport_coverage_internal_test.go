@@ -380,6 +380,57 @@ func TestSetReqAuth(t *testing.T) {
 		_, _, ok := req.BasicAuth()
 		require.False(t, ok)
 	})
+
+	t.Run("API key sets Authorization header", func(t *testing.T) {
+		t.Parallel()
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		c := &Transport{apiKey: dummyApiKey}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		require.Equal(t, fmt.Sprintf("ApiKey %s", dummyApiKey), req.Header.Get("Authorization"))
+	})
+
+	t.Run("API key takes precedence over username/password", func(t *testing.T) {
+		t.Parallel()
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		c := &Transport{apiKey: dummyApiKey, username: "admin", password: "secret"}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		require.Equal(t, fmt.Sprintf("ApiKey %s", dummyApiKey), req.Header.Get("Authorization"))
+		_, _, basicOK := req.BasicAuth()
+		require.False(t, basicOK)
+	})
+
+	t.Run("URL userinfo takes precedence over API key", func(t *testing.T) {
+		t.Parallel()
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		c := &Transport{apiKey: dummyApiKey}
+		u, _ := url.Parse("https://url-user:url-pass@node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		user, pass, ok := req.BasicAuth()
+		require.True(t, ok)
+		require.Equal(t, "url-user", user)
+		require.Equal(t, "url-pass", pass)
+	})
+
+	t.Run("existing Authorization header not overwritten by API key", func(t *testing.T) {
+		t.Parallel()
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		c := &Transport{apiKey: dummyApiKey}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		existingToken := "some-random-token"
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", existingToken))
+		c.setReqAuth(u, req)
+
+		require.Equal(t, fmt.Sprintf("Bearer %s", existingToken), req.Header.Get("Authorization"))
+	})
 }
 
 func TestSignRequest_Coverage(t *testing.T) {
