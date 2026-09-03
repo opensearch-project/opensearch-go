@@ -191,6 +191,18 @@ test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
 
+check-modules-standalone:  ## Verify every nested module builds on its own, outside the workspace
+# go.work makes every nested module resolve against the checkout, so a nested
+# go.mod that requires a version of the root module predating a package it
+# imports still builds here while failing for anyone who consumes it from a
+# proxy. GOWORK=off is what reproduces the consumer's view; -mod=readonly stops
+# the toolchain from papering over a missing require by editing go.mod.
+	@printf "\033[2m-> Verifying nested modules build standalone (GOWORK=off)...\033[0m\n"
+	@for mod in $(SUBMODULES); do \
+		printf "   %s\n" "$$mod"; \
+		(cd "$$mod" && GOWORK=off GOFLAGS=-mod=readonly go build ./... && GOWORK=off GOFLAGS=-mod=readonly go vet ./...) || exit $$?; \
+	done
+
 build-samples:  ## Compile and vet each _samples/*.go program
 	@printf "\033[2m-> Building _samples...\033[0m\n"
 	@failed=0; \

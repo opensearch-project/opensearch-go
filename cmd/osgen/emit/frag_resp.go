@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // GoTypeRawMessage is the Go type expression the walker emits when a schema could

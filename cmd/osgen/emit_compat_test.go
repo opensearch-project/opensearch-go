@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/emit"
 )
 
 func TestCompatFileTarget_MatchesLegacy(t *testing.T) {

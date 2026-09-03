@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
 // hop_v4_to_v5_test.go pins the concrete v4->v5 facts the rewriter depends on.

@@ -1,4 +1,4 @@
-module github.com/opensearch-project/opensearch-go/v5/cmd/osgen
+module github.com/opensearch-project/opensearch-go/cmd/osgen/v5
 
 go 1.25.12
 

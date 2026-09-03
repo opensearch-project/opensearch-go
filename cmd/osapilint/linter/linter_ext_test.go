@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/linter"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/linter"
 )
 
 // TestWalkImportableSeam proves the linter is importable by an external module

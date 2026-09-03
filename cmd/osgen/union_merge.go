@@ -12,7 +12,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // classifyUnions assigns a decode strategy to every union whose branches collide
