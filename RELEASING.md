@@ -65,7 +65,7 @@ The release process is standard across repositories in this org and is run by a 
 
 ### Nested modules
 
-The repository ships nested modules -- `make print-submodules` lists them -- that are versioned independently of the root module. Each one needs its own tag, and Go derives the tag name from the module path rather than from the directory alone.
+The repository ships nested modules -- `make print-submodules` lists them -- that are versioned independently of the root module. Each one carries its own tag, and Go derives the tag name from the module path rather than from the directory alone.
 
 A nested module declares its path as the repository, then the subdirectory, then the major-version suffix **last**:
 
@@ -82,7 +82,7 @@ osprom/v5.0.0
 Consequences worth knowing before releasing:
 
 - **The `vN` cannot move before the subdirectory.** A path like `.../v5/osprom` makes Go treat `v5/osprom` as the subdirectory with no major-version suffix, so the module is stuck at `v0`/`v1` and Go looks for a `v5/` directory that does not exist. The declared path must end in `/vN`.
-- **Every nested module needs its own tag.** A root `vX.Y.Z` tag publishes only the root module. Without `osprom/vX.Y.Z`, consumers can reach `osprom` only at a pseudo-version, which forces them to carry a `replace` directive — and because Go ignores `replace` from a dependency, that directive spreads to every downstream consumer in turn.
+- **A nested module is versioned by its own tag.** A root `vX.Y.Z` tag publishes only the root module, so without `osprom/vX.Y.Z` the newest version a consumer can name for `osprom` is a pseudo-version off a commit. That resolves and builds, since a pseudo-version needs only a reachable commit in the subdirectory, but it leaves the consumer pinning a commit rather than a release, with nothing to distinguish a reviewed version from whatever `main` held that day. Tag every nested module you expect anyone to pin by version, which in practice is all of them.
 - **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags.
 
 Request all tags for a release together, on one merged commit: the root tag plus one per nested module. `make print-submodules` is the source of that list -- it discovers the modules by searching for `go.mod`, so a module added later cannot be forgotten here:
