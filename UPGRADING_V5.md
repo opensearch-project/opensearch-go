@@ -200,7 +200,7 @@ client, err := opensearch.NewClient(opensearch.Config{
 ```
 
 ```sh
-go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+go get github.com/opensearch-project/opensearch-go/log-zerolog/v5
 ```
 
 `log-slog` is the equivalent for `log/slog`. Both are separate Go modules, so neither library enters the core client's dependency graph. See [`log-zerolog/README.md`](log-zerolog/README.md) and [`log-slog/README.md`](log-slog/README.md).

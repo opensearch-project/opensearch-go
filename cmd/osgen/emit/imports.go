@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // LocalModule is the module path used to identify local imports for grouping.

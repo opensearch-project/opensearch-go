@@ -10,8 +10,8 @@ import (
 	"log/slog"
 	"os"
 
+	logslog "github.com/opensearch-project/opensearch-go/log-slog/v5"
 	"github.com/opensearch-project/opensearch-go/v5"
-	logslog "github.com/opensearch-project/opensearch-go/v5/log-slog"
 )
 
 // Example installs the client's debug records into slog's package-level logger.

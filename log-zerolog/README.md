@@ -9,7 +9,7 @@ The client emits debug records (connection lifecycle transitions, discovery resu
 ## Install
 
 ```sh
-go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+go get github.com/opensearch-project/opensearch-go/log-zerolog/v5
 ```
 
 ## Concepts
