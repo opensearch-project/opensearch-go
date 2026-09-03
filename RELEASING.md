@@ -65,7 +65,7 @@ The release process is standard across repositories in this org and is run by a 
 
 ### Nested modules
 
-The repository ships nested modules (`osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`) that are versioned independently of the root module. Each one needs its own tag, and Go derives the tag name from the module path rather than from the directory alone.
+The repository ships nested modules -- `make print-submodules` lists them -- that are versioned independently of the root module. Each one needs its own tag, and Go derives the tag name from the module path rather than from the directory alone.
 
 A nested module declares its path as the repository, then the subdirectory, then the major-version suffix **last**:
 
@@ -85,20 +85,20 @@ Consequences worth knowing before releasing:
 - **Every nested module needs its own tag.** A root `vX.Y.Z` tag publishes only the root module. Without `osprom/vX.Y.Z`, consumers can reach `osprom` only at a pseudo-version, which forces them to carry a `replace` directive — and because Go ignores `replace` from a dependency, that directive spreads to every downstream consumer in turn.
 - **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags.
 
-Request all tags for a release together, on one merged commit. For a v5.0.0 release that is:
-
-```
-v5.0.0
-osprom/v5.0.0        osotel/v5.0.0        log-slog/v5.0.0    log-zerolog/v5.0.0
-cmd/osgen/v5.0.0     cmd/osapilint/v5.0.0
-```
-
-As in step 6, contributors cannot push signed tags: list every tag above in the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue so the admin creating them does not tag the root module alone.
-
-Then refresh each one on pkg.go.dev:
+Request all tags for a release together, on one merged commit: the root tag plus one per nested module. `make print-submodules` is the source of that list -- it discovers the modules by searching for `go.mod`, so a module added later cannot be forgotten here:
 
 ```sh
-for m in osprom osotel log-slog log-zerolog cmd/osgen cmd/osapilint; do
+VERSION=v5.0.0
+echo "$VERSION"
+for m in $(make -s print-submodules); do echo "$m/$VERSION"; done
+```
+
+As in step 6, contributors cannot push signed tags: list every tag that prints in the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue so the admin creating them does not tag the root module alone.
+
+Then refresh each nested module on pkg.go.dev:
+
+```sh
+for m in $(make -s print-submodules); do
   go list -m "github.com/opensearch-project/opensearch-go/$m/v5@v5.0.0"
 done
 ```

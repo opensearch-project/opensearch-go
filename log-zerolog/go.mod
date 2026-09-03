@@ -3,7 +3,7 @@ module github.com/opensearch-project/opensearch-go/log-zerolog/v5
 go 1.25.12
 
 require (
-	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc7
+	github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc6
 	github.com/rs/zerolog v1.35.1
 	github.com/stretchr/testify v1.12.0
 )
