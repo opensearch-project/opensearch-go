@@ -11,8 +11,8 @@ import (
 
 	"github.com/rs/zerolog"
 
+	logzerolog "github.com/opensearch-project/opensearch-go/log-zerolog/v5"
 	"github.com/opensearch-project/opensearch-go/v5"
-	logzerolog "github.com/opensearch-project/opensearch-go/v5/log-zerolog"
 )
 
 // Example installs the client's debug records into zerolog's package-level

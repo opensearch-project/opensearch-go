@@ -93,14 +93,11 @@ The repository is a Go workspace. Alongside the root client module there are six
 
 `go.work` and `go.work.sum` are committed, so a fresh clone builds across every module with no setup step. From the repository root, `go build ./...` and `go test ./...` span all of them, and `make test-unit` and `make lint.local` additionally run each nested module on its own. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
 
-The workspace is load-bearing rather than a convenience. `osprom` and `osotel` import `opensearchtransport` from the root module while declaring `require github.com/opensearch-project/opensearch-go/v5 v5.0.0-rc3`, and that tag predates the observer API they are written against. The workspace is what resolves them against the local root instead of the published version, so disabling it fails to compile their tests:
+The workspace is load-bearing rather than a convenience. `osprom` and `osotel` import `opensearchtransport` from the root module, and their `require github.com/opensearch-project/opensearch-go/v5` line names the last published root tag rather than the working tree. The workspace is what resolves them against the local root, so a nested module compiles here against root changes that no tag carries yet. Reach for the workspace rather than a `replace` directive when a nested module needs local root changes: a `replace` in a committed `go.mod` would follow the module to consumers, and because Go ignores a `replace` from a dependency, every consumer downstream would have to repeat it.
 
-```
-GOWORK=off go -C osprom test ./...
-# *Registry does not implement opensearchtransport.ConnectionObserver
-```
+That is also what hides a broken release. With the workspace on, a nested `go.mod` requiring a root version that predates a package it imports still builds; a consumer resolving the same module from the proxy gets a compile error. `make check-modules-standalone` reproduces the consumer's view -- it builds and vets each nested module with `GOWORK=off` -- and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
 
-This clears once a root tag carrying the current observer API is published and the two `require` lines are bumped to it. Until then, leave `go.work` in place and do not run the suite with `GOWORK=off`. Reach for the workspace rather than a `replace` directive when a nested module needs local root changes: a `replace` in a committed `go.mod` would follow the module to consumers.
+The nested modules declare their path with the major-version suffix last (`github.com/opensearch-project/opensearch-go/osprom/v5`), because Go reads a `/vN` element as a major version only as the final path element. A path like `.../v5/osprom` leaves the module at `v0`/`v1` and unresolvable from the proxy.
 
 ### Unit Testing
 

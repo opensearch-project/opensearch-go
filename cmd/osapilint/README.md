@@ -60,7 +60,7 @@ osapilint vet -fix ./...
 - `Walk(WalkConfig{...}, visit)` drives a caller-supplied `Visitor` over the module's loaded files, for a migration this package does not ship (e.g. an opensearchtools overlay). It keeps the same load gate, cross-variant dedupe, and abort-before-write-on-unclassified safety net.
 
 ```go
-import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/linter"
+import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/linter"
 
 // opensearch-go SDK migration: auto-detect source, dry run to the newest version.
 hops, err := linter.MigrateSDK(ctx, linter.SDKConfig{Dir: dir})

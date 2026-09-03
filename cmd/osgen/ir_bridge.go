@@ -11,9 +11,9 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/emit"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/errwrap"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // convertToIR translates the legacy apiOperation slice and typeRegistry into

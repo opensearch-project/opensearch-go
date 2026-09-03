@@ -65,7 +65,7 @@ import (
 
 	"golang.org/x/tools/go/analysis/multichecker"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/linter"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/linter"
 )
 
 func main() {

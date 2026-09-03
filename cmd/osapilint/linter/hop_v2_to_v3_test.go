@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
 // hop_v2_to_v3_test.go pins the concrete v2->v3 facts the rewriter depends on.
