@@ -777,12 +777,12 @@ func (w *worker) flush(ctx context.Context) error {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
 	}
 
-	// The bulk API returns one result per serialized action, so more results
-	// than w.items means the request body and the response disagree: indexing
-	// w.items[i] runs past the end, and pairing only the prefix attributes
-	// results to the wrong items. Fail every serialized item instead. Fewer
-	// results leaves the extras undispatched, which is what the loop below
-	// does on its own.
+	// The bulk API returns one result per serialized action. More results than
+	// w.items means the response cannot be paired positionally: the loop below
+	// would read w.items[i] past the end and panic, and even the results that
+	// line up may belong to other items. Fail every serialized item instead.
+	// Fewer results needs no guard; the loop simply leaves the extras
+	// undispatched.
 	if got, want := len(blk.Items), len(w.items); got > want {
 		return w.handleBulkError(ctx, fmt.Errorf(
 			"flush: bulk response has %d items, indexer serialized %d", got, want,

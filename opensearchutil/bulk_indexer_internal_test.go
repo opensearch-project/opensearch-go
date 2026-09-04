@@ -1062,7 +1062,8 @@ const (
 	failOnSeek
 )
 
-// failingBody is an item body that fails partway through serialization.
+// failingBody is an item body whose serialization fails; the fail field
+// selects which step (see bodyFailure).
 type failingBody struct {
 	data []byte
 	fail bodyFailure
