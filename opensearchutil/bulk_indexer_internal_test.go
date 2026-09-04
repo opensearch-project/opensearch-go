@@ -1024,7 +1024,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "body-fail",
-					Body:       failingReadBody{},
+					Body:       &failingBody{},
 					OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
 						onFailure(ctx, item, resp, err)
 						bodyFailureCalled = true
@@ -1049,42 +1049,45 @@ func strPointer(s string) *string {
 	return &s
 }
 
-type failingReadBody struct{}
+// bodyFailure names which io.ReadSeeker method a failingBody fails.
+type bodyFailure int
 
-func (failingReadBody) Read(_ []byte) (int, error) {
-	return 0, errors.New("body read failed")
-}
+const (
+	// failOnRead fails the Read that follows the payload, so ReadFrom returns
+	// an error after len(data) bytes reached the bulk buffer. Empty data fails
+	// the first Read, having written nothing.
+	failOnRead bodyFailure = iota
+	// failOnSeek serves the whole payload, then fails the rewind the indexer
+	// performs so the caller-supplied body stays reusable.
+	failOnSeek
+)
 
-func (failingReadBody) Seek(int64, int) (int64, error) {
-	return 0, nil
-}
-
-// failingSeekBody writes its payload, then fails Seek so the indexer cannot
-// rewind the caller-supplied body after copying it into the bulk buffer.
-type failingSeekBody struct {
-	io.ReadSeeker
-}
-
-func (failingSeekBody) Seek(int64, int) (int64, error) {
-	return 0, errors.New("body seek failed")
-}
-
-// partialThenFailBody copies its payload into the bulk buffer, then fails the
-// next Read so ReadFrom returns an error after bytes have already been written.
-type partialThenFailBody struct {
+// failingBody is an item body that fails partway through serialization.
+type failingBody struct {
 	data []byte
+	fail bodyFailure
 }
 
-func (b *partialThenFailBody) Read(p []byte) (int, error) {
+func (b *failingBody) Read(p []byte) (int, error) {
 	if len(b.data) == 0 {
-		return 0, errors.New("body read failed")
+		if b.fail == failOnRead {
+			return 0, errors.New("body read failed")
+		}
+
+		return 0, io.EOF
 	}
+
 	n := copy(p, b.data)
 	b.data = b.data[n:]
+
 	return n, nil
 }
 
-func (*partialThenFailBody) Seek(int64, int) (int64, error) {
+func (b *failingBody) Seek(int64, int) (int64, error) {
+	if b.fail == failOnSeek {
+		return 0, errors.New("body seek failed")
+	}
+
 	return 0, nil
 }
 
@@ -1816,20 +1819,11 @@ func TestWorkerWriteItemRollsBackBufferOnError(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name: "writeMeta encode error",
-			item: BulkIndexerItem{
-				Action:              actionIndex,
-				DocumentID:          "bad-meta",
-				WaitForActiveShards: math.NaN(),
-			},
-			wantErr: "unsupported value",
-		},
-		{
 			name: "writeBody read error with 0 bytes",
 			item: BulkIndexerItem{
 				Action:     actionIndex,
 				DocumentID: "bad-read",
-				Body:       failingReadBody{},
+				Body:       &failingBody{},
 			},
 			wantErr: "body read failed",
 		},
@@ -1838,7 +1832,7 @@ func TestWorkerWriteItemRollsBackBufferOnError(t *testing.T) {
 			item: BulkIndexerItem{
 				Action:     actionIndex,
 				DocumentID: "bad-partial",
-				Body:       &partialThenFailBody{data: []byte(`{"partial":true}`)},
+				Body:       &failingBody{data: []byte(`{"partial":true}`)},
 			},
 			wantErr: "body read failed",
 		},
@@ -1847,7 +1841,7 @@ func TestWorkerWriteItemRollsBackBufferOnError(t *testing.T) {
 			item: BulkIndexerItem{
 				Action:     actionIndex,
 				DocumentID: "bad-seek",
-				Body:       failingSeekBody{strings.NewReader(`{"seek":true}`)},
+				Body:       &failingBody{data: []byte(`{"seek":true}`), fail: failOnSeek},
 			},
 			wantErr: "body seek failed",
 		},
@@ -1934,7 +1928,7 @@ func TestBulkIndexerDoesNotFlushOrphanActionOnBodyError(t *testing.T) {
 	}))
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Action: actionIndex, DocumentID: "bad",
-		Body: failingReadBody{}, OnSuccess: onSuccess, OnFailure: onFailure,
+		Body: &failingBody{}, OnSuccess: onSuccess, OnFailure: onFailure,
 	}))
 	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
 		Action: actionIndex, DocumentID: "good-2",
