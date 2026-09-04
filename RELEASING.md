@@ -4,6 +4,7 @@
   - [Feature Branches](#feature-branches)
 - [Release Labels](#release-labels)
 - [Releasing](#releasing)
+  - [Nested modules](#nested-modules)
 
 ## Overview
 
@@ -61,3 +62,43 @@ The release process is standard across repositories in this org and is run by a 
    ```
 
 9. Run `go list` with the new version to refresh [pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5), e.g. `go list -m github.com/opensearch-project/opensearch-go/v5@v5.0.0`.
+
+### Nested modules
+
+The repository ships nested modules -- `make print-submodules` lists them -- that are versioned independently of the root module. Each one carries its own tag, and Go derives the tag name from the module path rather than from the directory alone.
+
+A nested module declares its path as the repository, then the subdirectory, then the major-version suffix **last**:
+
+```
+module github.com/opensearch-project/opensearch-go/osprom/v5
+```
+
+Go reads a `/vN` element as a major version only as the final path element. From that path it derives repository `opensearch-go`, subdirectory `osprom`, major version 5, and looks for a tag prefixed with the subdirectory:
+
+```
+osprom/v5.0.0
+```
+
+Consequences worth knowing before releasing:
+
+- **The `vN` cannot move before the subdirectory.** A path like `.../v5/osprom` makes Go treat `v5/osprom` as the subdirectory with no major-version suffix, so the module is stuck at `v0`/`v1` and Go looks for a `v5/` directory that does not exist. The declared path must end in `/vN`.
+- **A nested module is versioned by its own tag.** A root `vX.Y.Z` tag publishes only the root module, so without `osprom/vX.Y.Z` the newest version a consumer can name for `osprom` is a pseudo-version off a commit. That resolves and builds, since a pseudo-version needs only a reachable commit in the subdirectory, but it leaves the consumer pinning a commit rather than a release, with nothing to distinguish a reviewed version from whatever `main` held that day. Tag every nested module you expect anyone to pin by version, which in practice is all of them.
+- **Tag the same commit.** Nested modules that import root packages (`debuglog`, `opensearchtransport`) must have a root `require` naming a version that actually contains those packages. `make check-modules-standalone` enforces this; run it before requesting tags.
+
+Request all tags for a release together, on one merged commit: the root tag plus one per nested module. `make print-submodules` is the source of that list -- it discovers the modules by searching for `go.mod`, so a module added later cannot be forgotten here:
+
+```sh
+VERSION=v5.0.0
+echo "$VERSION"
+for m in $(make -s print-submodules); do echo "$m/$VERSION"; done
+```
+
+As in step 6, contributors cannot push signed tags: list every tag that prints in the `[GitHub Request] Tag new opensearch-go vX.Y.Z release` issue so the admin creating them does not tag the root module alone.
+
+Then refresh each nested module on pkg.go.dev:
+
+```sh
+for m in $(make -s print-submodules); do
+  go list -m "github.com/opensearch-project/opensearch-go/$m/v5@v5.0.0"
+done
+```

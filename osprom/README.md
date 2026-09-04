@@ -9,7 +9,7 @@ The client fires per-request observer events; `osprom` copies each event into a 
 ## Install
 
 ```sh
-go get github.com/opensearch-project/opensearch-go/v5/osprom
+go get github.com/opensearch-project/opensearch-go/osprom/v5
 ```
 
 ## Concepts
@@ -32,7 +32,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/opensearch-project/opensearch-go/v5"
-	"github.com/opensearch-project/opensearch-go/v5/osprom"
+	"github.com/opensearch-project/opensearch-go/osprom/v5"
 )
 
 func main() {

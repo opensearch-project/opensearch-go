@@ -9,7 +9,7 @@ The client emits debug records (connection lifecycle transitions, discovery resu
 ## Install
 
 ```sh
-go get github.com/opensearch-project/opensearch-go/v5/log-slog
+go get github.com/opensearch-project/opensearch-go/log-slog/v5
 ```
 
 ## Concepts

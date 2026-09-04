@@ -71,9 +71,9 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Sub-modules are auto-discovered: every go.mod except the root one and testdata
 # fixtures. New nested modules (cmd/*, osprom, osotel, ...) are picked up by
-# test-unit and lint with no Makefile change. testdata/ holds corpus fixtures
-# (stub + golden modules for the rewrite tests), not real modules to build or
-# lint. Paths are sorted for deterministic ordering.
+# test-unit and lint with no Makefile change. The testdata/ filter is defensive:
+# osapilint's rewrite-corpus fixtures ship as txtar archives with no go.mod on
+# disk, but the exclusion still guards against a future testdata module. Paths are sorted for deterministic ordering.
 SUBMODULES := $(shell find . -name go.mod -not -path './go.mod' -not -path '*/.*' -not -path '*/testdata/*' -exec dirname {} \; | sed 's|^\./||' | sort)
 
 # Compose with optional override files for heterogeneous clusters.
@@ -88,6 +88,9 @@ CTR_COMPOSE = $(CTR) compose --project-directory $(COMPOSE_DIR) $(COMPOSE_FILES)
 ##@ Formatting
 format:  ## Format all Go files with goimports
 	goimports -w .;
+
+fix-txtar:  ## Rewrite every tracked txtar fixture archive in the repo into canonical, formatted form
+	cd cmd/osapilint && UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives
 
 ##@ Testing
 test-unit:  ## Run unit tests across all modules (root + every nested go.mod)
@@ -187,6 +190,20 @@ test-alloc:  ## Run allocation assertions (tests run without -race)
 test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
+
+check-modules-standalone:  ## Verify every nested module builds on its own, outside the workspace
+# go.work makes every nested module resolve against the checkout, so a nested
+# go.mod that requires a version of the root module predating a package it
+# imports still builds here while failing for anyone who consumes it from a
+# proxy. GOWORK=off is what reproduces the consumer's view.
+	@printf "\033[2m-> Verifying nested modules build standalone (GOWORK=off)...\033[0m\n"
+	@for mod in $(SUBMODULES); do \
+		printf "   %s\n" "$$mod"; \
+		(cd "$$mod" && GOWORK=off go build ./... && GOWORK=off go vet ./...) || exit $$?; \
+	done
+
+print-submodules:  ## Print the discovered nested module directories, one per line
+	@printf "%s\n" $(SUBMODULES)
 
 build-samples:  ## Compile and vet each _samples/*.go program
 	@printf "\033[2m-> Building _samples...\033[0m\n"
@@ -986,5 +1003,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples
+.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone print-submodules
 .SILENT: lint.markdown
