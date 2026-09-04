@@ -5,7 +5,7 @@
       - [Go 1.24](#go-124)
       - [Docker](#docker)
       - [Windows](#windows)
-    - [Go Workspace and Nested Modules](#go-workspace-and-nested-modules)
+    - [Nested Modules](#nested-modules)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
@@ -78,9 +78,9 @@ Install `make`
 sudo apt install make
 ```
 
-### Go Workspace and Nested Modules
+### Nested Modules
 
-The repository is a Go workspace. Alongside the root client module there are six nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
+Alongside the root client module, this repository uses nested modules, each with its own `go.mod`, to keep heavier dependencies out of the client's graph so callers import and manage only what they use:
 
 | Module          | Purpose                         | Keeps out of the core graph                                                                                 |
 | --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -91,11 +91,17 @@ The repository is a Go workspace. Alongside the root client module there are six
 | `cmd/osgen`     | API code generator              | `github.com/getkin/kin-openapi`                                                                             |
 | `cmd/osapilint` | API migration linter            | `golang.org/x/tools`                                                                                        |
 
-`go.work` and `go.work.sum` are committed, so a fresh clone builds across every module with no setup step. From the repository root, `go build ./...` and `go test ./...` span all of them, and `make test-unit` and `make lint.local` additionally run each nested module on its own. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
+Each module resolves its own dependencies, the same way a consumer does. From the repository root, `go build ./...` and `go test ./...` cover the root module alone; `make test-unit` and `make lint.local` run each nested module in turn. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
 
-The workspace is load-bearing rather than a convenience. `osprom` and `osotel` import `opensearchtransport` from the root module, and their `require github.com/opensearch-project/opensearch-go/v5` line names the last published root tag rather than the working tree. The workspace is what resolves them against the local root, so a nested module compiles here against root changes that no tag carries yet. Reach for the workspace rather than a `replace` directive when a nested module needs local root changes: a `replace` in a committed `go.mod` would follow the module to consumers, and because Go ignores a `replace` from a dependency, every consumer downstream would have to repeat it.
+Some require the root module: `osprom` and `osotel` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
 
-That is also what hides a broken release. With the workspace on, a nested `go.mod` requiring a root version that predates a package it imports still builds; a consumer resolving the same module from the proxy gets a compile error. `make check-modules-standalone` reproduces the consumer's view -- it builds and vets each nested module with `GOWORK=off` -- and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
+```sh
+go work init . $(make -s print-submodules)
+```
+
+Prefer this local workspace to a `replace` directive. A `replace` committed to a `go.mod` travels with the module to anyone who depends on it, but Go honors a `replace` only in the main module it is building, not one inherited from a dependency. A committed `replace` therefore does nothing for a consumer, who has to add an equivalent one anyway.
+
+A local workspace resolves a nested module against the checkout no matter what its `go.mod` requires, which is also how it can hide a broken release. `make check-modules-standalone` builds and vets each nested module with `GOWORK=off`, so it reproduces the consumer's view whether or not you have a workspace, and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
 
 The nested modules declare their path with the major-version suffix last (`github.com/opensearch-project/opensearch-go/osprom/v5`), because Go reads a `/vN` element as a major version only as the final path element. A path like `.../v5/osprom` leaves the module at `v0`/`v1` and unresolvable from the proxy.
 
