@@ -718,11 +718,6 @@ func (w *worker) flush(ctx context.Context) error {
 		return nil
 	}
 
-	var (
-		err error
-		blk *opensearchapi.BulkResp
-	)
-
 	defer func() {
 		clear(w.items)
 		w.items = w.items[:0]
@@ -758,12 +753,16 @@ func (w *worker) flush(ctx context.Context) error {
 		Header: w.bi.config.Header,
 	}
 
-	blk, err = w.bi.config.Client.Doc.Bulk(ctx, req)
-	// Treat opensearchapi.PartialBulkError as success-with-failed-items:
-	// the indexer's whole job is per-item dispatch, so the per-item loop
-	// below already handles `info.Error != nil`. A real flush failure
-	// (transport error, HTTP error, JSON parse error) flows through
-	// handleBulkError as before.
+	blk, err := w.bi.config.Client.Doc.Bulk(ctx, req)
+	return w.processBulkResp(ctx, blk, err)
+}
+
+// processBulkResp reports the result of one bulk request: the per-item results
+// when the cluster answered, or a whole-buffer failure when the request did not
+// land. A *PartialBulkError is the former, so its rejected documents reach their
+// OnFailure callback and the flush sites (worker.run, auto-flush, Close) see no
+// error for it. It must be called under a lock.
+func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkResp, err error) error {
 	var partial *opensearchapi.PartialBulkError
 	if err != nil && !errors.As(err, &partial) {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
@@ -815,14 +814,7 @@ func (w *worker) flush(ctx context.Context) error {
 		}
 	}
 
-	// PartialBulkError is success-with-failed-items: the loop above already
-	// called OnSuccess/OnFailure. Returning it would fire indexer OnError at
-	// every flush site (worker.run, auto-flush, Close) as if the request
-	// itself failed.
-	if errors.As(err, &partial) {
-		return nil
-	}
-	return err
+	return nil
 }
 
 func (w *worker) handleBulkError(ctx context.Context, err error) error {
