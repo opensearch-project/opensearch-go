@@ -866,7 +866,10 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					Client:     client,
 					OnError: func(ctx context.Context, err error) {
 						onErrorCallCount++
-						if err.Error() != "flush: simulated bulk request error" {
+						// opensearchtransport wraps the underlying transport error with
+						// "METHOD url: " request context, so match on prefix/suffix
+						// rather than the exact string.
+						if !strings.HasPrefix(err.Error(), "flush: ") || !strings.HasSuffix(err.Error(), ": simulated bulk request error") {
 							t.Errorf("Unexpected error: %v", err)
 						}
 					},
@@ -881,7 +884,10 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						DocumentID: id,
 						Body:       strings.NewReader(fmt.Sprintf(`{"title":"doc_%d"}`, i)),
 						OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
-							if err.Error() != "flush: simulated bulk request error" {
+							// opensearchtransport wraps the underlying transport error with
+							// "METHOD url: " request context, so match on prefix/suffix
+							// rather than the exact string.
+							if !strings.HasPrefix(err.Error(), "flush: ") || !strings.HasSuffix(err.Error(), ": simulated bulk request error") {
 								t.Errorf("Unexpected error in OnFailure: %v", err)
 							}
 							idsFailureCount[item.DocumentID]++
