@@ -134,7 +134,7 @@ func example() error {
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
-				Size: opensearch.ToPointer(2),
+				Size: ptr(2),
 				From: 5,
 				Sort: []string{"year:desc"},
 			},
@@ -157,7 +157,7 @@ func example() error {
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:      `title: "dark knight"`,
-				Size:   opensearch.ToPointer(2),
+				Size:   ptr(2),
 				Sort:   []string{"year:desc"},
 				Scroll: time.Minute,
 			},
@@ -194,7 +194,7 @@ func example() error {
 		&opensearchapi.SearchReq{
 			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitID)),
 			Params: &opensearchapi.SearchParams{
-				Size: opensearch.ToPointer(5),
+				Size: ptr(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -213,7 +213,7 @@ func example() error {
 		&opensearchapi.SearchReq{
 			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitID)),
 			Params: &opensearchapi.SearchParams{
-				Size: opensearch.ToPointer(5),
+				Size: ptr(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -274,7 +274,7 @@ func example() error {
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices: []string{"movies"},
-			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {
@@ -284,3 +284,6 @@ func example() error {
 
 	return nil
 }
+
+// ptr returns a pointer to v.
+func ptr[T any](v T) *T { return &v }

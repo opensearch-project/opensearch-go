@@ -76,7 +76,7 @@ Long-running operations like reindex, delete_by_query, and update_by_query can b
 			"dest":   map[string]any{"index": destIndex},
 		}),
 		Params: &opensearchapi.ReindexParams{
-			WaitForCompletion: opensearch.ToPointer(false),
+			WaitForCompletion: ptr(false),
 		},
 	})
 	if err != nil {
@@ -284,7 +284,7 @@ func bulkByScrollStatus(status *opensearchapi.TasksStatus) (opensearchapi.BulkBy
 ```go
 	delResp, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
 		Indices:  []string{sourceIndex, destIndex},
-		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+		Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 	})
 	if err != nil {
 		return err

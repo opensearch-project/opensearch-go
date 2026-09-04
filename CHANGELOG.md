@@ -251,7 +251,6 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - Mark `opensearchtransport.Transport.Perform` and the `opensearch.Client.Perform` passthrough as deprecated; both remain fully functional in v4 (still buffering the response body via `io.ReadAll` + `NopCloser`) and will be removed in a future major version. New code should call `opensearch.Do[T]` for typed, decoded results or `opensearchtransport.Transport.Stream` / `opensearch.Client.Stream` for raw byte forwarding.
 - Mark `Client.Do()` with a `Deprecated` doc annotation in favor of `opensearch.Do[T]()` for compile-time pointer safety; `Client.Do()` remains fully functional and will not be removed, but `staticcheck` SA1019 will nudge cross-package callers toward the safer generic alternative
-- Mark `opensearch.ToPointer` as deprecated; it remains fully functional but will be removed in a future major version. Once the module's go directive moves to 1.26, callers can drop the helper entirely in favor of native `new(value)` literal syntax (e.g. `new(false)`)
 
 ### Removed
 
@@ -262,6 +261,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - **BREAKING**: Remove the `EnableMetrics` config flag from `opensearch.Config` and `opensearchtransport.Config`. The detailed-metrics snapshot (per-connection enumeration, per-policy breakdowns, and router cache state) is now always available; `Metrics()` returns the full snapshot unconditionally. The flag's only remaining purpose after [#891](https://github.com/opensearch-project/opensearch-go/issues/891) was to gate the detailed path, which now does its work lazily and lock-free at call time and so costs nothing until `Metrics()` is called. Delete any `EnableMetrics` field from your config (it is a compile error otherwise); see [`UPGRADING_V5.md`](UPGRADING_V5.md#enablemetrics-removed). ([#892](https://github.com/opensearch-project/opensearch-go/issues/892))
 - Remove backport.yml and dependabot_pr.yml as we are not using backport app anymore
 - Stop emitting `opensearchapi.Client` sub-client fields that have no operations routed to them. `cmd/osgen` now emits a sub-client only when at least one operation targets it, dropping the previously-empty `Script`, `ComponentTemplate`, `IndexTemplate`, `Template`, and `DataStream` fields. Index-template and data-stream operations are reached through `client.Indices.*` (e.g. `client.Indices.PutIndexTemplate`, `client.Indices.CreateDataStream`); stored-script operations remain top-level on `Client`
+- **BREAKING**: Remove the deprecated `opensearch.ToPointer` helper. It was never necessary internally -- call sites within this module use the unexported per-package `ptr` helper -- and was not intended to stay part of the public API. Replace `opensearch.ToPointer(v)` with a one-line `ptr` helper of your own, or with the native `new(value)` literal form once your module's go directive reaches 1.26 (e.g. `new(false)`). See [`UPGRADING_V5.md`](UPGRADING_V5.md#opensearchtopointer-removed) for migration ([#871](https://github.com/opensearch-project/opensearch-go/issues/871))
 
 ### Fixed
 
