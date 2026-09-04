@@ -888,12 +888,3 @@ func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
 		break
 	}
 }
-
-// ptr returns a pointer to a copy of value. Used for the *T query/body
-// parameter pattern. Unexported by design.
-//
-// Once the module's go directive moves to 1.26, this helper can be deleted
-// and call sites can switch to the native new(value) form: new(false).
-func ptr[V any](value V) *V {
-	return &value
-}
