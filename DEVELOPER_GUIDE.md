@@ -80,7 +80,7 @@ sudo apt install make
 
 ### Nested Modules
 
-Alongside the root client module there are six nested modules, each with its own `go.mod`, so that heavier dependencies stay out of the client's dependency graph:
+Alongside the root client module, this repository uses nested modules, each with its own `go.mod`, to keep heavier dependencies out of the client's graph so callers import and manage only what they use:
 
 | Module          | Purpose                         | Keeps out of the core graph                                                                                 |
 | --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
@@ -93,13 +93,13 @@ Alongside the root client module there are six nested modules, each with its own
 
 Each module resolves its own dependencies, the same way a consumer does. From the repository root, `go build ./...` and `go test ./...` cover the root module alone; `make test-unit` and `make lint.local` run each nested module in turn. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
 
-Four of them require the root module: `osprom` and `osotel` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
+Some require the root module: `osprom` and `osotel` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
 
 ```sh
 go work init . $(make -s print-submodules)
 ```
 
-Reach for that rather than a `replace` directive: a `replace` in a committed `go.mod` follows the module to consumers, and because Go ignores a `replace` from a dependency, every consumer downstream would have to repeat it.
+Prefer this local workspace to a `replace` directive. A `replace` committed to a `go.mod` travels with the module to anyone who depends on it, but Go honors a `replace` only in the main module it is building, not one inherited from a dependency. A committed `replace` therefore does nothing for a consumer, who has to add an equivalent one anyway.
 
 A local workspace resolves a nested module against the checkout no matter what its `go.mod` requires, which is also how it can hide a broken release. `make check-modules-standalone` builds and vets each nested module with `GOWORK=off`, so it reproduces the consumer's view whether or not you have a workspace, and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
 
