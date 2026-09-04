@@ -15,8 +15,8 @@ import (
 	"testing"
 	"time"
 
+	logslog "github.com/opensearch-project/opensearch-go/log-slog/v5"
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
-	logslog "github.com/opensearch-project/opensearch-go/v5/log-slog"
 )
 
 // eventField is one [debuglog.Event] method, the record a call to it produces, and

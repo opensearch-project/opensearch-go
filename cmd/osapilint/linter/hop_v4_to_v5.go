@@ -6,7 +6,7 @@
 
 package linter
 
-import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 
 // hop_v4_to_v5.go is the hand-authored v4 -> v5 migration data: the human
 // judgment that cannot be auto-derived from the type surfaces. It is the
