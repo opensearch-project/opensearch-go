@@ -156,7 +156,7 @@ type CatThreadPoolRecord struct {
 
 	// Core is the core number of active threads allowed in a scaling thread
 	// pool.
-	Core *string `json:"core"`
+	Core *string `json:"core,omitempty"`
 
 	// EphemeralNodeID is the ephemeral node identifier.
 	EphemeralNodeID *string `json:"ephemeral_node_id,omitempty"`
@@ -168,7 +168,7 @@ type CatThreadPoolRecord struct {
 	IP *string `json:"ip,omitempty"`
 
 	// KeepAlive is the thread keep alive time.
-	KeepAlive *string `json:"keep_alive"`
+	KeepAlive *string `json:"keep_alive,omitempty"`
 
 	// Largest is the highest number of active threads in the current thread
 	// pool.
@@ -176,7 +176,7 @@ type CatThreadPoolRecord struct {
 
 	// Max is the maximum number of active threads allowed in a scaling thread
 	// pool.
-	Max *string `json:"max"`
+	Max *string `json:"max,omitempty"`
 
 	// Name is the thread pool name.
 	Name *string `json:"name,omitempty"`
@@ -206,7 +206,7 @@ type CatThreadPoolRecord struct {
 	Rejected *string `json:"rejected,omitempty"`
 
 	// Size is the number of active threads allowed in a fixed thread pool.
-	Size *string `json:"size"`
+	Size *string `json:"size,omitempty"`
 
 	TotalWaitTime *string `json:"total_wait_time,omitempty"`
 
