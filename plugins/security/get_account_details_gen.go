@@ -97,7 +97,7 @@ type GetAccountDetailsResp struct {
 	Roles                []string                           `json:"roles,omitempty"`
 	Tenants              *opensearchapi.SecurityUserTenants `json:"tenants,omitempty"`
 	UserName             *string                            `json:"user_name,omitempty"`
-	UserRequestedTenant  *string                            `json:"user_requested_tenant"`
+	UserRequestedTenant  *string                            `json:"user_requested_tenant,omitempty"`
 
 	response *opensearch.Response
 }

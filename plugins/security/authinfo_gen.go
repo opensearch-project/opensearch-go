@@ -113,10 +113,10 @@ type AuthinfoResp struct {
 	PeerCertificates json.RawMessage `json:"peer_certificates,omitempty"`
 
 	// Principal is the user's principal.
-	Principal *string `json:"principal"`
+	Principal *string `json:"principal,omitempty"`
 
 	// RemoteAddress is the IP address of remote user.
-	RemoteAddress *string `json:"remote_address"`
+	RemoteAddress *string `json:"remote_address,omitempty"`
 
 	// Roles is the roles associated with the user.
 	Roles []string `json:"roles,omitempty"`
@@ -132,7 +132,7 @@ type AuthinfoResp struct {
 	SizeOfUser *string `json:"size_of_user,omitempty"`
 
 	// SSOLogoutURL is the logout URL.
-	SSOLogoutURL *string `json:"sso_logout_url"`
+	SSOLogoutURL *string `json:"sso_logout_url,omitempty"`
 
 	// Tenants is the tenants the user has access to with `read-write` or
 	// `read-only` access indicators.
@@ -146,7 +146,7 @@ type AuthinfoResp struct {
 
 	// UserRequestedTenant is the name of the tenant the user would like to
 	// switch to.
-	UserRequestedTenant *string `json:"user_requested_tenant"`
+	UserRequestedTenant *string `json:"user_requested_tenant,omitempty"`
 
 	response *opensearch.Response
 }

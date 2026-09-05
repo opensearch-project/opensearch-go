@@ -281,7 +281,7 @@ type NodesInfoNodeJVM struct {
 	StartTimeInMillis int64 `json:"start_time_in_millis"`
 
 	// UsingBundledJDK. Whether the node is using the bundled JDK.
-	UsingBundledJDK *bool `json:"using_bundled_jdk"`
+	UsingBundledJDK *bool `json:"using_bundled_jdk,omitempty"`
 
 	// UsingCompressedOrdinaryObjectPointers. Certain APIs may return values,
 	// including numbers such as epoch timestamps, as strings. This setting

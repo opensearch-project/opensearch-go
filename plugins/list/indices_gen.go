@@ -182,7 +182,7 @@ func (r IndicesParams) get() map[string]string {
 // See: https://opensearch.org/docs/latest/api-reference/list/list-indices/
 type IndicesResp struct {
 	Indices   []opensearchapi.CatIndicesRecord `json:"indices,omitempty"`
-	NextToken *string                          `json:"next_token"`
+	NextToken *string                          `json:"next_token,omitempty"`
 
 	response *opensearch.Response
 }
