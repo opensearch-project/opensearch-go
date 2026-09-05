@@ -85,7 +85,7 @@ func (r WhoAmIProtectedParams) get() map[string]string {
 //
 // Available: >= 2.11.0.
 type WhoAmIProtectedResp struct {
-	DN                       *string `json:"dn"`
+	DN                       *string `json:"dn,omitempty"`
 	IsAdmin                  *bool   `json:"is_admin,omitempty"`
 	IsNodeCertificateRequest *bool   `json:"is_node_certificate_request,omitempty"`
 

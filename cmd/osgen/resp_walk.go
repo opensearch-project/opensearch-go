@@ -440,7 +440,14 @@ func (w *walker) walkProperties(schema *openapi3.Schema, parentKey, group, paren
 		isRequired := required[name]
 		nullable := isNullableSchema(propRef)
 		isPointer := (!isRequired || nullable) && !isCollectionType(goType)
-		omitEmpty := !isRequired && !nullable
+		// Presence and nullability are orthogonal in OpenAPI: `required` says
+		// whether the key must appear, a null branch says whether its value may
+		// be null. An optional nullable field (DateRangeQuery.from, for one) may
+		// be absent, so it gets omitempty like any other optional field, and a
+		// nil pointer means "omit" rather than "send null". Only a required
+		// nullable field keeps the bare tag, so nil marshals as the explicit
+		// null the schema demands.
+		omitEmpty := !isRequired
 
 		// json.RawMessage already encodes absent as nil, so a pointer wrapper is
 		// redundant. omitempty stays spec-driven: RawMessage is a []byte, so an
@@ -807,7 +814,8 @@ func resolveOneOfGoType(schema *openapi3.Schema) string {
 
 // isNullableSchema returns true if the schema is a oneOf/anyOf that includes
 // a "null" type branch, or uses the OpenAPI 3.1 multi-type syntax with "null",
-// indicating the field is always present but may be null.
+// indicating the value may be null. Whether the key must be present is a
+// separate question answered by the parent schema's `required` list.
 func isNullableSchema(ref *openapi3.SchemaRef) bool {
 	if ref == nil || ref.Value == nil {
 		return false

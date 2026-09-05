@@ -684,10 +684,19 @@ func TestWalkerRawMessageOmitEmpty(t *testing.T) {
 			wantOmitEmpty: true,
 		},
 		{
-			// nullable means the server may legitimately send null, so the key
-			// is always emitted and the null is preserved.
-			name:          "nullable object always emitted",
+			// nullable says the value may be null, not that the key must be
+			// present; an optional nullable field is still omitted when unset.
+			// An explicit json.RawMessage("null") survives omitempty (len 4).
+			name:          "optional nullable object omits",
 			schema:        &openapi3.Schema{Type: &openapi3.Types{"null", "object"}},
+			wantOmitEmpty: true,
+		},
+		{
+			// required + nullable is the one shape where the key must always
+			// appear, possibly carrying null.
+			name:          "required nullable object always emitted",
+			schema:        &openapi3.Schema{Type: &openapi3.Types{"null", "object"}},
+			required:      true,
 			wantOmitEmpty: false,
 		},
 	}
@@ -746,6 +755,102 @@ func TestRawMessageOmitEmptyPreservesExplicitNull(t *testing.T) {
 			got, err := json.Marshal(holder{Field: tt.raw})
 			require.NoError(t, err)
 			require.JSONEq(t, tt.want, string(got))
+		})
+	}
+}
+
+// A nullable scalar is a pointer so nil can stand for null, but whether it
+// carries omitempty follows `required` alone. Treating nullable as "always
+// present" made optional nullable request fields such as DateRangeQuery.from
+// and .to marshal as explicit nulls whenever the caller left them unset
+// (opensearch-go#1114).
+func TestWalkerNullableScalarOmitEmpty(t *testing.T) {
+	t.Parallel()
+
+	nullBranch := &openapi3.SchemaRef{Value: &openapi3.Schema{Type: &openapi3.Types{"null"}}}
+	oneOfNullableString := &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+		{Value: openapi3.NewStringSchema()},
+		nullBranch,
+	}}
+	typeSetNullableString := &openapi3.Schema{Type: &openapi3.Types{"null", "string"}}
+
+	tests := []struct {
+		name          string
+		schema        *openapi3.Schema
+		required      bool
+		wantGoType    string
+		wantPointer   bool
+		wantOmitEmpty bool
+	}{
+		{
+			name:          "optional plain string",
+			schema:        openapi3.NewStringSchema(),
+			wantGoType:    "*string",
+			wantPointer:   true,
+			wantOmitEmpty: true,
+		},
+		{
+			name:          "required plain string",
+			schema:        openapi3.NewStringSchema(),
+			required:      true,
+			wantGoType:    "string",
+			wantOmitEmpty: false,
+		},
+		{
+			name:          "optional oneOf-null string omits",
+			schema:        oneOfNullableString,
+			wantGoType:    "*string",
+			wantPointer:   true,
+			wantOmitEmpty: true,
+		},
+		{
+			name:          "required oneOf-null string always emitted",
+			schema:        oneOfNullableString,
+			required:      true,
+			wantGoType:    "*string",
+			wantPointer:   true,
+			wantOmitEmpty: false,
+		},
+		{
+			name:          "optional type-set nullable string omits",
+			schema:        typeSetNullableString,
+			wantGoType:    "*string",
+			wantPointer:   true,
+			wantOmitEmpty: true,
+		},
+		{
+			name:          "required type-set nullable string always emitted",
+			schema:        typeSetNullableString,
+			required:      true,
+			wantGoType:    "*string",
+			wantPointer:   true,
+			wantOmitEmpty: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			schema := openapi3.NewObjectSchema()
+			schema.Properties = openapi3.Schemas{"field": {Value: tt.schema}}
+			if tt.required {
+				schema.Required = []string{"field"}
+			}
+
+			w.walkSchema(&openapi3.SchemaRef{Value: schema}, "test___NullableHolder", "test", false)
+
+			registered, ok := reg.lookupByName("TestNullableHolder")
+			require.True(t, ok)
+			require.Len(t, registered.Fields, 1)
+
+			got := registered.Fields[0]
+			require.Equal(t, tt.wantGoType, got.GoType)
+			require.Equal(t, tt.wantPointer, got.IsPointer)
+			require.Equal(t, tt.wantOmitEmpty, got.OmitEmpty)
 		})
 	}
 }
