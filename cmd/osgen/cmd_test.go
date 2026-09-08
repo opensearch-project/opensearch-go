@@ -209,6 +209,22 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 	s.Require().NotEmpty(entries)
 }
 
+// TestResolveGenRoot_GitRootWithForwardSlashes covers what `git rev-parse
+// --show-toplevel` prints under Git for Windows: a forward-slash path, while
+// filepath.Abs returns the native separator. The containment check must still
+// accept a subdirectory of the repository. On Linux and macOS the forward-slash
+// form is already native, so this passes there regardless.
+func (s *GenerateSuite) TestResolveGenRoot_GitRootWithForwardSlashes() {
+	orig := repoRoot
+	repoRoot = func() (string, error) { return filepath.ToSlash(s.tmpDir), nil }
+	defer func() { repoRoot = orig }()
+
+	sub := filepath.Join(s.tmpDir, "opensearchapi")
+	got, err := resolveGenRoot(sub)
+	s.Require().NoError(err)
+	s.Require().Equal(sub, got)
+}
+
 func buildTestSpecWithPlugin(t *testing.T) string {
 	t.Helper()
 	spec := map[string]any{
