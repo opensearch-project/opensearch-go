@@ -1,6 +1,6 @@
 module github.com/opensearch-project/opensearch-go/v5
 
-go 1.25.12
+go 1.26.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.46.0
@@ -8,7 +8,7 @@ require (
 	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529
 	github.com/stretchr/testify v1.12.1
 	github.com/wI2L/jsondiff v0.7.1
-	golang.org/x/mod v0.40.0
+	golang.org/x/mod v0.41.0
 	golang.org/x/sync v0.22.0
 )
 
