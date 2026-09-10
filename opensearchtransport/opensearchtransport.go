@@ -1814,8 +1814,45 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		res, err = c.performSeedFallback(req.Context(), req, &sr)
 	}
 
-	// TODO: Consider wrapping the error with request context.
+	// Wrap the error with the request method and a credential-redacted URL so
+	// callers debugging a failure don't have to correlate it back to the
+	// request by hand. Skipped when err is nil (the common case) since that
+	// would otherwise turn a successful response into a non-nil error.
+	if err != nil {
+		err = fmt.Errorf("%s %s: %w", req.Method, redactedRequestURL(req), err)
+	}
+
 	return res, sr, err
+}
+
+// redactedRequestURL renders req.URL for inclusion in error messages, with
+// userinfo and the query string stripped.
+//
+// setReqURL only ever copies Scheme/Host/Path from the connection URL onto
+// req.URL, never User, so basic-auth credentials configured on a connection
+// (e.g. https://user:pass@host:9200) do not normally reach req.URL. Userinfo
+// is still stripped here as a defense in depth, since req.URL is caller
+// input: it is whatever *http.Request was passed to Stream/Request, which a
+// caller building requests directly against Transport (bypassing
+// opensearchapi) could construct with embedded credentials.
+//
+// The query string is dropped unconditionally because it routinely carries
+// secrets that never touch userinfo -- SigV4 presigned requests place the
+// signature and credential scope in query parameters (e.g. X-Amz-Signature,
+// X-Amz-Credential), and some deployments accept API keys as a query
+// parameter. Method, scheme, host, and path are enough to identify which
+// request failed without risking a leak into logs or error-tracking systems.
+func redactedRequestURL(req *http.Request) string {
+	if req == nil || req.URL == nil {
+		return "<no url>"
+	}
+	u := *req.URL
+	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
+	u.Fragment = ""
+	u.RawFragment = ""
+	return u.String()
 }
 
 // defaultOperationClassifier lazily builds a single [OperationClassifier] shared
