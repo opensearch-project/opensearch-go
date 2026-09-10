@@ -35,7 +35,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -310,10 +309,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					FlushInterval: time.Hour,
 					Client:        client,
 				}
-				if testutil.IsDebugEnabled(t) {
-					cfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(cfg)
 
 				for i := 1; i <= 6; i++ {
@@ -367,10 +362,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					Client:        client,
 					FlushInterval: 50 * time.Millisecond,
 				}
-				if testutil.IsDebugEnabled(t) {
-					cfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(cfg)
 
 				bi.Add(context.Background(),
@@ -451,10 +442,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				t.Cleanup(func() { _ = client.Close() })
 
 				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
-				if testutil.IsDebugEnabled(t) {
-					biCfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {
@@ -679,9 +666,6 @@ func maskedBulkItems(cfg *opensearchapi.Config) {
 func newBulkIndexer(t *testing.T, cfg BulkIndexerConfig) BulkIndexer {
 	t.Helper()
 
-	if testutil.IsDebugEnabled(t) {
-		cfg.DebugLogger = log.New(os.Stdout, "", 0)
-	}
 	bi, err := NewBulkIndexer(cfg)
 	require.NoError(t, err)
 
