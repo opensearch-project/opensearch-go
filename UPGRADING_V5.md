@@ -288,6 +288,19 @@ func (t *MyTransport) Request(req *http.Request) (*http.Response, error) {
 
 The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.
 
+## `opensearch.ToPointer` removed
+
+The deprecated `opensearch.ToPointer` generic helper has been removed. Replace calls with a one-line helper or, on Go 1.26+, use the native `new(value)` form:
+
+```go
+// Before
+p := opensearch.ToPointer(true)
+
+// After — define a one-line local helper:
+func ptr[V any](v V) *V { return &v }
+p := ptr(true)
+```
+
 ## `Response.RawBody()` for buffered response bytes
 
 `Response.Body` remains a public `io.ReadCloser` field; reading it is unchanged:
