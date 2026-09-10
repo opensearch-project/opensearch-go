@@ -66,9 +66,9 @@ func example() error {
 		&opensearchapi.IndicesClearCacheReq{
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.IndicesClearCacheParams{
-				Fielddata: opensearch.ToPointer(true),
-				Request:   opensearch.ToPointer(true),
-				Query:     opensearch.ToPointer(true),
+				Fielddata: ptr(true),
+				Request:   ptr(true),
+				Query:     ptr(true),
 			},
 		},
 	)
@@ -206,7 +206,7 @@ func example() error {
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices: []string{"movies*", "books*"},
-			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {
@@ -216,3 +216,6 @@ func example() error {
 
 	return nil
 }
+
+// ptr returns a pointer to v.
+func ptr[T any](v T) *T { return &v }

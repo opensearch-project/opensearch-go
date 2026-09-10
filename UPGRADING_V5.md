@@ -523,3 +523,21 @@ func handler(ctx context.Context) error {
 ```
 
 `Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+
+## `opensearch.ToPointer` removed
+
+`opensearch.ToPointer` is removed. It was a thin, exported wrapper (`return ptr(value)`) kept around only for callers building `*T` request parameters; it was never needed internally, since call sites within this module use an unexported per-package `ptr` helper instead.
+
+Replace a call site with a one-line helper of your own:
+
+```go
+func ptr[T any](v T) *T { return &v }
+
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+```
+
+Once your module's `go` directive reaches 1.26, you can drop the helper entirely and use the native `new(value)` literal form instead:
+
+```go
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
+```
