@@ -147,8 +147,13 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "requests_per_second",
-			params: UpdateByQueryParams{RequestsPerSecond: 42},
-			want:   map[string]string{"requests_per_second": "42"},
+			params: UpdateByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			want:   map[string]string{"requests_per_second": "1.5"},
+		},
+		{
+			name:   "requests_per_second=0",
+			params: UpdateByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			want:   map[string]string{"requests_per_second": "0"},
 		},
 		{
 			name:   "routing",

@@ -70,7 +70,7 @@ type PutPolicyParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Only perform the operation if the document has this primary term.
-	IfPrimaryTerm *int
+	IfPrimaryTerm *float64
 
 	// Only perform the operation if the document has this sequence number.
 	IfSeqNo *int
@@ -88,7 +88,7 @@ func (r PutPolicyParams) get() map[string]string {
 	osparams.EncodeDebug(r.DebugParams, set)
 
 	if r.IfPrimaryTerm != nil {
-		set("if_primary_term", strconv.Itoa(*r.IfPrimaryTerm))
+		set("if_primary_term", strconv.FormatFloat(*r.IfPrimaryTerm, 'f', -1, 64))
 	}
 
 	if r.IfSeqNo != nil {

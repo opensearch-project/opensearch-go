@@ -96,8 +96,8 @@ func TestCountParams_get(t *testing.T) {
 		},
 		{
 			name:   "min_score",
-			params: CountParams{MinScore: 42},
-			want:   map[string]string{"min_score": "42"},
+			params: CountParams{MinScore: 1.5},
+			want:   map[string]string{"min_score": "1.5"},
 		},
 		{
 			name:   "preference",
