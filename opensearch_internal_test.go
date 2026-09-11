@@ -38,6 +38,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"testing/iotest"
 	"time"
@@ -173,12 +174,20 @@ func TestClientConfiguration(t *testing.T) {
 
 	t.Run("With APIKey sends correct Authorization header", func(t *testing.T) {
 		const key = "dGVzdGlkOnRlc3RrZXk="
-		var gotAuth string
+		// The transport runs a baseline health check goroutine at construction that
+		// also drives the mock RoundTrip, so guard the captured header against the
+		// concurrent request the client's own Stream call makes.
+		var gotAuth struct {
+			sync.Mutex
+			value string
+		}
 		c, err := NewClient(Config{
 			Addresses: []string{"http://localhost:9200"},
 			APIKey:    key,
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				gotAuth = req.Header.Get("Authorization")
+				gotAuth.Lock()
+				gotAuth.value = req.Header.Get("Authorization")
+				gotAuth.Unlock()
 				return &http.Response{
 					StatusCode: http.StatusOK,
 					Header:     make(http.Header),
@@ -188,8 +197,14 @@ func TestClientConfiguration(t *testing.T) {
 		})
 		require.NoError(t, err)
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
-		_, _ = c.Stream(req)
-		require.Equal(t, "ApiKey "+key, gotAuth)
+		resp, _ := c.Stream(req)
+		if resp != nil {
+			require.NoError(t, resp.Body.Close())
+		}
+		gotAuth.Lock()
+		got := gotAuth.value
+		gotAuth.Unlock()
+		require.Equal(t, "ApiKey "+key, got)
 	})
 
 	t.Run("With DiscoverNodes on start", func(t *testing.T) {
@@ -859,7 +874,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 49
+	const knownFieldCount = 50
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")

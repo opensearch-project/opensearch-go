@@ -383,7 +383,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("API key sets Authorization header", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
 		c := &Transport{apiKey: dummyApiKey}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -394,7 +394,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("API key takes precedence over username/password", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
 		c := &Transport{apiKey: dummyApiKey, username: "admin", password: "secret"}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -407,7 +407,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("URL userinfo takes precedence over API key", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
 		c := &Transport{apiKey: dummyApiKey}
 		u, _ := url.Parse("https://url-user:url-pass@node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
@@ -421,7 +421,7 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("existing Authorization header not overwritten by API key", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk="
+		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
 		c := &Transport{apiKey: dummyApiKey}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
