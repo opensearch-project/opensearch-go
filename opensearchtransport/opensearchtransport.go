@@ -138,9 +138,10 @@ type Config struct {
 	Username string
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
-	// APIKey authenticates via the Authorization: ApiKey <key> header. URL
-	// userinfo and an existing Authorization header take precedence; it takes
-	// precedence over Username/Password.
+	// APIKey authenticates via the Authorization: ApiKey <key> header, where the
+	// value is the token returned by the Create API Key API (prefixed "os_").
+	// URL userinfo and an existing Authorization header take precedence; APIKey
+	// takes precedence over Username/Password.
 	APIKey string // #nosec G117
 
 	Header http.Header
