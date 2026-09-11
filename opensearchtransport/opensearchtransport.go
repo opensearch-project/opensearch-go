@@ -138,6 +138,11 @@ type Config struct {
 	Username string
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
+	// APIKey authenticates via the Authorization: ApiKey <key> header, where the
+	// value is the token returned by the Create API Key API (prefixed "os_").
+	// URL userinfo and an existing Authorization header take precedence; APIKey
+	// takes precedence over Username/Password.
+	APIKey string // #nosec G117
 
 	Header http.Header
 	CACert []byte
@@ -458,6 +463,7 @@ type Transport struct {
 	urls      []*url.URL
 	username  string
 	password  string
+	apiKey    string
 	header    http.Header
 	userAgent string
 
@@ -943,6 +949,7 @@ func New(cfg Config) (*Transport, error) {
 		urls:     cfg.URLs,
 		username: cfg.Username,
 		password: cfg.Password,
+		apiKey:   cfg.APIKey,
 		header:   cfg.Header,
 
 		signer: cfg.Signer,
@@ -2066,11 +2073,20 @@ func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	}
 }
 
+// apiKeyAuthScheme is the Authorization header scheme for API key auth:
+// "Authorization: ApiKey <key>" (OpenSearch 3.7+).
+const apiKeyAuthScheme = "ApiKey"
+
 func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 	if _, ok := req.Header["Authorization"]; !ok {
 		if u.User != nil {
 			password, _ := u.User.Password()
 			req.SetBasicAuth(u.User.Username(), password)
+			return
+		}
+
+		if c.apiKey != "" {
+			req.Header.Set("Authorization", apiKeyAuthScheme+" "+c.apiKey)
 			return
 		}
 
