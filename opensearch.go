@@ -100,7 +100,9 @@ type Config struct {
 	Password string // #nosec G117
 	// APIKey authenticates via the Authorization: ApiKey <key> header, an
 	// alternative to Username/Password (OpenSearch 3.7+). The value is the
-	// token returned by the Create API Key API (prefixed "os_").
+	// token returned by the Create API Key API (prefixed "os_"). URL userinfo
+	// and an existing Authorization header take precedence; APIKey takes
+	// precedence over Username/Password.
 	APIKey string // #nosec G117
 
 	Header http.Header // Global HTTP request header.

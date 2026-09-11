@@ -310,6 +310,9 @@ func TestStreamRetryPathPrefix(t *testing.T) {
 func TestSetReqAuth(t *testing.T) {
 	t.Parallel()
 
+	// dummyAPIKey is a test fixture, not a real credential.
+	const dummyAPIKey = "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
+
 	t.Run("auth from URL userinfo", func(t *testing.T) {
 		t.Parallel()
 		c := &Transport{}
@@ -383,32 +386,29 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("API key sets Authorization header", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
-		c := &Transport{apiKey: dummyApiKey}
+		c := &Transport{apiKey: dummyAPIKey}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
 
-		require.Equal(t, apiKeyAuthScheme+" "+dummyApiKey, req.Header.Get("Authorization"))
+		require.Equal(t, apiKeyAuthScheme+" "+dummyAPIKey, req.Header.Get("Authorization"))
 	})
 
 	t.Run("API key takes precedence over username/password", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
-		c := &Transport{apiKey: dummyApiKey, username: "admin", password: "secret"}
+		c := &Transport{apiKey: dummyAPIKey, username: "admin", password: "secret"}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
 
-		require.Equal(t, apiKeyAuthScheme+" "+dummyApiKey, req.Header.Get("Authorization"))
+		require.Equal(t, apiKeyAuthScheme+" "+dummyAPIKey, req.Header.Get("Authorization"))
 		_, _, basicOK := req.BasicAuth()
 		require.False(t, basicOK)
 	})
 
 	t.Run("URL userinfo takes precedence over API key", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
-		c := &Transport{apiKey: dummyApiKey}
+		c := &Transport{apiKey: dummyAPIKey}
 		u, _ := url.Parse("https://url-user:url-pass@node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
@@ -421,15 +421,14 @@ func TestSetReqAuth(t *testing.T) {
 
 	t.Run("existing Authorization header not overwritten by API key", func(t *testing.T) {
 		t.Parallel()
-		dummyApiKey := "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
-		c := &Transport{apiKey: dummyApiKey}
+		c := &Transport{apiKey: dummyAPIKey}
 		u, _ := url.Parse("https://node1:9200")
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		existingToken := "some-random-token"
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", existingToken))
+		req.Header.Set("Authorization", "Bearer "+existingToken)
 		c.setReqAuth(u, req)
 
-		require.Equal(t, fmt.Sprintf("Bearer %s", existingToken), req.Header.Get("Authorization"))
+		require.Equal(t, "Bearer "+existingToken, req.Header.Get("Authorization"))
 	})
 }
 

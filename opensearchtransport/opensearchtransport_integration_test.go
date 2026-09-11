@@ -314,7 +314,7 @@ func TestTransportAPIKeyAuth(t *testing.T) {
 
 	if createRes.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(createRes.Body)
-		t.Skipf("API key tokens not enabled on this cluster (status %d): %s", createRes.StatusCode, body)
+		t.Skipf("API key tokens not enabled on this cluster (status %d): %q", createRes.StatusCode, body)
 	}
 
 	// The plain-text token (prefixed "os_") is returned once in the "token" field.
