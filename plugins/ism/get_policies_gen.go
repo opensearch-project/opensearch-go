@@ -83,10 +83,10 @@ func (r GetPoliciesParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#get-policy
 type GetPoliciesResp struct {
-	// The list of policies.
+	// Policies is the list of policies.
 	Policies []opensearchapi.ISMPolicyWithMetadata `json:"policies,omitempty"`
 
-	// The total number of policies.
+	// TotalPolicies is the total number of policies.
 	TotalPolicies *float64 `json:"total_policies,omitempty"`
 
 	response *opensearch.Response

@@ -99,10 +99,10 @@ func (r RegisterModelGroupParams) get() map[string]string {
 //
 // Registers a model group.
 type RegisterModelGroupResp struct {
-	// The model group ID.
+	// ModelGroupID is the model group ID.
 	ModelGroupID string `json:"model_group_id"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 
 	response *opensearch.Response
@@ -124,18 +124,18 @@ func (r RegisterModelGroupResp) RawBody() io.Reader {
 
 // MLRegisterModelGroupBody is a typed component of the ml.register_model_group operation.
 type MLRegisterModelGroupBody struct {
-	// The model group access mode.
+	// AccessMode is the model group access mode.
 	AccessMode *string `json:"access_mode,omitempty"`
 
-	// The add all backend roles.
+	// AddAllBackendRoles is the add all backend roles.
 	AddAllBackendRoles *bool `json:"add_all_backend_roles,omitempty"`
 
-	// The backend roles.
+	// BackendRoles is the backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The model group description.
+	// Description is the model group description.
 	Description *string `json:"description,omitempty"`
 
-	// The model group name.
+	// Name is the model group name.
 	Name string `json:"name"`
 }

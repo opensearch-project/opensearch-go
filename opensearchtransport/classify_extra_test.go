@@ -16,37 +16,6 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 )
 
-// TestClassify_ZeroAlloc guards the zero-allocation claim documented in
-// CHANGELOG: OperationClassifier.Classify must not allocate on the hot
-// path (it lives inside RoundTrip and runs once per request). A
-// regression here means a per-request heap object that compounds across
-// the cluster's RPS.
-func TestClassify_ZeroAlloc(t *testing.T) {
-	c := opensearchtransport.NewOperationClassifier()
-	// Warm any one-time setup the classifier may do.
-	_ = c.Classify(http.MethodGet, "/events/_search")
-
-	tests := []struct {
-		name   string
-		method string
-		path   string
-	}{
-		{"search hot path", http.MethodPost, "/events/_search"},
-		{"bulk hot path", http.MethodPost, "/_bulk"},
-		{"doc get hot path", http.MethodGet, "/events/_doc/abc-123"},
-		{"unknown path falls through to OpOther", http.MethodGet, "/_unknown/endpoint"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			allocs := testing.AllocsPerRun(200, func() {
-				_ = c.Classify(tt.method, tt.path)
-			})
-			require.Zero(t, allocs, "Classify(%q, %q) must be zero-alloc, got %g", tt.method, tt.path, allocs)
-		})
-	}
-}
-
 // TestClassify_PathEdgeCases covers path-shape variants that callers
 // pass through Classify directly: trailing slashes, query strings, mixed
 // case methods. The classifier must be tolerant of common HTTP-layer

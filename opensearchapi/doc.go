@@ -104,8 +104,23 @@ SnapshotClient.Restore restores a snapshot.
 
 OpenSearch is a distributed system in which operations may partially succeed. By default the
 client surfaces partial failures as errors, which a caller detects with a type switch over
-[Errors]. The [Error Handling guide] is the canonical reference for the typed error model, the
-error mask, and the recommended handling pattern.
+[Errors]:
+
+	resp, err := client.MSearch(ctx, req)
+	for _, sub := range opensearchapi.Errors(err) {
+	  switch e := sub.(type) {
+	  case *opensearchapi.PartialSearchError:
+	    log.Printf("%d/%d shards failed", e.FailedShards, e.TotalShards)
+	  case *opensearchapi.MultiSearchItemError:
+	    log.Printf("%d sub-queries failed", len(e.Items))
+	  default: // transport / HTTP / decoding error
+	    return err
+	  }
+	}
+	// resp is fully populated; use it regardless of partial failure.
+
+The [Error Handling guide] is the canonical reference for the typed error model, the error mask,
+and the recommended handling pattern.
 
 # Plugin APIs
 

@@ -7,7 +7,9 @@
 package opensearchtransport
 
 import (
+	"fmt"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -123,6 +125,59 @@ func TestRankByHash(t *testing.T) {
 		}
 		require.True(t, differ, "different keys should usually produce different orderings")
 	})
+}
+
+// TestRendezvousTopKDoesNotReorderInput pins the caller-slice contract: callers
+// pass their live RTT-ordered connection list, so ranking must touch only a
+// private copy. Run with -race for the concurrent case.
+func TestRendezvousTopKDoesNotReorderInput(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		nodes      int
+		k          int
+		goroutines int
+		iters      int
+	}{
+		// k below the node count puts every node in one RTT tier that is
+		// larger than the slots to fill, which is the only path that ranks.
+		{name: "single call", nodes: 4, k: 2, goroutines: 1, iters: 1},
+		{name: "concurrent calls", nodes: 8, k: 3, goroutines: 8, iters: 200},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			conns := make([]*Connection, tt.nodes)
+			orig := make([]string, tt.nodes)
+			for i := range conns {
+				id := fmt.Sprintf("n%d", i+1)
+				conns[i] = testConn(t, fmt.Sprintf("node%d:9200", i+1), id, 1*time.Millisecond)
+				orig[i] = conns[i].URLString
+			}
+
+			var wg sync.WaitGroup
+			wg.Add(tt.goroutines)
+			for range tt.goroutines {
+				go func() {
+					defer wg.Done()
+					for range tt.iters {
+						buf := getConnSlice(tt.k)
+						_ = rendezvousTopK("key", "", conns, tt.k, nil, nil, buf)
+						putConnSlice(buf)
+					}
+				}()
+			}
+			wg.Wait()
+
+			for i, c := range conns {
+				require.Equal(t, orig[i], c.URLString,
+					"position %d: input must keep its RTT order; rankByHash must sort only a private copy", i)
+			}
+		})
+	}
 }
 
 func TestRendezvousTopK(t *testing.T) {

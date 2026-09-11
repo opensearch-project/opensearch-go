@@ -7,13 +7,14 @@
 package main
 
 import (
+	"slices"
 	"strconv"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 func TestResolveUnionType(t *testing.T) {
@@ -34,13 +35,13 @@ func TestResolveUnionType(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
-		schema     *openapi3.Schema
-		schemaKey  string
-		wantName   string
-		wantLazy   bool
-		wantCount  int
-		wantBranch []string // expected branch names
+		name              string
+		schema            *openapi3.Schema
+		schemaKey         string
+		wantName          string
+		wantAmbiguousWire bool
+		wantCount         int
+		wantBranch        []string // expected branch names
 	}{
 		{
 			name: "object and primitive",
@@ -53,11 +54,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewInt64Schema()},
 				},
 			},
-			schemaKey:  "_common___HitsTotal",
-			wantName:   "HitsTotal",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"TotalHits", "Int64"},
+			schemaKey:         "_common___HitsTotal",
+			wantName:          "HitsTotal",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"TotalHits", "Int64"},
 		},
 		{
 			name: "string and integer",
@@ -67,11 +68,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewIntegerSchema()},
 				},
 			},
-			schemaKey:  "test___MixedField",
-			wantName:   "TestMixedField",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"String", "Int"},
+			schemaKey:         "test___MixedField",
+			wantName:          "TestMixedField",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"String", "Int"},
 		},
 		{
 			name: "bool and integer",
@@ -81,11 +82,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewIntegerSchema()},
 				},
 			},
-			schemaKey:  "test___TrackHits",
-			wantName:   "TestTrackHits",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"Bool", "Int"},
+			schemaKey:         "test___TrackHits",
+			wantName:          "TestTrackHits",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"Bool", "Int"},
 		},
 		{
 			name: "two objects same token class is lazy",
@@ -101,11 +102,13 @@ func TestResolveUnionType(t *testing.T) {
 					},
 				},
 			},
-			schemaKey:  "test___AOrB",
-			wantName:   "TestAOrB",
-			wantLazy:   true,
-			wantCount:  2,
-			wantBranch: []string{"TestTypeA", "TestTypeB"},
+			schemaKey:         "test___AOrB",
+			wantName:          "TestAOrB",
+			wantAmbiguousWire: true,
+			wantCount:         2,
+			// Branch names come from the $ref key's local segment, not the
+			// qualified Go type, so they do not restate the union's group prefix.
+			wantBranch: []string{"TypeA", "TypeB"},
 		},
 		{
 			name: "anyOf treated like oneOf",
@@ -115,11 +118,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewBoolSchema()},
 				},
 			},
-			schemaKey:  "test___AnyField",
-			wantName:   "TestAnyField",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"String", "Bool"},
+			schemaKey:         "test___AnyField",
+			wantName:          "TestAnyField",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"String", "Bool"},
 		},
 		{
 			// int and int64 decode from the same JSON integer token, so the
@@ -133,11 +136,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewStringSchema()},
 				},
 			},
-			schemaKey:  "test___SeedLike",
-			wantName:   "TestSeedLike",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"Int64", "String"},
+			schemaKey:         "test___SeedLike",
+			wantName:          "TestSeedLike",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"Int64", "String"},
 		},
 		{
 			// float32/float64 collapse the same way as the integer class.
@@ -149,11 +152,11 @@ func TestResolveUnionType(t *testing.T) {
 					{Value: openapi3.NewStringSchema()},
 				},
 			},
-			schemaKey:  "test___FloatLike",
-			wantName:   "TestFloatLike",
-			wantLazy:   false,
-			wantCount:  2,
-			wantBranch: []string{"Float64", "String"},
+			schemaKey:         "test___FloatLike",
+			wantName:          "TestFloatLike",
+			wantAmbiguousWire: false,
+			wantCount:         2,
+			wantBranch:        []string{"Float64", "String"},
 		},
 		{
 			// Inline (non-$ref) object branches are named from their content, not
@@ -168,11 +171,11 @@ func TestResolveUnionType(t *testing.T) {
 					inlineObj("acknowledged"),
 				},
 			},
-			schemaKey:  "test___InlineDistinct",
-			wantName:   "TestInlineDistinct",
-			wantLazy:   true,
-			wantCount:  2,
-			wantBranch: []string{"Task", "Acknowledged"},
+			schemaKey:         "test___InlineDistinct",
+			wantName:          "TestInlineDistinct",
+			wantAmbiguousWire: true,
+			wantCount:         2,
+			wantBranch:        []string{"Task", "Acknowledged"},
 		},
 		{
 			// Two structurally identical inline objects (same properties and
@@ -187,11 +190,11 @@ func TestResolveUnionType(t *testing.T) {
 					inlineObj("max_bytes_behind"),
 				},
 			},
-			schemaKey:  "test___InlineIdentical",
-			wantName:   "TestInlineIdentical",
-			wantLazy:   true,
-			wantCount:  2,
-			wantBranch: []string{"Object0", "Object1"},
+			schemaKey:         "test___InlineIdentical",
+			wantName:          "TestInlineIdentical",
+			wantAmbiguousWire: true,
+			wantCount:         2,
+			wantBranch:        []string{"Object0", "Object1"},
 		},
 	}
 
@@ -213,7 +216,7 @@ func TestResolveUnionType(t *testing.T) {
 			registered, ok := reg.lookup(tt.schemaKey)
 			require.True(t, ok, "union type should be registered")
 			require.True(t, registered.IsUnion)
-			require.Equal(t, tt.wantLazy, registered.IsLazy)
+			require.Equal(t, tt.wantAmbiguousWire, registered.IsAmbiguousWire)
 			require.Len(t, registered.Branches, tt.wantCount)
 
 			for i, name := range tt.wantBranch {
@@ -243,9 +246,14 @@ func TestResolveUnionTypeNullableSingleBranch(t *testing.T) {
 	require.False(t, ok, "single non-null branch should not register a union")
 }
 
-func TestResolveUnionTypeDeduplicates(t *testing.T) {
+func TestResolveUnionTypeKeepsDuplicateGoTypes(t *testing.T) {
 	t.Parallel()
 
+	// The Parse phase keeps same-Go-type branches. Whether a duplicate is
+	// reachable depends on the union's decode state, which is not assigned until
+	// the IR phase, so dropUnreachableBranches makes that call later. Dropping
+	// here would delete the distinct As<Branch>() accessors a caller-keyed lazy
+	// union legitimately exposes over one Go type.
 	reg := newTypeRegistry(opensearchAPIPkgName)
 	w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
 
@@ -262,7 +270,7 @@ func TestResolveUnionTypeDeduplicates(t *testing.T) {
 
 	registered, ok := reg.lookup("test___Dedup")
 	require.True(t, ok)
-	require.Len(t, registered.Branches, 2, "duplicate string branches should be deduplicated")
+	require.Len(t, registered.Branches, 3, "Parse phase must not judge branch reachability")
 }
 
 func TestResolveUnionTypeCollapsesToSingle(t *testing.T) {
@@ -317,39 +325,39 @@ func TestUnionNeedsTryEach(t *testing.T) {
 	}{
 		{
 			name:     "single branch",
-			branches: []unionBranch{{TokenClass: "object"}},
+			branches: []unionBranch{{TokenClass: ir.TokenObject}},
 			want:     false,
 		},
 		{
 			name: "different tokens",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "number"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenNumber},
 			},
 			want: false,
 		},
 		{
 			name: "same token object",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "object"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenObject},
 			},
 			want: true,
 		},
 		{
 			name: "same token string",
 			branches: []unionBranch{
-				{TokenClass: "string"},
-				{TokenClass: "string"},
+				{TokenClass: ir.TokenString},
+				{TokenClass: ir.TokenString},
 			},
 			want: true,
 		},
 		{
 			name: "three mixed with collision",
 			branches: []unionBranch{
-				{TokenClass: "object"},
-				{TokenClass: "object"},
-				{TokenClass: "string"},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenObject},
+				{TokenClass: ir.TokenString},
 			},
 			want: true,
 		},
@@ -358,7 +366,7 @@ func TestUnionNeedsTryEach(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := unionNeedsTryEach(tt.branches)
+			got := branchesCollideOnTokenClass(tt.branches)
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -369,19 +377,19 @@ func TestTokenClassForPrimitive(t *testing.T) {
 
 	tests := []struct {
 		goType string
-		want   string
+		want   ir.TokenClass
 	}{
-		{"string", "string"},
-		{"bool", "bool"},
-		{"int", "number"},
-		{"int32", "number"},
-		{"int64", "number"},
-		{"float32", "number"},
-		{"float64", "number"},
-		{"[]string", "array"},
-		{"[]int", "array"},
-		{"map[string]int", "object"},
-		{"SomeStruct", "object"},
+		{"string", ir.TokenString},
+		{"bool", ir.TokenBool},
+		{"int", ir.TokenNumber},
+		{"int32", ir.TokenNumber},
+		{"int64", ir.TokenNumber},
+		{"float32", ir.TokenNumber},
+		{"float64", ir.TokenNumber},
+		{"[]string", ir.TokenArray},
+		{"[]int", ir.TokenArray},
+		{"map[string]int", ir.TokenObject},
+		{"SomeStruct", ir.TokenObject},
 	}
 
 	for _, tt := range tests {
@@ -391,22 +399,6 @@ func TestTokenClassForPrimitive(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestDeduplicateBranches(t *testing.T) {
-	t.Parallel()
-
-	branches := []unionBranch{
-		{Name: "String", GoType: "string"},
-		{Name: "String", GoType: "string"},
-		{Name: "Int", GoType: "int"},
-		{Name: "Int", GoType: "int"},
-	}
-
-	result := deduplicateBranches(branches)
-	require.Len(t, result, 2)
-	require.Equal(t, "string", result[0].GoType)
-	require.Equal(t, "int", result[1].GoType)
 }
 
 func TestDeduplicateAccessorNames(t *testing.T) {
@@ -441,6 +433,29 @@ func TestDeduplicateAccessorNames(t *testing.T) {
 			},
 			want: []string{"StringArray", "IntArray"},
 		},
+		{
+			// The spec titles a shorthand $ref branch for the very key the
+			// full-form sibling requires, so both derive the same name. The $ref
+			// branch is renamed to the schema it references, which leaves the
+			// inline branch its content name -- qualifying both by Go type would
+			// stutter the union prefix into CommonQueryDSLMatchQueryQueryQuery.
+			name: "titled ref branch yields to its schema name",
+			branches: []unionBranch{
+				{Name: "Query", GoType: "FieldValue", IsRef: true, SchemaKey: "_common___FieldValue"},
+				{Name: "Query", GoType: "CommonQueryDSLMatchQueryQuery"},
+			},
+			want: []string{"FieldValue", "Query"},
+		},
+		{
+			// Neither branch can be renamed from a schema key, so both keep the
+			// GoType qualifier.
+			name: "inline collisions still fall back to the GoType qualifier",
+			branches: []unionBranch{
+				{Name: "Field", GoType: "AObject0"},
+				{Name: "Field", GoType: "AObject1"},
+			},
+			want: []string{"AObject0Field", "AObject1Field"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -462,42 +477,42 @@ func TestClassifyBranchInlinePrimitives(t *testing.T) {
 		schema    *openapi3.Schema
 		wantName  string
 		wantType  string
-		wantToken string
+		wantToken ir.TokenClass
 	}{
 		{
 			name:      "string",
 			schema:    openapi3.NewStringSchema(),
 			wantName:  "String",
 			wantType:  "string",
-			wantToken: "string",
+			wantToken: ir.TokenString,
 		},
 		{
 			name:      "boolean",
 			schema:    openapi3.NewBoolSchema(),
 			wantName:  "Bool",
 			wantType:  "bool",
-			wantToken: "bool",
+			wantToken: ir.TokenBool,
 		},
 		{
 			name:      "integer",
 			schema:    openapi3.NewIntegerSchema(),
 			wantName:  "Int",
 			wantType:  "int",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 		{
 			name:      "int64",
 			schema:    openapi3.NewInt64Schema(),
 			wantName:  "Int64",
 			wantType:  "int64",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 		{
 			name:      "float64",
 			schema:    openapi3.NewFloat64Schema(),
 			wantName:  "Float64",
 			wantType:  "float64",
-			wantToken: "number",
+			wantToken: ir.TokenNumber,
 		},
 	}
 
@@ -532,7 +547,7 @@ func TestClassifyBranchInlineArray(t *testing.T) {
 	b := w.classifyBranch(ref, "test___Parent", "test", 0, "")
 	require.Equal(t, "Array", b.Name)
 	require.Equal(t, "[]string", b.GoType)
-	require.Equal(t, "array", b.TokenClass)
+	require.Equal(t, ir.TokenArray, b.TokenClass)
 }
 
 func TestClassifyBranchNilRef(t *testing.T) {
@@ -583,6 +598,23 @@ func TestObjectBranchName(t *testing.T) {
 		{name: "permissive multi prop sorted", schema: obj("", nil, "includes", "excludes"), want: "ExcludesIncludes"},
 		// An object with no properties has no content name (open map branch).
 		{name: "no properties", schema: obj("", nil), want: ""},
+		// flattenRequired reaches through allOf, so a composed branch is named for
+		// the key it requires even though its root declares no properties.
+		{
+			name: "composed branch takes its required key",
+			schema: &openapi3.Schema{AllOf: openapi3.SchemaRefs{
+				{Value: obj("", []string{"value"}, "value", "case_insensitive")},
+			}},
+			want: "Value",
+		},
+		// A titled composed branch still uses its title.
+		{
+			name: "titled composed branch",
+			schema: &openapi3.Schema{Title: "completion", AllOf: openapi3.SchemaRefs{
+				{Value: obj("", nil, "options")},
+			}},
+			want: "Completion",
+		},
 	}
 
 	for _, tt := range tests {
@@ -669,7 +701,131 @@ func TestClassifyBranchInlineObject(t *testing.T) {
 			b := w.classifyBranch(objectSchema(), "_common___Parent", "_common", tt.branchIdx, tt.objName)
 			require.Equal(t, tt.wantName, b.Name)
 			require.Equal(t, tt.wantGoType, b.GoType)
-			require.Equal(t, "object", b.TokenClass)
+			require.Equal(t, ir.TokenObject, b.TokenClass)
+		})
+	}
+}
+
+// TestClassifyBranchInlineComposed covers an inline branch that composes its
+// shape with allOf and so carries no `type` keyword: an allOf of objects is an
+// object, and the branch must classify as one. A titled composed branch keeps
+// its title-derived name; an unnamed one falls back to the positional suffix.
+func TestClassifyBranchInlineComposed(t *testing.T) {
+	t.Parallel()
+
+	// Shaped like the spec's field-scoped queries: a $ref'd base merged with an
+	// inline object that adds the branch's own properties.
+	composed := func() *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{
+					Ref: "#/components/schemas/_common.query_dsl___QueryBase",
+					Value: &openapi3.Schema{
+						Type:       &openapi3.Types{"object"},
+						Properties: openapi3.Schemas{"boost": {Value: openapi3.NewFloat64Schema()}},
+					},
+				},
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{"value"},
+					Properties: openapi3.Schemas{"value": {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		objName    string
+		wantName   string
+		wantGoType string
+	}{
+		{name: "content name", objName: "Value", wantName: "Value", wantGoType: "CommonQueryDSLTermQueryValue"},
+		{name: "positional fallback", objName: "", wantName: "Object1", wantGoType: "CommonQueryDSLTermQueryObject1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			b := w.classifyBranch(composed(), "_common.query_dsl___TermQuery", "_common.query_dsl", 1, tt.objName)
+			require.Equal(t, tt.wantName, b.Name)
+			require.Equal(t, tt.wantGoType, b.GoType)
+			require.Equal(t, ir.TokenObject, b.TokenClass)
+			// Required comes through the allOf members, which is what a decoder
+			// probes to tell the branch from its siblings.
+			require.Equal(t, []string{"value"}, b.Required)
+		})
+	}
+}
+
+// TestResolveUnionTypeKeepsComposedBranch covers the two unions an inline
+// composed (allOf) branch appears in: a shorthand scalar paired with the
+// full-form object, and a union whose every branch is composed. Dropping the
+// composed branch would silently collapse the first to the scalar alone and
+// degrade the second to json.RawMessage.
+func TestResolveUnionTypeKeepsComposedBranch(t *testing.T) {
+	t.Parallel()
+
+	composed := func(required string) *openapi3.SchemaRef {
+		return &openapi3.SchemaRef{Value: &openapi3.Schema{
+			AllOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{
+					Type:       &openapi3.Types{"object"},
+					Required:   []string{required},
+					Properties: openapi3.Schemas{required: {Value: openapi3.NewStringSchema()}},
+				}},
+			},
+		}}
+	}
+
+	tests := []struct {
+		name       string
+		schema     *openapi3.Schema
+		schemaKey  string
+		wantGoType string
+		wantBranch []string
+	}{
+		{
+			name: "scalar shorthand and composed full form",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				{Value: &openapi3.Schema{Title: "value", Type: &openapi3.Types{"string"}}},
+				composed("value"),
+			}},
+			schemaKey:  "_common.query_dsl___TermQuery",
+			wantGoType: "CommonQueryDSLTermQuery",
+			wantBranch: []string{"String", "Value"},
+		},
+		{
+			name: "every branch composed",
+			schema: &openapi3.Schema{OneOf: openapi3.SchemaRefs{
+				composed("origin"),
+				composed("pivot"),
+			}},
+			schemaKey:  "_common.query_dsl___DistanceFeatureQuery",
+			wantGoType: "CommonQueryDSLDistanceFeatureQuery",
+			wantBranch: []string{"Origin", "Pivot"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			got := w.resolveUnionType(tt.schema, tt.schemaKey, "_common.query_dsl")
+			require.Equal(t, tt.wantGoType, got)
+
+			registered, ok := reg.lookup(tt.schemaKey)
+			require.True(t, ok)
+			names := make([]string, 0, len(registered.Branches))
+			for _, b := range registered.Branches {
+				names = append(names, b.Name)
+			}
+			require.ElementsMatch(t, tt.wantBranch, names)
 		})
 	}
 }
@@ -764,7 +920,7 @@ func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {
 		IsShared:  true,
 		IsUnion:   true,
 		Branches: []unionBranch{
-			{Name: "BranchType", GoType: "BranchType", TokenClass: "object"},
+			{Name: "BranchType", GoType: "BranchType", TokenClass: ir.TokenObject},
 		},
 	}
 	reg.register(unionType)
@@ -774,4 +930,219 @@ func TestPromoteSharedDepsIncludesUnionBranches(t *testing.T) {
 	promoted, ok := reg.lookup("group___BranchType")
 	require.True(t, ok)
 	require.True(t, promoted.IsShared, "branch type should be promoted to shared")
+}
+
+// TestRenameBranchesShadowingTypeNames pins the fix for a package that would not
+// compile: a branch const "<Union><Branch>Type" lands in the same package-level
+// namespace as every union's "<Union>Type" enum type, so a union X with branch B
+// beside a sibling union named XB emits XBType twice -- once as a const, once as
+// that sibling's type.
+//
+// The spec hits this three times, all shaped
+// `<Thing>` = string | `<Thing>Definition` (CharFilter, TokenFilter, Tokenizer).
+func TestRenameBranchesShadowingTypeNames(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		unionName string
+		branches  []unionBranch
+		wantNames []string
+	}{
+		{
+			// The real case: CommonAnalysisCharFilter + "Definition" would emit
+			// CommonAnalysisCharFilterDefinitionType, which is also the enum type
+			// name of the CommonAnalysisCharFilterDefinition union. The replacement
+			// comes from the schema key's local segment, NOT the Go type name --
+			// the latter would give the 62-char stuttered
+			// CommonAnalysisCharFilterCommonAnalysisCharFilterDefinitionType.
+			name:      "definition branch shadowing sibling union takes local schema name",
+			unionName: "CommonAnalysisCharFilter",
+			branches: []unionBranch{
+				{Name: "String", GoType: "string"},
+				{
+					Name:      "Definition",
+					GoType:    "CommonAnalysisCharFilterDefinition",
+					SchemaKey: "_common.analysis___CharFilterDefinition",
+					IsRef:     true,
+				},
+			},
+			wantNames: []string{"String", "CharFilterDefinition"},
+		},
+		{
+			// An INLINE object branch's Go type is "<Union><Branch>" by
+			// construction, so it matches the shadow test every time -- but that
+			// type is the union's own child, not an independent sibling union.
+			// Renaming it would corrupt every inline branch name, so non-$ref
+			// branches are exempt.
+			name:      "inline branch is exempt despite matching the shadow test",
+			unionName: "TestInlineDistinct",
+			branches: []unionBranch{
+				{Name: "Task", GoType: "TestInlineDistinctTask"},
+			},
+			wantNames: []string{"Task"},
+		},
+		{
+			// No shadowing: the const stem does not equal the branch type name.
+			name:      "unrelated branch keeps its name",
+			unionName: "CommonAnalysisAnalyzer",
+			branches: []unionBranch{
+				{Name: "CustomAnalyzer", GoType: "CommonAnalysisCustomAnalyzer"},
+			},
+			wantNames: []string{"CustomAnalyzer"},
+		},
+		{
+			// A primitive branch can never name a union type.
+			name:      "primitive branches untouched",
+			unionName: "Foo",
+			branches: []unionBranch{
+				{Name: "Int64", GoType: "int64"},
+				{Name: "String", GoType: "string"},
+			},
+			wantNames: []string{"Int64", "String"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			branches := slices.Clone(tt.branches)
+			renameBranchesShadowingTypeNames(tt.unionName, branches)
+
+			got := make([]string, len(branches))
+			for i, b := range branches {
+				got[i] = b.Name
+			}
+			require.Equal(t, tt.wantNames, got)
+
+			// The invariant that matters: no $ref branch's const stem equals its own
+			// branch type name, so no const shadows a sibling union's enum type
+			// name. Inline branches are exempt by design (their type IS
+			// "<Union><Branch>").
+			for _, b := range branches {
+				if !b.IsRef {
+					continue
+				}
+				require.NotEqual(t, unwrapTypeName(b.GoType), tt.unionName+b.Name,
+					"branch %q const still shadows a union type name", b.Name)
+			}
+		})
+	}
+}
+
+// An inline branch that is neither typed nor composed describes nothing a Go type
+// can carry, so it yields no branch at all and the union proceeds without it.
+func TestClassifyBranchInlineUnresolvable(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+	}{
+		{name: "no type and no allOf", schema: &openapi3.Schema{}},
+		{name: "description only", schema: &openapi3.Schema{Description: "a branch the spec never shapes"}},
+		{
+			// A nullable-only type set is not a shape either: resolveUnionType skips
+			// null branches, and classifyBranch must not invent one.
+			name:   "null type",
+			schema: &openapi3.Schema{Type: &openapi3.Types{"null"}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			reg := newTypeRegistry(opensearchAPIPkgName)
+			w := &walker{registry: reg, spec: &openapi3.T{}, inFlight: make(map[string]struct{})}
+
+			b := w.classifyBranch(&openapi3.SchemaRef{Value: tt.schema}, "test___Parent", "test", 0, "")
+			require.Empty(t, b.GoType)
+			require.Empty(t, b.Name)
+		})
+	}
+}
+
+// flattenRequired walks allOf members, which the loader resolves in place, so a
+// cyclic allOf would recurse forever without the visited set. The keys it collects
+// must also stay deduplicated across the walk.
+func TestFlattenRequiredTerminatesOnCycles(t *testing.T) {
+	t.Parallel()
+
+	selfRef := &openapi3.Schema{Required: []string{"self"}}
+	selfRef.AllOf = openapi3.SchemaRefs{{Value: selfRef}}
+
+	a := &openapi3.Schema{Required: []string{"a"}}
+	b := &openapi3.Schema{Required: []string{"b"}}
+	a.AllOf = openapi3.SchemaRefs{{Value: b}}
+	b.AllOf = openapi3.SchemaRefs{{Value: a}}
+
+	shared := &openapi3.Schema{Required: []string{"field"}}
+
+	tests := []struct {
+		name   string
+		schema *openapi3.Schema
+		want   []string
+	}{
+		{name: "self-referential allOf", schema: selfRef, want: []string{"self"}},
+		{name: "mutually recursive allOf", schema: a, want: []string{"a", "b"}},
+		{
+			// The same member reached twice contributes its keys once.
+			name: "diamond over one member",
+			schema: &openapi3.Schema{
+				Required: []string{"root"},
+				AllOf:    openapi3.SchemaRefs{{Value: shared}, {Value: shared}},
+			},
+			want: []string{"root", "field"},
+		},
+		{name: "nil schema", schema: nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, flattenRequired(tt.schema))
+		})
+	}
+}
+
+// renameToSchemaLocal leaves a branch alone when the schema key offers no distinct
+// name, so a collision it cannot break falls through to the GoType qualifier.
+func TestRenameToSchemaLocalLeavesBranchAlone(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		branch unionBranch
+		want   string
+	}{
+		{
+			// An inline child key ("<parent>.<field>") has no "___" group separator,
+			// so there is no local segment to rename to.
+			name:   "key with no group separator yields no local name",
+			branch: unionBranch{Name: "Query", GoType: "FieldValue", IsRef: true, SchemaKey: "searchBody.query"},
+			want:   "Query",
+		},
+		{
+			name:   "local name already equals the branch name",
+			branch: unionBranch{Name: "FieldValue", GoType: "FieldValue", IsRef: true, SchemaKey: "_common___FieldValue"},
+			want:   "FieldValue",
+		},
+		{
+			name:   "an inline branch has no schema to rename to",
+			branch: unionBranch{Name: "Object1", GoType: "ParentObject1"},
+			want:   "Object1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			b := tt.branch
+			renameToSchemaLocal(&b)
+			require.Equal(t, tt.want, b.Name)
+		})
+	}
 }

@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -174,328 +173,98 @@ func (r CatRecoveryResp) RawBody() io.Reader {
 
 // CatRecoveryRecord is a typed component of the cat.recovery operation.
 type CatRecoveryRecord struct {
-	// The number of bytes to recover.
+	// Bytes is the number of bytes to recover.
 	Bytes *string `json:"bytes,omitempty"`
 
-	// The percentage value as a string.
+	// BytesPercent is the percentage value as a string.
 	BytesPercent *string `json:"bytes_percent,omitempty"`
 
-	// The bytes recovered.
+	// BytesRecovered is the bytes recovered.
 	BytesRecovered *string `json:"bytes_recovered,omitempty"`
 
-	// The total number of bytes.
+	// BytesTotal is the total number of bytes.
 	BytesTotal *string `json:"bytes_total,omitempty"`
 
-	// The number of files to recover.
+	// Files is the number of files to recover.
 	Files *string `json:"files,omitempty"`
 
-	// The percentage value as a string.
+	// FilesPercent is the percentage value as a string.
 	FilesPercent *string `json:"files_percent,omitempty"`
 
-	// The files recovered.
+	// FilesRecovered is the files recovered.
 	FilesRecovered *string `json:"files_recovered,omitempty"`
 
-	// The total number of files.
+	// FilesTotal is the total number of files.
 	FilesTotal *string `json:"files_total,omitempty"`
 
 	Index *string `json:"index,omitempty"`
 
-	// The repository name.
+	// Repository is the repository name.
 	Repository *string `json:"repository,omitempty"`
 
-	// The shard name.
+	// Shard is the shard name.
 	Shard *string `json:"shard,omitempty"`
 
-	// The snapshot name.
+	// Snapshot is the snapshot name.
 	Snapshot *string `json:"snapshot,omitempty"`
 
-	// The source host.
+	// SourceHost is the source host.
 	SourceHost *string `json:"source_host,omitempty"`
 
-	// The source node name.
+	// SourceNode is the source node name.
 	SourceNode *string `json:"source_node,omitempty"`
 
-	// The recovery stage.
+	// Stage is the recovery stage.
 	Stage *string `json:"stage,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StartTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StartTime *string `json:"start_time,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// StartTimeMillis. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	StartTimeMillis *CatRecoveryRecordStartTimeMillis `json:"start_time_millis,omitempty"`
+	StartTimeMillis *StringifiedEpochTimeUnitMillis `json:"start_time_millis,omitempty"`
 
-	// A date and time, either as a string whose format depends on the context
-	// (defaulting to ISO_8601) or the number of milliseconds since the epoch.
-	// OpenSearch accepts both as an input but will generally output a string.
-	// representation.
+	// StopTime is a date and time, either as a string whose format depends on
+	// the context (defaulting to ISO_8601) or the number of milliseconds since
+	// the epoch. OpenSearch accepts both as an input but will generally output
+	// a string. representation.
 	StopTime *string `json:"stop_time,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
-	// timestamps, as strings. This setting captures this behavior while
-	// keeping the semantics of the field type. Depending on the target
+	// StopTimeMillis. Certain APIs may return values, including numbers such
+	// as epoch timestamps, as strings. This setting captures this behavior
+	// while keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	StopTimeMillis *CatRecoveryRecordStopTimeMillis `json:"stop_time_millis,omitempty"`
+	StopTimeMillis *StringifiedEpochTimeUnitMillis `json:"stop_time_millis,omitempty"`
 
-	// The target host.
+	// TargetHost is the target host.
 	TargetHost *string `json:"target_host,omitempty"`
 
-	// The target node name.
+	// TargetNode is the target node name.
 	TargetNode *string `json:"target_node,omitempty"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// Time is a duration. Units can be `nanos`, `micros`, `ms` (milliseconds),
+	// `s` (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts
+	// `0` without a unit and `-1` to indicate an unspecified value.
 	Time *string `json:"time,omitempty"`
 
-	// The number of translog operations to recover.
+	// TranslogOps is the number of translog operations to recover.
 	TranslogOps *string `json:"translog_ops,omitempty"`
 
-	// The percentage value as a string.
+	// TranslogOpsPercent is the percentage value as a string.
 	TranslogOpsPercent *string `json:"translog_ops_percent,omitempty"`
 
-	// The translog operations recovered.
+	// TranslogOpsRecovered is the translog operations recovered.
 	TranslogOpsRecovered *string `json:"translog_ops_recovered,omitempty"`
 
-	// The recovery type.
+	// Type is the recovery type.
 	Type *string `json:"type,omitempty"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatRecoveryRecordStartTimeMillis struct {
-	typ   CatRecoveryRecordStartTimeMillisType
-	raw   json.RawMessage
-	value any
-}
-
-// CatRecoveryRecordStartTimeMillisType discriminates the branches of CatRecoveryRecordStartTimeMillis.
-type CatRecoveryRecordStartTimeMillisType int
-
-const (
-	CatRecoveryRecordStartTimeMillisUnknownType CatRecoveryRecordStartTimeMillisType = iota
-	CatRecoveryRecordStartTimeMillisInt64Type
-	CatRecoveryRecordStartTimeMillisStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatRecoveryRecordStartTimeMillisUnknownType if the value has not been decoded.
-func (u *CatRecoveryRecordStartTimeMillis) Type() CatRecoveryRecordStartTimeMillisType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatRecoveryRecordStartTimeMillis) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatRecoveryRecordStartTimeMillisFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatRecoveryRecordStartTimeMillis) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatRecoveryRecordStartTimeMillisUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatRecoveryRecordStartTimeMillis) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatRecoveryRecordStartTimeMillisFromInt64 returns a CatRecoveryRecordStartTimeMillis populated with v
-// on the Int64 branch.
-func NewCatRecoveryRecordStartTimeMillisFromInt64(v int64) CatRecoveryRecordStartTimeMillis {
-	return CatRecoveryRecordStartTimeMillis{
-		typ:   CatRecoveryRecordStartTimeMillisInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatRecoveryRecordStartTimeMillis) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatRecoveryRecordStartTimeMillisFromString returns a CatRecoveryRecordStartTimeMillis populated with v
-// on the String branch.
-func NewCatRecoveryRecordStartTimeMillisFromString(v string) CatRecoveryRecordStartTimeMillis {
-	return CatRecoveryRecordStartTimeMillis{
-		typ:   CatRecoveryRecordStartTimeMillisStringType,
-		value: &v,
-	}
-}
-
-func (u *CatRecoveryRecordStartTimeMillis) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatRecoveryRecordStartTimeMillisUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatRecoveryRecordStartTimeMillisInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatRecoveryRecordStartTimeMillisStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatRecoveryRecordStartTimeMillis: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatRecoveryRecordStartTimeMillis) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatRecoveryRecordStopTimeMillis struct {
-	typ   CatRecoveryRecordStopTimeMillisType
-	raw   json.RawMessage
-	value any
-}
-
-// CatRecoveryRecordStopTimeMillisType discriminates the branches of CatRecoveryRecordStopTimeMillis.
-type CatRecoveryRecordStopTimeMillisType int
-
-const (
-	CatRecoveryRecordStopTimeMillisUnknownType CatRecoveryRecordStopTimeMillisType = iota
-	CatRecoveryRecordStopTimeMillisInt64Type
-	CatRecoveryRecordStopTimeMillisStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatRecoveryRecordStopTimeMillisUnknownType if the value has not been decoded.
-func (u *CatRecoveryRecordStopTimeMillis) Type() CatRecoveryRecordStopTimeMillisType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatRecoveryRecordStopTimeMillis) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatRecoveryRecordStopTimeMillisFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatRecoveryRecordStopTimeMillis) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatRecoveryRecordStopTimeMillisUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatRecoveryRecordStopTimeMillis) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatRecoveryRecordStopTimeMillisFromInt64 returns a CatRecoveryRecordStopTimeMillis populated with v
-// on the Int64 branch.
-func NewCatRecoveryRecordStopTimeMillisFromInt64(v int64) CatRecoveryRecordStopTimeMillis {
-	return CatRecoveryRecordStopTimeMillis{
-		typ:   CatRecoveryRecordStopTimeMillisInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatRecoveryRecordStopTimeMillis) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatRecoveryRecordStopTimeMillisFromString returns a CatRecoveryRecordStopTimeMillis populated with v
-// on the String branch.
-func NewCatRecoveryRecordStopTimeMillisFromString(v string) CatRecoveryRecordStopTimeMillis {
-	return CatRecoveryRecordStopTimeMillis{
-		typ:   CatRecoveryRecordStopTimeMillisStringType,
-		value: &v,
-	}
-}
-
-func (u *CatRecoveryRecordStopTimeMillis) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatRecoveryRecordStopTimeMillisUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatRecoveryRecordStopTimeMillisInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatRecoveryRecordStopTimeMillisStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatRecoveryRecordStopTimeMillis: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatRecoveryRecordStopTimeMillis) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Recovery returns all completed and ongoing index and shard recoveries.

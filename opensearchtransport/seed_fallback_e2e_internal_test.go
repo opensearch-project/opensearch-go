@@ -93,6 +93,7 @@ func TestSeedFallbackAfterDiscoveryReplacesSeed(t *testing.T) {
 		Transport:             rt,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	require.NotNil(t, tp.seedFallbackPool)
 
 	// Discovery replaces the seed with an unroutable, never-verified node.
@@ -149,6 +150,7 @@ func TestRoutingLeavesSeedOnceDiscoveredNodeVerified(t *testing.T) {
 		Transport:             rt,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	// Discovery adds a VERIFIED, reachable node (lcActive, no lcNeedsHardware)
 	// and drops the seed from the policy pool.
@@ -217,6 +219,7 @@ func TestSeedFallbackAfterDiscoveryReplacesSeedDefaultRouter(t *testing.T) {
 		Transport:             rt,
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	require.NotNil(t, tp.seedFallbackPool)
 
 	// Discovery replaces the seed with an unroutable, never-verified data node.

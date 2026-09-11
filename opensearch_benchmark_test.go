@@ -127,6 +127,7 @@ func BenchmarkClientAPI(b *testing.B) {
 	if err != nil {
 		b.Fatalf("ERROR: %s", err)
 	}
+	b.Cleanup(func() { _ = client.Close() })
 
 	b.Run("InfoRequest{}.Do()", func(b *testing.B) {
 		b.ResetTimer()

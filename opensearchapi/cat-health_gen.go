@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -142,172 +141,57 @@ func (r CatHealthResp) RawBody() io.Reader {
 
 // CatHealthRecord is a typed component of the cat.health operation.
 type CatHealthRecord struct {
-	// active number of shards in percent
+	// ActiveShardsPercent. Active number of shards in percent
 	ActiveShardsPercent *string `json:"active_shards_percent,omitempty"`
 
-	// cluster name
+	// Cluster. Cluster name
 	Cluster *string `json:"cluster,omitempty"`
 
-	// cluster manager is discovered or not
+	// DiscoveredClusterManager. Cluster manager is discovered or not
 	DiscoveredClusterManager *string `json:"discovered_cluster_manager,omitempty"`
 
-	// cluster manager is discovered or not
+	// DiscoveredMaster. Cluster manager is discovered or not
 	DiscoveredMaster *string `json:"discovered_master,omitempty"`
 
-	// Certain APIs may return values, including numbers such as epoch
+	// Epoch. Certain APIs may return values, including numbers such as epoch
 	// timestamps, as strings. This setting captures this behavior while
 	// keeping the semantics of the field type. Depending on the target
 	// language, code generators can keep the union or remove it and leniently
 	// parse strings to the target type.
-	Epoch *CatHealthRecordEpoch `json:"epoch,omitempty"`
+	Epoch *StringifiedEpochTimeUnitSeconds `json:"epoch,omitempty"`
 
-	// number of initializing nodes
+	// Init. Number of initializing nodes
 	Init *string `json:"init,omitempty"`
 
-	// wait time of longest task pending
+	// MaxTaskWaitTime. Wait time of longest task pending
 	MaxTaskWaitTime *string `json:"max_task_wait_time,omitempty"`
 
-	// number of nodes that can store data
+	// NodeData. Number of nodes that can store data
 	NodeData *string `json:"node.data,omitempty"`
 
-	// total number of nodes
+	// NodeTotal. Total number of nodes
 	NodeTotal *string `json:"node.total,omitempty"`
 
-	// number of pending tasks
+	// PendingTasks. Number of pending tasks
 	PendingTasks *string `json:"pending_tasks,omitempty"`
 
-	// number of primary shards
+	// Pri. Number of primary shards
 	Pri *string `json:"pri,omitempty"`
 
-	// number of relocating nodes
+	// Relo. Number of relocating nodes
 	Relo *string `json:"relo,omitempty"`
 
-	// total number of shards
+	// Shards. Total number of shards
 	Shards *string `json:"shards,omitempty"`
 
-	// health status
+	// Status. Health status
 	Status *string `json:"status,omitempty"`
 
-	// Time of day, expressed as HH:MM:SS.
+	// Timestamp. Time of day, expressed as HH:MM:SS.
 	Timestamp *string `json:"timestamp,omitempty"`
 
-	// number of unassigned shards
+	// Unassign. Number of unassigned shards
 	Unassign *string `json:"unassign,omitempty"`
-}
-
-// Certain APIs may return values, including numbers such as epoch timestamps, as strings. This setting captures
-// this behavior while keeping the semantics of the field type.
-//
-// Depending on the target language, code generators can keep the union or remove it and leniently parse
-// strings to the target type.
-// Use Type() to determine which branch was decoded, then call
-// the corresponding accessor.
-type CatHealthRecordEpoch struct {
-	typ   CatHealthRecordEpochType
-	raw   json.RawMessage
-	value any
-}
-
-// CatHealthRecordEpochType discriminates the branches of CatHealthRecordEpoch.
-type CatHealthRecordEpochType int
-
-const (
-	CatHealthRecordEpochUnknownType CatHealthRecordEpochType = iota
-	CatHealthRecordEpochInt64Type
-	CatHealthRecordEpochStringType
-)
-
-// Type returns which union branch was populated during decoding.
-// Returns CatHealthRecordEpochUnknownType if the value has not been decoded.
-func (u *CatHealthRecordEpoch) Type() CatHealthRecordEpochType { return u.typ }
-
-// RawJSON returns the union's JSON bytes. After decoding these are borrowed
-// from the response buffer: valid only while the owning response value is
-// reachable, must not be mutated, and must be copied if retained beyond it.
-func (u *CatHealthRecordEpoch) RawJSON() json.RawMessage { return u.raw }
-
-// SetRaw stages pre-encoded JSON for marshaling. MarshalJSON emits raw
-// verbatim when no typed branch is set. Use the NewCatHealthRecordEpochFrom*
-// constructors to populate a typed branch instead; SetRaw is the typed
-// escape hatch for callers that already have wire-format bytes.
-func (u *CatHealthRecordEpoch) SetRaw(raw json.RawMessage) {
-	u.raw = raw
-	u.value = nil
-	u.typ = CatHealthRecordEpochUnknownType
-}
-
-// Int64 returns the int64 branch value.
-func (u *CatHealthRecordEpoch) Int64() int64 {
-	if v, ok := u.value.(*int64); ok {
-		return *v
-	}
-	var zero int64
-	return zero
-}
-
-// NewCatHealthRecordEpochFromInt64 returns a CatHealthRecordEpoch populated with v
-// on the Int64 branch.
-func NewCatHealthRecordEpochFromInt64(v int64) CatHealthRecordEpoch {
-	return CatHealthRecordEpoch{
-		typ:   CatHealthRecordEpochInt64Type,
-		value: &v,
-	}
-}
-
-// String returns the string branch value.
-func (u *CatHealthRecordEpoch) String() string {
-	if v, ok := u.value.(*string); ok {
-		return *v
-	}
-	var zero string
-	return zero
-}
-
-// NewCatHealthRecordEpochFromString returns a CatHealthRecordEpoch populated with v
-// on the String branch.
-func NewCatHealthRecordEpochFromString(v string) CatHealthRecordEpoch {
-	return CatHealthRecordEpoch{
-		typ:   CatHealthRecordEpochStringType,
-		value: &v,
-	}
-}
-
-func (u *CatHealthRecordEpoch) UnmarshalJSON(data []byte) error {
-	u.raw = data
-	u.value = nil
-	u.typ = CatHealthRecordEpochUnknownType
-	if len(data) == 0 || bytes.Equal(data, build.NullJSON) {
-		return nil
-	}
-	switch {
-	case data[0] >= '0' && data[0] <= '9' || data[0] == '-':
-		var v int64
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatHealthRecordEpochInt64Type
-		u.value = &v
-	case data[0] == '"':
-		var v string
-		if err := json.Unmarshal(data, &v); err != nil {
-			return err
-		}
-		u.typ = CatHealthRecordEpochStringType
-		u.value = &v
-	default:
-		return fmt.Errorf("CatHealthRecordEpoch: unexpected JSON token: %s", data[:1])
-	}
-	return nil
-}
-
-func (u CatHealthRecordEpoch) MarshalJSON() ([]byte, error) {
-	if u.value != nil {
-		return json.Marshal(u.value)
-	}
-	if len(u.raw) > 0 {
-		return u.raw, nil
-	}
-	return build.NullJSON, nil
 }
 
 // Health returns a concise representation of the cluster health.

@@ -107,10 +107,10 @@ func (r CreateMemoryContainerSessionParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type CreateMemoryContainerSessionResp struct {
-	// The ID of the created session.
+	// SessionID is the ID of the created session.
 	SessionID *string `json:"session_id,omitempty"`
 
-	// Satus of the creation operation.
+	// Status. Satus of the creation operation.
 	Status *string `json:"status,omitempty"`
 
 	response *opensearch.Response
@@ -135,9 +135,9 @@ type MLCreateMemoryContainerSessionBody struct {
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 
-	// Custom session ID.
+	// SessionID. Custom session ID.
 	SessionID *string `json:"session_id,omitempty"`
 
-	// Session summary or description.
+	// Summary. Session summary or description.
 	Summary *string `json:"summary,omitempty"`
 }

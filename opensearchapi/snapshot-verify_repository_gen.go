@@ -112,7 +112,7 @@ func (r SnapshotVerifyRepositoryResp) RawBody() io.Reader {
 
 // SnapshotVerifyRepositoryCompactNodeInfo is a typed component of the snapshot.verify_repository operation.
 type SnapshotVerifyRepositoryCompactNodeInfo struct {
-	// The name of the node that verified the repository.
+	// Name is the name of the node that verified the repository.
 	Name string `json:"name"`
 }
 

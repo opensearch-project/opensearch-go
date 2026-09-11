@@ -114,7 +114,7 @@ type PredictResp struct {
 	InferenceResults []opensearchapi.MLInferenceResults `json:"inference_results,omitempty"`
 	PredictionResult *opensearchapi.MLPredictionResult  `json:"prediction_result,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 
 	response *opensearch.Response
@@ -136,17 +136,17 @@ func (r PredictResp) RawBody() io.Reader {
 
 // MLPredictBody is a typed component of the ml.predict operation.
 type MLPredictBody struct {
-	// The input index.
+	// InputIndex is the input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
 	InputQuery *opensearchapi.MLInputQuery `json:"input_query,omitempty"`
 
-	// Whether to return bytes in model output.
+	// ReturnNumber. Whether to return bytes in model output.
 	ReturnNumber *bool `json:"return_number,omitempty"`
 
-	// The target response.
+	// TargetResponse is the target response.
 	TargetResponse []string `json:"target_response,omitempty"`
 
-	// The text documents.
+	// TextDocs is the text documents.
 	TextDocs []string `json:"text_docs,omitempty"`
 }

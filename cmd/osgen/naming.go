@@ -157,13 +157,16 @@ func replaceAtPascalBoundary(s, old, next string, tailUpperOnly bool) string {
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var acronyms = map[string]string{
 	"api":    "API",
+	"arn":    "ARN",  // Amazon Resource Name
 	"bm25":   "BM25", // Best Matching 25 ranking function
+	"cfs":    "CFS",  // Completely Fair Scheduler (cgroup)
 	"cjk":    "CJK",  // Chinese, Japanese, Korean
 	"cpu":    "CPU",
 	"csv":    "CSV",
 	"dfi":    "DFI", // Divergence From Independence
 	"dfr":    "DFR", // Divergence From Randomness
 	"dfs":    "DFS", // Distributed Frequency Search
+	"dn":     "DN",  // Distinguished Name (LDAP)
 	"dsl":    "DSL",
 	"fs":     "FS",  // File System (store type)
 	"gc":     "GC",  // Garbage Collection
@@ -171,39 +174,52 @@ var acronyms = map[string]string{
 	"html":   "HTML",
 	"http":   "HTTP",
 	"https":  "HTTPS",
+	"iam":    "IAM", // Identity and Access Management
 	"ib":     "IB",  // Information-Based similarity
 	"icu":    "ICU", // International Components for Unicode
 	"id":     "ID",
 	"ids":    "IDs",
+	"io":     "IO", // Input/Output
 	"ip":     "IP",
 	"ip2geo": "IP2Geo", // IP-to-geolocation datasource (geospatial plugin)
 	"ism":    "ISM",    // Index State Management
+	"jdk":    "JDK",    // Java Development Kit
 	"json":   "JSON",
 	"jvm":    "JVM",
 	"knn":    "KNN",  // k-Nearest Neighbors
+	"llm":    "LLM",  // Large Language Model
 	"lmd":    "LMD",  // Language Model Dirichlet similarity
 	"lmj":    "LMJ",  // Language Model Jelinek-Mercer similarity
 	"ltr":    "LTR",  // Learning to Rank
+	"mac":    "MAC",  // Media Access Control (address)
+	"mhz":    "MHz",  // Megahertz
 	"ml":     "ML",   // Machine Learning
 	"mmap":   "MMap", // memory-mapped store type
 	"nio":    "NIO",  // New I/O (Java, store type)
+	"os":     "OS",   // Operating System
+	"pid":    "PID",  // Process ID
 	"pit":    "PIT",  // Point In Time
 	"pits":   "PITs",
 	"ppl":    "PPL", // Piped Processing Language
+	"rrf":    "RRF", // Reciprocal Rank Fusion
+	"ses":    "SES", // Simple Email Service
 	"sm":     "SM",  // Snapshot Management
 	"smtp":   "SMTP",
 	"sns":    "SNS", // Simple Notification Service
 	"sql":    "SQL",
 	"ssl":    "SSL",
+	"sso":    "SSO", // Single Sign-On
 	"tcp":    "TCP",
 	"tfidf":  "TFIDF", // Term Frequency-Inverse Document Frequency
 	"tls":    "TLS",
+	"ttf":    "TTF", // Total Term Frequency
 	"ttl":    "TTL",
 	"uax":    "UAX", // Unicode Annex (UAX #29 text segmentation)
 	"ubi":    "UBI", // User Behavior Insights
 	"uri":    "URI",
 	"url":    "URL",
 	"uuid":   "UUID",
+	"vm":     "VM",  // Virtual Machine
 	"wkt":    "WKT", // Well-Known Text (geometry format)
 	"wlm":    "WLM", // Workload Management
 	"xml":    "XML",

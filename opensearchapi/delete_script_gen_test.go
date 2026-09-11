@@ -76,6 +76,7 @@ func TestDeleteScript_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.DeleteScript(t.Context(), opensearchapi.DeleteScriptReq{ID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestDeleteScript_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.DeleteScript(t.Context(), opensearchapi.DeleteScriptReq{ID: "test"})
 		require.Error(t, err)

@@ -100,8 +100,8 @@ func (r DeleteByQueryRethrottleParams) get() map[string]string {
 type DeleteByQueryRethrottleResp struct {
 	NodeFailures []ErrorCause `json:"node_failures,omitempty"`
 
-	// Task information grouped by node, if `group_by` was set to `node` (the
-	// default).
+	// Nodes. Task information grouped by node, if `group_by` was set to `node`
+	// (the default).
 	Nodes map[string]TasksTaskExecutingNode `json:"nodes,omitempty"`
 
 	TaskFailures []TaskFailure   `json:"task_failures,omitempty"`

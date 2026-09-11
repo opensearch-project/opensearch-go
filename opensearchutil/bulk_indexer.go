@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
 const defaultFlushInterval = 30 * time.Second
@@ -66,7 +67,21 @@ type BulkIndexer interface {
 	//
 	// It is safe for concurrent use. When it's called from goroutines,
 	// they must finish before the call to Close, eg. using sync.WaitGroup.
+	//
+	// Items that carry a DocumentID are routed to a fixed worker, so repeated
+	// actions on one document are sent in the order they were added.
 	Add(context.Context, BulkIndexerItem) error
+
+	// Flush sends every item in BulkIndexer's queue before the call was made
+	// and leaves the indexer open, so one indexer can drain on demand and keep
+	// going. Items added concurrently may land in this drain or the next, and
+	// the bulk requests run on ctx.
+	//
+	// A non-nil error means the drain itself failed; documents the cluster
+	// rejected individually go to their OnFailure callback. Safe alongside Add
+	// and other concurrent Flush calls. Like Add, any Flush calls after Close
+	// will result in a panic.
+	Flush(context.Context) error
 
 	// Close waits until all added items are flushed and closes the indexer.
 	Close(context.Context) error
@@ -165,11 +180,42 @@ type BulkIndexerDebugLogger interface {
 	Printf(string, ...any)
 }
 
+// flushBarrier asks a worker to flush its buffer and report the result. It
+// carries the Flush caller's context, so the bulk request the flush drives is
+// bounded by the deadline that caller passed, the way Close bounds its own
+// final drain.
+type flushBarrier struct {
+	//nolint:containedctx // Hands the Flush caller's ctx to the worker running the flush.
+	ctx  context.Context
+	done chan<- error
+}
+
+// queueEntry is one message on a worker's queue. A nil flush marks an item to
+// index; a non-nil flush marks a Flush barrier, which carries no item.
+//
+// Both travel the same channel so the barrier observes queue order: every entry
+// already buffered ahead of the barrier is handled before it. That is why the
+// barrier cannot travel on a channel of its own, where a select could take it
+// first. Which of a blocked Add and a blocked barrier wins a full queue is up
+// to the runtime's send queue, so Flush promises only the items a worker had
+// already been handed.
+type queueEntry struct {
+	item  BulkIndexerItem
+	flush *flushBarrier
+}
+
 type bulkIndexer struct {
-	wg      sync.WaitGroup
-	queue   chan BulkIndexerItem
-	workers []*worker
-	ticker  *time.Ticker
+	wg sync.WaitGroup
+	// queues holds one queue per worker, indexed by worker id - 1, carrying both
+	// items to index and the barriers Flush sends.
+	// Items carrying a DocumentID are pinned to a queue by a hash of that ID,
+	// so every action on one document is buffered by a single worker and lands
+	// either in the same bulk request or in submission order across requests.
+	queues []chan queueEntry
+	// rrCounter spreads items without a DocumentID across queues.
+	rrCounter atomic.Int64
+	workers   []*worker
+	ticker    *time.Ticker
 	// stopFlush cancels the flusher goroutine; flusherDone is closed when that
 	// goroutine returns. Close cancels via stopFlush (non-blocking and
 	// idempotent, so Close never deadlocks even when the flusher already
@@ -258,6 +304,8 @@ func NewBulkIndexer(cfg BulkIndexerConfig) (BulkIndexer, error) {
 //
 // Adding an item after a call to Close() will panic.
 func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
+	queue := bi.queues[bi.queueIndex(item)]
+
 	select {
 	case <-ctx.Done():
 		bi.stats.bulkAddFailCount.Add(1)
@@ -265,18 +313,87 @@ func (bi *bulkIndexer) Add(ctx context.Context, item BulkIndexerItem) error {
 			bi.config.OnError(ctx, ctx.Err())
 		}
 		return ctx.Err()
-	case bi.queue <- item:
+	case queue <- queueEntry{item: item}:
 		bi.stats.numAdded.Add(1)
 	}
 
 	return nil
 }
 
-// Close stops the periodic flush, closes the indexer queue channel,
+// queueIndex returns the index in bi.queues of the worker that owns item.
+// An item with a DocumentID always maps to the same queue; one without is
+// handed out round-robin.
+func (bi *bulkIndexer) queueIndex(item BulkIndexerItem) int {
+	if item.DocumentID == "" {
+		return int(bi.rrCounter.Add(1) % int64(len(bi.queues)))
+	}
+
+	// shardhash.Hash is signed, so wrap a negative remainder into range.
+	// The hash matches the shard OpenSearch routes the document to, which
+	// keeps documents that share a shard together in one worker's buffer.
+	idx := int(shardhash.Hash(item.DocumentID)) % len(bi.queues)
+	if idx < 0 {
+		idx += len(bi.queues)
+	}
+	return idx
+}
+
+// Flush drains every item added before the call, leaving the indexer open.
+//
+// Errors reach the caller through the return value, so unlike the periodic
+// flush and Close there is nothing here for OnError to report.
+func (bi *bulkIndexer) Flush(ctx context.Context) error {
+	// Reject a dead context up front rather than letting the selects below
+	// choose randomly between a ready ctx.Done and a ready queue send, so the
+	// caller either gets a drain or an error, never a coin flip.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	// Workers exit when the construction context is cancelled, so watch it
+	// alongside the caller's: without it a Flush(context.Background()) on an
+	// indexer whose workers are gone would wait for an ack that never arrives.
+	workersDone := bi.config.Context.Done()
+
+	// One channel for every barrier this call sends, buffered to that count, so
+	// no worker blocks reporting its result even when this call has already
+	// abandoned the drain on a cancelled context. Results are joined, so the
+	// order they arrive in does not matter.
+	done := make(chan error, len(bi.queues))
+	sent := 0
+	for _, queue := range bi.queues {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-workersDone:
+			return bi.config.Context.Err()
+		case queue <- queueEntry{flush: &flushBarrier{ctx: ctx, done: done}}:
+			sent++
+		}
+	}
+
+	errs := make([]error, 0, sent)
+	for range sent {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-workersDone:
+			return bi.config.Context.Err()
+		case err := <-done:
+			errs = append(errs, err)
+		}
+	}
+
+	return errors.Join(errs...)
+}
+
+// Close stops the periodic flush, closes every worker queue channel,
 // stops the flusher goroutine and calls flush on all writers.
 func (bi *bulkIndexer) Close(ctx context.Context) error {
 	bi.ticker.Stop()
-	close(bi.queue)
+	for _, queue := range bi.queues {
+		close(queue)
+	}
 	// Stop the periodic flusher and wait for it to return before the final
 	// drain below, so no auto-flush races the drain. stopFlush is non-blocking
 	// and idempotent; flusherDone is already closed if the flusher exited via
@@ -339,12 +456,16 @@ func (bi *bulkIndexer) Stats() BulkIndexerStats {
 
 // init initializes the bulk indexer.
 func (bi *bulkIndexer) init(ctx context.Context) {
-	bi.queue = make(chan BulkIndexerItem, bi.config.NumWorkers)
+	bi.queues = make([]chan queueEntry, bi.config.NumWorkers)
 
 	for i := 1; i <= bi.config.NumWorkers; i++ {
+		// Buffer each queue so Add does not block while its worker is
+		// mid-flush; no other worker can take the entry.
+		queue := make(chan queueEntry, bi.config.NumWorkers)
+		bi.queues[i-1] = queue
 		w := worker{
 			id:  i,
-			ch:  bi.queue,
+			ch:  queue,
 			bi:  bi,
 			buf: bytes.NewBuffer(make([]byte, 0, bi.config.FlushBytes)),
 		}
@@ -396,7 +517,7 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 // worker represents an indexer worker.
 type worker struct {
 	id    int
-	ch    <-chan BulkIndexerItem
+	ch    <-chan queueEntry
 	mu    sync.Mutex
 	bi    *bulkIndexer
 	buf   *bytes.Buffer
@@ -419,11 +540,45 @@ func (w *worker) run(ctx context.Context) {
 					w.bi.config.DebugLogger.Printf("[worker-%03d] Context cancelled, stopping\n", w.id)
 				}
 				return
-			case item, ok := <-w.ch:
+			case entry, ok := <-w.ch:
 				if !ok {
 					// Channel closed, exit worker
 					return
 				}
+
+				if entry.flush != nil {
+					if w.bi.config.DebugLogger != nil {
+						w.bi.config.DebugLogger.Printf("[worker-%03d] Received flush barrier\n", w.id)
+					}
+
+					// Guarded like every other flush site, so a barrier that
+					// finds nothing buffered does not fire OnFlushStart and
+					// OnFlushEnd for a request it never sends. The flush runs
+					// on the caller's context, not the worker's, so a deadline
+					// passed to Flush reaches the bulk request.
+					var err error
+					w.mu.Lock()
+					if w.buf.Len() > 0 {
+						//nolint:contextcheck // The caller's ctx, deliberately; see above.
+						err = w.flush(entry.flush.ctx)
+					}
+					w.mu.Unlock()
+
+					// The request landed even when individual documents were
+					// rejected, and those reach the caller through OnFailure,
+					// so a partial failure is not a failed drain. Reporting it
+					// here would make a non-nil Flush error useless as a signal
+					// that the flush itself did not go through.
+					var partial *opensearchapi.PartialBulkError
+					if errors.As(err, &partial) {
+						err = nil
+					}
+					entry.flush.done <- err
+
+					continue
+				}
+
+				item := entry.item
 
 				w.mu.Lock()
 
@@ -432,21 +587,11 @@ func (w *worker) run(ctx context.Context) {
 						item.DocumentID)
 				}
 
-				if err := w.writeMeta(item); err != nil {
+				if err := w.writeItem(ctx, item); err != nil {
 					if item.OnFailure != nil {
 						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
 					}
 
-					w.bi.stats.numFailed.Add(1)
-					w.mu.Unlock()
-
-					continue
-				}
-
-				if err := w.writeBody(ctx, &item); err != nil {
-					if item.OnFailure != nil {
-						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
-					}
 					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
 
@@ -469,6 +614,24 @@ func (w *worker) run(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// writeItem serializes item's action line and body into the worker buffer; it
+// must be called under a lock. On any error the buffer is restored to its
+// previous length so a failed item cannot leave an unpaired NDJSON action that
+// would desynchronize later items from the bulk response.
+func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
+	bufLen := w.buf.Len()
+
+	err := w.writeMeta(item)
+	if err == nil {
+		err = w.writeBody(ctx, &item)
+	}
+	if err != nil {
+		w.buf.Truncate(bufLen)
+	}
+
+	return err
 }
 
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
@@ -569,6 +732,7 @@ func (w *worker) flush(ctx context.Context) error {
 	)
 
 	defer func() {
+		clear(w.items)
 		w.items = w.items[:0]
 		w.buf.Reset()
 	}()
@@ -611,6 +775,18 @@ func (w *worker) flush(ctx context.Context) error {
 	var partial *opensearchapi.PartialBulkError
 	if err != nil && !errors.As(err, &partial) {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
+	}
+
+	// The bulk API returns one result per serialized action. More results than
+	// w.items means the response cannot be paired positionally: the loop below
+	// would read w.items[i] past the end and panic, and even the results that
+	// line up may belong to other items. Fail every serialized item instead.
+	// Fewer results needs no guard; the loop simply leaves the extras
+	// undispatched.
+	if got, want := len(blk.Items), len(w.items); got > want {
+		return w.handleBulkError(ctx, fmt.Errorf(
+			"flush: bulk response has %d items, indexer serialized %d", got, want,
+		))
 	}
 
 	for i, blkItem := range blk.Items {

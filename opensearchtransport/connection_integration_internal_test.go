@@ -68,6 +68,7 @@ func TestMultiServerPool(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create transport: %v", err)
 		}
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Test basic request functionality
 		for i := 1; i <= 5; i++ {
@@ -138,6 +139,7 @@ func TestMultiServerPool(t *testing.T) {
 		cfg := Config{URLs: urls}
 		transport, err := New(cfg)
 		require.NoError(t, err, "Failed to create transport")
+		t.Cleanup(func() { _ = transport.Close() })
 
 		// Verify we get a multiServerPool with multiple URLs
 		transport.mu.RLock()

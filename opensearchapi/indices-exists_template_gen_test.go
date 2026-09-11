@@ -75,6 +75,7 @@ func TestIndicesExistsTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Index.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
 		require.NoError(t, err)
@@ -94,6 +95,7 @@ func TestIndicesExistsTemplate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Index.ExistsTemplate(t.Context(), &opensearchapi.IndicesExistsTemplateReq{Name: []string{"test"}})
 		require.Error(t, err)

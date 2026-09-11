@@ -128,6 +128,6 @@ type MLCreateMemoryContainerBody struct {
 	Configuration opensearchapi.MLMemoryContainerConfiguration `json:"configuration"`
 	Description   *string                                      `json:"description,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }

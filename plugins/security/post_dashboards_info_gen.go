@@ -85,37 +85,42 @@ func (r PostDashboardsInfoParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type PostDashboardsInfoResp struct {
-	// The default tenant setting for the dashboard.
+	// DefaultTenant is the default tenant setting for the dashboard.
 	DefaultTenant *string `json:"default_tenant,omitempty"`
 
-	// Indicates whether multi-tenancy is enabled.
+	// MultitenancyEnabled. Indicates whether multi-tenancy is enabled.
 	MultitenancyEnabled *bool `json:"multitenancy_enabled,omitempty"`
 
-	// Indicates whether `DNFOF` is enabled.
+	// NotFailOnForbiddenEnabled. Indicates whether `DNFOF` is enabled.
 	NotFailOnForbiddenEnabled *bool `json:"not_fail_on_forbidden_enabled,omitempty"`
 
-	// The name of the dashboard's index.
+	// OpensearchDashboardsIndex is the name of the dashboard's index.
 	OpensearchDashboardsIndex *string `json:"opensearch_dashboards_index,omitempty"`
 
-	// Indicates whether multi-tenancy is enabled.
+	// OpensearchDashboardsMtEnabled. Indicates whether multi-tenancy is
+	// enabled.
 	OpensearchDashboardsMtEnabled *bool `json:"opensearch_dashboards_mt_enabled,omitempty"`
 
-	// The name of the user used to connect dashboard's to the server.
+	// OpensearchDashboardsServerUser is the name of the user used to connect
+	// dashboard's to the server.
 	OpensearchDashboardsServerUser *string `json:"opensearch_dashboards_server_user,omitempty"`
 
-	// The error message when a password validation fails.
+	// PasswordValidationErrorMessage is the error message when a password
+	// validation fails.
 	PasswordValidationErrorMessage *string `json:"password_validation_error_message,omitempty"`
 
-	// The regular expression used perform password validation.
+	// PasswordValidationRegex is the regular expression used perform password
+	// validation.
 	PasswordValidationRegex *string `json:"password_validation_regex,omitempty"`
 
-	// Indicates whether a private tenant is enabled for all users.
+	// PrivateTenantEnabled. Indicates whether a private tenant is enabled for
+	// all users.
 	PrivateTenantEnabled *bool `json:"private_tenant_enabled,omitempty"`
 
-	// A list of available sign-in options.
+	// SignInOptions is a list of available sign-in options.
 	SignInOptions []string `json:"sign_in_options,omitempty"`
 
-	// User's name
+	// UserName. User's name
 	UserName *string `json:"user_name,omitempty"`
 
 	response *opensearch.Response

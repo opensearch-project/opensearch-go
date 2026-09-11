@@ -76,6 +76,7 @@ func TestDeleteByQueryRethrottle_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.DeleteByQueryRethrottle(t.Context(), opensearchapi.DeleteByQueryRethrottleReq{TaskID: "test"})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestDeleteByQueryRethrottle_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.DeleteByQueryRethrottle(t.Context(), opensearchapi.DeleteByQueryRethrottleReq{TaskID: "test"})
 		require.Error(t, err)

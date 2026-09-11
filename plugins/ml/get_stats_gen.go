@@ -91,25 +91,25 @@ func (r GetStatsParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type GetStatsResp struct {
-	// The config index status.
+	// MLConfigIndexStatus is the config index status.
 	MLConfigIndexStatus *string `json:"ml_config_index_status,omitempty"`
 
-	// The connector count.
+	// MLConnectorCount is the connector count.
 	MLConnectorCount *int64 `json:"ml_connector_count,omitempty"`
 
-	// The connector index status.
+	// MLConnectorIndexStatus is the connector index status.
 	MLConnectorIndexStatus *string `json:"ml_connector_index_status,omitempty"`
 
-	// The controller index status.
+	// MLControllerIndexStatus is the controller index status.
 	MLControllerIndexStatus *string `json:"ml_controller_index_status,omitempty"`
 
-	// The model count.
+	// MLModelCount is the model count.
 	MLModelCount *int64 `json:"ml_model_count,omitempty"`
 
-	// The model index status.
+	// MLModelIndexStatus is the model index status.
 	MLModelIndexStatus *string `json:"ml_model_index_status,omitempty"`
 
-	// The task index status.
+	// MLTaskIndexStatus is the task index status.
 	MLTaskIndexStatus *string `json:"ml_task_index_status,omitempty"`
 
 	Nodes map[string]opensearchapi.MLNodeStatsDetails `json:"nodes,omitempty"`

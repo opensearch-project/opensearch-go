@@ -75,6 +75,7 @@ func TestUpdateConfig_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := notifications.NewClient(osClient)
 
 		resp, err := client.UpdateConfig(t.Context(), notifications.UpdateConfigReq{ConfigID: "test", BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestUpdateConfig_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := notifications.NewClient(osClient)
 
 		resp, err := errClient.UpdateConfig(t.Context(), notifications.UpdateConfigReq{ConfigID: "test", BodyReader: strings.NewReader("{}")})

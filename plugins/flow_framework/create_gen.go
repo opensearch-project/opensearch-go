@@ -143,7 +143,7 @@ func (r CreateParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/automating-configurations/api/create-workflow/
 type CreateResp struct {
-	// The ID of the workflow.
+	// WorkflowID is the ID of the workflow.
 	WorkflowID string `json:"workflow_id"`
 
 	response *opensearch.Response
@@ -165,23 +165,23 @@ func (r CreateResp) RawBody() io.Reader {
 
 // FlowFrameworkCommonFlowFrameworkCreate is a typed component of the flow_framework.create operation.
 type FlowFrameworkCommonFlowFrameworkCreate struct {
-	// A description of the workflow.
+	// Description is a description of the workflow.
 	Description *string `json:"description,omitempty"`
 
-	// The name of the workflow.
+	// Name is the name of the workflow.
 	Name string `json:"name"`
 
-	// A use case ID, which can be used with the Search Workflow API to find
-	// related workflows.
+	// UseCase is a use case ID, which can be used with the Search Workflow API
+	// to find related workflows.
 	UseCase *string `json:"use_case,omitempty"`
 
-	// A key-value map with two fields, template, which identifies the template
-	// version, and compatibility, which identifies a list of minimum required
-	// OpenSearch versions.
+	// Version is a key-value map with two fields, template, which identifies
+	// the template version, and compatibility, which identifies a list of
+	// minimum required OpenSearch versions.
 	Version *FlowFrameworkCommonVersion `json:"version,omitempty"`
 
-	// A map of workflows. Presently, only the provision key is supported. The
-	// value for the workflow key is a key-value map that includes fields for
-	// `user_params` and lists of nodes and edges.
-	Workflows json.RawMessage `json:"workflows"`
+	// Workflows is a map of workflows. Presently, only the provision key is
+	// supported. The value for the workflow key is a key-value map that
+	// includes fields for `user_params` and lists of nodes and edges.
+	Workflows json.RawMessage `json:"workflows,omitempty"`
 }

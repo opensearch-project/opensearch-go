@@ -191,6 +191,7 @@ func TestDiscovery(t *testing.T) {
 	t.Run("getNodesInfo()", func(t *testing.T) {
 		u, _ := url.Parse("http://" + srv.Addr)
 		tp, _ := New(Config{URLs: []*url.URL{u}})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		nodes, err := tp.getNodesInfo(t.Context())
 		if err != nil {
@@ -233,6 +234,7 @@ func TestDiscovery(t *testing.T) {
 		u, _ := url.Parse("http://localhost:8080")
 		tp, err := New(Config{URLs: []*url.URL{u}, Transport: newRoundTripper()})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.Error(t, err)
@@ -243,6 +245,7 @@ func TestDiscovery(t *testing.T) {
 		u, _ := url.Parse("http://" + srv.Addr)
 		tp, err := New(Config{URLs: []*url.URL{u}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		err = tp.DiscoverNodes(t.Context())
 		require.NoError(t, err, "Discovery should succeed")
@@ -292,6 +295,7 @@ func TestDiscovery(t *testing.T) {
 			HealthCheck:        NoOpHealthCheck, // Disable health checks for test resurrection simulation
 			InsecureSkipVerify: true,
 		})
+		t.Cleanup(func() { _ = tp.Close() })
 
 		err := tp.DiscoverNodes(t.Context())
 		require.NoError(t, err, "DiscoverNodes should succeed with TLS")
@@ -724,6 +728,7 @@ func TestDiscovery(t *testing.T) {
 					return (&net.Dialer{}).DialContext(ctx, network, testServer.Addr)
 				}
 				c, _ := New(Config{URLs: urls, Transport: redirectTransport})
+				t.Cleanup(func() { _ = c.Close() })
 
 				err = c.DiscoverNodes(t.Context())
 				require.NoError(t, err, "DiscoverNodes should succeed")
@@ -1134,6 +1139,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				Transport: newRoundTripper(),
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
@@ -1305,6 +1311,7 @@ func TestDedicatedClusterManagersExcludedFromRouting(t *testing.T) {
 				URLs: urls,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
 
 			pool, ok := c.mu.connectionPool.(*multiServerPool)
 			require.False(t, ok, "expected a single-server seed pool before discovery, got %T", c.mu.connectionPool)
@@ -2212,6 +2219,9 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 		name     string
 		failures []json.RawMessage
 		want     string
+		// wantPrefix is set instead of want when the rest of the message is
+		// encoding/json's, whose wording changes between Go releases.
+		wantPrefix string
 	}{
 		{
 			name:     "nil failures",
@@ -2237,10 +2247,9 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 			want: `[{"node_id":"n1","reason":"timeout"},{"node_id":"n2","reason":"OptionalDataException"}]`,
 		},
 		{
-			name:     "malformed raw JSON triggers marshal error",
-			failures: []json.RawMessage{json.RawMessage("\xff")},
-			want: "[<1 failures, marshal error: json: error calling MarshalJSON " +
-				"for type json.RawMessage: invalid character 'ÿ' looking for beginning of value>]",
+			name:       "malformed raw JSON triggers marshal error",
+			failures:   []json.RawMessage{json.RawMessage("\xff")},
+			wantPrefix: "[<1 failures, marshal error: json: error calling MarshalJSON ",
 		},
 	}
 
@@ -2249,6 +2258,10 @@ func TestNodesMeta_formatFailures(t *testing.T) {
 			t.Parallel()
 			m := &_NodesMeta{Failures: tt.failures}
 			got := m.formatFailures()
+			if tt.wantPrefix != "" {
+				require.True(t, strings.HasPrefix(got, tt.wantPrefix), "got %q", got)
+				return
+			}
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -2325,6 +2338,7 @@ func TestGetNodesInfoNodesMeta(t *testing.T) {
 				EnableDebugLogger: tt.enableDebug,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			nodes, err := tp.getNodesInfo(t.Context())
 
@@ -2404,6 +2418,7 @@ func newGatedDiscoverClient(t *testing.T, routes mockhttp.HandlerMap) *Transport
 	u, _ := url.Parse("http://127.0.0.1:9200")
 	tp, err := New(Config{URLs: []*url.URL{u}, Transport: transport})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 	tp.discoverMu.cond = sync.NewCond(&tp.discoverMu)
 	return tp
 }

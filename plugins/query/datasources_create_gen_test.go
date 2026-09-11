@@ -68,6 +68,7 @@ func TestDatasourcesCreate_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := query.NewClient(osClient)
 
 		resp, err := client.DatasourcesCreate(t.Context(), &query.DatasourcesCreateReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestDatasourcesCreate_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := query.NewClient(osClient)
 
 		resp, err := errClient.DatasourcesCreate(t.Context(), &query.DatasourcesCreateReq{BodyReader: strings.NewReader("{}")})

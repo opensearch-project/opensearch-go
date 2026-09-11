@@ -76,13 +76,15 @@ func rendezvousTopK(
 		k = len(conns)
 	}
 
-	// Split into shard-hosting and non-shard partitions, preserving
-	// the caller's RTT sort order within each partition.
+	// Rank on a private copy of conns: rankByHash sorts in place, while
+	// callers pass their live RTT-ordered connection list and hold no lock
+	// for the duration of this call. Sorting that slice would race with
+	// concurrent Route() calls and destroy the RTT-bucket order slot
+	// filling reads, which only health checks rebuild.
 	var shard, nonShard []*Connection
-	var partBuf *[]*Connection // pooled buffer backing shard + nonShard
+	partBuf := getConnSlice(len(conns))
+	part := (*partBuf)[:0]
 	if len(shardNodeNames) > 0 {
-		partBuf = getConnSlice(len(conns))
-		part := (*partBuf)[:0]
 		// Append shard nodes first, then non-shard nodes.
 		for _, c := range conns {
 			if _, ok := shardNodeNames[c.Name]; ok {
@@ -97,11 +99,11 @@ func rendezvousTopK(
 		}
 		shard = part[:shardLen]
 		nonShard = part[shardLen:]
-		*partBuf = part // keep slice header in sync for putConnSlice
 	} else {
-		// No shard placement data -- treat all nodes equally.
-		shard = conns
+		part = append(part, conns...)
+		shard = part
 	}
+	*partBuf = part // keep slice header in sync for putConnSlice
 
 	var slots []*Connection
 	if buf != nil {
@@ -119,9 +121,7 @@ func rendezvousTopK(
 		_ = fillSlotsFromTiers(keyA, keyB, nonShard, slots, remaining, &slots)
 	}
 
-	if partBuf != nil {
-		putConnSlice(partBuf)
-	}
+	putConnSlice(partBuf)
 
 	// Phase 3: rotate within the slots by the jitter offset (in-place).
 	n := len(slots)
@@ -170,7 +170,9 @@ func fillSlotsFromTiers(keyA, keyB string, conns []*Connection, dst []*Connectio
 }
 
 // rankByHash sorts connections in-place by rendezvous hash weight (descending)
-// for consistent key-to-node assignment within an RTT tier.
+// for consistent key-to-node assignment within an RTT tier. conns must be a
+// buffer private to the caller, never a shared connection list such as the
+// pool's activeConns/sortedConns.
 func rankByHash(keyA, keyB string, conns []*Connection) []*Connection {
 	// Pre-compute weights using a pooled map. The map avoids repeated
 	// hashing during sort comparisons.

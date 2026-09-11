@@ -109,7 +109,7 @@ func (r TrainPredictParams) get() map[string]string {
 type TrainPredictResp struct {
 	PredictionResult *opensearchapi.MLPredictionResult `json:"prediction_result,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 
 	response *opensearch.Response
@@ -133,7 +133,7 @@ func (r TrainPredictResp) RawBody() io.Reader {
 type MLTrainPredictBody struct {
 	InputData *opensearchapi.MLPredictionResult `json:"input_data,omitempty"`
 
-	// The input index.
+	// InputIndex is the input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
 	InputQuery *opensearchapi.MLInputQuery      `json:"input_query,omitempty"`

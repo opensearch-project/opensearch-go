@@ -139,16 +139,16 @@ func (r CatMasterResp) RawBody() io.Reader {
 
 // CatMasterRecord is a typed component of the cat.master operation.
 type CatMasterRecord struct {
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 }
 

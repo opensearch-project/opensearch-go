@@ -144,16 +144,16 @@ func (r CatPendingTasksResp) RawBody() io.Reader {
 
 // CatPendingTasksRecord is a typed component of the cat.pending_tasks operation.
 type CatPendingTasksRecord struct {
-	// The task insertion order.
+	// InsertOrder is the task insertion order.
 	InsertOrder *string `json:"insertOrder,omitempty"`
 
-	// The task priority.
+	// Priority is the task priority.
 	Priority *string `json:"priority,omitempty"`
 
-	// The task source.
+	// Source is the task source.
 	Source *string `json:"source,omitempty"`
 
-	// Indicates how long the task has been in queue.
+	// TimeInQueue. Indicates how long the task has been in queue.
 	TimeInQueue *string `json:"timeInQueue,omitempty"`
 }
 

@@ -33,7 +33,8 @@ Every runtime variable, its default, and a one-line summary. Use this as the tab
 | [`OPENSEARCH_GO_STANDBY_ROTATION_COUNT`](#connection-pool-tuning)             | `1`                          | Standby rotations per cycle           |
 | [`OPENSEARCH_GO_STANDBY_PROMOTION_CHECKS`](#connection-pool-tuning)           | `3`                          | Health checks before promotion        |
 | [`OPENSEARCH_GO_DEFAULT_CLIENT_TTL`](#default-client-cache)                   | `16m`                        | Default-client cache idle eviction    |
-| [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging                         |
+| [`OPENSEARCH_GO_LOG`](#debug-and-diagnostics)                                 | unset                        | Internal log level                    |
+| [`OPENSEARCH_GO_DEBUG`](#debug-and-diagnostics)                               | `false`                      | Debug logging (superseded by `_LOG`)  |
 | [`OPENSEARCH_GO_ERROR_MASK`](#error-masking)                                  | report all (v5+)             | Partial-failure category mask         |
 | [`OPENSEARCH_GO_POLICY_*`](#policy-overrides)                                 | all enabled                  | Per-policy disable (10 variables)     |
 | [`OPENSEARCH_GO_POLICY_DUMP`](#finding-the-paths-the-router-dom)              | `false`                      | Dump router policy tree (debug-gated) |
@@ -129,9 +130,12 @@ A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driv
 
 ## Debug and diagnostics
 
-| Variable              | Accepted values | Default | Meaning                                                                                                                                                            | See also                                              |
-| --------------------- | --------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- |
-| `OPENSEARCH_GO_DEBUG` | Bool            | `false` | Enable verbose internal logging to stderr (routing decisions, discovery, pool operations). Equivalent to setting `EnableDebugLogger: true` in `opensearch.Config`. | [USER_GUIDE.md Debugging](../USER_GUIDE.md#debugging) |
+| Variable | Accepted values | Default | Meaning | See also |
+| --- | --- | --- | --- | --- |
+| `OPENSEARCH_GO_LOG` | Level name | unset | How verbosely the client logs its own internals. `debug` (case-insensitive) enables verbose internal logging to stderr: routing decisions, discovery, pool operations. Every other level, and any unrecognized value, leaves it off. Supersedes `OPENSEARCH_GO_DEBUG` whenever it carries a value. | [USER_GUIDE.md Debugging](../USER_GUIDE.md#debugging) |
+| `OPENSEARCH_GO_DEBUG` | Bool | `false` | The same switch as `OPENSEARCH_GO_LOG=debug`, expressed as a boolean. Equivalent to setting `EnableDebugLogger: true` in `opensearch.Config`. Still supported and read whenever `OPENSEARCH_GO_LOG` is unset or empty; prefer `OPENSEARCH_GO_LOG` in new deployments. | [USER_GUIDE.md Debugging](../USER_GUIDE.md#debugging) |
+
+The client emits at one level only, so `OPENSEARCH_GO_LOG` is a switch carrying a level's name rather than a ladder: `debug` is on, everything else is off. It exists so a deployment that already sets a log level per service can set this one the same way, and so that raising the level is how the records are turned off.
 
 ## Error masking
 
@@ -233,13 +237,15 @@ A value with no `=` is treated as a regex pattern that disables matching nodes (
 
 ### Finding the paths: the router "DOM"
 
-Path matchers target the dot-delimited node paths the client assigns when it walks the policy tree. There is no public API that returns this tree, so to discover the paths for **your** router, set `OPENSEARCH_GO_POLICY_DUMP=true` **together with** `OPENSEARCH_GO_DEBUG=true` and read the dump from stderr at client initialization:
+Path matchers target the dot-delimited node paths the client assigns when it walks the policy tree. There is no public API that returns this tree, so to discover the paths for **your** router, set `OPENSEARCH_GO_POLICY_DUMP=true` **together with** `OPENSEARCH_GO_LOG=debug` and read the dump from stderr at client initialization:
 
 ```bash
-OPENSEARCH_GO_DEBUG=true OPENSEARCH_GO_POLICY_DUMP=true ./your-app
+OPENSEARCH_GO_LOG=debug OPENSEARCH_GO_POLICY_DUMP=true ./your-app
 ```
 
-`OPENSEARCH_GO_POLICY_DUMP` writes through the debug logger, so it produces output only when `OPENSEARCH_GO_DEBUG` is also truthy. It does not change routing behavior; it only prints the tree.
+`OPENSEARCH_GO_POLICY_DUMP` needs debug logging switched on, by `OPENSEARCH_GO_LOG=debug`, `OPENSEARCH_GO_DEBUG`, `Config.EnableDebugLogger`, or `Config.DebugLogger`. It does not change routing behavior; it only prints the tree.
+
+The tree goes straight to stderr rather than through the debug logger, so it arrives as one contiguous block you can scan and copy a path out of. A structured logger would collapse it into a single record with every newline escaped. A `Config.DebugLogger` therefore switches the dump on without receiving it.
 
 For reference, the **default router** (the tree built by [`NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when `OPENSEARCH_GO_ROUTER` is on) produces this 58-node tree. Each `router` node is labeled with the thread pool it scores for, and each `role` node with the role it selects, because the bare path (`router[0]` vs `router[8]`) does not say which pool or role a node serves. Your tree may differ if you supply a custom router or `RouterOption`s:
 

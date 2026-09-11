@@ -99,8 +99,12 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Typed fields
-fmt.Println(resp.Hits.Total.Value)
+// Typed fields. Hits.Total is a union; TotalHits() unwraps the {value, relation}
+// form. Its population is conditional on SearchModelsParams.TrackTotalHits,
+// which defaults to true.
+if total, err := resp.Hits.Total.TotalHits(); err == nil {
+    fmt.Println(total.Value)
+}
 
 // Raw response access
 raw := resp.Inspect().Response

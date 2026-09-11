@@ -69,6 +69,7 @@ func TestCatRepositories_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Cat.Repositories(t.Context(), nil)
 		require.NoError(t, err)
@@ -88,6 +89,7 @@ func TestCatRepositories_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Cat.Repositories(t.Context(), nil)
 		require.Error(t, err)

@@ -31,13 +31,25 @@
 // map.
 package apirev
 
+import "strings"
+
 // Field is one exported struct field as seen by the type checker.
 type Field struct {
-	Name      string `json:"name"`
-	Type      string `json:"type"`      // types.Type.String()
-	IsPointer bool   `json:"isPointer"` // true if the field's type is a pointer
-	JSONTag   string `json:"jsonTag,omitempty"`
+	Name    string `json:"name"`
+	Type    string `json:"type"` // types.Type.String()
+	JSONTag string `json:"jsonTag,omitempty"`
 }
+
+// IsPointer reports whether the field's type is a pointer. Pointer-ness is
+// derived from Type rather than stored in the surface, because Type is
+// types.Type.String() and a pointer type always renders with a leading "*" -
+// storing a separate flag duplicated information the surface already carried.
+//
+// The prefix test is required: a non-leading "*" shows up in slice-of-pointer
+// types ("[]*net/url.URL"), func types ("func(*net/http.Request)"), and inline
+// anonymous struct types whose embedded tag text mentions a pointer. None of
+// those are pointers, so a substring test would misreport them.
+func (f Field) IsPointer() bool { return strings.HasPrefix(f.Type, "*") }
 
 // Struct is one exported struct type, qualified by its package import path so
 // same-named types in different packages (e.g. opensearch.Config vs

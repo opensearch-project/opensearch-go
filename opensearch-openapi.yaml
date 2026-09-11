@@ -34900,7 +34900,7 @@ components:
         application/json:
           schema:
             allOf:
-              - $ref: '#/components/schemas/_core.get___GetResultBase'
+              - $ref: '#/components/schemas/_core.get___GetResult'
               - type: object
                 properties:
                   _source:
@@ -51239,13 +51239,6 @@ components:
         - contexts
         - language
     _core.get___GetResult:
-      allOf:
-        - $ref: '#/components/schemas/_core.get___GetResultBase'
-        - type: object
-          properties:
-            _source:
-              $ref: '#/components/schemas/_common___TDocument'
-    _core.get___GetResultBase:
       type: object
       properties:
         _type:

@@ -83,6 +83,7 @@ func TestMTermVectors_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.NoError(t, err)
@@ -102,6 +103,7 @@ func TestMTermVectors_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Doc.MTermVectors(t.Context(), opensearchapi.MTermVectorsReq{})
 		require.Error(t, err)

@@ -120,8 +120,8 @@ func (r SnapshotCreateRepositoryParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/snapshots/create-repository/
 type SnapshotCreateRepositoryResp struct {
-	// For a successful response, this value is always true. On failure, an
-	// exception is returned instead.
+	// Acknowledged. For a successful response, this value is always true. On
+	// failure, an exception is returned instead.
 	Acknowledged bool `json:"acknowledged"`
 
 	response *opensearch.Response
@@ -145,10 +145,10 @@ func (r SnapshotCreateRepositoryResp) RawBody() io.Reader {
 //
 // The repository definition.
 type SnapshotCreateRepositoryBody struct {
-	// The name of the repository to store the snapshot.
+	// Repository is the name of the repository to store the snapshot.
 	Repository *SnapshotRepository `json:"repository,omitempty"`
 
-	// The settings for the snapshot repository.
+	// Settings is the settings for the snapshot repository.
 	Settings SnapshotRepositorySettings `json:"settings"`
 
 	Type string `json:"type"`

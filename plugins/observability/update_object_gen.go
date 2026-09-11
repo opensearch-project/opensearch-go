@@ -107,7 +107,7 @@ func (r UpdateObjectParams) get() map[string]string {
 //
 // Available: >= 1.1.0.
 type UpdateObjectResp struct {
-	// The unique identifier of the updated observability object.
+	// ObjectID is the unique identifier of the updated observability object.
 	ObjectID *string `json:"objectId,omitempty"`
 
 	response *opensearch.Response

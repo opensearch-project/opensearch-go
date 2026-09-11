@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // EnumFragment renders int-backed (const iota) enum types for a closed set of
@@ -168,6 +168,7 @@ func (f *StringEnumFragment) Body() (string, error) {
 var stringEnumFragTmpl = template.Must(template.New("stringEnum").Funcs(template.FuncMap{
 	"comment":          CommentWrap,
 	"wrapField":        WrapField,
+	"constComment":     ConstComment,
 	"availabilityNote": AvailabilityNote,
 }).Parse(`{{range $t := .}}
 {{- if $t.Comment}}
@@ -180,7 +181,7 @@ const (
 {{- if $i}}
 {{end}}
 {{- if $m.Comment}}
-	{{wrapField $m.Comment}}
+	{{constComment $m.ConstName $m.Comment}}
 {{- end}}
 {{- with availabilityNote $m.VersionAdded $m.VersionDeprecated $m.DeprecationMsg}}
 {{- if $m.Comment}}

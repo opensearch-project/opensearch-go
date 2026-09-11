@@ -74,9 +74,10 @@ func ExtractFromDir(dir, version string, patterns ...string) (*Snapshot, error) 
 }
 
 // extractStruct records every exported field of st, flattening embedded structs
-// so a field that moved into an embedded base type (e.g. v5's GetResultBase) is
-// still seen as present rather than mis-read as removed. Unexported fields are
-// skipped: the rewriter only rewrites fields a caller can name in a literal.
+// so a field that moved into an embedded base type (e.g. v5's
+// CommonAggregationsAggregateBase) is still seen as present rather than mis-read
+// as removed. Unexported fields are skipped: the rewriter only rewrites fields a
+// caller can name in a literal.
 func extractStruct(pkgPath, name string, st *types.Struct) Struct {
 	s := Struct{PkgPath: pkgPath, Name: name}
 	s.Fields = flattenFields(st, map[string]bool{})
@@ -112,12 +113,10 @@ func flattenFields(st *types.Struct, seen map[string]bool) []Field {
 		if !f.Exported() {
 			continue
 		}
-		_, isPtr := f.Type().(*types.Pointer)
 		out = append(out, Field{
-			Name:      f.Name(),
-			Type:      f.Type().String(),
-			IsPointer: isPtr,
-			JSONTag:   reflect.StructTag(st.Tag(i)).Get("json"),
+			Name:    f.Name(),
+			Type:    f.Type().String(),
+			JSONTag: reflect.StructTag(st.Tag(i)).Get("json"),
 		})
 	}
 	return out

@@ -77,6 +77,7 @@ func TestClearScroll_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Scroll.Delete(t.Context(), &opensearchapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -96,6 +97,7 @@ func TestClearScroll_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Scroll.Delete(t.Context(), &opensearchapi.ClearScrollReq{BodyReader: strings.NewReader("{}")})
 		require.Error(t, err)

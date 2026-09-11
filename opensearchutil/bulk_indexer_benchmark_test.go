@@ -74,6 +74,7 @@ func BenchmarkBulkIndexer(b *testing.B) {
 		b.ResetTimer()
 
 		client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransp{}}})
+		b.Cleanup(func() { _ = client.Close() })
 		bi, _ := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
 			Client:     client,
 			FlushBytes: 1024,

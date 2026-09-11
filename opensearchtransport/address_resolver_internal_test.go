@@ -213,6 +213,7 @@ func TestAddressResolver(t *testing.T) {
 				MaxAddressResolvers: 1, // serial for deterministic behavior
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			nodes, err := tp.getNodesInfo(t.Context())
 			if tt.wantErr {
@@ -271,6 +272,7 @@ func TestAddressResolver(t *testing.T) {
 			HealthCheck: NoOpHealthCheck,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		nodes, err := tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -297,6 +299,7 @@ func TestAddressResolver(t *testing.T) {
 			MaxAddressResolvers: 1,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -347,6 +350,7 @@ func TestAddressResolver(t *testing.T) {
 			MaxAddressResolvers: -1,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -379,6 +383,7 @@ func TestAddressResolver(t *testing.T) {
 			MaxAddressResolvers: 1,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -438,6 +443,7 @@ func TestAddressResolver(t *testing.T) {
 				MaxAddressResolvers: tt.maxResolvers,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			nodes, err := tp.getNodesInfo(ctx)
 			if tt.wantErr != nil {
@@ -470,6 +476,7 @@ func TestAddressResolver(t *testing.T) {
 			MaxAddressResolvers: -1,
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		nodes, err := tp.getNodesInfo(ctx)
 
@@ -492,6 +499,7 @@ func TestAddressResolver(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		err = tp.DiscoverNodes(t.Context())
 		require.NoError(t, err)
@@ -629,6 +637,7 @@ func TestDiscoverNodes_PartialCancelDoesNotEvict(t *testing.T) {
 
 			tp, err := New(tt.configure(t, cancel))
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			// Seed the pool with a clean discovery cycle.
 			require.NoError(t, tp.DiscoverNodes(t.Context()))
@@ -704,6 +713,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -736,6 +746,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		nodes, err := tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -771,6 +782,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.NoError(t, err)
@@ -845,6 +857,7 @@ func TestAddressResolverRunner(t *testing.T) {
 				AddressResolverRunner: tt.runner,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			nodes, err := tp.getNodesInfo(ctx)
 			if tt.wantErr != nil {
@@ -869,6 +882,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		_, err = tp.getNodesInfo(t.Context())
 		require.ErrorIs(t, err, runnerErr)
@@ -966,6 +980,7 @@ func TestAddressResolverRunner(t *testing.T) {
 					},
 				})
 				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
 
 				nodes, err := tp.getNodesInfo(t.Context())
 				require.NoError(t, err)
@@ -1005,6 +1020,7 @@ func TestAddressResolverRunner(t *testing.T) {
 			},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		err = tp.DiscoverNodes(t.Context())
 		require.NoError(t, err)
@@ -1147,6 +1163,7 @@ func TestAddressResolverRunnerProtocol(t *testing.T) {
 						AddressResolverRunner: p.runner,
 					})
 					require.NoError(t, err)
+					t.Cleanup(func() { _ = tp.Close() })
 					tp.observer.Store(&iface)
 
 					nodes, err := tp.getNodesInfo(t.Context())

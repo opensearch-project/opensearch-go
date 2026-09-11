@@ -146,7 +146,7 @@ func (r IndicesAddBlockResp) RawBody() io.Reader {
 //
 // The status of a block operation on an index.
 type IndicesAddBlockIndicesBlockStatus struct {
-	// Whether the block operation was successful.
+	// Blocked. Whether the block operation was successful.
 	Blocked bool `json:"blocked"`
 
 	Name string `json:"name"`

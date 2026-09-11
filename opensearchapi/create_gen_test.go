@@ -77,6 +77,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Doc.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
 		require.NoError(t, err)
@@ -96,6 +97,7 @@ func TestCreate_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Doc.Create(t.Context(), opensearchapi.CreateReq{Index: "test", ID: "test", Body: strings.NewReader("{}")})
 		require.Error(t, err)

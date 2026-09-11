@@ -233,7 +233,7 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition) []Fie
 	for _, fFrom := range sFrom.Fields {
 		fTo, still := toByName[fFrom.Name]
 		switch {
-		case still && fTo.IsPointer && !fFrom.IsPointer:
+		case still && fTo.IsPointer() && !fFrom.IsPointer():
 			changes = append(changes, FieldChange{Kind: KindPointerWrap, From: fFrom.Name, NewType: fTo.Type})
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks

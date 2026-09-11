@@ -11,7 +11,6 @@ package awsv2
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -78,9 +77,14 @@ func (s *awsSdkV2Signer) OverrideSigningPort(signaturePort uint16) {
 	s.signaturePort = signaturePort
 }
 
-// SignRequest adds headers to the request
+// SignRequest adds headers to the request.
+//
+// Credential retrieval and SigV4 signing honor r.Context(), so a
+// health-check or request timeout cancels a hung STS call rather than
+// blocking past the caller's deadline. http.Request.Context() is never
+// nil (it falls back to context.Background()).
 func (s *awsSdkV2Signer) SignRequest(r *http.Request) error {
-	ctx := context.Background()
+	ctx := r.Context()
 	t := time.Now()
 
 	creds, err := s.awsCfg.Credentials.Retrieve(ctx)

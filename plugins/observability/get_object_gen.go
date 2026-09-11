@@ -87,16 +87,16 @@ func (r GetObjectParams) get() map[string]string {
 //
 // Available: >= 1.1.0.
 type GetObjectResp struct {
-	// The list of observability objects.
+	// ObservabilityObjectList is the list of observability objects.
 	ObservabilityObjectList []opensearchapi.ObservabilityObject `json:"observabilityObjectList"`
 
-	// The starting index of the returned objects.
+	// StartIndex is the starting index of the returned objects.
 	StartIndex int `json:"startIndex"`
 
-	// The relationship of total hits to the query.
+	// TotalHitRelation is the relationship of total hits to the query.
 	TotalHitRelation string `json:"totalHitRelation"`
 
-	// The total number of matching objects.
+	// TotalHits is the total number of matching objects.
 	TotalHits int `json:"totalHits"`
 
 	response *opensearch.Response

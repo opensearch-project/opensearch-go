@@ -135,19 +135,19 @@ func (r CatPluginsResp) RawBody() io.Reader {
 
 // CatPluginsRecord is a typed component of the cat.plugins operation.
 type CatPluginsRecord struct {
-	// The component name.
+	// Component is the component name.
 	Component *string `json:"component,omitempty"`
 
-	// The plugin details.
+	// Description is the plugin details.
 	Description *string `json:"description,omitempty"`
 
-	// The unique identifier of a node.
+	// ID is the unique identifier of a node.
 	ID *string `json:"id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
-	// The plugin type.
+	// Type is the plugin type.
 	Type *string `json:"type,omitempty"`
 
 	Version *string `json:"version,omitempty"`

@@ -107,10 +107,10 @@ func (r AddAgenticMemoryParams) get() map[string]string {
 //
 // Available: >= 3.3.0.
 type AddAgenticMemoryResp struct {
-	// Session ID associated with the memory.
+	// SessionID. Session ID associated with the memory.
 	SessionID *string `json:"session_id,omitempty"`
 
-	// The ID for the creating working memory entry.
+	// WorkingMemoryID is the ID for the creating working memory entry.
 	WorkingMemoryID *string `json:"working_memory_id,omitempty"`
 
 	response *opensearch.Response
@@ -132,17 +132,17 @@ func (r AddAgenticMemoryResp) RawBody() io.Reader {
 
 // MLAddAgenticMemoryBody is a typed component of the ml.add_agentic_memory operation.
 type MLAddAgenticMemoryBody struct {
-	// Binary data content encoded as Base64 string.
+	// BinaryData. Binary data content encoded as Base64 string.
 	BinaryData *string `json:"binary_data,omitempty"`
 
-	// Whether to use LLM to extract key information.
+	// Infer. Whether to use LLM to extract key information.
 	Infer *bool `json:"infer,omitempty"`
 
 	Messages  []opensearchapi.MLMessage  `json:"messages,omitempty"`
 	Metadata  map[string]json.RawMessage `json:"metadata,omitempty"`
 	Namespace map[string]json.RawMessage `json:"namespace,omitempty"`
 
-	// The type of payload.
+	// PayloadType is the type of payload.
 	PayloadType *string `json:"payload_type,omitempty"`
 
 	StructuredData map[string]json.RawMessage `json:"structured_data,omitempty"`

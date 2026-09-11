@@ -41,10 +41,11 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 )
 
-// IsDebugEnabled returns true when OPENSEARCH_GO_DEBUG is set to a
-// strconv.ParseBool-truthy value. Empty, unset, unparseable, or falsy
-// values all return false. This matches [envvars.Truthy] so the test
-// helper and the runtime debug logger agree on what "enabled" means.
+// IsDebugEnabled returns true when the environment asks for the client's debug
+// records: OPENSEARCH_GO_LOG=debug, or a strconv.ParseBool-truthy
+// OPENSEARCH_GO_DEBUG when OPENSEARCH_GO_LOG is unset. It defers to
+// [envvars.DebugRequested] so the test helper and the runtime debug logger agree
+// on what "enabled" means.
 //
 // Usage:
 //
@@ -53,5 +54,5 @@ import (
 //	}
 func IsDebugEnabled(t *testing.T) bool {
 	t.Helper()
-	return envvars.Truthy(envvars.Debug)
+	return envvars.DebugRequested()
 }

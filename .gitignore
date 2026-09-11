@@ -3,6 +3,11 @@ tmp/
 coverage.out
 test-*.log
 
+# Local Go workspace: for developing a root change and a nested module together,
+# never committed. See DEVELOPER_GUIDE.md#nested-modules.
+go.work
+go.work.sum
+
 # editors
 .idea
 .vscode

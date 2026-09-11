@@ -87,44 +87,44 @@ func (r GetModelParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type GetModelResp struct {
-	// The algorithm.
+	// Algorithm is the algorithm.
 	Algorithm *string `json:"algorithm,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// Whether the model is hidden.
+	// IsHidden. Whether the model is hidden.
 	IsHidden *bool `json:"is_hidden,omitempty"`
 
-	// The last registered time.
+	// LastRegisteredTime is the last registered time.
 	LastRegisteredTime *int64 `json:"last_registered_time,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
 	ModelConfig *opensearchapi.MLModelConfig `json:"model_config,omitempty"`
 
-	// The model content hash value.
+	// ModelContentHashValue is the model content hash value.
 	ModelContentHashValue *string `json:"model_content_hash_value,omitempty"`
 
-	// The model content size in bytes.
+	// ModelContentSizeInBytes is the model content size in bytes.
 	ModelContentSizeInBytes *int64 `json:"model_content_size_in_bytes,omitempty"`
 
 	ModelFormat *string `json:"model_format,omitempty"`
 
-	// The model group ID.
+	// ModelGroupID is the model group ID.
 	ModelGroupID *string `json:"model_group_id,omitempty"`
 
-	// The model state.
+	// ModelState is the model state.
 	ModelState string `json:"model_state"`
 
-	// The model version.
+	// ModelVersion is the model version.
 	ModelVersion *string `json:"model_version,omitempty"`
 
-	// The model name.
+	// Name is the model name.
 	Name *string `json:"name,omitempty"`
 
-	// The total chunks.
+	// TotalChunks is the total chunks.
 	TotalChunks *int64 `json:"total_chunks,omitempty"`
 
 	response *opensearch.Response

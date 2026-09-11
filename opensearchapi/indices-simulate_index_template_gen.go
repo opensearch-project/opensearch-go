@@ -113,7 +113,7 @@ func (r IndicesSimulateIndexTemplateParams) get() map[string]string {
 type IndicesSimulateIndexTemplateResp struct {
 	Overlapping []IndicesSimulateTemplateOverlapping `json:"overlapping,omitempty"`
 
-	// The configuration for an index template simulation.
+	// Template is the configuration for an index template simulation.
 	Template *IndicesSimulateTemplateTemplate `json:"template,omitempty"`
 
 	response *opensearch.Response
@@ -137,10 +137,11 @@ func (r IndicesSimulateIndexTemplateResp) RawBody() io.Reader {
 //
 // The configuration for overlapping index templates.
 type IndicesSimulateTemplateOverlapping struct {
-	// The list of index patterns that may overlap with other templates.
+	// IndexPatterns is the list of index patterns that may overlap with other
+	// templates.
 	IndexPatterns []string `json:"index_patterns"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name string `json:"name"`
 }
 
@@ -148,12 +149,12 @@ type IndicesSimulateTemplateOverlapping struct {
 //
 // The configuration for an index template simulation.
 type IndicesSimulateTemplateTemplate struct {
-	// The map of alias names to their configurations.
+	// Aliases is the map of alias names to their configurations.
 	Aliases map[string]IndicesAlias `json:"aliases"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// The configuration settings for an index.
+	// Settings is the configuration settings for an index.
 	Settings IndicesIndexSettings `json:"settings"`
 }
 
@@ -161,28 +162,29 @@ type IndicesSimulateTemplateTemplate struct {
 //
 // New index template definition, which will be included in the simulation, as if it already exists in the system
 type IndicesSimulateIndexTemplateBody struct {
-	// The custom metadata attached to a resource.
+	// Meta is the custom metadata attached to a resource.
 	Meta map[string]json.RawMessage `json:"_meta,omitempty"`
 
-	// This setting overrides the value of the `action.auto_create_index`
-	// cluster setting. If set to `true` in a template, then indexes can be
-	// automatically created using that template even if auto-creation of
-	// indexes is disabled using `actions.auto_create_index`. If set to
-	// `false`, then indexes or data streams matching the template must always
-	// be explicitly created, and may never be automatically created.
+	// AllowAutoCreate. This setting overrides the value of the
+	// `action.auto_create_index` cluster setting. If set to `true` in a
+	// template, then indexes can be automatically created using that template
+	// even if auto-creation of indexes is disabled using
+	// `actions.auto_create_index`. If set to `false`, then indexes or data
+	// streams matching the template must always be explicitly created, and may
+	// never be automatically created.
 	AllowAutoCreate *bool `json:"allow_auto_create,omitempty"`
 
-	// An ordered list of component template names. Component templates are
-	// merged in the order specified, meaning that the last component template
-	// specified has the highest precedence.
+	// ComposedOf is an ordered list of component template names. Component
+	// templates are merged in the order specified, meaning that the last
+	// component template specified has the highest precedence.
 	ComposedOf []string `json:"composed_of,omitempty"`
 
-	// The data stream configuration for an index template.
+	// DataStream is the data stream configuration for an index template.
 	DataStream *IndicesIndexTemplateDataStreamConfiguration `json:"data_stream,omitempty"`
 
-	// A comma-separated list of data streams, indexes, and aliases used to
-	// limit the request. Supports wildcards (`*`). To target all data streams
-	// and indexes, omit this parameter or use `*` or `_all`.
+	// IndexPatterns is a comma-separated list of data streams, indexes, and
+	// aliases used to limit the request. Supports wildcards (`*`). To target
+	// all data streams and indexes, omit this parameter or use `*` or `_all`.
 	IndexPatterns []string `json:"index_patterns,omitempty"`
 
 	// Priority to determine index template precedence when a new data stream

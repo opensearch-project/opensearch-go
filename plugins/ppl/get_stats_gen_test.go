@@ -67,6 +67,7 @@ func TestGetStats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ppl.NewClient(osClient)
 
 		resp, err := client.GetStats(t.Context(), nil)
@@ -85,6 +86,7 @@ func TestGetStats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ppl.NewClient(osClient)
 
 		resp, err := errClient.GetStats(t.Context(), nil)

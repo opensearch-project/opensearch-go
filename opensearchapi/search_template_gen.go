@@ -271,22 +271,22 @@ func (r SearchTemplateResp) RawBody() io.Reader {
 //
 // The search definition template and its parameters.
 type SearchTemplateBody struct {
-	// If `true`, returns detailed information about score calculation as part
-	// of each hit.
+	// Explain. If `true`, returns detailed information about score calculation
+	// as part of each hit.
 	Explain *bool `json:"explain,omitempty"`
 
-	// The unique identifier for a resource.
+	// ID is the unique identifier for a resource.
 	ID *string `json:"id,omitempty"`
 
-	// Key-value pairs used to replace Mustache variables in the template. The
-	// key is the variable name. The value is the variable value.
+	// Params. Key-value pairs used to replace Mustache variables in the
+	// template. The key is the variable name. The value is the variable value.
 	Params map[string]json.RawMessage `json:"params,omitempty"`
 
-	// If `true`, the query execution is profiled.
+	// Profile. If `true`, the query execution is profiled.
 	Profile *bool `json:"profile,omitempty"`
 
-	// An inline search template. Supports the same parameters as the search
-	// API request body. Also supports Mustache variables. If no id is
+	// Source is an inline search template. Supports the same parameters as the
+	// search API request body. Also supports Mustache variables. If no id is
 	// specified, this parameter is required.
 	Source *string `json:"source,omitempty"`
 }

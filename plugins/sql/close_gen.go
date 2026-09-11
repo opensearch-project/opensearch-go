@@ -124,7 +124,7 @@ func (r CloseParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/sql/sql-ppl-api/
 type CloseResp struct {
-	// Whether the cursor was closed successfully.
+	// Succeeded. Whether the cursor was closed successfully.
 	Succeeded *bool `json:"succeeded,omitempty"`
 
 	response *opensearch.Response

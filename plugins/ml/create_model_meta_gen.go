@@ -128,29 +128,29 @@ func (r CreateModelMetaResp) RawBody() io.Reader {
 
 // MLCreateModelMetaBody is a typed component of the ml.create_model_meta operation.
 type MLCreateModelMetaBody struct {
-	// The model description.
+	// Description is the model description.
 	Description *string `json:"description,omitempty"`
 
-	// The function name.
+	// FunctionName is the function name.
 	FunctionName *string `json:"function_name,omitempty"`
 
 	ModelConfig opensearchapi.MLModelConfig `json:"model_config"`
 
-	// The model content hash value.
+	// ModelContentHashValue is the model content hash value.
 	ModelContentHashValue string `json:"model_content_hash_value"`
 
 	ModelFormat string `json:"model_format"`
 
-	// The unique identifier for a resource.
+	// ModelGroupID is the unique identifier for a resource.
 	ModelGroupID *string `json:"model_group_id,omitempty"`
 
-	// The model name.
+	// Name is the model name.
 	Name string `json:"name"`
 
-	// Number of chunks the model is split into.
+	// TotalChunks. Number of chunks the model is split into.
 	TotalChunks int64 `json:"total_chunks"`
 
-	// The model URL.
+	// URL is the model URL.
 	URL *string `json:"url,omitempty"`
 
 	Version string `json:"version"`

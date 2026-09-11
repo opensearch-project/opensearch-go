@@ -87,7 +87,7 @@ func (r GetControllerParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetControllerResp struct {
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
 	UserRateLimiter map[string]opensearchapi.MLRateLimiter `json:"user_rate_limiter,omitempty"`

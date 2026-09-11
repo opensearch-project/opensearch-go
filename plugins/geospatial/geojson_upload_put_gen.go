@@ -107,16 +107,16 @@ func (r GeojsonUploadPutParams) get() map[string]string {
 //
 // Available: >= 2.11.0.
 type GeojsonUploadPutResp struct {
-	// Whether there were any errors.
+	// Errors. Whether there were any errors.
 	Errors bool `json:"errors"`
 
-	// Number of features that failed to upload.
+	// Failure. Number of features that failed to upload.
 	Failure int `json:"failure"`
 
-	// Number of features successfully uploaded.
+	// Success. Number of features successfully uploaded.
 	Success int `json:"success"`
 
-	// The time unit for milliseconds.
+	// Took is the time unit for milliseconds.
 	Took int64 `json:"took"`
 
 	// Total number of features processed.

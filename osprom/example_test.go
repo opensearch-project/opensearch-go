@@ -13,8 +13,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/opensearch-project/opensearch-go/osprom/v5"
 	"github.com/opensearch-project/opensearch-go/v5"
-	"github.com/opensearch-project/opensearch-go/v5/osprom"
 )
 
 // Example wires an osprom.Registry into an opensearch client: a Prometheus
@@ -46,7 +46,7 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
-	_ = client
+	defer func() { _ = client.Close() }()
 
 	// Expose the metrics for scraping.
 	http.Handle("/metrics", promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}))

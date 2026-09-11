@@ -93,7 +93,7 @@ func (r StatsParams) get() map[string]string {
 type StatsResp struct {
 	opensearchapi.NodesRespBase
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
 	Nodes  map[string]opensearchapi.LTRNodeStats `json:"nodes,omitempty"`

@@ -107,10 +107,10 @@ func (r CreateControllerParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type CreateControllerResp struct {
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 
 	response *opensearch.Response

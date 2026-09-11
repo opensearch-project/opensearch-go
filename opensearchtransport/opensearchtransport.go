@@ -51,6 +51,7 @@ import (
 	"github.com/rs/dnscache"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 	"github.com/opensearch-project/opensearch-go/v5/internal/envvars"
 	"github.com/opensearch-project/opensearch-go/v5/internal/version"
 	"github.com/opensearch-project/opensearch-go/v5/signer"
@@ -198,6 +199,14 @@ type Config struct {
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
+
+	// DebugLogger receives the client's internal debug records. Supplying one
+	// enables debug logging and takes precedence over EnableDebugLogger, which
+	// selects the built-in stderr logger instead.
+	//
+	// The installed logger is process-global: the last client constructed wins,
+	// and Debug returns an event backed by it for every client in the process.
+	DebugLogger debuglog.Logger
 
 	DiscoverNodesInterval time.Duration
 
@@ -1139,8 +1148,8 @@ func New(cfg Config) (*Transport, error) {
 		client.seedFallbackPool.mu.Unlock()
 	}
 
-	if cfg.EnableDebugLogger {
-		storeDebugLogger(&debuggingLogger{Output: os.Stdout})
+	if dl := resolveDebugLogger(cfg); dl != nil {
+		storeDebugLogger(dl)
 	}
 
 	// Per-request counters are recorded on the hot path; the detailed snapshot
@@ -1207,7 +1216,7 @@ func New(cfg Config) (*Transport, error) {
 			// OPENSEARCH_GO_POLICY_DUMP prints the policy tree ("DOM") so an
 			// operator can see the exact node paths to target with
 			// OPENSEARCH_GO_POLICY_* matchers. Debug-gated: emits only when a
-			// debug logger is installed (OPENSEARCH_GO_DEBUG truthy).
+			// debug logger is installed (OPENSEARCH_GO_LOG=debug).
 			if envvars.Truthy(envvars.PolicyDump) {
 				dumpPolicyTreeIfDebug(routerPolicy)
 			}
@@ -1485,7 +1494,17 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		}
 	}
 
+	// Caller path, captured once for [restoreReqPath].
+	origPath := req.URL.Path
+	origRawPath := req.URL.RawPath
+
 	for i := 0; i <= c.maxRetries; i++ {
+		// Attempt 0 still carries the caller's path; only a retry has had
+		// setReqURL prepend a connection base path onto it.
+		if i > 0 {
+			restoreReqPath(req, origPath, origRawPath)
+		}
+
 		var (
 			conn            *Connection
 			poolName        string
@@ -1551,7 +1570,10 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		if poolName != "" {
 			conn.addInFlight(poolName)
 		}
-		start := time.Now().UTC()
+		// Do not call UTC() here: it strips the monotonic reading, and
+		// time.Since then uses the wall clock. On Windows that clock is
+		// coarse enough that a fast localhost RoundTrip reports 0.
+		start := time.Now()
 
 		// Apply per-attempt timeout if configured. This creates a child context
 		// with a deadline so that each individual RoundTrip is bounded, preventing
@@ -1612,7 +1634,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 				//nolint:errcheck // ignored as this is only for logging
 				req.Body, _ = req.GetBody()
 			}
-			c.logRoundTrip(req, res, err, start, dur)
+			c.logRoundTrip(req, res, err, start.UTC(), dur)
 		}
 
 		if err != nil {
@@ -1620,9 +1642,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 				c.metrics.failures.Add(1)
 			}
 
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Request to %s failed: %v\n", conn.URL, err)
-			}
+			Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
 
 			// Retry on HTTP/2 stream resets (RST_STREAM frames such as REFUSED_STREAM).
 			// Go 1.21+ added As bridging on the vendored internal http2.StreamError
@@ -1635,10 +1655,11 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			// are a separate signal indicating the server rejected individual streams.
 			var streamErr h2StreamError
 			if errors.As(err, &streamErr) {
-				if dl := loadDebugLogger(); dl != nil {
-					dl.Logf("HTTP/2 stream error from %s: StreamID=%d, Code=%d\n",
-						conn.URL, streamErr.StreamID, streamErr.Code)
-				}
+				Debug().
+					Str("conn", conn.URLString).
+					Uint32("stream_id", streamErr.StreamID).
+					Uint32("code", streamErr.Code).
+					Msg("HTTP/2 stream error")
 				// Mark draining so OnSuccess from concurrent requests won't resurrect
 				// this connection. Requires defaultDrainingQuiescingChecks consecutive
 				// successful health checks before resurrection.
@@ -1651,16 +1672,12 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			// before OnFailure schedules resurrection.
 			if c.router != nil {
 				if poolErr := c.router.OnFailure(conn); poolErr != nil {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Router error marking connection as failed: %v\n", poolErr)
-					}
+					Debug().Err(poolErr).Msg("Router error marking connection as failed")
 				}
 			} else {
 				c.mu.Lock()
 				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Connection pool error marking connection as failed: %v\n", poolErr)
-					}
+					Debug().Err(poolErr).Msg("Connection pool error marking connection as failed")
 				}
 				c.mu.Unlock()
 			}
@@ -1791,6 +1808,12 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 
 	// Seed URL fallback: absolute last resort when the entire retry loop
 	// failed to obtain a connection from any router policy or pool.
+	//
+	// req still carries the caller path, which performSeedFallback depends on
+	// because it prepends through setReqURL as well. This branch is reached only
+	// when an attempt failed to obtain a connection, which happens before that
+	// attempt reaches setReqURL, and the loop restores the path on entry to the
+	// same attempt. See [restoreReqPath].
 	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
 		res, err = c.performSeedFallback(req.Context(), req, &sr)
 	}
@@ -1862,9 +1885,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		return nil, fmt.Errorf("cannot get connection: %w (seed fallback also exhausted)", err)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Seed fallback: attempting request via %s\n", conn.URL)
-	}
+	Debug().Str("conn", conn.URLString).Msg("Seed fallback: attempting request")
 
 	c.setReqURL(conn.URL, req)
 	c.setReqAuth(conn.URL, req)
@@ -1883,7 +1904,7 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
-	start := time.Now().UTC()
+	start := time.Now()
 
 	// Apply per-attempt timeout if configured.
 	attemptReq := req
@@ -1906,20 +1927,16 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	dur := time.Since(start)
 
 	if c.logger != nil {
-		c.logRoundTrip(req, res, err, start, dur)
+		c.logRoundTrip(req, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Seed fallback: request to %s failed: %v\n", conn.URL, err)
-		}
+		Debug().Str("conn", conn.URLString).Err(err).Msg("Seed fallback: request failed")
 		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Seed fallback: request to %s succeeded, triggering rediscovery\n", conn.URL)
-	}
+	Debug().Str("conn", conn.URLString).Msg("Seed fallback: request succeeded, triggering rediscovery")
 	c.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
 	c.discoveryNeeded.Store(true)
 	return res, nil
@@ -1968,9 +1985,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	conn.proactiveCheck.mu.lastAt = time.Now()
 	conn.proactiveCheck.mu.Unlock()
 
-	if dl := loadDebugLogger(); dl != nil {
-		dl.Logf("Connection: close detected for %q, scheduling proactive health check\n", conn.URL)
-	}
+	Debug().Str("conn", conn.URLString).Msg("Connection: close detected, scheduling proactive health check")
 
 	go func() {
 		resp, err := c.healthCheck(c.ctx, conn, conn.URL)
@@ -1979,23 +1994,17 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 		}
 
 		if err != nil {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Proactive health check failed for %q: %v\n", conn.URL, err)
-			}
+			Debug().Str("conn", conn.URLString).Err(err).Msg("Proactive health check failed")
 
 			// Mark connection as failed to trigger resurrection
 			if c.router != nil {
 				if poolErr := c.router.OnFailure(conn); poolErr != nil {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Router error during proactive health check failure for %q: %v\n", conn.URL, poolErr)
-					}
+					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Router error during proactive health check failure")
 				}
 			} else {
 				c.mu.Lock()
 				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Pool error during proactive health check failure for %q: %v\n", conn.URL, poolErr)
-					}
+					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Pool error during proactive health check failure")
 				}
 				c.mu.Unlock()
 			}
@@ -2012,6 +2021,28 @@ func (c *Transport) URLs() []*url.URL {
 	return c.mu.connectionPool.URLs()
 }
 
+// restoreReqPath writes the caller-supplied path back onto req. It owns the
+// invariant that every setReqURL call starts from that path; stream() upholds it
+// by calling this on entry to each attempt after the first, which is also what
+// leaves the path intact for the seed-fallback branch.
+//
+// stream() reuses one *http.Request across retries and setReqURL prepends the
+// connection base path in place, so without a restore a prefixed address
+// (https://host/prefix) becomes /prefix/prefix/_search on the next attempt, and
+// a prefix-less discovered node keeps the leftover prefix (setReqURL returns
+// early without assigning Path when the connection has no base path). Route()
+// matches on Path, and leftover /prefix/_search is not a miss: the mux treats it
+// as /{index}/_search with index "prefix", so the retry is classified against
+// the wrong index.
+func restoreReqPath(req *http.Request, path, rawPath string) {
+	req.URL.Path = path
+	req.URL.RawPath = rawPath
+}
+
+// setReqURL rewrites req.URL to target connection u, prepending u's base
+// path onto the current Path/RawPath. It does not remember the original, so
+// callers that retry or fall back on the same *http.Request must reinstate the
+// caller-supplied path first with [restoreReqPath].
 func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
@@ -2057,6 +2088,33 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 			return
 		}
 	}
+}
+
+// prepareInternalRequest applies the same decoration the stream() path
+// uses -- URL rewrite, User-Agent, Config.Header, basic auth, and the
+// configured Signer -- to a request that will be dispatched via raw
+// RoundTrip rather than stream(). Background health-check, discovery,
+// and node-stats pollers must go through this so SigV4 (and Config.Header)
+// apply to them the same way they apply to user traffic.
+//
+// setReqGlobalHeader runs before setReqAuth, matching stream(). Both are
+// add-if-absent, so a Config.Header Authorization wins over Transport
+// username/password or URL userinfo.
+//
+// applyModifier, if non-nil, runs after header injection and before
+// signing so any headers it adds are included in the signature.
+func (c *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
+	c.setReqURL(u, req)
+	c.setReqUserAgent(req)
+	c.setReqGlobalHeader(req)
+	c.setReqAuth(u, req)
+	if applyModifier != nil {
+		applyModifier(req)
+	}
+	if err := c.signRequest(req); err != nil {
+		return fmt.Errorf("failed to sign request: %w", err)
+	}
+	return nil
 }
 
 func (c *Transport) signRequest(req *http.Request) error {
@@ -2219,12 +2277,8 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2298,12 +2352,8 @@ func (c *Transport) hardwareInfoHealthCheck(
 		return c.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2430,12 +2480,8 @@ func (c *Transport) fetchClusterHealth(
 
 	req.URL.RawQuery = "local=true"
 
-	c.setReqURL(u, req)
-	c.setReqAuth(u, req)
-	c.setReqUserAgent(req)
-
-	if applyModifier != nil {
-		applyModifier(req)
+	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+		return nil, 0, err
 	}
 
 	res, err := c.transport.RoundTrip(req)
@@ -2777,10 +2823,12 @@ func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnecti
 		// Enforce the active list cap: moves overflow active connections to standby.
 		pool.enforceActiveCapWithLock()
 
-		if dl := loadDebugLogger(); dl != nil {
-			dl.Logf("Promoted singleServerPool to multiServerPool: %d ready, %d dead connections (timeouts: %v, %d)\n",
-				len(pool.mu.ready), len(pool.mu.dead), pool.resurrectTimeoutInitial, pool.resurrectTimeoutFactorCutoff)
-		}
+		Debug().
+			Int("ready", len(pool.mu.ready)).
+			Int("dead", len(pool.mu.dead)).
+			Dur("resurrect_timeout_initial", pool.resurrectTimeoutInitial).
+			Int("resurrect_timeout_factor_cutoff", pool.resurrectTimeoutFactorCutoff).
+			Msg("Promoted singleServerPool to multiServerPool")
 
 		return pool
 
@@ -2813,18 +2861,12 @@ func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
 		switch {
 		case len(currentPool.mu.ready) > 0:
 			connection = currentPool.mu.ready[0]
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Demoting multiServerPool to singleServerPool using ready connection: %s\n", connection.URL)
-			}
+			Debug().Str("conn", connection.URLString).Msg("Demoting multiServerPool to singleServerPool using ready connection")
 		case len(currentPool.mu.dead) > 0:
 			connection = currentPool.mu.dead[0]
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Demoting multiServerPool to singleServerPool using dead connection: %s\n", connection.URL)
-			}
+			Debug().Str("conn", connection.URLString).Msg("Demoting multiServerPool to singleServerPool using dead connection")
 		default:
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Warning: Demoting multiServerPool with no connections available\n")
-			}
+			Debug().Msg("Demoting multiServerPool with no connections available")
 		}
 
 		currentPool.mu.RUnlock()

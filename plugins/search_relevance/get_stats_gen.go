@@ -123,12 +123,12 @@ func (r GetStatsParams) get() map[string]string {
 // Available: >= 3.1.0.
 type GetStatsResp struct {
 	opensearchapi.NodesRespBase
-	AllNodes json.RawMessage `json:"all_nodes"`
+	AllNodes json.RawMessage `json:"all_nodes,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	Info  json.RawMessage `json:"info"`
+	Info  json.RawMessage `json:"info,omitempty"`
 	Nodes json.RawMessage `json:"nodes"`
 
 	response *opensearch.Response

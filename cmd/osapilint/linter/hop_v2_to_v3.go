@@ -6,7 +6,7 @@
 
 package linter
 
-import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 
 // hop_v2_to_v3.go is the hand-authored v2 -> v3 migration data. Unlike the quiet
 // v3 -> v4 and v4 -> v5 hops, v2 -> v3 is the single largest boundary in the

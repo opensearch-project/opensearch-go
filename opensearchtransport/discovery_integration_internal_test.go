@@ -59,6 +59,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Discovery should work with health validation
 		err = client.DiscoverNodes(t.Context())
@@ -81,6 +82,7 @@ func TestDiscoveryIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to create client: %v", err)
 		}
+		t.Cleanup(func() { _ = client.Close() })
 
 		// Test discovery with role filtering
 		err = client.DiscoverNodes(t.Context())
@@ -392,6 +394,7 @@ func TestDiscoverNodesWithNewRoleValidation(t *testing.T) {
 				Transport: transport,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
 
 			// Perform discovery
 			err = c.DiscoverNodes(t.Context())
@@ -489,6 +492,7 @@ func TestDedicatedClusterManagersExcludedFromRouting(t *testing.T) {
 				Transport: transport,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
 
 			// Run discovery repeatedly. The inventory must converge to exactly one
 			// connection per node and stay there: an unbounded pool that re-created

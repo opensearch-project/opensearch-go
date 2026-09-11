@@ -92,7 +92,7 @@ func (r ExplainPolicyParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/im-plugin/ism/api/#explain-index
 type ExplainPolicyResp struct {
-	// The total number of managed indices.
+	// TotalManagedIndices is the total number of managed indices.
 	TotalManagedIndices *float64 `json:"total_managed_indices,omitempty"`
 
 	response *opensearch.Response

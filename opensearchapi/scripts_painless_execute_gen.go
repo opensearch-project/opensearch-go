@@ -132,17 +132,17 @@ func (r ScriptsPainlessExecuteResp) RawBody() io.Reader {
 //
 // The script to execute
 type ScriptsPainlessExecuteBody struct {
-	// The context that the script should run in.
+	// Context is the context that the script should run in.
 	Context *string `json:"context,omitempty"`
 
 	ContextSetup *ScriptsPainlessExecutePainlessContextSetup `json:"context_setup,omitempty"`
-	Script       *string                                     `json:"script,omitempty"`
+	Script       *InlineScript                               `json:"script,omitempty"`
 }
 
 // ScriptsPainlessExecutePainlessContextSetup is a typed component of the scripts_painless_execute operation.
 type ScriptsPainlessExecutePainlessContextSetup struct {
-	// A document temporarily indexed in-memory and accessible from the
-	// Painless script.
+	// Document is a document temporarily indexed in-memory and accessible from
+	// the Painless script.
 	Document json.RawMessage `json:"document"`
 
 	Index string                        `json:"index"`

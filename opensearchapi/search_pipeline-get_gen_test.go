@@ -76,6 +76,7 @@ func TestSearchPipelineGet_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.SearchPipeline.Get(t.Context(), opensearchapi.SearchPipelineGetReq{})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestSearchPipelineGet_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.SearchPipeline.Get(t.Context(), opensearchapi.SearchPipelineGetReq{})
 		require.Error(t, err)

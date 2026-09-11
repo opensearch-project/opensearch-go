@@ -172,75 +172,80 @@ func (r ClusterHealthParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/api-reference/cluster-api/cluster-health/
 type ClusterHealthResp struct {
-	// The number of active primary shards.
+	// ActivePrimaryShards is the number of active primary shards.
 	ActivePrimaryShards int `json:"active_primary_shards"`
 
-	// The total number of active primary and replica shards.
+	// ActiveShards is the total number of active primary and replica shards.
 	ActiveShards int `json:"active_shards"`
 
-	// The percentage value as a string.
+	// ActiveShardsPercent is the percentage value as a string.
 	ActiveShardsPercent *string `json:"active_shards_percent,omitempty"`
 
-	// The percentage value as a number.
+	// ActiveShardsPercentAsNumber is the percentage value as a number.
 	ActiveShardsPercentAsNumber float64 `json:"active_shards_percent_as_number"`
 
-	// Cluster health information for each awareness attribute.
+	// AwarenessAttributes. Cluster health information for each awareness
+	// attribute.
 	//
 	// Available: >= 2.5.0.
 	AwarenessAttributes map[string]ClusterHealthAwarenessAttributeStats `json:"awareness_attributes,omitempty"`
 
-	// The name of a resource or configuration element.
+	// ClusterName is the name of a resource or configuration element.
 	ClusterName string `json:"cluster_name"`
 
-	// The number of shards whose allocation has been delayed by the timeout
-	// settings.
+	// DelayedUnassignedShards is the number of shards whose allocation has
+	// been delayed by the timeout settings.
 	DelayedUnassignedShards int `json:"delayed_unassigned_shards"`
 
-	// True if the cluster-manager node has been discovered.
+	// DiscoveredClusterManager. True if the cluster-manager node has been
+	// discovered.
 	//
 	// Available: >= 2.0.0.
 	DiscoveredClusterManager *bool `json:"discovered_cluster_manager,omitempty"`
 
-	// True if the cluster-manager node has been discovered.
+	// DiscoveredMaster. True if the cluster-manager node has been discovered.
 	//
 	// Deprecated: since 2.0.0.
 	DiscoveredMaster *bool `json:"discovered_master,omitempty"`
 
 	Indices map[string]ClusterHealthIndexStats `json:"indices,omitempty"`
 
-	// The number of shards that are under initialization.
+	// InitializingShards is the number of shards that are under
+	// initialization.
 	InitializingShards int `json:"initializing_shards"`
 
-	// The number of nodes that are dedicated data nodes.
+	// NumberOfDataNodes is the number of nodes that are dedicated data nodes.
 	NumberOfDataNodes int `json:"number_of_data_nodes"`
 
-	// The number of unfinished fetches.
+	// NumberOfInFlightFetch is the number of unfinished fetches.
 	NumberOfInFlightFetch int `json:"number_of_in_flight_fetch"`
 
-	// The number of nodes within the cluster.
+	// NumberOfNodes is the number of nodes within the cluster.
 	NumberOfNodes int `json:"number_of_nodes"`
 
-	// The number of cluster-level changes that have not yet been executed.
+	// NumberOfPendingTasks is the number of cluster-level changes that have
+	// not yet been executed.
 	NumberOfPendingTasks int `json:"number_of_pending_tasks"`
 
-	// The number of shards that are under relocation.
+	// RelocatingShards is the number of shards that are under relocation.
 	RelocatingShards int `json:"relocating_shards"`
 
 	Status string `json:"status"`
 
-	// A duration. Units can be `nanos`, `micros`, `ms` (milliseconds), `s`
-	// (seconds), `m` (minutes), `h` (hours) and `d` (days). Also accepts `0`
-	// without a unit and `-1` to indicate an unspecified value.
+	// TaskMaxWaitingInQueue is a duration. Units can be `nanos`, `micros`,
+	// `ms` (milliseconds), `s` (seconds), `m` (minutes), `h` (hours) and `d`
+	// (days). Also accepts `0` without a unit and `-1` to indicate an
+	// unspecified value.
 	TaskMaxWaitingInQueue *string `json:"task_max_waiting_in_queue,omitempty"`
 
-	// The time unit for milliseconds.
+	// TaskMaxWaitingInQueueMillis is the time unit for milliseconds.
 	TaskMaxWaitingInQueueMillis int64 `json:"task_max_waiting_in_queue_millis"`
 
-	// If `false` the response returned within the period of time that is
-	// specified by the timeout parameter (`30s` by default).
+	// TimedOut. If `false` the response returned within the period of time
+	// that is specified by the timeout parameter (`30s` by default).
 	TimedOut bool `json:"timed_out"`
 
-	// The number of shards that are not allocated.
+	// UnassignedShards is the number of shards that are not allocated.
 	UnassignedShards int `json:"unassigned_shards"`
 
 	response *opensearch.Response

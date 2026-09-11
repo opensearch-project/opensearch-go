@@ -117,16 +117,16 @@ func (r IndicesGetUpgradeParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest
 type IndicesGetUpgradeResp struct {
-	// The upgrade status for individual indexes.
+	// Indices is the upgrade status for individual indexes.
 	Indices map[string]IndicesUpgradeStatus `json:"indices,omitempty"`
 
-	// The size in bytes.
+	// SizeInBytes is the size in bytes.
 	SizeInBytes *int64 `json:"size_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeAncientInBytes is the size in bytes.
 	SizeToUpgradeAncientInBytes *int64 `json:"size_to_upgrade_ancient_in_bytes,omitempty"`
 
-	// The size in bytes.
+	// SizeToUpgradeInBytes is the size in bytes.
 	SizeToUpgradeInBytes *int64 `json:"size_to_upgrade_in_bytes,omitempty"`
 
 	response *opensearch.Response

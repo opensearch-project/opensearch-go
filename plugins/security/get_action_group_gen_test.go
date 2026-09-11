@@ -74,6 +74,7 @@ func TestGetActionGroup_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := security.NewClient(osClient)
 
 		resp, err := client.GetActionGroup(t.Context(), security.GetActionGroupReq{ActionGroup: "test"})
@@ -92,6 +93,7 @@ func TestGetActionGroup_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := security.NewClient(osClient)
 
 		resp, err := errClient.GetActionGroup(t.Context(), security.GetActionGroupReq{ActionGroup: "test"})

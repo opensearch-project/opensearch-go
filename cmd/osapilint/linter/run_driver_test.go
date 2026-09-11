@@ -51,7 +51,7 @@ func TestRewriteDriver(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			silenceOutput(t)
-			dir := stageCorpus(t, "v2", "stub-v2")
+			dir := stageCorpus(t, "v2")
 			require.NoError(t, Rewrite(tt.args(dir)))
 		})
 	}
@@ -209,14 +209,14 @@ func writeModule(t *testing.T, dir string, files map[string]string) {
 }
 
 // stageTwoMajor stages a consumer module that imports two opensearch-go majors
-// (v2 and v3), each resolved to its committed stub via a replace so the import
-// graph loads offline. It returns the consumer module directory.
+// (v2 and v3), each resolved to its committed stub (in the shared stubs.txtar
+// archive under testdata/corpus) via a replace so the import graph loads
+// offline. It returns the consumer module directory.
 func stageTwoMajor(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
 	srcBase := filepath.Join("testdata", "corpus")
-	require.NoError(t, os.CopyFS(filepath.Join(root, "stub-v2"), os.DirFS(filepath.Join(srcBase, "stub-v2"))))
-	require.NoError(t, os.CopyFS(filepath.Join(root, "stub-v3"), os.DirFS(filepath.Join(srcBase, "stub-v3"))))
+	extractTxtar(t, filepath.Join(srcBase, "stubs.txtar"), root)
 
 	consumer := filepath.Join(root, "consumer")
 	writeModule(t, consumer, map[string]string{

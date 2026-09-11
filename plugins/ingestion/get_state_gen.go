@@ -107,11 +107,11 @@ func (r GetStateParams) get() map[string]string {
 type GetStateResp struct {
 	Shards *opensearchapi.ShardStatistics `json:"_shards,omitempty"`
 
-	// Ingestion state for a given index and its shards.
+	// IngestionState. Ingestion state for a given index and its shards.
 	IngestionState map[string][]opensearchapi.IngestionShardState `json:"ingestion_state,omitempty"`
 
-	// Specifies the next page token. Pass this token in the request to
-	// retrieve contents of the next page.
+	// NextPageToken. Specifies the next page token. Pass this token in the
+	// request to retrieve contents of the next page.
 	NextPageToken *string `json:"next_page_token,omitempty"`
 
 	response *opensearch.Response

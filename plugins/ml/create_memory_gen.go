@@ -103,7 +103,7 @@ func (r CreateMemoryParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type CreateMemoryResp struct {
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID string `json:"memory_id"`
 
 	response *opensearch.Response
@@ -125,6 +125,6 @@ func (r CreateMemoryResp) RawBody() io.Reader {
 
 // MLCreateMemoryBody is a typed component of the ml.create_memory operation.
 type MLCreateMemoryBody struct {
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 }

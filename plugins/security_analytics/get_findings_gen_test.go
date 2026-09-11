@@ -67,6 +67,7 @@ func TestGetFindings_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := security_analytics.NewClient(osClient)
 
 		resp, err := client.GetFindings(t.Context(), nil)
@@ -85,6 +86,7 @@ func TestGetFindings_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := security_analytics.NewClient(osClient)
 
 		resp, err := errClient.GetFindings(t.Context(), nil)

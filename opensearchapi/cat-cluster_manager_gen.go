@@ -135,16 +135,16 @@ func (r CatClusterManagerResp) RawBody() io.Reader {
 
 // CatClusterManagerRecord is a typed component of the cat.cluster_manager operation.
 type CatClusterManagerRecord struct {
-	// hostname
+	// Host. Hostname
 	Host *string `json:"host,omitempty"`
 
-	// node id
+	// ID. Node id
 	ID *string `json:"id,omitempty"`
 
 	// IP address
 	IP *string `json:"ip,omitempty"`
 
-	// node name
+	// Node. Node name
 	Node *string `json:"node,omitempty"`
 }
 

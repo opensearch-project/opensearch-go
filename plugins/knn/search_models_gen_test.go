@@ -75,6 +75,7 @@ func TestSearchModels_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := knn.NewClient(osClient)
 
 		resp, err := client.SearchModels(t.Context(), nil)
@@ -93,6 +94,7 @@ func TestSearchModels_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := knn.NewClient(osClient)
 
 		resp, err := errClient.SearchModels(t.Context(), nil)

@@ -47,6 +47,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/opensearch-project/opensearch-go/v5"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
@@ -299,6 +300,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						return &http.Response{Body: io.NopCloser(bytes.NewBuffer(bodyContent))}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
@@ -356,6 +358,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{
 					NumWorkers:    1,
@@ -443,6 +446,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					cfg.Client.Logger = &opensearchtransport.ColorLogger{Output: os.Stdout}
 				}
 				client, _ := opensearchapi.NewClient(cfg)
+				t.Cleanup(func() { _ = client.Close() })
 
 				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
 				if testutil.IsDebugEnabled(t) {
@@ -496,6 +500,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 				ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 				defer cancel()
@@ -522,6 +527,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
 				ctx, cancel := context.WithCancel(context.Background())
@@ -555,6 +561,7 @@ func TestBulkIndexerContext(t *testing.T) {
 			run: func(t *testing.T) {
 				t.Helper()
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
 					FlushBytes: 1,
@@ -579,6 +586,7 @@ func TestBulkIndexerContext(t *testing.T) {
 				// forever signaling a flusher that already left. Regression for
 				// the unbuffered done-channel deadlock.
 				client, _ := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Transport: &mockTransport{}}})
+				t.Cleanup(func() { _ = client.Close() })
 				ctx, cancel := context.WithCancel(t.Context())
 				bi, err := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
@@ -644,6 +652,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 					}
 				}
 				client, _ := opensearchapi.NewClient(config)
+				t.Cleanup(func() { _ = client.Close() })
 
 				var (
 					indexerError error
@@ -703,6 +712,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				)
+				t.Cleanup(func() { _ = client.Close() })
 
 				cfg := BulkIndexerConfig{NumWorkers: 1, Client: client}
 				if testutil.IsDebugEnabled(t) {
@@ -793,6 +803,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						}, nil
 					},
 				}}})
+				t.Cleanup(func() { _ = client.Close() })
 				flushIndex := testutil.MustUniqueString(t, "test-flush")
 
 				var flushEndCalled atomic.Bool
@@ -847,6 +858,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				})
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{
 					NumWorkers: 1,
@@ -933,6 +945,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				)
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
@@ -984,6 +997,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 						},
 					},
 				})
+				t.Cleanup(func() { _ = client.Close() })
 
 				bi, _ := NewBulkIndexer(BulkIndexerConfig{NumWorkers: 1, Client: client})
 
@@ -1010,7 +1024,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "body-fail",
-					Body:       failingReadBody{},
+					Body:       &failingBody{},
 					OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
 						onFailure(ctx, item, resp, err)
 						bodyFailureCalled = true
@@ -1035,13 +1049,46 @@ func strPointer(s string) *string {
 	return &s
 }
 
-type failingReadBody struct{}
+// bodyFailure names which io.ReadSeeker method a failingBody fails.
+type bodyFailure int
 
-func (failingReadBody) Read(_ []byte) (int, error) {
-	return 0, errors.New("body read failed")
+const (
+	// failOnRead fails the Read that follows the payload, so ReadFrom returns
+	// an error after len(data) bytes reached the bulk buffer. Empty data fails
+	// the first Read, having written nothing.
+	failOnRead bodyFailure = iota
+	// failOnSeek serves the whole payload, then fails the rewind the indexer
+	// performs so the caller-supplied body stays reusable.
+	failOnSeek
+)
+
+// failingBody is an item body whose serialization fails; the fail field
+// selects which step (see bodyFailure).
+type failingBody struct {
+	data []byte
+	fail bodyFailure
 }
 
-func (failingReadBody) Seek(int64, int) (int64, error) {
+func (b *failingBody) Read(p []byte) (int, error) {
+	if len(b.data) == 0 {
+		if b.fail == failOnRead {
+			return 0, errors.New("body read failed")
+		}
+
+		return 0, io.EOF
+	}
+
+	n := copy(p, b.data)
+	b.data = b.data[n:]
+
+	return n, nil
+}
+
+func (b *failingBody) Seek(int64, int) (int64, error) {
+	if b.fail == failOnSeek {
+		return 0, errors.New("body seek failed")
+	}
+
 	return 0, nil
 }
 
@@ -1104,3 +1151,850 @@ func (t *closeRecordingTransport) RoundTrip(req *http.Request) (*http.Response, 
 }
 
 func (t *closeRecordingTransport) CloseIdleConnections() { t.idleClosed.Add(1) }
+
+func TestBulkIndexerQueueIndexPinsDocumentID(t *testing.T) {
+	t.Parallel()
+
+	// numWorkers is baked into wantIndex, so a change in shardhash.Hash or in
+	// the modulo folding fails here instead of silently reshuffling documents.
+	const numWorkers = 8
+
+	tests := []struct {
+		name       string
+		documentID string
+		wantIndex  int
+	}{
+		{name: "ascii", documentID: "user_123", wantIndex: 4},
+		{name: "numeric", documentID: "42", wantIndex: 2},
+		{name: "multibyte", documentID: "ünïcødé-🌍", wantIndex: 3},
+		{name: "long", documentID: strings.Repeat("a", 512), wantIndex: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
+			for range 3 {
+				require.Equal(t, tt.wantIndex, bi.queueIndex(BulkIndexerItem{DocumentID: tt.documentID}))
+			}
+		})
+	}
+}
+
+func TestBulkIndexerQueueIndexRoundRobinsWithoutDocumentID(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 4
+		rounds     = 3
+	)
+
+	bi := &bulkIndexer{queues: make([]chan queueEntry, numWorkers)}
+
+	got := make([]int, numWorkers)
+	for range numWorkers * rounds {
+		got[bi.queueIndex(BulkIndexerItem{})]++
+	}
+
+	require.Equal(t, []int{rounds, rounds, rounds, rounds}, got)
+}
+
+func TestBulkIndexerAddDeliversToRoutedQueue(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 8
+		numItems   = 10
+		wantIndex  = 4 // shardhash.Hash("user_123") folded into numWorkers.
+	)
+
+	// Skip init so no worker drains the queues while the test inspects them.
+	bi := &bulkIndexer{stats: &bulkIndexerStats{}, queues: make([]chan queueEntry, numWorkers)}
+	for i := range bi.queues {
+		bi.queues[i] = make(chan queueEntry, numItems)
+	}
+
+	for range numItems {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{Action: actionUpdate, DocumentID: "user_123"}))
+	}
+
+	for i, queue := range bi.queues {
+		if i == wantIndex {
+			require.Len(t, queue, numItems, "queue %d must hold every item for one document ID", i)
+			continue
+		}
+		require.Empty(t, queue, "queue %d must stay empty", i)
+	}
+	require.Equal(t, uint64(numItems), bi.Stats().NumAdded)
+}
+
+// bulkDocumentIDs returns an "action:documentID" entry for each action line in
+// a bulk request body, in the order the lines appear. Source lines are skipped:
+// they either fail to decode into a bulkActionMetadata envelope or carry no key
+// that names a bulk action.
+func bulkDocumentIDs(body []byte) []string {
+	var ids []string
+	for line := range strings.SplitSeq(strings.TrimRight(string(body), "\n"), "\n") {
+		var envelope map[string]bulkActionMetadata
+		if err := json.Unmarshal([]byte(line), &envelope); err != nil {
+			continue
+		}
+		for action, meta := range envelope {
+			switch action {
+			case actionIndex, actionCreate, actionUpdate, actionDelete:
+				ids = append(ids, action+":"+meta.DocumentID)
+			}
+		}
+	}
+	return ids
+}
+
+func TestBulkIndexerKeepsDocumentActionsInOneRequest(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 8
+		numFillers = numWorkers * 4
+		hotDocID   = "user_123"
+		hotActions = 3
+		hotAction  = actionUpdate + ":" + hotDocID
+		wantAdded  = numFillers + hotActions
+	)
+
+	var mu sync.Mutex
+	// requests holds the action lines of each bulk request the indexer sent.
+	var requests [][]string
+
+	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{
+		Transport: &mockTransport{RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+			if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+				return defaultRoundTripFunc(req)
+			}
+			// RoundTrip runs on a worker goroutine, so record the body and
+			// leave every assertion to the test goroutine below.
+			if body, readErr := io.ReadAll(req.Body); readErr == nil {
+				mu.Lock()
+				requests = append(requests, bulkDocumentIDs(body))
+				mu.Unlock()
+			}
+			return defaultRoundTripFunc(req)
+		}},
+	}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	// Fill the other queues so a build that routes everything to one worker
+	// cannot pass by accident.
+	for i := range numFillers {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			Action:     actionIndex,
+			DocumentID: "filler_" + strconv.Itoa(i),
+			Body:       strings.NewReader(`{"a":1}`),
+		}))
+	}
+	for range hotActions {
+		require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			Action:     actionUpdate,
+			DocumentID: hotDocID,
+			Body:       strings.NewReader(`{"doc":{"a":1}}`),
+		}))
+	}
+	require.NoError(t, bi.Close(t.Context()))
+	require.Equal(t, uint64(wantAdded), bi.Stats().NumAdded)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Equal(t, uint64(len(requests)), bi.Stats().NumRequests, "every bulk request must have been recorded")
+	require.Greater(t, len(requests), 1, "fillers must spread over more than one worker")
+
+	requestsCarryingHotDoc := 0
+	for _, actions := range requests {
+		hits := 0
+		for _, action := range actions {
+			if action == hotAction {
+				hits++
+			}
+		}
+		if hits == 0 {
+			continue
+		}
+		requestsCarryingHotDoc++
+		require.Equal(t, hotActions, hits, "one request must carry every action for %s", hotDocID)
+	}
+	require.Equal(t, 1, requestsCarryingHotDoc, "actions for %s must not be split across requests", hotDocID)
+}
+
+// bulkRecorder records the action lines of every bulk request an indexer sends.
+type bulkRecorder struct {
+	mu struct {
+		sync.Mutex
+		requests [][]string
+	}
+}
+
+func (r *bulkRecorder) roundTrip(req *http.Request) (*http.Response, error) {
+	if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+		return defaultRoundTripFunc(req)
+	}
+	// RoundTrip runs on a worker goroutine, so record the body and leave every
+	// assertion to the test goroutine.
+	if body, err := io.ReadAll(req.Body); err == nil {
+		r.mu.Lock()
+		r.mu.requests = append(r.mu.requests, bulkDocumentIDs(body))
+		r.mu.Unlock()
+	}
+	return defaultRoundTripFunc(req)
+}
+
+// takeActions returns every action line recorded so far and clears the record,
+// so a caller can assert on one round of flushing at a time.
+func (r *bulkRecorder) takeActions() []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	var actions []string
+	for _, request := range r.mu.requests {
+		actions = append(actions, request...)
+	}
+	r.mu.requests = nil
+
+	return actions
+}
+
+func newBulkTestClient(t *testing.T, roundTrip func(*http.Request) (*http.Response, error)) *opensearchapi.Client {
+	t.Helper()
+
+	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{
+		Transport: &mockTransport{RoundTripFunc: roundTrip},
+	}})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = client.Close() })
+
+	return client
+}
+
+// flushContextKey types the value the Flush caller plants on its context, so
+// the test can prove that context is what the bulk request ran under.
+type flushContextKey struct{}
+
+func TestBulkIndexerFlushRunsBulkRequestOnCallerContext(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers = 4
+		wantValue  = "planted-by-flush-caller"
+	)
+
+	var flushed struct {
+		sync.Mutex
+		contextValues []any
+	}
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+		// OnFlushStart receives the context the flush is running under, which
+		// is the same one the bulk request is issued with.
+		OnFlushStart: func(ctx context.Context) context.Context {
+			flushed.Lock()
+			flushed.contextValues = append(flushed.contextValues, ctx.Value(flushContextKey{}))
+			flushed.Unlock()
+
+			return ctx
+		},
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	require.NoError(t, bi.Flush(context.WithValue(t.Context(), flushContextKey{}, wantValue)))
+
+	flushed.Lock()
+	defer flushed.Unlock()
+
+	// Exactly one element proves two things at once: the flush ran on the
+	// caller's context rather than the worker's, and the workers holding
+	// nothing did not fire the flush callbacks for a request they never sent.
+	require.Equal(t, []any{wantValue}, flushed.contextValues)
+}
+
+func TestBulkIndexerFlushDrainsAndKeepsIndexerUsable(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers    = 4
+		itemsPerRound = 12
+		rounds        = 3
+	)
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	// The payload is far below the default FlushBytes (5MB) and each round
+	// finishes well inside the default FlushInterval (30s), so neither
+	// threshold can fire: every action the transport sees got there via Flush.
+	for round := range rounds {
+		want := make([]string, 0, itemsPerRound)
+		for i := range itemsPerRound {
+			documentID := fmt.Sprintf("doc_%d_%d", round, i)
+			want = append(want, actionIndex+":"+documentID)
+			require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: documentID,
+				Body:       strings.NewReader(`{"a":1}`),
+			}))
+		}
+
+		require.NoError(t, bi.Flush(t.Context()))
+		require.ElementsMatch(t, want, recorder.takeActions(),
+			"round %d: Flush must send exactly the items added since the previous Flush", round)
+	}
+
+	require.NoError(t, bi.Close(t.Context()))
+	require.Equal(t, uint64(rounds*itemsPerRound), bi.Stats().NumAdded)
+}
+
+func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		// status and body describe the /_bulk response; transportErr instead
+		// fails the round trip outright.
+		status       int
+		body         string
+		transportErr error
+		wantErr      bool
+		wantFailed   uint64
+	}{
+		{
+			name:       "http error status",
+			status:     http.StatusInternalServerError,
+			body:       `{"error":{"type":"illegal_state_exception"},"status":500}`,
+			wantErr:    true,
+			wantFailed: 1,
+		},
+		{
+			name:         "transport error",
+			transportErr: errors.New("dial tcp: connection refused"),
+			wantErr:      true,
+			wantFailed:   1,
+		},
+		{
+			name:       "unparseable body",
+			status:     http.StatusOK,
+			body:       `{"items": not json`,
+			wantErr:    true,
+			wantFailed: 1,
+		},
+		{
+			// The request landed; one document was rejected. That reaches the
+			// caller through OnFailure, so the drain itself did not fail and
+			// Flush must not report an error for it.
+			name:   "per-item rejection is not a flush failure",
+			status: http.StatusOK,
+			body: `{"took":1,"errors":true,"items":[` +
+				`{"index":{"_index":"i","_id":"doc_1","status":409,` +
+				`"error":{"type":"version_conflict_engine_exception","reason":"conflict"}}}]}`,
+			wantErr:    false,
+			wantFailed: 1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bi, err := NewBulkIndexer(BulkIndexerConfig{
+				NumWorkers: 1,
+				Client: newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+					if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+						return infoResponse()
+					}
+					if tt.transportErr != nil {
+						return nil, tt.transportErr
+					}
+					return &http.Response{
+						StatusCode: tt.status,
+						Status:     http.StatusText(tt.status),
+						Body:       io.NopCloser(strings.NewReader(tt.body)),
+						Header:     http.Header{"Content-Type": []string{"application/json"}},
+					}, nil
+				}),
+				Index: testutil.MustUniqueString(t, "test-index"),
+			})
+			require.NoError(t, err)
+
+			require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "doc_1",
+				Body:       strings.NewReader(`{"a":1}`),
+			}))
+
+			// A drain that did not land has to surface through Flush's return
+			// value; the caller has no other way to learn it failed.
+			flushErr := bi.Flush(t.Context())
+			if tt.wantErr {
+				require.Error(t, flushErr)
+			} else {
+				require.NoError(t, flushErr)
+			}
+			require.Equal(t, tt.wantFailed, bi.Stats().NumFailed)
+			require.NoError(t, bi.Close(t.Context()))
+		})
+	}
+}
+
+func TestBulkIndexerFlushRejectsCancelledContext(t *testing.T) {
+	t.Parallel()
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 2,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	// Flush checks the context before queueing any barrier, so a cancelled
+	// context is a clean refusal rather than a partial drain.
+	require.ErrorIs(t, bi.Flush(ctx), context.Canceled)
+	require.Empty(t, recorder.takeActions(), "a refused Flush must not send anything")
+
+	require.NoError(t, bi.Close(t.Context()))
+}
+
+// newParkedBulkTestClient returns a client that parks every bulk request until
+// the test ends, plus a channel that receives once the first such request has
+// arrived. Non-bulk requests are answered normally so the indexer still starts.
+// A parked request holds the worker that issued it, so that worker stops
+// draining its queue, which is how a test sequences Flush without sleeping.
+func newParkedBulkTestClient(t *testing.T) (*opensearchapi.Client, <-chan struct{}) {
+	t.Helper()
+
+	inFlight := make(chan struct{}, 1)
+	release := make(chan struct{})
+	t.Cleanup(func() { close(release) })
+
+	return newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		select {
+		case inFlight <- struct{}{}:
+		default:
+		}
+		<-release
+
+		return defaultRoundTripFunc(req)
+	}), inFlight
+}
+
+func TestBulkIndexerFlushReturnsWhenContextCancelledMidDrain(t *testing.T) {
+	t.Parallel()
+
+	// The transport parks inside the bulk request until the test ends, so Flush
+	// is provably still waiting for its barrier when the context dies. The
+	// handshake travels on channels, so the test never sleeps to sequence this.
+	client, inFlight := newParkedBulkTestClient(t)
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	flushed := make(chan error, 1)
+	go func() { flushed <- bi.Flush(ctx) }()
+
+	<-inFlight
+	cancel()
+
+	select {
+	case flushErr := <-flushed:
+		require.ErrorIs(t, flushErr, context.Canceled)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung after its context was cancelled mid-drain")
+	}
+}
+
+func TestBulkIndexerFlushDoesNotHangWhenConstructionContextCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Context:    ctx,
+		NumWorkers: 2,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	cancel()
+	<-bi.(*bulkIndexer).flusherDone
+
+	// A live context, deliberately, rather than the cancelled one: the workers
+	// are gone, so a Flush that only watched the caller's context would wait
+	// forever for a barrier ack that can never arrive.
+	done := make(chan error, 1)
+	go func() { done <- bi.Flush(t.Context()) }()
+
+	select {
+	case flushErr := <-done:
+		// A worker may still drain the barrier before it notices the
+		// cancellation, so a nil error is legitimate here. What matters is
+		// that Flush returned at all.
+		if flushErr != nil {
+			require.ErrorIs(t, flushErr, context.Canceled)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung after construction context was cancelled")
+	}
+}
+
+func TestBulkIndexerFlushReportsDeadWorkersWhenBarrierSendBlocks(t *testing.T) {
+	t.Parallel()
+
+	// A queue holds NumWorkers entries, so a single worker gives a queue of one
+	// and the test can fill it. Parking the transport keeps that worker from
+	// draining the queue, so the barrier send below has nowhere to go and the
+	// construction context is the only case its select can take.
+	client, inFlight := newParkedBulkTestClient(t)
+
+	ctx, cancel := context.WithCancel(t.Context())
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		Context:    ctx,
+		NumWorkers: 1,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_1",
+		Body:       strings.NewReader(`{"a":1}`),
+	}))
+
+	// Park the worker inside the bulk request this Flush drives. It stays
+	// blocked for the rest of the test, so nothing consumes the queue again.
+	parked := make(chan error, 1)
+	go func() { parked <- bi.Flush(t.Context()) }()
+	<-inFlight
+
+	// The worker consumed the item and the barrier before parking, so the queue
+	// is empty and this Add fills it to its capacity of one without blocking.
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action:     actionIndex,
+		DocumentID: "doc_2",
+		Body:       strings.NewReader(`{"b":2}`),
+	}))
+
+	cancel()
+
+	// A live caller context, so the only error Flush can report is the dead
+	// construction context. Without that case it would block on the full queue
+	// until the caller's own context expired, which here is never.
+	done := make(chan error, 1)
+	go func() { done <- bi.Flush(t.Context()) }()
+
+	select {
+	case flushErr := <-done:
+		require.ErrorIs(t, flushErr, context.Canceled)
+		require.NoError(t, t.Context().Err(), "the caller's context must still be live, proving the error came from the construction context")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Flush hung on a full queue after its workers were gone")
+	}
+}
+
+func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
+	t.Parallel()
+
+	const (
+		numWorkers    = 4
+		numAdders     = 4
+		itemsPerAdder = 25
+		numFlushers   = 3
+		wantAdded     = numAdders * itemsPerAdder
+	)
+
+	var recorder bulkRecorder
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: numWorkers,
+		Client:     newBulkTestClient(t, recorder.roundTrip),
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	var g errgroup.Group
+	for adder := range numAdders {
+		g.Go(func() error {
+			for i := range itemsPerAdder {
+				if err := bi.Add(t.Context(), BulkIndexerItem{
+					Action:     actionIndex,
+					DocumentID: fmt.Sprintf("doc_%d_%d", adder, i),
+					Body:       strings.NewReader(`{"a":1}`),
+				}); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		})
+	}
+	for range numFlushers {
+		g.Go(func() error { return bi.Flush(t.Context()) })
+	}
+	require.NoError(t, g.Wait())
+	// Concurrent flushes make no promise about which items each one carried, so
+	// the assertion is on the total after a final barrier: nothing added was
+	// dropped, and nothing was sent twice.
+	require.NoError(t, bi.Flush(t.Context()))
+	require.NoError(t, bi.Close(t.Context()))
+
+	require.Equal(t, uint64(wantAdded), bi.Stats().NumAdded)
+	require.Len(t, recorder.takeActions(), wantAdded)
+}
+
+func newTestWorker() *worker {
+	bi := &bulkIndexer{
+		stats:            &bulkIndexerStats{},
+		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
+		metaPool: sync.Pool{
+			New: func() any { return new(bytes.Buffer) },
+		},
+	}
+	return &worker{
+		bi:  bi,
+		buf: bytes.NewBuffer(make([]byte, 0, 1024)),
+	}
+}
+
+func TestWorkerWriteItemRollsBackBufferOnError(t *testing.T) {
+	t.Parallel()
+
+	const goodBody = `{"a":1}`
+	wantGood := `{"index":{"_id":"good"}}` + "\n" + goodBody + "\n"
+
+	tests := []struct {
+		name    string
+		item    BulkIndexerItem
+		wantErr string
+	}{
+		{
+			name: "writeBody read error with 0 bytes",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-read",
+				Body:       &failingBody{},
+			},
+			wantErr: "body read failed",
+		},
+		{
+			name: "writeBody read error after partial body",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-partial",
+				Body:       &failingBody{data: []byte(`{"partial":true}`)},
+			},
+			wantErr: "body read failed",
+		},
+		{
+			name: "writeBody seek error after copying body",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-seek",
+				Body:       &failingBody{data: []byte(`{"seek":true}`), fail: failOnSeek},
+			},
+			wantErr: "body seek failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			w := newTestWorker()
+			require.NoError(t, w.writeItem(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "good",
+				Body:       strings.NewReader(goodBody),
+			}))
+			require.Equal(t, wantGood, w.buf.String())
+
+			err := w.writeItem(t.Context(), tt.item)
+			require.ErrorContains(t, err, tt.wantErr)
+			require.Equal(t, wantGood, w.buf.String(), "failed item must not leave an orphan action line")
+		})
+	}
+}
+
+func TestBulkIndexerDoesNotFlushOrphanActionOnBodyError(t *testing.T) {
+	t.Parallel()
+
+	var mu struct {
+		sync.Mutex
+		bodies  []string
+		success []string
+		failed  []string
+	}
+
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		actions := bulkDocumentIDs(body)
+		items := make([]string, len(actions))
+		for i, action := range actions {
+			id := strings.TrimPrefix(action, actionIndex+":")
+			items[i] = fmt.Sprintf(`{"index":{"_id":%q,"status":201,"result":"created"}}`, id)
+		}
+
+		mu.Lock()
+		mu.bodies = append(mu.bodies, string(body))
+		mu.Unlock()
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Body:       io.NopCloser(strings.NewReader(`{"took":1,"errors":false,"items":[` + strings.Join(items, ",") + `]}`)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	onSuccess := func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
+		mu.Lock()
+		mu.success = append(mu.success, item.DocumentID)
+		mu.Unlock()
+	}
+	onFailure := func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		require.Error(t, err)
+		mu.Lock()
+		mu.failed = append(mu.failed, item.DocumentID)
+		mu.Unlock()
+	}
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "good-1",
+		Body: strings.NewReader(`{"title":"ok"}`), OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "bad",
+		Body: &failingBody{}, OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "good-2",
+		Body: strings.NewReader(`{"title":"ok"}`), OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Flush(t.Context()))
+	require.NoError(t, bi.Close(t.Context()))
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Equal(t, []string{"bad"}, mu.failed)
+	require.Equal(t, []string{"good-1", "good-2"}, mu.success)
+	require.Len(t, mu.bodies, 1)
+	require.NotContains(t, mu.bodies[0], `"_id":"bad"`)
+	require.Contains(t, mu.bodies[0], `"_id":"good-1"`)
+	require.Contains(t, mu.bodies[0], `"_id":"good-2"`)
+
+	stats := bi.Stats()
+	require.Equal(t, uint64(3), stats.NumAdded)
+	require.Equal(t, uint64(1), stats.NumFailed)
+	require.Equal(t, uint64(2), stats.NumFlushed)
+	require.Equal(t, uint64(2), stats.NumIndexed)
+}
+
+func TestWorkerFlushGuardsMismatchedResponseCount(t *testing.T) {
+	t.Parallel()
+
+	const responseN = 2
+
+	itemsJSON := make([]string, responseN)
+	for i := range responseN {
+		itemsJSON[i] = fmt.Sprintf(`{"index":{"_id":"%d","status":201,"result":"created"}}`, i)
+	}
+	payload := `{"took":1,"errors":false,"items":[` + strings.Join(itemsJSON, ",") + `]}`
+
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Body:       io.NopCloser(strings.NewReader(payload)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	var failed atomic.Uint64
+	w := newTestWorker()
+	w.bi.config.Client = client
+	w.items = []BulkIndexerItem{{
+		Action:     actionIndex,
+		DocumentID: "0",
+		OnFailure: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) {
+			failed.Add(1)
+		},
+	}}
+	_, err := w.buf.WriteString(`{"index":{"_id":"0"}}` + "\n{\"a\":1}\n")
+	require.NoError(t, err)
+
+	err = w.flush(t.Context())
+	require.ErrorContains(t, err, "bulk response has 2 items, indexer serialized 1")
+	require.Equal(t, uint64(1), failed.Load())
+	require.Equal(t, uint64(1), w.bi.stats.numFailed.Load())
+	require.Equal(t, 0, w.buf.Len())
+	require.Empty(t, w.items)
+}

@@ -37,12 +37,18 @@ func CreateFailingClient(t *testing.T) (*opensearchapi.Client, error) {
 	}))
 	t.Cleanup(ts.Close)
 
-	return opensearchapi.NewClient(opensearchapi.Config{
+	client, err := opensearchapi.NewClient(opensearchapi.Config{
 		Client: opensearch.Config{
 			Addresses: []string{ts.URL},
 			Context:   t.Context(),
 		},
 	})
+	if err != nil {
+		return nil, err
+	}
+	t.Cleanup(func() { _ = client.Close() })
+
+	return client, nil
 }
 
 // VerifyInspect validates the returned opensearchapi.Inspect type

@@ -66,3 +66,36 @@ func HasJSONKeys(data []byte, keys ...string) bool {
 	}
 	return true
 }
+
+// JSONDiscriminator reads the top-level string property named key from a JSON
+// object. Generated UnmarshalJSON methods for unions that declare an OpenAPI
+// discriminator call it to learn which branch the payload is before decoding,
+// so exactly one branch is ever attempted.
+//
+// present is false when data is a JSON object that simply lacks the key, which
+// the caller distinguishes from a decode failure so it can fall back to the
+// discriminator's x-default branch. A non-object payload, or a key whose value
+// is not a JSON string, yields an error: neither can name a branch.
+func JSONDiscriminator(data []byte, key string) (string, bool, error) {
+	fields, _ := keySetPool.Get().(map[string]json.RawMessage)
+	defer func() {
+		if len(fields) > maxPooledKeySetSize {
+			return
+		}
+		clear(fields)
+		keySetPool.Put(fields)
+	}()
+
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return "", false, err
+	}
+	raw, ok := fields[key]
+	if !ok {
+		return "", false, nil
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", true, err
+	}
+	return value, true, nil
+}

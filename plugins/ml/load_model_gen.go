@@ -92,7 +92,7 @@ type LoadModelResp struct {
 	Status string `json:"status"`
 	TaskID string `json:"task_id"`
 
-	// Task type.
+	// TaskType. Task type.
 	TaskType string `json:"task_type"`
 
 	response *opensearch.Response

@@ -87,12 +87,14 @@ var roundtripTestFragTmpl = template.Must(template.New("roundtripTest").Funcs(te
 {{if .IsPlugin}}
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := {{.PkgName}}.NewClient(osClient)
 {{- else}}
 		client, err := {{.PkgName}}.NewClient({{.PkgName}}.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 {{- end}}
 
 		resp, err := {{.CallExpr}}
@@ -115,12 +117,14 @@ var roundtripTestFragTmpl = template.Must(template.New("roundtripTest").Funcs(te
 {{if .IsPlugin}}
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := {{.PkgName}}.NewClient(osClient)
 {{- else}}
 		errClient, err := {{.PkgName}}.NewClient({{.PkgName}}.Config{
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 {{- end}}
 
 		resp, err := {{.ErrCallExpr}}

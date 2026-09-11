@@ -87,13 +87,14 @@ func (r ClearCacheParams) get() map[string]string {
 //
 // Available: >= 2.19.0.
 type ClearCacheResp struct {
-	// Indicates whether the request was acknowledged.
+	// Acknowledged. Indicates whether the request was acknowledged.
 	Acknowledged *bool `json:"acknowledged,omitempty"`
 
-	// The name of the index.
+	// Index is the name of the index.
 	Index *string `json:"index,omitempty"`
 
-	// Indicates whether the required active shards were acknowledged.
+	// ShardsAcknowledged. Indicates whether the required active shards were
+	// acknowledged.
 	ShardsAcknowledged *bool `json:"shards_acknowledged,omitempty"`
 
 	response *opensearch.Response

@@ -75,6 +75,7 @@ func TestPredictModelStream_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ml.NewClient(osClient)
 
 		resp, err := client.PredictModelStream(t.Context(), ml.PredictModelStreamReq{ModelID: "test", BodyReader: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestPredictModelStream_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ml.NewClient(osClient)
 
 		resp, err := errClient.PredictModelStream(t.Context(), ml.PredictModelStreamReq{ModelID: "test", BodyReader: strings.NewReader("{}")})

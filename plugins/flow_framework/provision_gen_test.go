@@ -75,6 +75,7 @@ func TestProvision_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := flow_framework.NewClient(osClient)
 
 		resp, err := client.Provision(t.Context(), flow_framework.ProvisionReq{WorkflowID: "test", Body: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestProvision_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := flow_framework.NewClient(osClient)
 
 		resp, err := errClient.Provision(t.Context(), flow_framework.ProvisionReq{WorkflowID: "test", Body: strings.NewReader("{}")})

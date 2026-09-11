@@ -87,19 +87,19 @@ func (r GetPolicyParams) get() map[string]string {
 //
 // Available: >= 2.1.0.
 type GetPolicyResp struct {
-	// The policy ID.
+	// ID is the policy ID.
 	ID string `json:"_id"`
 
-	// The primary term for optimistic concurrency control.
+	// PrimaryTerm is the primary term for optimistic concurrency control.
 	PrimaryTerm int `json:"_primary_term"`
 
-	// The sequence number for optimistic concurrency control.
+	// SeqNo is the sequence number for optimistic concurrency control.
 	SeqNo int `json:"_seq_no"`
 
-	// The version number of the policy document.
+	// Version is the version number of the policy document.
 	Version int `json:"_version"`
 
-	// The complete snapshot management policy configuration.
+	// SMPolicy is the complete snapshot management policy configuration.
 	SMPolicy opensearchapi.SMPolicy `json:"sm_policy"`
 
 	response *opensearch.Response

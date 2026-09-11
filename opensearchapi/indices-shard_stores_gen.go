@@ -155,7 +155,7 @@ func (r IndicesShardStoresResp) RawBody() io.Reader {
 //
 // The shard store information for indices.
 type IndicesShardStoresIndices struct {
-	// The store information for each shard.
+	// Shards is the store information for each shard.
 	Shards map[string]IndicesShardStoresShardStoreWrapper `json:"shards"`
 }
 
@@ -163,7 +163,7 @@ type IndicesShardStoresIndices struct {
 //
 // The wrapper containing store information for a shard.
 type IndicesShardStoresShardStoreWrapper struct {
-	// The list of stores for the shard.
+	// Stores is the list of stores for the shard.
 	Stores []IndicesShardStoresShardStore `json:"stores"`
 }
 
@@ -171,16 +171,16 @@ type IndicesShardStoresShardStoreWrapper struct {
 //
 // The store information for a shard.
 type IndicesShardStoresShardStore struct {
-	// The allocation type of the shard store.
+	// Allocation is the allocation type of the shard store.
 	Allocation IndicesShardStoresShardStoreAllocation `json:"allocation"`
 
-	// The unique identifier for a resource.
+	// AllocationID is the unique identifier for a resource.
 	AllocationID *string `json:"allocation_id,omitempty"`
 
-	// The exception information for a shard store. Serialized by
-	// `OpenSearchException.generateThrowableXContent`, so the shape is
-	// identical to `ErrorCause` (includes `index`, `index_uuid`, `shard`,
-	// `caused_by`, `stack_trace`, etc. when present).
+	// StoreException is the exception information for a shard store.
+	// Serialized by `OpenSearchException.generateThrowableXContent`, so the
+	// shape is identical to `ErrorCause` (includes `index`, `index_uuid`,
+	// `shard`, `caused_by`, `stack_trace`, etc. when present).
 	StoreException *IndicesShardStoresShardStoreException `json:"store_exception,omitempty"`
 }
 
@@ -193,13 +193,13 @@ type IndicesShardStoresShardStore struct {
 type IndicesShardStoresShardStoreException struct {
 	ErrorCause
 
-	// The name of the index associated with the exception.
+	// Index is the name of the index associated with the exception.
 	Index *string `json:"index,omitempty"`
 
-	// The UUID of the index associated with the exception.
+	// IndexUUID is the UUID of the index associated with the exception.
 	IndexUUID *string `json:"index_uuid,omitempty"`
 
-	// The shard number associated with the exception.
+	// Shard is the shard number associated with the exception.
 	Shard *string `json:"shard,omitempty"`
 }
 

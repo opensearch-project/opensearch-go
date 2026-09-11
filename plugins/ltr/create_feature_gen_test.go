@@ -75,6 +75,7 @@ func TestCreateFeature_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ltr.NewClient(osClient)
 
 		resp, err := client.CreateFeature(t.Context(), ltr.CreateFeatureReq{ID: "test", Body: strings.NewReader("{}")})
@@ -93,6 +94,7 @@ func TestCreateFeature_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ltr.NewClient(osClient)
 
 		resp, err := errClient.CreateFeature(t.Context(), ltr.CreateFeatureReq{ID: "test", Body: strings.NewReader("{}")})

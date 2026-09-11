@@ -68,6 +68,7 @@ func TestPreview_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := transforms.NewClient(osClient)
 
 		resp, err := client.Preview(t.Context(), &transforms.PreviewReq{BodyReader: strings.NewReader("{}")})
@@ -86,6 +87,7 @@ func TestPreview_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := transforms.NewClient(osClient)
 
 		resp, err := errClient.Preview(t.Context(), &transforms.PreviewReq{BodyReader: strings.NewReader("{}")})

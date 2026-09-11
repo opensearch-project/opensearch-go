@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // PluginSubClient describes a sub-client within a plugin package.
@@ -310,6 +310,7 @@ func NewClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 
@@ -337,6 +338,7 @@ func CreateFailingClient(t *testing.T) (*{{.Pkg}}.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	t.Cleanup(func() { _ = osClient.Close() })
 	return {{.Pkg}}.NewClient(osClient), nil
 }
 

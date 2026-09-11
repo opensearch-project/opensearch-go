@@ -107,10 +107,10 @@ func (r TrainParams) get() map[string]string {
 //
 // Available: >= 1.3.0.
 type TrainResp struct {
-	// The name of a resource or configuration element.
+	// ModelID is the name of a resource or configuration element.
 	ModelID *string `json:"model_id,omitempty"`
 
-	// The status.
+	// Status is the status.
 	Status string `json:"status"`
 
 	response *opensearch.Response
@@ -132,7 +132,7 @@ func (r TrainResp) RawBody() io.Reader {
 
 // MLTrainBody is a typed component of the ml.train operation.
 type MLTrainBody struct {
-	// The input index.
+	// InputIndex is the input index.
 	InputIndex []string `json:"input_index,omitempty"`
 
 	InputQuery *opensearchapi.MLInputQuery      `json:"input_query,omitempty"`

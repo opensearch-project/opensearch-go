@@ -71,9 +71,9 @@ REPO_ROOT := $(shell git rev-parse --show-toplevel 2>/dev/null || pwd)
 
 # Sub-modules are auto-discovered: every go.mod except the root one and testdata
 # fixtures. New nested modules (cmd/*, osprom, osotel, ...) are picked up by
-# test-unit and lint with no Makefile change. testdata/ holds corpus fixtures
-# (stub + golden modules for the rewrite tests), not real modules to build or
-# lint. Paths are sorted for deterministic ordering.
+# test-unit and lint with no Makefile change. The testdata/ filter is defensive:
+# osapilint's rewrite-corpus fixtures ship as txtar archives with no go.mod on
+# disk, but the exclusion still guards against a future testdata module. Paths are sorted for deterministic ordering.
 SUBMODULES := $(shell find . -name go.mod -not -path './go.mod' -not -path '*/.*' -not -path '*/testdata/*' -exec dirname {} \; | sed 's|^\./||' | sort)
 
 # Compose with optional override files for heterogeneous clusters.
@@ -88,6 +88,9 @@ CTR_COMPOSE = $(CTR) compose --project-directory $(COMPOSE_DIR) $(COMPOSE_FILES)
 ##@ Formatting
 format:  ## Format all Go files with goimports
 	goimports -w .;
+
+fix-txtar:  ## Rewrite every tracked txtar fixture archive in the repo into canonical, formatted form
+	cd cmd/osapilint && UPDATE_TXTAR=1 go test ./linter -run TestTxtarArchives
 
 ##@ Testing
 test-unit:  ## Run unit tests across all modules (root + every nested go.mod)
@@ -176,9 +179,29 @@ test-race:  ## Run all tests with race detection enabled
 	@printf "\033[2m-> Running all integration tests with race detection and all tags...\033[0m\n"
 	@$(MAKE) test-integ race=true testintegtags=integration,core,plugins,plugin_security,plugin_index_management,multinode
 
+test-alloc:  ## Run allocation assertions (tests run without -race)
+	@printf "\033[2m-> Running allocation assertions...\033[0m\n"
+	go test -run='Allocations' -count=1 ./...
+	@for mod in $(SUBMODULES); do \
+		printf "\033[2m-> Running %s allocation assertions...\033[0m\n" "$$mod"; \
+		(cd "$$mod" && go test -run='Allocations' -count=1 ./...) || exit $$?; \
+	done
+
 test-bench:  ## Run benchmarks
 	@printf "\033[2m-> Running benchmarks...\033[0m\n"
 	go test -run=none -bench=. -benchmem -benchtime=200ms ./...
+
+check-modules-standalone:  ## Build and vet every nested module against the root version it requires
+# GOWORK=off so a developer's local go.work cannot mask a bad root require.
+# See DEVELOPER_GUIDE.md#nested-modules.
+	@printf "\033[2m-> Building and vetting nested modules standalone (GOWORK=off)...\033[0m\n"
+	@for mod in $(SUBMODULES); do \
+		printf "   %s\n" "$$mod"; \
+		(cd "$$mod" && GOWORK=off go build ./... && GOWORK=off go vet ./...) || exit $$?; \
+	done
+
+print-submodules:  ## Print the discovered nested module directories, one per line
+	@printf "%s\n" $(SUBMODULES)
 
 build-samples:  ## Compile and vet each _samples/*.go program
 	@printf "\033[2m-> Building _samples...\033[0m\n"
@@ -216,7 +239,7 @@ build-coverage:
 	@go tool covdata textfmt -i=$(PWD)/tmp/unit,$(PWD)/tmp/integration -o $(PWD)/tmp/total.cov
 
 OPENAPI_SPEC := $(REPO_ROOT)/opensearch-openapi.yaml
-OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
+OPENAPI_SPEC_URL := https://api-spec.opensearch.org/opensearch-openapi.yaml
 
 # Generated code output directories.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
@@ -282,6 +305,25 @@ gen-api-update-rawlist: fetch-opensearch-spec  ## Regenerate API files and refre
 		-max-version=$(GEN_MAX_VERSION) \
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED) \
 		-update-raw-message-allowlist
+
+report-missing-descriptions: fetch-opensearch-spec  ## List generated identifiers whose OpenAPI schema has no description (upstream spec gaps)
+	@printf "\033[2m-> Reporting generated identifiers with no OpenAPI description...\033[0m\n"
+	@# Generation writes into a temp dir so the checked-in generated files stay
+	@# untouched; only the stderr report matters here. OSGEN_SKIP_GIT_CHECK lets
+	@# osgen write outside the working tree. Both allowlist checks are downgraded
+	@# to warnings so unrelated allowlist drift cannot abort before the report.
+	@tmp=$$(mktemp -d) && trap 'rm -rf "$$tmp"' EXIT && \
+	cd $(REPO_ROOT)/cmd/osgen && OSGEN_SKIP_GIT_CHECK=1 go run . api \
+		-spec $(OPENAPI_SPEC) \
+		-out "$$tmp/opensearchapi" \
+		-pkg opensearchapi \
+		-plugins-out "$$tmp/plugins" \
+		-min-version=$(GEN_MIN_VERSION) \
+		-max-version=$(GEN_MAX_VERSION) \
+		-remove-deprecated=$(GEN_REMOVE_DEPRECATED) \
+		-allow-unlisted-raw-message \
+		-allow-unlisted-tagshadow \
+		-report-missing-descriptions
 
 gen: gen-paths gen-api  ## Regenerate all code from OpenAPI spec (run gen-paths and gen-api in parallel with `make -j gen`)
 
@@ -959,5 +1001,5 @@ help:  ## Display help
 #------------- <https://suva.sh/posts/well-documented-makefiles> --------------
 
 .DEFAULT_GOAL := help
-.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples
+.PHONY: help backport cluster.runtime cluster.provider.ensure cluster.sysctl cluster.build cluster.start cluster.stop cluster.docker-build cluster.docker-up cluster.clean cluster.heterogeneous.cpu.1 cluster.heterogeneous.cpu.2 cluster.heterogeneous.roles cluster.homogeneous cluster.latency.asymmetric cluster.latency.symmetric cluster.latency.bimodal cluster.latency.graduated cluster.latency.clear cluster.latency.show gh.checks gh.checks.failed gh.fail gh.fail.full gh.fail.context gh.fail.summary coverage godoc lint lint.local release test test-all test-race test-bench test-integ test-unit linters linters.install build-samples check-modules-standalone print-submodules
 .SILENT: lint.markdown

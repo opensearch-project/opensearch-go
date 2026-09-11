@@ -206,7 +206,7 @@ The package defines the Logger interface for logging information about request a
 It comes with several bundled loggers for logging in text and JSON.
 
 Use the EnableDebugLogger option to enable the debugging logger for connection management.
-Alternatively, set the OPENSEARCH_GO_DEBUG environment variable to "true" to enable debug
+Alternatively, set the OPENSEARCH_GO_LOG environment variable to "debug" to enable debug
 logging globally without code changes. When enabled, debug output is written to stderr.
 
 The Metrics method returns transport metrics. It always returns the full
@@ -275,7 +275,7 @@ Policy paths use dot-delimited notation with per-type sibling indices:
 
 	chain[0].ifenabled[0].chain[0].mux[0].role[0]
 
-Set OPENSEARCH_GO_DEBUG=true to see policy paths and override actions in stderr.
+Set OPENSEARCH_GO_LOG=debug to see policy paths and override actions in stderr.
 
 # Seed URL Fallback
 

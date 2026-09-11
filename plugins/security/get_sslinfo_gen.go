@@ -63,7 +63,7 @@ type GetSslinfoParams struct {
 	opensearchapi.TimeoutParams
 	opensearchapi.DebugParams
 	// Whether to include all domain names in the response.
-	ShowDn string
+	ShowDN string
 }
 
 func (r GetSslinfoParams) get() map[string]string {
@@ -77,8 +77,8 @@ func (r GetSslinfoParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if r.ShowDn != "" {
-		set("show_dn", r.ShowDn)
+	if r.ShowDN != "" {
+		set("show_dn", r.ShowDN)
 	}
 
 	return params
@@ -90,49 +90,51 @@ func (r GetSslinfoParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type GetSslinfoResp struct {
-	// A list of domain names from local certificates.
+	// LocalCertificatesList is a list of domain names from local certificates.
 	LocalCertificatesList []string `json:"local_certificates_list,omitempty"`
 
-	// The number of certificates.
+	// PeerCertificates is the number of certificates.
 	PeerCertificates json.RawMessage `json:"peer_certificates"`
 
-	// A list of domain names from peer certificates.
+	// PeerCertificatesList is a list of domain names from peer certificates.
 	PeerCertificatesList json.RawMessage `json:"peer_certificates_list"`
 
-	// The user's principal.
+	// Principal is the user's principal.
 	Principal *string `json:"principal"`
 
-	// The cipher for this SSL setup.
+	// SSLCipher is the cipher for this SSL setup.
 	SSLCipher *string `json:"ssl_cipher"`
 
-	// Whether OpenSSL is available.
+	// SSLOpensslAvailable. Whether OpenSSL is available.
 	SSLOpensslAvailable *bool `json:"ssl_openssl_available,omitempty"`
 
-	// The reason OpenSSL is unavailable.
+	// SSLOpensslNonAvailableCause is the reason OpenSSL is unavailable.
 	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause"`
 
-	// Whether the hostname validation is supported.
+	// SSLOpensslSupportsHostnameValidation. Whether the hostname validation is
+	// supported.
 	SSLOpensslSupportsHostnameValidation *bool `json:"ssl_openssl_supports_hostname_validation,omitempty"`
 
-	// Whether `KMF` is supported.
+	// SSLOpensslSupportsKeyManagerFactory. Whether `KMF` is supported.
 	SSLOpensslSupportsKeyManagerFactory *bool `json:"ssl_openssl_supports_key_manager_factory,omitempty"`
 
-	// Version of OpenSSL.
-	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version"`
+	// SSLOpensslVersion. Version of OpenSSL.
+	SSLOpensslVersion json.RawMessage `json:"ssl_openssl_version,omitempty"`
 
-	// The full version string for the OpenSSL version.
+	// SSLOpensslVersionString is the full version string for the OpenSSL
+	// version.
 	SSLOpensslVersionString *string `json:"ssl_openssl_version_string"`
 
-	// The protocol for this SSL setup.
+	// SSLProtocol is the protocol for this SSL setup.
 	SSLProtocol *string `json:"ssl_protocol"`
 
-	// Returns the HTTP provider's name.
+	// SSLProviderHTTP. Returns the HTTP provider's name.
 	SSLProviderHTTP *string `json:"ssl_provider_http"`
 
-	// Returns the transport client's name.
+	// SSLProviderTransportClient. Returns the transport client's name.
 	SSLProviderTransportClient string `json:"ssl_provider_transport_client"`
 
-	// Returns the transport server's name.
+	// SSLProviderTransportServer. Returns the transport server's name.
 	SSLProviderTransportServer string `json:"ssl_provider_transport_server"`
 
 	response *opensearch.Response

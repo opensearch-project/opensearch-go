@@ -89,6 +89,7 @@ func TestSetReqGlobalHeaderOverride(t *testing.T) {
 			hdr.Set("X-Foo", "bar")
 			tp, err := New(Config{Header: hdr})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
 
 			req, err := http.NewRequest(http.MethodGet, "/abc", nil)
 			require.NoError(t, err)
@@ -124,6 +125,7 @@ func TestStreamReturnsBodyUnbuffered(t *testing.T) {
 		}),
 	})
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
 
 	req, err := http.NewRequest(http.MethodGet, "/test", nil)
 	require.NoError(t, err)

@@ -67,6 +67,7 @@ func TestGetLocalstats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := observability.NewClient(osClient)
 
 		resp, err := client.GetLocalstats(t.Context(), nil)
@@ -85,6 +86,7 @@ func TestGetLocalstats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := observability.NewClient(osClient)
 
 		resp, err := errClient.GetLocalstats(t.Context(), nil)

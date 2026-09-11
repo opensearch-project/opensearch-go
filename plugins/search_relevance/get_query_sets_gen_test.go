@@ -74,6 +74,7 @@ func TestGetQuerySets_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := search_relevance.NewClient(osClient)
 
 		resp, err := client.GetQuerySets(t.Context(), search_relevance.GetQuerySetsReq{})
@@ -92,6 +93,7 @@ func TestGetQuerySets_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := search_relevance.NewClient(osClient)
 
 		resp, err := errClient.GetQuerySets(t.Context(), search_relevance.GetQuerySetsReq{})

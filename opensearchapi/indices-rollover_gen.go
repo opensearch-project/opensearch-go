@@ -169,13 +169,13 @@ type IndicesRolloverBody struct {
 	// parameter.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// The conditions that trigger an index rollover.
+	// Conditions is the conditions that trigger an index rollover.
 	Conditions *IndicesRolloverConditions `json:"conditions,omitempty"`
 
 	Mappings *CommonMappingType `json:"mappings,omitempty"`
 
-	// Configuration options for the index. Data streams do not support this
-	// parameter.
+	// Settings. Configuration options for the index. Data streams do not
+	// support this parameter.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 
@@ -183,51 +183,56 @@ type IndicesRolloverBody struct {
 //
 // The conditions that trigger an index rollover.
 type IndicesRolloverConditions struct {
-	// The maximum age of the index before rollover.
+	// MaxAge is the maximum age of the index before rollover.
 	MaxAge *string `json:"max_age,omitempty"`
 
-	// The maximum age in milliseconds of the index before rollover.
+	// MaxAgeMillis is the maximum age in milliseconds of the index before
+	// rollover.
 	MaxAgeMillis *int64 `json:"max_age_millis,omitempty"`
 
-	// The maximum number of documents in the index before rollover.
+	// MaxDocs is the maximum number of documents in the index before rollover.
 	MaxDocs *int64 `json:"max_docs,omitempty"`
 
-	// The maximum number of documents in any primary shard before rollover.
+	// MaxPrimaryShardDocs is the maximum number of documents in any primary
+	// shard before rollover.
 	MaxPrimaryShardDocs *int64 `json:"max_primary_shard_docs,omitempty"`
 
-	// The maximum size of any primary shard in the index before rollover.
+	// MaxPrimaryShardSize is the maximum size of any primary shard in the
+	// index before rollover.
 	MaxPrimaryShardSize *string `json:"max_primary_shard_size,omitempty"`
 
-	// The maximum size in bytes of any primary shard in the index before
-	// rollover.
+	// MaxPrimaryShardSizeBytes is the maximum size in bytes of any primary
+	// shard in the index before rollover.
 	MaxPrimaryShardSizeBytes *int64 `json:"max_primary_shard_size_bytes,omitempty"`
 
-	// The maximum size of the index before rollover.
+	// MaxSize is the maximum size of the index before rollover.
 	MaxSize *string `json:"max_size,omitempty"`
 
-	// The maximum size in bytes of the index before rollover.
+	// MaxSizeBytes is the maximum size in bytes of the index before rollover.
 	MaxSizeBytes *int64 `json:"max_size_bytes,omitempty"`
 
-	// The minimum age of the index before rollover.
+	// MinAge is the minimum age of the index before rollover.
 	MinAge *string `json:"min_age,omitempty"`
 
-	// The minimum number of documents in the index before rollover.
+	// MinDocs is the minimum number of documents in the index before rollover.
 	MinDocs *int64 `json:"min_docs,omitempty"`
 
-	// The minimum number of documents in any primary shard before rollover.
+	// MinPrimaryShardDocs is the minimum number of documents in any primary
+	// shard before rollover.
 	MinPrimaryShardDocs *int64 `json:"min_primary_shard_docs,omitempty"`
 
-	// The minimum size of any primary shard in the index before rollover.
+	// MinPrimaryShardSize is the minimum size of any primary shard in the
+	// index before rollover.
 	MinPrimaryShardSize *string `json:"min_primary_shard_size,omitempty"`
 
-	// The minimum size in bytes of any primary shard in the index before
-	// rollover.
+	// MinPrimaryShardSizeBytes is the minimum size in bytes of any primary
+	// shard in the index before rollover.
 	MinPrimaryShardSizeBytes *int64 `json:"min_primary_shard_size_bytes,omitempty"`
 
-	// The minimum size of the index before rollover.
+	// MinSize is the minimum size of the index before rollover.
 	MinSize *string `json:"min_size,omitempty"`
 
-	// The minimum size in bytes of the index before rollover.
+	// MinSizeBytes is the minimum size in bytes of the index before rollover.
 	MinSizeBytes *int64 `json:"min_size_bytes,omitempty"`
 }
 

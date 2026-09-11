@@ -83,6 +83,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Search(t.Context(), nil)
 		require.NoError(t, err)
@@ -102,6 +103,7 @@ func TestSearch_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Search(t.Context(), nil)
 		require.Error(t, err)

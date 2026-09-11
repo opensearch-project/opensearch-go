@@ -76,6 +76,7 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = client.Close() })
 
 		resp, err := client.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Indices: []string{"test"}})
 		require.NoError(t, err)
@@ -95,6 +96,7 @@ func TestIndicesOpen_Roundtrip(t *testing.T) {
 			Client: opensearch.Config{Addresses: []string{ts.URL}},
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = errClient.Close() })
 
 		resp, err := errClient.Index.Open(t.Context(), &opensearchapi.IndicesOpenReq{Indices: []string{"test"}})
 		require.Error(t, err)

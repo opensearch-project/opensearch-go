@@ -89,16 +89,16 @@ func (r GetMemoryContainerParams) get() map[string]string {
 type GetMemoryContainerResp struct {
 	Configuration *opensearchapi.MLMemoryContainerConfiguration `json:"configuration,omitempty"`
 
-	// The created time.
+	// CreatedTime is the created time.
 	CreatedTime *int64 `json:"created_time,omitempty"`
 
-	// The memory container description.
+	// Description is the memory container description.
 	Description *string `json:"description,omitempty"`
 
-	// The last updated time.
+	// LastUpdatedTime is the last updated time.
 	LastUpdatedTime *int64 `json:"last_updated_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Owner *opensearchapi.MLOwner `json:"owner,omitempty"`

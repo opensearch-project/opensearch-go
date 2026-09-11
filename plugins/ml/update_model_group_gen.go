@@ -107,7 +107,7 @@ func (r UpdateModelGroupParams) get() map[string]string {
 //
 // Available: >= 2.9.0.
 type UpdateModelGroupResp struct {
-	// The status.
+	// Status is the status.
 	Status *string `json:"status,omitempty"`
 
 	response *opensearch.Response
@@ -129,21 +129,21 @@ func (r UpdateModelGroupResp) RawBody() io.Reader {
 
 // MLUpdateModelGroupBody is a typed component of the ml.update_model_group operation.
 type MLUpdateModelGroupBody struct {
-	// Whether to include all backend roles.
+	// AddAllBackendRoles. Whether to include all backend roles.
 	AddAllBackendRoles *bool `json:"add_all_backend_roles,omitempty"`
 
-	// The backend roles to add.
+	// AddBackendRoles is the backend roles to add.
 	AddBackendRoles []string `json:"add_backend_roles,omitempty"`
 
-	// The backend roles.
+	// BackendRoles is the backend roles.
 	BackendRoles []string `json:"backend_roles,omitempty"`
 
-	// The model group description.
+	// Description is the model group description.
 	Description *string `json:"description,omitempty"`
 
-	// The model access name
+	// ModelAccessName is the model access name
 	ModelAccessName *string `json:"model_access_name,omitempty"`
 
-	// The model group name.
+	// Name is the model group name.
 	Name *string `json:"name,omitempty"`
 }

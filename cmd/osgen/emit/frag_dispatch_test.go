@@ -13,9 +13,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/errwrap"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/emit"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/errwrap"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // errmaskImportPath is the absolute import path that PartialFailureFragment
@@ -697,7 +697,8 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 			contains: []string{
 				"func (r *MSearchResp) MultiSearchItemFailures() *MultiSearchItemError",
 				"resp.Type() == MSearchUnionItemErrorResultType",
-				"ErrorRespBase: resp.ErrorResult()",
+				"errBranch, _ := resp.ErrorResult()",
+				"ErrorRespBase: errBranch,",
 			},
 			// Union shape must not fall back to the flat template.
 			notContains: []string{"if resp.Error != nil"},

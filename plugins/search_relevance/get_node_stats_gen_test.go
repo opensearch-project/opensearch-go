@@ -74,6 +74,7 @@ func TestGetNodeStats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := search_relevance.NewClient(osClient)
 
 		resp, err := client.GetNodeStats(t.Context(), search_relevance.GetNodeStatsReq{NodeID: "test"})
@@ -92,6 +93,7 @@ func TestGetNodeStats_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := search_relevance.NewClient(osClient)
 
 		resp, err := errClient.GetNodeStats(t.Context(), search_relevance.GetNodeStatsReq{NodeID: "test"})

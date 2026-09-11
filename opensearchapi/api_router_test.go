@@ -61,6 +61,7 @@ func TestNewClient_RouterInjection(t *testing.T) {
 			t.Parallel()
 			c, err := opensearchapi.NewClient(tt.cfg)
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = c.Close() })
 			require.NotNil(t, c)
 			require.NotNil(t, c.Client)
 		})
@@ -110,6 +111,7 @@ func TestNewClient_RouterEnvOptOut(t *testing.T) {
 			c, err := opensearchapi.NewClient(cfg)
 			if tt.wantErrNil {
 				require.NoError(t, err)
+				t.Cleanup(func() { _ = c.Close() })
 				require.NotNil(t, c)
 			} else {
 				require.Error(t, err)
@@ -195,6 +197,7 @@ func TestNewClient_RouterTruthyEnablesDiscovery(t *testing.T) {
 			c, err := opensearchapi.NewClient(cfg)
 			if tt.wantClientBuilds {
 				require.NoError(t, err)
+				t.Cleanup(func() { _ = c.Close() })
 				require.NotNil(t, c)
 			} else {
 				require.Error(t, err)
@@ -210,5 +213,6 @@ func TestNewDefaultClient(t *testing.T) {
 	t.Parallel()
 	c, err := opensearchapi.NewDefaultClient()
 	require.NoError(t, err)
+	t.Cleanup(func() { _ = c.Close() })
 	require.NotNil(t, c)
 }

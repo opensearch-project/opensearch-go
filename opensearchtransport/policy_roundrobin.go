@@ -146,10 +146,9 @@ func (p *RoundRobinPolicy) DiscoveryUpdate(added, removed, unchanged []*Connecti
 		}
 
 		if err := conn.casLifecycle(conn.loadConnState(), 0, lcDead|lcNeedsWarmup, lcReady|lcActive|lcStandby|lcOverloaded); err != nil {
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("[roundrobin] casLifecycle failed for %s (lc=%s): %v; appending to dead anyway\n",
-					conn.URL, conn.loadConnState().lifecycle(), err)
-			}
+			Debug().Str("pool", p.pool.name).Str("conn", conn.URLString).
+				Stringer("state", conn.loadConnState().lifecycle()).Err(err).
+				Msg("casLifecycle failed; appending to dead anyway")
 		}
 		p.pool.appendToDeadWithLock(conn)
 	}

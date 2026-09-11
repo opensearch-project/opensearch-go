@@ -74,6 +74,7 @@ func TestDeployModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ml.NewClient(osClient)
 
 		resp, err := client.DeployModel(t.Context(), ml.DeployModelReq{ModelID: "test"})
@@ -92,6 +93,7 @@ func TestDeployModel_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ml.NewClient(osClient)
 
 		resp, err := errClient.DeployModel(t.Context(), ml.DeployModelReq{ModelID: "test"})

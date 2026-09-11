@@ -88,24 +88,24 @@ func (r GetMemoryParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetMemoryResp struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
-	// The create time.
+	// CreateTime is the create time.
 	CreateTime *string `json:"create_time,omitempty"`
 
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// Name is the name of a resource or configuration element.
 	Name *string `json:"name,omitempty"`
 
 	Type *string `json:"type,omitempty"`
 
-	// The updated time.
+	// UpdatedTime is the updated time.
 	UpdatedTime *string `json:"updated_time,omitempty"`
 
-	// The username of the user.
+	// User is the username of the user.
 	User *string `json:"user,omitempty"`
 
 	response *opensearch.Response

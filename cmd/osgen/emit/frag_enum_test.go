@@ -12,8 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/emit"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 func TestEnumFragment_Body(t *testing.T) {
@@ -295,7 +295,7 @@ func TestStringEnumFragment_Body(t *testing.T) {
 	for _, want := range []string{
 		"// The role assigned to the node.",
 		"type NodeRole string",
-		"// The node can store hot data.",
+		"// NodeRoleDataHot. The node can store hot data.",
 		`NodeRoleDataHot NodeRole = "data_hot"`,
 		`NodeRoleML NodeRole = "ml"`,
 	} {

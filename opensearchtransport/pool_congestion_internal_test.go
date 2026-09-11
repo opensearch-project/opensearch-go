@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/v5/debuglog"
 )
 
 // --- poolRegistry tests ---
@@ -885,11 +887,12 @@ func TestClusterSearchAIMD_DebugLogging(t *testing.T) {
 	ca.update([]nodeSearchSample{makeTestSample(c1, 2100, highWait, 13)})
 }
 
-// testDebugLogger implements the DebuggingLogger interface for test coverage.
+// testDebugLogger implements debuglog.Logger for test coverage, discarding every
+// record. It returns debuglog.Nop rather than a recording event because the tests
+// installing it only need the emitting sites exercised, not their output.
 type testDebugLogger struct{}
 
-func (l *testDebugLogger) Log(_ ...any) error            { return nil }
-func (l *testDebugLogger) Logf(_ string, _ ...any) error { return nil }
+func (l *testDebugLogger) Debug() debuglog.Event { return debuglog.Nop() }
 
 // enableTestDebugLogger sets the debug logger to a no-op testDebugLogger exactly
 // once for the lifetime of the test process. This avoids data races that

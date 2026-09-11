@@ -12,7 +12,7 @@ import (
 
 	"golang.org/x/mod/semver"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // VersionBound represents a version constraint with a comparison operator.

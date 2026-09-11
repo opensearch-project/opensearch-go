@@ -21,7 +21,7 @@ import (
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/packages"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
 // applyDelta.go is the type-aware rewriter. Unlike a name-based pass, it loads

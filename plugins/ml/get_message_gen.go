@@ -88,39 +88,39 @@ func (r GetMessageParams) get() map[string]string {
 //
 // Available: >= 2.12.0.
 type GetMessageResp struct {
-	// Additional information query.
+	// AdditionalInfo. Additional information query.
 	AdditionalInfo map[string]json.RawMessage `json:"additional_info,omitempty"`
 
 	Content []opensearchapi.MLContent `json:"content,omitempty"`
 
-	// The create time.
+	// CreateTime is the create time.
 	CreateTime *string `json:"create_time,omitempty"`
 
-	// The question in the message.
+	// Input is the question in the message.
 	Input *string `json:"input"`
 
-	// The name of a resource or configuration element.
+	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
 
-	// The name of a resource or configuration element.
+	// MessageID is the name of a resource or configuration element.
 	MessageID *string `json:"message_id,omitempty"`
 
-	// The system name that generated the response.
+	// Origin is the system name that generated the response.
 	Origin *string `json:"origin"`
 
-	// The parent message ID.
+	// ParentMessageID is the parent message ID.
 	ParentMessageID *string `json:"parent_message_id"`
 
-	// The prompt template.
+	// PromptTemplate is the prompt template.
 	PromptTemplate *string `json:"prompt_template"`
 
-	// The answer to the question.
+	// Response is the answer to the question.
 	Response *string `json:"response"`
 
-	// The role of the message.
+	// Role is the role of the message.
 	Role *string `json:"role,omitempty"`
 
-	// The trace number.
+	// TraceNumber is the trace number.
 	TraceNumber *int64 `json:"trace_number,omitempty"`
 
 	response *opensearch.Response

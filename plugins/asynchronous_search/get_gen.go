@@ -91,12 +91,12 @@ func (r GetParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/async/index/#get-partial-results
 type GetResp struct {
-	ExpirationTimeInMillis *float64                      `json:"expiration_time_in_millis,omitempty"`
-	ID                     *string                       `json:"id,omitempty"`
-	Response               *opensearchapi.SearchResponse `json:"response,omitempty"`
-	StartTimeInMillis      *float64                      `json:"start_time_in_millis,omitempty"`
-	State                  *string                       `json:"state,omitempty"`
-	Took                   *float64                      `json:"took,omitempty"`
+	ExpirationTimeInMillis *float64                    `json:"expiration_time_in_millis,omitempty"`
+	ID                     *string                     `json:"id,omitempty"`
+	Response               *opensearchapi.SearchResult `json:"response,omitempty"`
+	StartTimeInMillis      *float64                    `json:"start_time_in_millis,omitempty"`
+	State                  *string                     `json:"state,omitempty"`
+	Took                   *float64                    `json:"took,omitempty"`
 
 	response *opensearch.Response
 }

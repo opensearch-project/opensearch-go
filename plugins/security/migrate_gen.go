@@ -85,11 +85,11 @@ func (r MigrateParams) get() map[string]string {
 //
 // Available: >= 1.0.0.
 type MigrateResp struct {
-	// The message returned as part of an `OK` response.
+	// Message is the message returned as part of an `OK` response.
 	Message *string `json:"message,omitempty"`
 
-	// The HTTP status of the response, as a RestStatus enum name (e.g. "OK",
-	// "CREATED").
+	// Status is the HTTP status of the response, as a RestStatus enum name
+	// (e.g. "OK", "CREATED").
 	Status *opensearchapi.RestStatus `json:"status,omitempty"`
 
 	response *opensearch.Response

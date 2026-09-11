@@ -62,6 +62,66 @@ func TestTruthyAndFalsy(t *testing.T) {
 	}
 }
 
+// TestDebugRequested covers the precedence between OPENSEARCH_GO_LOG and the
+// older OPENSEARCH_GO_DEBUG. Log wins whenever it carries a value, so a level
+// above debug switches records off even while Debug is still exported truthy; an
+// unset or empty Log falls through to Debug so nothing that relies on the boolean
+// alone changes.
+func TestDebugRequested(t *testing.T) {
+	tests := []struct {
+		name     string
+		logSet   bool
+		logValue string
+		debugSet bool
+		debugVal string
+		want     bool
+	}{
+		{name: "neither set"},
+		{name: "log debug", logSet: true, logValue: "debug", want: true},
+		{name: "log debug mixed case", logSet: true, logValue: "DeBuG", want: true},
+		{name: "log debug padded", logSet: true, logValue: "  debug  ", want: true},
+		{name: "log info", logSet: true, logValue: "info"},
+		{name: "log unrecognized is off", logSet: true, logValue: "verbose"},
+		{name: "debug truthy", debugSet: true, debugVal: "true", want: true},
+		{name: "debug 1", debugSet: true, debugVal: "1", want: true},
+		{name: "debug falsy", debugSet: true, debugVal: "false"},
+		{name: "debug unparseable", debugSet: true, debugVal: "garbage"},
+		{
+			name: "log debug overrides falsy debug", logSet: true, logValue: "debug",
+			debugSet: true, debugVal: "false", want: true,
+		},
+		{
+			name: "log info overrides truthy debug", logSet: true, logValue: "info",
+			debugSet: true, debugVal: "true",
+		},
+		{
+			name: "empty log falls through to debug", logSet: true, logValue: "",
+			debugSet: true, debugVal: "true", want: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// t.Setenv registers cleanup to restore any inherited value; Unsetenv
+			// then clears it so an ambient OPENSEARCH_GO_DEBUG in the developer's
+			// shell cannot decide the outcome. This test mutates process env and so
+			// must not run in parallel.
+			for _, key := range []string{Log, Debug} {
+				t.Setenv(key, "")
+				os.Unsetenv(key) //nolint:usetesting // t.Setenv cannot unset
+			}
+			if tt.logSet {
+				t.Setenv(Log, tt.logValue)
+			}
+			if tt.debugSet {
+				t.Setenv(Debug, tt.debugVal)
+			}
+
+			require.Equal(t, tt.want, DebugRequested())
+		})
+	}
+}
+
 // TestParseDefaultClientTTL covers the pure parser behind DefaultClientTTLValue.
 // The public accessor is sync.Once-cached and cannot be re-driven per case, so
 // the parse logic is tested directly. A negative duration is preserved verbatim

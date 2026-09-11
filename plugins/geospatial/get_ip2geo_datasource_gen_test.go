@@ -74,6 +74,7 @@ func TestGetIP2GeoDatasource_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := geospatial.NewClient(osClient)
 
 		resp, err := client.GetIP2GeoDatasource(t.Context(), nil)
@@ -92,6 +93,7 @@ func TestGetIP2GeoDatasource_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := geospatial.NewClient(osClient)
 
 		resp, err := errClient.GetIP2GeoDatasource(t.Context(), nil)

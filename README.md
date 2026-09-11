@@ -123,6 +123,7 @@ Next steps:
 - [Security](guides/config-security.md) - TLS, certificate verification, and authentication. The example above uses a plaintext-friendly local setup; read this before connecting to a real cluster.
 - [Environment Variables](guides/config-envvars.md) - the canonical reference for every `OPENSEARCH_GO_*` runtime override.
 - [`opensearchapi` usage README](opensearchapi/README.md) - client creation, requests, responses, query parameters, and partial-failure errors.
+- [Debug logging](USER_GUIDE.md#debugging) - `OPENSEARCH_GO_LOG=debug` prints the client's internal records to stderr. To route log messages, configure a [`log-zerolog`](log-zerolog/README.md) or [`log-slog`](log-slog/README.md) logger. See [Cost](debuglog/README.md#cost) for additional recommendations.
 - [Guides](guides/) - task-oriented references (indexing, search, bulk, routing, discovery, error handling, and more).
 - [API reference on pkg.go.dev](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchapi) - the full generated API surface.
 

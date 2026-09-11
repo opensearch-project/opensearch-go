@@ -175,7 +175,7 @@ type IndicesCloneBody struct {
 	// Aliases for the resulting index.
 	Aliases map[string]IndicesAlias `json:"aliases,omitempty"`
 
-	// Configuration options for the target index.
+	// Settings. Configuration options for the target index.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 

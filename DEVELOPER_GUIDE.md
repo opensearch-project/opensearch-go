@@ -5,6 +5,7 @@
       - [Go 1.24](#go-124)
       - [Docker](#docker)
       - [Windows](#windows)
+    - [Nested Modules](#nested-modules)
     - [Unit Testing](#unit-testing)
     - [Integration Testing](#integration-testing)
     - [Composing an OpenSearch Docker Container](#composing-an-opensearch-docker-container)
@@ -23,6 +24,10 @@
     - [Latency Profiles](#latency-profiles)
     - [Inspecting and Clearing Latency](#inspecting-and-clearing-latency)
   - [Code Generation](#code-generation)
+    - [Partial-failure error generation](#partial-failure-error-generation)
+    - [Version-Scoped Generation](#version-scoped-generation)
+    - [Contributing Spec Fixes Upstream](#contributing-spec-fixes-upstream)
+    - [Generation Guards](#generation-guards)
   - [Demo](#demo)
   - [Verification Matrix](#verification-matrix)
     - [Individual Verifications](#individual-verifications)
@@ -72,6 +77,33 @@ Install `make`
 ```
 sudo apt install make
 ```
+
+### Nested Modules
+
+Alongside the root client module, this repository uses nested modules, each with its own `go.mod`, to keep heavier dependencies out of the client's graph so callers import and manage only what they use:
+
+| Module          | Purpose                         | Keeps out of the core graph                                                                                 |
+| --------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `osprom`        | Prometheus metrics sink         | `github.com/prometheus/client_golang`                                                                       |
+| `osotel`        | OpenTelemetry metrics sink      | `go.opentelemetry.io/otel`, `otel/metric`, `otel/sdk/metric`                                                |
+| `log-zerolog`   | zerolog debug-logger adapter    | `github.com/rs/zerolog`                                                                                     |
+| `log-slog`      | `log/slog` debug-logger adapter | nothing: `log/slog` is stdlib, so the module exists to version and test the adapter alongside `log-zerolog` |
+| `cmd/osgen`     | API code generator              | `github.com/getkin/kin-openapi`                                                                             |
+| `cmd/osapilint` | API migration linter            | `golang.org/x/tools`                                                                                        |
+
+Each module resolves its own dependencies, the same way a consumer does. From the repository root, `go build ./...` and `go test ./...` cover the root module alone; `make test-unit` and `make lint.local` run each nested module in turn. Both discover the nested modules by searching for `go.mod`, so adding a module needs no Makefile or workflow change -- but it does need an entry in [`.github/dependabot.yml`](.github/dependabot.yml), which has no such discovery.
+
+Some require the root module: `osprom` and `osotel` import `opensearchtransport`, and `log-slog` and `log-zerolog` import `debuglog`. Their `require github.com/opensearch-project/opensearch-go/v5` line names a published root tag, so a root change reaches them only once it is tagged and that line is bumped to the new tag. To develop both halves together before then, create a `go.work` locally -- it is git-ignored, so it stays in your checkout:
+
+```sh
+go work init . $(make -s print-submodules)
+```
+
+Prefer this local workspace to a `replace` directive. A `replace` committed to a `go.mod` travels with the module to anyone who depends on it, but Go honors a `replace` only in the main module it is building, not one inherited from a dependency. A committed `replace` therefore does nothing for a consumer, who has to add an equivalent one anyway.
+
+A local workspace resolves a nested module against the checkout no matter what its `go.mod` requires, which is also how it can hide a broken release. `make check-modules-standalone` builds and vets each nested module with `GOWORK=off`, so it reproduces the consumer's view whether or not you have a workspace, and CI runs it on every pull request. Run it before requesting release tags; [RELEASING.md](RELEASING.md#nested-modules) covers the tagging rules it enforces.
+
+The nested modules declare their path with the major-version suffix last (`github.com/opensearch-project/opensearch-go/osprom/v5`), because Go reads a `/vN` element as a major version only as the final path element. A path like `.../v5/osprom` leaves the module at `v0`/`v1` and unresolvable from the proxy.
 
 ### Unit Testing
 
@@ -469,6 +501,44 @@ make gen GEN_MAX_VERSION="<3.0.0"
 Version flags accept an optional operator prefix (`>=`, `>`, `<=`, `<`). When omitted, `--min-version` defaults to `>=` and `--max-version` defaults to `<=`. The magic values `epoch` (no floor) and `latest` (no ceiling) mean "include everything".
 
 When items are excluded by version filtering, breadcrumb comments are left in the generated code explaining the reason (e.g., `// cat.masterPath: deprecated in OpenSearch 2.0.0 (treated as removed).`). Breadcrumb visibility is configurable per category via `-version-breadcrumb-*` flags.
+
+### Contributing Spec Fixes Upstream
+
+Most generated code defects are not generator bugs. The spec is the input, so a missing doc comment, a wrong type, or an absent version annotation usually has to be fixed in [`opensearch-api-specification`](https://github.com/opensearch-project/opensearch-api-specification) to benefit every language client.
+
+Missing doc comments are the common case. Generated types and fields carry the `description` from their schema, and the generator emits 3,060 of the 3,187 property descriptions the spec provides; the remainder simply have none upstream. To see the gaps:
+
+```
+make report-missing-descriptions
+```
+
+This generates into a temporary directory and prints a report to stderr, so the checked-in generated files are untouched. Output is grouped into types, struct fields, and string-enum members, with the spec component key in brackets:
+
+```
+  - SearchProcessorExecutionDetail [_core.search___ProcessorExecutionDetail]
+  - ScrollResp.ProcessorResults json:"processor_results" [_core.search___SearchResponse]
+
+SUMMARY: 1274 types, 3471 fields, 20 enum members; 4765 total
+```
+
+The bracketed key is what to search for upstream. A gap is reported at both the reference site and the `$ref` target, so adding a description to one shared schema often resolves many lines at once.
+
+> **Editing `opensearch-openapi.yaml` locally.** The vendored spec may be edited for correctness (a wrong type, a missing required field), but changes are visible to every client generated from it, so renames and cosmetic edits belong upstream rather than here. Send a corresponding PR to `opensearch-api-specification` for anything kept locally.
+
+### Generation Guards
+
+Two checks run before any file is written, so a regression aborts generation instead of landing in the tree. Each pins its permitted set in a reviewed, checked-in allowlist:
+
+| Guard              | Allowlist                            | What it catches                                                       |
+| ------------------ | ------------------------------------ | --------------------------------------------------------------------- |
+| `json.RawMessage`  | `cmd/osgen/rawmessage_allowlist.txt` | A type the generator could not resolve, widening the raw-JSON surface |
+| Duplicate JSON tag | `cmd/osgen/tagshadow_allowlist.txt`  | A struct redeclaring a JSON tag its embedded type already carries     |
+
+The duplicate-tag guard covers a defect nothing else catches. `encoding/json` resolves a duplicate tag at differing depths in favor of the shallower field, so an outer redeclaration wins and the embedded declaration is never populated -- which is how the per-hit search envelope (`_id`, `_seq_no`, `sort`) became unreachable. `go vet`'s `structtag` analyzer only checks duplicates within one struct, and `golangci-lint` relaxes generated files.
+
+When a guard fails, read the offender it names and decide whether the change is intended. If it is, add the entry with `-update-tagshadow-allowlist` (or `-update-raw-message-allowlist`) and review the resulting allowlist diff as part of the change: adding an entry asserts the shadow is deliberate.
+
+> **`make regen` deletes generated files before writing.** An aborted generation therefore leaves the tree empty. Recover with `git checkout -- opensearchapi/ plugins/ internal/`.
 
 See [`cmd/osgen/README.md`](cmd/osgen/README.md) for the full flag reference and subcommand details.
 

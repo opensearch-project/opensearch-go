@@ -26,7 +26,7 @@ func TestGetSslinfoParams_get(t *testing.T) {
 		{name: "empty", params: GetSslinfoParams{}, want: nil},
 		{
 			name:   "show_dn",
-			params: GetSslinfoParams{ShowDn: "test-value"},
+			params: GetSslinfoParams{ShowDN: "test-value"},
 			want:   map[string]string{"show_dn": "test-value"},
 		},
 	}

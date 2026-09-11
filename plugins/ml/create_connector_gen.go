@@ -127,7 +127,7 @@ type MLCreateConnectorBody struct {
 	Name         string                        `json:"name"`
 	Parameters   opensearchapi.MLParameters    `json:"parameters"`
 
-	// The connector protocol.
+	// Protocol is the connector protocol.
 	Protocol string `json:"protocol"`
 
 	Version int `json:"version"`

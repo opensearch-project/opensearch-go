@@ -33,6 +33,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 
 		// Verify seed fallback pool was created.
 		require.NotNil(t, tp.seedFallbackPool)
@@ -76,6 +77,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.NotNil(t, tp.seedFallbackPool)
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
@@ -103,6 +105,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.True(t, tp.seedFallbackDisabled)
 		require.Nil(t, tp.seedFallbackPool)
 
@@ -128,6 +131,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.NotNil(t, tp.seedFallbackPool)
 
 		req, _ := http.NewRequest(http.MethodGet, "/test", nil)
@@ -156,6 +160,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.NotNil(t, tp.seedFallbackPool)
 
 		// Get the main pool connection and the seed pool connection.
@@ -188,6 +193,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.NotNil(t, tp.seedFallbackPool)
 
 		tp.seedFallbackPool.mu.RLock()
@@ -238,6 +244,7 @@ func TestSeedFallback(t *testing.T) {
 			}),
 		})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = tp.Close() })
 		require.NotNil(t, tp.seedFallbackPool)
 
 		// Simulate the post-discovery state: the seed has been evicted from the

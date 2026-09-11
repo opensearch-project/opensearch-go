@@ -74,6 +74,7 @@ func TestRefreshSearchAnalyzers_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		client := ism.NewClient(osClient)
 
 		resp, err := client.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{"test"}})
@@ -92,6 +93,7 @@ func TestRefreshSearchAnalyzers_Roundtrip(t *testing.T) {
 
 		osClient, err := opensearch.NewClient(opensearch.Config{Addresses: []string{ts.URL}})
 		require.NoError(t, err)
+		t.Cleanup(func() { _ = osClient.Close() })
 		errClient := ism.NewClient(osClient)
 
 		resp, err := errClient.RefreshSearchAnalyzers(t.Context(), &ism.RefreshSearchAnalyzersReq{Indices: []string{"test"}})

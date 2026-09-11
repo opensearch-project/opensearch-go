@@ -87,7 +87,7 @@ func (r DeleteObjectParams) get() map[string]string {
 //
 // Available: >= 1.1.0.
 type DeleteObjectResp struct {
-	// The list of deletion response for each object.
+	// DeleteRespList is the list of deletion response for each object.
 	DeleteRespList map[string]string `json:"deleteResponseList,omitempty"`
 
 	response *opensearch.Response

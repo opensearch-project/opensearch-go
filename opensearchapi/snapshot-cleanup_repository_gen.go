@@ -112,10 +112,11 @@ func (r SnapshotCleanupRepositoryResp) RawBody() io.Reader {
 
 // SnapshotCleanupRepositoryResults is a typed component of the snapshot.cleanup_repository operation.
 type SnapshotCleanupRepositoryResults struct {
-	// The number of binary large objects (blobs) removed during cleanup.
+	// DeletedBlobs is the number of binary large objects (blobs) removed
+	// during cleanup.
 	DeletedBlobs int64 `json:"deleted_blobs"`
 
-	// The number of bytes freed by cleanup operations.
+	// DeletedBytes is the number of bytes freed by cleanup operations.
 	DeletedBytes int64 `json:"deleted_bytes"`
 }
 
