@@ -98,7 +98,8 @@ type Config struct {
 	Username  string   // Username for HTTP Basic Authentication.
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
-	// Api key based authentication
+	// APIKey authenticates via the Authorization: ApiKey <key> header, an
+	// alternative to Username/Password (OpenSearch 3.7+).
 	APIKey string // #nosec G117
 
 	Header http.Header // Global HTTP request header.

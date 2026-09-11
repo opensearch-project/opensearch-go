@@ -389,7 +389,7 @@ func TestSetReqAuth(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
 
-		require.Equal(t, fmt.Sprintf("ApiKey %s", dummyApiKey), req.Header.Get("Authorization"))
+		require.Equal(t, apiKeyAuthScheme+" "+dummyApiKey, req.Header.Get("Authorization"))
 	})
 
 	t.Run("API key takes precedence over username/password", func(t *testing.T) {
@@ -400,7 +400,7 @@ func TestSetReqAuth(t *testing.T) {
 		req, _ := http.NewRequest(http.MethodGet, "/", nil)
 		c.setReqAuth(u, req)
 
-		require.Equal(t, fmt.Sprintf("ApiKey %s", dummyApiKey), req.Header.Get("Authorization"))
+		require.Equal(t, apiKeyAuthScheme+" "+dummyApiKey, req.Header.Get("Authorization"))
 		_, _, basicOK := req.BasicAuth()
 		require.False(t, basicOK)
 	})

@@ -138,8 +138,10 @@ type Config struct {
 	Username string
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
-	// ApiKey for HTTP 
-	APIKey   string // #nosec G117
+	// APIKey authenticates via the Authorization: ApiKey <key> header. URL
+	// userinfo and an existing Authorization header take precedence; it takes
+	// precedence over Username/Password.
+	APIKey string // #nosec G117
 
 	Header http.Header
 	CACert []byte
@@ -2070,6 +2072,10 @@ func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	}
 }
 
+// apiKeyAuthScheme is the Authorization header scheme for API key auth:
+// "Authorization: ApiKey <key>" (OpenSearch 3.7+).
+const apiKeyAuthScheme = "ApiKey"
+
 func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 	if _, ok := req.Header["Authorization"]; !ok {
 		if u.User != nil {
@@ -2079,7 +2085,7 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 		}
 
 		if c.apiKey != "" {
-			req.Header.Set("Authorization", "ApiKey "+c.apiKey)
+			req.Header.Set("Authorization", apiKeyAuthScheme+" "+c.apiKey)
 			return
 		}
 
