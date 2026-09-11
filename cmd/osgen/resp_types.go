@@ -11,7 +11,7 @@ import (
 	"io"
 	"sort"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // goField represents a single struct field in a generated Go type.

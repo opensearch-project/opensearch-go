@@ -16,8 +16,8 @@ import (
 
 	"github.com/rs/zerolog"
 
+	logzerolog "github.com/opensearch-project/opensearch-go/log-zerolog/v5"
 	"github.com/opensearch-project/opensearch-go/v5/debuglog"
-	logzerolog "github.com/opensearch-project/opensearch-go/v5/log-zerolog"
 )
 
 // eventField is one [debuglog.Event] method, the record a call to it produces,

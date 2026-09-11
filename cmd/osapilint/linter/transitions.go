@@ -6,7 +6,7 @@
 
 package linter
 
-import "github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+import "github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 
 // transitions.go is the generic transition registry: the version-neutral types
 // and the map of hand-authored, per-adjacent-hop migration data. The linter

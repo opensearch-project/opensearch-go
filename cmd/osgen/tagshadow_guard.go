@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // A struct that embeds a type and redeclares one of the embedded type's JSON

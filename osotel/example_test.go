@@ -11,8 +11,8 @@ import (
 
 	"go.opentelemetry.io/otel/sdk/metric"
 
+	"github.com/opensearch-project/opensearch-go/osotel/v5"
 	"github.com/opensearch-project/opensearch-go/v5"
-	"github.com/opensearch-project/opensearch-go/v5/osotel"
 )
 
 // Example wires an osotel.Registry into an opensearch client: an OpenTelemetry
@@ -23,7 +23,7 @@ import (
 // exporter's reader in production.
 func Example() {
 	provider := metric.NewMeterProvider(metric.WithReader(metric.NewManualReader()))
-	meter := provider.Meter("github.com/opensearch-project/opensearch-go/v5/osotel")
+	meter := provider.Meter("github.com/opensearch-project/opensearch-go/osotel/v5")
 
 	reg, err := osotel.New(meter, osotel.NewRequestObserver(), osotel.NewPoolObserver())
 	if err != nil {

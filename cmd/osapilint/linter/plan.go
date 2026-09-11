@@ -10,7 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osapilint/internal/apirev"
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
 // plan.go turns the per-adjacent-hop registry (transitions.go) into an ordered

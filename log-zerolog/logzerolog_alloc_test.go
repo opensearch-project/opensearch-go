@@ -18,7 +18,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	logzerolog "github.com/opensearch-project/opensearch-go/v5/log-zerolog"
+	logzerolog "github.com/opensearch-project/opensearch-go/log-zerolog/v5"
 )
 
 // TestAdapterAllocations fails when a field method allocates more than

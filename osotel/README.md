@@ -9,7 +9,7 @@ The client fires per-request observer events; `osotel` copies each event into a 
 ## Install
 
 ```sh
-go get github.com/opensearch-project/opensearch-go/v5/osotel
+go get github.com/opensearch-project/opensearch-go/osotel/v5
 ```
 
 ## Concepts
@@ -31,7 +31,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 
 	"github.com/opensearch-project/opensearch-go/v5"
-	"github.com/opensearch-project/opensearch-go/v5/osotel"
+	"github.com/opensearch-project/opensearch-go/osotel/v5"
 )
 
 func main() {
@@ -46,7 +46,7 @@ func main() {
 	provider := metric.NewMeterProvider(metric.WithReader(metric.NewPeriodicReader(exporter)))
 	defer func() { _ = provider.Shutdown(ctx) }()
 
-	meter := provider.Meter("github.com/opensearch-project/opensearch-go/v5/osotel")
+	meter := provider.Meter("github.com/opensearch-project/opensearch-go/osotel/v5")
 
 	// Wire one or more sinks into the registry. RequestObserver (RED) and
 	// PoolObserver (USE) together give full RED+USE coverage. The event buffer

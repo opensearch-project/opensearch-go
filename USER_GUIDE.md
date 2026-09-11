@@ -481,7 +481,7 @@ type Logger interface {
 Adapters ship as separate modules, so neither logging library enters the core client's dependency graph:
 
 ```bash
-go get github.com/opensearch-project/opensearch-go/v5/log-zerolog
+go get github.com/opensearch-project/opensearch-go/log-zerolog/v5
 ```
 
 ```go

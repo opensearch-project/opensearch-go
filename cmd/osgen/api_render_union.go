@@ -6,7 +6,7 @@
 
 package main
 
-import "github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+import "github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 
 // branchesCollideOnTokenClass reports whether any two branches decode from the
 // same JSON token, which makes the first byte insufficient to pick one.

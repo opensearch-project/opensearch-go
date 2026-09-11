@@ -25,8 +25,8 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/google/renameio/v2/maybe"
 
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/emit"
-	"github.com/opensearch-project/opensearch-go/v5/cmd/osgen/ir"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/emit"
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 // runAPI implements the "osgen api" subcommand. It parses flags and delegates
