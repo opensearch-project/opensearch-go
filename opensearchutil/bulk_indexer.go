@@ -587,21 +587,11 @@ func (w *worker) run(ctx context.Context) {
 						item.DocumentID)
 				}
 
-				if err := w.writeMeta(item); err != nil {
+				if err := w.writeItem(ctx, item); err != nil {
 					if item.OnFailure != nil {
 						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
 					}
 
-					w.bi.stats.numFailed.Add(1)
-					w.mu.Unlock()
-
-					continue
-				}
-
-				if err := w.writeBody(ctx, &item); err != nil {
-					if item.OnFailure != nil {
-						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
-					}
 					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
 
@@ -624,6 +614,24 @@ func (w *worker) run(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// writeItem serializes item's action line and body into the worker buffer; it
+// must be called under a lock. On any error the buffer is restored to its
+// previous length so a failed item cannot leave an unpaired NDJSON action that
+// would desynchronize later items from the bulk response.
+func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
+	bufLen := w.buf.Len()
+
+	err := w.writeMeta(item)
+	if err == nil {
+		err = w.writeBody(ctx, &item)
+	}
+	if err != nil {
+		w.buf.Truncate(bufLen)
+	}
+
+	return err
 }
 
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
@@ -767,6 +775,18 @@ func (w *worker) flush(ctx context.Context) error {
 	var partial *opensearchapi.PartialBulkError
 	if err != nil && !errors.As(err, &partial) {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
+	}
+
+	// The bulk API returns one result per serialized action. More results than
+	// w.items means the response cannot be paired positionally: the loop below
+	// would read w.items[i] past the end and panic, and even the results that
+	// line up may belong to other items. Fail every serialized item instead.
+	// Fewer results needs no guard; the loop simply leaves the extras
+	// undispatched.
+	if got, want := len(blk.Items), len(w.items); got > want {
+		return w.handleBulkError(ctx, fmt.Errorf(
+			"flush: bulk response has %d items, indexer serialized %d", got, want,
+		))
 	}
 
 	for i, blkItem := range blk.Items {

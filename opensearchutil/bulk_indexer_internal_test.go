@@ -1024,7 +1024,7 @@ func TestBulkIndexerCallbacks(t *testing.T) {
 				require.NoError(t, bi.Add(context.Background(), BulkIndexerItem{
 					Action:     "index",
 					DocumentID: "body-fail",
-					Body:       failingReadBody{},
+					Body:       &failingBody{},
 					OnFailure: func(ctx context.Context, item BulkIndexerItem, resp opensearchapi.BulkRespItem, err error) {
 						onFailure(ctx, item, resp, err)
 						bodyFailureCalled = true
@@ -1049,13 +1049,46 @@ func strPointer(s string) *string {
 	return &s
 }
 
-type failingReadBody struct{}
+// bodyFailure names which io.ReadSeeker method a failingBody fails.
+type bodyFailure int
 
-func (failingReadBody) Read(_ []byte) (int, error) {
-	return 0, errors.New("body read failed")
+const (
+	// failOnRead fails the Read that follows the payload, so ReadFrom returns
+	// an error after len(data) bytes reached the bulk buffer. Empty data fails
+	// the first Read, having written nothing.
+	failOnRead bodyFailure = iota
+	// failOnSeek serves the whole payload, then fails the rewind the indexer
+	// performs so the caller-supplied body stays reusable.
+	failOnSeek
+)
+
+// failingBody is an item body whose serialization fails; the fail field
+// selects which step (see bodyFailure).
+type failingBody struct {
+	data []byte
+	fail bodyFailure
 }
 
-func (failingReadBody) Seek(int64, int) (int64, error) {
+func (b *failingBody) Read(p []byte) (int, error) {
+	if len(b.data) == 0 {
+		if b.fail == failOnRead {
+			return 0, errors.New("body read failed")
+		}
+
+		return 0, io.EOF
+	}
+
+	n := copy(p, b.data)
+	b.data = b.data[n:]
+
+	return n, nil
+}
+
+func (b *failingBody) Seek(int64, int) (int64, error) {
+	if b.fail == failOnSeek {
+		return 0, errors.New("body seek failed")
+	}
+
 	return 0, nil
 }
 
@@ -1759,4 +1792,209 @@ func TestBulkIndexerFlushIsSafeForConcurrentUse(t *testing.T) {
 
 	require.Equal(t, uint64(wantAdded), bi.Stats().NumAdded)
 	require.Len(t, recorder.takeActions(), wantAdded)
+}
+
+func newTestWorker() *worker {
+	bi := &bulkIndexer{
+		stats:            &bulkIndexerStats{},
+		metaPoolMaxBytes: defaultMetaBufferPoolMaxBytes,
+		metaPool: sync.Pool{
+			New: func() any { return new(bytes.Buffer) },
+		},
+	}
+	return &worker{
+		bi:  bi,
+		buf: bytes.NewBuffer(make([]byte, 0, 1024)),
+	}
+}
+
+func TestWorkerWriteItemRollsBackBufferOnError(t *testing.T) {
+	t.Parallel()
+
+	const goodBody = `{"a":1}`
+	wantGood := `{"index":{"_id":"good"}}` + "\n" + goodBody + "\n"
+
+	tests := []struct {
+		name    string
+		item    BulkIndexerItem
+		wantErr string
+	}{
+		{
+			name: "writeBody read error with 0 bytes",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-read",
+				Body:       &failingBody{},
+			},
+			wantErr: "body read failed",
+		},
+		{
+			name: "writeBody read error after partial body",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-partial",
+				Body:       &failingBody{data: []byte(`{"partial":true}`)},
+			},
+			wantErr: "body read failed",
+		},
+		{
+			name: "writeBody seek error after copying body",
+			item: BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "bad-seek",
+				Body:       &failingBody{data: []byte(`{"seek":true}`), fail: failOnSeek},
+			},
+			wantErr: "body seek failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			w := newTestWorker()
+			require.NoError(t, w.writeItem(t.Context(), BulkIndexerItem{
+				Action:     actionIndex,
+				DocumentID: "good",
+				Body:       strings.NewReader(goodBody),
+			}))
+			require.Equal(t, wantGood, w.buf.String())
+
+			err := w.writeItem(t.Context(), tt.item)
+			require.ErrorContains(t, err, tt.wantErr)
+			require.Equal(t, wantGood, w.buf.String(), "failed item must not leave an orphan action line")
+		})
+	}
+}
+
+func TestBulkIndexerDoesNotFlushOrphanActionOnBodyError(t *testing.T) {
+	t.Parallel()
+
+	var mu struct {
+		sync.Mutex
+		bodies  []string
+		success []string
+		failed  []string
+	}
+
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		body, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		actions := bulkDocumentIDs(body)
+		items := make([]string, len(actions))
+		for i, action := range actions {
+			id := strings.TrimPrefix(action, actionIndex+":")
+			items[i] = fmt.Sprintf(`{"index":{"_id":%q,"status":201,"result":"created"}}`, id)
+		}
+
+		mu.Lock()
+		mu.bodies = append(mu.bodies, string(body))
+		mu.Unlock()
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Body:       io.NopCloser(strings.NewReader(`{"took":1,"errors":false,"items":[` + strings.Join(items, ",") + `]}`)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	bi, err := NewBulkIndexer(BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		Index:      testutil.MustUniqueString(t, "test-index"),
+	})
+	require.NoError(t, err)
+
+	onSuccess := func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem) {
+		mu.Lock()
+		mu.success = append(mu.success, item.DocumentID)
+		mu.Unlock()
+	}
+	onFailure := func(_ context.Context, item BulkIndexerItem, _ opensearchapi.BulkRespItem, err error) {
+		require.Error(t, err)
+		mu.Lock()
+		mu.failed = append(mu.failed, item.DocumentID)
+		mu.Unlock()
+	}
+
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "good-1",
+		Body: strings.NewReader(`{"title":"ok"}`), OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "bad",
+		Body: &failingBody{}, OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+		Action: actionIndex, DocumentID: "good-2",
+		Body: strings.NewReader(`{"title":"ok"}`), OnSuccess: onSuccess, OnFailure: onFailure,
+	}))
+	require.NoError(t, bi.Flush(t.Context()))
+	require.NoError(t, bi.Close(t.Context()))
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Equal(t, []string{"bad"}, mu.failed)
+	require.Equal(t, []string{"good-1", "good-2"}, mu.success)
+	require.Len(t, mu.bodies, 1)
+	require.NotContains(t, mu.bodies[0], `"_id":"bad"`)
+	require.Contains(t, mu.bodies[0], `"_id":"good-1"`)
+	require.Contains(t, mu.bodies[0], `"_id":"good-2"`)
+
+	stats := bi.Stats()
+	require.Equal(t, uint64(3), stats.NumAdded)
+	require.Equal(t, uint64(1), stats.NumFailed)
+	require.Equal(t, uint64(2), stats.NumFlushed)
+	require.Equal(t, uint64(2), stats.NumIndexed)
+}
+
+func TestWorkerFlushGuardsMismatchedResponseCount(t *testing.T) {
+	t.Parallel()
+
+	const responseN = 2
+
+	itemsJSON := make([]string, responseN)
+	for i := range responseN {
+		itemsJSON[i] = fmt.Sprintf(`{"index":{"_id":"%d","status":201,"result":"created"}}`, i)
+	}
+	payload := `{"took":1,"errors":false,"items":[` + strings.Join(itemsJSON, ",") + `]}`
+
+	client := newBulkTestClient(t, func(req *http.Request) (*http.Response, error) {
+		if !strings.HasSuffix(req.URL.Path, "/_bulk") {
+			return infoResponse()
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Status:     "200 OK",
+			Body:       io.NopCloser(strings.NewReader(payload)),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
+
+	var failed atomic.Uint64
+	w := newTestWorker()
+	w.bi.config.Client = client
+	w.items = []BulkIndexerItem{{
+		Action:     actionIndex,
+		DocumentID: "0",
+		OnFailure: func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) {
+			failed.Add(1)
+		},
+	}}
+	_, err := w.buf.WriteString(`{"index":{"_id":"0"}}` + "\n{\"a\":1}\n")
+	require.NoError(t, err)
+
+	err = w.flush(t.Context())
+	require.ErrorContains(t, err, "bulk response has 2 items, indexer serialized 1")
+	require.Equal(t, uint64(1), failed.Load())
+	require.Equal(t, uint64(1), w.bi.stats.numFailed.Load())
+	require.Equal(t, 0, w.buf.Len())
+	require.Empty(t, w.items)
 }
