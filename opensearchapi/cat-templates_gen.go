@@ -152,7 +152,7 @@ type CatTemplatesRecord struct {
 	Order *string `json:"order,omitempty"`
 
 	// Version is the template version.
-	Version *string `json:"version"`
+	Version *string `json:"version,omitempty"`
 }
 
 // Templates lists the names, patterns, order numbers, and version numbers of index templates.
