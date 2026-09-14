@@ -406,6 +406,24 @@ func TestPoolObserverUSE(t *testing.T) {
 	require.InDelta(t, 1.0, testutil.ToFloat64(po.healthFails.WithLabelValues("search")), 0)
 }
 
+func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
+	po := NewPoolObserver()
+
+	po.OnPromote(&opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 0})
+	require.InDelta(t, 3.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "active")), 0)
+
+	po.OnOverloadCleared(&opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 4, DeadCount: 1})
+	require.InDelta(t, 4.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "active")), 0)
+	require.InDelta(t, 1.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "dead")), 0)
+}
+
+func TestIsErrorClassifiesStatusAndTransportFailures(t *testing.T) {
+	require.False(t, isError(200, nil))
+	require.True(t, isError(404, nil))
+	require.True(t, isError(500, nil))
+	require.True(t, isError(0, fmt.Errorf("connection refused")))
+}
+
 func TestRegistryForwardsLifecycleToSinks(t *testing.T) {
 	promReg := prometheus.NewRegistry()
 	po := NewPoolObserver()
