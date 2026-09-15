@@ -589,6 +589,47 @@ func TestTransportStreamRetries(t *testing.T) {
 		}
 	})
 
+	t.Run("Retry request on HTTP2 stream error and return the response", func(t *testing.T) {
+		var (
+			i       int
+			numReqs = 2
+		)
+
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(
+			Config{
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,
+				HealthCheck:           NoOpHealthCheck,
+				NodeStatsInterval:     -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					if i == numReqs {
+						return &http.Response{Status: "OK"}, nil
+					}
+					return nil, h2StreamError{StreamID: 1, Code: 7}
+				}),
+			},
+		)
+		t.Cleanup(func() { _ = tp.Close() })
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		res, err := tp.Stream(req)
+		if err != nil {
+			t.Fatalf("Unexpected error: %s", err)
+		}
+
+		if res.Status != "OK" {
+			t.Errorf("Unexpected response: %+v", res)
+		}
+
+		if i != numReqs {
+			t.Errorf("Unexpected number of requests, want=%d, got=%d", numReqs, i)
+		}
+	})
+
 	t.Run("Retry request on 5xx response and return new response", func(t *testing.T) {
 		var (
 			i       int
@@ -918,6 +959,53 @@ func TestTransportStreamRetries(t *testing.T) {
 
 		if count := i.Load(); count != 1 {
 			t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
+		}
+	})
+
+	t.Run("Don't retry EOF or HTTP2 stream errors when retries are disabled", func(t *testing.T) {
+		// net.Error is covered above. EOF, unexpected EOF, and HTTP/2 RST_STREAM
+		// used to set shouldRetry unconditionally, so DisableRetry still burned
+		// through the default MaxRetries (6) on a dropped connection.
+		tests := []struct {
+			name string
+			err  error
+		}{
+			{name: "EOF", err: io.EOF},
+			{name: "unexpected EOF", err: io.ErrUnexpectedEOF},
+			{name: "HTTP2 stream error", err: h2StreamError{StreamID: 1, Code: 7}},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				var i atomic.Int32
+				roundTripErr := tt.err
+
+				u, _ := url.Parse("http://foo.bar")
+				tp, err := New(
+					Config{
+						URLs:                  []*url.URL{u, u, u},
+						SkipConnectionShuffle: true,
+						NodeStatsInterval:     -1,
+						Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+							i.Add(1)
+							return nil, roundTripErr
+						}),
+						DisableRetry: true,
+						HealthCheck:  NoOpHealthCheck,
+					},
+				)
+				if err != nil {
+					t.Fatalf("New: %s", err)
+				}
+				t.Cleanup(func() { _ = tp.Close() })
+
+				req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+				//nolint:bodyclose // Mock response does not have a body to close
+				_, _ = tp.Stream(req)
+
+				if count := i.Load(); count != 1 {
+					t.Errorf("Unexpected number of requests, want=%d, got=%d", 1, count)
+				}
+			})
 		}
 	})
 
