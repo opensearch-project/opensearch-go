@@ -19814,7 +19814,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20420,7 +20420,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20842,7 +20842,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20906,7 +20906,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -21876,7 +21876,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -22230,7 +22230,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -23057,7 +23057,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -36930,7 +36930,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -54245,7 +54245,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",

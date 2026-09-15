@@ -41,8 +41,13 @@ func TestAddFeaturesToSetParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: AddFeaturesToSetParams{Version: 42},
+			params: AddFeaturesToSetParams{Version: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"version": "42"},
+		},
+		{
+			name:   "version=0",
+			params: AddFeaturesToSetParams{Version: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"version": "0"},
 		},
 	}
 	for _, tt := range tests {

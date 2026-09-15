@@ -101,8 +101,13 @@ func TestTermVectorsParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: TermVectorsParams{Version: 42},
+			params: TermVectorsParams{Version: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"version": "42"},
+		},
+		{
+			name:   "version=0",
+			params: TermVectorsParams{Version: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"version": "0"},
 		},
 		{
 			name:   "version_type",
