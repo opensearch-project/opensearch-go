@@ -152,8 +152,10 @@ type Config struct {
 
 	Signer signer.Signer
 
-	RetryOnStatus        []int
-	DisableRetry         bool
+	RetryOnStatus []int
+	DisableRetry  bool
+	// EnableRetryOnTimeout retries an attempt that failed with a timeout
+	// (net.Error.Timeout). Timeouts are not retried by default.
 	EnableRetryOnTimeout bool
 	MaxRetries           int
 	RetryBackoff         func(attempt int) time.Duration
@@ -162,6 +164,8 @@ type Config struct {
 	// When set, a context deadline is applied to each individual request attempt
 	// (including each retry). This bounds the maximum time a single RoundTrip
 	// can block, preventing indefinite hangs on stalled connections.
+	// A timed-out attempt closes the underlying TCP connection so an HTTP/2
+	// retry dials instead of reusing the stalled ClientConn.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
@@ -1585,6 +1589,14 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		if obs := observerFromAtomic(&c.observer); obs != nil {
 			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
 		}
+		// Record the net.Conn so a timeout can retire it. Canceling the
+		// attempt context RSTs an HTTP/2 stream but leaves the ClientConn
+		// pooled, and the next retry would otherwise reuse it. Skipped on
+		// the default path (no RequestTimeout, no EnableRetryOnTimeout).
+		var timedOutConn attemptConn
+		if c.shouldTraceAttemptConn() {
+			attemptCtx = withAttemptConnTrace(attemptCtx, &timedOutConn)
+		}
 		if attemptCtx != req.Context() {
 			attemptReq = req.WithContext(attemptCtx)
 		}
@@ -1709,6 +1721,13 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			if errors.As(err, &netError) {
 				if (!netError.Timeout() || c.enableRetryOnTimeout) && !c.disableRetry {
 					shouldRetry = true
+				}
+				if netError.Timeout() {
+					// HTTP/2 keeps the ClientConn after a stream RST. Close the
+					// TCP conn so a retry (or the next request) dials instead
+					// of sitting on a black-holed backend. See #1121.
+					Debug().Str("conn", conn.URLString).Msg("Closing timed-out HTTP connection")
+					timedOutConn.close()
 				}
 			}
 		} else {
@@ -1913,9 +1932,15 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	// Apply per-attempt timeout if configured.
 	attemptReq := req
 	var attemptCancel context.CancelFunc
+	attemptCtx := req.Context()
 	if c.requestTimeout > 0 {
-		var attemptCtx context.Context
-		attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
+		attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
+	}
+	var timedOutConn attemptConn
+	if c.shouldTraceAttemptConn() {
+		attemptCtx = withAttemptConnTrace(attemptCtx, &timedOutConn)
+	}
+	if attemptCtx != req.Context() {
 		attemptReq = req.WithContext(attemptCtx) //nolint:contextcheck // child of req.Context()
 	}
 
@@ -1935,6 +1960,11 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 	}
 
 	if err != nil {
+		var netError net.Error
+		if errors.As(err, &netError) && netError.Timeout() {
+			Debug().Str("conn", conn.URLString).Msg("Closing timed-out HTTP connection")
+			timedOutConn.close()
+		}
 		Debug().Str("conn", conn.URLString).Err(err).Msg("Seed fallback: request failed")
 		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
