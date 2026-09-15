@@ -41,8 +41,13 @@ func TestAddFeaturesToSetByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: AddFeaturesToSetByQueryParams{Version: 42},
+			params: AddFeaturesToSetByQueryParams{Version: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"version": "42"},
+		},
+		{
+			name:   "version=0",
+			params: AddFeaturesToSetByQueryParams{Version: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"version": "0"},
 		},
 	}
 	for _, tt := range tests {

@@ -735,19 +735,35 @@ type opParam struct {
 //   - requests_per_second=0 on reindex / delete_by_query / update_by_query and
 //     their rethrottles: the documented pause value. Omitting the param is
 //     "no throttle", which is not the same as pausing.
+//   - version (create/delete/exists/exists_source/get/get_source/index/
+//     mtermvectors/termvectors and the LTR add-features-to-set writes):
+//     external versioning allows version >= 0. Sending version_type=external
+//     without version makes the server fall back to internal versioning.
+//     (search/delete_by_query/update_by_query version is a boolean "include
+//     _version in hits" flag, not an integer, so it is not listed.)
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
 var zeroMeaningfulNumericParams = set[opParam]{
+	{"create", "version"}:                                 {},
 	{"delete", "if_primary_term"}:                         {},
 	{"delete", "if_seq_no"}:                               {},
+	{"delete", "version"}:                                 {},
 	{"delete_by_query", "requests_per_second"}:            {},
 	{"delete_by_query_rethrottle", "requests_per_second"}: {},
+	{"exists", "version"}:                                 {},
+	{"exists_source", "version"}:                          {},
+	{"get", "version"}:                                    {},
+	{"get_source", "version"}:                             {},
 	{"index", "if_primary_term"}:                          {},
 	{"index", "if_seq_no"}:                                {},
+	{"index", "version"}:                                  {},
 	{"ism.put_policies", "if_primary_term"}:               {},
 	{"ism.put_policies", "if_seq_no"}:                     {},
 	{"ism.put_policy", "if_primary_term"}:                 {},
 	{"ism.put_policy", "if_seq_no"}:                       {},
+	{"ltr.add_features_to_set", "version"}:                {},
+	{"ltr.add_features_to_set_by_query", "version"}:       {},
+	{"mtermvectors", "version"}:                           {},
 	{"reindex", "requests_per_second"}:                    {},
 	{"reindex_rethrottle", "requests_per_second"}:         {},
 	{"rollups.put", "if_primary_term"}:                    {},
@@ -755,6 +771,7 @@ var zeroMeaningfulNumericParams = set[opParam]{
 	{"search", "size"}:                                    {},
 	{"sm.update_policy", "if_primary_term"}:               {},
 	{"sm.update_policy", "if_seq_no"}:                     {},
+	{"termvectors", "version"}:                            {},
 	{"transforms.put", "if_primary_term"}:                 {},
 	{"transforms.put", "if_seq_no"}:                       {},
 	{"update", "if_primary_term"}:                         {},

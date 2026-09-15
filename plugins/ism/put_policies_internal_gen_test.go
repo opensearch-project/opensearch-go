@@ -40,6 +40,11 @@ func TestPutPoliciesParams_get(t *testing.T) {
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{
+			name:   "if_seq_no=0",
+			params: PutPoliciesParams{IfSeqNo: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"if_seq_no": "0"},
+		},
+		{
 			name:   "policyID",
 			params: PutPoliciesParams{PolicyID: "test-value"},
 			want:   map[string]string{"policyID": "test-value"},
