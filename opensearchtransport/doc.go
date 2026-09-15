@@ -46,6 +46,7 @@ resolver does not expose record TTLs, the interval is a re-resolution cadence ra
 The package will automatically retry requests on network-related errors, and on specific
 response status codes (by default 502, 503, 504). Use the RetryOnStatus option to customize the list.
 The transport will not retry a timeout network error, unless enabled by setting EnableRetryOnTimeout to true.
+A timed-out attempt closes the underlying TCP connection so an HTTP/2 retry dials instead of reusing the stalled ClientConn.
 
 Use the MaxRetries option to configure the number of retries, and set DisableRetry to true
 to disable the retry behavior altogether.
