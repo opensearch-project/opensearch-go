@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/renameio/v2/maybe"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -209,20 +210,13 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 	s.Require().NotEmpty(entries)
 }
 
-// TestResolveGenRoot_GitRootWithForwardSlashes covers what `git rev-parse
-// --show-toplevel` prints under Git for Windows: a forward-slash path, while
-// filepath.Abs returns the native separator. The containment check must still
-// accept a subdirectory of the repository. On Linux and macOS the forward-slash
-// form is already native, so this passes there regardless.
-func (s *GenerateSuite) TestResolveGenRoot_GitRootWithForwardSlashes() {
-	orig := repoRoot
-	repoRoot = func() (string, error) { return filepath.ToSlash(s.tmpDir), nil }
-	defer func() { repoRoot = orig }()
-
-	sub := filepath.Join(s.tmpDir, "opensearchapi")
-	got, err := resolveGenRoot(sub)
-	s.Require().NoError(err)
-	s.Require().Equal(sub, got)
+// TestNormalizeRepoRoot covers what `git rev-parse --show-toplevel` prints
+// under Git for Windows: a forward-slash path with a trailing newline. Every
+// caller compares it against filepath.Abs output, which uses the native
+// separator, so it has to be normalized before it is used.
+func TestNormalizeRepoRoot(t *testing.T) {
+	require.Equal(t, filepath.Clean("C:/Users/x/repo"), normalizeRepoRoot("  C:/Users/x/repo\n"))
+	require.Equal(t, filepath.Clean("/home/x/repo"), normalizeRepoRoot("/home/x/repo\n"))
 }
 
 func buildTestSpecWithPlugin(t *testing.T) string {

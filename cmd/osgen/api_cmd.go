@@ -376,6 +376,14 @@ func removeStaleGenFiles(root string, written set[string]) (int, error) {
 //nolint:gochecknoglobals // function var swapped by tests
 var repoRoot = repoRootGit
 
+// normalizeRepoRoot converts the output of `git rev-parse --show-toplevel`
+// into a native path. Git for Windows prints forward slashes, while
+// filepath.Abs returns backslashes, so without this every comparison against
+// the repository root fails on Windows.
+func normalizeRepoRoot(out string) string {
+	return filepath.Clean(filepath.FromSlash(strings.TrimSpace(out)))
+}
+
 func repoRootGit() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -383,7 +391,7 @@ func repoRootGit() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("not inside a git repository: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	return normalizeRepoRoot(string(out)), nil
 }
 
 // resolveGenRoot cleans and resolves root to an absolute path, then verifies
@@ -409,12 +417,6 @@ func resolveGenRoot(root string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("%w (set %s=1 to bypass)", err, envSkipGitCheck)
 		}
-		// git rev-parse --show-toplevel prints forward slashes even on Windows
-		// (Git for Windows normalizes its output), while filepath.Abs above
-		// returns a backslash-separated path. Without this, the prefix check
-		// below never matches on Windows and every legitimate subdirectory is
-		// rejected as "outside git root".
-		gitTop = filepath.Clean(filepath.FromSlash(gitTop))
 		if abs != gitTop && !strings.HasPrefix(abs, gitTop+string(filepath.Separator)) {
 			return "", fmt.Errorf("refusing to operate on %q: outside git root %q (set %s=1 to bypass)", abs, gitTop, envSkipGitCheck)
 		}
