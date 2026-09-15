@@ -104,6 +104,18 @@ params := opensearchapi.SearchParams{
 
 `opensearch.ToPointer(v)` is a generic helper. It is deprecated; once the module's `go` directive moves to Go 1.26, `new(false)` literals work directly.
 
+### Document `version` query parameters are `*int`
+
+v4 typed `IndexParams.Version` (and the matching field on create/delete/get/exists/termvectors) as `*int`. v5 RC generated them as `int`, which dropped `version=0` under the `!= 0` emission guard, so external versioning with version 0 silently used internal versioning. They are `*int` again so a deliberate `0` reaches the wire. See [`UPGRADING_V5.md`](../UPGRADING_V5.md#document-version-query-parameters-are-int).
+
+```go
+// v4 and v5
+Params: &opensearchapi.IndexParams{
+    Version:     opensearch.ToPointer(0),
+    VersionType: opensearchapi.VersionTypeExternal,
+}
+```
+
 ### Partial-failure type renames
 
 The v5 and v4 `opensearchapi/` packages carry the same high-level partial-failure error types (`*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`, `*MSearchErrors`, `*MSearchTemplateErrors`). The internal field types diverge because v5 is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):
