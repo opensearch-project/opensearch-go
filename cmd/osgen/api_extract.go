@@ -129,6 +129,7 @@ type apiQueryParam struct {
 	IsBool            bool
 	IsList            bool // true if the value is comma-joined ([]string)
 	IsInt             bool
+	IsFloat           bool // true if the value is an OpenAPI number (float64 / *float64)
 	IsStringEnum      bool // true when GoType is a named string-enum type (needs a string() cast on serialize)
 	Required          bool
 	Deprecated        bool
@@ -609,12 +610,24 @@ func extractQueryParamsUnion(group string, ops []struct {
 
 				if p.Schema != nil && p.Schema.Value != nil {
 					s := p.Schema.Value
-					qp.GoType, qp.IsDuration, qp.IsBool, qp.IsList, qp.IsInt = classifyParamSchema(s, ref)
+					cls := classifyParamSchema(s, ref)
+					qp.GoType = cls.goType
+					qp.IsDuration = cls.isDuration
+					qp.IsBool = cls.isBool
+					qp.IsList = cls.isList
+					qp.IsInt = cls.isInt
+					qp.IsFloat = cls.isFloat
 					qp.SchemaRef = refToSchemaKey(p.Schema.Ref)
-					// Promote int -> *int for params whose 0 is a meaningful wire
-					// value, so it survives the != 0 emission guard.
-					if zeroMeaningfulIntParams.has(opParam{group, p.Name}) && qp.IsInt {
-						qp.GoType = "*int"
+					// Promote int -> *int and float64 -> *float64 for params
+					// whose 0 is a meaningful wire value, so it survives the
+					// != 0 emission guard.
+					if zeroMeaningfulNumericParams.has(opParam{group, p.Name}) {
+						switch {
+						case qp.IsInt:
+							qp.GoType = "*int"
+						case qp.IsFloat:
+							qp.GoType = "*float64"
+						}
 					}
 					if s.Default != nil {
 						qp.Default = fmt.Sprintf("%v", s.Default)
@@ -692,20 +705,21 @@ func sharedParamGroup(name string) ir.ParamGroup {
 }
 
 // opParam identifies a query parameter by its operation group and wire name.
-// Used as the key for zeroMeaningfulIntParams so lookups are type-safe and
+// Used as the key for zeroMeaningfulNumericParams so lookups are type-safe and
 // require no string parsing.
 type opParam struct {
 	group    string // x-operation-group, e.g. "search", "index"
 	wireName string // query-string parameter name, e.g. "if_seq_no"
 }
 
-// zeroMeaningfulIntParams are query parameters whose integer value 0 is a
-// meaningful wire value rather than a sentinel for "unset". These are generated
-// as *int (nil = omit, &0 = send 0) instead of plain int, which would drop 0
-// under the != 0 guard. Keyed by (operation group, wire name) because the same
-// wire name can be a 0-meaningful value for one operation and a page-size (where
-// 0 is meaningless) for another -- e.g. search size=0 returns aggregations with
-// no hits, but cat/list size=0 is not meaningful.
+// zeroMeaningfulNumericParams are query parameters whose numeric value 0 is a
+// meaningful wire value rather than a sentinel for "unset". Integer params are
+// generated as *int and number params as *float64 (nil = omit, &0 = send 0)
+// instead of a plain value type, which would drop 0 under the != 0 guard.
+// Keyed by (operation group, wire name) because the same wire name can be a
+// 0-meaningful value for one operation and a page-size (where 0 is
+// meaningless) for another -- e.g. search size=0 returns aggregations with no
+// hits, but cat/list size=0 is not meaningful.
 //
 // Cases:
 //   - if_seq_no / if_primary_term (delete/index/update and the plugin policy
@@ -714,52 +728,73 @@ type opParam struct {
 //     write to its shard has _seq_no == 0, and the server's "unset" sentinel is
 //     -2, so if_seq_no=0 must be sendable. (The core _create operation does not
 //     accept these params -- it fails if the document already exists -- so it is
-//     intentionally absent.)
+//     intentionally absent.) Core schemas type these as integer; some plugin
+//     schemas type if_primary_term as number, which follows the *float64 path.
 //   - search size=0: the server builds an EmptyTopDocsCollectorContext, running
 //     aggregations while returning no hits -- distinct from omitting size.
+//   - requests_per_second=0 on reindex / delete_by_query / update_by_query and
+//     their rethrottles: the documented pause value. Omitting the param is
+//     "no throttle", which is not the same as pausing.
 //
 //nolint:gochecknoglobals // const-ish read-only lookup table
-var zeroMeaningfulIntParams = set[opParam]{
-	{"delete", "if_primary_term"}:           {},
-	{"delete", "if_seq_no"}:                 {},
-	{"index", "if_primary_term"}:            {},
-	{"index", "if_seq_no"}:                  {},
-	{"ism.put_policies", "if_primary_term"}: {},
-	{"ism.put_policies", "if_seq_no"}:       {},
-	{"ism.put_policy", "if_primary_term"}:   {},
-	{"ism.put_policy", "if_seq_no"}:         {},
-	{"rollups.put", "if_primary_term"}:      {},
-	{"rollups.put", "if_seq_no"}:            {},
-	{"search", "size"}:                      {},
-	{"sm.update_policy", "if_primary_term"}: {},
-	{"sm.update_policy", "if_seq_no"}:       {},
-	{"transforms.put", "if_primary_term"}:   {},
-	{"transforms.put", "if_seq_no"}:         {},
-	{"update", "if_primary_term"}:           {},
-	{"update", "if_seq_no"}:                 {},
+var zeroMeaningfulNumericParams = set[opParam]{
+	{"delete", "if_primary_term"}:                         {},
+	{"delete", "if_seq_no"}:                               {},
+	{"delete_by_query", "requests_per_second"}:            {},
+	{"delete_by_query_rethrottle", "requests_per_second"}: {},
+	{"index", "if_primary_term"}:                          {},
+	{"index", "if_seq_no"}:                                {},
+	{"ism.put_policies", "if_primary_term"}:               {},
+	{"ism.put_policies", "if_seq_no"}:                     {},
+	{"ism.put_policy", "if_primary_term"}:                 {},
+	{"ism.put_policy", "if_seq_no"}:                       {},
+	{"reindex", "requests_per_second"}:                    {},
+	{"reindex_rethrottle", "requests_per_second"}:         {},
+	{"rollups.put", "if_primary_term"}:                    {},
+	{"rollups.put", "if_seq_no"}:                          {},
+	{"search", "size"}:                                    {},
+	{"sm.update_policy", "if_primary_term"}:               {},
+	{"sm.update_policy", "if_seq_no"}:                     {},
+	{"transforms.put", "if_primary_term"}:                 {},
+	{"transforms.put", "if_seq_no"}:                       {},
+	{"update", "if_primary_term"}:                         {},
+	{"update", "if_seq_no"}:                               {},
+	{"update_by_query", "requests_per_second"}:            {},
+	{"update_by_query_rethrottle", "requests_per_second"}: {},
+}
+
+// paramSchemaClass is the Go mapping of an OpenAPI query-parameter schema.
+type paramSchemaClass struct {
+	goType     string
+	isDuration bool
+	isBool     bool
+	isList     bool
+	isInt      bool
+	isFloat    bool
 }
 
 // classifyParamSchema maps an OpenAPI schema to its Go type and type flags.
-// It handles duration patterns, booleans, integers, and array types. Returns
-// (goType, isDuration, isBool, isList, isInt).
-func classifyParamSchema(s *openapi3.Schema, paramRef *openapi3.ParameterRef) (string, bool, bool, bool, bool) {
+// It handles duration patterns, booleans, integers, numbers, and array types.
+func classifyParamSchema(s *openapi3.Schema, paramRef *openapi3.ParameterRef) paramSchemaClass {
 	if isDurationSchema(s, paramRef) {
-		return "time.Duration", true, false, false, false
+		return paramSchemaClass{goType: "time.Duration", isDuration: true}
 	}
 	if s.Type != nil {
 		switch {
 		case s.Type.Is(openapi3.TypeBoolean):
-			return "*bool", false, true, false, false
-		case s.Type.Is(openapi3.TypeInteger), s.Type.Is(openapi3.TypeNumber):
-			return "int", false, false, false, true
+			return paramSchemaClass{goType: "*bool", isBool: true}
+		case s.Type.Is(openapi3.TypeInteger):
+			return paramSchemaClass{goType: "int", isInt: true}
+		case s.Type.Is(openapi3.TypeNumber):
+			return paramSchemaClass{goType: "float64", isFloat: true}
 		case s.Type.Is(openapi3.TypeArray):
-			return "[]string", false, false, true, false
+			return paramSchemaClass{goType: "[]string", isList: true}
 		}
 	}
 	if hasOneOfType(s, "array") {
-		return "[]string", false, false, true, false
+		return paramSchemaClass{goType: "[]string", isList: true}
 	}
-	return "string", false, false, false, false
+	return paramSchemaClass{goType: "string"}
 }
 
 // isDurationSchema detects OpenSearch duration parameters by checking for
