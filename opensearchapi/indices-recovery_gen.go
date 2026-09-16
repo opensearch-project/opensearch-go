@@ -286,10 +286,10 @@ type IndicesRecoveryOrigin struct {
 	Snapshot *string `json:"snapshot,omitempty"`
 
 	// SourceRemoteStoreRepository is the source remote store repository.
-	SourceRemoteStoreRepository *string `json:"sourceRemoteStoreRepository"`
+	SourceRemoteStoreRepository *string `json:"sourceRemoteStoreRepository,omitempty"`
 
 	// SourceRemoteTranslogRepository is the source remote translog repository.
-	SourceRemoteTranslogRepository *string `json:"sourceRemoteTranslogRepository"`
+	SourceRemoteTranslogRepository *string `json:"sourceRemoteTranslogRepository,omitempty"`
 
 	// TransportAddress is the transport address of a node.
 	TransportAddress *string `json:"transport_address,omitempty"`

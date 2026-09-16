@@ -150,21 +150,21 @@ type CatAllocationRecord struct {
 	// this metric from the node's operating system. Disk-based shard
 	// allocation uses this metric to assign shards to nodes based on available
 	// disk space.
-	DiskAvail *string `json:"disk.avail"`
+	DiskAvail *string `json:"disk.avail,omitempty"`
 
 	// DiskIndices. Disk space used by the node's shards. Does not include disk
 	// space for the translog or unassigned shards. IMPORTANT: This metric
 	// double-counts disk space for hard-linked files, such as those created
 	// when shrinking, splitting, or cloning an index.
-	DiskIndices *string `json:"disk.indices"`
+	DiskIndices *string `json:"disk.indices,omitempty"`
 
 	// DiskPercent. Total percentage of disk space in use. Calculated as
 	// `disk.used / disk.total`.
-	DiskPercent *string `json:"disk.percent"`
+	DiskPercent *string `json:"disk.percent,omitempty"`
 
 	// DiskTotal. Total disk space for the node, including in-use and available
 	// space.
-	DiskTotal *string `json:"disk.total"`
+	DiskTotal *string `json:"disk.total,omitempty"`
 
 	// DiskUsed. Total disk space in use. OpenSearch retrieves this metric from
 	// the node's operating system (OS). The metric includes disk space for:
@@ -172,13 +172,13 @@ type CatAllocationRecord struct {
 	// operating system; any other applications or files on the node. Unlike
 	// `disk.indices`, this metric does not double-count disk space for
 	// hard-linked files.
-	DiskUsed *string `json:"disk.used"`
+	DiskUsed *string `json:"disk.used,omitempty"`
 
 	// Host. Network host for the node. Set using the `network.host` setting.
-	Host *string `json:"host"`
+	Host *string `json:"host,omitempty"`
 
 	// IP address and port for the node.
-	IP *string `json:"ip"`
+	IP *string `json:"ip,omitempty"`
 
 	// Node. Name for the node. Set using the `node.name` setting.
 	Node *string `json:"node,omitempty"`

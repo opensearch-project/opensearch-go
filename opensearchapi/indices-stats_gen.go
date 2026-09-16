@@ -348,7 +348,7 @@ type IndicesStatsShardRouting struct {
 	Primary bool `json:"primary"`
 
 	// RelocatingNode is the node where the shard is relocating to.
-	RelocatingNode *string `json:"relocating_node"`
+	RelocatingNode *string `json:"relocating_node,omitempty"`
 
 	// State is the state of shard routing.
 	State string `json:"state"`
