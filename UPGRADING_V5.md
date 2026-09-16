@@ -395,7 +395,7 @@ Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
 
 // After
 Params: &opensearchapi.ReindexParams{
-    RequestsPerSecond: opensearch.ToPointer(42.0),
+    RequestsPerSecond: ptr(42.0),
 }
 ```
 
@@ -403,7 +403,7 @@ Params: &opensearchapi.ReindexParams{
 
 ```go
 Params: &opensearchapi.ReindexRethrottleParams{
-    RequestsPerSecond: opensearch.ToPointer(0.0),
+    RequestsPerSecond: ptr(0.0),
 }
 ```
 
@@ -578,3 +578,21 @@ cfg.OnError = func(ctx context.Context, err error) {
 ```
 
 The same error is what `Flush(ctx)` returns on the explicit-flush path, which does not call `OnError`. Set an `OnFailure` on the items you want handled per document, and leave it unset to route their rejections to `OnError` or the `Flush` return.
+
+## `opensearch.ToPointer` removed
+
+`opensearch.ToPointer` is removed. It was a thin, exported wrapper (`return ptr(value)`) kept around only for callers building `*T` request parameters; it was never needed internally, since call sites within this module use an unexported per-package `ptr` helper instead.
+
+Replace a call site with a one-line helper of your own:
+
+```go
+func ptr[T any](v T) *T { return &v }
+
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+```
+
+Once your module's `go` directive reaches 1.26, you can drop the helper entirely and use the native `new(value)` literal form instead:
+
+```go
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
+```

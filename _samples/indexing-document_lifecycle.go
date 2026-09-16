@@ -280,7 +280,7 @@ func example() error {
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices: []string{"movies", "paintings", "burner"},
-			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {
@@ -290,3 +290,6 @@ func example() error {
 
 	return nil
 }
+
+// ptr returns a pointer to v.
+func ptr[T any](v T) *T { return &v }
