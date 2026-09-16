@@ -556,3 +556,25 @@ func handler(ctx context.Context) error {
 ```
 
 `Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+
+## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
+
+When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
+
+A rejected document with no `OnFailure` of its own now has its error surfaced through `OnError` instead. A document that sets `OnFailure` is unchanged and reaches only that callback, and a batch whose rejections are all handled by `OnFailure` still triggers no `OnError`.
+
+```go
+// A document the cluster rejects (say, a version conflict) with no OnFailure
+// of its own.
+item := opensearchutil.BulkIndexerItem{Action: "create", DocumentID: "1", Body: body}
+
+// Before: the rejection was dropped. OnError did not fire, and with no
+// OnFailure the caller had no way to learn the document failed.
+
+// After: the rejection reaches OnError.
+cfg.OnError = func(ctx context.Context, err error) {
+    // err reports each rejected document that had no OnFailure of its own.
+}
+```
+
+The same error is what `Flush(ctx)` returns on the explicit-flush path, which does not call `OnError`. Set an `OnFailure` on the items you want handled per document, and leave it unset to route their rejections to `OnError` or the `Flush` return.
