@@ -564,15 +564,12 @@ func (w *worker) run(ctx context.Context) {
 					}
 					w.mu.Unlock()
 
-					// The request landed even when individual documents were
-					// rejected, and those reach the caller through OnFailure,
-					// so a partial failure is not a failed drain. Reporting it
-					// here would make a non-nil Flush error useless as a signal
-					// that the flush itself did not go through.
-					var partial *opensearchapi.PartialBulkError
-					if errors.As(err, &partial) {
-						err = nil
-					}
+					// err is nil when the buffer was empty or the request
+					// landed with every rejection handled by an OnFailure; it
+					// carries a rejection that had no OnFailure of its own, or a
+					// drain that did not land, otherwise. Forward it unchanged so
+					// Flush's caller learns of it -- this is the only channel on
+					// the explicit-flush path, which does not call OnError.
 					entry.flush.done <- err
 
 					continue
@@ -767,9 +764,11 @@ func (w *worker) flush(ctx context.Context) error {
 
 // processBulkResp reports the result of one bulk request: the per-item results
 // when the cluster answered, or a whole-buffer failure when the request did not
-// land. A *PartialBulkError is the former, so its rejected documents reach their
-// OnFailure callback and the flush sites (worker.run, auto-flush, Close) see no
-// error for it. It must be called under a lock.
+// land. A *PartialBulkError is the former, so each rejected document reaches its
+// OnFailure callback; a rejected document with no OnFailure has its error joined
+// into the return so the flush sites (worker.run, auto-flush, Close) surface it
+// through OnError. When every rejected document has an OnFailure, the return is
+// nil and OnError does not fire. It must be called under a lock.
 func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkResp, err error) error {
 	var partial *opensearchapi.PartialBulkError
 	if err != nil && !errors.As(err, &partial) {
@@ -788,6 +787,10 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 		))
 	}
 
+	// Errors for rejected items that have no OnFailure callback of their own.
+	// Left nil on the happy path (every item succeeds, or every rejected item
+	// has an OnFailure), so errors.Join returns nil and no OnError fires.
+	var errs []error
 	for i, blkItem := range blk.Items {
 		var (
 			item BulkIndexerItem
@@ -811,8 +814,12 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 		}
 		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
 			w.bi.stats.numFailed.Add(1)
+			// A rejected item goes to its own OnFailure; one without falls back
+			// to OnError so the failure is not swallowed.
 			if item.OnFailure != nil {
 				item.OnFailure(ctx, item, bulkRespItemForOnFailure(info), nil)
+			} else {
+				errs = append(errs, bulkItemFailure(op, info))
 			}
 		} else {
 			w.bi.stats.numFlushed.Add(1)
@@ -834,7 +841,7 @@ func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkRes
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func (w *worker) handleBulkError(ctx context.Context, err error) error {
@@ -858,4 +865,22 @@ func bulkRespItemForOnFailure(item opensearchapi.BulkRespItem) opensearchapi.Bul
 		item.Error = &opensearchapi.ErrorCause{}
 	}
 	return item
+}
+
+// bulkItemFailure builds the error handed to OnError for a rejected item that
+// has no OnFailure callback of its own. A status-only rejection (e.g. a 404
+// delete) carries no error object, so fall back to the status.
+func bulkItemFailure(op string, info opensearchapi.BulkRespItem) error {
+	var id string
+	if info.ID != nil {
+		id = *info.ID
+	}
+	if info.Error != nil {
+		var reason string
+		if info.Error.Reason != nil {
+			reason = *info.Error.Reason
+		}
+		return fmt.Errorf("%q %q rejected: %q: %q", op, id, info.Error.Type, reason)
+	}
+	return fmt.Errorf("%q %q rejected: status %d", op, id, info.Status)
 }

@@ -782,6 +782,49 @@ func TestBulkIndexerPerItemCallbacks(t *testing.T) {
 	}
 }
 
+// TestBulkIndexerOnErrorForUnhandledPartialFailure covers a mixed batch whose
+// rejected items carry no OnFailure of their own: each such failure is joined
+// into the error OnError receives, so a per-item rejection is never swallowed.
+// The two failures in the fixture exercise both shapes -- a rejection with an
+// error object (create "1") and a status-only rejection (delete "2").
+func TestBulkIndexerOnErrorForUnhandledPartialFailure(t *testing.T) {
+	t.Parallel()
+
+	body, err := os.ReadFile("testdata/bulk_response_2.json")
+	require.NoError(t, err)
+
+	client := newBulkTestClient(t, respondWith(string(body)), unmaskedBulkItems)
+
+	var (
+		onErrorCount int
+		onErrorErr   error
+	)
+	bi := newBulkIndexer(t, BulkIndexerConfig{
+		NumWorkers: 1,
+		Client:     client,
+		OnError: func(_ context.Context, err error) {
+			onErrorCount++
+			onErrorErr = err
+		},
+	})
+
+	// No OnFailure on any item, so both rejections fall back to OnError.
+	for _, item := range []BulkIndexerItem{
+		{Action: "index", DocumentID: "1", Body: strings.NewReader(`{"title":"foo"}`)},
+		{Action: "create", DocumentID: "1", Body: strings.NewReader(`{"title":"bar"}`)},
+		{Action: "delete", DocumentID: "2", Body: strings.NewReader(`{"title":"baz"}`)},
+		{Action: "update", DocumentID: "3", Body: strings.NewReader(`{"doc":{"title":"qux"}}`)},
+	} {
+		require.NoError(t, bi.Add(t.Context(), item))
+	}
+	require.NoError(t, bi.Close(t.Context()))
+
+	require.Equal(t, uint64(2), bi.Stats().NumFailed, "both rejected items are counted")
+	require.Equal(t, 1, onErrorCount, "OnError fires once for the flush carrying both unhandled rejections")
+	require.ErrorContains(t, onErrorErr, `"create" "1" rejected: "version_conflict_engine_exception"`)
+	require.ErrorContains(t, onErrorErr, `"delete" "2" rejected: status 404`)
+}
+
 // TestBulkIndexerFlushCallbacks checks that the context OnFlushStart returns is
 // the one OnFlushEnd is handed and the one the bulk request runs under, and that
 // the request goes to the configured index.
@@ -1564,8 +1607,11 @@ func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
 		status       int
 		body         string
 		transportErr error
-		wantErr      bool
-		wantFailed   uint64
+		// handlePerItem attaches an OnFailure to the item, so a per-item
+		// rejection is handled there rather than surfacing through Flush.
+		handlePerItem bool
+		wantErr       bool
+		wantFailed    uint64
 	}{
 		{
 			name:       "http error status",
@@ -1588,16 +1634,19 @@ func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
 			wantFailed: 1,
 		},
 		{
-			// The request landed; one document was rejected. That reaches the
-			// caller through OnFailure, so the drain itself did not fail and
-			// Flush must not report an error for it.
+			// The request landed; one document was rejected and the item has an
+			// OnFailure, so the rejection reaches the caller there. The drain
+			// itself did not fail, so Flush must not report an error for it. An
+			// item without an OnFailure instead surfaces through Flush -- see
+			// TestBulkIndexerOnErrorForUnhandledPartialFailure.
 			name:   "per-item rejection is not a flush failure",
 			status: http.StatusOK,
 			body: `{"took":1,"errors":true,"items":[` +
 				`{"index":{"_index":"i","_id":"doc_1","status":409,` +
 				`"error":{"type":"version_conflict_engine_exception","reason":"conflict"}}}]}`,
-			wantErr:    false,
-			wantFailed: 1,
+			handlePerItem: true,
+			wantErr:       false,
+			wantFailed:    1,
 		},
 	}
 
@@ -1625,11 +1674,15 @@ func TestBulkIndexerFlushReportsBulkFailure(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			require.NoError(t, bi.Add(t.Context(), BulkIndexerItem{
+			item := BulkIndexerItem{
 				Action:     actionIndex,
 				DocumentID: "doc_1",
 				Body:       strings.NewReader(`{"a":1}`),
-			}))
+			}
+			if tt.handlePerItem {
+				item.OnFailure = func(context.Context, BulkIndexerItem, opensearchapi.BulkRespItem, error) {}
+			}
+			require.NoError(t, bi.Add(t.Context(), item))
 
 			// A drain that did not land has to surface through Flush's return
 			// value; the caller has no other way to learn it failed.
