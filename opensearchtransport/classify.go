@@ -59,8 +59,8 @@ func NewOperationClassifier() *OperationClassifier {
 
 // Classify returns the [OperationID] for the given HTTP method and path.
 // Returns [OpOther] for unrecognized method+path combinations.
-func (c *OperationClassifier) Classify(method, path string) OperationID {
-	m, ok := c.trie.match(method, path)
+func (oc *OperationClassifier) Classify(method, path string) OperationID {
+	m, ok := oc.trie.match(method, path)
 	if !ok {
 		return OpOther
 	}

@@ -50,8 +50,8 @@ var (
 // loadConnState returns the current packed state of the connection.
 // Safe to call without holding any lock -- atomics are for "dirty reads"
 // for metrics or reporting, but not for state changes.
-// For pool-placement decisions, use isReady under c.mu.RLock.
-func (c *Connection) loadConnState() connState { return connState(c.state.Load()) }
+// For pool-placement decisions, use isReady under conn.mu.RLock.
+func (conn *Connection) loadConnState() connState { return connState(conn.state.Load()) }
 
 // isReady reports whether the connection should be eligible to be in the
 // ready list or not (lcActive or lcStandby). Returns false for connections
@@ -71,13 +71,13 @@ func (c *Connection) loadConnState() connState { return connState(c.state.Load()
 // visible to other pools and do not reflect that pool's own state.
 //
 // CALLER RESPONSIBILITIES:
-//   - Caller must hold c.mu.RLock (or c.mu.Lock).
+//   - Caller must hold conn.mu.RLock (or conn.mu.Lock).
 //
 // Usage requires an atomic Load as a dirty read, but changing a connection's
-// state requires c.mu.RLock (or c.mu.Lock) and predicate re-evaluation
+// state requires conn.mu.RLock (or conn.mu.Lock) and predicate re-evaluation
 // before resetting a bit to indicate a state change.
-func (c *Connection) isReady() bool {
-	lc := c.loadConnState().lifecycle()
+func (conn *Connection) isReady() bool {
+	lc := conn.loadConnState().lifecycle()
 	return lc.has(lcActive) || lc.has(lcStandby)
 }
 
@@ -109,9 +109,9 @@ func (c *Connection) isReady() bool {
 // next state equals the current state (no change needed).
 //
 // CALLER RESPONSIBILITIES:
-//   - Caller must hold c.mu (Lock or TryLock).
-//   - Lock ordering: cp.mu -> c.mu (never the reverse).
-func (c *Connection) casLifecycle(
+//   - Caller must hold conn.mu (Lock or TryLock).
+//   - Lock ordering: cp.mu -> conn.mu (never the reverse).
+func (conn *Connection) casLifecycle(
 	current connState,
 	conflict, set, clr connLifecycle,
 ) error {
@@ -128,28 +128,28 @@ func (c *Connection) casLifecycle(
 			return errLifecycleNoop
 		}
 		target := connState(raw).withLifecycle(next)
-		if c.state.CompareAndSwap(raw, int64(target)) {
-			Debug().Stringer("state_from", lc).Stringer("state_to", next).Str("conn", c.URLString).
+		if conn.state.CompareAndSwap(raw, int64(target)) {
+			Debug().Stringer("state_from", lc).Stringer("state_to", next).Str("conn", conn.URLString).
 				Msg("casLifecycle: applied lifecycle transition")
 			return nil
 		}
 		// CAS failed -- re-load and re-check masked bits before retrying.
-		raw = c.state.Load()
+		raw = conn.state.Load()
 	}
 }
 
 // setLifecycleBit atomically sets a single metadata bit.
 // Returns nil if the bit was newly set, errLifecycleNoop if already set,
 // or errLifecycleConflict if a concurrent transition mutated the bit.
-func (c *Connection) setLifecycleBit(bit connLifecycle) error {
-	return c.casLifecycle(c.loadConnState(), 0, bit, 0)
+func (conn *Connection) setLifecycleBit(bit connLifecycle) error {
+	return conn.casLifecycle(conn.loadConnState(), 0, bit, 0)
 }
 
 // clearLifecycleBit atomically clears a single metadata bit.
 // Returns nil if the bit was cleared, errLifecycleNoop if already clear,
 // or errLifecycleConflict if a concurrent transition mutated the bit.
-func (c *Connection) clearLifecycleBit(bit connLifecycle) error {
-	return c.casLifecycle(c.loadConnState(), 0, 0, bit)
+func (conn *Connection) clearLifecycleBit(bit connLifecycle) error {
+	return conn.casLifecycle(conn.loadConnState(), 0, 0, bit)
 }
 
 // setNeedsCatUpdate marks this connection as needing a /_cat/shards refresh
@@ -157,42 +157,42 @@ func (c *Connection) clearLifecycleBit(bit connLifecycle) error {
 // available for general routing (round-robin, zombie tryouts) but is
 // excluded from rendezvousTopK candidate sets until the flag is cleared
 // by a successful shard placement refresh.
-func (c *Connection) setNeedsCatUpdate() error {
-	return c.setLifecycleBit(lcNeedsCatUpdate)
+func (conn *Connection) setNeedsCatUpdate() error {
+	return conn.setLifecycleBit(lcNeedsCatUpdate)
 }
 
 // clearNeedsCatUpdate removes the shard-placement-stale flag, allowing
 // the connection to participate in shard-aware routing again. Called after
 // a successful /_cat/shards refresh confirms current shard placement.
-func (c *Connection) clearNeedsCatUpdate() error {
-	return c.clearLifecycleBit(lcNeedsCatUpdate)
+func (conn *Connection) clearNeedsCatUpdate() error {
+	return conn.clearLifecycleBit(lcNeedsCatUpdate)
 }
 
 // needsCatUpdate reports whether this connection has been flagged as needing
 // a /_cat/shards refresh. When true, the connection is excluded from shard-aware
 // routing candidate sets.
-func (c *Connection) needsCatUpdate() bool {
-	return c.loadConnState().lifecycle().has(lcNeedsCatUpdate)
+func (conn *Connection) needsCatUpdate() bool {
+	return conn.loadConnState().lifecycle().has(lcNeedsCatUpdate)
 }
 
 // hasClusterHealth reports whether this connection has been probed and supports
 // /_cluster/health?local=true.
-func (c *Connection) hasClusterHealth() bool {
-	lc := c.loadConnState().lifecycle()
+func (conn *Connection) hasClusterHealth() bool {
+	lc := conn.loadConnState().lifecycle()
 	return lc.has(lcClusterHealthProbed) && lc.has(lcClusterHealthAvailable)
 }
 
 // clusterHealthPending reports whether cluster health has never been probed on
 // this connection (neither probed nor available bits set).
-func (c *Connection) clusterHealthPending() bool {
-	lc := c.loadConnState().lifecycle()
+func (conn *Connection) clusterHealthPending() bool {
+	lc := conn.loadConnState().lifecycle()
 	return !lc.has(lcClusterHealthProbed) && !lc.has(lcClusterHealthAvailable)
 }
 
 // clusterHealthUnavailable reports whether cluster health was probed and found
 // unavailable (probed is set, available is not).
-func (c *Connection) clusterHealthUnavailable() bool {
-	lc := c.loadConnState().lifecycle()
+func (conn *Connection) clusterHealthUnavailable() bool {
+	lc := conn.loadConnState().lifecycle()
 	return lc.has(lcClusterHealthProbed) && !lc.has(lcClusterHealthAvailable)
 }
 
@@ -595,7 +595,7 @@ type ConnState struct {
 func (s ConnState) IsWarmingUp() bool { return connState(s.packed).isWarmingUp() }
 
 // IsHealthChecking reports whether a health check goroutine is running.
-// This is an observability signal -- checkStartedAt under c.mu remains
+// This is an observability signal -- checkStartedAt under conn.mu remains
 // the authoritative concurrency guard.
 func (s ConnState) IsHealthChecking() bool {
 	return connState(s.packed).lifecycle().has(lcHealthChecking)

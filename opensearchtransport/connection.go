@@ -190,7 +190,7 @@ type Connection struct {
 
 	// deadSinceNano and overloadedAtNano hold Unix-nanosecond timestamps, with 0
 	// meaning "unset" (the zero time). They are read lock-free by Metrics() and
-	// written under c.mu; see c.mu for the locking protocol. Use the
+	// written under conn.mu; see conn.mu for the locking protocol. Use the
 	// loadDeadSince/storeDeadSince/deadSinceIsZero accessors (and the overloadedAt
 	// equivalents) rather than touching these directly.
 	deadSinceNano    atomic.Int64
@@ -266,28 +266,28 @@ func nanoToTime(n int64) time.Time {
 
 // loadDeadSince returns the time the connection was marked dead, or the zero
 // time if it is alive. Lock-free.
-func (c *Connection) loadDeadSince() time.Time { return nanoToTime(c.deadSinceNano.Load()) }
+func (conn *Connection) loadDeadSince() time.Time { return nanoToTime(conn.deadSinceNano.Load()) }
 
 // storeDeadSince records (or clears, with the zero time) the dead timestamp.
-// Callers hold c.mu; see c.mu for the locking protocol.
-func (c *Connection) storeDeadSince(t time.Time) { c.deadSinceNano.Store(timeToNano(t)) }
+// Callers hold conn.mu; see conn.mu for the locking protocol.
+func (conn *Connection) storeDeadSince(t time.Time) { conn.deadSinceNano.Store(timeToNano(t)) }
 
 // deadSinceIsZero reports whether the connection is alive (no dead timestamp).
 // Lock-free.
-func (c *Connection) deadSinceIsZero() bool { return c.deadSinceNano.Load() == 0 }
+func (conn *Connection) deadSinceIsZero() bool { return conn.deadSinceNano.Load() == 0 }
 
 // loadOverloadedAt returns the time the connection was last marked overloaded,
 // or the zero time. Lock-free.
-func (c *Connection) loadOverloadedAt() time.Time { return nanoToTime(c.overloadedAtNano.Load()) }
+func (conn *Connection) loadOverloadedAt() time.Time { return nanoToTime(conn.overloadedAtNano.Load()) }
 
 // storeOverloadedAt records (or clears, with the zero time) the overloaded
-// timestamp. Callers hold c.mu; see c.mu for the locking protocol.
-func (c *Connection) storeOverloadedAt(t time.Time) { c.overloadedAtNano.Store(timeToNano(t)) }
+// timestamp. Callers hold conn.mu; see conn.mu for the locking protocol.
+func (conn *Connection) storeOverloadedAt(t time.Time) { conn.overloadedAtNano.Store(timeToNano(t)) }
 
 // effectiveWeight returns the connection's weight for round-robin selection.
 // Returns 1 if weight is zero (default for connections created without explicit weight).
-func (c *Connection) effectiveWeight() int {
-	w := int(c.weight.Load())
+func (conn *Connection) effectiveWeight() int {
+	w := int(conn.weight.Load())
 	if w <= 0 {
 		return 1
 	}
@@ -295,64 +295,64 @@ func (c *Connection) effectiveWeight() int {
 }
 
 // loadVersion atomically loads the server version string.
-func (c *Connection) loadVersion() string {
-	v, _ := c.version.Load().(string)
+func (conn *Connection) loadVersion() string {
+	v, _ := conn.version.Load().(string)
 	return v
 }
 
 // storeVersion atomically stores the server version string.
-func (c *Connection) storeVersion(v string) {
-	c.version.Store(v)
+func (conn *Connection) storeVersion(v string) {
+	conn.version.Store(v)
 }
 
 // loadAllocatedProcessors atomically loads the node's core count.
-func (c *Connection) loadAllocatedProcessors() int {
-	return int(c.allocatedProcessors.Load())
+func (conn *Connection) loadAllocatedProcessors() int {
+	return int(conn.allocatedProcessors.Load())
 }
 
 // storeAllocatedProcessors atomically stores the node's core count.
-func (c *Connection) storeAllocatedProcessors(v int) {
-	c.allocatedProcessors.Store(int32(v)) //nolint:gosec // core counts always fit in int32
+func (conn *Connection) storeAllocatedProcessors(v int) {
+	conn.allocatedProcessors.Store(int32(v)) //nolint:gosec // core counts always fit in int32
 }
 
 // decrementDrainingQuiescing atomically decrements the quiescing counter by 1 (if positive).
 // Returns the remaining count after decrement (0 means quiescing is complete).
 // Uses CompareAndSwap to avoid going negative under concurrent decrements.
-func (c *Connection) decrementDrainingQuiescing() int64 {
+func (conn *Connection) decrementDrainingQuiescing() int64 {
 	for {
-		current := c.drainingQuiescingRemaining.Load()
+		current := conn.drainingQuiescingRemaining.Load()
 		if current <= 0 {
 			return 0
 		}
-		if c.drainingQuiescingRemaining.CompareAndSwap(current, current-1) {
+		if conn.drainingQuiescingRemaining.CompareAndSwap(current, current-1) {
 			return current - 1
 		}
 	}
 }
 
 // markAsDeadWithLock marks the connection as dead (caller must hold lock).
-func (c *Connection) markAsDeadWithLock() {
-	if c.deadSinceIsZero() {
-		c.storeDeadSince(time.Now().UTC())
+func (conn *Connection) markAsDeadWithLock() {
+	if conn.deadSinceIsZero() {
+		conn.storeDeadSince(time.Now().UTC())
 	}
-	c.failures.Add(1)
+	conn.failures.Add(1)
 }
 
 // markAsReadyWithLock marks the connection as alive (caller must hold lock).
-func (c *Connection) markAsReadyWithLock() {
-	c.storeDeadSince(time.Time{})
+func (conn *Connection) markAsReadyWithLock() {
+	conn.storeDeadSince(time.Time{})
 	// Connection is reachable, therefore set lcViable. See the lcViable const
 	// comment for details. Noop if already set.
-	c.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
+	conn.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
 }
 
 // markAsHealthyWithLock marks the connection as healthy (caller must hold lock).
-func (c *Connection) markAsHealthyWithLock() {
-	c.storeDeadSince(time.Time{})
-	c.failures.Store(0)
+func (conn *Connection) markAsHealthyWithLock() {
+	conn.storeDeadSince(time.Time{})
+	conn.failures.Store(0)
 	// Connection is reachable, therefore set lcViable. See the lcViable const
 	// comment for details. Noop if already set.
-	c.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
+	conn.setLifecycleBit(lcViable) //nolint:errcheck // lock held; only errLifecycleNoop possible
 }
 
 // availableForRouting reports whether this connection may be handed to a
@@ -360,23 +360,23 @@ func (c *Connection) markAsHealthyWithLock() {
 // last-resort zombie. Available when it is a user-supplied seed (always
 // assumed reachable) or has been proven reachable. Lock-free (single atomic
 // load).
-func (c *Connection) availableForRouting() bool {
-	if c.seed {
+func (conn *Connection) availableForRouting() bool {
+	if conn.seed {
 		return true // user-supplied seed: assumed reachable
 	}
 	// See the lcViable const comment for why an unproven connection is excluded.
-	return c.loadConnState().lifecycle().has(lcViable)
+	return conn.loadConnState().lifecycle().has(lcViable)
 }
 
 // RTTMedian returns the median health-check round-trip time for this connection.
 // Returns -1 if no RTT data is available (the connection has not completed
 // enough health checks for the ring buffer median to drop below the unknown
 // sentinel).
-func (c *Connection) RTTMedian() time.Duration {
-	if c.rttRing == nil {
+func (conn *Connection) RTTMedian() time.Duration {
+	if conn.rttRing == nil {
 		return -1
 	}
-	bucket := c.rttRing.medianBucket()
+	bucket := conn.rttRing.medianBucket()
 	if bucket.IsUnknown() {
 		return -1
 	}
@@ -390,11 +390,11 @@ func (c *Connection) RTTMedian() time.Duration {
 // This is the value used in routing score calculations:
 //
 //	score = rttBucket * (inFlight + 1) / cwnd * shardCostMultiplier
-func (c *Connection) RTTBucket() int64 {
-	if c.rttRing == nil {
+func (conn *Connection) RTTBucket() int64 {
+	if conn.rttRing == nil {
 		return -1
 	}
-	bucket := c.rttRing.medianBucket()
+	bucket := conn.rttRing.medianBucket()
 	if bucket.IsUnknown() {
 		return -1
 	}
@@ -413,8 +413,8 @@ func (c *Connection) RTTBucket() int64 {
 // for load-shedding (a busy node is busy regardless of where time is spent)
 // and most accurate when shard-aware routing is effective (requests hit
 // shard-hosting nodes, minimizing coordinator overhead).
-func (c *Connection) EstLoad() float64 {
-	return c.estLoad.load()
+func (conn *Connection) EstLoad() float64 {
+	return conn.estLoad.load()
 }
 
 // recordCPUTime estimates the server-side CPU time consumed by a completed
@@ -451,8 +451,8 @@ func (c *Connection) EstLoad() float64 {
 //
 // The counter uses time-weighted EWMA ([timeWeightedCounter]): decay is
 // tied to wall clock time, not request rate.
-func (c *Connection) recordCPUTime(requestDuration time.Duration) {
-	baseline := c.RTTMedian()
+func (conn *Connection) recordCPUTime(requestDuration time.Duration) {
+	baseline := conn.RTTMedian()
 	if baseline <= 0 {
 		return // No health-check baseline yet
 	}
@@ -460,7 +460,7 @@ func (c *Connection) recordCPUTime(requestDuration time.Duration) {
 	if !serverTime.IsPositive() {
 		return // Request was faster than baseline (cached or timing jitter)
 	}
-	processors := c.loadAllocatedProcessors()
+	processors := conn.loadAllocatedProcessors()
 	if processors <= 0 {
 		processors = defaultServerCoreCount
 	}
@@ -472,47 +472,47 @@ func (c *Connection) recordCPUTime(requestDuration time.Duration) {
 	// formula (score = rttBucket * counter * wp). This makes the equilibrium
 	// distribution depend only on wp, not on RTT tier placement.
 	cost := float64(cpuNanos.Micros())
-	thisBucket := float64(c.rttRing.medianBucket())
+	thisBucket := float64(conn.rttRing.medianBucket())
 	if thisBucket > 0 {
 		cost /= thisBucket
 	}
 
-	c.estLoad.add(cost)
+	conn.estLoad.add(cost)
 }
 
 // addInFlight atomically increments the in-flight counter for the named
 // thread pool and returns the new value. Empty poolName uses the default pool.
-func (c *Connection) addInFlight(poolName string) int32 {
-	pc := c.pools.getForScoring(poolName)
+func (conn *Connection) addInFlight(poolName string) int32 {
+	pc := conn.pools.getForScoring(poolName)
 	return pc.inFlight.Add(1)
 }
 
 // releaseInFlight atomically decrements the in-flight counter for the named
 // thread pool and returns the new value. Empty poolName uses the default pool.
-func (c *Connection) releaseInFlight(poolName string) int32 {
-	pc := c.pools.getForScoring(poolName)
+func (conn *Connection) releaseInFlight(poolName string) int32 {
+	pc := conn.pools.getForScoring(poolName)
 	return pc.inFlight.Add(-1)
 }
 
 // loadInFlight returns the current in-flight count for the named thread pool.
 // Empty poolName uses the default pool.
-func (c *Connection) loadInFlight(poolName string) int32 {
-	return c.pools.getForScoring(poolName).inFlight.Load()
+func (conn *Connection) loadInFlight(poolName string) int32 {
+	return conn.pools.getForScoring(poolName).inFlight.Load()
 }
 
 // loadCwnd returns the current congestion window for the named thread pool.
 // Returns at least 1. When pool info is not yet available (pre-quorum),
 // returns defaultSyntheticCwndMultiplier * allocatedProcessors.
 // Empty poolName or unknown pool uses the default pool.
-func (c *Connection) loadCwnd(poolName string, poolInfoReady bool) int32 {
+func (conn *Connection) loadCwnd(poolName string, poolInfoReady bool) int32 {
 	if !poolInfoReady {
-		procs := c.allocatedProcessors.Load()
+		procs := conn.allocatedProcessors.Load()
 		if procs <= 0 {
 			procs = int32(defaultServerCoreCount)
 		}
 		return max(int32(defaultSyntheticCwndMultiplier)*procs, 1)
 	}
-	cwnd := c.pools.getForScoring(poolName).cwnd.Load()
+	cwnd := conn.pools.getForScoring(poolName).cwnd.Load()
 	if cwnd < 1 {
 		return 1
 	}
@@ -521,23 +521,23 @@ func (c *Connection) loadCwnd(poolName string, poolInfoReady bool) int32 {
 
 // isPoolOverloaded returns true if the named thread pool is overloaded
 // (delta(rejected) > 0 or HTTP 429). Empty poolName checks the default pool.
-func (c *Connection) isPoolOverloaded(poolName string) bool {
-	return c.pools.getForScoring(poolName).overloaded.Load()
+func (conn *Connection) isPoolOverloaded(poolName string) bool {
+	return conn.pools.getForScoring(poolName).overloaded.Load()
 }
 
 // storeMaxCwnd sets the thread pool's configured size as the cwnd ceiling.
 // Called by discovery when pool sizes are received.
-func (c *Connection) storeMaxCwnd(poolName string, size int) {
-	c.pools.setMaxCwnd(poolName, int32(size)) //nolint:gosec // pool sizes fit int32
+func (conn *Connection) storeMaxCwnd(poolName string, size int) {
+	conn.pools.setMaxCwnd(poolName, int32(size)) //nolint:gosec // pool sizes fit int32
 }
 
 // String returns a readable connection representation.
-func (c *Connection) String() string {
-	deadAt := c.loadDeadSince()
+func (conn *Connection) String() string {
+	deadAt := conn.loadDeadSince()
 
 	if deadAt.IsZero() {
-		return fmt.Sprintf("<%s> dead=false failures=%d", c.URL, c.failures.Load())
+		return fmt.Sprintf("<%s> dead=false failures=%d", conn.URL, conn.failures.Load())
 	}
 
-	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", c.URL, time.Since(deadAt), c.failures.Load())
+	return fmt.Sprintf("<%s> dead=true age=%s failures=%d", conn.URL, time.Since(deadAt), conn.failures.Load())
 }
