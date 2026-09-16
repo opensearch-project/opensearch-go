@@ -17,13 +17,15 @@ import (
 // GotConn may run on a different goroutine than RoundTrip's caller (HTTP/2),
 // so the slot is mutex-guarded.
 type attemptConn struct {
-	mu   sync.Mutex
-	conn net.Conn
+	mu struct {
+		sync.Mutex
+		conn net.Conn
+	}
 }
 
 func (a *attemptConn) set(c net.Conn) {
 	a.mu.Lock()
-	a.conn = c
+	a.mu.conn = c
 	a.mu.Unlock()
 }
 
@@ -33,8 +35,8 @@ func (a *attemptConn) set(c net.Conn) {
 // forces the next RoundTrip to dial. A nil or empty slot is a no-op.
 func (a *attemptConn) close() {
 	a.mu.Lock()
-	conn := a.conn
-	a.conn = nil
+	conn := a.mu.conn
+	a.mu.conn = nil
 	a.mu.Unlock()
 	if conn == nil {
 		return

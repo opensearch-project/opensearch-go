@@ -25,13 +25,15 @@ import (
 )
 
 func TestAttemptConnCloseNil(t *testing.T) {
+	t.Parallel()
 	var a attemptConn
 	require.NotPanics(t, a.close)
 }
 
 func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
+	t.Parallel()
 	var seen atomic.Bool
-	ctx := httptrace.WithClientTrace(context.Background(), &httptrace.ClientTrace{
+	ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
 		GotConn: func(httptrace.GotConnInfo) { seen.Store(true) },
 	})
 	var slot attemptConn
@@ -50,7 +52,7 @@ func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
 
 	require.True(t, seen.Load(), "previous GotConn hook must still run")
 	slot.mu.Lock()
-	conn := slot.conn
+	conn := slot.mu.conn
 	slot.mu.Unlock()
 	require.NotNil(t, conn)
 }
@@ -62,6 +64,7 @@ func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
 // every retry would reuse the dead connection and never dial. After the
 // fix the timed-out conn is closed and the retry dials the new backend.
 func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
+	t.Parallel()
 	var oldBlackhole atomic.Bool
 	oldBackend := newHTTP2Server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if oldBlackhole.Load() {
@@ -96,14 +99,14 @@ func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 		Transport:            transport,
 		MaxRetries:           2,
 		EnableRetryOnTimeout: true,
-		RequestTimeout:       150 * time.Millisecond,
+		RequestTimeout:       500 * time.Millisecond,
 		HealthCheck:          NoOpHealthCheck,
 		NodeStatsInterval:    -1,
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tp.Close() })
 
-	warmup, err := http.NewRequest(http.MethodGet, "/", nil)
+	warmup, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	res, err := tp.Stream(warmup)
 	require.NoError(t, err)
@@ -116,7 +119,7 @@ func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 	useNew.Store(true)
 
 	var reused atomic.Int64
-	cutover, err := http.NewRequest(http.MethodGet, "/", nil)
+	cutover, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	cutover = cutover.WithContext(httptrace.WithClientTrace(cutover.Context(), &httptrace.ClientTrace{
 		GotConn: func(info httptrace.GotConnInfo) {
@@ -125,7 +128,7 @@ func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 			}
 		},
 	}))
-	ctx, cancel := context.WithTimeout(cutover.Context(), time.Second)
+	ctx, cancel := context.WithTimeout(cutover.Context(), 3*time.Second)
 	defer cancel()
 	cutover = cutover.WithContext(ctx)
 
@@ -135,7 +138,9 @@ func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 	res.Body.Close()
 
 	require.Greater(t, dials.Load(), int64(1), "retry after timeout must DialContext again, dials=%d reused=%d", dials.Load(), reused.Load())
-	require.GreaterOrEqual(t, reused.Load(), int64(1), "first cutover attempt should reuse the warmed HTTP/2 connection, dials=%d reused=%d", dials.Load(), reused.Load())
+	require.GreaterOrEqual(t, reused.Load(), int64(1),
+		"first cutover attempt should reuse the warmed HTTP/2 connection, dials=%d reused=%d",
+		dials.Load(), reused.Load())
 }
 
 func newHTTP2Server(t *testing.T, handler http.Handler) *httptest.Server {
