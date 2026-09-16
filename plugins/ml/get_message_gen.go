@@ -97,7 +97,7 @@ type GetMessageResp struct {
 	CreateTime *string `json:"create_time,omitempty"`
 
 	// Input is the question in the message.
-	Input *string `json:"input"`
+	Input *string `json:"input,omitempty"`
 
 	// MemoryID is the name of a resource or configuration element.
 	MemoryID *string `json:"memory_id,omitempty"`
@@ -106,16 +106,16 @@ type GetMessageResp struct {
 	MessageID *string `json:"message_id,omitempty"`
 
 	// Origin is the system name that generated the response.
-	Origin *string `json:"origin"`
+	Origin *string `json:"origin,omitempty"`
 
 	// ParentMessageID is the parent message ID.
-	ParentMessageID *string `json:"parent_message_id"`
+	ParentMessageID *string `json:"parent_message_id,omitempty"`
 
 	// PromptTemplate is the prompt template.
-	PromptTemplate *string `json:"prompt_template"`
+	PromptTemplate *string `json:"prompt_template,omitempty"`
 
 	// Response is the answer to the question.
-	Response *string `json:"response"`
+	Response *string `json:"response,omitempty"`
 
 	// Role is the role of the message.
 	Role *string `json:"role,omitempty"`

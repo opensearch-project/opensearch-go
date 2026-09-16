@@ -374,6 +374,39 @@ b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isol
 
 To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.
 
+## Number query parameters are `float64`
+
+`cmd/osgen` typed OpenAPI `number` query parameters as `int`, so fractional values could not be sent and `0` was dropped by the `!= 0` emission guard. `number` now maps to `float64`. Parameters whose `0` is a documented wire value (the `requests_per_second` pause, and plugin `if_primary_term` schemas the spec types as `number`) are `*float64`, matching the `*int` pattern used for zero-meaningful integers.
+
+| Param                                                                                                                                    | Was    | Now                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------- |
+| `CountParams.MinScore`                                                                                                                   | `int`  | `float64`                             |
+| `RequestsPerSecond` on reindex / delete-by-query / update-by-query and their rethrottles                                                 | `int`  | `*float64` (`nil` omits; `&0` pauses) |
+| Plugin `if_primary_term` query params typed as `number` in the spec (`ism.put_policy` / `put_policies`, `rollups.put`, `transforms.put`) | `*int` | `*float64`                            |
+| `transforms.search` `from` / `size`                                                                                                      | `int`  | `float64`                             |
+
+Core document `if_primary_term` (`index` / `update` / `delete`) stays `*int` because those schemas are `type: integer`. Search-body `MinScore` and response `RequestsPerSecond` were already floating-point and are unchanged.
+
+Integer literals still assign to the value-typed fields (`MinScore: 1` compiles). Pointer fields need a `*float64`:
+
+```go
+// Before
+Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
+
+// After
+Params: &opensearchapi.ReindexParams{
+    RequestsPerSecond: ptr(42.0),
+}
+```
+
+`requests_per_second=0` (pause a running reindex) now reaches the wire:
+
+```go
+Params: &opensearchapi.ReindexRethrottleParams{
+    RequestsPerSecond: ptr(0.0),
+}
+```
+
 ## Field-scoped query clauses are union-typed
 
 The field-scoped clauses on `CommonQueryDSLQueryContainer` (`match`, `match_phrase`, `term`, `prefix`, and the rest) used to carry only the shorthand value, because the generator dropped the spec branch describing the full form. They now carry the union of both forms, and `distance_feature` is a typed union rather than `json.RawMessage`.
@@ -523,6 +556,28 @@ func handler(ctx context.Context) error {
 ```
 
 `Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+
+## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
+
+When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
+
+A rejected document with no `OnFailure` of its own now has its error surfaced through `OnError` instead. A document that sets `OnFailure` is unchanged and reaches only that callback, and a batch whose rejections are all handled by `OnFailure` still triggers no `OnError`.
+
+```go
+// A document the cluster rejects (say, a version conflict) with no OnFailure
+// of its own.
+item := opensearchutil.BulkIndexerItem{Action: "create", DocumentID: "1", Body: body}
+
+// Before: the rejection was dropped. OnError did not fire, and with no
+// OnFailure the caller had no way to learn the document failed.
+
+// After: the rejection reaches OnError.
+cfg.OnError = func(ctx context.Context, err error) {
+    // err reports each rejected document that had no OnFailure of its own.
+}
+```
+
+The same error is what `Flush(ctx)` returns on the explicit-flush path, which does not call `OnError`. Set an `OnFailure` on the items you want handled per document, and leave it unset to route their rejections to `OnError` or the `Flush` return.
 
 ## `opensearch.ToPointer` removed
 

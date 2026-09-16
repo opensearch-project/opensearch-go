@@ -320,3 +320,59 @@ func TestScriptBodiesMarshalDocumentedShapes(t *testing.T) {
 		})
 	}
 }
+
+// An optional nullable request field is a pointer so a caller can leave it
+// unset, and unset must mean absent on the wire. The spec types range bounds
+// `from`/`to` as oneOf [value, null], so a nil bound is omitted rather than
+// sent as `"from":null,"to":null`. Guards #1114.
+func TestRangeQueryOmitsUnsetBounds(t *testing.T) {
+	t.Parallel()
+
+	lt := "2026-01-01T00:00:00Z"
+	from := "now-1d"
+	to := "now"
+	gte := 1.5
+
+	tests := []struct {
+		name  string
+		query opensearchapi.CommonQueryDSLRangeQuery
+		want  string
+	}{
+		{
+			name: "date range with only lt",
+			query: opensearchapi.NewCommonQueryDSLRangeQueryFromDateRangeQuery(
+				opensearchapi.CommonQueryDSLDateRangeQuery{Lt: &lt},
+			),
+			want: `{"lt":"2026-01-01T00:00:00Z"}`,
+		},
+		{
+			name: "date range with from and to set",
+			query: opensearchapi.NewCommonQueryDSLRangeQueryFromDateRangeQuery(
+				opensearchapi.CommonQueryDSLDateRangeQuery{From: &from, To: &to},
+			),
+			want: `{"from":"now-1d","to":"now"}`,
+		},
+		{
+			name: "number range with only gte",
+			query: opensearchapi.NewCommonQueryDSLRangeQueryFromNumberRangeQuery(
+				opensearchapi.CommonQueryDSLNumberRangeQuery{Gte: &gte},
+			),
+			want: `{"gte":1.5}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := json.Marshal(opensearchapi.SearchBody{
+				Query: &opensearchapi.CommonQueryDSLQueryContainer{
+					Range: map[string]opensearchapi.CommonQueryDSLRangeQuery{"field": tt.query},
+				},
+			})
+			require.NoError(t, err)
+			require.JSONEq(t, `{"query":{"range":{"field":`+tt.want+`}}}`, string(body))
+			require.NotContains(t, string(body), "null")
+		})
+	}
+}

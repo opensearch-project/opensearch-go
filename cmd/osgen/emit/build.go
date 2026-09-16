@@ -304,6 +304,23 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 			},
 		}
 	}
+	// *float64 params emit both a fractional value and 0 so the pause-value
+	// encoding of requests_per_second=0 is exercised (a != 0 guard would
+	// silently drop it).
+	if p.Kind == ir.ParamFloat && p.GoType == "*float64" {
+		return []ParamTestCase{
+			{
+				Name:        p.WireName,
+				FieldAssign: fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1.5)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "1.5"),
+			},
+			{
+				Name:        p.WireName + "=0",
+				FieldAssign: fmt.Sprintf("%s: func(f float64) *float64 { return &f }(0)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "0"),
+			},
+		}
+	}
 	tc := ParamTestCase{Name: p.WireName}
 	tc.FieldAssign, tc.WantAssign = paramTestValues(p)
 	return []ParamTestCase{tc}
@@ -333,6 +350,13 @@ func paramTestValues(p ir.QueryParam) (string, string) {
 			fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
 		}
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "42")
+	case ir.ParamFloat:
+		if p.GoType == "*float64" {
+			fieldAssign = fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1.5)", p.GoName)
+		} else {
+			fieldAssign = fmt.Sprintf("%s: 1.5", p.GoName)
+		}
+		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "1.5")
 	case ir.ParamString:
 		fallthrough
 	default:
@@ -975,14 +999,14 @@ func fixtureNeedsName(kind fixtureType) bool {
 // hasRequiredStringParam reports whether the operation has any required query
 // parameter of string or list kind. These parameters use the `name` variable
 // in generated integration tests, so its presence means NeedsName must be true.
-// Duration, bool, and int params use literal values and don't need `name`.
+// Duration, bool, int, and float params use literal values and don't need `name`.
 func hasRequiredStringParam(op *ir.Operation) bool {
 	for _, p := range op.QueryParams {
 		if !p.Required {
 			continue
 		}
 		switch p.Kind {
-		case ir.ParamDuration, ir.ParamBool, ir.ParamInt:
+		case ir.ParamDuration, ir.ParamBool, ir.ParamInt, ir.ParamFloat:
 			continue
 		case ir.ParamString, ir.ParamList:
 			return true
@@ -1294,6 +1318,12 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamInt:
 			if p.GoType == "*int" {
 				fields = append(fields, fmt.Sprintf("%s: func(i int) *int { return &i }(1)", p.GoName))
+			} else {
+				fields = append(fields, p.GoName+": 1")
+			}
+		case ir.ParamFloat:
+			if p.GoType == "*float64" {
+				fields = append(fields, fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1)", p.GoName))
 			} else {
 				fields = append(fields, p.GoName+": 1")
 			}
