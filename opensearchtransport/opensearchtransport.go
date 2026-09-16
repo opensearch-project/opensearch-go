@@ -1954,6 +1954,8 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		}
 	}
 	dur := time.Since(start)
+	sr.sendStart = start
+	sr.ttfb = dur
 
 	if c.logger != nil {
 		c.logRoundTrip(req, res, err, start.UTC(), dur)

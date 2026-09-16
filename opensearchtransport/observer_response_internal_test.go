@@ -128,6 +128,46 @@ func TestRequestFiresRequestResponseEvent(t *testing.T) {
 	require.Equal(t, payload, string(buf))
 }
 
+// TestRequestRecordsDurationOnSeedFallback: seeds start dead in the default
+// router until the async health check succeeds, so Route can return
+// ErrNoConnections and seed fallback serves the request. Fallback must record
+// sendStart/ttfb or Request reports a 0 duration for a successful 200.
+func TestRequestRecordsDurationOnSeedFallback(t *testing.T) {
+	const payload = `{"ok":true}`
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.WriteString(w, payload)
+	}))
+	t.Cleanup(ts.Close)
+
+	obs := newRecordingObserver()
+	tp, err := New(Config{
+		URLs:              []*url.URL{mustParseURL(ts.URL)},
+		Observer:          obs,
+		Router:            &emptyRouter{},
+		HealthCheck:       NoOpHealthCheck,
+		NodeStatsInterval: -1,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+	require.NoError(t, err)
+
+	res, err := tp.Request(req)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = res.Body.Close() })
+
+	events := obs.getReqRespEvents()
+	require.Len(t, events, 1)
+	got := events[0]
+	require.Equal(t, http.StatusOK, got.StatusCode)
+	require.Equal(t, int64(len(payload)), got.ResponseBytes)
+	require.Greater(t, got.Duration, time.Duration(0),
+		"seed fallback must record sendStart so full-read duration is measured")
+	require.True(t, tp.discoveryNeeded.Load(), "seed fallback must set discoveryNeeded")
+}
+
 func TestRequestBuffersEmptyBody(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
