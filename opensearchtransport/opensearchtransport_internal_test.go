@@ -1429,6 +1429,58 @@ func TestRequestCompression(t *testing.T) {
 	}
 }
 
+// TestStreamClosesOriginalRequestBodyAfterSnapshot verifies that compress and
+// retry-buffer snapshotting close the caller's Body after replacing it with a
+// NopCloser over the snapshot. RoundTrip closes only the attached Body, so a
+// file or tracing wrapper would otherwise leak. Generated APIs wrap bytes in
+// NopCloser, whose Close is a no-op; this test uses a ReadCloser that records
+// Close.
+func TestStreamClosesOriginalRequestBodyAfterSnapshot(t *testing.T) {
+	tests := []struct {
+		name     string
+		compress bool
+	}{
+		{name: "compress", compress: true},
+		{name: "retry buffer", compress: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var closeCount atomic.Int32
+			body := &trackingReadCloser{
+				Reader:  strings.NewReader("payload"),
+				onClose: func() { closeCount.Add(1) },
+			}
+
+			u, err := url.Parse("https://foo.com/bar")
+			require.NoError(t, err)
+			tp, err := New(Config{
+				URLs:                []*url.URL{u},
+				CompressRequestBody: tt.compress,
+				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
+				Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusOK, Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", body)
+			require.NoError(t, err)
+			require.Nil(t, req.GetBody, "custom ReadCloser must not get a GetBody from net/http")
+
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			if res != nil && res.Body != nil {
+				_ = res.Body.Close()
+			}
+
+			require.Equal(t, int32(1), closeCount.Load(), "original request body must be closed once after snapshot")
+			require.NotNil(t, req.GetBody, "snapshot must install GetBody for retries")
+		})
+	}
+}
+
 // TestStreamBuffering verifies that Stream returns the body unbuffered: the
 // underlying body must not be read or closed before the caller drains it. It
 // also pins where the backend rewrite lands -- on the request Stream sends, not
