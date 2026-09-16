@@ -97,7 +97,7 @@ type GetSslinfoResp struct {
 	PeerCertificates json.RawMessage `json:"peer_certificates"`
 
 	// PeerCertificatesList is a list of domain names from peer certificates.
-	PeerCertificatesList json.RawMessage `json:"peer_certificates_list"`
+	PeerCertificatesList json.RawMessage `json:"peer_certificates_list,omitempty"`
 
 	// Principal is the user's principal.
 	Principal *string `json:"principal"`
@@ -109,7 +109,7 @@ type GetSslinfoResp struct {
 	SSLOpensslAvailable *bool `json:"ssl_openssl_available,omitempty"`
 
 	// SSLOpensslNonAvailableCause is the reason OpenSSL is unavailable.
-	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause"`
+	SSLOpensslNonAvailableCause *string `json:"ssl_openssl_non_available_cause,omitempty"`
 
 	// SSLOpensslSupportsHostnameValidation. Whether the hostname validation is
 	// supported.
@@ -123,7 +123,7 @@ type GetSslinfoResp struct {
 
 	// SSLOpensslVersionString is the full version string for the OpenSSL
 	// version.
-	SSLOpensslVersionString *string `json:"ssl_openssl_version_string"`
+	SSLOpensslVersionString *string `json:"ssl_openssl_version_string,omitempty"`
 
 	// SSLProtocol is the protocol for this SSL setup.
 	SSLProtocol *string `json:"ssl_protocol"`

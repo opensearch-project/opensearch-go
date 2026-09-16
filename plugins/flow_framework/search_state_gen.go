@@ -142,7 +142,7 @@ type FlowFrameworkCommonStateHits struct {
 	// Hits is the list of search hits.
 	Hits []FlowFrameworkCommonStateItems `json:"hits,omitempty"`
 
-	MaxScore *float32                  `json:"max_score"`
+	MaxScore *float32                  `json:"max_score,omitempty"`
 	Total    *FlowFrameworkCommonTotal `json:"total,omitempty"`
 }
 
