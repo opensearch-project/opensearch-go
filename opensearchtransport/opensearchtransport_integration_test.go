@@ -30,6 +30,7 @@ package opensearchtransport_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -273,5 +274,80 @@ func TestTransportCompression(t *testing.T) {
 	}
 	if res != nil && res.Body != nil {
 		res.Body.Close()
+	}
+}
+
+func TestTransportAPIKeyAuth(t *testing.T) {
+	// API key creation requires the security plugin, which is only present in
+	// secure (HTTPS) integration environments.
+	if !testutil.IsSecure(t) {
+		t.Skip("TestTransportAPIKeyAuth requires SECURE_INTEGRATION=true (security plugin)")
+	}
+
+	tptestutil.SkipIfVersion(t, "<", "3.7.0", "API key auth was introduced in OpenSearch 3.7")
+
+	config := testutil.ClientConfig(t)
+	u := mockhttp.GetOpenSearchURL(t)
+
+	// Step 1: create an API key using admin credentials. The apitokens endpoint
+	// is only registered when api_tokens are enabled in the security config
+	// (config.dynamic.api_tokens.enabled), so a non-200 means the feature is not
+	// available on this cluster: skip rather than fail.
+	adminTP, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		Username:  config.Client.Username,
+		Password:  config.Client.Password,
+		Transport: config.Client.Transport,
+	})
+	if err != nil {
+		t.Fatalf("failed to create admin transport: %s", err)
+	}
+
+	createBody := strings.NewReader(`{"name":"go-client-test-key","cluster_permissions":["cluster_monitor"]}`)
+	createReq, _ := http.NewRequest(http.MethodPost, "/_plugins/_security/api/apitokens", createBody)
+	createReq.Header.Set("Content-Type", "application/json")
+	createRes, err := adminTP.Stream(createReq)
+	if err != nil {
+		t.Fatalf("failed to call /_plugins/_security/api/apitokens: %s", err)
+	}
+	defer createRes.Body.Close()
+
+	if createRes.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(createRes.Body)
+		t.Skipf("API key tokens not enabled on this cluster (status %d): %q", createRes.StatusCode, body)
+	}
+
+	// The plain-text token (prefixed "os_") is returned once in the "token" field.
+	var keyResp struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(createRes.Body).Decode(&keyResp); err != nil {
+		t.Fatalf("failed to decode API key response: %s", err)
+	}
+	if keyResp.Token == "" {
+		t.Fatal("API key response missing 'token' field")
+	}
+
+	// Step 2: build a transport that authenticates solely with the API key.
+	keyTP, err := opensearchtransport.New(opensearchtransport.Config{
+		URLs:      []*url.URL{u},
+		APIKey:    keyResp.Token,
+		Transport: config.Client.Transport,
+	})
+	if err != nil {
+		t.Fatalf("failed to create API key transport: %s", err)
+	}
+
+	// Step 3: verify the API key (with cluster_monitor) grants access.
+	infoReq, _ := http.NewRequest(http.MethodGet, "/_cluster/health", nil)
+	infoRes, err := keyTP.Stream(infoReq)
+	if err != nil {
+		t.Fatalf("GET /_cluster/health with API key failed: %s", err)
+	}
+	defer infoRes.Body.Close()
+	_, _ = io.ReadAll(infoRes.Body) // drain body; only the status matters here
+
+	if infoRes.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 from GET /_cluster/health with API key, got %d", infoRes.StatusCode)
 	}
 }

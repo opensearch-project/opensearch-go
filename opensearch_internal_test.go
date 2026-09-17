@@ -38,6 +38,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 	"testing/iotest"
 	"time"
@@ -169,6 +170,41 @@ func TestClientConfiguration(t *testing.T) {
 		require.NoError(t, err)
 		u := c.Transport.(*opensearchtransport.Transport).URLs()[0].String()
 		require.Equal(t, "http://admin:admin@localhost:8080", u)
+	})
+
+	t.Run("With APIKey sends correct Authorization header", func(t *testing.T) {
+		const key = "dGVzdGlkOnRlc3RrZXk="
+		// The transport runs a baseline health check goroutine at construction that
+		// also drives the mock RoundTrip, so guard the captured header against the
+		// concurrent request the client's own Stream call makes.
+		var gotAuth struct {
+			sync.Mutex
+			value string
+		}
+		c, err := NewClient(Config{
+			Addresses: []string{"http://localhost:9200"},
+			APIKey:    key,
+			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				gotAuth.Lock()
+				gotAuth.value = req.Header.Get("Authorization")
+				gotAuth.Unlock()
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Header:     make(http.Header),
+					Body:       io.NopCloser(strings.NewReader("")),
+				}, nil
+			}),
+		})
+		require.NoError(t, err)
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		resp, _ := c.Stream(req)
+		if resp != nil {
+			require.NoError(t, resp.Body.Close())
+		}
+		gotAuth.Lock()
+		got := gotAuth.value
+		gotAuth.Unlock()
+		require.Equal(t, "ApiKey "+key, got)
 	})
 
 	t.Run("With DiscoverNodes on start", func(t *testing.T) {
@@ -760,6 +796,9 @@ func TestConfigKey(t *testing.T) {
 				Config{Header: http.Header{"a": {"b", "c", "d"}}},
 				false,
 			},
+			{"diff api key", Config{APIKey: "key-a"}, Config{APIKey: "key-b"}, false},
+			{"same api key", Config{APIKey: "key-a"}, Config{APIKey: "key-a"}, true},
+			{"api key vs empty", Config{APIKey: "key-a"}, Config{}, false},
 			{"diff retry-on-status", Config{RetryOnStatus: []int{502}}, Config{RetryOnStatus: []int{503}}, false},
 			{"same retry-on-status", Config{RetryOnStatus: []int{502, 503}}, Config{RetryOnStatus: []int{502, 503}}, true},
 			{
@@ -829,7 +868,7 @@ func TestCachedDefaultKeyNotCacheable(t *testing.T) {
 // TestConfigKey_FieldGuard fails loudly when Config grows a field without a
 // corresponding update to configKey, preventing a silent cache-key collision.
 func TestConfigKey_FieldGuard(t *testing.T) {
-	const knownFieldCount = 49
+	const knownFieldCount = 50
 	got := reflect.TypeFor[Config]().NumField()
 	require.Equal(t, knownFieldCount, got,
 		"Config field count changed: audit configKey for the new field, then update knownFieldCount")
