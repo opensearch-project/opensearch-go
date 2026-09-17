@@ -220,7 +220,7 @@ func TestTimeoutClosesConnWithoutRetry(t *testing.T) {
 	h := newH2Cutover(t)
 	tp := h.client(Config{
 		MaxRetries:     0,
-		RequestTimeout: 300 * time.Millisecond,
+		RequestTimeout: 500 * time.Millisecond,
 	})
 	h.warmup(tp)
 
@@ -234,6 +234,34 @@ func TestTimeoutClosesConnWithoutRetry(t *testing.T) {
 	require.NoError(t, err, "next request must dial the replacement backend")
 	require.Greater(t, h.dials.Load(), int64(1),
 		"a timeout must retire the connection even when no retry follows, dials=%d", h.dials.Load())
+}
+
+// TestSeedFallbackTimeoutClosesConn drives the #1121 close through the seed-
+// fallback path: with the router exhausted (emptyRouter), Stream serves the
+// request from the seed pool, and a per-attempt timeout there must retire the
+// stalled HTTP/2 connection just as the main retry loop does -- so the next
+// fallback dials the replacement backend instead of reusing the black-holed
+// connection.
+func TestSeedFallbackTimeoutClosesConn(t *testing.T) {
+	t.Parallel()
+	h := newH2Cutover(t)
+	tp := h.client(Config{
+		Router:         &emptyRouter{},
+		MaxRetries:     0,
+		RequestTimeout: 500 * time.Millisecond,
+	})
+	h.warmup(tp) // seed fallback establishes one HTTP/2 connection
+
+	h.stallOld.Store(true)
+	h.useNew.Store(true)
+
+	_, err := h.get(tp, t.Context())
+	require.Error(t, err, "seed fallback timeout must fail")
+
+	_, err = h.get(tp, t.Context())
+	require.NoError(t, err, "next seed fallback must dial the replacement backend")
+	require.Greater(t, h.dials.Load(), int64(1),
+		"a seed-fallback timeout must retire the connection, dials=%d", h.dials.Load())
 }
 
 func newHTTP2Server(t *testing.T, handler http.Handler) *httptest.Server {
