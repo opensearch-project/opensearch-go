@@ -1192,9 +1192,9 @@ func TestRequestCompression(t *testing.T) {
 // TestPerformStreamBuffering covers the v4 split between Perform (buffered)
 // and Stream (raw, caller-owned body): the same handler must produce a
 // re-readable in-memory body when called via Perform and a live, un-drained,
-// caller-closeable body when called via Stream. Both entry points must
-// rewrite req.URL.Host to the selected backend address; that side effect is
-// load-bearing for downstream signing and routing.
+// caller-closeable body when called via Stream. It also pins where the backend
+// rewrite lands -- on the request the client sends, not on the caller's -- which
+// is load-bearing for downstream signing and routing.
 func TestPerformStreamBuffering(t *testing.T) {
 	const largeBody = "ABCDEFGHIJ"
 
@@ -1213,6 +1213,7 @@ func TestPerformStreamBuffering(t *testing.T) {
 			var (
 				bodyRead   atomic.Bool
 				bodyClosed atomic.Bool
+				sentHost   atomic.Value
 			)
 
 			u, err := url.Parse("http://backend.example:9200")
@@ -1221,6 +1222,7 @@ func TestPerformStreamBuffering(t *testing.T) {
 				URLs:              []*url.URL{u},
 				NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					sentHost.Store(req.URL.Host)
 					return &http.Response{
 						StatusCode: http.StatusOK,
 						Header:     http.Header{"X-Test": []string{"yes"}},
@@ -1248,10 +1250,18 @@ func TestPerformStreamBuffering(t *testing.T) {
 			require.Equal(t, http.StatusOK, res.StatusCode)
 			require.Equal(t, "yes", res.Header.Get("X-Test"))
 
-			// Both paths route the request through the configured backend,
-			// so req.URL.Host must reflect the selected connection.
-			require.Equal(t, "backend.example:9200", req.URL.Host,
-				"req.URL.Host must be rewritten to the selected backend")
+			// Both paths route through the configured backend, so the request
+			// they actually send carries that host.
+			require.Equal(t, "backend.example:9200", sentHost.Load(),
+				"the sent request must be rewritten to the selected backend")
+
+			// The caller's request is not the one that gets rewritten. Each
+			// attempt operates on its own clone, both to honor the
+			// http.RoundTripper contract ("RoundTrip should not modify the
+			// request") and because mutating a request the HTTP/2 transport may
+			// still be reading is a data race.
+			require.Empty(t, req.URL.Host, "the caller's request must not be modified")
+			require.Equal(t, "/test", req.URL.Path, "the caller's request must not be modified")
 
 			require.Equal(t, tt.wantBodyRead, bodyRead.Load(),
 				"unexpected bodyRead state before caller drains the body")
