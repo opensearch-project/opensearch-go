@@ -2,10 +2,16 @@
 
 Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [Unreleased]
+## [4.8.0]
+
+### Changed
+
+- `Perform` and `Stream` no longer modify the caller's `*http.Request`. Previously the transport rewrote the request you handed it in place -- `URL.Scheme`, `URL.Host`, `URL.Path` (prepending any connection base path), auth and signature headers, and sometimes `URL.RawQuery` -- and `Stream`'s godoc documented that side effect. Each attempt now operates on its own clone, so your request comes back untouched; signing, retry, and routing still see the resolved address. This is the fix for the data race described below, and it also stops a connection base path from stacking on retries (`/prefix/prefix/_search`). If you were reading the rewritten request to discover which node served a call, read it from the connection observer instead ([#1121](https://github.com/opensearch-project/opensearch-go/issues/1121))
 
 ### Fixed
 
+- Fix a data race between the retry loop and net/http's HTTP/2 transport. `stream()` reused one `*http.Request` across attempts and rewrote its `URL` and `Header` in place (`setReqURL`, `setReqAuth`, `signRequest`, adaptive `max_concurrent_shard_requests` injection). net/http encodes HTTP/2 request headers on a goroutine it spawns, and that goroutine reads the request's `URL` and `Header` -- so when an attempt was cancelled, `RoundTrip` returned while the encoder was still reading, and preparing the next attempt raced it. Reproduced under `-race` with an ordinary pattern: a caller context deadline expiring on an in-flight HTTP/2 request, followed by another request on the same client. Each attempt now clones the request, so nothing the transport may still be reading is ever mutated. See the `Changed` entry above for the observable consequence ([#1121](https://github.com/opensearch-project/opensearch-go/issues/1121))
+- Fix timeout retries reusing a stalled HTTP/2 connection. `RequestTimeout` cancels the attempt context, which RSTs the HTTP/2 stream but leaves the `ClientConn` in `http.Transport`'s pool, so with `EnableRetryOnTimeout` every retry was multiplexed onto the same (possibly black-holed) connection and `DialContext` never ran -- the failure mode after an Amazon OpenSearch Service blue/green cutover, where DNS already pointed at the replacement backend. A timed-out attempt now closes the underlying `net.Conn` so the next RoundTrip dials. Only a timeout the client generates does this: a caller's own expiring `context` deadline also reports `net.Error.Timeout()`, but it means the caller gave up rather than that the connection is bad, so the connection stays pooled. The connection is retired even when no retry follows (`EnableRetryOnTimeout` unset), so the next request dials instead of inheriting the stalled backend. The no-timeout default path is unchanged. Neither `CloseIdleConnections` (which skips connections with live streams) nor `Request.Close` (which marks whichever connection the _next_ request is assigned to, not the one that stalled) can retire a specific stalled HTTP/2 connection. See [`guides/retry_backoff.md`](guides/retry_backoff.md) ([#1121](https://github.com/opensearch-project/opensearch-go/issues/1121))
 - Fix `rendezvousTopK` sorting the live connection list when shard placement is unknown. `rankByHash` sorts in place, and the empty-placement path (`/_cat/shards` not yet populated: first requests, a new index, or `-cat_shards`) aliased the caller's `activeConns`/`sortedConns` slice instead of copying into the pooled buffer the shard-names path already used. Concurrent `Route()` then raced with discovery, and the RTT-bucket order that rendezvous filling "MUST" preserve — rebuilt on health checks, not per request — was destroyed. Both branches now copy before ranking ([#1090](https://github.com/opensearch-project/opensearch-go/pull/1090))
 
 ## [4.7.3]
@@ -695,6 +701,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
+[4.8.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.3...v4.8.0
 [4.7.3]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.2...v4.7.3
 [4.7.2]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.1...v4.7.2
 [4.7.1]: https://github.com/opensearch-project/opensearch-go/compare/v4.7.0...v4.7.1
