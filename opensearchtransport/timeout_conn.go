@@ -73,6 +73,6 @@ func closeTimedOutConn(conn net.Conn) {
 // underlying net.Conn on each attempt so a timeout can retire it. The
 // default path (no per-attempt timeout, no retry-on-timeout) stays
 // allocation-free.
-func (c *Transport) shouldTraceAttemptConn() bool {
-	return c.requestTimeout > 0 || c.enableRetryOnTimeout
+func (tr *Transport) shouldTraceAttemptConn() bool {
+	return tr.requestTimeout > 0 || tr.enableRetryOnTimeout
 }

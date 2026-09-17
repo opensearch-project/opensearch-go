@@ -93,13 +93,13 @@ func TestSetReqURL(t *testing.T) {
 	})
 }
 
-// TestSetReqURLRestoredPath rewrites a request once per attempt, the shape
+// TestSetReqURLPerAttemptClone rewrites a request once per attempt, the shape
 // stream() uses across retries: clone the caller's request, then setReqURL on
 // the clone. nodeURLs supplies the connection for each attempt in order, so a
 // prefixed seed followed by a prefix-less discovered node is a single row. The
 // caller's request must come out unchanged -- that is what keeps every attempt
 // starting from a pristine path, and what the seed-fallback branch relies on.
-func TestSetReqURLRestoredPath(t *testing.T) {
+func TestSetReqURLPerAttemptClone(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {

@@ -2110,7 +2110,7 @@ func (tr *Transport) URLs() []*url.URL {
 // when the connection has no base path). Route() matches on Path, and leftover
 // /prefix/_search is not a miss: the mux treats it as /{index}/_search with
 // index "prefix", so the retry would be classified against the wrong index.
-func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
+func (tr *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 

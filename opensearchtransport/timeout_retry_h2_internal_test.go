@@ -220,7 +220,7 @@ func TestTimeoutClosesConnWithoutRetry(t *testing.T) {
 	h := newH2Cutover(t)
 	tp := h.client(Config{
 		MaxRetries:     0,
-		RequestTimeout: 300 * time.Millisecond,
+		RequestTimeout: 500 * time.Millisecond,
 	})
 	h.warmup(tp)
 
