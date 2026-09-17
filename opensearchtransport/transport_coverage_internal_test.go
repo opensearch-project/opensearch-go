@@ -93,10 +93,12 @@ func TestSetReqURL(t *testing.T) {
 	})
 }
 
-// TestSetReqURLRestoredPath rewrites one *http.Request repeatedly, the shape
-// stream() uses across retries: [restoreReqPath] then setReqURL, once per
-// attempt. nodeURLs supplies the connection for each attempt in order, so a
-// prefixed seed followed by a prefix-less discovered node is a single row.
+// TestSetReqURLRestoredPath rewrites a request once per attempt, the shape
+// stream() uses across retries: clone the caller's request, then setReqURL on
+// the clone. nodeURLs supplies the connection for each attempt in order, so a
+// prefixed seed followed by a prefix-less discovered node is a single row. The
+// caller's request must come out unchanged -- that is what keeps every attempt
+// starting from a pristine path, and what the seed-fallback branch relies on.
 func TestSetReqURLRestoredPath(t *testing.T) {
 	t.Parallel()
 
@@ -141,14 +143,19 @@ func TestSetReqURLRestoredPath(t *testing.T) {
 				u, err := url.Parse(nodeURL)
 				require.NoError(t, err)
 
-				restoreReqPath(req, origPath, origRawPath)
-				c.setReqURL(u, req)
+				attemptReq := req.Clone(req.Context())
+				c.setReqURL(u, attemptReq)
 
-				require.Equal(t, tt.wantPaths[i], req.URL.Path)
-				require.Equal(t, u.Host, req.URL.Host)
+				require.Equal(t, tt.wantPaths[i], attemptReq.URL.Path)
+				require.Equal(t, u.Host, attemptReq.URL.Host)
 				if tt.wantRawPaths != nil {
-					require.Equal(t, tt.wantRawPaths[i], req.URL.RawPath)
+					require.Equal(t, tt.wantRawPaths[i], attemptReq.URL.RawPath)
 				}
+
+				require.Equal(t, origPath, req.URL.Path,
+					"the caller's request must not be rewritten")
+				require.Equal(t, origRawPath, req.URL.RawPath,
+					"the caller's request must not be rewritten")
 			}
 		})
 	}

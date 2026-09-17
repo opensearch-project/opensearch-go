@@ -10,56 +10,63 @@ import (
 	"context"
 	"net"
 	"net/http/httptrace"
-	"sync"
 )
 
-// attemptConn holds the net.Conn httptrace.GotConn reports for one RoundTrip.
-// GotConn may run on a different goroutine than RoundTrip's caller (HTTP/2),
-// so the slot is mutex-guarded.
-type attemptConn struct {
-	mu struct {
-		sync.Mutex
-		conn net.Conn
-	}
-}
-
-func (a *attemptConn) set(c net.Conn) {
-	a.mu.Lock()
-	a.mu.conn = c
-	a.mu.Unlock()
-}
-
-// close retires the captured connection. Canceling an HTTP/2 stream does not
-// retire the ClientConn, so a timeout retry would otherwise be multiplexed
-// onto the same (possibly black-holed) connection. Closing the net.Conn
-// forces the next RoundTrip to dial. A nil or empty slot is a no-op.
-func (a *attemptConn) close() {
-	a.mu.Lock()
-	conn := a.mu.conn
-	a.mu.conn = nil
-	a.mu.Unlock()
-	if conn == nil {
-		return
-	}
-	_ = conn.Close()
-}
-
 // withAttemptConnTrace records the net.Conn selected for this RoundTrip into
-// a. Existing ClientTrace hooks on ctx are preserved: the previous GotConn,
-// if any, still runs after the slot is updated.
-func withAttemptConnTrace(ctx context.Context, a *attemptConn) context.Context {
+// dst, so a timed-out attempt can retire the connection it stalled on.
+//
+// dst needs no synchronization. GotConn runs on the goroutine that called
+// RoundTrip, before RoundTrip returns, on both protocols: HTTP/2 calls it from
+// RoundTripOpt before handing the request to the ClientConn, and net/http calls
+// it for HTTP/1 inside getConn ("Trace success but only for HTTP/1. HTTP/2
+// calls trace.GotConn itself.").
+//
+// HTTP/2 may report more than one connection per outer RoundTrip, because
+// RoundTripOpt retries internally on GOAWAY and REFUSED_STREAM and traces each
+// connection it tries. Last write wins, which is what we want: the final
+// connection is the one the request actually ran on.
+//
+// Existing ClientTrace hooks on ctx are preserved -- the previous GotConn, if
+// any, still runs after dst is updated.
+func withAttemptConnTrace(ctx context.Context, dst *net.Conn) context.Context {
 	trace := &httptrace.ClientTrace{}
 	if prev := httptrace.ContextClientTrace(ctx); prev != nil {
 		*trace = *prev
 	}
 	prevGot := trace.GotConn
 	trace.GotConn = func(info httptrace.GotConnInfo) {
-		a.set(info.Conn)
+		*dst = info.Conn
 		if prevGot != nil {
 			prevGot(info)
 		}
 	}
 	return httptrace.WithClientTrace(ctx, trace)
+}
+
+// closeTimedOutConn retires the connection an attempt stalled on. Canceling an
+// HTTP/2 stream does not retire its ClientConn, so without this a timeout retry
+// is multiplexed onto the same (possibly black-holed) connection and
+// DialContext never runs. Closing the net.Conn forces the next RoundTrip to
+// dial. A nil conn is a no-op.
+//
+// This closes a connection httptrace declares off-limits: GotConnInfo.Conn is
+// "owned by the http.Transport and should not be read, written or closed by
+// users of ClientTrace". We do it because net/http exposes no sanctioned way to
+// retire one specific pooled HTTP/2 connection. CloseIdleConnections skips a
+// connection with live streams; Request.Close marks doNotReuse on whichever
+// ClientConn the *next* request is assigned to, which need not be the stalled
+// one; and golang.org/x/net/http2's ClientConnPool, the only API that can name
+// a single connection, is deprecated and would make us own dialing, ALPN, and
+// HTTP/1.1 fallback for all TLS traffic. If upstream ever provides a real way
+// to retire a pooled connection, this whole file goes away.
+//
+// Callers must only invoke this for a timeout they generated themselves; see
+// the call site in stream for why caller cancellation must not reach here.
+func closeTimedOutConn(conn net.Conn) {
+	if conn == nil {
+		return
+	}
+	_ = conn.Close()
 }
 
 // shouldTraceAttemptConn reports whether this transport should record the

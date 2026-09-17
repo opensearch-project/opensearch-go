@@ -73,7 +73,11 @@ To limit total wait time when the server is unresponsive, use a context with a d
 
 Use both together for defense in depth: `RequestTimeout` prevents any single attempt from hanging indefinitely, while a context deadline caps the total wall-clock time.
 
-Timeouts are not retried unless `EnableRetryOnTimeout` is set. When a per-attempt timeout does fire, the client closes the underlying TCP connection before the next attempt. HTTP/2 multiplexes streams on one connection; canceling the attempt context only RSTs that stream, so without closing the connection every retry would reuse a dead backend -- for example after an Amazon OpenSearch Service blue/green cutover, where the hostname already resolves to the replacement. `CloseIdleConnections` and `Request.Close` do not retire a hot HTTP/2 `ClientConn`.
+Timeouts are not retried unless `EnableRetryOnTimeout` is set. When a per-attempt timeout does fire, the client closes the underlying TCP connection before the next attempt. HTTP/2 multiplexes streams on one connection; canceling the attempt context only RSTs that stream, so without closing the connection every retry would reuse a dead backend -- for example after an Amazon OpenSearch Service blue/green cutover, where the hostname already resolves to the replacement. This applies to HTTP/1.1 too, but harmlessly: `net/http` already closes an HTTP/1.1 connection when a request is canceled.
+
+Only a timeout the client generates retires a connection. If your own `context` deadline expires, the connection is left in the pool: the timeout says the caller gave up, not that the connection is bad. The connection is also retired when `EnableRetryOnTimeout` is unset and no retry follows, so the *next* request dials rather than inheriting a stalled backend.
+
+Neither `CloseIdleConnections` nor `Request.Close` is a substitute here. `CloseIdleConnections` skips a connection that still has live streams, and `Request.Close` marks the connection the *next* request is assigned to, which need not be the one that stalled.
 
 ```go
 client, _ := opensearchapi.NewClient(opensearchapi.Config{

@@ -124,7 +124,9 @@ type Config struct {
 	// (including each retry). This bounds the maximum time a single request can
 	// block, preventing indefinite hangs on stalled connections.
 	// A timed-out attempt closes the underlying TCP connection so an HTTP/2
-	// retry dials instead of reusing the stalled ClientConn.
+	// retry dials instead of reusing the stalled ClientConn. A caller's own
+	// expiring context deadline does not: that reports the caller gave up, not
+	// that the connection is bad.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
