@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
@@ -96,8 +97,7 @@ type BulkIndexerConfig struct {
 	FlushBytes    int           // The flush threshold in bytes. Defaults to 5MB.
 	FlushInterval time.Duration // The flush threshold as duration. Defaults to 30sec.
 
-	Client      *opensearchapi.Client  // The OpenSearch client.
-	DebugLogger BulkIndexerDebugLogger // An optional logger for debugging.
+	Client *opensearchapi.Client // The OpenSearch client.
 
 	// Context for worker lifecycle. If nil, context.Background() will be used.
 	//nolint:containedctx // Config struct is short-lived, context extracted during New()
@@ -173,11 +173,6 @@ type bulkActionMetadata struct {
 	Refresh             *string `json:"refresh,omitempty"`
 	RequireAlias        *bool   `json:"require_alias,omitempty"`
 	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
-}
-
-// BulkIndexerDebugLogger defines the interface for a debugging logger.
-type BulkIndexerDebugLogger interface {
-	Printf(string, ...any)
 }
 
 // flushBarrier asks a worker to flush its buffer and report the result. It
@@ -491,9 +486,9 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 			case <-flushCtx.Done():
 				return
 			case <-bi.ticker.C:
-				if bi.config.DebugLogger != nil {
-					bi.config.DebugLogger.Printf("[indexer] Auto-flushing workers after %s\n", bi.config.FlushInterval)
-				}
+				opensearchtransport.Debug().
+					Dur("flush_interval", bi.config.FlushInterval).
+					Msg("BulkIndexer: auto-flushing workers")
 
 				for _, w := range bi.workers {
 					w.mu.Lock()
@@ -527,18 +522,14 @@ type worker struct {
 // run launches the worker in a goroutine.
 func (w *worker) run(ctx context.Context) {
 	go func() {
-		if w.bi.config.DebugLogger != nil {
-			w.bi.config.DebugLogger.Printf("[worker-%03d] Started\n", w.id)
-		}
+		opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker started")
 		defer w.bi.wg.Done()
 
 		for {
 			select {
 			case <-ctx.Done():
 				// Context cancelled, exit worker
-				if w.bi.config.DebugLogger != nil {
-					w.bi.config.DebugLogger.Printf("[worker-%03d] Context cancelled, stopping\n", w.id)
-				}
+				opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker context cancelled, stopping")
 				return
 			case entry, ok := <-w.ch:
 				if !ok {
@@ -547,9 +538,7 @@ func (w *worker) run(ctx context.Context) {
 				}
 
 				if entry.flush != nil {
-					if w.bi.config.DebugLogger != nil {
-						w.bi.config.DebugLogger.Printf("[worker-%03d] Received flush barrier\n", w.id)
-					}
+					opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker received flush barrier")
 
 					// Guarded like every other flush site, so a barrier that
 					// finds nothing buffered does not fire OnFlushStart and
@@ -579,10 +568,11 @@ func (w *worker) run(ctx context.Context) {
 
 				w.mu.Lock()
 
-				if w.bi.config.DebugLogger != nil {
-					w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
-						item.DocumentID)
-				}
+				opensearchtransport.Debug().
+					Int("worker", w.id).
+					Str("action", item.Action).
+					Str("doc_id", item.DocumentID).
+					Msg("BulkIndexer: worker received item")
 
 				if err := w.writeItem(ctx, item); err != nil {
 					if item.OnFailure != nil {
@@ -717,9 +707,7 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	if w.buf.Len() < 1 {
-		if w.bi.config.DebugLogger != nil {
-			w.bi.config.DebugLogger.Printf("[worker-%03d] Flush: Buffer empty\n", w.id)
-		}
+		opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: flush skipped, buffer empty")
 		return nil
 	}
 
@@ -729,9 +717,10 @@ func (w *worker) flush(ctx context.Context) error {
 		w.buf.Reset()
 	}()
 
-	if w.bi.config.DebugLogger != nil {
-		w.bi.config.DebugLogger.Printf("[worker-%03d] Flush: %s\n", w.id, w.buf.String())
-	}
+	// w.buf is passed as a Stringer so its contents are rendered only when a
+	// debug logger is installed; the emit runs before the deferred Reset above,
+	// so the buffer is still intact.
+	opensearchtransport.Debug().Int("worker", w.id).Stringer("body", w.buf).Msg("BulkIndexer: flush")
 
 	w.bi.stats.numRequests.Add(1)
 	req := opensearchapi.BulkReq{
