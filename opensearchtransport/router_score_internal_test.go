@@ -33,13 +33,13 @@ func newTestClock() *testClock {
 }
 
 // Now returns the current frozen time.
-func (c *testClock) Now() time.Time {
-	return time.Unix(0, c.current.Load())
+func (clk *testClock) Now() time.Time {
+	return time.Unix(0, clk.current.Load())
 }
 
 // Advance moves the clock forward by d.
-func (c *testClock) Advance(d time.Duration) {
-	c.current.Add(int64(d))
+func (clk *testClock) Advance(d time.Duration) {
+	clk.current.Add(int64(d))
 }
 
 func TestDecayCounterAdd(t *testing.T) {

@@ -31,31 +31,31 @@ package opensearchtransport
 // If the connection is already warming up (lifecycle managers non-zero), this is a no-op
 // to prevent multiple policy pools from resetting an in-progress warmup on the same
 // shared Connection during DiscoveryUpdate.
-func (c *Connection) startWarmup(maxRounds, maxSkipCount int) {
+func (conn *Connection) startWarmup(maxRounds, maxSkipCount int) {
 	lcMgr := packWarmupManager(maxRounds, maxSkipCount)
 	rdMgr := packWarmupManager(maxRounds, maxSkipCount)
 	for {
-		current := c.state.Load()
+		current := conn.state.Load()
 		cs := connState(current)
 		if !cs.lifecycle().has(lcNeedsWarmup) {
-			Debug().Str("conn", c.URLString).Stringer("state", cs.lifecycle()).Msg("startWarmup: NO-OP connection, no lcNeedsWarmup")
+			Debug().Str("conn", conn.URLString).Stringer("state", cs.lifecycle()).Msg("startWarmup: NO-OP connection, no lcNeedsWarmup")
 			return // No warmup needed -- connection was proven (e.g. cap demotion)
 		}
 		if cs.isWarmingUp() {
 			Debug().
-				Str("conn", c.URLString).
+				Str("conn", conn.URLString).
 				Stringer("lc_mgr", cs.lifecycleManager()).
 				Stringer("rd_mgr", cs.roundManager()).
 				Msg("startWarmup: NO-OP connection, already warming")
 			return // Already warming -- don't reset
 		}
 		target := packConnState(cs.lifecycle(), lcMgr, rdMgr)
-		if c.state.CompareAndSwap(current, int64(target)) {
-			Debug().Str("conn", c.URLString).Int("rounds", maxRounds).Int("skip", maxSkipCount).Msg("startWarmup: SET connection warmup")
+		if conn.state.CompareAndSwap(current, int64(target)) {
+			Debug().Str("conn", conn.URLString).Int("rounds", maxRounds).Int("skip", maxSkipCount).Msg("startWarmup: SET connection warmup")
 			return
 		}
 		Debug().
-			Str("conn", c.URLString).
+			Str("conn", conn.URLString).
 			Stringer("state", hexState{packed: current}).
 			Msg("startWarmup: CAS race on connection during attempt")
 	}
@@ -63,12 +63,12 @@ func (c *Connection) startWarmup(maxRounds, maxSkipCount int) {
 
 // clearWarmup atomically clears warmup by setting managers to zero while preserving lifecycle.
 // Uses a CAS loop to avoid clobbering concurrent lifecycle transitions.
-func (c *Connection) clearWarmup() {
+func (conn *Connection) clearWarmup() {
 	for {
-		current := c.state.Load()
+		current := conn.state.Load()
 		lc := connState(current).lifecycle()
 		target := newConnState(lc)
-		if c.state.CompareAndSwap(current, int64(target)) {
+		if conn.state.CompareAndSwap(current, int64(target)) {
 			return
 		}
 	}
@@ -137,9 +137,9 @@ func smoothstepSkip(maxSkip, maxRounds, delta int) int {
 // reaches 0 by the last round, regardless of the skipCount/rounds ratio.
 //
 // This method is lock-free and safe for concurrent callers.
-func (c *Connection) tryWarmupSkip() warmupResult {
+func (conn *Connection) tryWarmupSkip() warmupResult {
 	for {
-		raw := c.state.Load()
+		raw := conn.state.Load()
 		current := connState(raw)
 
 		lcMgr := current.lifecycleManager()
@@ -155,9 +155,9 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 			// SKIP: decrement remaining skip count for this round.
 			newRdMgr := rdMgr.withSkipCount(remSkip - 1)
 			newState := current.withManagers(lcMgr, newRdMgr)
-			if c.state.CompareAndSwap(raw, int64(newState)) {
+			if conn.state.CompareAndSwap(raw, int64(newState)) {
 				Debug().
-					Str("conn", c.URLString).
+					Str("conn", conn.URLString).
 					Int("rounds", rdMgr.rounds()).
 					Int("skip_from", remSkip).
 					Int("skip_to", remSkip-1).
@@ -174,8 +174,8 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 		if newRounds <= 0 {
 			// Warmup complete -- clear lcNeedsWarmup, set lcReady.
 			lc := (current.lifecycle() &^ lcNeedsWarmup) | lcReady
-			if c.state.CompareAndSwap(raw, int64(newConnState(lc))) {
-				Debug().Str("conn", c.URLString).Msg("tryWarmupSkip: COMPLETE connection, warmup done")
+			if conn.state.CompareAndSwap(raw, int64(newConnState(lc))) {
+				Debug().Str("conn", conn.URLString).Msg("tryWarmupSkip: COMPLETE connection, warmup done")
 				return warmupAccepted
 			}
 			continue // CAS failed, retry
@@ -189,9 +189,9 @@ func (c *Connection) tryWarmupSkip() warmupResult {
 
 		newRdMgr := packWarmupManager(newRounds, newSkip)
 		newState := current.withManagers(lcMgr, newRdMgr)
-		if c.state.CompareAndSwap(raw, int64(newState)) {
+		if conn.state.CompareAndSwap(raw, int64(newState)) {
 			Debug().
-				Str("conn", c.URLString).
+				Str("conn", conn.URLString).
 				Int("rounds_from", rdMgr.rounds()).
 				Int("rounds_to", newRounds).
 				Int("skip_to", newSkip).

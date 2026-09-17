@@ -75,22 +75,22 @@ type BreakerStats struct {
 //
 //	interval = clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 30s)
 //
-// Cancelled by c.ctx.
-func (c *Transport) scheduleNodeStats() {
+// Cancelled by tr.ctx.
+func (tr *Transport) scheduleNodeStats() {
 	go func() {
-		interval := c.nodeStatsInterval
+		interval := tr.nodeStatsInterval
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
 		for {
 			select {
-			case <-c.ctx.Done():
+			case <-tr.ctx.Done():
 				return
 			case <-ticker.C:
-				c.pollNodeStats()
+				tr.pollNodeStats()
 
-				if c.nodeStatsIntervalAuto {
-					newInterval := c.calculateNodeStatsInterval()
+				if tr.nodeStatsIntervalAuto {
+					newInterval := tr.calculateNodeStatsInterval()
 					if newInterval != interval {
 						interval = newInterval
 						ticker.Reset(interval)
@@ -105,16 +105,16 @@ func (c *Transport) scheduleNodeStats() {
 // cluster size and the configured health check rate.
 //
 //	interval = clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 30s)
-func (c *Transport) calculateNodeStatsInterval() time.Duration {
-	liveNodes := c.countReadyNodes()
+func (tr *Transport) calculateNodeStatsInterval() time.Duration {
+	liveNodes := tr.countReadyNodes()
 	if liveNodes <= 0 {
 		liveNodes = 1
 	}
 
-	c.mu.RLock()
-	clientsPerServer := c.clientsPerServer
-	healthCheckRate := c.healthCheckRate
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	clientsPerServer := tr.clientsPerServer
+	healthCheckRate := tr.healthCheckRate
+	tr.mu.RUnlock()
 
 	intervalSec := float64(liveNodes) * clientsPerServer / healthCheckRate
 	interval := min(
@@ -132,10 +132,10 @@ func (c *Transport) calculateNodeStatsInterval() time.Duration {
 // "Shared Connections Across Policies"). Polling a connection updates the
 // authoritative atomic state on the Connection itself, which is immediately
 // visible to every policy.
-func (c *Transport) pollNodeStats() {
-	c.mu.RLock()
-	cp := c.mu.connectionPool
-	c.mu.RUnlock()
+func (tr *Transport) pollNodeStats() {
+	tr.mu.RLock()
+	cp := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	switch pool := cp.(type) {
 	case *multiServerPool:
@@ -153,12 +153,12 @@ func (c *Transport) pollNodeStats() {
 
 		samples := make([]nodeSearchSample, 0, len(snapshot))
 		for _, conn := range snapshot {
-			if sample, ok := c.fetchAndEvaluateNodeStats(conn, pool); ok {
+			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, pool); ok {
 				samples = append(samples, sample)
 			}
 		}
 		if len(samples) > 0 {
-			c.clusterSearch.update(samples)
+			tr.clusterSearch.update(samples)
 		}
 
 	case *singleServerPool:
@@ -166,8 +166,8 @@ func (c *Transport) pollNodeStats() {
 		// Overload demotion is not applicable (no pool to demote within).
 		conn := pool.connection
 		if conn != nil {
-			if sample, ok := c.fetchAndEvaluateNodeStats(conn, nil); ok {
-				c.clusterSearch.update([]nodeSearchSample{sample})
+			if sample, ok := tr.fetchAndEvaluateNodeStats(conn, nil); ok {
+				tr.clusterSearch.update([]nodeSearchSample{sample})
 			}
 		}
 	}
@@ -187,10 +187,10 @@ func (c *Transport) pollNodeStats() {
 // Returns the search thread pool sample for cluster-wide aggregation (see
 // [clusterSearchAIMD]). ok is false when the poll fails or the node has no
 // search pool data.
-func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
+func (tr *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServerPool) (nodeSearchSample, bool) {
 	var sample nodeSearchSample
 
-	ctx, cancel := context.WithTimeout(c.ctx, c.healthCheckTimeout)
+	ctx, cancel := context.WithTimeout(tr.ctx, tr.healthCheckTimeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/_local/stats/jvm,breaker,thread_pool", nil)
@@ -198,12 +198,12 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 		return sample, false
 	}
 
-	if err = c.prepareInternalRequest(conn.URL, req, c.healthCheckRequestModifier); err != nil {
+	if err = tr.prepareInternalRequest(conn.URL, req, tr.healthCheckRequestModifier); err != nil {
 		Debug().Str("conn", conn.URLString).Err(err).Msg("Stats poll failed, cannot prepare request")
 		return sample, false
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		// Can't reach node -- if overload-demoted, clear overloaded flag so the normal
 		// resurrection scheduler can take over (the node may actually be down, not just overloaded).
@@ -280,7 +280,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 		ok = true
 	}
 
-	overloaded := c.evaluateOverload(conn, nodeStats)
+	overloaded := tr.evaluateOverload(conn, nodeStats)
 
 	// Overload demotion/promotion requires a multiServerPool (single-node pools
 	// pass nil since there is nowhere to demote to).
@@ -317,7 +317,7 @@ func (c *Transport) fetchAndEvaluateNodeStats(conn *Connection, pool *multiServe
 // checks via /_cluster/health?local=true without any additional HTTP calls.
 //
 // Updates conn.mu.lastBreakerTripped for delta detection on next poll.
-func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
+func (tr *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	overloaded := false
 
 	// --- Cluster health checks (reuse data from clusterHealthCheck) ---
@@ -334,11 +334,11 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 	// --- Node-level stats checks ---
 
 	// JVM heap usage
-	if stats.JVM.Mem.HeapUsedPercent >= c.overloadedHeapThreshold {
+	if stats.JVM.Mem.HeapUsedPercent >= tr.overloadedHeapThreshold {
 		Debug().
 			Str("conn", conn.URLString).
 			Int("heap_used_percent", stats.JVM.Mem.HeapUsedPercent).
-			Int("threshold", c.overloadedHeapThreshold).
+			Int("threshold", tr.overloadedHeapThreshold).
 			Msg("Node overloaded: heap over threshold")
 		overloaded = true
 	}
@@ -353,12 +353,12 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 		// Size ratio check (instantaneous)
 		if breaker.LimitSizeInBytes > 0 {
 			ratio := float64(breaker.EstimatedSizeInBytes) / float64(breaker.LimitSizeInBytes)
-			if ratio >= c.overloadedBreakerRatio {
+			if ratio >= tr.overloadedBreakerRatio {
 				Debug().
 					Str("conn", conn.URLString).
 					Str("breaker", name).
 					Float64("ratio", ratio).
-					Float64("threshold", c.overloadedBreakerRatio).
+					Float64("threshold", tr.overloadedBreakerRatio).
 					Msg("Node overloaded: breaker size over threshold")
 				overloaded = true
 			}
@@ -391,22 +391,22 @@ func (c *Transport) evaluateOverload(conn *Connection, stats *NodeStats) bool {
 //	refreshInterval = clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 5min)
 //
 // Single-node clusters skip refresh entirely since health data cannot influence routing.
-// Cancelled by c.ctx.
-func (c *Transport) scheduleClusterHealthRefresh() {
+// Cancelled by tr.ctx.
+func (tr *Transport) scheduleClusterHealthRefresh() {
 	go func() {
-		interval := c.calculateClusterHealthRefreshInterval()
+		interval := tr.calculateClusterHealthRefreshInterval()
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
 		for {
 			select {
-			case <-c.ctx.Done():
+			case <-tr.ctx.Done():
 				return
 			case <-ticker.C:
-				c.pollClusterHealth()
+				tr.pollClusterHealth()
 
 				// Recalculate interval after each poll (node count may have changed)
-				newInterval := c.calculateClusterHealthRefreshInterval()
+				newInterval := tr.calculateClusterHealthRefreshInterval()
 				if newInterval != interval {
 					interval = newInterval
 					ticker.Reset(interval)
@@ -420,16 +420,16 @@ func (c *Transport) scheduleClusterHealthRefresh() {
 // the current cluster size and the configured health check rate.
 //
 //	interval = clamp(liveNodes * clientsPerServer / healthCheckRate, 5s, 5min)
-func (c *Transport) calculateClusterHealthRefreshInterval() time.Duration {
-	liveNodes := c.countReadyNodes()
+func (tr *Transport) calculateClusterHealthRefreshInterval() time.Duration {
+	liveNodes := tr.countReadyNodes()
 	if liveNodes <= 0 {
 		liveNodes = 1 // Prevent zero interval; will be short-circuited by single-node check in pollClusterHealth
 	}
 
-	c.mu.RLock()
-	clientsPerServer := c.clientsPerServer
-	healthCheckRate := c.healthCheckRate
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	clientsPerServer := tr.clientsPerServer
+	healthCheckRate := tr.healthCheckRate
+	tr.mu.RUnlock()
 
 	intervalSec := float64(liveNodes) * clientsPerServer / healthCheckRate
 	interval := min(
@@ -442,10 +442,10 @@ func (c *Transport) calculateClusterHealthRefreshInterval() time.Duration {
 }
 
 // countReadyNodes returns the number of ready connections in the current pool.
-func (c *Transport) countReadyNodes() int {
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+func (tr *Transport) countReadyNodes() int {
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	switch p := pool.(type) {
 	case *singleServerPool:
@@ -462,10 +462,10 @@ func (c *Transport) countReadyNodes() int {
 
 // pollClusterHealth refreshes /_cluster/health?local=true on all ready connections that
 // have HasClusterHealth(). Skips single-node clusters and connections without cluster health.
-func (c *Transport) pollClusterHealth() {
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+func (tr *Transport) pollClusterHealth() {
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	// Skip single-node clusters: no value in refreshing health when we cannot route away.
 	switch p := pool.(type) {
@@ -482,22 +482,22 @@ func (c *Transport) pollClusterHealth() {
 		return
 	}
 
-	conns := c.snapshotClusterHealthConnections()
+	conns := tr.snapshotClusterHealthConnections()
 	if len(conns) == 0 {
 		return
 	}
 
 	for _, conn := range conns {
-		c.refreshClusterHealth(conn)
+		tr.refreshClusterHealth(conn)
 	}
 }
 
 // snapshotClusterHealthConnections returns ready connections that have HasClusterHealth()
 // from the current connection pool.
-func (c *Transport) snapshotClusterHealthConnections() []*Connection {
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+func (tr *Transport) snapshotClusterHealthConnections() []*Connection {
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	if pool == nil {
 		return nil
@@ -576,16 +576,16 @@ type healthCheckInfo struct {
 
 // ClusterHealth returns the most recent cluster health snapshot for this connection, or nil
 // if cluster health has not been probed or is unavailable.
-func (c *Connection) ClusterHealth() *ClusterHealthLocal {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.mu.clusterHealth
+func (conn *Connection) ClusterHealth() *ClusterHealthLocal {
+	conn.mu.RLock()
+	defer conn.mu.RUnlock()
+	return conn.mu.clusterHealth
 }
 
-func (c *Transport) refreshClusterHealth(conn *Connection) {
-	applyModifier := c.healthCheckRequestModifier
+func (tr *Transport) refreshClusterHealth(conn *Connection) {
+	applyModifier := tr.healthCheckRequestModifier
 
-	health, statusCode, err := c.fetchClusterHealth(c.ctx, conn.URL, applyModifier)
+	health, statusCode, err := tr.fetchClusterHealth(tr.ctx, conn.URL, applyModifier)
 	if err != nil {
 		Debug().Str("conn", conn.URLString).Err(err).Msg("Cluster health refresh failed")
 		return
