@@ -186,8 +186,6 @@ See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logsl
 
 `opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
 
-`opensearchutil.BulkIndexerConfig.DebugLogger` is a different field and is unchanged. It still takes a `BulkIndexerDebugLogger` (a `Printf` method) and logs the indexer's own worker activity, not the client's internal records.
-
 ### Installing a logger
 
 Debug records could previously only go to the client's own stream. `Config.DebugLogger` (on both `opensearch.Config` and `opensearchtransport.Config`) routes them into an application's logger instead:
@@ -418,7 +416,7 @@ Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
 
 // After
 Params: &opensearchapi.ReindexParams{
-    RequestsPerSecond: opensearch.ToPointer(42.0),
+    RequestsPerSecond: ptr(42.0),
 }
 ```
 
@@ -426,7 +424,7 @@ Params: &opensearchapi.ReindexParams{
 
 ```go
 Params: &opensearchapi.ReindexRethrottleParams{
-    RequestsPerSecond: opensearch.ToPointer(0.0),
+    RequestsPerSecond: ptr(0.0),
 }
 ```
 
@@ -601,3 +599,50 @@ cfg.OnError = func(ctx context.Context, err error) {
 ```
 
 The same error is what `Flush(ctx)` returns on the explicit-flush path, which does not call `OnError`. Set an `OnFailure` on the items you want handled per document, and leave it unset to route their rejections to `OnError` or the `Flush` return.
+
+## `opensearch.ToPointer` removed
+
+`opensearch.ToPointer` is removed. It was a thin, exported wrapper (`return ptr(value)`) kept around only for callers building `*T` request parameters; it was never needed internally, since call sites within this module use an unexported per-package `ptr` helper instead.
+
+Replace a call site with a one-line helper of your own:
+
+```go
+func ptr[T any](v T) *T { return &v }
+
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+```
+
+Once your module's `go` directive reaches 1.26, you can drop the helper entirely and use the native `new(value)` literal form instead:
+
+```go
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
+```
+
+## `opensearchutil.BulkIndexer` `DebugLogger` removed
+
+`BulkIndexerConfig` no longer has a `DebugLogger` field, and the `BulkIndexerDebugLogger` interface is gone. The bulk indexer used to take its own `Printf`-style logger, separate from the client's:
+
+```go
+// Before
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+    Client:      client,
+    DebugLogger: log.New(os.Stdout, "", 0),
+})
+```
+
+Its debug records now flow through `opensearchtransport.Debug()`, the same logger the rest of the client uses, so you switch them on where you switch on everything else:
+
+```go
+// After: enable debug logging on the client; the bulk indexer's records come with it.
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:         []string{"http://localhost:9200"},
+            EnableDebugLogger: true,
+        },
+    },
+)
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client})
+```
+
+`OPENSEARCH_GO_LOG=debug` and `Config.DebugLogger` (any `debuglog.Logger`) work the same way; see [Debugging](USER_GUIDE.md#debugging). The records are now structured, carrying fields such as `worker`, `action`, and `doc_id` rather than the old preformatted lines. A `BulkIndexerConfig` that still sets `DebugLogger` is a compile error; delete the field.

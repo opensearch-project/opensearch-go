@@ -172,7 +172,7 @@ Let us clean up the created templates and indices:
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"books-*"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {
@@ -293,7 +293,7 @@ Let's delete all resources created in this guide:
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"books-*"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {

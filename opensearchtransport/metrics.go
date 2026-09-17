@@ -290,37 +290,37 @@ func (m *metrics) responsesSnapshot() map[int]int {
 // snapshot. The detailed fields are assembled lazily and lock-free at call time.
 // The returned error is non-nil when a snapshot callback fails, or when the
 // transport was constructed without metrics.
-func (c *Transport) Metrics() (Metrics, error) {
-	if c.metrics == nil {
+func (tr *Transport) Metrics() (Metrics, error) {
+	if tr.metrics == nil {
 		// Defensive: a custom transport could embed *Transport without the
 		// standard constructor, leaving metrics uninitialized.
 		return Metrics{}, errors.New("transport metrics not initialized")
 	}
 
 	m := Metrics{
-		Requests:  int(c.metrics.requests.Load()),
-		Failures:  int(c.metrics.failures.Load()),
-		Responses: c.metrics.responsesSnapshot(),
+		Requests:  int(tr.metrics.requests.Load()),
+		Failures:  int(tr.metrics.failures.Load()),
+		Responses: tr.metrics.responsesSnapshot(),
 
-		ConnectionsPromoted: int(c.metrics.connectionsPromoted.Load()),
-		ConnectionsDemoted:  int(c.metrics.connectionsDemoted.Load()),
-		ZombieConnections:   int(c.metrics.zombieConnections.Load()),
+		ConnectionsPromoted: int(tr.metrics.connectionsPromoted.Load()),
+		ConnectionsDemoted:  int(tr.metrics.connectionsDemoted.Load()),
+		ZombieConnections:   int(tr.metrics.zombieConnections.Load()),
 
-		HealthChecks:        int(c.metrics.healthChecks.Load()),
-		ClusterHealthChecks: int(c.metrics.clusterHealthChecks.Load()),
-		HealthChecksSuccess: int(c.metrics.healthChecksSuccess.Load()),
-		HealthChecksFailed:  int(c.metrics.healthChecksFailed.Load()),
+		HealthChecks:        int(tr.metrics.healthChecks.Load()),
+		ClusterHealthChecks: int(tr.metrics.clusterHealthChecks.Load()),
+		HealthChecksSuccess: int(tr.metrics.healthChecksSuccess.Load()),
+		HealthChecksFailed:  int(tr.metrics.healthChecksFailed.Load()),
 
-		StandbyPromotions: int(c.metrics.standbyPromotions.Load()),
-		StandbyDemotions:  int(c.metrics.standbyDemotions.Load()),
+		StandbyPromotions: int(tr.metrics.standbyPromotions.Load()),
+		StandbyDemotions:  int(tr.metrics.standbyDemotions.Load()),
 
-		AddressResolverCalls:    int(c.metrics.addressResolverCalls.Load()),
-		AddressResolverRewrites: int(c.metrics.addressResolverRewrites.Load()),
-		AddressResolverErrors:   int(c.metrics.addressResolverErrors.Load()),
+		AddressResolverCalls:    int(tr.metrics.addressResolverCalls.Load()),
+		AddressResolverRewrites: int(tr.metrics.addressResolverRewrites.Load()),
+		AddressResolverErrors:   int(tr.metrics.addressResolverErrors.Load()),
 
-		DNSLookups:      int(c.metrics.dnsLookups.Load()),
-		DNSCacheMisses:  int(c.metrics.dnsCacheMisses.Load()),
-		DNSLookupErrors: int(c.metrics.dnsLookupErrors.Load()),
+		DNSLookups:      int(tr.metrics.dnsLookups.Load()),
+		DNSCacheMisses:  int(tr.metrics.dnsCacheMisses.Load()),
+		DNSLookupErrors: int(tr.metrics.dnsLookupErrors.Load()),
 	}
 
 	// Detailed-metrics path: connection enumeration + callbacks. Always run --
@@ -331,16 +331,16 @@ func (c *Transport) Metrics() (Metrics, error) {
 	// Get connections from current connection pool
 	var ready, dead []*Connection
 	var singleConns []*Connection
-	c.mu.RLock()
-	if c.mu.connectionPool != nil {
-		switch pool := c.mu.connectionPool.(type) {
+	tr.mu.RLock()
+	if tr.mu.connectionPool != nil {
+		switch pool := tr.mu.connectionPool.(type) {
 		case *multiServerPool:
 			ready, dead = pool.connectionsByState()
 		case *singleServerPool:
 			singleConns = pool.connections()
 		}
 	}
-	c.mu.RUnlock()
+	tr.mu.RUnlock()
 
 	m.LiveConnections = len(ready) + len(singleConns)
 	m.DeadConnections = len(dead)
@@ -382,7 +382,7 @@ func (c *Transport) Metrics() (Metrics, error) {
 	}
 
 	// Run batch connection metric callbacks (e.g., MCSR injection).
-	for _, cb := range c.metrics.connMetricCallbacks {
+	for _, cb := range tr.metrics.connMetricCallbacks {
 		if err := cb(allConns, cms); err != nil {
 			callbackErrs = append(callbackErrs, err)
 		}
@@ -396,7 +396,7 @@ func (c *Transport) Metrics() (Metrics, error) {
 	m.StandbyConnections = standbyCount
 
 	// Collect per-policy snapshots via registered callbacks.
-	for _, cb := range c.metrics.policyCallbacks {
+	for _, cb := range tr.metrics.policyCallbacks {
 		snap, err := cb()
 		if err != nil {
 			callbackErrs = append(callbackErrs, err)
@@ -406,18 +406,18 @@ func (c *Transport) Metrics() (Metrics, error) {
 	}
 
 	// Include the flat client pool snapshot (not a policy, always present).
-	c.mu.RLock()
-	if c.mu.connectionPool != nil {
-		if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
+	tr.mu.RLock()
+	if tr.mu.connectionPool != nil {
+		if pool, ok := tr.mu.connectionPool.(*multiServerPool); ok {
 			snap := pool.snapshot()
 			snap.Enabled = true // flat/client pool is always enabled
 			m.Policies = append(m.Policies, snap)
 		}
 	}
-	c.mu.RUnlock()
+	tr.mu.RUnlock()
 
 	// Run snapshot-level callbacks (e.g., router cache snapshot).
-	for _, cb := range c.metrics.snapshotCallbacks {
+	for _, cb := range tr.metrics.snapshotCallbacks {
 		if err := cb(&m); err != nil {
 			callbackErrs = append(callbackErrs, err)
 		}
@@ -434,7 +434,7 @@ func buildConnectionMetric(c *Connection) ConnectionMetric {
 	lc := state.lifecycle()
 
 	// Read the dead/overloaded timestamps lock-free. These were formerly guarded
-	// by c.mu; reading them here without the lock removes the dominant snapshot
+	// by tr.mu; reading them here without the lock removes the dominant snapshot
 	// contention against the per-request OnSuccess/OnFailure writers.
 	deadSince := c.loadDeadSince()
 	overloadedAt := c.loadOverloadedAt()

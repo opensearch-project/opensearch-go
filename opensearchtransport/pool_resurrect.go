@@ -52,37 +52,37 @@ const checkDeadWorkerMaxJitter = 50 * time.Millisecond
 // healthCheck performs a health check on this connection with concurrency protection.
 // Updates deadSince and checkStartedAt state based on health check results.
 // Returns error if health check fails or if already checking.
-func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFunc) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (conn *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFunc) error {
+	conn.mu.Lock()
+	defer conn.mu.Unlock()
 
 	// Skip if already checking to prevent concurrent health checks
-	if !c.mu.checkStartedAt.IsZero() {
-		duration := time.Since(c.mu.checkStartedAt)
+	if !conn.mu.checkStartedAt.IsZero() {
+		duration := time.Since(conn.mu.checkStartedAt)
 		return fmt.Errorf("health check already in progress for %v", duration)
 	}
 
 	// Store original deadSince to detect race conditions
-	originalDeadSince := c.loadDeadSince()
+	originalDeadSince := conn.loadDeadSince()
 
 	// Set checking timestamp
-	c.mu.checkStartedAt = time.Now()
-	c.setLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
+	conn.mu.checkStartedAt = time.Now()
+	conn.setLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	defer func() {
-		c.mu.checkStartedAt = time.Time{}
-		c.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
+		conn.mu.checkStartedAt = time.Time{}
+		conn.clearLifecycleBit(lcHealthChecking) //nolint:errcheck // lock held; only errLifecycleNoop possible
 	}()
 
 	// Perform actual health check
-	c.mu.Unlock() // Release lock during network call
-	resp, err := healthCheck(ctx, c, c.URL)
+	conn.mu.Unlock() // Release lock during network call
+	resp, err := healthCheck(ctx, conn, conn.URL)
 	if resp != nil && resp.Body != nil {
 		defer resp.Body.Close()
 	}
-	c.mu.Lock() // Reacquire for state update
+	conn.mu.Lock() // Reacquire for state update
 
 	// Check if connection was marked dead more recently than when the check started
-	if c.loadDeadSince().After(originalDeadSince) {
+	if conn.loadDeadSince().After(originalDeadSince) {
 		// Connection was marked dead during the check; discard result
 		return nil
 	}
@@ -90,15 +90,15 @@ func (c *Connection) healthCheck(ctx context.Context, healthCheck HealthCheckFun
 	// Update connection state based on health check result
 	if err != nil {
 		// Health check failed
-		if c.deadSinceIsZero() {
-			c.storeDeadSince(time.Now())
+		if conn.deadSinceIsZero() {
+			conn.storeDeadSince(time.Now())
 		}
 		return err
 	}
 
 	// Health check passed
-	if !c.deadSinceIsZero() {
-		c.storeDeadSince(time.Time{}) // Reset deadSince
+	if !conn.deadSinceIsZero() {
+		conn.storeDeadSince(time.Time{}) // Reset deadSince
 	}
 
 	return nil
