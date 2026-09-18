@@ -1819,11 +1819,21 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 	// request by hand. Skipped when err is nil (the common case) since that
 	// would otherwise turn a successful response into a non-nil error.
 	if err != nil {
-		err = fmt.Errorf("%s %s: %w", req.Method, redactedRequestURL(req), err)
+		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(req), err)
 	}
 
 	return res, sr, err
 }
+
+const (
+	// streamErrorPrefixFormat is the fmt template for the request-context
+	// prefix stream() prepends to a wrapped error: `"METHOD" "url": `. Defined
+	// once so production and the tests that assert the prefix stay in sync.
+	streamErrorPrefixFormat = "%q %q: "
+	// streamErrorFormat wraps a stream() error with that prefix, keeping the
+	// original cause reachable through errors.Is/errors.As via %w.
+	streamErrorFormat = streamErrorPrefixFormat + "%w"
+)
 
 // redactedRequestURL renders req.URL for inclusion in error messages, with
 // userinfo and the query string stripped.

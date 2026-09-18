@@ -494,12 +494,8 @@ func TestTransportStream(t *testing.T) {
 
 		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Stream(req)
-		if err.Error() != `GET /abc: cannot get connection: no connections available` {
-			t.Fatalf("Expected error `GET /abc: cannot get connection: no connections available`: but got error %q", err)
-		}
-		if !errors.Is(err, ErrNoConnections) {
-			t.Error("Expected wrapped error to still satisfy errors.Is(err, ErrNoConnections)")
-		}
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Equal(t, streamErrorPrefix(http.MethodGet, "/abc")+"cannot get connection: no connections available", err.Error())
 	})
 }
 
@@ -1063,127 +1059,109 @@ func TestTransportStreamRetries(t *testing.T) {
 	})
 }
 
+// streamErrorPrefix renders the request-context prefix that stream() prepends
+// to a wrapped error, derived from the production streamErrorPrefixFormat so
+// the assertions here track the format in one place.
+func streamErrorPrefix(method, rawURL string) string {
+	return fmt.Sprintf(streamErrorPrefixFormat, method, rawURL)
+}
+
 // TestTransportStreamErrorRequestContext covers the request-context wrapping
 // applied at the end of Transport.stream: a non-nil error should come back
-// prefixed with "METHOD url: ", and that URL should never carry userinfo or
-// query-string secrets.
+// prefixed with the method and URL, and that URL should never carry userinfo
+// or query-string secrets.
 func TestTransportStreamErrorRequestContext(t *testing.T) {
-	t.Run("wraps an exhausted-retry error with method and URL", func(t *testing.T) {
-		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs:                  []*url.URL{u},
-			SkipConnectionShuffle: true,            // Disable shuffling for predictable test results
-			HealthCheck:           NoOpHealthCheck, // Disable health checks to avoid extra requests during resurrection
-			NodeStatsInterval:     -1,              // Disable stats poller to avoid background requests through mock transport
-			MaxRetries:            1,
-			// io.EOF is retried unconditionally by stream() and, unlike
-			// mockNetError (a bare net.Error with no Unwrap), passes
-			// straight through fmt.Errorf's %w chain, so errors.Is can see
-			// past the added request-context wrapping below.
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				return nil, io.EOF
-			}),
-		})
-		t.Cleanup(func() { _ = tp.Close() })
-
-		req, _ := http.NewRequest(http.MethodGet, "/my-index/_doc/1", nil)
-
-		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Stream(req)
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-
-		const wantPrefix = "GET http://foo.bar/my-index/_doc/1: "
-		if !strings.HasPrefix(err.Error(), wantPrefix) {
-			t.Errorf("Expected error to start with %q, got %q", wantPrefix, err.Error())
-		}
-		if !errors.Is(err, io.EOF) {
-			t.Error("Expected the wrapped error to still satisfy errors.Is(err, io.EOF)")
-		}
-	})
-
-	t.Run("does not wrap a nil error", func(t *testing.T) {
-		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs:                  []*url.URL{u},
-			SkipConnectionShuffle: true,
-			HealthCheck:           NoOpHealthCheck,
-			NodeStatsInterval:     -1,
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+	tests := []struct {
+		name       string
+		roundTrip  func(*http.Request) (*http.Response, error)
+		method     string
+		target     string
+		wantErr    bool
+		wantPrefix string   // asserted when wantErr is true and non-empty
+		wantErrIs  error    // asserted with errors.Is when non-nil
+		wantAbsent []string // substrings that must not leak into the error
+	}{
+		{
+			name:       "wraps an error with method and URL",
+			roundTrip:  func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:     http.MethodGet,
+			target:     "/my-index/_doc/1",
+			wantErr:    true,
+			wantPrefix: streamErrorPrefix(http.MethodGet, "http://foo.bar/my-index/_doc/1"),
+			// io.EOF passes straight through fmt.Errorf's %w chain, so
+			// errors.Is can still see past the request-context wrapping.
+			wantErrIs: io.EOF,
+		},
+		{
+			name: "does not wrap a nil error",
+			roundTrip: func(*http.Request) (*http.Response, error) {
 				return &http.Response{Status: "OK", StatusCode: http.StatusOK}, nil
-			}),
+			},
+			method: http.MethodGet,
+			target: "/",
+		},
+		{
+			name:      "redacts userinfo credentials embedded in the request URL",
+			roundTrip: func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:    http.MethodGet,
+			// Credentials embedded in the URL by a caller driving Transport
+			// directly rather than through opensearchapi. setReqURL only ever
+			// copies Scheme/Host/Path from the connection URL, never User, so
+			// this userinfo survives into the error path unless stripped.
+			target:     "http://user:s3cr3t-password@foo.bar/",
+			wantErr:    true,
+			wantAbsent: []string{"s3cr3t-password", "user:"},
+		},
+		{
+			name:      "redacts the query string from the request URL",
+			roundTrip: func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:    http.MethodGet,
+			// Query parameters can carry secrets that never touch userinfo,
+			// e.g. SigV4 presigned-request signatures or API keys.
+			target:     "/?X-Amz-Signature=topsecret&apikey=abc123",
+			wantErr:    true,
+			wantAbsent: []string{"topsecret", "abc123"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			u, _ := url.Parse("http://foo.bar")
+			tp, _ := New(Config{
+				URLs:                  []*url.URL{u},
+				SkipConnectionShuffle: true,            // predictable ordering
+				HealthCheck:           NoOpHealthCheck, // no resurrection requests
+				NodeStatsInterval:     -1,              // no background stats requests
+				DisableRetry:          true,
+				Transport:             mockhttp.NewRoundTripFunc(t, tt.roundTrip),
+			})
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, _ := http.NewRequest(tt.method, tt.target, nil)
+
+			//nolint:bodyclose // Mock response does not have a body to close
+			_, err := tp.Stream(req)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			if tt.wantPrefix != "" {
+				require.Truef(t, strings.HasPrefix(err.Error(), tt.wantPrefix),
+					"error %q should start with %q", err.Error(), tt.wantPrefix)
+			}
+			if tt.wantErrIs != nil {
+				require.ErrorIs(t, err, tt.wantErrIs)
+			}
+			for _, secret := range tt.wantAbsent {
+				require.NotContains(t, err.Error(), secret)
+			}
 		})
-		t.Cleanup(func() { _ = tp.Close() })
-
-		req, _ := http.NewRequest(http.MethodGet, "/", nil)
-
-		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Stream(req)
-		if err != nil {
-			t.Fatalf("Expected no error, got: %v", err)
-		}
-	})
-
-	t.Run("redacts userinfo credentials embedded in the request URL", func(t *testing.T) {
-		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs:                  []*url.URL{u},
-			SkipConnectionShuffle: true,
-			HealthCheck:           NoOpHealthCheck,
-			NodeStatsInterval:     -1,
-			DisableRetry:          true,
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				return nil, &mockNetError{error: errors.New("boom")}
-			}),
-		})
-		t.Cleanup(func() { _ = tp.Close() })
-
-		// A request built with credentials embedded in the URL, e.g. by a
-		// caller driving Transport directly rather than through
-		// opensearchapi. setReqURL only ever copies Scheme/Host/Path from
-		// the connection URL, never User, so this userinfo survives
-		// unmodified into the error path unless explicitly stripped.
-		req, _ := http.NewRequest(http.MethodGet, "http://user:s3cr3t-password@foo.bar/", nil)
-
-		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Stream(req)
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if strings.Contains(err.Error(), "s3cr3t-password") || strings.Contains(err.Error(), "user:") {
-			t.Errorf("Expected credentials to be redacted from the error, got %q", err.Error())
-		}
-	})
-
-	t.Run("redacts the query string from the request URL", func(t *testing.T) {
-		u, _ := url.Parse("http://foo.bar")
-		tp, _ := New(Config{
-			URLs:                  []*url.URL{u},
-			SkipConnectionShuffle: true,
-			HealthCheck:           NoOpHealthCheck,
-			NodeStatsInterval:     -1,
-			DisableRetry:          true,
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				return nil, &mockNetError{error: errors.New("boom")}
-			}),
-		})
-		t.Cleanup(func() { _ = tp.Close() })
-
-		// Query parameters can carry secrets that never touch userinfo, e.g.
-		// SigV4 presigned-request signatures or API keys passed as a query
-		// parameter.
-		req, _ := http.NewRequest(http.MethodGet, "/?X-Amz-Signature=topsecret&apikey=abc123", nil)
-
-		//nolint:bodyclose // Mock response does not have a body to close
-		_, err := tp.Stream(req)
-		if err == nil {
-			t.Fatal("Expected error, got nil")
-		}
-		if strings.Contains(err.Error(), "topsecret") || strings.Contains(err.Error(), "abc123") {
-			t.Errorf("Expected the query string to be redacted from the error, got %q", err.Error())
-		}
-	})
+	}
 }
 
 func TestURLs(t *testing.T) {
