@@ -1155,6 +1155,13 @@ func streamErrorPrefix(method, rawURL string) string {
 // prefixed with the method and URL, and that URL should never carry userinfo
 // or query-string secrets.
 func TestTransportStreamErrorRequestContext(t *testing.T) {
+	t.Parallel()
+
+	// A request URL carrying credentials in its userinfo, to prove they are
+	// redacted from the error. Declared as a value so the fake secret lives on
+	// one line gosec can be told to ignore.
+	credentialURL := "http://user:s3cr3t-password@foo.bar/" //nolint:gosec // fake credential, exercises userinfo redaction
+
 	tests := []struct {
 		name       string
 		roundTrip  func(*http.Request) (*http.Response, error)
@@ -1192,7 +1199,7 @@ func TestTransportStreamErrorRequestContext(t *testing.T) {
 			// directly rather than through opensearchapi. setReqURL only ever
 			// copies Scheme/Host/Path from the connection URL, never User, so
 			// this userinfo survives into the error path unless stripped.
-			target:     "http://user:s3cr3t-password@foo.bar/",
+			target:     credentialURL,
 			wantErr:    true,
 			wantAbsent: []string{"s3cr3t-password", "user:"},
 		},
