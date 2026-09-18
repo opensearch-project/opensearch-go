@@ -24,19 +24,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCloseTimedOutConnNil(t *testing.T) {
-	t.Parallel()
-	require.NotPanics(t, func() { closeTimedOutConn(nil) })
-}
-
 func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
 	t.Parallel()
 	var seen atomic.Bool
 	ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
 		GotConn: func(httptrace.GotConnInfo) { seen.Store(true) },
 	})
-	var slot net.Conn
-	ctx = withAttemptConnTrace(ctx, &slot)
+	var slot attemptClaim
+	var track attemptConns
+	ctx = withAttemptConnTrace(ctx, &slot, &track)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, "{}")
@@ -50,7 +46,7 @@ func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
 	t.Cleanup(func() { res.Body.Close() })
 
 	require.True(t, seen.Load(), "previous GotConn hook must still run")
-	require.NotNil(t, slot, "trace must record the selected net.Conn")
+	require.NotNil(t, slot.conn, "trace must record the selected net.Conn")
 }
 
 // h2Cutover is the shared fixture for the #1121 tests: two HTTP/2 backends
@@ -83,34 +79,21 @@ func newH2Cutover(t *testing.T) *h2Cutover {
 	}))
 
 	dialer := &net.Dialer{Timeout: time.Second}
-	h.transport = http.DefaultTransport.(*http.Transport).Clone()
-	h.transport.ForceAttemptHTTP2 = true
-	h.transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // local httptest only
-	h.transport.DialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+	h.transport = newH2Transport(func(ctx context.Context, _, _ string) (net.Conn, error) {
 		h.dials.Add(1)
 		addr := h.oldBackend.Listener.Addr().String()
 		if h.useNew.Load() {
 			addr = h.newBackend.Listener.Addr().String()
 		}
 		return dialer.DialContext(ctx, "tcp", addr)
-	}
+	})
 	return h
 }
 
-// client builds a Transport against the fixture. Only the retry/timeout fields
+// client builds a Client against the fixture. Only the retry/timeout fields
 // of cfg matter; URLs, Transport, and the background pollers are filled in.
 func (h *h2Cutover) client(cfg Config) *Client {
-	h.t.Helper()
-	u, err := url.Parse("https://cluster.test")
-	require.NoError(h.t, err)
-	cfg.URLs = []*url.URL{u}
-	cfg.Transport = h.transport
-	cfg.HealthCheck = NoOpHealthCheck
-	cfg.NodeStatsInterval = -1
-	tp, err := New(cfg)
-	require.NoError(h.t, err)
-	h.t.Cleanup(func() { _ = tp.Close() })
-	return tp
+	return newH2Client(h.t, h.transport, cfg)
 }
 
 // get issues a request, drains and closes the body on success, and reports
@@ -271,4 +254,31 @@ func newHTTP2Server(t *testing.T, handler http.Handler) *httptest.Server {
 	server.StartTLS()
 	t.Cleanup(server.Close)
 	return server
+}
+
+// newH2Transport clones the default transport for HTTP/2-over-TLS against a
+// local httptest backend, routing every dial through dial so a fixture can count
+// dials and choose the target.
+func newH2Transport(dial func(ctx context.Context, network, addr string) (net.Conn, error)) *http.Transport {
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr.ForceAttemptHTTP2 = true
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} //nolint:gosec // local httptest only
+	tr.DialContext = dial
+	return tr
+}
+
+// newH2Client builds a Client with the retry/timeout fields from cfg and the
+// rest filled in for the single logical host backed by transport.
+func newH2Client(t *testing.T, transport *http.Transport, cfg Config) *Client {
+	t.Helper()
+	u, err := url.Parse("https://cluster.test")
+	require.NoError(t, err)
+	cfg.URLs = []*url.URL{u}
+	cfg.Transport = transport
+	cfg.HealthCheck = NoOpHealthCheck
+	cfg.NodeStatsInterval = -1
+	tp, err := New(cfg)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+	return tp
 }

@@ -405,6 +405,10 @@ type Client struct {
 	discoverNodesInterval time.Duration
 	verifyDeadAfter       time.Duration
 
+	// attemptConns tracks which net.Conn each in-flight attempt is on, so a
+	// timeout only retires a connection no other attempt is still using.
+	attemptConns attemptConns
+
 	includeDedicatedClusterManagers bool
 	discoveryHealthCheckRetries     int
 	healthCheckTimeout              time.Duration
@@ -1382,19 +1386,7 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 		if c.requestTimeout > 0 {
 			attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
 		}
-		// Record the net.Conn so a timeout can retire it. Canceling the
-		// attempt context RSTs an HTTP/2 stream but leaves the ClientConn
-		// pooled, and the next retry would otherwise reuse it. Skipped on
-		// the default path (no RequestTimeout, no EnableRetryOnTimeout).
-		var timedOutConn net.Conn
-		if c.shouldTraceAttemptConn() {
-			attemptCtx = withAttemptConnTrace(attemptCtx, &timedOutConn)
-		}
-		if attemptCtx != req.Context() {
-			attemptReq = attemptReq.WithContext(attemptCtx)
-		}
-
-		res, err = c.transport.RoundTrip(attemptReq)
+		res, err = c.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn.URLString)
 
 		if attemptCancel != nil {
 			// If the response body is non-nil, the caller is responsible for
@@ -1507,25 +1499,9 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 				if (!netError.Timeout() || c.enableRetryOnTimeout) && !c.disableRetry {
 					shouldRetry = true
 				}
-				// Retire the connection only for a timeout we generated.
-				// HTTP/2 keeps the ClientConn after a stream RST, so a retry
-				// (or the next request) would otherwise sit on a black-holed
-				// backend. See #1121.
-				//
-				// context.DeadlineExceeded reports Timeout() == true, so a
-				// caller's own expiring deadline lands here too -- and it
-				// implicates the caller, not the connection. The caller's
-				// deadline propagates into the attempt context, so a non-nil
-				// parent Err means the cancellation came from above and the
-				// connection is left alone. If the parent expires between our
-				// timeout firing and this check we skip the close, which is the
-				// safe direction.
-				if netError.Timeout() && req.Context().Err() == nil {
-					if dl := loadDebugLogger(); dl != nil {
-						dl.Logf("Closing timed-out HTTP connection: %s\n", conn.URLString)
-					}
-					closeTimedOutConn(timedOutConn)
-				}
+				// The connection an attempt timed out on is retired by
+				// settleAttemptConn, which runs right after RoundTrip so it can
+				// also hold the claim across a response body read. See #1121.
 			}
 		} else {
 			// Report the connection as successful
@@ -1636,6 +1612,43 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
+// roundTripAttempt performs one attempt's RoundTrip with per-attempt connection
+// tracing, then settles that connection's fate through the single settle path.
+// attemptReq is the request to send and attemptCtx its context, already carrying
+// any per-attempt timeout. callerCtx is the caller's own context, consulted only
+// to tell a caller cancellation apart from a timeout this client generated.
+// connURL identifies the connection in debug logs.
+//
+// The connection claim lives on this frame and its address is taken only on the
+// tracing path, so the default path (no RequestTimeout, no EnableRetryOnTimeout)
+// stays allocation-free.
+func (c *Client) roundTripAttempt(
+	attemptReq *http.Request,
+	attemptCtx, callerCtx context.Context,
+	connURL string,
+) (*http.Response, error) {
+	var attemptConn attemptClaim
+	if c.shouldTraceAttemptConn() {
+		attemptCtx = withAttemptConnTrace(attemptCtx, &attemptConn, &c.attemptConns)
+	}
+	// Rebuild the request only when a timeout or conn trace actually derived a
+	// new context, so the default path allocates nothing.
+	if attemptCtx != callerCtx {
+		attemptReq = attemptReq.WithContext(attemptCtx)
+	}
+
+	res, err := c.transport.RoundTrip(attemptReq)
+
+	c.attemptConns.settle(attemptCtx, attemptOutcome{
+		held:            attemptConn,
+		connURL:         connURL,
+		err:             err,
+		res:             res,
+		callerCancelled: callerCtx.Err() != nil,
+	})
+	return res, err
+}
+
 // performSeedFallback attempts a single request using the seed URL fallback pool.
 // Called as the absolute last resort when all router policies and connection pools
 // are exhausted. Does not retry -- this is already the final fallback.
@@ -1688,15 +1701,7 @@ func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*h
 	if c.requestTimeout > 0 {
 		attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
 	}
-	var timedOutConn net.Conn
-	if c.shouldTraceAttemptConn() {
-		attemptCtx = withAttemptConnTrace(attemptCtx, &timedOutConn)
-	}
-	if attemptCtx != ctx {
-		attemptReq = attemptReq.WithContext(attemptCtx)
-	}
-
-	res, err := c.transport.RoundTrip(attemptReq)
+	res, err := c.roundTripAttempt(attemptReq, attemptCtx, ctx, conn.URLString)
 
 	if attemptCancel != nil {
 		if err != nil || res == nil {
@@ -1712,15 +1717,6 @@ func (c *Client) performSeedFallback(ctx context.Context, req *http.Request) (*h
 	}
 
 	if err != nil {
-		var netError net.Error
-		if errors.As(err, &netError) && netError.Timeout() && ctx.Err() == nil {
-			// Our own timeout, not caller cancellation. See the matching check
-			// in stream for why the parent Err gates this.
-			if dl := loadDebugLogger(); dl != nil {
-				dl.Logf("Closing timed-out HTTP connection: %s\n", conn.URLString)
-			}
-			closeTimedOutConn(timedOutConn)
-		}
 		if dl := loadDebugLogger(); dl != nil {
 			dl.Logf("Seed fallback: request to %s failed: %v\n", conn.URL, err)
 		}

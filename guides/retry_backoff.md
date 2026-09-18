@@ -77,6 +77,10 @@ Timeouts are not retried unless `EnableRetryOnTimeout` is set. When a per-attemp
 
 Only a timeout the client generates retires a connection. If your own `context` deadline expires, the connection is left in the pool: the timeout says the caller gave up, not that the connection is bad. The connection is also retired when `EnableRetryOnTimeout` is unset and no retry follows, so the _next_ request dials rather than inheriting a stalled backend.
 
+A connection other in-flight requests are still on is not closed outright. Because HTTP/2 multiplexes, closing it would fail those requests too, so one slow request would take down every concurrent request sharing the connection. Instead the connection is marked for retirement and closed once the requests already on it finish, which lets those requests drain gracefully. A request counts as being on the connection until it closes its response body, since the stream lives until then.
+
+Requests that arrive after the mark are the exception, and deliberately so: they do not postpone the close, which is what keeps a connection carrying continuous traffic from being kept alive forever, but it means such a request can lose its stream when the drain completes, even mid-response. Set `RequestTimeout` above the slowest response you expect, so a healthy backend is not marked in the first place; a request that times out only because the server was slow retires a connection that was working.
+
 Neither `CloseIdleConnections` nor `Request.Close` is a substitute here. `CloseIdleConnections` skips a connection that still has live streams, and `Request.Close` marks the connection the _next_ request is assigned to, which need not be the one that stalled.
 
 ```go
