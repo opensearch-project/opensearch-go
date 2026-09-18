@@ -132,7 +132,9 @@ type Config struct {
 	// A timed-out attempt closes the underlying TCP connection so an HTTP/2
 	// retry dials instead of reusing the stalled ClientConn. A caller's own
 	// expiring context deadline does not: that reports the caller gave up, not
-	// that the connection is bad.
+	// that the connection is bad. A connection other in-flight requests are on
+	// is not closed outright either, since HTTP/2 multiplexes and closing it
+	// would fail those requests too; it is retired once they drain.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 

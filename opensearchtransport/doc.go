@@ -48,7 +48,10 @@ response status codes (by default 502, 503, 504). Use the RetryOnStatus option t
 The transport will not retry a timeout network error, unless enabled by setting EnableRetryOnTimeout to true.
 A timed-out attempt closes the underlying TCP connection so an HTTP/2 retry dials instead of reusing the
 stalled ClientConn. Only a timeout the client generates does this; a caller's own expiring context deadline
-leaves the connection pooled.
+leaves the connection pooled. A connection other in-flight requests are still on is not closed outright,
+because HTTP/2 multiplexes and closing it would fail those requests too: it is marked for retirement and
+closed once the requests already on it finish. Requests that arrive after the mark do not postpone that, so a
+connection carrying continuous traffic is still retired.
 
 Use the MaxRetries option to configure the number of retries, and set DisableRetry to true
 to disable the retry behavior altogether.
