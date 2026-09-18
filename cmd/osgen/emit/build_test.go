@@ -136,8 +136,16 @@ func TestParamTestCases(t *testing.T) {
 			name:  "*float64 emits 1.5 and a deliberate 0",
 			param: ir.QueryParam{GoName: "RequestsPerSecond", WireName: "requests_per_second", GoType: "*float64", Kind: ir.ParamFloat},
 			want: []emit.ParamTestCase{
-				{Name: "requests_per_second", FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)", WantAssign: `"requests_per_second": "1.5"`},
-				{Name: "requests_per_second=0", FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(0)", WantAssign: `"requests_per_second": "0"`},
+				{
+					Name:        "requests_per_second",
+					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)",
+					WantAssign:  `"requests_per_second": "1.5"`,
+				},
+				{
+					Name:        "requests_per_second=0",
+					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(0)",
+					WantAssign:  `"requests_per_second": "0"`,
+				},
 			},
 		},
 		{
