@@ -1867,6 +1867,10 @@ const (
 // X-Amz-Credential), and some deployments accept API keys as a query
 // parameter. Method, scheme, host, and path are enough to identify which
 // request failed without risking a leak into logs or error-tracking systems.
+//
+// Clearing the query also clears ForceQuery, so the emptied query renders
+// without a trailing "?"; the fragment is dropped too, since it never reaches
+// the server and only adds noise to the identifier.
 func redactedRequestURL(req *http.Request) string {
 	if req == nil || req.URL == nil {
 		return "<no url>"
