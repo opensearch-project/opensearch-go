@@ -377,9 +377,9 @@ func removeStaleGenFiles(root string, written set[string]) (int, error) {
 var repoRoot = repoRootGit
 
 // normalizeRepoRoot converts the output of `git rev-parse --show-toplevel`
-// into a native path. Git for Windows prints forward slashes, while
-// filepath.Abs returns backslashes, so without this every comparison against
-// the repository root fails on Windows.
+// into a native path. Git for Windows prints forward slashes there, while
+// filepath.Abs returns backslashes, so the two do not compare equal as
+// strings. Normalizing at the producer keeps every caller on native form.
 func normalizeRepoRoot(out string) string {
 	return filepath.Clean(filepath.FromSlash(strings.TrimSpace(out)))
 }
