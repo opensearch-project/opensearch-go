@@ -186,8 +186,6 @@ See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logsl
 
 `opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
 
-`opensearchutil.BulkIndexerConfig.DebugLogger` is a different field and is unchanged. It still takes a `BulkIndexerDebugLogger` (a `Printf` method) and logs the indexer's own worker activity, not the client's internal records.
-
 ### Installing a logger
 
 Debug records could previously only go to the client's own stream. `Config.DebugLogger` (on both `opensearch.Config` and `opensearchtransport.Config`) routes them into an application's logger instead:
@@ -617,3 +615,32 @@ Once your module's `go` directive reaches 1.26, you can drop the helper entirely
 ```go
 Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 ```
+
+## `opensearchutil.BulkIndexer` `DebugLogger` removed
+
+`BulkIndexerConfig` no longer has a `DebugLogger` field, and the `BulkIndexerDebugLogger` interface is gone. The bulk indexer used to take its own `Printf`-style logger, separate from the client's:
+
+```go
+// Before
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+    Client:      client,
+    DebugLogger: log.New(os.Stdout, "", 0),
+})
+```
+
+Its debug records now flow through `opensearchtransport.Debug()`, the same logger the rest of the client uses, so you switch them on where you switch on everything else:
+
+```go
+// After: enable debug logging on the client; the bulk indexer's records come with it.
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:         []string{"http://localhost:9200"},
+            EnableDebugLogger: true,
+        },
+    },
+)
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client})
+```
+
+`OPENSEARCH_GO_LOG=debug` and `Config.DebugLogger` (any `debuglog.Logger`) work the same way; see [Debugging](USER_GUIDE.md#debugging). The records are now structured, carrying fields such as `worker`, `action`, and `doc_id` rather than the old preformatted lines. A `BulkIndexerConfig` that still sets `DebugLogger` is a compile error; delete the field.

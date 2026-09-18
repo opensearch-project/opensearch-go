@@ -269,33 +269,33 @@ func (m *_NodesMeta) formatFailures() string {
 // the cluster. If another discovery is already in progress, DiscoverNodes
 // blocks until that discovery completes (or ctx is cancelled) and returns
 // its result.
-func (c *Transport) DiscoverNodes(ctx context.Context) error {
+func (tr *Transport) DiscoverNodes(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 
-	c.discoverMu.Lock()
+	tr.discoverMu.Lock()
 
-	if c.discoverMu.inProgress {
+	if tr.discoverMu.inProgress {
 		// Another goroutine is running discovery. Wait for it using
 		// sync.Cond + context.AfterFunc so that context cancellation
 		// wakes us even though Cond.Wait is not context-aware.
 		stopf := context.AfterFunc(ctx, func() {
-			c.discoverMu.Lock()
-			defer c.discoverMu.Unlock()
-			c.discoverMu.cond.Broadcast()
+			tr.discoverMu.Lock()
+			defer tr.discoverMu.Unlock()
+			tr.discoverMu.cond.Broadcast()
 		})
 		defer stopf()
 
-		for c.discoverMu.inProgress {
-			c.discoverMu.cond.Wait()
+		for tr.discoverMu.inProgress {
+			tr.discoverMu.cond.Wait()
 			if ctx.Err() != nil {
-				c.discoverMu.Unlock()
+				tr.discoverMu.Unlock()
 				return ctx.Err()
 			}
 		}
-		err := c.discoverMu.lastErr
-		c.discoverMu.Unlock()
+		err := tr.discoverMu.lastErr
+		tr.discoverMu.Unlock()
 		// If our own context was cancelled (it can race the final
 		// Broadcast and skip the in-loop check), that takes precedence.
 		if ctx.Err() != nil {
@@ -312,7 +312,7 @@ func (c *Transport) DiscoverNodes(ctx context.Context) error {
 
 	// We won the race: start discovery.
 	// Lock is held — doDiscoverNodes takes ownership and releases it.
-	return c.doDiscoverNodes(ctx)
+	return tr.doDiscoverNodes(ctx)
 }
 
 // tryDiscoverNodes attempts to start a discovery cycle. If discovery is
@@ -321,39 +321,39 @@ func (c *Transport) DiscoverNodes(ctx context.Context) error {
 // This is used by the internal discoveryLoop, which must never block on
 // another discovery. It could be exported in the future if callers need
 // fire-and-forget semantics on the public API.
-func (c *Transport) tryDiscoverNodes(ctx context.Context) error {
+func (tr *Transport) tryDiscoverNodes(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
 
-	c.discoverMu.Lock()
-	if c.discoverMu.inProgress {
-		c.discoverMu.Unlock()
+	tr.discoverMu.Lock()
+	if tr.discoverMu.inProgress {
+		tr.discoverMu.Unlock()
 		return nil
 	}
 	// Lock is held — doDiscoverNodes takes ownership and releases it.
-	return c.doDiscoverNodes(ctx)
+	return tr.doDiscoverNodes(ctx)
 }
 
 // doDiscoverNodes performs the discovery work.
 //
-// Called with c.discoverMu held. It sets inProgress = true, releases the
+// Called with tr.discoverMu held. It sets inProgress = true, releases the
 // lock for I/O, then re-acquires it on completion to clear inProgress,
 // store the result, and wake any waiters.
-func (c *Transport) doDiscoverNodes(ctx context.Context) error {
-	c.discoverMu.inProgress = true
-	c.discoverMu.Unlock()
+func (tr *Transport) doDiscoverNodes(ctx context.Context) error {
+	tr.discoverMu.inProgress = true
+	tr.discoverMu.Unlock()
 
 	var discoverErr error
 	defer func() {
-		c.discoverMu.Lock()
-		c.discoverMu.inProgress = false
-		c.discoverMu.lastErr = discoverErr
-		c.discoverMu.cond.Broadcast()
-		c.discoverMu.Unlock()
+		tr.discoverMu.Lock()
+		tr.discoverMu.inProgress = false
+		tr.discoverMu.lastErr = discoverErr
+		tr.discoverMu.cond.Broadcast()
+		tr.discoverMu.Unlock()
 	}()
 
-	discovered, err := c.getNodesInfo(ctx)
+	discovered, err := tr.getNodesInfo(ctx)
 	if err != nil {
 		Debug().Err(err).Msg("Error getting nodes info")
 		discoverErr = fmt.Errorf("discovery: get nodes: %w", err)
@@ -370,18 +370,18 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 		return discoverErr
 	}
 
-	c.mu.RLock()
-	connPool := c.mu.connectionPool
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	connPool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 	isColdStart := connPool == nil
 
 	if isColdStart {
-		if err := c.nodeDiscoveryAsyncStart(ctx, discovered); err != nil {
+		if err := tr.nodeDiscoveryAsyncStart(ctx, discovered); err != nil {
 			discoverErr = err
 			return discoverErr
 		}
 	} else {
-		if err := c.nodeDiscovery(ctx, discovered); err != nil {
+		if err := tr.nodeDiscovery(ctx, discovered); err != nil {
 			discoverErr = err
 			return discoverErr
 		}
@@ -390,8 +390,8 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	// Fetch shard placement data for scored routing. This is non-blocking:
 	// if /_cat/shards fails (e.g., missing permissions), scored routing
 	// continues with minFanOut and no shard-aware partitioning.
-	if c.router != nil {
-		c.fetchAndUpdateShardPlacement(ctx)
+	if tr.router != nil {
+		tr.fetchAndUpdateShardPlacement(ctx)
 	}
 
 	// Sync dead lists in policy pools. The allConns pool's scheduleResurrect
@@ -400,15 +400,15 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	// each policy pool a chance to notice that shared *Connections have been
 	// resurrected (fast path: lifecycle-bit check, no I/O) or to perform its
 	// own health checks (slow path: parallel HTTP probes).
-	if c.router != nil {
-		if err := c.router.CheckDead(ctx, c.DefaultHealthCheck); err != nil {
+	if tr.router != nil {
+		if err := tr.router.CheckDead(ctx, tr.DefaultHealthCheck); err != nil {
 			Debug().Err(err).Msg("DiscoverNodes: router.CheckDead")
 		}
 	}
 
 	// Expire the zombie-resurrection grace on connections that have been dead
 	// too long, so a node that never comes back stops being blindly retried.
-	c.resetDeadConnViability()
+	tr.resetDeadConnViability()
 
 	// Rotate standby connections after discovery completes.
 	// This piggybacks on the discovery interval rather than using a separate timer.
@@ -416,8 +416,8 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 	// Routes through the router when available so policy pools (which actually have
 	// standby partitions) are rotated -- the allConns pool auto-scales its cap to
 	// pool size, so it never has standby connections.
-	if c.activeListCap > 0 && c.standbyRotationInterval >= 0 {
-		c.rotateStandbyConnections(ctx)
+	if tr.activeListCap > 0 && tr.standbyRotationInterval >= 0 {
+		tr.rotateStandbyConnections(ctx)
 	}
 
 	return nil
@@ -425,27 +425,27 @@ func (c *Transport) doDiscoverNodes(ctx context.Context) error {
 
 // rotateStandbyConnections performs one standby rotation cycle, health-checking
 // a standby connection and swapping it with a random active connection.
-func (c *Transport) rotateStandbyConnections(ctx context.Context) {
-	if c.router != nil {
-		if n, err := c.router.RotateStandby(ctx, c.standbyRotationCount); err != nil {
+func (tr *Transport) rotateStandbyConnections(ctx context.Context) {
+	if tr.router != nil {
+		if n, err := tr.router.RotateStandby(ctx, tr.standbyRotationCount); err != nil {
 			Debug().
 				Int("rotated", n).
-				Int("requested", c.standbyRotationCount).
+				Int("requested", tr.standbyRotationCount).
 				Err(err).
 				Msg("DiscoverNodes: router.RotateStandby rotated standby connections")
 		}
 		return
 	}
 
-	c.mu.RLock()
-	pool, ok := c.mu.connectionPool.(*multiServerPool)
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	pool, ok := tr.mu.connectionPool.(*multiServerPool)
+	tr.mu.RUnlock()
 
 	if ok && pool != nil {
-		if n, err := pool.rotateStandby(ctx, c.standbyRotationCount); err != nil {
+		if n, err := pool.rotateStandby(ctx, tr.standbyRotationCount); err != nil {
 			Debug().
 				Int("rotated", n).
-				Int("requested", c.standbyRotationCount).
+				Int("requested", tr.standbyRotationCount).
 				Err(err).
 				Msg("DiscoverNodes: pool.rotateStandby rotated standby connections")
 		}
@@ -453,22 +453,22 @@ func (c *Transport) rotateStandbyConnections(ctx context.Context) {
 }
 
 // nodeDiscoveryAsyncStart handles discovery with asynchronous connection startup - prioritizes fast startup.
-func (c *Transport) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
+func (tr *Transport) nodeDiscoveryAsyncStart(ctx context.Context, discovered []nodeInfo) error {
 	// Async start - assume all connections are ready for fast startup
 	readyConnections := make([]*Connection, 0, len(discovered))
 
 	for _, node := range discovered {
-		conn := c.createConnection(node)
+		conn := tr.createConnection(node)
 		readyConnections = append(readyConnections, conn)
 
 		// Async health check - will be handled by normal pool mechanics
 		go func(conn *Connection) {
-			c.healthCheckWithRetries(ctx, conn, c.discoveryHealthCheckRetries)
+			tr.healthCheckWithRetries(ctx, conn, tr.discoveryHealthCheckRetries)
 		}(conn)
 	}
 
 	// Cold start -- no existing connections to compare timestamps against.
-	return c.updateConnectionPool(ctx, time.Time{}, readyConnections, []*Connection{})
+	return tr.updateConnectionPool(ctx, time.Time{}, readyConnections, []*Connection{})
 }
 
 // nodeDiscovery handles discovery for running clusters -- reuses existing connections.
@@ -487,17 +487,17 @@ func (c *Transport) nodeDiscoveryAsyncStart(ctx context.Context, discovered []no
 //
 // updateConnectionPool uses this contract: oldConn == newConn means unchanged,
 // oldConn != newConn means remove+add (regardless of role comparison).
-func (c *Transport) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
+func (tr *Transport) nodeDiscovery(ctx context.Context, discovered []nodeInfo) error {
 	// Build lookup of existing connections by URL to resolve pointers.
-	c.mu.RLock()
-	currentPool := c.mu.connectionPool
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	currentPool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	currentByURL := make(map[string]*Connection)
 	if currentPool != nil {
 		for _, u := range currentPool.URLs() {
 			urlStr := u.String()
-			if conn := c.findConnectionByURL(currentPool, urlStr); conn != nil {
+			if conn := tr.findConnectionByURL(currentPool, urlStr); conn != nil {
 				currentByURL[urlStr] = conn
 			}
 		}
@@ -517,11 +517,11 @@ func (c *Transport) nodeDiscovery(ctx context.Context, discovered []nodeInfo) er
 		}
 
 		// New node or identity changed -- create as dead, pool resurrection handles the rest
-		conn := c.createConnection(node)
+		conn := tr.createConnection(node)
 		deadConnections = append(deadConnections, conn)
 	}
 
-	return c.updateConnectionPool(ctx, time.Time{}, readyConnections, deadConnections)
+	return tr.updateConnectionPool(ctx, time.Time{}, readyConnections, deadConnections)
 }
 
 // canReuseConnection returns true if the existing connection matches the
@@ -543,7 +543,7 @@ func canReuseConnection(conn *Connection, node nodeInfo) bool {
 // can distinguish them from reused connections (which retain their policy-pool
 // lifecycle -- lcActive, lcStandby, etc.). The caller is responsible for
 // transitioning new connections to the appropriate lifecycle after health checking.
-func (c *Transport) createConnection(node nodeInfo) *Connection {
+func (tr *Transport) createConnection(node nodeInfo) *Connection {
 	// Build role set for efficient O(1) lookups
 	node.roleSet = newRoleSet(node.Roles)
 
@@ -561,7 +561,7 @@ func (c *Transport) createConnection(node nodeInfo) *Connection {
 	}
 	conn.estLoad.clock = realClock{}
 	conn.weight.Store(1)
-	conn.rttRing = newRTTRing(c.rttRingSize)
+	conn.rttRing = newRTTRing(tr.rttRingSize)
 
 	// Store allocated_processors if present (populated when nodeInfo was parsed
 	// from a /_nodes/_local/http,os,thread_pool response; nil from /_nodes/http discovery).
@@ -601,7 +601,7 @@ func storeThreadPoolSizes(conn *Connection, pools map[string]nodeInfoThreadPool)
 // result wins and the connection is resurrected. If deadSince is newer (set concurrently
 // during the health check window), the dead state is preserved. Zero means no timestamp
 // comparison (cold start -- no existing connections to compare against).
-func (c *Transport) updateConnectionPool(
+func (tr *Transport) updateConnectionPool(
 	ctx context.Context, healthCheckedAt time.Time, readyConnections, deadConnections []*Connection,
 ) error {
 	totalNodes := len(readyConnections) + len(deadConnections)
@@ -610,9 +610,9 @@ func (c *Transport) updateConnectionPool(
 	allConnections = append(allConnections, deadConnections...)
 
 	// Get current connections with their role information for diff calculation
-	c.mu.RLock()
-	currentPool := c.mu.connectionPool
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	currentPool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	var currentConnectionsByURL map[string]*Connection
 
@@ -627,7 +627,7 @@ func (c *Transport) updateConnectionPool(
 		for _, urlPtr := range currentURLs {
 			url := urlPtr.String()
 			// Try to find this URL in the current pool
-			if conn := c.findConnectionByURL(currentPool, url); conn != nil {
+			if conn := tr.findConnectionByURL(currentPool, url); conn != nil {
 				currentConnectionsByURL[url] = conn
 			}
 		}
@@ -747,35 +747,35 @@ func (c *Transport) updateConnectionPool(
 	// Dynamically recalculate capacity model from discovered hardware.
 	// Use the minimum allocatedProcessors across all nodes with known values --
 	// the smallest node is the bottleneck for per-server rate limits.
-	c.recalculateCapacityModel(allFinal)
+	tr.recalculateCapacityModel(allFinal)
 
-	// Atomically swap the connection pool under c.mu, then release the lock
-	// before notifying the router and observers. This avoids holding c.mu (W)
+	// Atomically swap the connection pool under tr.mu, then release the lock
+	// before notifying the router and observers. This avoids holding tr.mu (W)
 	// while router policies acquire pool-level locks (the lock ordering that
-	// caused the deadlock: c.mu(W) -> pool.mu(W) vs pool.mu(R) in the request path).
-	c.mu.Lock()
+	// caused the deadlock: tr.mu(W) -> pool.mu(W) vs pool.mu(R) in the request path).
+	tr.mu.Lock()
 
 	totalFinalNodes := len(finalReady) + len(finalDead)
 	var newConnectionPool ConnectionPool
 	if totalFinalNodes == 1 {
-		newConnectionPool = c.createOrUpdateSingleNodePool(finalReady, finalDead)
+		newConnectionPool = tr.createOrUpdateSingleNodePool(finalReady, finalDead)
 	} else {
-		newConnectionPool = c.createOrUpdateMultiNodePoolWithLock(finalReady, finalDead)
+		newConnectionPool = tr.createOrUpdateMultiNodePoolWithLock(finalReady, finalDead)
 	}
 
-	c.mu.connectionPool = newConnectionPool
+	tr.mu.connectionPool = newConnectionPool
 
 	// Set up health check function and observer for pools that support it
-	if pool, ok := c.mu.connectionPool.(*multiServerPool); ok {
+	if pool, ok := tr.mu.connectionPool.(*multiServerPool); ok {
 		pool.mu.Lock()
-		pool.mu.healthCheck = c.DefaultHealthCheck
+		pool.mu.healthCheck = tr.DefaultHealthCheck
 		pool.mu.Unlock()
-		if obs := c.observer.Load(); obs != nil {
+		if obs := tr.observer.Load(); obs != nil {
 			pool.observer.Store(obs)
 		}
 	}
 
-	c.mu.Unlock()
+	tr.mu.Unlock()
 
 	// Schedule resurrection for dead connections so they get health-checked
 	// (which clears lcNeedsHardware and populates allocatedProcessors) and
@@ -800,20 +800,20 @@ func (c *Transport) updateConnectionPool(
 		}
 	}
 
-	// Notify router outside c.mu -- router.DiscoveryUpdate may acquire pool-level
-	// locks via RolePolicy.discoveryUpdateAdd/enforceActiveCapWithLock. Holding c.mu
-	// here would create the lock inversion: c.mu(W) -> pool.mu(W).
-	// c.router is immutable after construction, so no lock is needed to read it.
-	if c.router != nil {
+	// Notify router outside tr.mu -- router.DiscoveryUpdate may acquire pool-level
+	// locks via RolePolicy.discoveryUpdateAdd/enforceActiveCapWithLock. Holding tr.mu
+	// here would create the lock inversion: tr.mu(W) -> pool.mu(W).
+	// tr.router is immutable after construction, so no lock is needed to read it.
+	if tr.router != nil {
 		// Pass calculated diffs to router so policies don't have to recalculate
-		if err := c.router.DiscoveryUpdate(added, removed, unchanged); err != nil {
+		if err := tr.router.DiscoveryUpdate(added, removed, unchanged); err != nil {
 			// Continue - don't fail discovery due to router errors
 			_ = err
 		}
 	}
 
-	// Notify observer of discovery changes (observer is atomic, safe without c.mu)
-	if obs := observerFromAtomic(&c.observer); obs != nil {
+	// Notify observer of discovery changes (observer is atomic, safe without tr.mu)
+	if obs := observerFromAtomic(&tr.observer); obs != nil {
 		// Compute lifecycle-bit counts from local slices (no pool lock held).
 		var discoveryCounts lifecycleCounts
 		for _, conn := range finalReady {
@@ -897,7 +897,7 @@ func computeWeights(conns []*Connection) {
 // based on discovered hardware info. Uses the minimum allocatedProcessors across
 // all nodes (the bottleneck) to derive serverMaxNewConnsPerSec, clientsPerServer,
 // and healthCheckRate. Skips recalculation if no nodes have known core counts.
-func (c *Transport) recalculateCapacityModel(conns []*Connection) {
+func (tr *Transport) recalculateCapacityModel(conns []*Connection) {
 	minCores := 0
 	for _, conn := range conns {
 		if ap := conn.loadAllocatedProcessors(); ap > 0 {
@@ -912,16 +912,16 @@ func (c *Transport) recalculateCapacityModel(conns []*Connection) {
 		return
 	}
 
-	c.mu.Lock()
-	c.serverMaxNewConnsPerSec = float64(minCores) * serverMaxNewConnsPerSecMultiplier
-	c.clientsPerServer = float64(minCores)
-	c.healthCheckRate = float64(minCores) * healthCheckRateMultiplier
-	c.mu.Unlock()
+	tr.mu.Lock()
+	tr.serverMaxNewConnsPerSec = float64(minCores) * serverMaxNewConnsPerSecMultiplier
+	tr.clientsPerServer = float64(minCores)
+	tr.healthCheckRate = float64(minCores) * healthCheckRateMultiplier
+	tr.mu.Unlock()
 }
 
 // findConnectionByURL attempts to find a connection in the pool by URL.
 // This helper extracts connections from different pool types to get their role information.
-func (c *Transport) findConnectionByURL(pool ConnectionPool, url string) *Connection {
+func (tr *Transport) findConnectionByURL(pool ConnectionPool, url string) *Connection {
 	switch p := pool.(type) {
 	case *singleServerPool:
 		if p.connection != nil && p.connection.URL.String() == url {
@@ -948,12 +948,12 @@ func (c *Transport) findConnectionByURL(pool ConnectionPool, url string) *Connec
 }
 
 // createOrUpdateSingleNodePool handles single-node connection pool creation/updates.
-// Caller must hold c.mu.Lock().
-func (c *Transport) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
+// Caller must hold tr.mu.Lock().
+func (tr *Transport) createOrUpdateSingleNodePool(readyConnections, deadConnections []*Connection) ConnectionPool {
 	// Single node - check if demotion from multiServerPool is needed
-	if _, isStatusPool := c.mu.connectionPool.(*multiServerPool); isStatusPool {
+	if _, isStatusPool := tr.mu.connectionPool.(*multiServerPool); isStatusPool {
 		// Demote from multi-node to single-node pool
-		return c.demoteConnectionPoolWithLock()
+		return tr.demoteConnectionPoolWithLock()
 	}
 
 	// Create or update single connection pool
@@ -966,7 +966,7 @@ func (c *Transport) createOrUpdateSingleNodePool(readyConnections, deadConnectio
 
 	// Preserve metrics from existing single connection pool
 	var metrics *metrics
-	if existingSinglePool, ok := c.mu.connectionPool.(*singleServerPool); ok {
+	if existingSinglePool, ok := tr.mu.connectionPool.(*singleServerPool); ok {
 		metrics = existingSinglePool.metrics
 	}
 
@@ -974,12 +974,12 @@ func (c *Transport) createOrUpdateSingleNodePool(readyConnections, deadConnectio
 }
 
 // createOrUpdateMultiNodePoolWithLock handles multi-node connection pool creation/updates.
-// Caller must hold c.mu.Lock().
-func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
+// Caller must hold tr.mu.Lock().
+func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadConnections []*Connection) ConnectionPool {
 	// Multi-node - check if promotion from singleServerPool is needed
-	if _, isSinglePool := c.mu.connectionPool.(*singleServerPool); isSinglePool {
+	if _, isSinglePool := tr.mu.connectionPool.(*singleServerPool); isSinglePool {
 		// Promote from single-node to multi-node pool
-		return c.promoteConnectionPoolWithLock(readyConnections, deadConnections)
+		return tr.promoteConnectionPoolWithLock(readyConnections, deadConnections)
 	}
 
 	// allConns is the bookkeeping inventory of every discovered connection,
@@ -994,7 +994,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 	allDeadConns = append(allDeadConns, deadConnections...)
 
 	// Shuffle connections for load distribution unless disabled
-	if !c.skipConnectionShuffle && len(allReadyConns) > 1 {
+	if !tr.skipConnectionShuffle && len(allReadyConns) > 1 {
 		rand.Shuffle(len(allReadyConns), func(i, j int) {
 			allReadyConns[i], allReadyConns[j] = allReadyConns[j], allReadyConns[i]
 		})
@@ -1007,7 +1007,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 	// dead list (stillInPool check) and exit, orphaning the connection
 	// with no health check goroutine.
 	var allConnsPool *multiServerPool
-	if existingMultiPool, ok := c.mu.connectionPool.(*multiServerPool); ok {
+	if existingMultiPool, ok := tr.mu.connectionPool.(*multiServerPool); ok {
 		allConnsPool = existingMultiPool
 
 		allConnsPool.mu.Lock()
@@ -1023,7 +1023,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 		}
 		allConnsPool.mu.Unlock()
 	} else {
-		allConnsPool = c.newMultiServerPoolFromClientWithLock("allConns", nil)
+		allConnsPool = tr.newMultiServerPoolFromClientWithLock("allConns", nil)
 		allConnsPool.mu.ready = allReadyConns
 		allConnsPool.mu.members = make(map[*Connection]struct{}, max(len(allReadyConns)+len(allDeadConns), defaultMembersCapacity))
 		for _, conn := range allReadyConns {
@@ -1040,7 +1040,7 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 	// warmupSkipCount, getWarmupParamsWithLock reads them, and the final assignment sets
 	// mu.activeCount -- all mu-guarded fields that resurrectWithLock also touches
 	// under pool.mu. Holding the lock across the whole section serializes it
-	// against resurrection (c.mu, held by the caller, only serializes it against
+	// against resurrection (tr.mu, held by the caller, only serializes it against
 	// metrics.snapshot). Per-connection conn.mu is taken inside the loop, matching
 	// the pool.mu -> conn.mu ordering used by deferredStandbyPromotion.
 	allConnsPool.mu.Lock()
@@ -1103,32 +1103,32 @@ func (c *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadCo
 	return allConnsPool
 }
 
-func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
-	scheme := c.urls[0].Scheme
+func (tr *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
+	scheme := tr.urls[0].Scheme
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_nodes/http", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := getConnectionFromPool(c, req)
-	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
-		conn, err = c.seedFallbackPool.Next()
+	conn, err := getConnectionFromPool(tr, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
+		conn, err = tr.seedFallbackPool.Next()
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
 		return nil, err
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		// Report connection failure to the pool.
-		c.mu.RLock()
-		pool := c.mu.connectionPool
-		c.mu.RUnlock()
+		tr.mu.RLock()
+		pool := tr.mu.connectionPool
+		tr.mu.RUnlock()
 		if pool != nil {
 			if poolErr := pool.OnFailure(conn); poolErr != nil {
 				Debug().Err(poolErr).Msg("Failed to mark connection as failed")
@@ -1219,23 +1219,23 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	pending := make([]discoveryPendingNode, 0, len(nodes))
 	for id, node := range nodes {
 		node.ID = id
-		u := c.getNodeURL(node, scheme)
+		u := tr.getNodeURL(node, scheme)
 		pending = append(pending, discoveryPendingNode{node: node, defaultURL: u})
 	}
 
 	switch {
-	case c.addressResolverRunner != nil:
+	case tr.addressResolverRunner != nil:
 		// Custom runner: wraps the per-node resolver with metrics, delegates
 		// concurrency and failure policy to the user-supplied runner.
-		resolved, err := c.runAddressResolverRunner(ctx, pending)
+		resolved, err := tr.runAddressResolverRunner(ctx, pending)
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, resolved...)
-	case c.addressResolver != nil:
+	case tr.addressResolver != nil:
 		// Built-in handler: semaphore-bounded parallel fan-out with partial
 		// failure tolerance.
-		resolved, err := c.resolveDiscoveredNodes(ctx, pending)
+		resolved, err := tr.resolveDiscoveredNodes(ctx, pending)
 		if err != nil {
 			return nil, err
 		}
@@ -1249,9 +1249,9 @@ func (c *Transport) getNodesInfo(ctx context.Context) ([]nodeInfo, error) {
 	}
 
 	// Report connection success to the pool.
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 	if pool != nil {
 		pool.OnSuccess(conn)
 	}
@@ -1282,20 +1282,20 @@ type resolvedNode struct {
 // (errors.Join of all resolver errors). This protocol is specific to the
 // built-in handler; a future abstraction could let users control partial
 // failure behavior.
-func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+func (tr *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
 	results := make([]resolvedNode, len(pending))
 
 	var sem *semaphore.Weighted
 	switch {
-	case c.maxAddressResolvers == 0:
+	case tr.maxAddressResolvers == 0:
 		sem = semaphore.NewWeighted(int64(min(len(pending), runtime.GOMAXPROCS(0))))
-	case c.maxAddressResolvers > 0:
-		sem = semaphore.NewWeighted(int64(c.maxAddressResolvers))
+	case tr.maxAddressResolvers > 0:
+		sem = semaphore.NewWeighted(int64(tr.maxAddressResolvers))
 	default:
 		// <0: unlimited, no semaphore
 	}
 
-	obs := observerFromAtomic(&c.observer)
+	obs := observerFromAtomic(&tr.observer)
 
 	var wg sync.WaitGroup
 	for i, p := range pending {
@@ -1316,8 +1316,8 @@ func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discov
 				}
 			}()
 
-			if c.metrics != nil {
-				c.metrics.addressResolverCalls.Add(1)
+			if tr.metrics != nil {
+				tr.metrics.addressResolverCalls.Add(1)
 			}
 
 			info := NodeInfo{
@@ -1329,10 +1329,10 @@ func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discov
 				URL:            p.defaultURL,
 			}
 
-			resolved, err := c.addressResolver(ctx, info)
+			resolved, err := tr.addressResolver(ctx, info)
 			if err != nil {
-				if c.metrics != nil {
-					c.metrics.addressResolverErrors.Add(1)
+				if tr.metrics != nil {
+					tr.metrics.addressResolverErrors.Add(1)
 				}
 				Debug().
 					Str("node", p.node.Name).
@@ -1349,7 +1349,7 @@ func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discov
 			}
 
 			node := p.node
-			node.url = c.applyRewrite(&node, p.defaultURL, resolved, obs)
+			node.url = tr.applyRewrite(&node, p.defaultURL, resolved, obs)
 			results[i] = resolvedNode{node: node}
 		}(i, p)
 	}
@@ -1391,14 +1391,14 @@ func (c *Transport) resolveDiscoveredNodes(ctx context.Context, pending []discov
 // and a debug log is emitted. Validating here surfaces the misuse at
 // resolver time rather than letting a malformed URL flow into the connection
 // pool and fail later as a confusing HTTP error.
-func (c *Transport) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
+func (tr *Transport) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, obs ConnectionObserver) *url.URL {
 	if resolved == nil || resolved.String() == defaultURL.String() {
 		return defaultURL
 	}
 
 	if resolved.Scheme == "" || resolved.Host == "" {
-		if c.metrics != nil {
-			c.metrics.addressResolverErrors.Add(1)
+		if tr.metrics != nil {
+			tr.metrics.addressResolverErrors.Add(1)
 		}
 		Debug().
 			Str("node", node.Name).
@@ -1411,8 +1411,8 @@ func (c *Transport) applyRewrite(node *nodeInfo, defaultURL, resolved *url.URL, 
 
 	node.rewritten = true
 
-	if c.metrics != nil {
-		c.metrics.addressResolverRewrites.Add(1)
+	if tr.metrics != nil {
+		tr.metrics.addressResolverRewrites.Add(1)
 	}
 
 	if obs != nil {
@@ -1463,7 +1463,7 @@ func newInstrumentedResolver(resolve AddressResolverFunc, m *metrics) AddressRes
 // nodes, wraps the per-node AddressResolverFunc with metrics instrumentation,
 // invokes the runner, then converts results back to []nodeInfo while handling
 // rewrite detection, metrics, and observer events.
-func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
+func (tr *Transport) runAddressResolverRunner(ctx context.Context, pending []discoveryPendingNode) ([]nodeInfo, error) {
 	nodeInfos := make([]NodeInfo, len(pending))
 	byID := make(map[string]discoveryPendingNode, len(pending))
 	for i, p := range pending {
@@ -1481,14 +1481,14 @@ func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []disc
 	// Wrap the user's per-node resolver with metrics instrumentation so
 	// that call and error counters fire on every invocation regardless of
 	// how the runner orchestrates calls.
-	instrumentedResolver := newInstrumentedResolver(c.addressResolver, c.metrics)
+	instrumentedResolver := newInstrumentedResolver(tr.addressResolver, tr.metrics)
 
-	results, err := c.addressResolverRunner(ctx, nodeInfos, instrumentedResolver)
+	results, err := tr.addressResolverRunner(ctx, nodeInfos, instrumentedResolver)
 	if err != nil {
 		return nil, fmt.Errorf("address resolver runner: %w", err)
 	}
 
-	obs := observerFromAtomic(&c.observer)
+	obs := observerFromAtomic(&tr.observer)
 
 	// Dedupe by node ID. The built-in path is positional (results[i] for
 	// each pending[i]) so it can't double-emit a node, but a runner is
@@ -1517,7 +1517,7 @@ func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []disc
 		seen[ra.Node.ID] = struct{}{}
 
 		node := p.node
-		node.url = c.applyRewrite(&node, p.defaultURL, ra.URL, obs)
+		node.url = tr.applyRewrite(&node, p.defaultURL, ra.URL, obs)
 		out = append(out, node)
 	}
 
@@ -1528,7 +1528,7 @@ func (c *Transport) runAddressResolverRunner(ctx context.Context, pending []disc
 	return out, nil
 }
 
-func (c *Transport) getNodeURL(node nodeInfo, scheme string) *url.URL {
+func (tr *Transport) getNodeURL(node nodeInfo, scheme string) *url.URL {
 	var (
 		host string
 		port string
@@ -1589,16 +1589,16 @@ func (c *Transport) getNodeURL(node nodeInfo, scheme string) *url.URL {
 // A "refresh now" request (requestDiscoveryNow) is also supported:
 // it sets a separate atomic flag that causes the loop to run a full
 // node + catalog discovery on its next wake, then resets the interval.
-func (c *Transport) discoveryLoop() {
-	nextNodes := time.Now().Add(c.discoverNodesInterval)
+func (tr *Transport) discoveryLoop() {
+	nextNodes := time.Now().Add(tr.discoverNodesInterval)
 	var nextCat time.Time // zero = nothing scheduled
 
-	timer := time.NewTimer(c.discoverNodesInterval)
+	timer := time.NewTimer(tr.discoverNodesInterval)
 	defer timer.Stop()
 
 	for {
 		select {
-		case <-c.ctx.Done():
+		case <-tr.ctx.Done():
 			return
 		case <-timer.C:
 		}
@@ -1606,25 +1606,25 @@ func (c *Transport) discoveryLoop() {
 		now := time.Now()
 
 		// Pick up request-path signal: "shard catalog may be stale."
-		if c.catRefreshNeeded.Swap(false) && nextCat.IsZero() {
+		if tr.catRefreshNeeded.Swap(false) && nextCat.IsZero() {
 			nextCat = now.Add(minCatRefreshInterval)
 		}
 
 		// Pick up "discover now" signal (e.g., large topology change).
-		if c.discoveryNeeded.Swap(false) {
+		if tr.discoveryNeeded.Swap(false) {
 			nextNodes = now // run immediately on this iteration
 		}
 
 		switch {
 		case !now.Before(nextNodes):
 			// Full node + shard discovery.
-			c.tryDiscoverNodes(c.ctx) //nolint:errcheck // errors logged inside
+			tr.tryDiscoverNodes(tr.ctx) //nolint:errcheck // errors logged inside
 
-			nextNodes = time.Now().Add(c.discoverNodesInterval)
+			nextNodes = time.Now().Add(tr.discoverNodesInterval)
 			nextCat = time.Time{}
 
 			// Jittered follow-up for cold-start cache entries.
-			if c.router != nil {
+			if tr.router != nil {
 				//nolint:gosec // jitter; cryptographic randomness not needed
 				jitter := time.Duration(rand.Int64N(int64(catRefreshTimeout)))
 				nextCat = time.Now().Add(jitter)
@@ -1632,9 +1632,9 @@ func (c *Transport) discoveryLoop() {
 
 		case !nextCat.IsZero() && !now.Before(nextCat):
 			// Cat-only refresh (no /_nodes call, no topology changes).
-			if c.router != nil {
-				ctx, cancel := context.WithTimeout(c.ctx, catRefreshTimeout)
-				c.fetchAndUpdateShardPlacement(ctx)
+			if tr.router != nil {
+				ctx, cancel := context.WithTimeout(tr.ctx, catRefreshTimeout)
+				tr.fetchAndUpdateShardPlacement(ctx)
 				cancel()
 			}
 			nextCat = time.Time{}
@@ -1647,7 +1647,7 @@ func (c *Transport) discoveryLoop() {
 		}
 
 		// If another signal arrived while we were working, poll sooner.
-		if c.catRefreshNeeded.Load() || c.discoveryNeeded.Load() {
+		if tr.catRefreshNeeded.Load() || tr.discoveryNeeded.Load() {
 			earliest := time.Now().Add(minCatRefreshInterval)
 			if earliest.Before(wakeAt) {
 				wakeAt = earliest
@@ -1671,20 +1671,20 @@ func (c *Transport) discoveryLoop() {
 // No-op when verifyDeadAfter <= 0 (the feature is disabled). Enumerates the
 // allConns pool; policy pools share the same *Connection pointers, so clearing
 // the bit once via CAS is visible everywhere.
-func (c *Transport) resetDeadConnViability() {
-	if c.verifyDeadAfter <= 0 {
+func (tr *Transport) resetDeadConnViability() {
+	if tr.verifyDeadAfter <= 0 {
 		return
 	}
 
-	c.mu.RLock()
-	pool, ok := c.mu.connectionPool.(*multiServerPool)
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	pool, ok := tr.mu.connectionPool.(*multiServerPool)
+	tr.mu.RUnlock()
 	if !ok {
 		return
 	}
 
 	_, dead := pool.connectionsByState()
-	cutoff := time.Now().Add(-c.verifyDeadAfter)
+	cutoff := time.Now().Add(-tr.verifyDeadAfter)
 
 	for _, conn := range dead {
 		if conn.seed {
@@ -1709,16 +1709,16 @@ func (c *Transport) resetDeadConnViability() {
 // requestCatRefresh signals the discovery loop that shard placement data
 // may be stale (e.g., a connection error suggests a node went down).
 // Lock-free: sets an atomic flag consumed by discoveryLoop.
-func (c *Transport) requestCatRefresh() {
-	c.catRefreshNeeded.Store(true)
+func (tr *Transport) requestCatRefresh() {
+	tr.catRefreshNeeded.Store(true)
 }
 
 // requestDiscoveryNow signals the discovery loop to run a full node +
 // catalog discovery on its next wake-up, rather than waiting for the
 // regular interval. Used after large topology changes.
 // Lock-free: sets an atomic flag consumed by discoveryLoop.
-func (c *Transport) requestDiscoveryNow() {
-	c.discoveryNeeded.Store(true)
+func (tr *Transport) requestDiscoveryNow() {
+	tr.discoveryNeeded.Store(true)
 }
 
 const (
@@ -1736,10 +1736,10 @@ const catRefreshTimeout = 10 * time.Second
 // clearAllNeedsCatUpdate clears the lcNeedsCatUpdate flag on all connections
 // in the pool. Called after a successful /_cat/shards refresh confirms current
 // shard placement.
-func (c *Transport) clearAllNeedsCatUpdate() {
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+func (tr *Transport) clearAllNeedsCatUpdate() {
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	if mp, ok := pool.(*multiServerPool); ok {
 		mp.mu.RLock()
@@ -1760,12 +1760,12 @@ func (c *Transport) clearAllNeedsCatUpdate() {
 //
 // Gated by discoveryFeatures: when catShardsEnabled() returns false,
 // the entire fetch is skipped.
-func (c *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
-	if !c.discoveryFeatures.catShardsEnabled() {
+func (tr *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
+	if !tr.discoveryFeatures.catShardsEnabled() {
 		return
 	}
 
-	shardPlacement, err := c.getShardPlacement(ctx)
+	shardPlacement, err := tr.getShardPlacement(ctx)
 	if err != nil {
 		Debug().Err(err).Msg("Discovery: shard placement fetch failed (continuing with minFanOut)")
 		return
@@ -1777,14 +1777,14 @@ func (c *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
 	// are needed for murmur3 shard-exact routing; number_of_shards from
 	// metadata is the authoritative shard count (the _cat/shards-derived
 	// count can be transiently wrong during shard relocation).
-	if c.discoveryFeatures.routingNumShardsEnabled() {
-		c.fetchRoutingNumShards(ctx, shardPlacement)
+	if tr.discoveryFeatures.routingNumShardsEnabled() {
+		tr.fetchRoutingNumShards(ctx, shardPlacement)
 	}
 
 	// Count active nodes for fan-out clamping.
-	c.mu.RLock()
-	pool := c.mu.connectionPool
-	c.mu.RUnlock()
+	tr.mu.RLock()
+	pool := tr.mu.connectionPool
+	tr.mu.RUnlock()
 
 	activeNodeCount := 0
 	if pool != nil {
@@ -1792,15 +1792,15 @@ func (c *Transport) fetchAndUpdateShardPlacement(ctx context.Context) {
 	}
 
 	// Walk the router's policy tree and update any index slot caches.
-	updateShardPlacementTree(c.router, shardPlacement, activeNodeCount)
+	updateShardPlacementTree(tr.router, shardPlacement, activeNodeCount)
 
 	// Shard placement is now fresh -- clear needsCatUpdate on all connections
 	// so they can re-enter scored routing candidate sets.
-	c.clearAllNeedsCatUpdate()
+	tr.clearAllNeedsCatUpdate()
 
 	// Clear the atomic flag so the discovery loop doesn't schedule a
 	// redundant cat-only refresh on its next wake-up.
-	c.catRefreshNeeded.Store(false)
+	tr.catRefreshNeeded.Store(false)
 }
 
 // Shard state constants from OpenSearch's IndexShardState.
@@ -1894,26 +1894,26 @@ func (p *indexShardPlacement) nodeNameSet() map[string]struct{} {
 // Requires the indices:monitor/stats cluster permission. If the client's
 // credentials lack this privilege, the call returns an error and callers
 // should fall back gracefully.
-func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
+func (tr *Transport) getShardPlacement(ctx context.Context) (map[string]*indexShardPlacement, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/_cat/shards", nil)
 	if err != nil {
 		return nil, fmt.Errorf("creating shard placement request: %w", err)
 	}
 	req.URL.RawQuery = "format=json&h=index,shard,prirep,state,node"
 
-	conn, err := getConnectionFromPool(c, req)
-	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
-		conn, err = c.seedFallbackPool.Next()
+	conn, err := getConnectionFromPool(tr, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
+		conn, err = tr.seedFallbackPool.Next()
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting connection for shard placement: %w", err)
 	}
 
-	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
 		return nil, err
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("shard placement request failed: %w", err)
 	}
@@ -2065,13 +2065,13 @@ func (c *Transport) getShardPlacement(ctx context.Context) (map[string]*indexSha
 //
 //	OperationRouting.java:calculateScaledShardId
 //	MetadataCreateIndexService.java:calculateNumRoutingShards
-func (c *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement map[string]*indexShardPlacement) {
-	if c.router == nil || len(shardPlacement) == 0 {
+func (tr *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement map[string]*indexShardPlacement) {
+	if tr.router == nil || len(shardPlacement) == 0 {
 		return
 	}
 
 	// Find which indexes need routing metadata by checking the cache.
-	routerPolicy, ok := c.router.(Policy)
+	routerPolicy, ok := tr.router.(Policy)
 	if !ok {
 		return
 	}
@@ -2106,7 +2106,7 @@ func (c *Transport) fetchRoutingNumShards(ctx context.Context, shardPlacement ma
 		return
 	}
 
-	rns, err := c.getRoutingMeta(ctx, needFetch)
+	rns, err := tr.getRoutingMeta(ctx, needFetch)
 	if err != nil {
 		Debug().
 			Int("index_count", len(needFetch)).
@@ -2144,7 +2144,7 @@ type indexRoutingMeta struct {
 // shards are RELOCATING or INITIALIZING. The server's shard routing formula
 // uses the configured number_of_shards (via routingFactor), so the client
 // must use the same value for correct murmur3 shard computation.
-func (c *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
+func (tr *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[string]indexRoutingMeta, error) {
 	path := "/_cluster/state/metadata/" + strings.Join(indexes, ",")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, nil)
@@ -2153,19 +2153,19 @@ func (c *Transport) getRoutingMeta(ctx context.Context, indexes []string) (map[s
 	}
 	req.URL.RawQuery = "filter_path=metadata.indices.*.routing_num_shards,metadata.indices.*.settings.index.number_of_shards"
 
-	conn, err := getConnectionFromPool(c, req)
-	if err != nil && errors.Is(err, ErrNoConnections) && c.seedFallbackPool != nil {
-		conn, err = c.seedFallbackPool.Next()
+	conn, err := getConnectionFromPool(tr, req)
+	if err != nil && errors.Is(err, ErrNoConnections) && tr.seedFallbackPool != nil {
+		conn, err = tr.seedFallbackPool.Next()
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting connection for routing metadata: %w", err)
 	}
 
-	if err = c.prepareInternalRequest(conn.URL, req, nil); err != nil {
+	if err = tr.prepareInternalRequest(conn.URL, req, nil); err != nil {
 		return nil, err
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("routing metadata request failed: %w", err)
 	}

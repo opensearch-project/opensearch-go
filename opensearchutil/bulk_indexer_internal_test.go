@@ -35,7 +35,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"net/http"
 	"os"
@@ -310,10 +309,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					FlushInterval: time.Hour,
 					Client:        client,
 				}
-				if testutil.IsDebugEnabled(t) {
-					cfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(cfg)
 
 				for i := 1; i <= 6; i++ {
@@ -367,10 +362,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 					Client:        client,
 					FlushInterval: 50 * time.Millisecond,
 				}
-				if testutil.IsDebugEnabled(t) {
-					cfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(cfg)
 
 				bi.Add(context.Background(),
@@ -451,10 +442,6 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 				t.Cleanup(func() { _ = client.Close() })
 
 				biCfg := BulkIndexerConfig{NumWorkers: 1, FlushBytes: 50, Client: client}
-				if testutil.IsDebugEnabled(t) {
-					biCfg.DebugLogger = log.New(os.Stdout, "", 0)
-				}
-
 				bi, _ := NewBulkIndexer(biCfg)
 
 				for i := 1; i <= 2; i++ {
@@ -679,9 +666,6 @@ func maskedBulkItems(cfg *opensearchapi.Config) {
 func newBulkIndexer(t *testing.T, cfg BulkIndexerConfig) BulkIndexer {
 	t.Helper()
 
-	if testutil.IsDebugEnabled(t) {
-		cfg.DebugLogger = log.New(os.Stdout, "", 0)
-	}
 	bi, err := NewBulkIndexer(cfg)
 	require.NoError(t, err)
 
@@ -891,35 +875,43 @@ func TestBulkIndexerFlushCallbacks(t *testing.T) {
 func TestBulkIndexerOnFailureOnRequestError(t *testing.T) {
 	t.Parallel()
 
-	const wantErr = "flush: simulated bulk request error"
+	// opensearchtransport wraps the request error with `"METHOD" "url": `
+	// context whose URL varies per request, so the OnFailure and OnError errors
+	// are matched on the flush prefix and the underlying cause rather than
+	// compared to an exact string.
+	const (
+		wantErrPrefix = "flush: "
+		wantErrSuffix = ": simulated bulk request error"
+	)
 
 	// Each row pairs the item to add with what its OnFailure callback must
 	// report. want is written out rather than derived from add, so a callback
 	// handed the wrong document, or an ID paired with another document's body,
-	// fails the comparison instead of agreeing with its own input.
+	// fails the comparison instead of agreeing with its own input. The error is
+	// checked separately, below, since its wrapped URL varies per request.
 	items := []struct {
 		add  BulkIndexerItem
 		want testItemCallback
 	}{
 		{
 			add:  BulkIndexerItem{Action: "index", DocumentID: "id_0", Body: strings.NewReader(`{"title":"doc_0"}`)},
-			want: testItemCallback{ID: "id_0", Body: `{"title":"doc_0"}`, Err: wantErr},
+			want: testItemCallback{ID: "id_0", Body: `{"title":"doc_0"}`},
 		},
 		{
 			add:  BulkIndexerItem{Action: "index", DocumentID: "id_1", Body: strings.NewReader(`{"title":"doc_1"}`)},
-			want: testItemCallback{ID: "id_1", Body: `{"title":"doc_1"}`, Err: wantErr},
+			want: testItemCallback{ID: "id_1", Body: `{"title":"doc_1"}`},
 		},
 		{
 			add:  BulkIndexerItem{Action: "index", DocumentID: "id_2", Body: strings.NewReader(`{"title":"doc_2"}`)},
-			want: testItemCallback{ID: "id_2", Body: `{"title":"doc_2"}`, Err: wantErr},
+			want: testItemCallback{ID: "id_2", Body: `{"title":"doc_2"}`},
 		},
 		{
 			add:  BulkIndexerItem{Action: "index", DocumentID: "id_3", Body: strings.NewReader(`{"title":"doc_3"}`)},
-			want: testItemCallback{ID: "id_3", Body: `{"title":"doc_3"}`, Err: wantErr},
+			want: testItemCallback{ID: "id_3", Body: `{"title":"doc_3"}`},
 		},
 		{
 			add:  BulkIndexerItem{Action: "index", DocumentID: "id_4", Body: strings.NewReader(`{"title":"doc_4"}`)},
-			want: testItemCallback{ID: "id_4", Body: `{"title":"doc_4"}`, Err: wantErr},
+			want: testItemCallback{ID: "id_4", Body: `{"title":"doc_4"}`},
 		},
 	}
 
@@ -928,6 +920,7 @@ func TestBulkIndexerOnFailureOnRequestError(t *testing.T) {
 	var (
 		onErrorCount int
 		failedItems  []testItemCallback
+		failedErrs   []string
 		onErrorErrs  []string
 	)
 	bi := newBulkIndexer(t, BulkIndexerConfig{
@@ -952,8 +945,8 @@ func TestBulkIndexerOnFailureOnRequestError(t *testing.T) {
 			failedItems = append(failedItems, testItemCallback{
 				ID:   item.DocumentID,
 				Body: readItemBody(t, item),
-				Err:  err.Error(),
 			})
+			failedErrs = append(failedErrs, err.Error())
 		}
 		require.NoError(t, bi.Add(t.Context(), add))
 	}
@@ -963,7 +956,10 @@ func TestBulkIndexerOnFailureOnRequestError(t *testing.T) {
 	require.Equal(t, numItems, onErrorCount, "OnError call count")
 	require.Equal(t, uint64(numItems), bi.Stats().NumFailed, "NumFailed")
 	require.Equal(t, wantItems, failedItems, "every added item must fail exactly once")
-	require.Equal(t, slices.Repeat([]string{wantErr}, numItems), onErrorErrs, "OnError error")
+	for _, got := range slices.Concat(failedErrs, onErrorErrs) {
+		require.Truef(t, strings.HasPrefix(got, wantErrPrefix), "error %q should start with %q", got, wantErrPrefix)
+		require.Truef(t, strings.HasSuffix(got, wantErrSuffix), "error %q should end with %q", got, wantErrSuffix)
+	}
 }
 
 // TestBulkIndexerOnFailureDetail covers what OnFailure reports for a rejected
