@@ -217,6 +217,10 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 func TestNormalizeRepoRoot(t *testing.T) {
 	require.Equal(t, filepath.Clean("C:/Users/x/repo"), normalizeRepoRoot("  C:/Users/x/repo\n"))
 	require.Equal(t, filepath.Clean("/home/x/repo"), normalizeRepoRoot("/home/x/repo\n"))
+
+	// A root already in native form has to survive untouched.
+	native := filepath.Join(string(filepath.Separator), "home", "x", "repo")
+	require.Equal(t, native, normalizeRepoRoot(native+"\n"))
 }
 
 func buildTestSpecWithPlugin(t *testing.T) string {
