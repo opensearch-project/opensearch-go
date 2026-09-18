@@ -576,10 +576,10 @@ func (cm ConnectionMetric) String() string {
 		fmt.Fprintf(&b, " failures=%d", cm.Failures)
 	}
 	if cm.DeadSince != nil {
-		fmt.Fprintf(&b, " dead_since=%s", cm.DeadSince.Local().Format(time.Stamp))
+		fmt.Fprintf(&b, " dead_since=%s", cm.DeadSince.Format(time.Stamp))
 	}
 	if cm.OverloadedSince != nil {
-		fmt.Fprintf(&b, " overloaded_since=%s", cm.OverloadedSince.Local().Format(time.Stamp))
+		fmt.Fprintf(&b, " overloaded_since=%s", cm.OverloadedSince.Format(time.Stamp))
 	}
 	b.WriteString("}")
 	return b.String()
