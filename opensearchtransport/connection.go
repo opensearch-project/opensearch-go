@@ -188,6 +188,39 @@ type Connection struct {
 	failures atomic.Int64
 	state    atomic.Int64 // Packed connState: connLifecycle (12b) + 2*warmupManager (26b each)
 
+	// drainingConn counts requests that timed out on this node since the last
+	// drain was requested, and a non-zero value asks the next request to this
+	// node to carry Request.Close.
+	//
+	// That is the whole mechanism. Request.Close makes net/http's HTTP/2
+	// transport set doNotReuse on the connection it is assigned, which is
+	// exactly the behavior wanted here and which net/http already implements:
+	// the connection stops being offered to new requests, the streams already
+	// on it run to completion, and net/http closes it once the last one
+	// finishes. Nothing here tracks streams or closes sockets, because
+	// net/http does both.
+	//
+	// The count is consumed (swapped to 0) when a request picks it up, so one
+	// run of timeouts asks for one drain rather than pinning the node to
+	// connection-per-request forever. Its value is how many requests were
+	// caught on the stale connection before the drain was requested, which is
+	// what distinguishes a single slow response from a backend that has gone
+	// away.
+	//
+	// The request that carries the flag still rides the stale connection,
+	// because doNotReuse is set after the stream is assigned, so recovery
+	// lands on the attempt after it.
+	//
+	// This is per-node, not per-connection: Request.Close marks whichever
+	// connection the carrying request is assigned, which is the stale one when
+	// a node has a single pooled HTTP/2 connection and may be a healthy
+	// sibling when it has several. Draining a healthy connection costs one
+	// handshake, so the imprecision is not worth a tracking scheme to remove.
+	//
+	// The zero value is the default, so a client that never times out never
+	// touches this.
+	drainingConn atomic.Int64
+
 	// deadSinceNano and overloadedAtNano hold Unix-nanosecond timestamps, with 0
 	// meaning "unset" (the zero time). They are read lock-free by Metrics() and
 	// written under conn.mu; see conn.mu for the locking protocol. Use the

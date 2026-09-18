@@ -290,7 +290,7 @@ The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStr
 
 In v4, the transport rewrote the request you handed it: it set `URL.Scheme`, `URL.Host`, and `URL.Path` to the selected node (prepending any base path), injected auth and signature headers, and could append `max_concurrent_shard_requests` to `URL.RawQuery`. Those mutations were visible on your own request value after the call returned.
 
-In v5 each attempt operates on its own clone, and your request comes back untouched. This aligns with the `http.RoundTripper` contract ("RoundTrip should not modify the request") and fixes a data race: net/http encodes HTTP/2 request headers on a goroutine that can outlive a cancelled `RoundTrip`, so rewriting a shared request while that goroutine was still reading it raced.
+In v5 each attempt operates on its own clone, and your request comes back untouched -- on every path, including the seed-URL fallback. This aligns with the `http.RoundTripper` contract ("RoundTrip should not modify the request") and fixes a data race: net/http encodes HTTP/2 request headers on a goroutine that can outlive a cancelled `RoundTrip`, so rewriting a shared request while that goroutine was still reading it raced.
 
 If you were reading the rewritten request to discover which node served a call, read it from the observer's request/response event instead:
 
