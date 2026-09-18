@@ -226,31 +226,31 @@ func TestBuildAPIOperation_VersionZeroMeaningful(t *testing.T) {
 				return p
 			}
 		}
-		t.Fatalf("query param %q not found on %s", name, op.Group)
+		t.Fatalf("query param %q not found on %q", name, op.Group)
 		return apiQueryParam{}
 	}
 
-	t.Run("index version is *int", func(t *testing.T) {
-		t.Parallel()
-		p := paramNamed(t, byGroup["index"], "version")
-		require.True(t, p.IsInt)
-		require.Equal(t, "*int", p.GoType)
-	})
+	tests := []struct {
+		name       string
+		group      string
+		wantIsInt  bool
+		wantIsBool bool
+		wantGoType string
+	}{
+		{"index version is *int", "index", true, false, "*int"},
+		{"search version stays *bool", "search", false, true, "*bool"},
+		{"unlisted operation keeps version as int", "foo.bar", true, false, "int"},
+	}
 
-	t.Run("search version stays *bool", func(t *testing.T) {
-		t.Parallel()
-		p := paramNamed(t, byGroup["search"], "version")
-		require.True(t, p.IsBool)
-		require.False(t, p.IsInt)
-		require.Equal(t, "*bool", p.GoType)
-	})
-
-	t.Run("unlisted operation keeps version as int", func(t *testing.T) {
-		t.Parallel()
-		p := paramNamed(t, byGroup["foo.bar"], "version")
-		require.True(t, p.IsInt)
-		require.Equal(t, "int", p.GoType)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			p := paramNamed(t, byGroup[tt.group], "version")
+			require.Equal(t, tt.wantIsInt, p.IsInt)
+			require.Equal(t, tt.wantIsBool, p.IsBool)
+			require.Equal(t, tt.wantGoType, p.GoType)
+		})
+	}
 }
 
 func TestIsGlobalParam(t *testing.T) {
