@@ -285,7 +285,9 @@ func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 // paramTestCases returns one or more table rows for a query param. Most kinds
 // produce a single happy-path case; *bool params emit both true and false so
 // the wire-level encoding of `false` is exercised (a sentinel-pointer regression
-// would silently drop the param when nil-pointer means "absent").
+// would silently drop the param when nil-pointer means "absent"). *int params
+// emit both 42 and 0 for the same reason: a != 0 guard would silently drop a
+// deliberate 0 (version=0 under external versioning, if_seq_no=0, search size=0).
 //
 // White-box tests for both the core package and plugin packages reference the
 // package-local `func(b bool) *bool { return &b }(...)` literal.
@@ -317,6 +319,20 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 			{
 				Name:        p.WireName + "=0",
 				FieldAssign: fmt.Sprintf("%s: func(f float64) *float64 { return &f }(0)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "0"),
+			},
+		}
+	}
+	if p.Kind == ir.ParamInt && p.GoType == "*int" {
+		return []ParamTestCase{
+			{
+				Name:        p.WireName,
+				FieldAssign: fmt.Sprintf("%s: func(i int) *int { return &i }(42)", p.GoName),
+				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "42"),
+			},
+			{
+				Name:        p.WireName + "=0",
+				FieldAssign: fmt.Sprintf("%s: func(i int) *int { return &i }(0)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "0"),
 			},
 		}

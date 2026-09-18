@@ -39,6 +39,11 @@ func TestPutParams_get(t *testing.T) {
 			params: PutParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
+		{
+			name:   "if_seq_no=0",
+			params: PutParams{IfSeqNo: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"if_seq_no": "0"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

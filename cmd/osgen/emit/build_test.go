@@ -103,3 +103,71 @@ func TestSplitUnionsFromSiblings(t *testing.T) {
 		})
 	}
 }
+
+// TestParamTestCases pins the per-kind branching of paramTestCases: pointer
+// kinds emit a second row for the zero value so a `!= 0`/`!= nil` guard
+// regression that drops a deliberate 0/false is caught, while value-typed and
+// string params collapse to the single happy-path case from paramTestValues.
+func TestParamTestCases(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		param ir.QueryParam
+		want  []emit.ParamTestCase
+	}{
+		{
+			name:  "*int emits 42 and a deliberate 0",
+			param: ir.QueryParam{GoName: "Version", WireName: "version", GoType: "*int", Kind: ir.ParamInt},
+			want: []emit.ParamTestCase{
+				{Name: "version", FieldAssign: "Version: func(i int) *int { return &i }(42)", WantAssign: `"version": "42"`},
+				{Name: "version=0", FieldAssign: "Version: func(i int) *int { return &i }(0)", WantAssign: `"version": "0"`},
+			},
+		},
+		{
+			name:  "*bool emits true and false",
+			param: ir.QueryParam{GoName: "Pretty", WireName: "pretty", GoType: "*bool", Kind: ir.ParamBool},
+			want: []emit.ParamTestCase{
+				{Name: "pretty=true", FieldAssign: "Pretty: func(b bool) *bool { return &b }(true)", WantAssign: `"pretty": "true"`},
+				{Name: "pretty=false", FieldAssign: "Pretty: func(b bool) *bool { return &b }(false)", WantAssign: `"pretty": "false"`},
+			},
+		},
+		{
+			name:  "*float64 emits 1.5 and a deliberate 0",
+			param: ir.QueryParam{GoName: "RequestsPerSecond", WireName: "requests_per_second", GoType: "*float64", Kind: ir.ParamFloat},
+			want: []emit.ParamTestCase{
+				{
+					Name:        "requests_per_second",
+					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)",
+					WantAssign:  `"requests_per_second": "1.5"`,
+				},
+				{
+					Name:        "requests_per_second=0",
+					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(0)",
+					WantAssign:  `"requests_per_second": "0"`,
+				},
+			},
+		},
+		{
+			name:  "value-typed int stays a single case",
+			param: ir.QueryParam{GoName: "Version", WireName: "version", GoType: "int", Kind: ir.ParamInt},
+			want: []emit.ParamTestCase{
+				{Name: "version", FieldAssign: "Version: 42", WantAssign: `"version": "42"`},
+			},
+		},
+		{
+			name:  "string param stays a single case",
+			param: ir.QueryParam{GoName: "Routing", WireName: "routing", GoType: "string", Kind: ir.ParamString},
+			want: []emit.ParamTestCase{
+				{Name: "routing", FieldAssign: `Routing: "test-value"`, WantAssign: `"routing": "test-value"`},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, emit.ParamTestCases(tt.param))
+		})
+	}
+}

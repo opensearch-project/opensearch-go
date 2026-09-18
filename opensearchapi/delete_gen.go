@@ -92,7 +92,7 @@ type DeleteParams struct {
 	// Explicit version number for concurrency control. The specified version
 	// must match the current version of the document for the request to
 	// succeed.
-	Version int
+	Version *int
 
 	// The specific version type: `external`, `external_gte`.
 	VersionType VersionType
@@ -130,8 +130,8 @@ func (r DeleteParams) get() map[string]string {
 		set("routing", strings.Join(r.Routing, ","))
 	}
 
-	if r.Version != 0 {
-		set("version", strconv.Itoa(r.Version))
+	if r.Version != nil {
+		set("version", strconv.Itoa(*r.Version))
 	}
 
 	if r.VersionType != "" {

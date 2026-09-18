@@ -205,6 +205,54 @@ func TestBuildAPIOperation_ZeroMeaningfulFloatParam(t *testing.T) {
 	require.Equal(t, "*float64", paramMap["requests_per_second"].GoType)
 }
 
+func TestBuildAPIOperation_VersionZeroMeaningful(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithVersionParam(t)
+	//nolint:dogsled // test only cares about ops + err
+	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
+	require.NoError(t, err)
+
+	byGroup := make(map[string]*apiOperation, len(ops))
+	for i := range ops {
+		byGroup[ops[i].Group] = &ops[i]
+	}
+
+	paramNamed := func(t *testing.T, op *apiOperation, name string) apiQueryParam {
+		t.Helper()
+		require.NotNil(t, op)
+		for _, p := range op.QueryParams {
+			if p.ParamName == name {
+				return p
+			}
+		}
+		t.Fatalf("query param %q not found on %q", name, op.Group)
+		return apiQueryParam{}
+	}
+
+	tests := []struct {
+		name       string
+		group      string
+		wantIsInt  bool
+		wantIsBool bool
+		wantGoType string
+	}{
+		{"index version is *int", "index", true, false, "*int"},
+		{"search version stays *bool", "search", false, true, "*bool"},
+		{"unlisted operation keeps version as int", "foo.bar", true, false, "int"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			p := paramNamed(t, byGroup[tt.group], "version")
+			require.Equal(t, tt.wantIsInt, p.IsInt)
+			require.Equal(t, tt.wantIsBool, p.IsBool)
+			require.Equal(t, tt.wantGoType, p.GoType)
+		})
+	}
+}
+
 func TestIsGlobalParam(t *testing.T) {
 	t.Parallel()
 
@@ -739,6 +787,41 @@ func buildTestSpecWithRequestsPerSecond(t *testing.T) string {
 					"responses": map[string]any{"200": map[string]any{"description": "OK"}},
 				},
 			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+func buildTestSpecWithVersionParam(t *testing.T) string {
+	t.Helper()
+	intVersion := map[string]any{
+		"name":   "version",
+		"in":     "query",
+		"schema": map[string]any{"type": "integer"},
+	}
+	op := func(group string, params []any) map[string]any {
+		return map[string]any{
+			"post": map[string]any{
+				"x-operation-group": group,
+				"x-version-added":   "1.0",
+				"parameters":        params,
+				"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
+			},
+		}
+	}
+	spec := map[string]any{
+		"openapi": "3.0.3",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/{index}/_doc/{id}": op("index", []any{intVersion}),
+			"/_search": op("search", []any{
+				map[string]any{
+					"name":   "version",
+					"in":     "query",
+					"schema": map[string]any{"type": "boolean"},
+				},
+			}),
+			"/_foo": op("foo.bar", []any{intVersion}),
 		},
 	}
 	return writeTestSpec(t, spec)

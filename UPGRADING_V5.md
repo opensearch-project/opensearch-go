@@ -395,6 +395,27 @@ b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isol
 
 To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.
 
+## Document `version` query parameters are `*int`
+
+`cmd/osgen` typed the document `version` query parameter as `int`, so `version=0` was dropped by the `!= 0` emission guard. External versioning allows version ≥ 0; sending `version_type=external` without `version` makes the server fall back to internal versioning. `version` is now `*int` (`nil` omits, `&0` sends 0), matching `if_seq_no` and search `size`.
+
+Applies to `IndexParams`, `CreateParams`, `DeleteParams`, `GetParams`, `ExistsParams`, `GetSourceParams`, `ExistsSourceParams`, `TermVectorsParams`, `MTermVectorsParams`, and the LTR `AddFeaturesToSet` / `AddFeaturesToSetByQuery` params. Search / delete-by-query / update-by-query `version` is a boolean "include `_version` in hits" flag and is unchanged.
+
+v4 already used `*int`. Integer literals no longer assign:
+
+```go
+// Before (v5 RC)
+Params: &opensearchapi.IndexParams{Version: 0, VersionType: opensearchapi.VersionTypeExternal}
+
+// After
+Params: &opensearchapi.IndexParams{
+    Version:     ptr(0),
+    VersionType: opensearchapi.VersionTypeExternal,
+}
+```
+
+`ptr` is a one-line helper (`func ptr[T any](v T) *T { return &v }`). Once your module's `go` directive reaches 1.26, `new(0)` works directly. See [`opensearch.ToPointer` removed](#opensearchtopointer-removed).
+
 ## Number query parameters are `float64`
 
 `cmd/osgen` typed OpenAPI `number` query parameters as `int`, so fractional values could not be sent and `0` was dropped by the `!= 0` emission guard. `number` now maps to `float64`. Parameters whose `0` is a documented wire value (the `requests_per_second` pause, and plugin `if_primary_term` schemas the spec types as `number`) are `*float64`, matching the `*int` pattern used for zero-meaningful integers.

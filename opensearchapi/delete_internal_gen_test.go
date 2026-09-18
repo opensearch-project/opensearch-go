@@ -30,9 +30,19 @@ func TestDeleteParams_get(t *testing.T) {
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
+			name:   "if_primary_term=0",
+			params: DeleteParams{IfPrimaryTerm: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"if_primary_term": "0"},
+		},
+		{
 			name:   "if_seq_no",
 			params: DeleteParams{IfSeqNo: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"if_seq_no": "42"},
+		},
+		{
+			name:   "if_seq_no=0",
+			params: DeleteParams{IfSeqNo: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"if_seq_no": "0"},
 		},
 		{
 			name:   "refresh",
@@ -46,8 +56,13 @@ func TestDeleteParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: DeleteParams{Version: 42},
+			params: DeleteParams{Version: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"version": "42"},
+		},
+		{
+			name:   "version=0",
+			params: DeleteParams{Version: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"version": "0"},
 		},
 		{
 			name:   "version_type",

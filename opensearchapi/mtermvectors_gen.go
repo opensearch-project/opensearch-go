@@ -141,7 +141,7 @@ type MTermVectorsParams struct {
 	TermStatistics *bool
 
 	// If `true`, returns the document version as part of a hit.
-	Version int
+	Version *int
 
 	// The specific version type.
 	VersionType VersionType
@@ -198,8 +198,8 @@ func (r MTermVectorsParams) get() map[string]string {
 		set("term_statistics", strconv.FormatBool(*r.TermStatistics))
 	}
 
-	if r.Version != 0 {
-		set("version", strconv.Itoa(r.Version))
+	if r.Version != nil {
+		set("version", strconv.Itoa(*r.Version))
 	}
 
 	if r.VersionType != "" {
