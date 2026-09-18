@@ -69,9 +69,9 @@ By default, the `Indices.ClearCache()` action clears all types of cache. To clea
 		&opensearchapi.IndicesClearCacheReq{
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.IndicesClearCacheParams{
-				Fielddata: opensearch.ToPointer(true),
-				Request:   opensearch.ToPointer(true),
-				Query:     opensearch.ToPointer(true),
+				Fielddata: ptr(true),
+				Request:   ptr(true),
+				Query:     ptr(true),
 			},
 		},
 	)
@@ -251,7 +251,7 @@ Let's delete all the indices we created in this guide:
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"movies*", "books*"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
 		},
 	)
 	if err != nil {

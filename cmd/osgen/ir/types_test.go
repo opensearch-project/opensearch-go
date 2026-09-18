@@ -141,7 +141,7 @@ func TestParamKindConstants(t *testing.T) {
 	t.Parallel()
 
 	// Verify the enum values are distinct and ordered.
-	kinds := []ir.ParamKind{ir.ParamString, ir.ParamBool, ir.ParamInt, ir.ParamDuration, ir.ParamList}
+	kinds := []ir.ParamKind{ir.ParamString, ir.ParamBool, ir.ParamInt, ir.ParamDuration, ir.ParamList, ir.ParamFloat}
 	for i := range kinds {
 		if int(kinds[i]) != i {
 			t.Errorf("ParamKind %d has value %d, want %d", i, int(kinds[i]), i)

@@ -69,7 +69,7 @@ type ReindexRethrottleParams struct {
 	TimeoutParams
 	DebugParams
 	// The throttle for this request in sub-requests per second.
-	RequestsPerSecond int
+	RequestsPerSecond *float64
 }
 
 func (r ReindexRethrottleParams) get() map[string]string {
@@ -83,8 +83,8 @@ func (r ReindexRethrottleParams) get() map[string]string {
 	osparams.EncodeTimeout(r.TimeoutParams, set)
 	osparams.EncodeDebug(r.DebugParams, set)
 
-	if r.RequestsPerSecond != 0 {
-		set("requests_per_second", strconv.Itoa(r.RequestsPerSecond))
+	if r.RequestsPerSecond != nil {
+		set("requests_per_second", strconv.FormatFloat(*r.RequestsPerSecond, 'f', -1, 64))
 	}
 
 	return params

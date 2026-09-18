@@ -324,12 +324,12 @@ type clusterNodeSearchEpoch struct {
 // update runs the cluster-wide AIMD based on aggregated search pool stats
 // from all nodes polled in this cycle. Called by [pollNodeStats] after all
 // per-node polls complete.
-func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (aimd *clusterSearchAIMD) update(polled []nodeSearchSample) {
+	aimd.mu.Lock()
+	defer aimd.mu.Unlock()
 
-	if c.mu.nodes == nil {
-		c.mu.nodes = make(map[*Connection]clusterNodeSearchEpoch, len(polled))
+	if aimd.mu.nodes == nil {
+		aimd.mu.nodes = make(map[*Connection]clusterNodeSearchEpoch, len(polled))
 	}
 
 	// Build the set of connections polled this cycle for stale eviction.
@@ -351,7 +351,7 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 			clusterMaxCwnd = nodeMax
 		}
 
-		epoch, known := c.mu.nodes[s.conn]
+		epoch, known := aimd.mu.nodes[s.conn]
 
 		// Update epoch with current cumulative values.
 		newEpoch := clusterNodeSearchEpoch{
@@ -363,7 +363,7 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 			newEpoch.prevWaitTimeNano = *s.stats.TotalWaitTimeInNanos
 			newEpoch.hasWaitTime = true
 		}
-		c.mu.nodes[s.conn] = newEpoch
+		aimd.mu.nodes[s.conn] = newEpoch
 
 		// First time seeing this node: store baseline, skip delta.
 		if !known {
@@ -383,22 +383,22 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 	}
 
 	// Evict nodes not polled this cycle.
-	for conn := range c.mu.nodes {
+	for conn := range aimd.mu.nodes {
 		if _, ok := polledSet[conn]; !ok {
-			delete(c.mu.nodes, conn)
+			delete(aimd.mu.nodes, conn)
 		}
 	}
 
 	// Store the cluster ceiling.
-	c.mu.maxCwnd = clusterMaxCwnd
+	aimd.mu.maxCwnd = clusterMaxCwnd
 
 	// Need completions to drive AIMD.
 	if totalDeltaCompleted <= 0 {
 		return
 	}
 
-	cwnd := max(c.cwnd.Load(), 1)
-	ssthresh := c.mu.ssthresh
+	cwnd := max(aimd.cwnd.Load(), 1)
+	ssthresh := aimd.mu.ssthresh
 	if ssthresh < 1 {
 		ssthresh = clusterMaxCwnd
 	}
@@ -413,8 +413,8 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 	switch {
 	case congested:
 		newCwnd := max(cwnd/2, 1)
-		c.cwnd.Store(newCwnd)
-		c.mu.ssthresh = newCwnd
+		aimd.cwnd.Store(newCwnd)
+		aimd.mu.ssthresh = newCwnd
 		Debug().
 			Int32("cwnd_from", cwnd).
 			Int32("cwnd_to", newCwnd).
@@ -423,7 +423,7 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 			Msg("clusterAIMD: congested")
 	case cwnd < ssthresh:
 		newCwnd := min(cwnd*2, clusterMaxCwnd)
-		c.cwnd.Store(newCwnd)
+		aimd.cwnd.Store(newCwnd)
 		if newCwnd != cwnd {
 			Debug().
 				Int32("cwnd_from", cwnd).
@@ -434,7 +434,7 @@ func (c *clusterSearchAIMD) update(polled []nodeSearchSample) {
 		}
 	default:
 		newCwnd := min(cwnd+1, clusterMaxCwnd)
-		c.cwnd.Store(newCwnd)
+		aimd.cwnd.Store(newCwnd)
 		if newCwnd != cwnd {
 			Debug().
 				Int32("cwnd_from", cwnd).

@@ -154,7 +154,7 @@ type FlowFrameworkCommonShards struct {
 // FlowFrameworkCommonHits is a typed component of the flow_framework.search operation.
 type FlowFrameworkCommonHits struct {
 	Hits     []FlowFrameworkCommonItemsObject `json:"hits,omitempty"`
-	MaxScore *float32                         `json:"max_score"`
+	MaxScore *float32                         `json:"max_score,omitempty"`
 	Total    *FlowFrameworkCommonTotal        `json:"total,omitempty"`
 }
 

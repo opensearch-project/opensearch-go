@@ -1,12 +1,12 @@
 module github.com/opensearch-project/opensearch-go/cmd/osgen/v5
 
-go 1.25.12
+go 1.26.0
 
 require (
 	github.com/getkin/kin-openapi v0.149.0
 	github.com/google/renameio/v2 v2.0.2
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/mod v0.40.0
+	golang.org/x/mod v0.41.0
 )
 
 require (

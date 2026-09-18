@@ -1,6 +1,7 @@
 - [Security](#security)
   - [TLS and Certificate Verification](#tls-and-certificate-verification)
   - [Credential Management](#credential-management)
+    - [API Key Authentication](#api-key-authentication)
   - [Index Names and User-Supplied Input](#index-names-and-user-supplied-input)
     - [How the Client Encodes Path Parameters](#how-the-client-encodes-path-parameters)
     - [Treat External Values as Literals by Default](#treat-external-values-as-literals-by-default)
@@ -89,6 +90,24 @@ client, err := opensearchapi.NewClient(
 ```
 
 For AWS deployments, use IAM-based authentication with the request signer instead of static credentials. See [Amazon OpenSearch Service](../USER_GUIDE.md#amazon-opensearch-service) in the User Guide.
+
+### API Key Authentication
+
+OpenSearch 3.7 and later support API keys as an alternative to a username and password. Set `APIKey` on the config and the client sends an `Authorization: ApiKey <key>` header on every request. The value is the token returned by the [Create API Key](https://docs.opensearch.org/latest/security/access-control/api-keys/) API, prefixed `os_`.
+
+```go
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses: []string{os.Getenv("OPENSEARCH_URL")},
+            APIKey:    os.Getenv("OPENSEARCH_API_KEY"),
+            CACert:    caCert,
+        },
+    },
+)
+```
+
+A URL userinfo credential or an `Authorization` header you set yourself takes precedence over `APIKey`, and `APIKey` takes precedence over `Username` and `Password`. Read the key from the environment or a secrets manager, the same as any other credential.
 
 ## Index Names and User-Supplied Input
 

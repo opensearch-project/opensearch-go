@@ -170,6 +170,7 @@ const (
 	ParamInt                       // serialized via strconv.Itoa
 	ParamDuration                  // serialized as OpenSearch duration
 	ParamList                      // serialized as comma-joined strings
+	ParamFloat                     // serialized via strconv.FormatFloat
 )
 
 // RespShape classifies the top-level structure of a response body. Normal

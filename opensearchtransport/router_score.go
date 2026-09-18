@@ -68,12 +68,12 @@ type decayCounter struct {
 // increment applies one decay step and adds 1.0 to the counter.
 // Returns the new value. Safe for concurrent use (CAS loop).
 // Used by indexSlot.requestDecay for per-index request volume tracking.
-func (c *decayCounter) increment(decay float64) float64 {
+func (dc *decayCounter) increment(decay float64) float64 {
 	for {
-		old := c.bits.Load()
+		old := dc.bits.Load()
 		oldVal := math.Float64frombits(old)
 		newVal := oldVal*decay + 1.0
-		if c.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
+		if dc.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
 			return newVal
 		}
 	}
@@ -83,12 +83,12 @@ func (c *decayCounter) increment(decay float64) float64 {
 // Returns the new value. Safe for concurrent use (CAS loop).
 // Used for CPU-load-based routing where each request contributes
 // a cost proportional to its server-side processing time.
-func (c *decayCounter) add(decay float64, value float64) float64 {
+func (dc *decayCounter) add(decay float64, value float64) float64 {
 	for {
-		old := c.bits.Load()
+		old := dc.bits.Load()
 		oldVal := math.Float64frombits(old)
 		newVal := oldVal*decay + value
-		if c.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
+		if dc.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
 			return newVal
 		}
 	}
@@ -96,25 +96,25 @@ func (c *decayCounter) add(decay float64, value float64) float64 {
 
 // decay applies one decay step without adding load.
 // Used for periodic idle-connection drain and fan-out contraction.
-func (c *decayCounter) decay(factor float64) float64 {
+func (dc *decayCounter) decay(factor float64) float64 {
 	for {
-		old := c.bits.Load()
+		old := dc.bits.Load()
 		oldVal := math.Float64frombits(old)
 		newVal := oldVal * factor
-		if c.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
+		if dc.bits.CompareAndSwap(old, math.Float64bits(newVal)) {
 			return newVal
 		}
 	}
 }
 
 // load returns the current counter value.
-func (c *decayCounter) load() float64 {
-	return math.Float64frombits(c.bits.Load())
+func (dc *decayCounter) load() float64 {
+	return math.Float64frombits(dc.bits.Load())
 }
 
 // store sets the counter to an exact value.
-func (c *decayCounter) store(v float64) {
-	c.bits.Store(math.Float64bits(v))
+func (dc *decayCounter) store(v float64) {
+	dc.bits.Store(math.Float64bits(v))
 }
 
 // timeWeightedCounter is a time-decaying load accumulator using an
@@ -146,18 +146,18 @@ type timeWeightedCounter struct {
 }
 
 // now returns the current time via the injected clock.
-func (c *timeWeightedCounter) now() time.Time {
-	return c.clock.Now()
+func (twc *timeWeightedCounter) now() time.Time {
+	return twc.clock.Now()
 }
 
 // add applies time-based decay since the last update and adds value.
 // Safe for concurrent use (CAS loop).
-func (c *timeWeightedCounter) add(value float64) float64 {
-	now := c.now().UnixNano()
+func (twc *timeWeightedCounter) add(value float64) float64 {
+	now := twc.now().UnixNano()
 
 	for {
-		oldBits := c.bits.Load()
-		oldNano := c.nanoTime.Load()
+		oldBits := twc.bits.Load()
+		oldNano := twc.nanoTime.Load()
 
 		oldVal := math.Float64frombits(oldBits)
 		dt := float64(now-oldNano) / 1e9
@@ -166,8 +166,8 @@ func (c *timeWeightedCounter) add(value float64) float64 {
 		}
 
 		newVal := oldVal*math.Exp(-loadDecayLambda*dt) + value
-		if c.bits.CompareAndSwap(oldBits, math.Float64bits(newVal)) {
-			c.nanoTime.Store(now)
+		if twc.bits.CompareAndSwap(oldBits, math.Float64bits(newVal)) {
+			twc.nanoTime.Store(now)
 			return newVal
 		}
 	}
@@ -175,16 +175,16 @@ func (c *timeWeightedCounter) add(value float64) float64 {
 
 // load returns the current value decayed to the present time.
 // Safe for concurrent use (read-only; does not update stored state).
-func (c *timeWeightedCounter) load() float64 {
-	bits := c.bits.Load()
-	nano := c.nanoTime.Load()
+func (twc *timeWeightedCounter) load() float64 {
+	bits := twc.bits.Load()
+	nano := twc.nanoTime.Load()
 
 	val := math.Float64frombits(bits)
 	if nano == 0 {
 		return val // Never updated.
 	}
 
-	dt := float64(c.now().UnixNano()-nano) / 1e9
+	dt := float64(twc.now().UnixNano()-nano) / 1e9
 	if dt <= 0 {
 		return val
 	}
@@ -193,7 +193,7 @@ func (c *timeWeightedCounter) load() float64 {
 
 // store sets the counter to an exact value and records the current time.
 // Used in tests.
-func (c *timeWeightedCounter) store(v float64) {
-	c.bits.Store(math.Float64bits(v))
-	c.nanoTime.Store(c.now().UnixNano())
+func (twc *timeWeightedCounter) store(v float64) {
+	twc.bits.Store(math.Float64bits(v))
+	twc.nanoTime.Store(twc.now().UnixNano())
 }
