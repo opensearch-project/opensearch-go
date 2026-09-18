@@ -71,8 +71,13 @@ func TestGetParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: GetParams{Version: 42},
+			params: GetParams{Version: func(i int) *int { return &i }(42)},
 			want:   map[string]string{"version": "42"},
+		},
+		{
+			name:   "version=0",
+			params: GetParams{Version: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"version": "0"},
 		},
 		{
 			name:   "version_type",

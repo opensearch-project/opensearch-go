@@ -261,6 +261,11 @@ func TestSearchParams_get(t *testing.T) {
 			want:   map[string]string{"size": "42"},
 		},
 		{
+			name:   "size=0",
+			params: SearchParams{Size: func(i int) *int { return &i }(0)},
+			want:   map[string]string{"size": "0"},
+		},
+		{
 			name:   "sort",
 			params: SearchParams{Sort: []string{"a", "b"}},
 			want:   map[string]string{"sort": "a,b"},

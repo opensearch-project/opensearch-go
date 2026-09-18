@@ -14,6 +14,7 @@ var (
 	QualifyType             = qualifyType
 	SplitFirstLine          = splitFirstLine
 	SplitUnionsFromSiblings = splitUnionsFromSiblings
+	ParamTestCases          = paramTestCases
 
 	// frag_dispatch.go helpers (white-box-style coverage from
 	// _test.go files in the emit package; the test file lives in
