@@ -11,6 +11,7 @@ package opensearchtransport
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -68,7 +69,7 @@ func TestTimeoutDoesNotFailConcurrentRequest(t *testing.T) {
 	})
 
 	patient := newH2Client(t, transport, Config{MaxRetries: 0, RequestTimeout: 10 * time.Second})
-	impatient := newH2Client(t, transport, Config{MaxRetries: 0, RequestTimeout: 300 * time.Millisecond})
+	impatient := newH2Client(t, transport, Config{MaxRetries: 0, RequestTimeout: 500 * time.Millisecond})
 
 	// Warm one connection; both clients multiplex onto it.
 	warm, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
@@ -368,4 +369,80 @@ func newH2Client(t *testing.T, transport *http.Transport, cfg Config) *Transport
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tp.Close() })
 	return tp
+}
+
+// TestDrainMarkSurvivesPreparationFailure pins that the drain mark is spent only
+// by a request that actually reaches the wire. Picking it up consumes it, so a
+// request that fails while being prepared -- signing being the live case, since
+// a signer can fail to refresh credentials -- must leave the mark for the next
+// request. Otherwise one unlucky failure swallows the drain and the stale
+// connection is never retired, which is the whole point of the mark.
+func TestDrainMarkSurvivesPreparationFailure(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		// router sends the request down the intended path: nil keeps the normal
+		// pool, and an exhausted one cascades to seed fallback.
+		router Router
+		// markConn returns the connection whose mark the request should spend.
+		markConn func(t *testing.T, tp *Transport) *Connection
+		wantErr  string
+	}{
+		{
+			name: "stream path",
+			markConn: func(t *testing.T, tp *Transport) *Connection {
+				t.Helper()
+				tp.mu.Lock()
+				pool := tp.mu.connectionPool
+				tp.mu.Unlock()
+				conn, err := pool.Next()
+				require.NoError(t, err)
+				return conn
+			},
+			wantErr: "failed to sign request",
+		},
+		{
+			name:   "seed fallback path",
+			router: &emptyRouter{},
+			markConn: func(t *testing.T, tp *Transport) *Connection {
+				t.Helper()
+				require.NotNil(t, tp.seedFallbackPool, "seed fallback pool must exist")
+				conn, err := tp.seedFallbackPool.Next()
+				require.NoError(t, err)
+				return conn
+			},
+			wantErr: "failed to sign seed fallback request",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			backend := newHTTP2Server(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, "{}")
+			}))
+			dialer := &net.Dialer{Timeout: time.Second}
+			transport := newH2Transport(func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, "tcp", backend.Listener.Addr().String())
+			})
+			tp := newH2Client(t, transport, Config{
+				MaxRetries: 0,
+				Router:     tt.router,
+				Signer:     failingSigner(errors.New("no credentials")),
+			})
+
+			conn := tt.markConn(t, tp)
+			// A previous timeout on this node asked for a drain.
+			conn.drainingConn.Store(1)
+
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+			require.NoError(t, err)
+			//nolint:bodyclose // signing fails before the wire; there is no body
+			_, err = tp.Stream(req)
+			require.ErrorContains(t, err, tt.wantErr, "signing must fail before the wire")
+
+			require.Equal(t, int64(1), conn.drainingConn.Load(),
+				"a request that never reached the wire must leave the drain mark for the next one")
+		})
+	}
 }

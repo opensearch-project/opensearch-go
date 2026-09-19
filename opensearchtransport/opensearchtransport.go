@@ -1587,18 +1587,6 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
 		sentReq = attemptReq        // carries the node URL, for the error wrap
 
-		// A previous timeout on this node asked for its pooled connection to be
-		// drained. Request.Close is how that is spelled: net/http's HTTP/2
-		// transport sets doNotReuse on the connection this request is assigned,
-		// which stops it being offered to new requests, lets the streams already
-		// on it finish, and closes it when the last one does. See
-		// [Connection.drainingConn].
-		if caught := conn.drainingConn.Swap(0); caught > 0 {
-			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
-				Msg("Draining this node's pooled connection")
-			attemptReq.Close = true
-		}
-
 		// Clone copies the Body reference, so a retry needs a fresh reader from
 		// GetBody rather than the already-consumed one.
 		if !tr.disableRetry && i > 0 && attemptReq.Body != nil && attemptReq.Body != http.NoBody {
@@ -1636,6 +1624,23 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
 		}
+		// A previous timeout on this node asked for its pooled connection to be
+		// drained. Request.Close is how that is spelled: net/http's HTTP/2
+		// transport sets doNotReuse on the connection this request is assigned,
+		// which stops it being offered to new requests, lets the streams already
+		// on it finish, and closes it when the last one does. See
+		// [Connection.drainingConn].
+		//
+		// Picked up here, immediately before the round trip, because the pickup
+		// consumes the mark: taken any earlier, a request-preparation failure
+		// would return with the mark spent and the stale connection never
+		// retired.
+		if caught := conn.drainingConn.Swap(0); caught > 0 {
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Draining this node's pooled connection")
+			attemptReq.Close = true
+		}
+
 		res, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
 
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
@@ -2044,14 +2049,6 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	tr.setReqAuth(conn.URL, attemptReq)
 	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
 
-	// See the matching block in stream: a previous timeout on this node asks the
-	// next request to carry Request.Close so net/http drains the connection.
-	if caught := conn.drainingConn.Swap(0); caught > 0 {
-		Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
-			Msg("Seed fallback: draining this node's pooled connection")
-		attemptReq.Close = true
-	}
-
 	// Reset body for the fallback attempt.
 	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
 		body, err := attemptReq.GetBody()
@@ -2072,6 +2069,15 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	attemptCtx := req.Context()
 	if tr.requestTimeout > 0 {
 		attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, tr.requestTimeout)
+	}
+
+	// See the matching block in stream, including why the pickup waits until
+	// here: it consumes the mark, so a preparation failure above must not spend
+	// it.
+	if caught := conn.drainingConn.Swap(0); caught > 0 {
+		Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+			Msg("Seed fallback: draining this node's pooled connection")
+		attemptReq.Close = true
 	}
 
 	res, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn) //nolint:contextcheck // child of req.Context()
