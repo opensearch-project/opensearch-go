@@ -32,7 +32,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -406,12 +405,19 @@ func TestMetrics(t *testing.T) {
 			State:     ConnState{packed: int64(newConnState(lcDead | lcNeedsWarmup))},
 		}
 
-		match, err := regexp.MatchString(
-			`\{http://foo2 state=unknown\+needsWarmup \(\d+\) failures=123 dead_since=Nov 11 \d+:00:00\}`,
+		require.Equal(t,
+			"{http://foo2 state=unknown+needsWarmup (0000000010010) failures=123 dead_since=Nov 11 11:00:00}",
 			m.String(),
 		)
-		require.NoError(t, err)
-		require.True(t, match, "Unexpected output: %s", m)
+
+		// Same instant carried in a non-UTC zone renders identically: time.Stamp
+		// has no zone marker, so the output would otherwise be ambiguous.
+		ist := tt.In(time.FixedZone("IST", 5*60*60+30*60))
+		m.DeadSince = &ist
+		require.Equal(t,
+			"{http://foo2 state=unknown+needsWarmup (0000000010010) failures=123 dead_since=Nov 11 11:00:00}",
+			m.String(),
+		)
 	})
 
 	t.Run("incrementResponse", func(t *testing.T) {
