@@ -1322,6 +1322,12 @@ type streamResult struct {
 	// reaches OnRequestResponse/OnStreamResponse. It is not retained past the
 	// request.
 	ctx context.Context //nolint:containedctx // request-scoped, handed back to the caller, not stored
+
+	// sentReq is the request as actually put on the wire by the most recent
+	// attempt, recorded by whichever path sent it. stream reports its URL when
+	// wrapping an error, so the failure names the node it came from rather than
+	// the bare path the caller supplied.
+	sentReq *http.Request
 }
 
 // Stream executes the request and returns the raw [http.Response] unread. The
@@ -1508,13 +1514,11 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 	}
 
-	// sentReq is the request as actually put on the wire by the most recent
-	// attempt, which is what the error wrap below should name. It cannot be req:
-	// each attempt resolves the node URL onto its own clone and the caller's
-	// request is never modified, so req still carries the bare caller path.
-	// Stays req when no attempt was ever sent, and when performSeedFallback ran,
-	// since that path resolves onto req itself.
-	sentReq := req
+	// The error wrap below names the request actually put on the wire, which is
+	// never req: every path resolves the node URL onto its own clone and leaves
+	// the caller's request alone. Until an attempt is sent there is nothing
+	// better to report than req.
+	sr.sentReq = req
 
 	for i := 0; i <= tr.maxRetries; i++ {
 		var (
@@ -1585,7 +1589,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		tr.setReqURL(conn.URL, attemptReq)
 		tr.setReqAuth(conn.URL, attemptReq)
 		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
-		sentReq = attemptReq        // carries the node URL, for the error wrap
+		sr.sentReq = attemptReq     // carries the node URL, for the error wrap
 
 		// Clone copies the Body reference, so a retry needs a fresh reader from
 		// GetBody rather than the already-consumed one.
@@ -1877,9 +1881,6 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// each attempt rewrites its own clone.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
 		res, err = tr.performSeedFallback(req.Context(), req, &sr)
-		// That path resolves the seed URL onto req, so req now names the node
-		// this error came from -- not whichever node an earlier attempt used.
-		sentReq = req
 	}
 
 	// Wrap the error with the request method and a credential-redacted URL so
@@ -1887,7 +1888,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// request by hand. Skipped when err is nil (the common case) since that
 	// would otherwise turn a successful response into a non-nil error.
 	if err != nil {
-		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(sentReq), err)
+		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(sr.sentReq), err)
 	}
 
 	return res, sr, err
@@ -2048,6 +2049,7 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	tr.setReqURL(conn.URL, attemptReq)
 	tr.setReqAuth(conn.URL, attemptReq)
 	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
+	sr.sentReq = attemptReq     // carries the seed node URL, for the error wrap
 
 	// Reset body for the fallback attempt.
 	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
@@ -2094,7 +2096,9 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 	sr.ttfb = dur
 
 	if tr.logger != nil {
-		tr.logRoundTrip(req, res, err, start.UTC(), dur)
+		// attemptReq, not req: it carries the seed URL actually contacted, which
+		// is what the log should report. Matches the loop in stream.
+		tr.logRoundTrip(attemptReq, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {

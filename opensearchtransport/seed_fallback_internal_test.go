@@ -149,6 +149,11 @@ func TestSeedFallback(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, res)
 		require.Contains(t, err.Error(), "seed fallback request failed")
+		// The wrap must name the seed node, not the bare caller path: this path
+		// resolves the URL onto its own clone, so reporting the caller's request
+		// would leave a failure with no host to correlate it to.
+		require.Contains(t, err.Error(), "http://seed-node:9200/test",
+			"the wrapped error must identify the seed node it came from")
 
 		// Seed pool should have the connection in dead list after failure.
 		tp.seedFallbackPool.mu.RLock()
