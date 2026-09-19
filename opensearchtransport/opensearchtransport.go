@@ -2025,11 +2025,17 @@ func (tr *Transport) roundTripAttempt(
 	// callerCtx Err means the cancellation came from above and the connection is
 	// left alone. If the caller's deadline expires between our timeout firing
 	// and this check the connection is spared, which is the safe direction.
-	var netErr net.Error
-	if err != nil && callerCtx.Err() == nil && errors.As(err, &netErr) && netErr.Timeout() {
-		caught := conn.drainingConn.Add(1)
-		Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
-			Msg("Timed out; asking the next request to drain this node's connection")
+	//
+	// netErr is declared inside the branch rather than beside it: errors.As takes
+	// it as an any, so the variable escapes, and a function-scope declaration
+	// would heap it on every round trip including the ones that succeed.
+	if err != nil && callerCtx.Err() == nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			caught := conn.drainingConn.Add(1)
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Timed out; asking the next request to drain this node's connection")
+		}
 	}
 	return res, err
 }
