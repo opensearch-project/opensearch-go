@@ -30,8 +30,8 @@ jobs:
       - name: Request the released version from proxy.golang.org
         env:
           GOPROXY: https://proxy.golang.org
+          TAG: ${{ github.event.release.tag_name }}
         run: |
           module=$(head -1 go.mod | awk '{print $2}')
-          tag=${{ github.event.release.tag_name }}
-          echo "requesting ${module}@${tag}"
-          go list -m "${module}@${tag}"
+          echo "requesting ${module}@${TAG}"
+          go list -m "${module}@${TAG}"
