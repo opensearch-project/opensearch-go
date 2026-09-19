@@ -41,6 +41,7 @@ import (
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v5/opensearchtransport"
 	"github.com/opensearch-project/opensearch-go/v5/opensearchutil/shardhash"
 )
 
@@ -96,8 +97,7 @@ type BulkIndexerConfig struct {
 	FlushBytes    int           // The flush threshold in bytes. Defaults to 5MB.
 	FlushInterval time.Duration // The flush threshold as duration. Defaults to 30sec.
 
-	Client      *opensearchapi.Client  // The OpenSearch client.
-	DebugLogger BulkIndexerDebugLogger // An optional logger for debugging.
+	Client *opensearchapi.Client // The OpenSearch client.
 
 	// Context for worker lifecycle. If nil, context.Background() will be used.
 	//nolint:containedctx // Config struct is short-lived, context extracted during New()
@@ -173,11 +173,6 @@ type bulkActionMetadata struct {
 	Refresh             *string `json:"refresh,omitempty"`
 	RequireAlias        *bool   `json:"require_alias,omitempty"`
 	RetryOnConflict     *int    `json:"retry_on_conflict,omitempty"`
-}
-
-// BulkIndexerDebugLogger defines the interface for a debugging logger.
-type BulkIndexerDebugLogger interface {
-	Printf(string, ...any)
 }
 
 // flushBarrier asks a worker to flush its buffer and report the result. It
@@ -491,9 +486,9 @@ func (bi *bulkIndexer) init(ctx context.Context) {
 			case <-flushCtx.Done():
 				return
 			case <-bi.ticker.C:
-				if bi.config.DebugLogger != nil {
-					bi.config.DebugLogger.Printf("[indexer] Auto-flushing workers after %s\n", bi.config.FlushInterval)
-				}
+				opensearchtransport.Debug().
+					Dur("flush_interval", bi.config.FlushInterval).
+					Msg("BulkIndexer: auto-flushing workers")
 
 				for _, w := range bi.workers {
 					w.mu.Lock()
@@ -527,18 +522,14 @@ type worker struct {
 // run launches the worker in a goroutine.
 func (w *worker) run(ctx context.Context) {
 	go func() {
-		if w.bi.config.DebugLogger != nil {
-			w.bi.config.DebugLogger.Printf("[worker-%03d] Started\n", w.id)
-		}
+		opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker started")
 		defer w.bi.wg.Done()
 
 		for {
 			select {
 			case <-ctx.Done():
 				// Context cancelled, exit worker
-				if w.bi.config.DebugLogger != nil {
-					w.bi.config.DebugLogger.Printf("[worker-%03d] Context cancelled, stopping\n", w.id)
-				}
+				opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker context cancelled, stopping")
 				return
 			case entry, ok := <-w.ch:
 				if !ok {
@@ -547,9 +538,7 @@ func (w *worker) run(ctx context.Context) {
 				}
 
 				if entry.flush != nil {
-					if w.bi.config.DebugLogger != nil {
-						w.bi.config.DebugLogger.Printf("[worker-%03d] Received flush barrier\n", w.id)
-					}
+					opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: worker received flush barrier")
 
 					// Guarded like every other flush site, so a barrier that
 					// finds nothing buffered does not fire OnFlushStart and
@@ -564,15 +553,12 @@ func (w *worker) run(ctx context.Context) {
 					}
 					w.mu.Unlock()
 
-					// The request landed even when individual documents were
-					// rejected, and those reach the caller through OnFailure,
-					// so a partial failure is not a failed drain. Reporting it
-					// here would make a non-nil Flush error useless as a signal
-					// that the flush itself did not go through.
-					var partial *opensearchapi.PartialBulkError
-					if errors.As(err, &partial) {
-						err = nil
-					}
+					// err is nil when the buffer was empty or the request
+					// landed with every rejection handled by an OnFailure; it
+					// carries a rejection that had no OnFailure of its own, or a
+					// drain that did not land, otherwise. Forward it unchanged so
+					// Flush's caller learns of it -- this is the only channel on
+					// the explicit-flush path, which does not call OnError.
 					entry.flush.done <- err
 
 					continue
@@ -582,26 +568,17 @@ func (w *worker) run(ctx context.Context) {
 
 				w.mu.Lock()
 
-				if w.bi.config.DebugLogger != nil {
-					w.bi.config.DebugLogger.Printf("[worker-%03d] Received item [%s:%s]\n", w.id, item.Action,
-						item.DocumentID)
-				}
+				opensearchtransport.Debug().
+					Int("worker", w.id).
+					Str("action", item.Action).
+					Str("doc_id", item.DocumentID).
+					Msg("BulkIndexer: worker received item")
 
-				if err := w.writeMeta(item); err != nil {
+				if err := w.writeItem(ctx, item); err != nil {
 					if item.OnFailure != nil {
 						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
 					}
 
-					w.bi.stats.numFailed.Add(1)
-					w.mu.Unlock()
-
-					continue
-				}
-
-				if err := w.writeBody(ctx, &item); err != nil {
-					if item.OnFailure != nil {
-						item.OnFailure(ctx, item, bulkRespItemForOnFailure(opensearchapi.BulkRespItem{}), err)
-					}
 					w.bi.stats.numFailed.Add(1)
 					w.mu.Unlock()
 
@@ -624,6 +601,24 @@ func (w *worker) run(ctx context.Context) {
 			}
 		}
 	}()
+}
+
+// writeItem serializes item's action line and body into the worker buffer; it
+// must be called under a lock. On any error the buffer is restored to its
+// previous length so a failed item cannot leave an unpaired NDJSON action that
+// would desynchronize later items from the bulk response.
+func (w *worker) writeItem(ctx context.Context, item BulkIndexerItem) error {
+	bufLen := w.buf.Len()
+
+	err := w.writeMeta(item)
+	if err == nil {
+		err = w.writeBody(ctx, &item)
+	}
+	if err != nil {
+		w.buf.Truncate(bufLen)
+	}
+
+	return err
 }
 
 // writeMeta formats and writes the item metadata to the buffer; it must be called under a lock.
@@ -712,16 +707,9 @@ func (w *worker) flush(ctx context.Context) error {
 	}
 
 	if w.buf.Len() < 1 {
-		if w.bi.config.DebugLogger != nil {
-			w.bi.config.DebugLogger.Printf("[worker-%03d] Flush: Buffer empty\n", w.id)
-		}
+		opensearchtransport.Debug().Int("worker", w.id).Msg("BulkIndexer: flush skipped, buffer empty")
 		return nil
 	}
-
-	var (
-		err error
-		blk *opensearchapi.BulkResp
-	)
 
 	defer func() {
 		clear(w.items)
@@ -729,9 +717,10 @@ func (w *worker) flush(ctx context.Context) error {
 		w.buf.Reset()
 	}()
 
-	if w.bi.config.DebugLogger != nil {
-		w.bi.config.DebugLogger.Printf("[worker-%03d] Flush: %s\n", w.id, w.buf.String())
-	}
+	// w.buf is passed as a Stringer so its contents are rendered only when a
+	// debug logger is installed; the emit runs before the deferred Reset above,
+	// so the buffer is still intact.
+	opensearchtransport.Debug().Int("worker", w.id).Stringer("body", w.buf).Msg("BulkIndexer: flush")
 
 	w.bi.stats.numRequests.Add(1)
 	req := opensearchapi.BulkReq{
@@ -758,17 +747,39 @@ func (w *worker) flush(ctx context.Context) error {
 		Header: w.bi.config.Header,
 	}
 
-	blk, err = w.bi.config.Client.Doc.Bulk(ctx, req)
-	// Treat opensearchapi.PartialBulkError as success-with-failed-items:
-	// the indexer's whole job is per-item dispatch, so the per-item loop
-	// below already handles `info.Error != nil`. A real flush failure
-	// (transport error, HTTP error, JSON parse error) flows through
-	// handleBulkError as before.
+	blk, err := w.bi.config.Client.Doc.Bulk(ctx, req)
+	return w.processBulkResp(ctx, blk, err)
+}
+
+// processBulkResp reports the result of one bulk request: the per-item results
+// when the cluster answered, or a whole-buffer failure when the request did not
+// land. A *PartialBulkError is the former, so each rejected document reaches its
+// OnFailure callback; a rejected document with no OnFailure has its error joined
+// into the return so the flush sites (worker.run, auto-flush, Close) surface it
+// through OnError. When every rejected document has an OnFailure, the return is
+// nil and OnError does not fire. It must be called under a lock.
+func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkResp, err error) error {
 	var partial *opensearchapi.PartialBulkError
 	if err != nil && !errors.As(err, &partial) {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
 	}
 
+	// The bulk API returns one result per serialized action. More results than
+	// w.items means the response cannot be paired positionally: the loop below
+	// would read w.items[i] past the end and panic, and even the results that
+	// line up may belong to other items. Fail every serialized item instead.
+	// Fewer results needs no guard; the loop simply leaves the extras
+	// undispatched.
+	if got, want := len(blk.Items), len(w.items); got > want {
+		return w.handleBulkError(ctx, fmt.Errorf(
+			"flush: bulk response has %d items, indexer serialized %d", got, want,
+		))
+	}
+
+	// Errors for rejected items that have no OnFailure callback of their own.
+	// Left nil on the happy path (every item succeeds, or every rejected item
+	// has an OnFailure), so errors.Join returns nil and no OnError fires.
+	var errs []error
 	for i, blkItem := range blk.Items {
 		var (
 			item BulkIndexerItem
@@ -792,8 +803,12 @@ func (w *worker) flush(ctx context.Context) error {
 		}
 		if info.Error != nil || info.Status >= http.StatusMultipleChoices {
 			w.bi.stats.numFailed.Add(1)
+			// A rejected item goes to its own OnFailure; one without falls back
+			// to OnError so the failure is not swallowed.
 			if item.OnFailure != nil {
 				item.OnFailure(ctx, item, bulkRespItemForOnFailure(info), nil)
+			} else {
+				errs = append(errs, bulkItemFailure(op, info))
 			}
 		} else {
 			w.bi.stats.numFlushed.Add(1)
@@ -815,7 +830,7 @@ func (w *worker) flush(ctx context.Context) error {
 		}
 	}
 
-	return err
+	return errors.Join(errs...)
 }
 
 func (w *worker) handleBulkError(ctx context.Context, err error) error {
@@ -839,4 +854,22 @@ func bulkRespItemForOnFailure(item opensearchapi.BulkRespItem) opensearchapi.Bul
 		item.Error = &opensearchapi.ErrorCause{}
 	}
 	return item
+}
+
+// bulkItemFailure builds the error handed to OnError for a rejected item that
+// has no OnFailure callback of its own. A status-only rejection (e.g. a 404
+// delete) carries no error object, so fall back to the status.
+func bulkItemFailure(op string, info opensearchapi.BulkRespItem) error {
+	var id string
+	if info.ID != nil {
+		id = *info.ID
+	}
+	if info.Error != nil {
+		var reason string
+		if info.Error.Reason != nil {
+			reason = *info.Error.Reason
+		}
+		return fmt.Errorf("%q %q rejected: %q: %q", op, id, info.Error.Type, reason)
+	}
+	return fmt.Errorf("%q %q rejected: status %d", op, id, info.Status)
 }

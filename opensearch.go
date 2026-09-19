@@ -98,6 +98,12 @@ type Config struct {
 	Username  string   // Username for HTTP Basic Authentication.
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
+	// APIKey authenticates via the Authorization: ApiKey <key> header, an
+	// alternative to Username/Password (OpenSearch 3.7+). The value is the
+	// token returned by the Create API Key API (prefixed "os_"). URL userinfo
+	// and an existing Authorization header take precedence; APIKey takes
+	// precedence over Username/Password.
+	APIKey string // #nosec G117
 
 	Header http.Header // Global HTTP request header.
 
@@ -123,6 +129,13 @@ type Config struct {
 	// When set, a context deadline is applied to each individual request attempt
 	// (including each retry). This bounds the maximum time a single request can
 	// block, preventing indefinite hangs on stalled connections.
+	// A timeout also marks the node, so the next request to it carries
+	// Request.Close and net/http retires the pooled connection: no new requests
+	// are put on it, the streams already there finish, and it is closed when the
+	// last one does. Otherwise an HTTP/2 retry would be multiplexed onto the
+	// same stalled connection and never dial. A caller's own expiring context
+	// deadline does not mark anything: that reports the caller gave up, not that
+	// the connection is bad.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
@@ -461,6 +474,7 @@ func NewClient(cfg Config) (*Client, error) {
 		URLs:     urls,
 		Username: cfg.Username,
 		Password: cfg.Password,
+		APIKey:   cfg.APIKey,
 
 		Header: cfg.Header,
 		CACert: cfg.CACert,
@@ -614,7 +628,7 @@ func configKey(cfg Config) (ttlcache.Key, bool) {
 	for _, a := range cfg.Addresses {
 		b.String(a)
 	}
-	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password)
+	b.String(configKeyFieldSep).String(cfg.Username).String(cfg.Password).String(cfg.APIKey)
 
 	// Header: sort keys and values for determinism.
 	keys := make([]string, 0, len(cfg.Header))
@@ -887,24 +901,4 @@ func extractCredentialsFromURLs(cfg *Config, urls []*url.URL) {
 		// Stop after finding the first URL with credentials
 		break
 	}
-}
-
-// ToPointer converts any value to a pointer, mainly used for request parameters
-//
-// Deprecated: ToPointer will be removed in a future major version. The helper is
-// intentionally not part of the public API going forward; consumers within this
-// module use the unexported `ptr` defined per-package. Once the module's go
-// directive moves to 1.26, callers can drop any wrapper in favor of the native
-// new(value) form (e.g. new(false)).
-func ToPointer[V any](value V) *V {
-	return ptr(value)
-}
-
-// ptr returns a pointer to a copy of value. Used for the *T query/body
-// parameter pattern. Unexported by design.
-//
-// Once the module's go directive moves to 1.26, this helper can be deleted
-// and call sites can switch to the native new(value) form: new(false).
-func ptr[V any](value V) *V {
-	return &value
 }

@@ -98,7 +98,7 @@ type ReindexParams struct {
 	// throttle.
 	//
 	// Default: 0.
-	RequestsPerSecond int
+	RequestsPerSecond *float64
 
 	RequireAlias *bool
 
@@ -140,8 +140,8 @@ func (r ReindexParams) get() map[string]string {
 		set("refresh", r.Refresh)
 	}
 
-	if r.RequestsPerSecond != 0 {
-		set("requests_per_second", strconv.Itoa(r.RequestsPerSecond))
+	if r.RequestsPerSecond != nil {
+		set("requests_per_second", strconv.FormatFloat(*r.RequestsPerSecond, 'f', -1, 64))
 	}
 
 	if r.RequireAlias != nil {

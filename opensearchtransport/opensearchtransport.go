@@ -138,6 +138,11 @@ type Config struct {
 	Username string
 	// Password for HTTP Basic Authentication.
 	Password string // #nosec G117
+	// APIKey authenticates via the Authorization: ApiKey <key> header, where the
+	// value is the token returned by the Create API Key API (prefixed "os_").
+	// URL userinfo and an existing Authorization header take precedence; APIKey
+	// takes precedence over Username/Password.
+	APIKey string // #nosec G117
 
 	Header http.Header
 	CACert []byte
@@ -152,8 +157,10 @@ type Config struct {
 
 	Signer signer.Signer
 
-	RetryOnStatus        []int
-	DisableRetry         bool
+	RetryOnStatus []int
+	DisableRetry  bool
+	// EnableRetryOnTimeout retries an attempt that failed with a timeout
+	// (net.Error.Timeout). Timeouts are not retried by default.
 	EnableRetryOnTimeout bool
 	MaxRetries           int
 	RetryBackoff         func(attempt int) time.Duration
@@ -162,6 +169,13 @@ type Config struct {
 	// When set, a context deadline is applied to each individual request attempt
 	// (including each retry). This bounds the maximum time a single RoundTrip
 	// can block, preventing indefinite hangs on stalled connections.
+	// A timeout also marks the node, so the next request to it carries
+	// Request.Close and net/http retires the pooled connection: no new requests
+	// are put on it, the streams already there finish, and it is closed when the
+	// last one does. Otherwise an HTTP/2 retry would be multiplexed onto the
+	// same stalled connection and never dial. A caller's own expiring context
+	// deadline does not mark anything: that reports the caller gave up, not that
+	// the connection is bad. See [Connection.drainingConn].
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
@@ -458,6 +472,7 @@ type Transport struct {
 	urls      []*url.URL
 	username  string
 	password  string
+	apiKey    string
 	header    http.Header
 	userAgent string
 
@@ -943,6 +958,7 @@ func New(cfg Config) (*Transport, error) {
 		urls:     cfg.URLs,
 		username: cfg.Username,
 		password: cfg.Password,
+		apiKey:   cfg.APIKey,
 		header:   cfg.Header,
 
 		signer: cfg.Signer,
@@ -1274,13 +1290,13 @@ func New(cfg Config) (*Transport, error) {
 // The discovery loop goroutine exits when the context is cancelled.
 //
 //nolint:unparam // Returns error to satisfy io.Closer interface; CloseIdleConnections() is void
-func (c *Transport) Close() error {
-	if c.cancelFunc != nil {
-		c.cancelFunc()
+func (tr *Transport) Close() error {
+	if tr.cancelFunc != nil {
+		tr.cancelFunc()
 	}
 
 	// Close idle connections if the transport supports it
-	if transport, ok := c.transport.(interface{ CloseIdleConnections() }); ok {
+	if transport, ok := tr.transport.(interface{ CloseIdleConnections() }); ok {
 		transport.CloseIdleConnections()
 	}
 
@@ -1306,6 +1322,12 @@ type streamResult struct {
 	// reaches OnRequestResponse/OnStreamResponse. It is not retained past the
 	// request.
 	ctx context.Context //nolint:containedctx // request-scoped, handed back to the caller, not stored
+
+	// sentReq is the request as actually put on the wire by the most recent
+	// attempt, recorded by whichever path sent it. stream reports its URL when
+	// wrapping an error, so the failure names the node it came from rather than
+	// the bare path the caller supplied.
+	sentReq *http.Request
 }
 
 // Stream executes the request and returns the raw [http.Response] unread. The
@@ -1313,9 +1335,11 @@ type streamResult struct {
 // Use Stream to forward bytes downstream without interpreting them, relaying a
 // response to another client.
 //
-// Stream rewrites req.URL to the selected backend so signing, retry, and routing
-// operate on the resolved address, and applies retry, signing, header injection,
-// request-body compression, metrics, and seed URL fallback.
+// Stream resolves the request to the selected backend and applies retry,
+// signing, header injection, request-body compression, metrics, and seed URL
+// fallback. Each attempt operates on its own copy of req, so signing, retry, and
+// routing see the resolved address while the caller's req is left unmodified.
+// Read the node actually contacted from the observer's request/response event.
 //
 // A hard transport failure returns a nil response and an error. A partial
 // failure returns the response together with an error, such as a context
@@ -1324,13 +1348,13 @@ type streamResult struct {
 //
 // For typed, decoded results where the SDK owns the body, use
 // [github.com/opensearch-project/opensearch-go/v5.Execute] instead.
-func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
-	res, sr, err := c.stream(req)
+func (tr *Transport) Stream(req *http.Request) (*http.Response, error) {
+	res, sr, err := tr.stream(req)
 
 	// Fire the streaming response event (time-to-first-byte, Content-Length
 	// header) only when an observer is registered, so a request without one
 	// incurs no extra work.
-	if obs := observerFromAtomic(&c.observer); obs != nil {
+	if obs := observerFromAtomic(&tr.observer); obs != nil {
 		statusCode, contentLength := 0, int64(-1)
 		if res != nil {
 			statusCode = res.StatusCode
@@ -1365,8 +1389,8 @@ func (c *Transport) Stream(req *http.Request) (*http.Response, error) {
 // failure returns the buffered response together with an error, such as
 // [ErrResponseBodyRead] when the body read fails. Callers distinguish the two
 // by testing resp == nil, not err != nil.
-func (c *Transport) Request(req *http.Request) (*http.Response, error) {
-	res, sr, err := c.stream(req)
+func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
+	res, sr, err := tr.stream(req)
 
 	// Buffer the body so the connection returns to the pool. This is core
 	// Request behavior and runs regardless of whether an observer is registered.
@@ -1383,7 +1407,7 @@ func (c *Transport) Request(req *http.Request) (*http.Response, error) {
 
 	// Fire the buffered response event (full-read duration, exact byte count)
 	// only when an observer is registered.
-	if obs := observerFromAtomic(&c.observer); obs != nil {
+	if obs := observerFromAtomic(&tr.observer); obs != nil {
 		statusCode := 0
 		if res != nil {
 			statusCode = res.StatusCode
@@ -1413,29 +1437,29 @@ func (c *Transport) Request(req *http.Request) (*http.Response, error) {
 // and seed URL fallback, and returns the raw response alongside the timing of
 // the final attempt. It does not read the body or fire observer events; the
 // callers own those concerns.
-func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, error) {
+func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, error) {
 	var (
 		res *http.Response
 		err error
 		sr  streamResult
 	)
 
-	if c.metrics != nil {
-		c.metrics.requests.Add(1)
+	if tr.metrics != nil {
+		tr.metrics.requests.Add(1)
 	}
 
 	// Update request
-	c.setReqUserAgent(req)
-	c.setReqGlobalHeader(req)
+	tr.setReqUserAgent(req)
+	tr.setReqGlobalHeader(req)
 
 	// Capture request identity while req.URL is still the pristine caller input
 	// (before setReqURL rewrites it to the selected backend and prepends any
 	// connection base path). Done once per request, only when an observer is
 	// wired, so the no-observer path stays allocation-free.
 	sr.ctx = req.Context()
-	if obs := observerFromAtomic(&c.observer); obs != nil {
+	if obs := observerFromAtomic(&tr.observer); obs != nil {
 		sr.escapedPath = req.URL.EscapedPath()
-		sr.routeName = c.operationClassifier().Classify(req.Method, req.URL.Path).String()
+		sr.routeName = tr.operationClassifier().Classify(req.Method, req.URL.Path).String()
 		sr.index = extractIndexFromPath(req.URL.Path)
 
 		// Give the observer a chance to open a per-request span (or otherwise
@@ -1457,9 +1481,9 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 	}
 
 	if req.Body != nil && req.Body != http.NoBody {
-		if c.compressRequestBody {
-			buf, err := c.pooledGzipCompressor.compress(req.Body)
-			defer c.pooledGzipCompressor.collectBuffer(buf)
+		if tr.compressRequestBody {
+			buf, err := tr.pooledGzipCompressor.compress(req.Body)
+			defer tr.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
 				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}
@@ -1475,7 +1499,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			req.Header.Set("Content-Encoding", "gzip")
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
-			if !c.disableRetry || (c.logger != nil && c.logger.RequestBodyEnabled()) {
+			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
 				//nolint:errcheck // ignored as this is only for logging
 				buf.ReadFrom(req.Body)
@@ -1490,14 +1514,33 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		}
 	}
 
-	// Caller path, captured once for [restoreReqPath].
-	origPath := req.URL.Path
-	origRawPath := req.URL.RawPath
+	// The error wrap below names the request actually put on the wire. Until an
+	// attempt is sent there is nothing better to report than req.
+	sr.sentReq = req
 
-	for i := 0; i <= c.maxRetries; i++ {
-		// Attempt 0 still carries the caller's path; only a retry has had
-		// setReqURL prepend a connection base path onto it.
+	// setReqURL prepends the selected node's base path and keeps no memory of
+	// the original, so a retry cloned from the previous attempt would stack the
+	// prefix (/prefix/prefix/_search). Capture the caller's path once and put it
+	// back on each copy. Two string headers, no allocation.
+	origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
+	for i := 0; i <= tr.maxRetries; i++ {
+		// Retry from a copy, rebinding req so routing, the rest of the loop, and
+		// the seed fallback after it all work on this attempt's request. Clone
+		// deep-copies URL and Header, which is what a retry must not share: the
+		// HTTP/2 transport encodes request headers on a goroutine it spawns
+		// (internal/http2 roundTrip -> doRequest -> encodeRequestHeaders), and
+		// that goroutine reads the URL and Header of the request it was handed. A
+		// cancelled attempt returns here while that goroutine may still be
+		// reading, so rewriting the request it holds is a data race. Cloning only
+		// reads it, which is safe.
+		//
+		// The copy carries the previous attempt's prefixed path, so it needs the
+		// caller path back before Route() classifies it. The first attempt needs
+		// neither: nothing holds its request yet, and its path is still pristine,
+		// so a request that succeeds first time never pays for the clone.
 		if i > 0 {
+			req = req.Clone(req.Context())
 			restoreReqPath(req, origPath, origRawPath)
 		}
 
@@ -1506,29 +1549,30 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			poolName        string
 			shouldRetry     bool
 			shouldCloseBody bool
+			adaptiveShards  int
 		)
 
-		if c.router != nil {
+		if tr.router != nil {
 			var hop NextHop
-			hop, err = c.router.Route(req.Context(), req)
+			hop, err = tr.router.Route(req.Context(), req)
 			conn = hop.Conn
 			poolName = hop.PoolName
 
-			// Inject adaptive max_concurrent_shard_requests when the
-			// routing layer computed a value and the caller didn't
-			// already set one. This respects explicit caller overrides.
-			if hop.MaxConcurrentShardRequests > 0 {
-				appendAdaptiveConcurrency(req, hop.MaxConcurrentShardRequests)
-			}
+			// Recorded here, applied to this attempt's own request below.
+			// Injecting it into the caller's req would both mutate the caller's
+			// value and race the HTTP/2 transport, which reads RawQuery through
+			// URL.RequestURI when encoding headers -- on a goroutine that can
+			// outlive a cancelled RoundTrip.
+			adaptiveShards = hop.MaxConcurrentShardRequests
 		} else {
-			c.mu.RLock()
-			pool := c.mu.connectionPool
-			c.mu.RUnlock()
+			tr.mu.RLock()
+			pool := tr.mu.connectionPool
+			tr.mu.RUnlock()
 			conn, err = pool.Next()
 		}
 		if err != nil {
-			if c.logger != nil {
-				c.logRoundTrip(req, nil, err, time.Time{}, time.Duration(0))
+			if tr.logger != nil {
+				tr.logRoundTrip(req, nil, err, time.Time{}, time.Duration(0))
 			}
 			// Wrap the error for context. If all pools are exhausted
 			// (ErrNoConnections), break to allow post-loop seed fallback.
@@ -1545,20 +1589,31 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			return nil, sr, err
 		}
 
-		// Update request
-		c.setReqURL(conn.URL, req)
-		c.setReqAuth(conn.URL, req)
-		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
+		attemptReq := req
 
-		if !c.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
-			body, err := req.GetBody()
+		// Inject adaptive max_concurrent_shard_requests when the routing layer
+		// computed a value and the caller didn't already set one. This respects
+		// explicit caller overrides.
+		if adaptiveShards > 0 {
+			appendAdaptiveConcurrency(attemptReq, adaptiveShards)
+		}
+
+		tr.setReqURL(conn.URL, attemptReq)
+		tr.setReqAuth(conn.URL, attemptReq)
+		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
+		sr.sentReq = attemptReq     // carries the node URL, for the error wrap
+
+		// Clone copies the Body reference, so a retry needs a fresh reader from
+		// GetBody rather than the already-consumed one.
+		if !tr.disableRetry && i > 0 && attemptReq.Body != nil && attemptReq.Body != http.NoBody {
+			body, err := attemptReq.GetBody()
 			if err != nil {
 				return nil, sr, fmt.Errorf("cannot get request body: %w", err)
 			}
-			req.Body = body
+			attemptReq.Body = body
 		}
 
-		if err = c.signRequest(req); err != nil {
+		if err = tr.signRequest(attemptReq); err != nil {
 			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
@@ -1573,25 +1628,38 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 
 		// Apply per-attempt timeout if configured. This creates a child context
 		// with a deadline so that each individual RoundTrip is bounded, preventing
-		// indefinite hangs on stalled TCP connections.
-		attemptReq := req
+		// indefinite hangs on stalled TCP connections. Derived after signing so
+		// the timeout budget covers the round-trip, not request preparation.
 		var attemptCancel context.CancelFunc
 		attemptCtx := req.Context()
-		if c.requestTimeout > 0 {
-			attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, c.requestTimeout)
+		if tr.requestTimeout > 0 {
+			attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, tr.requestTimeout)
 		}
 		// Let an observer open a per-attempt span. Base returns ctx unchanged, so
 		// a non-tracing observer adds no context derivation here.
-		if obs := observerFromAtomic(&c.observer); obs != nil {
+		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
 		}
-		if attemptCtx != req.Context() {
-			attemptReq = req.WithContext(attemptCtx)
+		// A previous timeout on this node asked for its pooled connection to be
+		// drained. Request.Close is how that is spelled: net/http's HTTP/2
+		// transport sets doNotReuse on the connection this request is assigned,
+		// which stops it being offered to new requests, lets the streams already
+		// on it finish, and closes it when the last one does. See
+		// [Connection.drainingConn].
+		//
+		// Picked up here, immediately before the round trip, because the pickup
+		// consumes the mark: taken any earlier, a request-preparation failure
+		// would return with the mark spent and the stale connection never
+		// retired.
+		if caught := conn.drainingConn.Swap(0); caught > 0 {
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Draining this node's pooled connection")
+			attemptReq.Close = true
 		}
 
-		res, err = c.transport.RoundTrip(attemptReq)
+		res, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
 
-		if obs := observerFromAtomic(&c.observer); obs != nil {
+		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			statusCode := 0
 			if res != nil {
 				statusCode = res.StatusCode
@@ -1624,18 +1692,25 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			conn.releaseInFlight(poolName)
 		}
 
-		// Log request and response
-		if c.logger != nil {
-			if c.logger.RequestBodyEnabled() && req.Body != nil && req.Body != http.NoBody {
+		// Log request and response. attemptReq carries the URL actually
+		// contacted, so it is what the log should report.
+		if tr.logger != nil {
+			logReq := attemptReq
+			if tr.logger.RequestBodyEnabled() && req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
+				// Refill a copy rather than attemptReq itself: the transport may
+				// still be reading attemptReq on the goroutine that writes the
+				// request, and this runs after a cancelled RoundTrip has
+				// returned.
+				logReq = attemptReq.Clone(req.Context())
 				//nolint:errcheck // ignored as this is only for logging
-				req.Body, _ = req.GetBody()
+				logReq.Body, _ = req.GetBody()
 			}
-			c.logRoundTrip(req, res, err, start.UTC(), dur)
+			tr.logRoundTrip(logReq, res, err, start.UTC(), dur)
 		}
 
 		if err != nil {
-			if c.metrics != nil {
-				c.metrics.failures.Add(1)
+			if tr.metrics != nil {
+				tr.metrics.failures.Add(1)
 			}
 
 			Debug().Str("conn", conn.URLString).Err(err).Msg("Request failed")
@@ -1658,59 +1733,67 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 					Msg("HTTP/2 stream error")
 				// Mark draining so OnSuccess from concurrent requests won't resurrect
 				// this connection. Requires defaultDrainingQuiescingChecks consecutive
-				// successful health checks before resurrection.
+				// successful health checks before resurrection. The drain is a
+				// connection-health signal and is independent of whether this
+				// request is retried.
 				conn.drainingQuiescingRemaining.Store(defaultDrainingQuiescingChecks)
-				shouldRetry = true
+				if !tr.disableRetry {
+					shouldRetry = true
+				}
 			}
 
 			// Report the connection as unsuccessful. This is ordered after the
 			// h2StreamError check above so that drainingQuiescingRemaining is set
 			// before OnFailure schedules resurrection.
-			if c.router != nil {
-				if poolErr := c.router.OnFailure(conn); poolErr != nil {
+			if tr.router != nil {
+				if poolErr := tr.router.OnFailure(conn); poolErr != nil {
 					Debug().Err(poolErr).Msg("Router error marking connection as failed")
 				}
 			} else {
-				c.mu.Lock()
-				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
+				tr.mu.Lock()
+				if poolErr := tr.mu.connectionPool.OnFailure(conn); poolErr != nil {
 					Debug().Err(poolErr).Msg("Connection pool error marking connection as failed")
 				}
-				c.mu.Unlock()
+				tr.mu.Unlock()
 			}
 
 			// Mark connection as needing shard placement confirmation.
 			// The node stays out of scored routing candidate sets until
 			// /_cat/shards refresh confirms current shard-to-node mappings.
 			if conn.setNeedsCatUpdate() == nil {
-				if obs := observerFromAtomic(&c.observer); obs != nil {
+				if obs := observerFromAtomic(&tr.observer); obs != nil {
 					obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
 						ConnURL: conn.URLString, ConnName: conn.Name,
 						Reason: "transport_error", Timestamp: time.Now().UTC(),
 					})
 				}
 			}
-			c.requestCatRefresh()
+			tr.requestCatRefresh()
 
-			// Retry on EOF errors (connection closed by peer)
-			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			// Retry on EOF errors (connection closed by peer). DisableRetry
+			// must win here the same way it does for net.Error and retryable
+			// HTTP statuses: a POST that already landed can surface as EOF
+			// when the connection drops while the response is in flight, and
+			// retrying it would duplicate the write.
+			if !tr.disableRetry && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)) {
 				shouldRetry = true
 			}
 
 			// Retry on network errors, but not on timeout errors, unless configured
 			var netError net.Error
 			if errors.As(err, &netError) {
-				if (!netError.Timeout() || c.enableRetryOnTimeout) && !c.disableRetry {
+				if (!netError.Timeout() || tr.enableRetryOnTimeout) && !tr.disableRetry {
 					shouldRetry = true
 				}
 			}
 		} else {
 			// Report the connection as successful
-			if c.router != nil {
-				c.router.OnSuccess(conn)
+			if tr.router != nil {
+				tr.router.OnSuccess(conn)
 			} else {
-				c.mu.Lock()
-				c.mu.connectionPool.OnSuccess(conn)
-				c.mu.Unlock()
+				tr.mu.Lock()
+				tr.mu.connectionPool.OnSuccess(conn)
+				tr.mu.Unlock()
 			}
 
 			// When the server signals it will close the connection (Connection: close header
@@ -1718,17 +1801,17 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			// This detects graceful shutdowns before the next request fails on a dead connection.
 			// Go's net/http strips the Connection hop-by-hop header and sets res.Close instead.
 			if res.Close {
-				c.scheduleProactiveHealthCheck(conn)
+				tr.scheduleProactiveHealthCheck(conn)
 			}
 		}
 
-		if res != nil && c.metrics != nil {
-			c.metrics.incrementResponse(res.StatusCode)
+		if res != nil && tr.metrics != nil {
+			tr.metrics.incrementResponse(res.StatusCode)
 		}
 
 		// Retry on configured response statuses
-		if res != nil && !c.disableRetry {
-			for _, code := range c.retryOnStatus {
+		if res != nil && !tr.disableRetry {
+			for _, code := range tr.retryOnStatus {
 				if res.StatusCode == code {
 					shouldRetry = true
 					shouldCloseBody = true
@@ -1738,14 +1821,14 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 			// target node is unhealthy -- flag it for shard placement refresh.
 			if shouldCloseBody {
 				if conn.setNeedsCatUpdate() == nil {
-					if obs := observerFromAtomic(&c.observer); obs != nil {
+					if obs := observerFromAtomic(&tr.observer); obs != nil {
 						obs.OnShardMapInvalidation(ShardMapInvalidationEvent{
 							ConnURL: conn.URLString, ConnName: conn.Name,
 							Reason: "http_status_retry", Timestamp: time.Now().UTC(),
 						})
 					}
 				}
-				c.requestCatRefresh()
+				tr.requestCatRefresh()
 			}
 		}
 
@@ -1765,7 +1848,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 					pc.mu.Unlock()
 				}
 			}
-			if !c.disableRetry {
+			if !tr.disableRetry {
 				shouldRetry = true
 				shouldCloseBody = true
 			}
@@ -1777,7 +1860,7 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		}
 
 		// Drain and close body when retrying after response
-		if shouldCloseBody && i < c.maxRetries {
+		if shouldCloseBody && i < tr.maxRetries {
 			if res.Body != nil {
 				//nolint:errcheck // unexpected but okay if it fails
 				io.Copy(io.Discard, res.Body)
@@ -1786,9 +1869,9 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 		}
 
 		// Delay the retry if a backoff function is configured
-		if c.retryBackoff != nil && i < c.maxRetries {
+		if tr.retryBackoff != nil && i < tr.maxRetries {
 			var cancelled bool
-			timer := time.NewTimer(c.retryBackoff(i + 1))
+			timer := time.NewTimer(tr.retryBackoff(i + 1))
 			select {
 			case <-req.Context().Done():
 				timer.Stop()
@@ -1806,16 +1889,67 @@ func (c *Transport) stream(req *http.Request) (*http.Response, streamResult, err
 	// failed to obtain a connection from any router policy or pool.
 	//
 	// req still carries the caller path, which performSeedFallback depends on
-	// because it prepends through setReqURL as well. This branch is reached only
-	// when an attempt failed to obtain a connection, which happens before that
-	// attempt reaches setReqURL, and the loop restores the path on entry to the
-	// same attempt. See [restoreReqPath].
-	if err != nil && errors.Is(err, ErrNoConnections) && !c.seedFallbackDisabled && c.seedFallbackPool != nil {
-		res, err = c.performSeedFallback(req.Context(), req, &sr)
+	// because it prepends through setReqURL as well. The loop does rewrite req in
+	// place on its first attempt, but the cascade only reaches here when an
+	// attempt could not obtain a connection, which happens before setReqURL runs;
+	// a retry restores the caller path before routing for the same reason.
+	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
+		res, err = tr.performSeedFallback(req.Context(), req, &sr)
 	}
 
-	// TODO: Consider wrapping the error with request context.
+	// Wrap the error with the request method and a credential-redacted URL so
+	// callers debugging a failure don't have to correlate it back to the
+	// request by hand. Skipped when err is nil (the common case) since that
+	// would otherwise turn a successful response into a non-nil error.
+	if err != nil {
+		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(sr.sentReq), err)
+	}
+
 	return res, sr, err
+}
+
+const (
+	// streamErrorPrefixFormat is the fmt template for the request-context
+	// prefix stream() prepends to a wrapped error: `"METHOD" "url": `. Defined
+	// once so production and the tests that assert the prefix stay in sync.
+	streamErrorPrefixFormat = "%q %q: "
+	// streamErrorFormat wraps a stream() error with that prefix, keeping the
+	// original cause reachable through errors.Is/errors.As via %w.
+	streamErrorFormat = streamErrorPrefixFormat + "%w"
+)
+
+// redactedRequestURL renders req.URL for inclusion in error messages, with
+// userinfo and the query string stripped.
+//
+// setReqURL only ever copies Scheme/Host/Path from the connection URL onto
+// req.URL, never User, so basic-auth credentials configured on a connection
+// (e.g. https://user:pass@host:9200) do not normally reach req.URL. Userinfo
+// is still stripped here as a defense in depth, since req.URL is caller
+// input: it is whatever *http.Request was passed to Stream/Request, which a
+// caller building requests directly against Transport (bypassing
+// opensearchapi) could construct with embedded credentials.
+//
+// The query string is dropped unconditionally because it routinely carries
+// secrets that never touch userinfo -- SigV4 presigned requests place the
+// signature and credential scope in query parameters (e.g. X-Amz-Signature,
+// X-Amz-Credential), and some deployments accept API keys as a query
+// parameter. Method, scheme, host, and path are enough to identify which
+// request failed without risking a leak into logs or error-tracking systems.
+//
+// Clearing the query also clears ForceQuery, so the emptied query renders
+// without a trailing "?"; the fragment is dropped too, since it never reaches
+// the server and only adds noise to the identifier.
+func redactedRequestURL(req *http.Request) string {
+	if req == nil || req.URL == nil {
+		return "<no url>"
+	}
+	u := *req.URL
+	u.User = nil
+	u.RawQuery = ""
+	u.ForceQuery = false
+	u.Fragment = ""
+	u.RawFragment = ""
+	return u.String()
 }
 
 // defaultOperationClassifier lazily builds a single [OperationClassifier] shared
@@ -1829,9 +1963,9 @@ var defaultOperationClassifier = sync.OnceValue(NewOperationClassifier)
 // operationClassifier returns the transport's route-name classifier: the
 // caller-supplied [Config.OperationClassifier] when set, otherwise the shared
 // process-wide default. Used only to derive the observability RouteName label.
-func (c *Transport) operationClassifier() *OperationClassifier {
-	if c.classifier != nil {
-		return c.classifier
+func (tr *Transport) operationClassifier() *OperationClassifier {
+	if tr.classifier != nil {
+		return tr.classifier
 	}
 	return defaultOperationClassifier()
 }
@@ -1863,6 +1997,49 @@ func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 	}
 }
 
+// roundTripAttempt performs one attempt's RoundTrip and, when this client's own
+// timeout fired, asks conn to drain its pooled connection. attemptReq is the
+// request to send and attemptCtx its context, already carrying any per-attempt
+// timeout and observer span. callerCtx is the caller's own context, consulted
+// only to tell a caller cancellation apart from a timeout this client generated.
+//
+// The drain itself is [Connection.drainingConn]: a later request carries
+// Request.Close and net/http retires the connection. Nothing is closed here.
+func (tr *Transport) roundTripAttempt(
+	attemptReq *http.Request,
+	attemptCtx, callerCtx context.Context,
+	conn *Connection,
+) (*http.Response, error) {
+	// Rebuild the request only when a timeout or observer span actually derived
+	// a new context, so the default path allocates nothing.
+	if attemptCtx != callerCtx {
+		attemptReq = attemptReq.WithContext(attemptCtx)
+	}
+
+	res, err := tr.transport.RoundTrip(attemptReq)
+
+	// Ask for a drain only for a timeout we generated. context.DeadlineExceeded
+	// reports Timeout() == true, so a caller's own expiring deadline arrives
+	// here looking like a timeout; it implicates the caller rather than the
+	// connection, and it propagates into the attempt context, so a non-nil
+	// callerCtx Err means the cancellation came from above and the connection is
+	// left alone. If the caller's deadline expires between our timeout firing
+	// and this check the connection is spared, which is the safe direction.
+	//
+	// netErr is declared inside the branch rather than beside it: errors.As takes
+	// it as an any, so the variable escapes, and a function-scope declaration
+	// would heap it on every round trip including the ones that succeed.
+	if err != nil && callerCtx.Err() == nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			caught := conn.drainingConn.Add(1)
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Timed out; asking the next request to drain this node's connection")
+		}
+	}
+	return res, err
+}
+
 // performSeedFallback attempts a single request using the seed URL fallback pool.
 // Called as the absolute last resort when all router policies and connection pools
 // are exhausted. Does not retry -- this is already the final fallback.
@@ -1871,47 +2048,61 @@ func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 // expedite full cluster rediscovery.
 // On failure: marks the seed connection as failed so the pool's resurrection
 // timer can schedule retries.
-func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
+func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request, sr *streamResult) (*http.Response, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
 
-	conn, err := c.seedFallbackPool.Next()
+	conn, err := tr.seedFallbackPool.Next()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get connection: %w (seed fallback also exhausted)", err)
 	}
 
 	Debug().Str("conn", conn.URLString).Msg("Seed fallback: attempting request")
 
-	c.setReqURL(conn.URL, req)
-	c.setReqAuth(conn.URL, req)
+	// Its own request, for the same reason as in stream: the caller's value must
+	// come back unmodified, which is the documented contract. ctx is
+	// req.Context() at the only call site, so the clone carries the same
+	// deadline and cancellation.
+	attemptReq := req.Clone(ctx)
+
+	tr.setReqURL(conn.URL, attemptReq)
+	tr.setReqAuth(conn.URL, attemptReq)
 	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
+	sr.sentReq = attemptReq     // carries the seed node URL, for the error wrap
 
 	// Reset body for the fallback attempt.
-	if req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
-		body, err := req.GetBody()
+	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
+		body, err := attemptReq.GetBody()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get request body for seed fallback: %w", err)
 		}
-		req.Body = body
+		attemptReq.Body = body
 	}
 
-	if err := c.signRequest(req); err != nil {
+	if err := tr.signRequest(attemptReq); err != nil {
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
 	start := time.Now()
 
 	// Apply per-attempt timeout if configured.
-	attemptReq := req
 	var attemptCancel context.CancelFunc
-	if c.requestTimeout > 0 {
-		var attemptCtx context.Context
-		attemptCtx, attemptCancel = context.WithTimeout(req.Context(), c.requestTimeout)
-		attemptReq = req.WithContext(attemptCtx) //nolint:contextcheck // child of req.Context()
+	attemptCtx := req.Context()
+	if tr.requestTimeout > 0 {
+		attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, tr.requestTimeout)
 	}
 
-	res, err := c.transport.RoundTrip(attemptReq)
+	// See the matching block in stream, including why the pickup waits until
+	// here: it consumes the mark, so a preparation failure above must not spend
+	// it.
+	if caught := conn.drainingConn.Swap(0); caught > 0 {
+		Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+			Msg("Seed fallback: draining this node's pooled connection")
+		attemptReq.Close = true
+	}
+
+	res, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn) //nolint:contextcheck // child of req.Context()
 
 	if attemptCancel != nil {
 		if err != nil || res == nil {
@@ -1921,20 +2112,24 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 		}
 	}
 	dur := time.Since(start)
+	sr.sendStart = start
+	sr.ttfb = dur
 
-	if c.logger != nil {
-		c.logRoundTrip(req, res, err, start.UTC(), dur)
+	if tr.logger != nil {
+		// attemptReq, not req: it carries the seed URL actually contacted, which
+		// is what the log should report. Matches the loop in stream.
+		tr.logRoundTrip(attemptReq, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {
 		Debug().Str("conn", conn.URLString).Err(err).Msg("Seed fallback: request failed")
-		c.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
+		tr.seedFallbackPool.OnFailure(conn) //nolint:errcheck,contextcheck // fire-and-forget; context in req
 		return nil, fmt.Errorf("seed fallback request failed: %w", err)
 	}
 
 	Debug().Str("conn", conn.URLString).Msg("Seed fallback: request succeeded, triggering rediscovery")
-	c.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
-	c.discoveryNeeded.Store(true)
+	tr.seedFallbackPool.OnSuccess(conn) //nolint:contextcheck // fire-and-forget; context in req
+	tr.discoveryNeeded.Store(true)
 	return res, nil
 }
 
@@ -1951,8 +2146,8 @@ func (c *Transport) performSeedFallback(ctx context.Context, req *http.Request, 
 //
 // This ensures that a burst of in-flight requests all receiving Connection: close (e.g., during
 // a graceful shutdown) produces at most one health check per resurrectTimeoutInitial interval.
-func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
-	if c.healthCheck == nil {
+func (tr *Transport) scheduleProactiveHealthCheck(conn *Connection) {
+	if tr.healthCheck == nil {
 		return
 	}
 
@@ -1961,7 +2156,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	if !conn.proactiveCheck.mu.TryRLock() {
 		return
 	}
-	if time.Since(conn.proactiveCheck.mu.lastAt) < c.resurrectTimeoutInitial {
+	if time.Since(conn.proactiveCheck.mu.lastAt) < tr.resurrectTimeoutInitial {
 		conn.proactiveCheck.mu.RUnlock()
 		return
 	}
@@ -1974,7 +2169,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	}
 	// Re-check under write lock: another goroutine may have updated lastAt between
 	// the RUnlock above and TryLock.
-	if time.Since(conn.proactiveCheck.mu.lastAt) < c.resurrectTimeoutInitial {
+	if time.Since(conn.proactiveCheck.mu.lastAt) < tr.resurrectTimeoutInitial {
 		conn.proactiveCheck.mu.Unlock()
 		return
 	}
@@ -1984,7 +2179,7 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 	Debug().Str("conn", conn.URLString).Msg("Connection: close detected, scheduling proactive health check")
 
 	go func() {
-		resp, err := c.healthCheck(c.ctx, conn, conn.URL)
+		resp, err := tr.healthCheck(tr.ctx, conn, conn.URL)
 		if resp != nil && resp.Body != nil {
 			resp.Body.Close()
 		}
@@ -1993,16 +2188,16 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 			Debug().Str("conn", conn.URLString).Err(err).Msg("Proactive health check failed")
 
 			// Mark connection as failed to trigger resurrection
-			if c.router != nil {
-				if poolErr := c.router.OnFailure(conn); poolErr != nil {
+			if tr.router != nil {
+				if poolErr := tr.router.OnFailure(conn); poolErr != nil {
 					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Router error during proactive health check failure")
 				}
 			} else {
-				c.mu.Lock()
-				if poolErr := c.mu.connectionPool.OnFailure(conn); poolErr != nil {
+				tr.mu.Lock()
+				if poolErr := tr.mu.connectionPool.OnFailure(conn); poolErr != nil {
 					Debug().Str("conn", conn.URLString).Err(poolErr).Msg("Pool error during proactive health check failure")
 				}
-				c.mu.Unlock()
+				tr.mu.Unlock()
 			}
 		} else {
 			conn.decrementDrainingQuiescing()
@@ -2011,35 +2206,31 @@ func (c *Transport) scheduleProactiveHealthCheck(conn *Connection) {
 }
 
 // URLs returns a list of transport URLs.
-func (c *Transport) URLs() []*url.URL {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.mu.connectionPool.URLs()
+func (tr *Transport) URLs() []*url.URL {
+	tr.mu.RLock()
+	defer tr.mu.RUnlock()
+	return tr.mu.connectionPool.URLs()
 }
 
-// restoreReqPath writes the caller-supplied path back onto req. It owns the
-// invariant that every setReqURL call starts from that path; stream() upholds it
-// by calling this on entry to each attempt after the first, which is also what
-// leaves the path intact for the seed-fallback branch.
-//
-// stream() reuses one *http.Request across retries and setReqURL prepends the
-// connection base path in place, so without a restore a prefixed address
-// (https://host/prefix) becomes /prefix/prefix/_search on the next attempt, and
-// a prefix-less discovered node keeps the leftover prefix (setReqURL returns
-// early without assigning Path when the connection has no base path). Route()
-// matches on Path, and leftover /prefix/_search is not a miss: the mux treats it
-// as /{index}/_search with index "prefix", so the retry is classified against
-// the wrong index.
+// restoreReqPath puts the caller-supplied path back on a retry's copy, which
+// carries the previous attempt's node prefix. See the capture in stream() and
+// the contract in [Transport.setReqURL].
 func restoreReqPath(req *http.Request, path, rawPath string) {
 	req.URL.Path = path
 	req.URL.RawPath = rawPath
 }
 
 // setReqURL rewrites req.URL to target connection u, prepending u's base
-// path onto the current Path/RawPath. It does not remember the original, so
-// callers that retry or fall back on the same *http.Request must reinstate the
-// caller-supplied path first with [restoreReqPath].
-func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
+// path onto the current Path/RawPath. It does not remember the original, so it
+// must be given a request that still carries the caller-supplied path. stream()
+// guarantees that by restoring the captured path onto each retry's copy: without
+// a pristine path, a prefixed address (https://host/prefix) would become
+// /prefix/prefix/_search on the next attempt, and a prefix-less discovered node
+// would keep the leftover prefix (setReqURL returns early without assigning Path
+// when the connection has no base path). Route() matches on Path, and leftover
+// /prefix/_search is not a miss: the mux treats it as /{index}/_search with
+// index "prefix", so the retry would be classified against the wrong index.
+func (tr *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host
 
@@ -2066,7 +2257,11 @@ func (c *Transport) setReqURL(u *url.URL, req *http.Request) {
 	}
 }
 
-func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
+// apiKeyAuthScheme is the Authorization header scheme for API key auth:
+// "Authorization: ApiKey <key>" (OpenSearch 3.7+).
+const apiKeyAuthScheme = "ApiKey"
+
+func (tr *Transport) setReqAuth(u *url.URL, req *http.Request) {
 	if _, ok := req.Header["Authorization"]; !ok {
 		if u.User != nil {
 			password, _ := u.User.Password()
@@ -2074,8 +2269,13 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 			return
 		}
 
-		if c.username != "" && c.password != "" {
-			req.SetBasicAuth(c.username, c.password)
+		if tr.apiKey != "" {
+			req.Header.Set("Authorization", apiKeyAuthScheme+" "+tr.apiKey)
+			return
+		}
+
+		if tr.username != "" && tr.password != "" {
+			req.SetBasicAuth(tr.username, tr.password)
 			return
 		}
 	}
@@ -2094,40 +2294,40 @@ func (c *Transport) setReqAuth(u *url.URL, req *http.Request) {
 //
 // applyModifier, if non-nil, runs after header injection and before
 // signing so any headers it adds are included in the signature.
-func (c *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
-	c.setReqURL(u, req)
-	c.setReqUserAgent(req)
-	c.setReqGlobalHeader(req)
-	c.setReqAuth(u, req)
+func (tr *Transport) prepareInternalRequest(u *url.URL, req *http.Request, applyModifier func(*http.Request)) error {
+	tr.setReqURL(u, req)
+	tr.setReqUserAgent(req)
+	tr.setReqGlobalHeader(req)
+	tr.setReqAuth(u, req)
 	if applyModifier != nil {
 		applyModifier(req)
 	}
-	if err := c.signRequest(req); err != nil {
+	if err := tr.signRequest(req); err != nil {
 		return fmt.Errorf("failed to sign request: %w", err)
 	}
 	return nil
 }
 
-func (c *Transport) signRequest(req *http.Request) error {
-	if c.signer != nil {
-		return c.signer.SignRequest(req)
+func (tr *Transport) signRequest(req *http.Request) error {
+	if tr.signer != nil {
+		return tr.signer.SignRequest(req)
 	}
 	return nil
 }
 
-func (c *Transport) setReqUserAgent(req *http.Request) {
+func (tr *Transport) setReqUserAgent(req *http.Request) {
 	if req.Header == nil {
 		req.Header = make(http.Header, 1)
 	}
-	req.Header.Set("User-Agent", c.userAgent)
+	req.Header.Set("User-Agent", tr.userAgent)
 }
 
-func (c *Transport) setReqGlobalHeader(req *http.Request) {
-	if len(c.header) > 0 {
+func (tr *Transport) setReqGlobalHeader(req *http.Request) {
+	if len(tr.header) > 0 {
 		if req.Header == nil {
-			req.Header = make(http.Header, len(c.header))
+			req.Header = make(http.Header, len(tr.header))
 		}
-		for k, v := range c.header {
+		for k, v := range tr.header {
 			if _, ok := req.Header[http.CanonicalHeaderKey(k)]; !ok {
 				for _, vv := range v {
 					req.Header.Add(k, vv)
@@ -2137,7 +2337,7 @@ func (c *Transport) setReqGlobalHeader(req *http.Request) {
 	}
 }
 
-func (c *Transport) logRoundTrip(
+func (tr *Transport) logRoundTrip(
 	req *http.Request,
 	res *http.Response,
 	err error,
@@ -2149,7 +2349,7 @@ func (c *Transport) logRoundTrip(
 		dupRes = *res
 	}
 
-	if c.logger.ResponseBodyEnabled() {
+	if tr.logger.ResponseBodyEnabled() {
 		if res != nil && res.Body != nil && res.Body != http.NoBody {
 			//nolint:errcheck // ignored as this is only for logging
 			b1, b2, _ := duplicateBody(res.Body)
@@ -2159,7 +2359,7 @@ func (c *Transport) logRoundTrip(
 	}
 
 	//nolint:errcheck // ignored as this is only for logging
-	c.logger.LogRoundTrip(req, &dupRes, err, start, dur)
+	tr.logger.LogRoundTrip(req, &dupRes, err, start, dur)
 }
 
 // DefaultHealthCheck performs a health check on the given connection URL, choosing the best
@@ -2170,58 +2370,58 @@ func (c *Transport) logRoundTrip(
 // This method is exported so users can wrap it with custom logging or metrics.
 //
 //nolint:nonamedreturns // named returns required for deferred metrics tracking
-func (c *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u *url.URL) (res *http.Response, err error) {
+func (tr *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u *url.URL) (res *http.Response, err error) {
 	// Track health check outcomes (success/failure) at the top-level entry point.
 	// Type-specific counters (baseline vs cluster health) are incremented in the
 	// respective methods to accurately count fallback paths.
-	if c.metrics != nil {
+	if tr.metrics != nil {
 		defer func() {
 			if err != nil {
-				c.metrics.healthChecksFailed.Add(1)
+				tr.metrics.healthChecksFailed.Add(1)
 			} else {
-				c.metrics.healthChecksSuccess.Add(1)
+				tr.metrics.healthChecksSuccess.Add(1)
 			}
 		}()
 	}
 
 	// Build the request modifier closure (may be nil)
-	applyModifier := c.healthCheckRequestModifier
+	applyModifier := tr.healthCheckRequestModifier
 
 	// If conn is nil, fall through to baseline (backward compat for callers without a Connection)
 	if conn == nil {
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
 	// If the connection needs hardware info, substitute this health check cycle
 	// with a /_nodes/_local/http,os call. This gets the node's core count without
 	// an extra request -- we trade one health check cycle for hardware discovery.
 	if conn.loadConnState().lifecycle().has(lcNeedsHardware) {
-		return c.hardwareInfoHealthCheck(ctx, conn, u, applyModifier)
+		return tr.hardwareInfoHealthCheck(ctx, conn, u, applyModifier)
 	}
 
 	// Fast path: if cluster health is available, use the richer endpoint
 	if conn.hasClusterHealth() {
-		return c.clusterHealthCheck(ctx, conn, u, applyModifier)
+		return tr.clusterHealthCheck(ctx, conn, u, applyModifier)
 	}
 
 	// Otherwise, use baseline GET /
-	res, err = c.baselineHealthCheck(ctx, u, applyModifier)
+	res, err = tr.baselineHealthCheck(ctx, u, applyModifier)
 	if err != nil {
 		return nil, err
 	}
 
 	// After successful baseline, conditionally launch async probe for cluster health.
 	// Skip when cluster health probing is disabled via OPENSEARCH_GO_DISCOVERY_CONFIG.
-	if !c.discoveryFeatures.clusterHealthEnabled() {
+	if !tr.discoveryFeatures.clusterHealthEnabled() {
 		return res, nil
 	}
 
 	switch {
 	case conn.clusterHealthPending():
 		// Never probed -- launch async probe
-		go c.probeClusterHealthLocal(ctx, conn, u, applyModifier)
+		go tr.probeClusterHealthLocal(ctx, conn, u, applyModifier)
 
-	case conn.clusterHealthUnavailable() && c.maxRetryClusterHealth > 0:
+	case conn.clusterHealthUnavailable() && tr.maxRetryClusterHealth > 0:
 		// Previously unavailable (401/403 from cluster:monitor/health permission check) --
 		// check if jittered retry interval has elapsed before re-probing.
 		conn.mu.RLock()
@@ -2234,11 +2434,11 @@ func (c *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u 
 			// interval to prevent thundering herd when multiple connections were probed
 			// around the same time.
 			// #nosec G404 -- jitter for retry timing doesn't require cryptographic randomness
-			jitteredInterval := c.maxRetryClusterHealth + time.Duration(
-				(rand.Float64()*2-1)*c.healthCheckJitter*float64(c.maxRetryClusterHealth),
+			jitteredInterval := tr.maxRetryClusterHealth + time.Duration(
+				(rand.Float64()*2-1)*tr.healthCheckJitter*float64(tr.maxRetryClusterHealth),
 			)
 			if elapsed > jitteredInterval {
-				go c.probeClusterHealthLocal(ctx, conn, u, applyModifier)
+				go tr.probeClusterHealthLocal(ctx, conn, u, applyModifier)
 			}
 		}
 	}
@@ -2248,16 +2448,16 @@ func (c *Transport) DefaultHealthCheck(ctx context.Context, conn *Connection, u 
 
 // baselineHealthCheck performs the standard GET / health check against an OpenSearch node.
 // It validates the response contains core fields (name, cluster_name, version.number).
-func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
-	if c.metrics != nil {
-		c.metrics.healthChecks.Add(1)
+func (tr *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyModifier func(*http.Request)) (*http.Response, error) {
+	if tr.metrics != nil {
+		tr.metrics.healthChecks.Add(1)
 	}
 
 	var healthCtx context.Context
 	var cancel context.CancelFunc
 
-	if c.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, c.healthCheckTimeout)
+	if tr.healthCheckTimeout > 0 {
+		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
 		defer cancel()
 	} else {
 		healthCtx = ctx
@@ -2268,11 +2468,11 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+	if err = tr.prepareInternalRequest(u, req, applyModifier); err != nil {
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -2321,18 +2521,18 @@ func (c *Transport) baselineHealthCheck(ctx context.Context, u *url.URL, applyMo
 // allocatedProcessors and per-pool cwnd ceilings, then clears
 // lcNeedsHardware. On any failure it falls back to the baseline health
 // check so the connection is not penalized for a hardware info failure.
-func (c *Transport) hardwareInfoHealthCheck(
+func (tr *Transport) hardwareInfoHealthCheck(
 	ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request),
 ) (*http.Response, error) {
-	if c.metrics != nil {
-		c.metrics.healthChecks.Add(1)
+	if tr.metrics != nil {
+		tr.metrics.healthChecks.Add(1)
 	}
 
 	var healthCtx context.Context
 	var cancel context.CancelFunc
 
-	if c.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, c.healthCheckTimeout)
+	if tr.healthCheckTimeout > 0 {
+		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
 		defer cancel()
 	} else {
 		healthCtx = ctx
@@ -2340,14 +2540,14 @@ func (c *Transport) hardwareInfoHealthCheck(
 
 	req, err := http.NewRequestWithContext(healthCtx, http.MethodGet, "/_nodes/_local/http,os,thread_pool", nil)
 	if err != nil {
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
-	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+	if err = tr.prepareInternalRequest(u, req, applyModifier); err != nil {
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", errHealthCheckFailed, err)
 	}
@@ -2366,7 +2566,7 @@ func (c *Transport) hardwareInfoHealthCheck(
 		conn.mu.Lock()
 		conn.casLifecycle(conn.loadConnState(), 0, 0, lcNeedsHardware) //nolint:errcheck // lock held; only errLifecycleNoop possible
 		conn.mu.Unlock()
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
 	if res.Body == nil {
@@ -2411,8 +2611,8 @@ func (c *Transport) hardwareInfoHealthCheck(
 		}
 		if len(node.ThreadPool) > 0 {
 			storeThreadPoolSizes(conn, node.ThreadPool)
-			if c.poolInfoCount.Add(1) >= 1 {
-				c.poolInfoReady.Store(true)
+			if tr.poolInfoCount.Add(1) >= 1 {
+				tr.poolInfoReady.Store(true)
 			}
 		}
 		break
@@ -2447,18 +2647,18 @@ func (c *Transport) hardwareInfoHealthCheck(
 //
 // The caller is responsible for interpreting the status code and deciding how to
 // handle auth failures, transient errors, and state transitions.
-func (c *Transport) fetchClusterHealth(
+func (tr *Transport) fetchClusterHealth(
 	ctx context.Context, u *url.URL, applyModifier func(*http.Request),
 ) (*ClusterHealthLocal, int, error) {
-	if c.metrics != nil {
-		c.metrics.clusterHealthChecks.Add(1)
+	if tr.metrics != nil {
+		tr.metrics.clusterHealthChecks.Add(1)
 	}
 
 	var healthCtx context.Context
 	var cancel context.CancelFunc
 
-	if c.healthCheckTimeout > 0 {
-		healthCtx, cancel = context.WithTimeout(ctx, c.healthCheckTimeout)
+	if tr.healthCheckTimeout > 0 {
+		healthCtx, cancel = context.WithTimeout(ctx, tr.healthCheckTimeout)
 		defer cancel()
 	} else {
 		healthCtx = ctx
@@ -2471,11 +2671,11 @@ func (c *Transport) fetchClusterHealth(
 
 	req.URL.RawQuery = "local=true"
 
-	if err = c.prepareInternalRequest(u, req, applyModifier); err != nil {
+	if err = tr.prepareInternalRequest(u, req, applyModifier); err != nil {
 		return nil, 0, err
 	}
 
-	res, err := c.transport.RoundTrip(req)
+	res, err := tr.transport.RoundTrip(req)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -2540,16 +2740,16 @@ func resetClusterHealth(conn *Connection) {
 //     as transient; falls back to GET / without changing state.
 //   - 429: Thread pool rejection (backpressure). Transient; falls back to GET /.
 //   - 5xx: Server error or node not ready. Transient; falls back to GET /.
-func (c *Transport) clusterHealthCheck(
+func (tr *Transport) clusterHealthCheck(
 	ctx context.Context,
 	conn *Connection,
 	u *url.URL,
 	applyModifier func(*http.Request),
 ) (*http.Response, error) {
-	health, statusCode, err := c.fetchClusterHealth(ctx, u, applyModifier)
+	health, statusCode, err := tr.fetchClusterHealth(ctx, u, applyModifier)
 	if err != nil {
 		// Transport/network error -- fall back to baseline without changing state
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 	}
 
 	switch {
@@ -2583,11 +2783,11 @@ func (c *Transport) clusterHealthCheck(
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		// Permission revoked -- fall back to GET /, zero out stale data, reset to pending
 		resetClusterHealth(conn)
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 
 	default:
 		// Transient error (5xx, etc.) -- fall back to baseline without changing state
-		return c.baselineHealthCheck(ctx, u, applyModifier)
+		return tr.baselineHealthCheck(ctx, u, applyModifier)
 	}
 }
 
@@ -2607,8 +2807,8 @@ func (c *Transport) clusterHealthCheck(
 //     and will retry the probe after MaxRetryClusterHealth elapses (default 4h).
 //   - Transient errors (5xx, network, timeout): Leaves state at pending and does NOT
 //     record a timestamp, so the probe is retried on the very next health check cycle.
-func (c *Transport) probeClusterHealthLocal(ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request)) {
-	health, statusCode, err := c.fetchClusterHealth(ctx, u, applyModifier)
+func (tr *Transport) probeClusterHealthLocal(ctx context.Context, conn *Connection, u *url.URL, applyModifier func(*http.Request)) {
+	health, statusCode, err := tr.fetchClusterHealth(ctx, u, applyModifier)
 	if err != nil {
 		// Transient error -- leave at pending (0), retry next health check
 		return
@@ -2681,17 +2881,17 @@ func backoffRetry(baseDelay time.Duration, maxRetries int, jitter float64, fn fu
 // On success, records the RTT of the final (successful) attempt to the
 // connection's rttRing so that connection scoring has data even for connections
 // that have never been through the resurrection path.
-func (c *Transport) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
+func (tr *Transport) healthCheckWithRetries(ctx context.Context, conn *Connection, maxRetries int) bool {
 	// Use the provided maxRetries parameter, but respect client's timeout/jitter config
-	baseDelay := c.healthCheckTimeout / 2 // Start with half the timeout as base delay
+	baseDelay := tr.healthCheckTimeout / 2 // Start with half the timeout as base delay
 	if baseDelay <= 0 {
 		baseDelay = defaultHealthCheckTimeout / 2 // Fallback if timeout is disabled
 	}
 
 	var lastRTT time.Duration
-	err := backoffRetry(baseDelay, maxRetries, c.healthCheckJitter, func() error {
+	err := backoffRetry(baseDelay, maxRetries, tr.healthCheckJitter, func() error {
 		start := time.Now()
-		res, err := c.DefaultHealthCheck(ctx, conn, conn.URL)
+		res, err := tr.DefaultHealthCheck(ctx, conn, conn.URL)
 		if err != nil {
 			return err
 		}
@@ -2745,27 +2945,27 @@ func initUserAgent() string {
 // Used by promoteConnectionPoolWithLock (single→multi promotion) and
 // createOrUpdateMultiNodePoolWithLock (first multi-node discovery).
 //
-// Caller must hold c.mu.Lock().
-func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
-	ctx, cancel := context.WithCancel(c.ctx)
+// Caller must hold tr.mu.Lock().
+func (tr *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics) *multiServerPool {
+	ctx, cancel := context.WithCancel(tr.ctx)
 	pool := &multiServerPool{
 		name:                         name,
 		ctx:                          ctx,
 		cancel:                       cancel,
-		resurrectTimeoutInitial:      c.resurrectTimeoutInitial,
-		resurrectTimeoutMax:          c.resurrectTimeoutMax,
-		resurrectTimeoutFactorCutoff: c.resurrectTimeoutFactorCutoff,
-		minimumResurrectTimeout:      c.minimumResurrectTimeout,
-		jitterScale:                  c.jitterScale,
-		serverMaxNewConnsPerSec:      c.serverMaxNewConnsPerSec,
-		clientsPerServer:             c.clientsPerServer,
+		resurrectTimeoutInitial:      tr.resurrectTimeoutInitial,
+		resurrectTimeoutMax:          tr.resurrectTimeoutMax,
+		resurrectTimeoutFactorCutoff: tr.resurrectTimeoutFactorCutoff,
+		minimumResurrectTimeout:      tr.minimumResurrectTimeout,
+		jitterScale:                  tr.jitterScale,
+		serverMaxNewConnsPerSec:      tr.serverMaxNewConnsPerSec,
+		clientsPerServer:             tr.clientsPerServer,
 		metrics:                      m,
-		activeListCapConfig:          c.activeListCapConfig,
-		standbyPromotionChecks:       c.standbyPromotionChecks,
+		activeListCapConfig:          tr.activeListCapConfig,
+		standbyPromotionChecks:       tr.standbyPromotionChecks,
 	}
-	pool.mu.activeListCap = c.activeListCap
-	pool.mu.healthCheck = c.healthCheck
-	if obs := c.observer.Load(); obs != nil {
+	pool.mu.activeListCap = tr.activeListCap
+	pool.mu.healthCheck = tr.healthCheck
+	if obs := tr.observer.Load(); obs != nil {
 		pool.observer.Store(obs)
 	}
 	return pool
@@ -2774,8 +2974,8 @@ func (c *Transport) newMultiServerPoolFromClientWithLock(name string, m *metrics
 // promoteConnectionPoolWithLock converts a singleServerPool to multiServerPool while preserving
 // metrics, timeout settings, and client configuration. MUST be called while holding client write lock.
 // Returns existing pool unchanged if already a multiServerPool.
-func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
-	switch currentPool := c.mu.connectionPool.(type) {
+func (tr *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnections []*Connection) *multiServerPool {
+	switch currentPool := tr.mu.connectionPool.(type) {
 	case *singleServerPool:
 		// Promote from single to multi-node pool using client-configured timeouts.
 		// allConns is the full connection inventory; routing policies keep query
@@ -2786,13 +2986,13 @@ func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnecti
 		filteredDead = append(filteredDead, deadConnections...)
 
 		// Shuffle connections for load distribution unless disabled
-		if !c.skipConnectionShuffle && len(filteredReady) > 1 {
+		if !tr.skipConnectionShuffle && len(filteredReady) > 1 {
 			rand.Shuffle(len(filteredReady), func(i, j int) {
 				filteredReady[i], filteredReady[j] = filteredReady[j], filteredReady[i]
 			})
 		}
 
-		pool := c.newMultiServerPoolFromClientWithLock("allConns", currentPool.metrics)
+		pool := tr.newMultiServerPoolFromClientWithLock("allConns", currentPool.metrics)
 		pool.mu.ready = filteredReady
 		pool.mu.dead = filteredDead
 		pool.mu.members = make(map[*Connection]struct{}, max(len(filteredReady)+len(filteredDead), defaultMembersCapacity))
@@ -2835,8 +3035,8 @@ func (c *Transport) promoteConnectionPoolWithLock(readyConnections, deadConnecti
 // demoteConnectionPoolWithLock converts a multiServerPool to singleServerPool while preserving
 // metrics and selecting the best available connection. MUST be called while holding client write lock.
 // Returns existing pool unchanged if already a singleServerPool.
-func (c *Transport) demoteConnectionPoolWithLock() *singleServerPool {
-	switch currentPool := c.mu.connectionPool.(type) {
+func (tr *Transport) demoteConnectionPoolWithLock() *singleServerPool {
+	switch currentPool := tr.mu.connectionPool.(type) {
 	case *multiServerPool:
 		// Cancel the old pool's context to clean up stale background goroutines.
 		if currentPool.cancel != nil {

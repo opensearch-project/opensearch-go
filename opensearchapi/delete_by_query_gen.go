@@ -169,7 +169,7 @@ type DeleteByQueryParams struct {
 	// The throttle for this request in sub-requests per second.
 	//
 	// Default: 0.
-	RequestsPerSecond int
+	RequestsPerSecond *float64
 
 	// A custom value used to route operations to a specific shard.
 	Routing []string
@@ -307,8 +307,8 @@ func (r DeleteByQueryParams) get() map[string]string {
 		set("request_cache", strconv.FormatBool(*r.RequestCache))
 	}
 
-	if r.RequestsPerSecond != 0 {
-		set("requests_per_second", strconv.Itoa(r.RequestsPerSecond))
+	if r.RequestsPerSecond != nil {
+		set("requests_per_second", strconv.FormatFloat(*r.RequestsPerSecond, 'f', -1, 64))
 	}
 
 	if len(r.Routing) > 0 {

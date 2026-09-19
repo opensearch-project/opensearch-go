@@ -93,11 +93,13 @@ func TestSetReqURL(t *testing.T) {
 	})
 }
 
-// TestSetReqURLRestoredPath rewrites one *http.Request repeatedly, the shape
-// stream() uses across retries: [restoreReqPath] then setReqURL, once per
-// attempt. nodeURLs supplies the connection for each attempt in order, so a
-// prefixed seed followed by a prefix-less discovered node is a single row.
-func TestSetReqURLRestoredPath(t *testing.T) {
+// TestSetReqURLPerAttemptClone rewrites a request once per attempt, the shape
+// stream() uses across retries: clone the caller's request, then setReqURL on
+// the clone. nodeURLs supplies the connection for each attempt in order, so a
+// prefixed seed followed by a prefix-less discovered node is a single row. The
+// caller's request must come out unchanged -- that is what keeps every attempt
+// starting from a pristine path, and what the seed-fallback branch relies on.
+func TestSetReqURLPerAttemptClone(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -141,14 +143,19 @@ func TestSetReqURLRestoredPath(t *testing.T) {
 				u, err := url.Parse(nodeURL)
 				require.NoError(t, err)
 
-				restoreReqPath(req, origPath, origRawPath)
-				c.setReqURL(u, req)
+				attemptReq := req.Clone(req.Context())
+				c.setReqURL(u, attemptReq)
 
-				require.Equal(t, tt.wantPaths[i], req.URL.Path)
-				require.Equal(t, u.Host, req.URL.Host)
+				require.Equal(t, tt.wantPaths[i], attemptReq.URL.Path)
+				require.Equal(t, u.Host, attemptReq.URL.Host)
 				if tt.wantRawPaths != nil {
-					require.Equal(t, tt.wantRawPaths[i], req.URL.RawPath)
+					require.Equal(t, tt.wantRawPaths[i], attemptReq.URL.RawPath)
 				}
+
+				require.Equal(t, origPath, req.URL.Path,
+					"the caller's request must not be rewritten")
+				require.Equal(t, origRawPath, req.URL.RawPath,
+					"the caller's request must not be rewritten")
 			}
 		})
 	}
@@ -310,6 +317,9 @@ func TestStreamRetryPathPrefix(t *testing.T) {
 func TestSetReqAuth(t *testing.T) {
 	t.Parallel()
 
+	// dummyAPIKey is a test fixture, not a real credential.
+	const dummyAPIKey = "dGVzdGlkOnRlc3RrZXk=" //nolint:gosec // G101: test fixture, not a real credential
+
 	t.Run("auth from URL userinfo", func(t *testing.T) {
 		t.Parallel()
 		c := &Transport{}
@@ -379,6 +389,53 @@ func TestSetReqAuth(t *testing.T) {
 
 		_, _, ok := req.BasicAuth()
 		require.False(t, ok)
+	})
+
+	t.Run("API key sets Authorization header", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{apiKey: dummyAPIKey}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		require.Equal(t, apiKeyAuthScheme+" "+dummyAPIKey, req.Header.Get("Authorization"))
+	})
+
+	t.Run("API key takes precedence over username/password", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{apiKey: dummyAPIKey, username: "admin", password: "secret"}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		require.Equal(t, apiKeyAuthScheme+" "+dummyAPIKey, req.Header.Get("Authorization"))
+		_, _, basicOK := req.BasicAuth()
+		require.False(t, basicOK)
+	})
+
+	t.Run("URL userinfo takes precedence over API key", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{apiKey: dummyAPIKey}
+		u, _ := url.Parse("https://url-user:url-pass@node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		c.setReqAuth(u, req)
+
+		user, pass, ok := req.BasicAuth()
+		require.True(t, ok)
+		require.Equal(t, "url-user", user)
+		require.Equal(t, "url-pass", pass)
+	})
+
+	t.Run("existing Authorization header not overwritten by API key", func(t *testing.T) {
+		t.Parallel()
+		c := &Transport{apiKey: dummyAPIKey}
+		u, _ := url.Parse("https://node1:9200")
+		req, _ := http.NewRequest(http.MethodGet, "/", nil)
+		existingToken := "some-random-token"
+		req.Header.Set("Authorization", "Bearer "+existingToken)
+		c.setReqAuth(u, req)
+
+		require.Equal(t, "Bearer "+existingToken, req.Header.Get("Authorization"))
 	})
 }
 

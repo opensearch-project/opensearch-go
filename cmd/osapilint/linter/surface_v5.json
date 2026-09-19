@@ -19664,7 +19664,7 @@
         },
         {
           "name": "MinScore",
-          "type": "int"
+          "type": "float64"
         },
         {
           "name": "Preference",
@@ -19814,7 +19814,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20174,7 +20174,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "Routing",
@@ -20301,7 +20301,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },
@@ -20420,7 +20420,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20842,7 +20842,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -20906,7 +20906,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -21876,7 +21876,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -22230,7 +22230,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -23057,7 +23057,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -36930,7 +36930,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -44111,7 +44111,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "RequireAlias",
@@ -44226,7 +44226,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },
@@ -54245,7 +54245,7 @@
         },
         {
           "name": "Version",
-          "type": "int"
+          "type": "*int"
         },
         {
           "name": "VersionType",
@@ -55056,7 +55056,7 @@
         },
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         },
         {
           "name": "Routing",
@@ -55224,7 +55224,7 @@
       "fields": [
         {
           "name": "RequestsPerSecond",
-          "type": "int"
+          "type": "*float64"
         }
       ]
     },

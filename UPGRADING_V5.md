@@ -186,8 +186,6 @@ See [`log-zerolog/logzerolog.go`](log-zerolog/logzerolog.go) or [`log-slog/logsl
 
 `opensearchtransport.LoadDebugLogger()` is removed along with the interface. Call `opensearchtransport.Debug()` in its place: it never returns nil, returning a no-op `Event` when no logger is installed, so callers that guarded on nil can drop the guard.
 
-`opensearchutil.BulkIndexerConfig.DebugLogger` is a different field and is unchanged. It still takes a `BulkIndexerDebugLogger` (a `Printf` method) and logs the indexer's own worker activity, not the client's internal records.
-
 ### Installing a logger
 
 Debug records could previously only go to the client's own stream. `Config.DebugLogger` (on both `opensearch.Config` and `opensearchtransport.Config`) routes them into an application's logger instead:
@@ -288,6 +286,29 @@ func (t *MyTransport) Request(req *http.Request) (*http.Response, error) {
 
 The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.
 
+## `Stream` rewrites the caller's `*http.Request` on the first attempt only
+
+In v4, the transport rewrote the request you handed it: it set `URL.Scheme`, `URL.Host`, and `URL.Path` to the selected node (prepending any base path), injected auth and signature headers, and could append `max_concurrent_shard_requests` to `URL.RawQuery`. Every attempt rewrote that same request, so after a retried call it reflected the last node tried.
+
+In v5 only the first attempt rewrites your request; retries and the seed-URL fallback work on copies. Your request therefore reflects the first node tried, which on a retried call is not the node that served the response. Copying on retry fixes a data race: net/http encodes HTTP/2 request headers on a goroutine that can outlive a cancelled `RoundTrip`, so rewriting a request that goroutine still holds raced. The first attempt is safe to rewrite in place because nothing holds it yet, which keeps the common single-attempt path free of the copy.
+
+If you were reading the rewritten request to discover which node served a call, read it from the observer's request/response event instead:
+
+```go
+// Before: inspect the request after the call.
+_, _ = client.Stream(req)
+host := req.URL.Host // v4: the last node tried; v5: the first node tried
+
+// After: the observer reports the node actually contacted.
+type myObserver struct{ opensearchtransport.BaseObserver }
+
+func (myObserver) OnRequestResponse(e opensearchtransport.RequestResponseEvent) {
+    host := e.HostPort
+}
+```
+
+Requests built and sent normally need no changes.
+
 ## `Response.RawBody()` for buffered response bytes
 
 `Response.Body` remains a public `io.ReadCloser` field; reading it is unchanged:
@@ -373,6 +394,60 @@ b, _ := opensearch.NewClient(opensearch.Config{}) // independent transport, isol
 ```
 
 To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a negative value (e.g. `-1` or `-1s`) so every call builds a fresh client. The variable otherwise tunes the idle eviction window and accepts either a `time.ParseDuration` string (`16m`) or a bare number of seconds (`30`, `1.5`); default `16m`, `0` never evicts. Call `Close()` on a default client when done so its shared transport can be reclaimed once no holder remains and it goes idle.
+
+## Document `version` query parameters are `*int`
+
+`cmd/osgen` typed the document `version` query parameter as `int`, so `version=0` was dropped by the `!= 0` emission guard. External versioning allows version ≥ 0; sending `version_type=external` without `version` makes the server fall back to internal versioning. `version` is now `*int` (`nil` omits, `&0` sends 0), matching `if_seq_no` and search `size`.
+
+Applies to `IndexParams`, `CreateParams`, `DeleteParams`, `GetParams`, `ExistsParams`, `GetSourceParams`, `ExistsSourceParams`, `TermVectorsParams`, `MTermVectorsParams`, and the LTR `AddFeaturesToSet` / `AddFeaturesToSetByQuery` params. Search / delete-by-query / update-by-query `version` is a boolean "include `_version` in hits" flag and is unchanged.
+
+v4 already used `*int`. Integer literals no longer assign:
+
+```go
+// Before (v5 RC)
+Params: &opensearchapi.IndexParams{Version: 0, VersionType: opensearchapi.VersionTypeExternal}
+
+// After
+Params: &opensearchapi.IndexParams{
+    Version:     ptr(0),
+    VersionType: opensearchapi.VersionTypeExternal,
+}
+```
+
+`ptr` is a one-line helper (`func ptr[T any](v T) *T { return &v }`). Once your module's `go` directive reaches 1.26, `new(0)` works directly. See [`opensearch.ToPointer` removed](#opensearchtopointer-removed).
+
+## Number query parameters are `float64`
+
+`cmd/osgen` typed OpenAPI `number` query parameters as `int`, so fractional values could not be sent and `0` was dropped by the `!= 0` emission guard. `number` now maps to `float64`. Parameters whose `0` is a documented wire value (the `requests_per_second` pause, and plugin `if_primary_term` schemas the spec types as `number`) are `*float64`, matching the `*int` pattern used for zero-meaningful integers.
+
+| Param                                                                                                                                    | Was    | Now                                   |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------- |
+| `CountParams.MinScore`                                                                                                                   | `int`  | `float64`                             |
+| `RequestsPerSecond` on reindex / delete-by-query / update-by-query and their rethrottles                                                 | `int`  | `*float64` (`nil` omits; `&0` pauses) |
+| Plugin `if_primary_term` query params typed as `number` in the spec (`ism.put_policy` / `put_policies`, `rollups.put`, `transforms.put`) | `*int` | `*float64`                            |
+| `transforms.search` `from` / `size`                                                                                                      | `int`  | `float64`                             |
+
+Core document `if_primary_term` (`index` / `update` / `delete`) stays `*int` because those schemas are `type: integer`. Search-body `MinScore` and response `RequestsPerSecond` were already floating-point and are unchanged.
+
+Integer literals still assign to the value-typed fields (`MinScore: 1` compiles). Pointer fields need a `*float64`:
+
+```go
+// Before
+Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
+
+// After
+Params: &opensearchapi.ReindexParams{
+    RequestsPerSecond: ptr(42.0),
+}
+```
+
+`requests_per_second=0` (pause a running reindex) now reaches the wire:
+
+```go
+Params: &opensearchapi.ReindexRethrottleParams{
+    RequestsPerSecond: ptr(0.0),
+}
+```
 
 ## Field-scoped query clauses are union-typed
 
@@ -523,3 +598,72 @@ func handler(ctx context.Context) error {
 ```
 
 `Flush` covers the items each worker had already been handed when the call reached it, so items added concurrently with `Flush` may land in that drain or the next one. Like `Add`, it must not be called after `Close`.
+
+## `opensearchutil.BulkIndexer` routes unhandled item rejections to `OnError`
+
+When a bulk request lands but the cluster rejects some documents, each rejected document reaches its own `OnFailure` callback. A document added without an `OnFailure` used to be dropped: the indexer ran whatever callbacks it had and returned no error, so `OnError` never saw the rejection. `OnError` fired only when the whole request failed to land, such as a network error, an HTTP error, or an unparseable body.
+
+A rejected document with no `OnFailure` of its own now has its error surfaced through `OnError` instead. A document that sets `OnFailure` is unchanged and reaches only that callback, and a batch whose rejections are all handled by `OnFailure` still triggers no `OnError`.
+
+```go
+// A document the cluster rejects (say, a version conflict) with no OnFailure
+// of its own.
+item := opensearchutil.BulkIndexerItem{Action: "create", DocumentID: "1", Body: body}
+
+// Before: the rejection was dropped. OnError did not fire, and with no
+// OnFailure the caller had no way to learn the document failed.
+
+// After: the rejection reaches OnError.
+cfg.OnError = func(ctx context.Context, err error) {
+    // err reports each rejected document that had no OnFailure of its own.
+}
+```
+
+The same error is what `Flush(ctx)` returns on the explicit-flush path, which does not call `OnError`. Set an `OnFailure` on the items you want handled per document, and leave it unset to route their rejections to `OnError` or the `Flush` return.
+
+## `opensearch.ToPointer` removed
+
+`opensearch.ToPointer` is removed. It was a thin, exported wrapper (`return ptr(value)`) kept around only for callers building `*T` request parameters; it was never needed internally, since call sites within this module use an unexported per-package `ptr` helper instead.
+
+Replace a call site with a one-line helper of your own:
+
+```go
+func ptr[T any](v T) *T { return &v }
+
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+```
+
+Once your module's `go` directive reaches 1.26, you can drop the helper entirely and use the native `new(value)` literal form instead:
+
+```go
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
+```
+
+## `opensearchutil.BulkIndexer` `DebugLogger` removed
+
+`BulkIndexerConfig` no longer has a `DebugLogger` field, and the `BulkIndexerDebugLogger` interface is gone. The bulk indexer used to take its own `Printf`-style logger, separate from the client's:
+
+```go
+// Before
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{
+    Client:      client,
+    DebugLogger: log.New(os.Stdout, "", 0),
+})
+```
+
+Its debug records now flow through `opensearchtransport.Debug()`, the same logger the rest of the client uses, so you switch them on where you switch on everything else:
+
+```go
+// After: enable debug logging on the client; the bulk indexer's records come with it.
+client, err := opensearchapi.NewClient(
+    opensearchapi.Config{
+        Client: opensearch.Config{
+            Addresses:         []string{"http://localhost:9200"},
+            EnableDebugLogger: true,
+        },
+    },
+)
+indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{Client: client})
+```
+
+`OPENSEARCH_GO_LOG=debug` and `Config.DebugLogger` (any `debuglog.Logger`) work the same way; see [Debugging](USER_GUIDE.md#debugging). The records are now structured, carrying fields such as `worker`, `action`, and `doc_id` rather than the old preformatted lines. A `BulkIndexerConfig` that still sets `DebugLogger` is a compile error; delete the field.

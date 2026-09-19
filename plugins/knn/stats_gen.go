@@ -101,7 +101,7 @@ type StatsResp struct {
 	// ClusterName is the name of a resource or configuration element.
 	ClusterName *string `json:"cluster_name,omitempty"`
 
-	ModelIndexStatus *string                               `json:"model_index_status"`
+	ModelIndexStatus *string                               `json:"model_index_status,omitempty"`
 	Nodes            map[string]opensearchapi.KNNNodeStats `json:"nodes,omitempty"`
 
 	response *opensearch.Response

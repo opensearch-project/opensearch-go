@@ -83,7 +83,7 @@ type AddFeaturesToSetByQueryParams struct {
 	Routing string
 
 	// Version check to ensure feature set is modified with expected version.
-	Version int
+	Version *int
 }
 
 func (r AddFeaturesToSetByQueryParams) get() map[string]string {
@@ -105,8 +105,8 @@ func (r AddFeaturesToSetByQueryParams) get() map[string]string {
 		set("routing", r.Routing)
 	}
 
-	if r.Version != 0 {
-		set("version", strconv.Itoa(r.Version))
+	if r.Version != nil {
+		set("version", strconv.Itoa(*r.Version))
 	}
 
 	return params

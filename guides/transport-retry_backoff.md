@@ -73,6 +73,16 @@ To limit total wait time when the server is unresponsive, use a context with a d
 
 Use both together for defense in depth: `RequestTimeout` prevents any single attempt from hanging indefinitely, while a context deadline caps the total wall-clock time.
 
+Timeouts are not retried unless `EnableRetryOnTimeout` is set. When a per-attempt timeout does fire, it also says something about the connection: canceling the attempt resets the HTTP/2 stream but leaves the connection in `http.Transport`'s pool, so a retry is multiplexed onto the same dead backend and `DialContext` never runs. That is the failure after an Amazon OpenSearch Service blue/green cutover, where the hostname already resolves to the replacement.
+
+So the client marks the node, and the next request to it carries `Request.Close`. That is how you ask `net/http` to retire a connection: it stops offering that connection to new requests, lets the streams already on it run to completion, and closes it once the last one finishes. The client closes nothing itself, so a request sharing that connection is never cut off -- which closing the socket would do, because HTTP/2 multiplexes many requests onto one connection.
+
+Two things follow from using `Request.Close`, and both are deliberate. `net/http` sets the flag after the stream is assigned, so the request carrying it still rides the stale connection and fails; recovery lands on the request after that. With `EnableRetryOnTimeout` set the retry loop absorbs this, but it costs a retry slot: one attempt times out, the next carries the flag and also fails, and only the third dials. That needs `MaxRetries` of at least 2, which the default of 3 satisfies; at `MaxRetries: 1` the attempts run out before the fresh connection is reached, and the caller sees the timeout. And the mark is per node rather than per connection, because `Request.Close` marks whichever connection the carrying request is assigned. A node with a single pooled HTTP/2 connection -- the common case -- always retires the right one; a node with several may retire a healthy one, which costs a handshake.
+
+Only a timeout the client generates marks anything. If your own `context` deadline expires, the connection is left alone: that timeout says the caller gave up, not that the connection is bad. The mark is also not conditional on a retry following it, so with `EnableRetryOnTimeout` unset the request still fails but the stale connection is retired rather than inherited.
+
+Set `RequestTimeout` above the slowest response you expect. A request that times out only because the server was slow retires a connection that was working.
+
 ```go
 client, _ := opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{

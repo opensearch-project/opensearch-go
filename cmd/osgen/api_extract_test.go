@@ -161,6 +161,12 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	require.True(t, paramMap["terminate_after"].IsInt)
 	require.Equal(t, "int", paramMap["terminate_after"].GoType)
 
+	// OpenAPI number (not integer) is float64. min_score=0 is not in the
+	// zero-meaningful allowlist, so the value type keeps the != 0 guard.
+	require.True(t, paramMap["min_score"].IsFloat)
+	require.False(t, paramMap["min_score"].IsInt)
+	require.Equal(t, "float64", paramMap["min_score"].GoType)
+
 	// Duration param (non-shared; timeout is now a shared param).
 	require.True(t, paramMap["scroll"].IsDuration)
 	require.Equal(t, "time.Duration", paramMap["scroll"].GoType)
@@ -176,6 +182,75 @@ func TestBuildAPIOperation_QueryParams(t *testing.T) {
 	// Shared timeout params should be excluded.
 	_, hasTimeout := paramMap["timeout"]
 	require.False(t, hasTimeout)
+}
+
+func TestBuildAPIOperation_ZeroMeaningfulFloatParam(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithRequestsPerSecond(t)
+	//nolint:dogsled // test only cares about ops + err
+	ops, _, _, _, err := extractOperations(spec, map[string]bool{"reindex": true}, VersionRange{})
+	require.NoError(t, err)
+	require.Len(t, ops, 1)
+
+	paramMap := make(map[string]apiQueryParam)
+	for _, p := range ops[0].QueryParams {
+		paramMap[p.ParamName] = p
+	}
+
+	// requests_per_second=0 is the documented pause value, so the number
+	// param is promoted to *float64 rather than dropping 0 under != 0.
+	require.True(t, paramMap["requests_per_second"].IsFloat)
+	require.False(t, paramMap["requests_per_second"].IsInt)
+	require.Equal(t, "*float64", paramMap["requests_per_second"].GoType)
+}
+
+func TestBuildAPIOperation_VersionZeroMeaningful(t *testing.T) {
+	t.Parallel()
+
+	spec := buildTestSpecWithVersionParam(t)
+	//nolint:dogsled // test only cares about ops + err
+	ops, _, _, _, err := extractOperations(spec, nil, VersionRange{})
+	require.NoError(t, err)
+
+	byGroup := make(map[string]*apiOperation, len(ops))
+	for i := range ops {
+		byGroup[ops[i].Group] = &ops[i]
+	}
+
+	paramNamed := func(t *testing.T, op *apiOperation, name string) apiQueryParam {
+		t.Helper()
+		require.NotNil(t, op)
+		for _, p := range op.QueryParams {
+			if p.ParamName == name {
+				return p
+			}
+		}
+		t.Fatalf("query param %q not found on %q", name, op.Group)
+		return apiQueryParam{}
+	}
+
+	tests := []struct {
+		name       string
+		group      string
+		wantIsInt  bool
+		wantIsBool bool
+		wantGoType string
+	}{
+		{"index version is *int", "index", true, false, "*int"},
+		{"search version stays *bool", "search", false, true, "*bool"},
+		{"unlisted operation keeps version as int", "foo.bar", true, false, "int"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			p := paramNamed(t, byGroup[tt.group], "version")
+			require.Equal(t, tt.wantIsInt, p.IsInt)
+			require.Equal(t, tt.wantIsBool, p.IsBool)
+			require.Equal(t, tt.wantGoType, p.GoType)
+		})
+	}
 }
 
 func TestIsGlobalParam(t *testing.T) {
@@ -222,6 +297,7 @@ func TestClassifyParamSchema(t *testing.T) {
 		isBool     bool
 		isList     bool
 		isInt      bool
+		isFloat    bool
 	}{
 		{
 			name:   "string type",
@@ -241,10 +317,22 @@ func TestClassifyParamSchema(t *testing.T) {
 			isInt:  true,
 		},
 		{
-			name:   "number type",
-			schema: &openapi3.Schema{Type: &openapi3.Types{"number"}},
-			ref:    &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
-			isInt:  true,
+			name:    "number type",
+			schema:  &openapi3.Schema{Type: &openapi3.Types{"number"}},
+			ref:     &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
+			isFloat: true,
+		},
+		{
+			name:    "number type with float format",
+			schema:  &openapi3.Schema{Type: &openapi3.Types{"number"}, Format: "float"},
+			ref:     &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
+			isFloat: true,
+		},
+		{
+			name:    "number type with double format",
+			schema:  &openapi3.Schema{Type: &openapi3.Types{"number"}, Format: "double"},
+			ref:     &openapi3.ParameterRef{Value: &openapi3.Parameter{}},
+			isFloat: true,
 		},
 		{
 			name:   "array type",
@@ -277,24 +365,27 @@ func TestClassifyParamSchema(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			goType, isDur, isBool, isList, isInt := classifyParamSchema(tt.schema, tt.ref)
+			cls := classifyParamSchema(tt.schema, tt.ref)
 
-			require.Equal(t, tt.isDuration, isDur, "isDuration")
-			require.Equal(t, tt.isBool, isBool, "isBool")
-			require.Equal(t, tt.isList, isList, "isList")
-			require.Equal(t, tt.isInt, isInt, "isInt")
+			require.Equal(t, tt.isDuration, cls.isDuration, "isDuration")
+			require.Equal(t, tt.isBool, cls.isBool, "isBool")
+			require.Equal(t, tt.isList, cls.isList, "isList")
+			require.Equal(t, tt.isInt, cls.isInt, "isInt")
+			require.Equal(t, tt.isFloat, cls.isFloat, "isFloat")
 
 			switch {
 			case tt.isDuration:
-				require.Equal(t, "time.Duration", goType)
+				require.Equal(t, "time.Duration", cls.goType)
 			case tt.isBool:
-				require.Equal(t, "*bool", goType)
+				require.Equal(t, "*bool", cls.goType)
 			case tt.isInt:
-				require.Equal(t, "int", goType)
+				require.Equal(t, "int", cls.goType)
+			case tt.isFloat:
+				require.Equal(t, "float64", cls.goType)
 			case tt.isList:
-				require.Equal(t, "[]string", goType)
+				require.Equal(t, "[]string", cls.goType)
 			default:
-				require.Equal(t, "string", goType)
+				require.Equal(t, "string", cls.goType)
 			}
 		})
 	}
@@ -655,6 +746,11 @@ func buildTestSpecWithQueryParams(t *testing.T) string {
 							"in":     "query",
 							"schema": map[string]any{"type": "boolean"},
 						},
+						map[string]any{
+							"name":   "min_score",
+							"in":     "query",
+							"schema": map[string]any{"type": "number", "format": "float"},
+						},
 					},
 					"requestBody": map[string]any{
 						"content": map[string]any{
@@ -666,6 +762,66 @@ func buildTestSpecWithQueryParams(t *testing.T) string {
 					"responses": map[string]any{"200": map[string]any{"description": "OK"}},
 				},
 			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+func buildTestSpecWithRequestsPerSecond(t *testing.T) string {
+	t.Helper()
+	spec := map[string]any{
+		"openapi": "3.0.3",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/_reindex": map[string]any{
+				"post": map[string]any{
+					"x-operation-group": "reindex",
+					"x-version-added":   "1.0",
+					"parameters": []any{
+						map[string]any{
+							"name":   "requests_per_second",
+							"in":     "query",
+							"schema": map[string]any{"type": "number", "format": "float"},
+						},
+					},
+					"responses": map[string]any{"200": map[string]any{"description": "OK"}},
+				},
+			},
+		},
+	}
+	return writeTestSpec(t, spec)
+}
+
+func buildTestSpecWithVersionParam(t *testing.T) string {
+	t.Helper()
+	intVersion := map[string]any{
+		"name":   "version",
+		"in":     "query",
+		"schema": map[string]any{"type": "integer"},
+	}
+	op := func(group string, params []any) map[string]any {
+		return map[string]any{
+			"post": map[string]any{
+				"x-operation-group": group,
+				"x-version-added":   "1.0",
+				"parameters":        params,
+				"responses":         map[string]any{"200": map[string]any{"description": "OK"}},
+			},
+		}
+	}
+	spec := map[string]any{
+		"openapi": "3.0.3",
+		"info":    map[string]any{"title": "Test", "version": "1.0.0"},
+		"paths": map[string]any{
+			"/{index}/_doc/{id}": op("index", []any{intVersion}),
+			"/_search": op("search", []any{
+				map[string]any{
+					"name":   "version",
+					"in":     "query",
+					"schema": map[string]any{"type": "boolean"},
+				},
+			}),
+			"/_foo": op("foo.bar", []any{intVersion}),
 		},
 	}
 	return writeTestSpec(t, spec)

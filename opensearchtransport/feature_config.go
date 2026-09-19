@@ -310,17 +310,17 @@ const (
 )
 
 // effectiveMin returns the configured min, falling back to the default.
-func (c adaptiveConcurrencyConfig) effectiveMin() int {
-	if c.minVal > 0 {
-		return c.minVal
+func (cfg adaptiveConcurrencyConfig) effectiveMin() int {
+	if cfg.minVal > 0 {
+		return cfg.minVal
 	}
 	return adaptiveConcurrencyMinDefault
 }
 
 // effectiveMax returns the configured max, falling back to the default.
-func (c adaptiveConcurrencyConfig) effectiveMax() int {
-	if c.maxVal > 0 {
-		return c.maxVal
+func (cfg adaptiveConcurrencyConfig) effectiveMax() int {
+	if cfg.maxVal > 0 {
+		return cfg.maxVal
 	}
 	return adaptiveConcurrencyMaxDefault
 }

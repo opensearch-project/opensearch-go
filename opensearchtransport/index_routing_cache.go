@@ -209,24 +209,24 @@ type indexSlotCacheConfig struct {
 
 // getOrCreate returns the slot for indexName, creating one if needed.
 // Increments the request decay counter and clears idle state.
-func (c *indexSlotCache) getOrCreate(indexName string) *indexSlot {
-	m := c.entries.Load()
+func (cache *indexSlotCache) getOrCreate(indexName string) *indexSlot {
+	m := cache.entries.Load()
 
 	if v, ok := m.Load(indexName); ok {
 		slot := v.(*indexSlot)
-		slot.requestDecay.increment(c.decayFactor)
+		slot.requestDecay.increment(cache.decayFactor)
 		slot.idleSince.Store(0) // active
 		return slot
 	}
 
 	slot := &indexSlot{clock: realClock{}}
-	slot.fanOut.Store(int32(c.minFanOut))      //nolint:gosec // minFanOut is bounded by config (default 1, max 32).
-	slot.requestDecay.increment(c.decayFactor) // first request
+	slot.fanOut.Store(int32(cache.minFanOut))      //nolint:gosec // minFanOut is bounded by config (default 1, max 32).
+	slot.requestDecay.increment(cache.decayFactor) // first request
 
 	if v, loaded := m.LoadOrStore(indexName, slot); loaded {
 		// Another goroutine created it first -- use theirs.
 		existing := v.(*indexSlot)
-		existing.requestDecay.increment(c.decayFactor)
+		existing.requestDecay.increment(cache.decayFactor)
 		existing.idleSince.Store(0)
 		return existing
 	}
@@ -251,24 +251,24 @@ func (c *indexSlotCache) getOrCreate(indexName string) *indexSlot {
 //
 // The server handles shard-level scatter/gather internally; the routing choice
 // determines coordinator consistency, cache warmth, and RTT.
-func (c *indexSlotCache) effectiveFanOut(slot *indexSlot, indexName string, activeNodeCount int) int {
+func (cache *indexSlotCache) effectiveFanOut(slot *indexSlot, indexName string, activeNodeCount int) int {
 	// Check for per-index override first.
-	if override, ok := c.overrides[indexName]; ok {
+	if override, ok := cache.overrides[indexName]; ok {
 		return clampFanOut(override, activeNodeCount)
 	}
 
 	// Derive fan-out from request volume.
-	rateFanOut := int(slot.requestDecay.load()/c.fanOutPerReq) + 1
+	rateFanOut := int(slot.requestDecay.load()/cache.fanOutPerReq) + 1
 
 	// Floor from shard placement: ensures the candidate set covers all
 	// shard-hosting nodes for well-designed indexes. For pathological indexes
 	// (shards on every node), maxFanOut caps the damage.
 	shardFloor := int(slot.shardNodeCount.Load())
 
-	fanOut := max(c.minFanOut, shardFloor, rateFanOut)
+	fanOut := max(cache.minFanOut, shardFloor, rateFanOut)
 
-	if c.maxFanOut > 0 && fanOut > c.maxFanOut {
-		fanOut = c.maxFanOut
+	if cache.maxFanOut > 0 && fanOut > cache.maxFanOut {
+		fanOut = cache.maxFanOut
 	}
 
 	return clampFanOut(fanOut, activeNodeCount)
@@ -295,10 +295,10 @@ func clampFanOut(fanOut, activeNodeCount int) int {
 // high-water mark, the underlying [sync.Map] is replaced with a fresh
 // instance containing only the surviving entries. This reclaims internal
 // hash table memory that [sync.Map] retains after deletes.
-func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexShardPlacement, activeNodeCount int, now time.Time) {
+func (cache *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexShardPlacement, activeNodeCount int, now time.Time) {
 	nowNano := now.UnixNano()
 
-	m := c.entries.Load()
+	m := cache.entries.Load()
 	var liveCount int64
 
 	m.Range(func(key, value any) bool {
@@ -326,10 +326,10 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 		}
 
 		// Decay the request counter (one decay step per discovery cycle).
-		slot.requestDecay.decay(c.decayFactor)
+		slot.requestDecay.decay(cache.decayFactor)
 
 		// Recompute fan-out.
-		newFanOut := c.effectiveFanOut(slot, indexName, activeNodeCount)
+		newFanOut := cache.effectiveFanOut(slot, indexName, activeNodeCount)
 		slot.fanOut.Store(int32(newFanOut)) //nolint:gosec // Fan-out clamped by effectiveFanOut (max 32 default).
 
 		// Idle eviction.
@@ -340,7 +340,7 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 			if idleSince == 0 {
 				// Mark as idle starting now.
 				slot.idleSince.Store(nowNano)
-			} else if nowNano-idleSince > c.idleEvictionTTL.Nanoseconds() {
+			} else if nowNano-idleSince > cache.idleEvictionTTL.Nanoseconds() {
 				// Idle for too long -- evict.
 				m.Delete(indexName)
 				return true // continue Range; don't count as live
@@ -355,13 +355,13 @@ func (c *indexSlotCache) updateFromDiscovery(shardPlacement map[string]*indexSha
 	})
 
 	// Update high-water mark.
-	hwm := c.highWaterMark.Load()
+	hwm := cache.highWaterMark.Load()
 	if liveCount > hwm {
-		c.highWaterMark.Store(liveCount)
+		cache.highWaterMark.Store(liveCount)
 	} else if hwm > 0 && liveCount <= hwm/2 {
 		// Live count has contracted to 50% of peak. Replace the sync.Map
 		// to reclaim internal hash table memory retained after deletes.
-		c.compactEntries(m, liveCount)
+		cache.compactEntries(m, liveCount)
 	}
 }
 
@@ -570,8 +570,8 @@ func (slot *indexSlot) loadSmoothedMaxBucket() float64 {
 // slotFor returns the existing slot for indexName, or nil if the index
 // has no slot in the cache. Unlike getOrCreate, this does not create a
 // slot or increment the request counter.
-func (c *indexSlotCache) slotFor(indexName string) *indexSlot {
-	m := c.entries.Load()
+func (cache *indexSlotCache) slotFor(indexName string) *indexSlot {
+	m := cache.entries.Load()
 	if v, ok := m.Load(indexName); ok {
 		return v.(*indexSlot)
 	}
@@ -586,22 +586,22 @@ func (c *indexSlotCache) slotFor(indexName string) *indexSlot {
 // the swap will lose that write. The slot is recreated on the next request
 // for that index -- a brief reset of its decay counter, acceptable given
 // compaction runs at most once per discovery cycle.
-func (c *indexSlotCache) compactEntries(old *sync.Map, liveCount int64) {
+func (cache *indexSlotCache) compactEntries(old *sync.Map, liveCount int64) {
 	fresh := new(sync.Map)
 	old.Range(func(key, value any) bool {
 		fresh.Store(key, value)
 		return true
 	})
-	c.entries.Store(fresh)
-	c.highWaterMark.Store(liveCount)
+	cache.entries.Store(fresh)
+	cache.highWaterMark.Store(liveCount)
 }
 
 // snapshot returns a point-in-time snapshot of all index slots and the
 // effective configuration. Used by Metrics() for observability.
-func (c *indexSlotCache) snapshot() RouterSnapshot {
+func (cache *indexSlotCache) snapshot() RouterSnapshot {
 	var indexes []IndexRouterState
 
-	c.entries.Load().Range(func(key, value any) bool {
+	cache.entries.Load().Range(func(key, value any) bool {
 		indexName := key.(string)
 		slot := value.(*indexSlot)
 
@@ -627,11 +627,11 @@ func (c *indexSlotCache) snapshot() RouterSnapshot {
 	return RouterSnapshot{
 		Indexes: indexes,
 		Config: RouterSnapshotConfig{
-			MinFanOut:       c.minFanOut,
-			MaxFanOut:       c.maxFanOut,
-			DecayFactor:     c.decayFactor,
-			FanOutPerReq:    c.fanOutPerReq,
-			IdleEvictionTTL: c.idleEvictionTTL.String(),
+			MinFanOut:       cache.minFanOut,
+			MaxFanOut:       cache.maxFanOut,
+			DecayFactor:     cache.decayFactor,
+			FanOutPerReq:    cache.fanOutPerReq,
+			IdleEvictionTTL: cache.idleEvictionTTL.String(),
 		},
 	}
 }

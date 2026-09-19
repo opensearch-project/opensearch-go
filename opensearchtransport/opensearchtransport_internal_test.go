@@ -494,13 +494,14 @@ func TestTransportStream(t *testing.T) {
 
 		//nolint:bodyclose // Mock response does not have a body to close
 		_, err := tp.Stream(req)
-		if err.Error() != `cannot get connection: no connections available` {
-			t.Fatalf("Expected error `cannot get connection: no connections available`: but got error %q", err)
-		}
+		require.ErrorIs(t, err, ErrNoConnections)
+		require.Equal(t, streamErrorPrefix(http.MethodGet, "/abc")+"cannot get connection: no connections available", err.Error())
 	})
 }
 
 func TestTransportStreamRetries(t *testing.T) {
+	t.Parallel()
+
 	t.Run("Retry request on network error and return the response", func(t *testing.T) {
 		var (
 			i       int
@@ -587,6 +588,41 @@ func TestTransportStreamRetries(t *testing.T) {
 		if i != numReqs {
 			t.Errorf("Unexpected number of requests, want=%d, got=%d", numReqs, i)
 		}
+	})
+
+	t.Run("Retry request on HTTP2 stream error and return the response", func(t *testing.T) {
+		t.Parallel()
+
+		var (
+			i       int
+			numReqs = 2
+		)
+
+		u, _ := url.Parse("http://foo.bar")
+		tp, _ := New(
+			Config{
+				URLs:                  []*url.URL{u, u, u},
+				SkipConnectionShuffle: true,
+				HealthCheck:           NoOpHealthCheck,
+				NodeStatsInterval:     -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					i++
+					if i == numReqs {
+						return &http.Response{Status: "OK"}, nil
+					}
+					return nil, h2StreamError{StreamID: 1, Code: 7}
+				}),
+			},
+		)
+		t.Cleanup(func() { _ = tp.Close() })
+
+		req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+
+		//nolint:bodyclose // Mock response does not have a body to close
+		res, err := tp.Stream(req)
+		require.NoError(t, err)
+		require.Equal(t, "OK", res.Status)
+		require.Equal(t, numReqs, i)
 	})
 
 	t.Run("Retry request on 5xx response and return new response", func(t *testing.T) {
@@ -921,6 +957,53 @@ func TestTransportStreamRetries(t *testing.T) {
 		}
 	})
 
+	t.Run("Don't retry EOF or HTTP2 stream errors when retries are disabled", func(t *testing.T) {
+		t.Parallel()
+
+		// net.Error is covered above. These three paths must honor DisableRetry
+		// too: without the guard they set shouldRetry unconditionally, so
+		// DisableRetry burns through the default MaxRetries (6) on a dropped
+		// connection.
+		tests := []struct {
+			name string
+			err  error
+		}{
+			{name: "EOF", err: io.EOF},
+			{name: "unexpected EOF", err: io.ErrUnexpectedEOF},
+			{name: "HTTP2 stream error", err: h2StreamError{StreamID: 1, Code: 7}},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				t.Parallel()
+
+				var i int
+
+				u, _ := url.Parse("http://foo.bar")
+				tp, err := New(
+					Config{
+						URLs:                  []*url.URL{u, u, u},
+						SkipConnectionShuffle: true,
+						NodeStatsInterval:     -1,
+						Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+							i++
+							return nil, tt.err
+						}),
+						DisableRetry: true,
+						HealthCheck:  NoOpHealthCheck,
+					},
+				)
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
+
+				req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+				//nolint:bodyclose // Mock response does not have a body to close
+				_, _ = tp.Stream(req)
+
+				require.Equal(t, 1, i)
+			})
+		}
+	})
+
 	t.Run("Delay the retry with a backoff function", func(t *testing.T) {
 		var (
 			i                int
@@ -1058,6 +1141,118 @@ func TestTransportStreamRetries(t *testing.T) {
 			t.Errorf("Unexpected number of backoffs, want=>%d, got=%d", numRetries, j)
 		}
 	})
+}
+
+// streamErrorPrefix renders the request-context prefix that stream() prepends
+// to a wrapped error, derived from the production streamErrorPrefixFormat so
+// the assertions here track the format in one place.
+func streamErrorPrefix(method, rawURL string) string {
+	return fmt.Sprintf(streamErrorPrefixFormat, method, rawURL)
+}
+
+// TestTransportStreamErrorRequestContext covers the request-context wrapping
+// applied at the end of Transport.stream: a non-nil error should come back
+// prefixed with the method and URL, and that URL should never carry userinfo
+// or query-string secrets.
+func TestTransportStreamErrorRequestContext(t *testing.T) {
+	t.Parallel()
+
+	// A request URL carrying credentials in its userinfo, to prove they are
+	// redacted from the error. Declared as a value so the fake secret lives on
+	// one line gosec can be told to ignore.
+	credentialURL := "http://user:s3cr3t-password@foo.bar/" //nolint:gosec // fake credential, exercises userinfo redaction
+
+	tests := []struct {
+		name       string
+		roundTrip  func(*http.Request) (*http.Response, error)
+		method     string
+		target     string
+		wantErr    bool
+		wantPrefix string   // asserted when wantErr is true and non-empty
+		wantErrIs  error    // asserted with errors.Is when non-nil
+		wantAbsent []string // substrings that must not leak into the error
+	}{
+		{
+			name:       "wraps an error with method and URL",
+			roundTrip:  func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:     http.MethodGet,
+			target:     "/my-index/_doc/1",
+			wantErr:    true,
+			wantPrefix: streamErrorPrefix(http.MethodGet, "http://foo.bar/my-index/_doc/1"),
+			// io.EOF passes straight through fmt.Errorf's %w chain, so
+			// errors.Is can still see past the request-context wrapping.
+			wantErrIs: io.EOF,
+		},
+		{
+			name: "does not wrap a nil error",
+			roundTrip: func(*http.Request) (*http.Response, error) {
+				return &http.Response{Status: "OK", StatusCode: http.StatusOK}, nil
+			},
+			method: http.MethodGet,
+			target: "/",
+		},
+		{
+			name:      "redacts userinfo credentials embedded in the request URL",
+			roundTrip: func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:    http.MethodGet,
+			// Credentials embedded in the URL by a caller driving Transport
+			// directly rather than through opensearchapi. setReqURL only ever
+			// copies Scheme/Host/Path from the connection URL, never User, so
+			// this userinfo survives into the error path unless stripped.
+			target:     credentialURL,
+			wantErr:    true,
+			wantAbsent: []string{"s3cr3t-password", "user:"},
+		},
+		{
+			name:      "redacts the query string from the request URL",
+			roundTrip: func(*http.Request) (*http.Response, error) { return nil, io.EOF },
+			method:    http.MethodGet,
+			// Query parameters can carry secrets that never touch userinfo,
+			// e.g. SigV4 presigned-request signatures or API keys.
+			target:     "/?X-Amz-Signature=topsecret&apikey=abc123",
+			wantErr:    true,
+			wantAbsent: []string{"topsecret", "abc123"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			u, _ := url.Parse("http://foo.bar")
+			tp, _ := New(Config{
+				URLs:                  []*url.URL{u},
+				SkipConnectionShuffle: true,            // predictable ordering
+				HealthCheck:           NoOpHealthCheck, // no resurrection requests
+				NodeStatsInterval:     -1,              // no background stats requests
+				DisableRetry:          true,
+				Transport:             mockhttp.NewRoundTripFunc(t, tt.roundTrip),
+			})
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, _ := http.NewRequest(tt.method, tt.target, nil)
+
+			//nolint:bodyclose // Mock response does not have a body to close
+			_, err := tp.Stream(req)
+
+			if !tt.wantErr {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Error(t, err)
+			if tt.wantPrefix != "" {
+				require.Truef(t, strings.HasPrefix(err.Error(), tt.wantPrefix),
+					"error %q should start with %q", err.Error(), tt.wantPrefix)
+			}
+			if tt.wantErrIs != nil {
+				require.ErrorIs(t, err, tt.wantErrIs)
+			}
+			for _, secret := range tt.wantAbsent {
+				require.NotContains(t, err.Error(), secret)
+			}
+		})
+	}
 }
 
 func TestURLs(t *testing.T) {
@@ -1235,15 +1430,16 @@ func TestRequestCompression(t *testing.T) {
 }
 
 // TestStreamBuffering verifies that Stream returns the body unbuffered: the
-// underlying body must not be read or closed before the caller drains it, and
-// req.URL.Host must be rewritten to the selected backend (load-bearing for
-// downstream signing and routing).
+// underlying body must not be read or closed before the caller drains it. It
+// also pins where the backend rewrite lands -- on the request Stream sends, not
+// on the caller's -- which is load-bearing for downstream signing and routing.
 func TestStreamBuffering(t *testing.T) {
 	const largeBody = "ABCDEFGHIJ"
 
 	var (
 		bodyRead   atomic.Bool
 		bodyClosed atomic.Bool
+		sentHost   atomic.Value
 	)
 
 	u, err := url.Parse("http://backend.example:9200")
@@ -1252,6 +1448,7 @@ func TestStreamBuffering(t *testing.T) {
 		URLs:              []*url.URL{u},
 		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			sentHost.Store(req.URL.Host)
 			return &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     http.Header{"X-Test": []string{"yes"}},
@@ -1275,10 +1472,19 @@ func TestStreamBuffering(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "yes", res.Header.Get("X-Test"))
 
-	// Stream routes the request through the configured backend, so req.URL.Host
-	// must reflect the selected connection.
+	// Stream routes through the configured backend, so the request it actually
+	// sends carries that host.
+	require.Equal(t, "backend.example:9200", sentHost.Load(),
+		"the sent request must be rewritten to the selected backend")
+
+	// The first attempt resolves the node onto the caller's request itself: no
+	// goroutine holds it yet, so rewriting it there is safe and saves the clone
+	// on the path that succeeds first time. Only a retry copies, because by then
+	// the HTTP/2 transport may still be reading the request it was handed.
 	require.Equal(t, "backend.example:9200", req.URL.Host,
-		"req.URL.Host must be rewritten to the selected backend")
+		"the first attempt rewrites the caller's request in place")
+	require.Equal(t, "/test", req.URL.Path,
+		"the selected backend has no base path, so the path is unchanged")
 
 	// Body must not be touched until the caller drains it.
 	require.False(t, bodyRead.Load(), "Stream must not read body before caller")
