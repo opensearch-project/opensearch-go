@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/google/renameio/v2/maybe"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -207,6 +208,19 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 	entries, err := os.ReadDir(outDir)
 	s.Require().NoError(err)
 	s.Require().NotEmpty(entries)
+}
+
+// TestNormalizeRepoRoot covers what `git rev-parse --show-toplevel` prints
+// under Git for Windows: a forward-slash path with a trailing newline. Every
+// caller compares it against filepath.Abs output, which uses the native
+// separator, so it has to be normalized before it is used.
+func TestNormalizeRepoRoot(t *testing.T) {
+	require.Equal(t, filepath.Clean("C:/Users/x/repo"), normalizeRepoRoot("  C:/Users/x/repo\n"))
+	require.Equal(t, filepath.Clean("/home/x/repo"), normalizeRepoRoot("/home/x/repo\n"))
+
+	// A root already in native form has to survive untouched.
+	native := filepath.Join(string(filepath.Separator), "home", "x", "repo")
+	require.Equal(t, native, normalizeRepoRoot(native+"\n"))
 }
 
 func buildTestSpecWithPlugin(t *testing.T) string {
