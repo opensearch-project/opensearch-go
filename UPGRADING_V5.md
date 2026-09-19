@@ -286,6 +286,29 @@ func (t *MyTransport) Request(req *http.Request) (*http.Response, error) {
 
 The `opensearch.Streamer` interface and `opensearch.ErrTransportMissingMethodStream` sentinel are removed; `Stream` is now guaranteed on every `opensearchtransport.Interface` implementation.
 
+## `Stream` rewrites the caller's `*http.Request` on the first attempt only
+
+In v4, the transport rewrote the request you handed it: it set `URL.Scheme`, `URL.Host`, and `URL.Path` to the selected node (prepending any base path), injected auth and signature headers, and could append `max_concurrent_shard_requests` to `URL.RawQuery`. Every attempt rewrote that same request, so after a retried call it reflected the last node tried.
+
+In v5 only the first attempt rewrites your request; retries and the seed-URL fallback work on copies. Your request therefore reflects the first node tried, which on a retried call is not the node that served the response. Copying on retry fixes a data race: net/http encodes HTTP/2 request headers on a goroutine that can outlive a cancelled `RoundTrip`, so rewriting a request that goroutine still holds raced. The first attempt is safe to rewrite in place because nothing holds it yet, which keeps the common single-attempt path free of the copy.
+
+If you were reading the rewritten request to discover which node served a call, read it from the observer's request/response event instead:
+
+```go
+// Before: inspect the request after the call.
+_, _ = client.Stream(req)
+host := req.URL.Host // v4: the last node tried; v5: the first node tried
+
+// After: the observer reports the node actually contacted.
+type myObserver struct{ opensearchtransport.BaseObserver }
+
+func (myObserver) OnRequestResponse(e opensearchtransport.RequestResponseEvent) {
+    host := e.HostPort
+}
+```
+
+Requests built and sent normally need no changes.
+
 ## `Response.RawBody()` for buffered response bytes
 
 `Response.Body` remains a public `io.ReadCloser` field; reading it is unchanged:

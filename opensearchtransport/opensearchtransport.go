@@ -157,8 +157,10 @@ type Config struct {
 
 	Signer signer.Signer
 
-	RetryOnStatus        []int
-	DisableRetry         bool
+	RetryOnStatus []int
+	DisableRetry  bool
+	// EnableRetryOnTimeout retries an attempt that failed with a timeout
+	// (net.Error.Timeout). Timeouts are not retried by default.
 	EnableRetryOnTimeout bool
 	MaxRetries           int
 	RetryBackoff         func(attempt int) time.Duration
@@ -167,6 +169,13 @@ type Config struct {
 	// When set, a context deadline is applied to each individual request attempt
 	// (including each retry). This bounds the maximum time a single RoundTrip
 	// can block, preventing indefinite hangs on stalled connections.
+	// A timeout also marks the node, so the next request to it carries
+	// Request.Close and net/http retires the pooled connection: no new requests
+	// are put on it, the streams already there finish, and it is closed when the
+	// last one does. Otherwise an HTTP/2 retry would be multiplexed onto the
+	// same stalled connection and never dial. A caller's own expiring context
+	// deadline does not mark anything: that reports the caller gave up, not that
+	// the connection is bad. See [Connection.drainingConn].
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 
@@ -1313,6 +1322,12 @@ type streamResult struct {
 	// reaches OnRequestResponse/OnStreamResponse. It is not retained past the
 	// request.
 	ctx context.Context //nolint:containedctx // request-scoped, handed back to the caller, not stored
+
+	// sentReq is the request as actually put on the wire by the most recent
+	// attempt, recorded by whichever path sent it. stream reports its URL when
+	// wrapping an error, so the failure names the node it came from rather than
+	// the bare path the caller supplied.
+	sentReq *http.Request
 }
 
 // Stream executes the request and returns the raw [http.Response] unread. The
@@ -1320,9 +1335,11 @@ type streamResult struct {
 // Use Stream to forward bytes downstream without interpreting them, relaying a
 // response to another client.
 //
-// Stream rewrites req.URL to the selected backend so signing, retry, and routing
-// operate on the resolved address, and applies retry, signing, header injection,
-// request-body compression, metrics, and seed URL fallback.
+// Stream resolves the request to the selected backend and applies retry,
+// signing, header injection, request-body compression, metrics, and seed URL
+// fallback. Each attempt operates on its own copy of req, so signing, retry, and
+// routing see the resolved address while the caller's req is left unmodified.
+// Read the node actually contacted from the observer's request/response event.
 //
 // A hard transport failure returns a nil response and an error. A partial
 // failure returns the response together with an error, such as a context
@@ -1497,14 +1514,33 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 	}
 
-	// Caller path, captured once for [restoreReqPath].
-	origPath := req.URL.Path
-	origRawPath := req.URL.RawPath
+	// The error wrap below names the request actually put on the wire. Until an
+	// attempt is sent there is nothing better to report than req.
+	sr.sentReq = req
+
+	// setReqURL prepends the selected node's base path and keeps no memory of
+	// the original, so a retry cloned from the previous attempt would stack the
+	// prefix (/prefix/prefix/_search). Capture the caller's path once and put it
+	// back on each copy. Two string headers, no allocation.
+	origPath, origRawPath := req.URL.Path, req.URL.RawPath
 
 	for i := 0; i <= tr.maxRetries; i++ {
-		// Attempt 0 still carries the caller's path; only a retry has had
-		// setReqURL prepend a connection base path onto it.
+		// Retry from a copy, rebinding req so routing, the rest of the loop, and
+		// the seed fallback after it all work on this attempt's request. Clone
+		// deep-copies URL and Header, which is what a retry must not share: the
+		// HTTP/2 transport encodes request headers on a goroutine it spawns
+		// (internal/http2 roundTrip -> doRequest -> encodeRequestHeaders), and
+		// that goroutine reads the URL and Header of the request it was handed. A
+		// cancelled attempt returns here while that goroutine may still be
+		// reading, so rewriting the request it holds is a data race. Cloning only
+		// reads it, which is safe.
+		//
+		// The copy carries the previous attempt's prefixed path, so it needs the
+		// caller path back before Route() classifies it. The first attempt needs
+		// neither: nothing holds its request yet, and its path is still pristine,
+		// so a request that succeeds first time never pays for the clone.
 		if i > 0 {
+			req = req.Clone(req.Context())
 			restoreReqPath(req, origPath, origRawPath)
 		}
 
@@ -1513,6 +1549,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			poolName        string
 			shouldRetry     bool
 			shouldCloseBody bool
+			adaptiveShards  int
 		)
 
 		if tr.router != nil {
@@ -1521,12 +1558,12 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			conn = hop.Conn
 			poolName = hop.PoolName
 
-			// Inject adaptive max_concurrent_shard_requests when the
-			// routing layer computed a value and the caller didn't
-			// already set one. This respects explicit caller overrides.
-			if hop.MaxConcurrentShardRequests > 0 {
-				appendAdaptiveConcurrency(req, hop.MaxConcurrentShardRequests)
-			}
+			// Recorded here, applied to this attempt's own request below.
+			// Injecting it into the caller's req would both mutate the caller's
+			// value and race the HTTP/2 transport, which reads RawQuery through
+			// URL.RequestURI when encoding headers -- on a goroutine that can
+			// outlive a cancelled RoundTrip.
+			adaptiveShards = hop.MaxConcurrentShardRequests
 		} else {
 			tr.mu.RLock()
 			pool := tr.mu.connectionPool
@@ -1552,20 +1589,31 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			return nil, sr, err
 		}
 
-		// Update request
-		tr.setReqURL(conn.URL, req)
-		tr.setReqAuth(conn.URL, req)
-		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
+		attemptReq := req
 
-		if !tr.disableRetry && i > 0 && req.Body != nil && req.Body != http.NoBody {
-			body, err := req.GetBody()
+		// Inject adaptive max_concurrent_shard_requests when the routing layer
+		// computed a value and the caller didn't already set one. This respects
+		// explicit caller overrides.
+		if adaptiveShards > 0 {
+			appendAdaptiveConcurrency(attemptReq, adaptiveShards)
+		}
+
+		tr.setReqURL(conn.URL, attemptReq)
+		tr.setReqAuth(conn.URL, attemptReq)
+		sr.hostPort = conn.hostPort // node actually contacted, for the observer event
+		sr.sentReq = attemptReq     // carries the node URL, for the error wrap
+
+		// Clone copies the Body reference, so a retry needs a fresh reader from
+		// GetBody rather than the already-consumed one.
+		if !tr.disableRetry && i > 0 && attemptReq.Body != nil && attemptReq.Body != http.NoBody {
+			body, err := attemptReq.GetBody()
 			if err != nil {
 				return nil, sr, fmt.Errorf("cannot get request body: %w", err)
 			}
-			req.Body = body
+			attemptReq.Body = body
 		}
 
-		if err = tr.signRequest(req); err != nil {
+		if err = tr.signRequest(attemptReq); err != nil {
 			return nil, sr, fmt.Errorf("failed to sign request: %w", err)
 		}
 
@@ -1580,8 +1628,8 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 		// Apply per-attempt timeout if configured. This creates a child context
 		// with a deadline so that each individual RoundTrip is bounded, preventing
-		// indefinite hangs on stalled TCP connections.
-		attemptReq := req
+		// indefinite hangs on stalled TCP connections. Derived after signing so
+		// the timeout budget covers the round-trip, not request preparation.
 		var attemptCancel context.CancelFunc
 		attemptCtx := req.Context()
 		if tr.requestTimeout > 0 {
@@ -1592,11 +1640,24 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			attemptCtx = obs.OnAttemptStart(attemptCtx, i)
 		}
-		if attemptCtx != req.Context() {
-			attemptReq = req.WithContext(attemptCtx)
+		// A previous timeout on this node asked for its pooled connection to be
+		// drained. Request.Close is how that is spelled: net/http's HTTP/2
+		// transport sets doNotReuse on the connection this request is assigned,
+		// which stops it being offered to new requests, lets the streams already
+		// on it finish, and closes it when the last one does. See
+		// [Connection.drainingConn].
+		//
+		// Picked up here, immediately before the round trip, because the pickup
+		// consumes the mark: taken any earlier, a request-preparation failure
+		// would return with the mark spent and the stale connection never
+		// retired.
+		if caught := conn.drainingConn.Swap(0); caught > 0 {
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Draining this node's pooled connection")
+			attemptReq.Close = true
 		}
 
-		res, err = tr.transport.RoundTrip(attemptReq)
+		res, err = tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn)
 
 		if obs := observerFromAtomic(&tr.observer); obs != nil {
 			statusCode := 0
@@ -1631,13 +1692,20 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			conn.releaseInFlight(poolName)
 		}
 
-		// Log request and response
+		// Log request and response. attemptReq carries the URL actually
+		// contacted, so it is what the log should report.
 		if tr.logger != nil {
-			if tr.logger.RequestBodyEnabled() && req.Body != nil && req.Body != http.NoBody {
+			logReq := attemptReq
+			if tr.logger.RequestBodyEnabled() && req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
+				// Refill a copy rather than attemptReq itself: the transport may
+				// still be reading attemptReq on the goroutine that writes the
+				// request, and this runs after a cancelled RoundTrip has
+				// returned.
+				logReq = attemptReq.Clone(req.Context())
 				//nolint:errcheck // ignored as this is only for logging
-				req.Body, _ = req.GetBody()
+				logReq.Body, _ = req.GetBody()
 			}
-			tr.logRoundTrip(req, res, err, start.UTC(), dur)
+			tr.logRoundTrip(logReq, res, err, start.UTC(), dur)
 		}
 
 		if err != nil {
@@ -1821,10 +1889,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// failed to obtain a connection from any router policy or pool.
 	//
 	// req still carries the caller path, which performSeedFallback depends on
-	// because it prepends through setReqURL as well. This branch is reached only
-	// when an attempt failed to obtain a connection, which happens before that
-	// attempt reaches setReqURL, and the loop restores the path on entry to the
-	// same attempt. See [restoreReqPath].
+	// because it prepends through setReqURL as well. The loop does rewrite req in
+	// place on its first attempt, but the cascade only reaches here when an
+	// attempt could not obtain a connection, which happens before setReqURL runs;
+	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
 		res, err = tr.performSeedFallback(req.Context(), req, &sr)
 	}
@@ -1834,7 +1902,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// request by hand. Skipped when err is nil (the common case) since that
 	// would otherwise turn a successful response into a non-nil error.
 	if err != nil {
-		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(req), err)
+		err = fmt.Errorf(streamErrorFormat, req.Method, redactedRequestURL(sr.sentReq), err)
 	}
 
 	return res, sr, err
@@ -1929,6 +1997,49 @@ func newRequestEvent(req *http.Request, sr streamResult) RequestEvent {
 	}
 }
 
+// roundTripAttempt performs one attempt's RoundTrip and, when this client's own
+// timeout fired, asks conn to drain its pooled connection. attemptReq is the
+// request to send and attemptCtx its context, already carrying any per-attempt
+// timeout and observer span. callerCtx is the caller's own context, consulted
+// only to tell a caller cancellation apart from a timeout this client generated.
+//
+// The drain itself is [Connection.drainingConn]: a later request carries
+// Request.Close and net/http retires the connection. Nothing is closed here.
+func (tr *Transport) roundTripAttempt(
+	attemptReq *http.Request,
+	attemptCtx, callerCtx context.Context,
+	conn *Connection,
+) (*http.Response, error) {
+	// Rebuild the request only when a timeout or observer span actually derived
+	// a new context, so the default path allocates nothing.
+	if attemptCtx != callerCtx {
+		attemptReq = attemptReq.WithContext(attemptCtx)
+	}
+
+	res, err := tr.transport.RoundTrip(attemptReq)
+
+	// Ask for a drain only for a timeout we generated. context.DeadlineExceeded
+	// reports Timeout() == true, so a caller's own expiring deadline arrives
+	// here looking like a timeout; it implicates the caller rather than the
+	// connection, and it propagates into the attempt context, so a non-nil
+	// callerCtx Err means the cancellation came from above and the connection is
+	// left alone. If the caller's deadline expires between our timeout firing
+	// and this check the connection is spared, which is the safe direction.
+	//
+	// netErr is declared inside the branch rather than beside it: errors.As takes
+	// it as an any, so the variable escapes, and a function-scope declaration
+	// would heap it on every round trip including the ones that succeed.
+	if err != nil && callerCtx.Err() == nil {
+		var netErr net.Error
+		if errors.As(err, &netErr) && netErr.Timeout() {
+			caught := conn.drainingConn.Add(1)
+			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+				Msg("Timed out; asking the next request to drain this node's connection")
+		}
+	}
+	return res, err
+}
+
 // performSeedFallback attempts a single request using the seed URL fallback pool.
 // Called as the absolute last resort when all router policies and connection pools
 // are exhausted. Does not retry -- this is already the final fallback.
@@ -1949,35 +2060,49 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 
 	Debug().Str("conn", conn.URLString).Msg("Seed fallback: attempting request")
 
-	tr.setReqURL(conn.URL, req)
-	tr.setReqAuth(conn.URL, req)
+	// Its own request, for the same reason as in stream: the caller's value must
+	// come back unmodified, which is the documented contract. ctx is
+	// req.Context() at the only call site, so the clone carries the same
+	// deadline and cancellation.
+	attemptReq := req.Clone(ctx)
+
+	tr.setReqURL(conn.URL, attemptReq)
+	tr.setReqAuth(conn.URL, attemptReq)
 	sr.hostPort = conn.hostPort // seed node contacted, for the observer event
+	sr.sentReq = attemptReq     // carries the seed node URL, for the error wrap
 
 	// Reset body for the fallback attempt.
-	if req.Body != nil && req.Body != http.NoBody && req.GetBody != nil {
-		body, err := req.GetBody()
+	if attemptReq.Body != nil && attemptReq.Body != http.NoBody && attemptReq.GetBody != nil {
+		body, err := attemptReq.GetBody()
 		if err != nil {
 			return nil, fmt.Errorf("cannot get request body for seed fallback: %w", err)
 		}
-		req.Body = body
+		attemptReq.Body = body
 	}
 
-	if err := tr.signRequest(req); err != nil {
+	if err := tr.signRequest(attemptReq); err != nil {
 		return nil, fmt.Errorf("failed to sign seed fallback request: %w", err)
 	}
 
 	start := time.Now()
 
 	// Apply per-attempt timeout if configured.
-	attemptReq := req
 	var attemptCancel context.CancelFunc
+	attemptCtx := req.Context()
 	if tr.requestTimeout > 0 {
-		var attemptCtx context.Context
-		attemptCtx, attemptCancel = context.WithTimeout(req.Context(), tr.requestTimeout)
-		attemptReq = req.WithContext(attemptCtx) //nolint:contextcheck // child of req.Context()
+		attemptCtx, attemptCancel = context.WithTimeout(attemptCtx, tr.requestTimeout)
 	}
 
-	res, err := tr.transport.RoundTrip(attemptReq)
+	// See the matching block in stream, including why the pickup waits until
+	// here: it consumes the mark, so a preparation failure above must not spend
+	// it.
+	if caught := conn.drainingConn.Swap(0); caught > 0 {
+		Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
+			Msg("Seed fallback: draining this node's pooled connection")
+		attemptReq.Close = true
+	}
+
+	res, err := tr.roundTripAttempt(attemptReq, attemptCtx, req.Context(), conn) //nolint:contextcheck // child of req.Context()
 
 	if attemptCancel != nil {
 		if err != nil || res == nil {
@@ -1987,9 +2112,13 @@ func (tr *Transport) performSeedFallback(ctx context.Context, req *http.Request,
 		}
 	}
 	dur := time.Since(start)
+	sr.sendStart = start
+	sr.ttfb = dur
 
 	if tr.logger != nil {
-		tr.logRoundTrip(req, res, err, start.UTC(), dur)
+		// attemptReq, not req: it carries the seed URL actually contacted, which
+		// is what the log should report. Matches the loop in stream.
+		tr.logRoundTrip(attemptReq, res, err, start.UTC(), dur)
 	}
 
 	if err != nil {
@@ -2083,28 +2212,24 @@ func (tr *Transport) URLs() []*url.URL {
 	return tr.mu.connectionPool.URLs()
 }
 
-// restoreReqPath writes the caller-supplied path back onto req. It owns the
-// invariant that every setReqURL call starts from that path; stream() upholds it
-// by calling this on entry to each attempt after the first, which is also what
-// leaves the path intact for the seed-fallback branch.
-//
-// stream() reuses one *http.Request across retries and setReqURL prepends the
-// connection base path in place, so without a restore a prefixed address
-// (https://host/prefix) becomes /prefix/prefix/_search on the next attempt, and
-// a prefix-less discovered node keeps the leftover prefix (setReqURL returns
-// early without assigning Path when the connection has no base path). Route()
-// matches on Path, and leftover /prefix/_search is not a miss: the mux treats it
-// as /{index}/_search with index "prefix", so the retry is classified against
-// the wrong index.
+// restoreReqPath puts the caller-supplied path back on a retry's copy, which
+// carries the previous attempt's node prefix. See the capture in stream() and
+// the contract in [Transport.setReqURL].
 func restoreReqPath(req *http.Request, path, rawPath string) {
 	req.URL.Path = path
 	req.URL.RawPath = rawPath
 }
 
 // setReqURL rewrites req.URL to target connection u, prepending u's base
-// path onto the current Path/RawPath. It does not remember the original, so
-// callers that retry or fall back on the same *http.Request must reinstate the
-// caller-supplied path first with [restoreReqPath].
+// path onto the current Path/RawPath. It does not remember the original, so it
+// must be given a request that still carries the caller-supplied path. stream()
+// guarantees that by restoring the captured path onto each retry's copy: without
+// a pristine path, a prefixed address (https://host/prefix) would become
+// /prefix/prefix/_search on the next attempt, and a prefix-less discovered node
+// would keep the leftover prefix (setReqURL returns early without assigning Path
+// when the connection has no base path). Route() matches on Path, and leftover
+// /prefix/_search is not a miss: the mux treats it as /{index}/_search with
+// index "prefix", so the retry would be classified against the wrong index.
 func (tr *Transport) setReqURL(u *url.URL, req *http.Request) {
 	req.URL.Scheme = u.Scheme
 	req.URL.Host = u.Host

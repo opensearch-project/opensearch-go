@@ -65,6 +65,7 @@ func TestSeedFallback(t *testing.T) {
 
 	t.Run("Fallback succeeds when router policy chain returns ErrNoConnections", func(t *testing.T) {
 		seedURL, _ := url.Parse("http://seed-node:9200")
+		var sentHost atomic.Value
 
 		tp, err := New(Config{
 			URLs:                  []*url.URL{seedURL},
@@ -73,6 +74,7 @@ func TestSeedFallback(t *testing.T) {
 			NodeStatsInterval:     -1, // Disable stats poller to avoid background requests through mock transport
 			Router:                &emptyRouter{},
 			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+				sentHost.Store(req.URL.Host)
 				return &http.Response{StatusCode: http.StatusOK, Status: "200 OK"}, nil
 			}),
 		})
@@ -88,6 +90,14 @@ func TestSeedFallback(t *testing.T) {
 			res.Body.Close()
 		}
 		require.True(t, tp.discoveryNeeded.Load())
+
+		// The seed fallback rewrites its own copy, not the caller's request.
+		// This path used to rewrite req in place, which contradicted the
+		// documented contract that Stream leaves the caller's request alone.
+		require.Equal(t, "seed-node:9200", sentHost.Load(),
+			"the sent request must target the seed node")
+		require.Empty(t, req.URL.Host, "seed fallback must not modify the caller's request")
+		require.Equal(t, "/test", req.URL.Path, "seed fallback must not modify the caller's request")
 	})
 
 	t.Run("Fallback disabled via OPENSEARCH_GO_FALLBACK=false", func(t *testing.T) {
@@ -139,6 +149,11 @@ func TestSeedFallback(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, res)
 		require.Contains(t, err.Error(), "seed fallback request failed")
+		// The wrap must name the seed node, not the bare caller path: this path
+		// resolves the URL onto its own clone, so reporting the caller's request
+		// would leave a failure with no host to correlate it to.
+		require.Contains(t, err.Error(), "http://seed-node:9200/test",
+			"the wrapped error must identify the seed node it came from")
 
 		// Seed pool should have the connection in dead list after failure.
 		tp.seedFallbackPool.mu.RLock()

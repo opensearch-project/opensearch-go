@@ -1430,15 +1430,16 @@ func TestRequestCompression(t *testing.T) {
 }
 
 // TestStreamBuffering verifies that Stream returns the body unbuffered: the
-// underlying body must not be read or closed before the caller drains it, and
-// req.URL.Host must be rewritten to the selected backend (load-bearing for
-// downstream signing and routing).
+// underlying body must not be read or closed before the caller drains it. It
+// also pins where the backend rewrite lands -- on the request Stream sends, not
+// on the caller's -- which is load-bearing for downstream signing and routing.
 func TestStreamBuffering(t *testing.T) {
 	const largeBody = "ABCDEFGHIJ"
 
 	var (
 		bodyRead   atomic.Bool
 		bodyClosed atomic.Bool
+		sentHost   atomic.Value
 	)
 
 	u, err := url.Parse("http://backend.example:9200")
@@ -1447,6 +1448,7 @@ func TestStreamBuffering(t *testing.T) {
 		URLs:              []*url.URL{u},
 		NodeStatsInterval: -1, // Disable stats poller to avoid background requests through mock transport
 		Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+			sentHost.Store(req.URL.Host)
 			return &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     http.Header{"X-Test": []string{"yes"}},
@@ -1470,10 +1472,19 @@ func TestStreamBuffering(t *testing.T) {
 	require.Equal(t, http.StatusOK, res.StatusCode)
 	require.Equal(t, "yes", res.Header.Get("X-Test"))
 
-	// Stream routes the request through the configured backend, so req.URL.Host
-	// must reflect the selected connection.
+	// Stream routes through the configured backend, so the request it actually
+	// sends carries that host.
+	require.Equal(t, "backend.example:9200", sentHost.Load(),
+		"the sent request must be rewritten to the selected backend")
+
+	// The first attempt resolves the node onto the caller's request itself: no
+	// goroutine holds it yet, so rewriting it there is safe and saves the clone
+	// on the path that succeeds first time. Only a retry copies, because by then
+	// the HTTP/2 transport may still be reading the request it was handed.
 	require.Equal(t, "backend.example:9200", req.URL.Host,
-		"req.URL.Host must be rewritten to the selected backend")
+		"the first attempt rewrites the caller's request in place")
+	require.Equal(t, "/test", req.URL.Path,
+		"the selected backend has no base path, so the path is unchanged")
 
 	// Body must not be touched until the caller drains it.
 	require.False(t, bodyRead.Load(), "Stream must not read body before caller")
