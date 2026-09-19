@@ -1514,13 +1514,36 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		}
 	}
 
-	// The error wrap below names the request actually put on the wire, which is
-	// never req: every path resolves the node URL onto its own clone and leaves
-	// the caller's request alone. Until an attempt is sent there is nothing
-	// better to report than req.
+	// The error wrap below names the request actually put on the wire. Until an
+	// attempt is sent there is nothing better to report than req.
 	sr.sentReq = req
 
+	// setReqURL prepends the selected node's base path and keeps no memory of
+	// the original, so a retry cloned from the previous attempt would stack the
+	// prefix (/prefix/prefix/_search). Capture the caller's path once and put it
+	// back on each copy. Two string headers, no allocation.
+	origPath, origRawPath := req.URL.Path, req.URL.RawPath
+
 	for i := 0; i <= tr.maxRetries; i++ {
+		// Retry from a copy, rebinding req so routing, the rest of the loop, and
+		// the seed fallback after it all work on this attempt's request. Clone
+		// deep-copies URL and Header, which is what a retry must not share: the
+		// HTTP/2 transport encodes request headers on a goroutine it spawns
+		// (internal/http2 roundTrip -> doRequest -> encodeRequestHeaders), and
+		// that goroutine reads the URL and Header of the request it was handed. A
+		// cancelled attempt returns here while that goroutine may still be
+		// reading, so rewriting the request it holds is a data race. Cloning only
+		// reads it, which is safe.
+		//
+		// The copy carries the previous attempt's prefixed path, so it needs the
+		// caller path back before Route() classifies it. The first attempt needs
+		// neither: nothing holds its request yet, and its path is still pristine,
+		// so a request that succeeds first time never pays for the clone.
+		if i > 0 {
+			req = req.Clone(req.Context())
+			restoreReqPath(req, origPath, origRawPath)
+		}
+
 		var (
 			conn            *Connection
 			poolName        string
@@ -1566,18 +1589,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			return nil, sr, err
 		}
 
-		// Give this attempt its own request. Clone deep-copies URL and Header, so
-		// the rewrites below cannot race net/http: the HTTP/2 transport encodes
-		// request headers on a goroutine it spawns (internal/http2 roundTrip ->
-		// doRequest -> encodeRequestHeaders), and that goroutine reads the URL
-		// and Header of the request it was handed. When an attempt is cancelled,
-		// RoundTrip returns to us while that goroutine may still be reading, so
-		// mutating a request shared across attempts is a data race.
-		//
-		// Cloning per attempt also means every attempt starts from the caller's
-		// pristine path, so no base-path restore is needed before setReqURL
-		// prepends again, and the caller's *http.Request is never modified.
-		attemptReq := req.Clone(req.Context())
+		attemptReq := req
 
 		// Inject adaptive max_concurrent_shard_requests when the routing layer
 		// computed a value and the caller didn't already set one. This respects
@@ -1877,8 +1889,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 	// failed to obtain a connection from any router policy or pool.
 	//
 	// req still carries the caller path, which performSeedFallback depends on
-	// because it prepends through setReqURL as well. The loop never mutates req:
-	// each attempt rewrites its own clone.
+	// because it prepends through setReqURL as well. The loop does rewrite req in
+	// place on its first attempt, but the cascade only reaches here when an
+	// attempt could not obtain a connection, which happens before setReqURL runs;
+	// a retry restores the caller path before routing for the same reason.
 	if err != nil && errors.Is(err, ErrNoConnections) && !tr.seedFallbackDisabled && tr.seedFallbackPool != nil {
 		res, err = tr.performSeedFallback(req.Context(), req, &sr)
 	}
@@ -2192,11 +2206,19 @@ func (tr *Transport) URLs() []*url.URL {
 	return tr.mu.connectionPool.URLs()
 }
 
+// restoreReqPath puts the caller-supplied path back on a retry's copy, which
+// carries the previous attempt's node prefix. See the capture in stream() and
+// the contract in [Transport.setReqURL].
+func restoreReqPath(req *http.Request, path, rawPath string) {
+	req.URL.Path = path
+	req.URL.RawPath = rawPath
+}
+
 // setReqURL rewrites req.URL to target connection u, prepending u's base
 // path onto the current Path/RawPath. It does not remember the original, so it
 // must be given a request that still carries the caller-supplied path. stream()
-// guarantees that by cloning the caller's request once per attempt: without a
-// pristine path, a prefixed address (https://host/prefix) would become
+// guarantees that by restoring the captured path onto each retry's copy: without
+// a pristine path, a prefixed address (https://host/prefix) would become
 // /prefix/prefix/_search on the next attempt, and a prefix-less discovered node
 // would keep the leftover prefix (setReqURL returns early without assigning Path
 // when the connection has no base path). Route() matches on Path, and leftover

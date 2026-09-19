@@ -1477,12 +1477,14 @@ func TestStreamBuffering(t *testing.T) {
 	require.Equal(t, "backend.example:9200", sentHost.Load(),
 		"the sent request must be rewritten to the selected backend")
 
-	// The caller's request is not the one that gets rewritten. Stream clones it
-	// per attempt, both to honor the RoundTripper contract ("RoundTrip should not
-	// modify the request") and because mutating a request the HTTP/2 transport
-	// may still be reading is a data race.
-	require.Empty(t, req.URL.Host, "Stream must not modify the caller's request")
-	require.Equal(t, "/test", req.URL.Path, "Stream must not modify the caller's request")
+	// The first attempt resolves the node onto the caller's request itself: no
+	// goroutine holds it yet, so rewriting it there is safe and saves the clone
+	// on the path that succeeds first time. Only a retry copies, because by then
+	// the HTTP/2 transport may still be reading the request it was handed.
+	require.Equal(t, "backend.example:9200", req.URL.Host,
+		"the first attempt rewrites the caller's request in place")
+	require.Equal(t, "/test", req.URL.Path,
+		"the selected backend has no base path, so the path is unchanged")
 
 	// Body must not be touched until the caller drains it.
 	require.False(t, bodyRead.Load(), "Stream must not read body before caller")
