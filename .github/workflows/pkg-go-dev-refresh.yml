@@ -1,0 +1,37 @@
+name: Refresh pkg.go.dev
+
+# pkg.go.dev only lists a module version once the public Go module proxy has
+# fetched it, and the proxy fetches a version lazily, on first request. A
+# freshly-tagged release otherwise sits unindexed until someone happens to
+# `go get` it, which is what #499 ran into: v3.1.0 stayed off
+# pkg.go.dev/github.com/opensearch-project/opensearch-go/v3 until a maintainer
+# manually visited the module page and clicked "request". `go list -m` against
+# the tag makes exactly that request (see https://go.dev/doc/modules/publishing),
+# so run it automatically once the release is published rather than relying on
+# RELEASING.md step 9 to be remembered by hand.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with: { go-version-file: 'go.mod' }
+
+      - name: Request the released version from proxy.golang.org
+        env:
+          GOPROXY: https://proxy.golang.org
+        run: |
+          module=$(head -1 go.mod | awk '{print $2}')
+          tag=${{ github.event.release.tag_name }}
+          echo "requesting ${module}@${tag}"
+          go list -m "${module}@${tag}"
