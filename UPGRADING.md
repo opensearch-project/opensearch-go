@@ -5,6 +5,8 @@
     - [DiscoverNodes() blocking semantics](#discovernodes-blocking-semantics)
     - [opensearchtransport.Route interface gained OpID()](#opensearchtransportroute-interface-gained-opid)
     - [Response.Body becomes a method](#responsebody-becomes-a-method)
+  - [Upgrading to >= 4.8.0](#upgrading-to->=-4.8.0)
+    - [Perform and Stream rewrite the caller's \*http.Request on the first attempt only](#perform-and-stream-rewrite-the-callers-httprequest-on-the-first-attempt-only)
   - [Upgrading to >= 4.7.0](#upgrading-to->=-4.7.0)
     - [opensearch.Request interface signature change](#opensearchrequest-interface-signature-change)
     - [Path segment values are percent-encoded](#path-segment-values-are-percent-encoded)
@@ -153,6 +155,31 @@ body, err := io.ReadAll(resp.Body())
 // Or, if you only need the raw bytes and the response was already read:
 raw := resp.RawBody()
 ```
+
+## Upgrading to >= 4.8.0
+
+### `Perform` and `Stream` rewrite the caller's `*http.Request` on the first attempt only
+
+Previously the transport rewrote the request you handed it on every attempt: it set `URL.Scheme`, `URL.Host`, and `URL.Path` to the selected node (prepending any base path), injected auth and signature headers, and could append `max_concurrent_shard_requests` to `URL.RawQuery`. After a retried call your request reflected the last node tried.
+
+Now only the first attempt rewrites your request; retries and the seed-URL fallback work on copies. Your request therefore reflects the first node tried, which on a retried call is not the node that served the response. Copying on retry fixes a data race: net/http encodes HTTP/2 request headers on a goroutine that can outlive a cancelled `RoundTrip`, so rewriting a request that goroutine still holds raced. The first attempt is safe to rewrite in place because nothing holds it yet, which keeps the common single-attempt path free of the copy.
+
+If you were reading the rewritten request to discover which node served a call, read it from the router observer instead. `OnRoute` fires once per routing decision and names the node chosen, so it reports every attempt rather than just the one your request happens to reflect. It requires a configured `Router`:
+
+```go
+// Before: inspect the request after the call.
+_, _ = client.Stream(req)
+host := req.URL.Host // before: the last node tried; now: the first node tried
+
+// After: the observer reports the node actually contacted, on every attempt.
+type myObserver struct{ opensearchtransport.BaseConnectionObserver }
+
+func (myObserver) OnRoute(event opensearchtransport.RouteEvent) {
+    nodeURL := event.Selected.URL
+}
+```
+
+Requests built and sent normally need no changes.
 
 ## Upgrading to >= 4.7.0
 
