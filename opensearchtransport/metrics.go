@@ -575,11 +575,15 @@ func (cm ConnectionMetric) String() string {
 	if cm.Failures > 0 {
 		fmt.Fprintf(&b, " failures=%d", cm.Failures)
 	}
+	// time.Stamp carries no zone marker, so the zone the value happens to be in
+	// is invisible in the output. Both fields are exported and can be set by a
+	// caller in any zone, so normalize to UTC rather than trusting the input:
+	// the transport's own values already arrive in UTC from nanoToTime.
 	if cm.DeadSince != nil {
-		fmt.Fprintf(&b, " dead_since=%s", cm.DeadSince.Format(time.Stamp))
+		fmt.Fprintf(&b, " dead_since=%s", cm.DeadSince.UTC().Format(time.Stamp))
 	}
 	if cm.OverloadedSince != nil {
-		fmt.Fprintf(&b, " overloaded_since=%s", cm.OverloadedSince.Format(time.Stamp))
+		fmt.Fprintf(&b, " overloaded_since=%s", cm.OverloadedSince.UTC().Format(time.Stamp))
 	}
 	b.WriteString("}")
 	return b.String()
