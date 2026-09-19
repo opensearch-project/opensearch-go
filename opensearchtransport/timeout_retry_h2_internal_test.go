@@ -11,12 +11,14 @@ package opensearchtransport
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httptrace"
 	"net/url"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -24,29 +26,98 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWithAttemptConnTracePreservesGotConn(t *testing.T) {
+// TestTimeoutDoesNotFailConcurrentRequest is the case that motivated draining
+// rather than closing. HTTP/2 multiplexes, so closing the socket a timed-out
+// attempt was on fails every other stream on it. Request.Close instead sets
+// doNotReuse, which stops the connection being offered to new requests and lets
+// the streams already on it finish, so a healthy concurrent request completes.
+//
+// Two clients share one *http.Transport, and so one pooled HTTP/2 connection:
+// an impatient one whose request stalls and times out, and a patient one whose
+// request is merely slow. The patient request must survive.
+func TestTimeoutDoesNotFailConcurrentRequest(t *testing.T) {
 	t.Parallel()
-	var seen atomic.Bool
-	ctx := httptrace.WithClientTrace(t.Context(), &httptrace.ClientTrace{
-		GotConn: func(httptrace.GotConnInfo) { seen.Store(true) },
-	})
-	var slot attemptClaim
-	var track attemptConns
-	ctx = withAttemptConnTrace(ctx, &slot, &track)
 
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		_, _ = io.WriteString(w, "{}")
+	release := make(chan struct{})
+	var slowStarted sync.WaitGroup
+	slowStarted.Add(1)
+
+	backend := newHTTP2Server(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Query().Get("kind") {
+		case "slow":
+			// Healthy but unhurried: answers once the test says so, which is
+			// after a concurrent request has timed out on this connection.
+			slowStarted.Done()
+			select {
+			case <-release:
+			case <-r.Context().Done():
+				return
+			}
+			_, _ = io.WriteString(w, `{"slow":true}`)
+		case "stall":
+			<-r.Context().Done()
+		default:
+			_, _ = io.WriteString(w, "{}")
+		}
 	}))
-	t.Cleanup(srv.Close)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL, nil)
-	require.NoError(t, err)
-	res, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	t.Cleanup(func() { res.Body.Close() })
+	var dials atomic.Int64
+	dialer := &net.Dialer{Timeout: time.Second}
+	transport := newH2Transport(func(ctx context.Context, _, _ string) (net.Conn, error) {
+		dials.Add(1)
+		return dialer.DialContext(ctx, "tcp", backend.Listener.Addr().String())
+	})
 
-	require.True(t, seen.Load(), "previous GotConn hook must still run")
-	require.NotNil(t, slot.conn, "trace must record the selected net.Conn")
+	patient := newH2Client(t, transport, Config{MaxRetries: 0, RequestTimeout: 10 * time.Second})
+	impatient := newH2Client(t, transport, Config{MaxRetries: 0, RequestTimeout: 500 * time.Millisecond})
+
+	// Warm one connection; both clients multiplex onto it.
+	warm, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+	require.NoError(t, err)
+	res, err := patient.Stream(warm)
+	require.NoError(t, err)
+	require.Equal(t, 2, res.ProtoMajor, "test requires HTTP/2")
+	_, _ = io.Copy(io.Discard, res.Body)
+	require.NoError(t, res.Body.Close())
+	require.Equal(t, int64(1), dials.Load())
+
+	type result struct {
+		body string
+		err  error
+	}
+	slowDone := make(chan result, 1)
+	go func() {
+		req, reqErr := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?kind=slow", nil)
+		if reqErr != nil {
+			slowDone <- result{err: reqErr}
+			return
+		}
+		sres, sErr := patient.Stream(req)
+		if sErr != nil {
+			slowDone <- result{err: sErr}
+			return
+		}
+		buf, readErr := io.ReadAll(sres.Body)
+		_ = sres.Body.Close()
+		slowDone <- result{body: string(buf), err: readErr}
+	}()
+	slowStarted.Wait()
+
+	// A request on the same connection times out.
+	stall, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/?kind=stall", nil)
+	require.NoError(t, err)
+	//nolint:bodyclose // times out; there is no body to close
+	_, err = impatient.Stream(stall)
+	require.Error(t, err, "the stalled request must time out")
+
+	// The timeout must not have taken the slow request's stream with it.
+	close(release)
+	got := <-slowDone
+	require.NoError(t, got.err,
+		"a concurrent request on the same HTTP/2 connection must survive another request's timeout")
+	require.Equal(t, `{"slow":true}`, got.body)
+	require.Equal(t, int64(1), dials.Load(),
+		"the timeout must not have forced a redial while the connection was still in use")
 }
 
 // h2Cutover is the shared fixture for the #1121 tests: two HTTP/2 backends
@@ -139,7 +210,7 @@ func (h *h2Cutover) warmup(tp *Client) {
 // DialContext already points at a healthy replacement. Canceling the
 // per-attempt context RSTs the stream but leaves the ClientConn pooled, so
 // every retry would reuse the dead connection and never dial. After the
-// fix the timed-out conn is closed and the retry dials the new backend.
+// fix the timed-out conn is drained and a later retry dials the new backend.
 func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 	t.Parallel()
 	h := newH2Cutover(t)
@@ -163,17 +234,16 @@ func TestTimeoutRetryDoesNotReuseHTTP2Conn(t *testing.T) {
 	require.True(t, reused, "first cutover attempt should reuse the warmed HTTP/2 connection")
 }
 
-// TestCallerCancellationDoesNotCloseConn pins the gate on the close: a caller's
+// TestCallerCancellationDoesNotDrainConn pins the gate on the drain: a caller's
 // own expiring deadline reports Timeout() == true just like our RequestTimeout
-// does, but it implicates the caller, not the connection. Closing a healthy
+// does, but it implicates the caller, not the connection. Retiring a healthy
 // pooled connection because the caller gave up is what golang/go#60818 was
 // reverted for, so the connection must survive and be reused.
-func TestCallerCancellationDoesNotCloseConn(t *testing.T) {
+func TestCallerCancellationDoesNotDrainConn(t *testing.T) {
 	t.Parallel()
 	h := newH2Cutover(t)
 	// No RequestTimeout, so the caller's deadline is the only timeout in play
-	// and any close would have to stem from caller cancellation.
-	// EnableRetryOnTimeout still installs the connection trace.
+	// and any drain would have to stem from caller cancellation.
 	tp := h.client(Config{
 		MaxRetries:           0,
 		EnableRetryOnTimeout: true,
@@ -181,7 +251,7 @@ func TestCallerCancellationDoesNotCloseConn(t *testing.T) {
 	h.warmup(tp)
 
 	h.stallOld.Store(true)
-	ctx, cancel := context.WithTimeout(t.Context(), 150*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	_, err := h.get(tp, ctx)
 	cancel()
 	require.Error(t, err, "caller deadline must surface as an error")
@@ -194,11 +264,17 @@ func TestCallerCancellationDoesNotCloseConn(t *testing.T) {
 	require.True(t, reused, "connection should have been reused after caller cancellation")
 }
 
-// TestTimeoutClosesConnWithoutRetry pins that the close is deliberately not
-// gated on a retry following it. With EnableRetryOnTimeout false the timed-out
-// request fails, but the connection is still retired so the next request dials
-// rather than inheriting the stalled backend.
-func TestTimeoutClosesConnWithoutRetry(t *testing.T) {
+// TestTimeoutDrainsConnWithoutRetry pins that the drain is deliberately not
+// gated on a retry following it: with EnableRetryOnTimeout false the timed-out
+// request fails, but the node is still marked so the connection is retired.
+//
+// It also pins the cost of using Request.Close. doNotReuse is set after the
+// stream is assigned, so the request carrying the flag still rides the stale
+// connection and fails too; recovery lands on the request after it. Closing the
+// socket outright recovered one request sooner, at the price of failing every
+// concurrent stream on that connection -- see
+// TestTimeoutDoesNotFailConcurrentRequest.
+func TestTimeoutDrainsConnWithoutRetry(t *testing.T) {
 	t.Parallel()
 	h := newH2Cutover(t)
 	tp := h.client(Config{
@@ -212,20 +288,28 @@ func TestTimeoutClosesConnWithoutRetry(t *testing.T) {
 
 	_, err := h.get(tp, t.Context())
 	require.Error(t, err, "timeout without retry must still fail")
+	require.Equal(t, int64(1), h.dials.Load(),
+		"the timing-out request itself must not redial")
 
+	// Carries Request.Close, but is assigned the stale connection before
+	// doNotReuse takes effect, so it fails as well.
 	_, err = h.get(tp, t.Context())
-	require.NoError(t, err, "next request must dial the replacement backend")
+	require.Error(t, err, "the request carrying the drain still rides the stale connection")
+
+	// Now the connection has been retired and the next request dials.
+	_, err = h.get(tp, t.Context())
+	require.NoError(t, err, "once drained, the next request must dial the replacement backend")
 	require.Greater(t, h.dials.Load(), int64(1),
 		"a timeout must retire the connection even when no retry follows, dials=%d", h.dials.Load())
 }
 
-// TestSeedFallbackTimeoutClosesConn drives the #1121 close through the seed-
+// TestSeedFallbackTimeoutDrainsConn drives the #1121 drain through the seed-
 // fallback path: with the router exhausted (emptyRouter), Stream serves the
 // request from the seed pool, and a per-attempt timeout there must retire the
-// stalled HTTP/2 connection just as the main retry loop does -- so the next
-// fallback dials the replacement backend instead of reusing the black-holed
-// connection.
-func TestSeedFallbackTimeoutClosesConn(t *testing.T) {
+// stalled HTTP/2 connection just as the main retry loop does. As on the no-retry
+// path, the request carrying Request.Close still rides the stale connection, so
+// recovery lands on the one after it.
+func TestSeedFallbackTimeoutDrainsConn(t *testing.T) {
 	t.Parallel()
 	h := newH2Cutover(t)
 	tp := h.client(Config{
@@ -242,7 +326,10 @@ func TestSeedFallbackTimeoutClosesConn(t *testing.T) {
 	require.Error(t, err, "seed fallback timeout must fail")
 
 	_, err = h.get(tp, t.Context())
-	require.NoError(t, err, "next seed fallback must dial the replacement backend")
+	require.Error(t, err, "the fallback carrying the drain still rides the stale connection")
+
+	_, err = h.get(tp, t.Context())
+	require.NoError(t, err, "once drained, the next seed fallback must dial the replacement backend")
 	require.Greater(t, h.dials.Load(), int64(1),
 		"a seed-fallback timeout must retire the connection, dials=%d", h.dials.Load())
 }
@@ -281,4 +368,80 @@ func newH2Client(t *testing.T, transport *http.Transport, cfg Config) *Client {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = tp.Close() })
 	return tp
+}
+
+// TestDrainMarkSurvivesPreparationFailure pins that the drain mark is spent only
+// by a request that actually reaches the wire. Picking it up consumes it, so a
+// request that fails while being prepared -- signing being the live case, since
+// a signer can fail to refresh credentials -- must leave the mark for the next
+// request. Otherwise one unlucky failure swallows the drain and the stale
+// connection is never retired, which is the whole point of the mark.
+func TestDrainMarkSurvivesPreparationFailure(t *testing.T) {
+	t.Parallel()
+
+	for _, tt := range []struct {
+		name string
+		// router sends the request down the intended path: nil keeps the normal
+		// pool, and an exhausted one cascades to seed fallback.
+		router Router
+		// markConn returns the connection whose mark the request should spend.
+		markConn func(t *testing.T, c *Client) *Connection
+		wantErr  string
+	}{
+		{
+			name: "stream path",
+			markConn: func(t *testing.T, c *Client) *Connection {
+				t.Helper()
+				c.mu.RLock()
+				pool := c.mu.connectionPool
+				c.mu.RUnlock()
+				conn, err := pool.Next()
+				require.NoError(t, err)
+				return conn
+			},
+			wantErr: "failed to sign request",
+		},
+		{
+			name:   "seed fallback path",
+			router: &emptyRouter{},
+			markConn: func(t *testing.T, c *Client) *Connection {
+				t.Helper()
+				require.NotNil(t, c.seedFallbackPool, "seed fallback pool must exist")
+				conn, err := c.seedFallbackPool.Next()
+				require.NoError(t, err)
+				return conn
+			},
+			wantErr: "failed to sign seed fallback request",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			backend := newHTTP2Server(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, "{}")
+			}))
+			dialer := &net.Dialer{Timeout: time.Second}
+			transport := newH2Transport(func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return dialer.DialContext(ctx, "tcp", backend.Listener.Addr().String())
+			})
+			c := newH2Client(t, transport, Config{
+				MaxRetries: 0,
+				Router:     tt.router,
+				Signer:     failingSigner(errors.New("no credentials")),
+			})
+
+			conn := tt.markConn(t, c)
+			// A previous timeout on this node asked for a drain.
+			conn.drainingConn.Store(1)
+
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
+			require.NoError(t, err)
+			//nolint:bodyclose // signing fails before the wire; there is no body
+			_, err = c.Stream(req)
+			require.ErrorContains(t, err, tt.wantErr, "signing must fail before the wire")
+
+			require.Equal(t, int64(1), conn.drainingConn.Load(),
+				"a request that never reached the wire must leave the drain mark for the next one")
+		})
+	}
 }

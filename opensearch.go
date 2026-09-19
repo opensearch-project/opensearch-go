@@ -117,12 +117,13 @@ type Config struct {
 	// When set, a context deadline is applied to each individual request attempt
 	// (including each retry). This bounds the maximum time a single request can
 	// block, preventing indefinite hangs on stalled connections.
-	// A timed-out attempt closes the underlying TCP connection so an HTTP/2
-	// retry dials instead of reusing the stalled ClientConn. A caller's own
-	// expiring context deadline does not: that reports the caller gave up, not
-	// that the connection is bad. A connection other in-flight requests are on
-	// is not closed outright either, since HTTP/2 multiplexes and closing it
-	// would fail those requests too; it is retired once they drain.
+	// A timeout also marks the node, so the next request to it carries
+	// Request.Close and net/http retires the pooled connection: no new requests
+	// are put on it, the streams already there finish, and it is closed when the
+	// last one does. Otherwise an HTTP/2 retry would be multiplexed onto the
+	// same stalled connection and never dial. A caller's own expiring context
+	// deadline does not mark anything: that reports the caller gave up, not that
+	// the connection is bad.
 	// 0 = no per-attempt timeout (default), >0 = explicit timeout.
 	RequestTimeout time.Duration
 

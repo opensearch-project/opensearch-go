@@ -1193,8 +1193,8 @@ func TestRequestCompression(t *testing.T) {
 // and Stream (raw, caller-owned body): the same handler must produce a
 // re-readable in-memory body when called via Perform and a live, un-drained,
 // caller-closeable body when called via Stream. It also pins where the backend
-// rewrite lands -- on the request the client sends, not on the caller's -- which
-// is load-bearing for downstream signing and routing.
+// rewrite lands -- on the caller's request, since the first attempt resolves the
+// node in place -- which is load-bearing for downstream signing and routing.
 func TestPerformStreamBuffering(t *testing.T) {
 	const largeBody = "ABCDEFGHIJ"
 
@@ -1255,13 +1255,15 @@ func TestPerformStreamBuffering(t *testing.T) {
 			require.Equal(t, "backend.example:9200", sentHost.Load(),
 				"the sent request must be rewritten to the selected backend")
 
-			// The caller's request is not the one that gets rewritten. Each
-			// attempt operates on its own clone, both to honor the
-			// http.RoundTripper contract ("RoundTrip should not modify the
-			// request") and because mutating a request the HTTP/2 transport may
-			// still be reading is a data race.
-			require.Empty(t, req.URL.Host, "the caller's request must not be modified")
-			require.Equal(t, "/test", req.URL.Path, "the caller's request must not be modified")
+			// The first attempt resolves the node onto the caller's request
+			// itself: no goroutine holds it yet, so rewriting it there is safe and
+			// saves the clone on the path that succeeds first time. Only a retry
+			// copies, because by then the HTTP/2 transport may still be reading
+			// the request it was handed.
+			require.Equal(t, "backend.example:9200", req.URL.Host,
+				"the first attempt rewrites the caller's request in place")
+			require.Equal(t, "/test", req.URL.Path,
+				"the selected backend has no base path, so the path is unchanged")
 
 			require.Equal(t, tt.wantBodyRead, bodyRead.Load(),
 				"unexpected bodyRead state before caller drains the body")
