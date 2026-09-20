@@ -215,12 +215,26 @@ func (s *GenerateSuite) TestGenerateAPI_RemovesStaleFiles() {
 // caller compares it against filepath.Abs output, which uses the native
 // separator, so it has to be normalized before it is used.
 func TestNormalizeRepoRoot(t *testing.T) {
-	require.Equal(t, filepath.Clean("C:/Users/x/repo"), normalizeRepoRoot("  C:/Users/x/repo\n"))
-	require.Equal(t, filepath.Clean("/home/x/repo"), normalizeRepoRoot("/home/x/repo\n"))
+	t.Parallel()
 
 	// A root already in native form has to survive untouched.
 	native := filepath.Join(string(filepath.Separator), "home", "x", "repo")
-	require.Equal(t, native, normalizeRepoRoot(native+"\n"))
+
+	tests := []struct {
+		name string
+		in   string
+		want string
+	}{
+		{"forward-slash root with surrounding whitespace", "  C:/Users/x/repo\n", filepath.Clean("C:/Users/x/repo")},
+		{"posix root with trailing newline", "/home/x/repo\n", filepath.Clean("/home/x/repo")},
+		{"already-native root", native + "\n", native},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, normalizeRepoRoot(tt.in))
+		})
+	}
 }
 
 func buildTestSpecWithPlugin(t *testing.T) string {
