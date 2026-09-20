@@ -1189,6 +1189,74 @@ func TestRequestCompression(t *testing.T) {
 	}
 }
 
+// TestStreamClosesOriginalRequestBodyAfterSnapshot verifies that compress and
+// retry-buffer snapshotting close the caller's Body after replacing it with a
+// NopCloser over the snapshot, and that the passthrough case (no snapshot)
+// leaves the Body attached and unclosed so RoundTrip closes it exactly once.
+// RoundTrip closes only the attached Body, so a file or tracing wrapper would
+// otherwise leak. Generated APIs wrap bytes in NopCloser, whose Close is a
+// no-op; this test uses a ReadCloser that records Close.
+func TestStreamClosesOriginalRequestBodyAfterSnapshot(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name         string
+		compress     bool
+		disableRetry bool
+		wantReplaced bool // Stream snapshotted the body: it installs GetBody and closes the original
+	}{
+		{name: "compress", compress: true, wantReplaced: true},
+		{name: "retry buffer", compress: false, wantReplaced: true},
+		// Passthrough: no compression and retries disabled, so Stream leaves the
+		// caller's Body attached and must NOT close it -- RoundTrip closes it
+		// exactly once, and closing here as well would double-close it. This is
+		// the branch the `req.Body != origBody` guard protects.
+		{name: "passthrough no close", compress: false, disableRetry: true, wantReplaced: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			var closeCount atomic.Int32
+			body := &trackingReadCloser{
+				Reader:  strings.NewReader("payload"),
+				onClose: func() { closeCount.Add(1) },
+			}
+
+			u, err := url.Parse("https://foo.com/bar")
+			require.NoError(t, err)
+			tp, err := New(Config{
+				URLs:                []*url.URL{u},
+				CompressRequestBody: tt.compress,
+				DisableRetry:        tt.disableRetry,
+				NodeStatsInterval:   -1, // Disable stats poller to avoid background requests through mock transport
+				Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusOK, Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", body)
+			require.NoError(t, err)
+			require.Nil(t, req.GetBody, "custom ReadCloser must not get a GetBody from net/http")
+
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			if res != nil && res.Body != nil {
+				_ = res.Body.Close()
+			}
+
+			if tt.wantReplaced {
+				require.Equal(t, int32(1), closeCount.Load(), "snapshotted body must be closed once")
+				require.NotNil(t, req.GetBody, "snapshot must install GetBody for retries")
+			} else {
+				require.Equal(t, int32(0), closeCount.Load(), "passthrough body must not be closed by Stream")
+				require.Nil(t, req.GetBody, "passthrough must leave the caller's body untouched")
+			}
+		})
+	}
+}
+
 // TestPerformStreamBuffering covers the v4 split between Perform (buffered)
 // and Stream (raw, caller-owned body): the same handler must produce a
 // re-readable in-memory body when called via Perform and a live, un-drained,

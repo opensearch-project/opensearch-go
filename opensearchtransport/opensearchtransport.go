@@ -1250,8 +1250,9 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 	c.setReqGlobalHeader(req)
 
 	if req.Body != nil && req.Body != http.NoBody {
+		origBody := req.Body
 		if c.compressRequestBody {
-			buf, err := c.pooledGzipCompressor.compress(req.Body)
+			buf, err := c.pooledGzipCompressor.compress(origBody)
 			defer c.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
 				return nil, fmt.Errorf("failed to compress request body: %w", err)
@@ -1271,7 +1272,7 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 			if !c.disableRetry || (c.logger != nil && c.logger.RequestBodyEnabled()) {
 				var buf bytes.Buffer
 				//nolint:errcheck // ignored as this is only for logging
-				buf.ReadFrom(req.Body)
+				buf.ReadFrom(origBody)
 				req.GetBody = func() (io.ReadCloser, error) {
 					// Return a new reader each time
 					reader := bytes.NewReader(buf.Bytes())
@@ -1280,6 +1281,12 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 				//nolint:errcheck // error is always nil
 				req.Body, _ = req.GetBody()
 			}
+		}
+		if req.Body != origBody {
+			// RoundTrip closes the Body attached at send time, which is now a
+			// NopCloser over the snapshot. Close the original so a file or
+			// tracing wrapper is not leaked.
+			_ = origBody.Close()
 		}
 	}
 
