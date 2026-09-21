@@ -141,7 +141,7 @@ type Config struct {
 
 	// DNSCacheRefresh controls how often the client-side DNS cache re-resolves
 	// cached hostnames. The cache is installed only when no custom Transport is
-	// provided; a caller-supplied Transport is never modified.
+	// provided.
 	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
 	DNSCacheRefresh time.Duration
 

@@ -40,8 +40,8 @@ interval with DNSCacheRefresh (or OPENSEARCH_GO_DNS_CACHE_REFRESH): 0 uses the d
 disables caching, and a positive value sets an explicit interval. The dialer's dial timeout and
 keep-alive are tunable via DNSDialTimeout and DNSKeepAlive (or the matching OPENSEARCH_GO_DNS_* vars),
 both defaulting to 30s, and DNSTimeout (default 10s) bounds each sequential refresh lookup so a hung
-resolver cannot stall a refresh tick. A caller-supplied Transport is never modified. Because Go's
-resolver does not expose record TTLs, the interval is a re-resolution cadence rather than a per-record TTL.
+resolver cannot stall a refresh tick. Because Go's resolver does not expose record TTLs, the interval
+is a re-resolution cadence rather than a per-record TTL.
 
 The package will automatically retry requests on network-related errors, and on specific
 response status codes (by default 502, 503, 504). Use the RetryOnStatus option to customize the list.
