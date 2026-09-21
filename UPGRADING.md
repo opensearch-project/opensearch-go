@@ -181,6 +181,26 @@ func (myObserver) OnRoute(event opensearchtransport.RouteEvent) {
 
 Requests built and sent normally need no changes.
 
+### Transport errors are wrapped with the request method and URL
+
+Errors returned from `Perform` and `Stream` now begin with the method and a credential-redacted URL of the request that failed, followed by the original error. This applies to the errors the transport itself produces, such as network failures, timeouts, and `io.EOF`. HTTP error responses (4xx/5xx) and body-decode errors are unaffected.
+
+Before:
+
+```
+context deadline exceeded
+```
+
+After:
+
+```
+"GET" "https://node1.example:9200/_search": context deadline exceeded
+```
+
+The URL has its userinfo, query string, and fragment removed before it goes into the message, so a credential cannot leak into a log or an error tracker: userinfo can carry basic-auth credentials, and the query string can carry a SigV4 signature or an API key. Scheme, host, and path remain, which is enough to identify the request.
+
+The wrap uses `%w`, so `errors.Is` and `errors.As` still reach the original cause; code that inspects errors that way needs no change. Only the text of `err.Error()` changed. If you alert on transport error messages, a rule that compares the whole string or anchors to the start of it will stop matching, while a substring match on the cause such as `context deadline exceeded` still matches. Move those checks to `errors.Is`/`errors.As`, or match the cause substring instead of the full message.
+
 ## Upgrading to >= 4.7.0
 
 ### `opensearch.Request` interface signature change
