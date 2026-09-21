@@ -12,12 +12,31 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+// writeAfterClockTick responds once the monotonic clock has advanced past the
+// handler's entry, so the duration the transport measures across the round trip
+// is non-zero on every platform.
+//
+// The duration assertions below compare against 0, and Go's monotonic clock on
+// Windows advances only about every 15.6ms. A localhost request can start and
+// finish inside one tick, making time.Since(sendStart) return exactly 0 and the
+// assertion fail for a request that was in fact measured. Spinning to the next
+// tick costs at most one tick and needs no sleep or timing assumption.
+func writeAfterClockTick(w http.ResponseWriter, body string) {
+	for start := time.Now(); time.Since(start) == 0; {
+		runtime.Gosched()
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = io.WriteString(w, body)
+}
 
 func TestResponseEventFieldPromotion(t *testing.T) {
 	ev := RequestResponseEvent{
@@ -62,8 +81,7 @@ func TestBaseObserverResponseNoops(t *testing.T) {
 func TestStreamFiresStreamResponseEvent(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Length", "5")
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, "hello")
+		writeAfterClockTick(w, "hello")
 	}))
 	t.Cleanup(ts.Close)
 
@@ -94,8 +112,7 @@ func TestStreamFiresStreamResponseEvent(t *testing.T) {
 func TestRequestFiresRequestResponseEvent(t *testing.T) {
 	const payload = `{"ok":true}`
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, payload)
+		writeAfterClockTick(w, payload)
 	}))
 	t.Cleanup(ts.Close)
 
@@ -135,8 +152,7 @@ func TestRequestFiresRequestResponseEvent(t *testing.T) {
 func TestRequestRecordsDurationOnSeedFallback(t *testing.T) {
 	const payload = `{"ok":true}`
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = io.WriteString(w, payload)
+		writeAfterClockTick(w, payload)
 	}))
 	t.Cleanup(ts.Close)
 
