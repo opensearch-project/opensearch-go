@@ -1473,9 +1473,12 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 				}
 				// Mark draining so OnSuccess from concurrent requests won't resurrect
 				// this connection. Requires defaultDrainingQuiescingChecks consecutive
-				// successful health checks before resurrection.
+				// successful health checks before resurrection. This is a
+				// connection-health signal, independent of whether this request retries.
 				conn.drainingQuiescingRemaining.Store(defaultDrainingQuiescingChecks)
-				shouldRetry = true
+				if !c.disableRetry {
+					shouldRetry = true
+				}
 			}
 
 			// Report the connection as unsuccessful. This is ordered after the
@@ -1510,8 +1513,12 @@ func (c *Client) Stream(req *http.Request) (*http.Response, error) {
 			}
 			c.requestCatRefresh()
 
-			// Retry on EOF errors (connection closed by peer)
-			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			// Retry on EOF errors (connection closed by peer). DisableRetry
+			// must win here the same way it does for net.Error and retryable
+			// HTTP statuses: a POST that already landed can surface as EOF
+			// when the connection drops while the response is in flight, and
+			// retrying it would duplicate the write.
+			if !c.disableRetry && (errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF)) {
 				shouldRetry = true
 			}
 
