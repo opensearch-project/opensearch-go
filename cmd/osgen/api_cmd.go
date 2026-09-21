@@ -376,6 +376,16 @@ func removeStaleGenFiles(root string, written set[string]) (int, error) {
 //nolint:gochecknoglobals // function var swapped by tests
 var repoRoot = repoRootGit
 
+// normalizeRepoRoot converts the output of `git rev-parse --show-toplevel`
+// into a native path. Git for Windows prints a forward-slash path with a
+// trailing newline there, while filepath.Abs returns native separators, so the
+// two do not compare equal as strings. TrimSpace drops the newline and
+// filepath.Clean rewrites the slashes to the native separator; normalizing at
+// the producer keeps every caller on native form.
+func normalizeRepoRoot(out string) string {
+	return filepath.Clean(strings.TrimSpace(out))
+}
+
 func repoRootGit() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -383,7 +393,7 @@ func repoRootGit() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("not inside a git repository: %w", err)
 	}
-	return strings.TrimSpace(string(out)), nil
+	return normalizeRepoRoot(string(out)), nil
 }
 
 // resolveGenRoot cleans and resolves root to an absolute path, then verifies
