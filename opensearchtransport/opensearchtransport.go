@@ -42,6 +42,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -182,10 +183,9 @@ type Config struct {
 	// DNSCacheRefresh controls how often the client-side DNS cache re-resolves
 	// cached hostnames. When the resolver is briefly unreachable, the
 	// last-known-good address continues to be served until the resolver recovers.
-	// The cache is only installed when no custom Transport is provided; a
-	// caller-supplied Transport is never modified. Because Go's resolver does not
-	// expose record TTLs, the interval is a re-resolution cadence rather than a
-	// per-record TTL.
+	// The cache is only installed when no custom Transport is provided. Because
+	// Go's resolver does not expose record TTLs, the interval is a re-resolution
+	// cadence rather than a per-record TTL.
 	// 0 = default (60s), <0 = disable caching, >0 = explicit interval.
 	DNSCacheRefresh time.Duration
 
@@ -392,7 +392,11 @@ type Config struct {
 
 	// Transport is the underlying HTTP transport. If nil, a clone of
 	// http.DefaultTransport is used, with a process-local DNS cache installed on
-	// it (see DNSCacheRefresh). A non-nil Transport is used as-is.
+	// it (see DNSCacheRefresh). A non-nil Transport keeps its own configuration:
+	// CACert and InsecureSkipVerify are applied to a clone of it, and that clone
+	// also has HTTP/2 re-enabled when attaching them would otherwise leave it
+	// negotiating an HTTP/2 it cannot speak. Set Protocols or TLSNextProto to
+	// decide the protocol yourself.
 	Transport http.RoundTripper
 	Logger    Logger
 	Selector  Selector
@@ -596,46 +600,109 @@ type Transport struct {
 	}
 }
 
+// shouldForceH2 reports whether HTTP/2 should be re-enabled on a transport this
+// package cloned, because the clone negotiates HTTP/2 over ALPN without being
+// able to speak it.
+//
+// Clone copies TLSClientConfig, which net/http may have populated with an "h2"
+// ALPN entry while auto-configuring HTTP/2 on the original, but it drops the
+// HTTP/2 wiring so the clone can re-derive it. The clone does not re-derive it,
+// because net/http skips HTTP/2 auto-configuration once TLSClientConfig is
+// non-nil and ForceAttemptHTTP2 is false -- the state this package creates by
+// attaching a CA pool or InsecureSkipVerify to the clone. Such a transport
+// negotiates h2 and then writes HTTP/1.1 framing, which an HTTP/2 server rejects.
+//
+// Only a transport that stated no protocol intent is repaired. Protocols and
+// TLSNextProto are how a caller states one, so either being set reports false
+// even when the transport does advertise an h2 it cannot speak: that combination
+// is the caller's own, it behaves the same whether or not this package clones the
+// transport, and honoring the stated intent matters more than repairing a
+// mismatch this package did not create. A transport that does not advertise h2,
+// or that already forces HTTP/2, is consistent as it stands and also reports
+// false.
+//
+// tr must have a non-nil TLSClientConfig, which [cloneForTLS] guarantees for
+// every transport this package repairs.
+func shouldForceH2(tr *http.Transport) bool {
+	if tr.ForceAttemptHTTP2 || tr.Protocols != nil || tr.TLSNextProto != nil {
+		return false
+	}
+	return slices.Contains(tr.TLSClientConfig.NextProtos, "h2")
+}
+
+// cloneForTLS type-asserts rt to *http.Transport and returns a clone with a
+// non-nil TLSClientConfig, ready for a TLS setting to attach without mutating
+// the caller's value. setting names the field being applied, for the error when
+// rt is not an *http.Transport.
+func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) {
+	httpTransport, ok := rt.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("unable to set %s for transport of type %T", setting, rt)
+	}
+
+	httpTransport = httpTransport.Clone()
+	if httpTransport.TLSClientConfig == nil {
+		httpTransport.TLSClientConfig = &tls.Config{}
+	}
+
+	return httpTransport, nil
+}
+
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
 	// customTransport records that the caller supplied their own Transport. When
 	// false, we built one from http.DefaultTransport and may safely install the
-	// DNS-cache dialer on it later (after the root context exists). A
-	// caller-supplied Transport is never modified.
+	// DNS-cache dialer on it later (after the root context exists). This package
+	// never modifies a caller-supplied Transport's configuration itself; TLS
+	// settings (CACert, InsecureSkipVerify) are attached to a clone instead.
+	// Cloning is not free of side effects, though: Clone fires the original's
+	// nextProtoOnce, so a caller's own Transport can come back from New with its
+	// TLSClientConfig and TLSNextProto populated even though it was never
+	// reassigned.
 	customTransport := cfg.Transport != nil
 	if cfg.Transport == nil {
 		cfg.Transport = http.DefaultTransport
 	}
 
+	// tlsClone is the clone a TLS branch below installed, and stays nil when
+	// nothing was cloned, so the HTTP/2 repair acts only on a value this function
+	// owns.
+	var tlsClone *http.Transport
+
 	if cfg.CACert != nil {
-		httpTransport, ok := cfg.Transport.(*http.Transport)
-		if !ok {
-			return nil, fmt.Errorf("unable to set CA certificate for transport of type %T", cfg.Transport)
+		httpTransport, err := cloneForTLS(cfg.Transport, "CA certificate")
+		if err != nil {
+			return nil, err
 		}
 
-		httpTransport = httpTransport.Clone()
 		httpTransport.TLSClientConfig.RootCAs = x509.NewCertPool()
 
 		if ok := httpTransport.TLSClientConfig.RootCAs.AppendCertsFromPEM(cfg.CACert); !ok {
 			return nil, errors.New("unable to add CA certificate")
 		}
 
+		tlsClone = httpTransport
 		cfg.Transport = httpTransport
 	}
 
 	if cfg.InsecureSkipVerify {
-		httpTransport, ok := cfg.Transport.(*http.Transport)
-		if !ok {
-			return nil, fmt.Errorf("unable to set InsecureSkipVerify for transport of type %T", cfg.Transport)
+		httpTransport, err := cloneForTLS(cfg.Transport, "InsecureSkipVerify")
+		if err != nil {
+			return nil, err
 		}
 
-		httpTransport = httpTransport.Clone()
-		if httpTransport.TLSClientConfig == nil {
-			httpTransport.TLSClientConfig = &tls.Config{}
-		}
 		httpTransport.TLSClientConfig.InsecureSkipVerify = true
 
+		tlsClone = httpTransport
 		cfg.Transport = httpTransport
+	}
+
+	// Attaching a TLS setting above is what leaves the clone advertising an h2 it
+	// cannot speak, so the repair belongs here, after both branches and before the
+	// DNS-cache dialer is installed further down, which clones again and inherits
+	// the flag.
+	if tlsClone != nil && shouldForceH2(tlsClone) {
+		tlsClone.ForceAttemptHTTP2 = true
 	}
 
 	if len(cfg.RetryOnStatus) == 0 && cfg.RetryOnStatus == nil {
