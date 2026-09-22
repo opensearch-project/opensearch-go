@@ -6,6 +6,22 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Dependencies
+
+## [5.0.0]
+
+### Added
+
 - Add a `Refresh pkg.go.dev` workflow that runs on every published GitHub release, so a new version is listed on pkg.go.dev without anyone asking by hand. pkg.go.dev lists a module version only once the public Go module proxy has fetched it, and the proxy fetches lazily, on first request -- so a freshly-tagged release sat unindexed until someone happened to `go get` it or a maintainer visited the module page and clicked "request", which is what left v3.1.0 missing. The workflow checks out the released tag, reads the module path from that tag's `go.mod`, and runs `go list -m <module>@<tag>` against `proxy.golang.org`, which is the request that triggers the fetch. Covers the root module only; nested modules (`osprom`, `osotel`, `log-slog`, `log-zerolog`, `cmd/osgen`, `cmd/osapilint`) still need the manual refresh. `RELEASING.md` step 9 now points at the workflow and keeps the manual `go list -m` command as a documented fallback for a release published without it ([#499](https://github.com/opensearch-project/opensearch-go/issues/499), [#1118](https://github.com/opensearch-project/opensearch-go/pull/1118))
 - Add `APIKey` to `opensearch.Config` for native API-key authentication: when set, the client sends an `Authorization: ApiKey <key>` header. URL userinfo credentials and an `Authorization` header already present on the request take precedence over it, and it takes precedence over a configured username/password ([#907](https://github.com/opensearch-project/opensearch-go/issues/907))
 - **BREAKING**: replace `opensearchtransport.DebuggingLogger` with the new `debuglog` package, which defines `Logger` (`Debug() Event`) and `Event`, a chain of typed field methods ended by `Msg`. Set `Config.DebugLogger` on `opensearch.Config` or `opensearchtransport.Config` to route the client's internal debug records into a logger the application already runs; it takes precedence over `EnableDebugLogger`. Ships two adapter modules, `log-zerolog` and `log-slog`, each presenting a `New`/`Default` pair. `debuglog` imports only the standard library, so no logging library enters the core dependency graph. See [`debuglog/README.md`](debuglog/README.md) and [USER_GUIDE.md Debugging](USER_GUIDE.md#debugging) ([#828](https://github.com/opensearch-project/opensearch-go/issues/828))
@@ -514,7 +530,8 @@ The 4.x release line is maintained on the [`v4`](https://github.com/opensearch-p
 - Bumps `github.com/stretchr/testify` from 1.8.0 to 1.8.1
 - Bumps `github.com/aws/aws-sdk-go` from 1.44.45 to 1.44.132
 
-[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/opensearch-project/opensearch-go/compare/v5.0.0...HEAD
+[5.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v4.6.0...v5.0.0
 [4.x]: https://github.com/opensearch-project/opensearch-go/blob/v4/CHANGELOG.md
 [3.1.0]: https://github.com/opensearch-project/opensearch-go/compare/v3.0.0...v3.1.0
 [3.0.0]: https://github.com/opensearch-project/opensearch-go/compare/v2.3.0...v3.0.0
