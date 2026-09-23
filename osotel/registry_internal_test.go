@@ -279,6 +279,51 @@ func TestPoolObserverUSEInstruments(t *testing.T) {
 	require.Contains(t, names, "opensearch.client.pool.health_check_failures") // E
 }
 
+func gaugeValue(t *testing.T, rm metricdata.ResourceMetrics, name, pool, state string) int64 {
+	t.Helper()
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != name {
+				continue
+			}
+			g, ok := m.Data.(metricdata.Gauge[int64])
+			require.True(t, ok, "metric %s is an Int64 gauge", name)
+			for _, dp := range g.DataPoints {
+				p, _ := dp.Attributes.Value(attrPool)
+				s, _ := dp.Attributes.Value(attrState)
+				if p.AsString() == pool && s.AsString() == state {
+					return dp.Value
+				}
+			}
+			t.Fatalf("metric %s has no data point for pool=%s state=%s", name, pool, state)
+		}
+	}
+	t.Fatalf("metric %s not found", name)
+	return 0
+}
+
+func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
+	mp, collect := newTestMeter(t)
+	po := NewPoolObserver()
+	reg, err := New(mp.Meter("test"), po)
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = reg.Close() })
+
+	reg.OnPromote(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 0})
+	require.EqualValues(t, 3, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
+
+	reg.OnOverloadCleared(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 4, DeadCount: 1})
+	require.EqualValues(t, 4, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
+	require.EqualValues(t, 1, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "dead"))
+}
+
+func TestIsErrorClassifiesStatusAndTransportFailures(t *testing.T) {
+	require.False(t, isError(200, nil))
+	require.True(t, isError(404, nil))
+	require.True(t, isError(500, nil))
+	require.True(t, isError(0, fmt.Errorf("connection refused")))
+}
+
 func TestRequestFilterSkipsUnrecorded(t *testing.T) {
 	mp, collect := newTestMeter(t)
 	ro := NewRequestObserver()
