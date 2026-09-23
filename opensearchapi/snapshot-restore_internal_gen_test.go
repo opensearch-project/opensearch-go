@@ -26,12 +26,12 @@ func TestSnapshotRestoreParams_get(t *testing.T) {
 		{name: "empty", params: SnapshotRestoreParams{}, want: nil},
 		{
 			name:   "wait_for_completion=true",
-			params: SnapshotRestoreParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: SnapshotRestoreParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: SnapshotRestoreParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: SnapshotRestoreParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

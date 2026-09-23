@@ -26,12 +26,12 @@ func TestSnapshotCreateRepositoryParams_get(t *testing.T) {
 		{name: "empty", params: SnapshotCreateRepositoryParams{}, want: nil},
 		{
 			name:   "verify=true",
-			params: SnapshotCreateRepositoryParams{Verify: func(b bool) *bool { return &b }(true)},
+			params: SnapshotCreateRepositoryParams{Verify: new(true)},
 			want:   map[string]string{"verify": "true"},
 		},
 		{
 			name:   "verify=false",
-			params: SnapshotCreateRepositoryParams{Verify: func(b bool) *bool { return &b }(false)},
+			params: SnapshotCreateRepositoryParams{Verify: new(false)},
 			want:   map[string]string{"verify": "false"},
 		},
 	}

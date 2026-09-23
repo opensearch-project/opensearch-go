@@ -26,12 +26,12 @@ func TestCatSnapshotsParams_get(t *testing.T) {
 		{name: "empty", params: CatSnapshotsParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "ignore_unavailable=true",
-			params: CatSnapshotsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: CatSnapshotsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"format": "json", "ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: CatSnapshotsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: CatSnapshotsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"format": "json", "ignore_unavailable": "false"},
 		},
 		{

@@ -26,12 +26,12 @@ func TestAddFeaturesToSetByQueryParams_get(t *testing.T) {
 		{name: "empty", params: AddFeaturesToSetByQueryParams{}, want: nil},
 		{
 			name:   "merge=true",
-			params: AddFeaturesToSetByQueryParams{Merge: func(b bool) *bool { return &b }(true)},
+			params: AddFeaturesToSetByQueryParams{Merge: new(true)},
 			want:   map[string]string{"merge": "true"},
 		},
 		{
 			name:   "merge=false",
-			params: AddFeaturesToSetByQueryParams{Merge: func(b bool) *bool { return &b }(false)},
+			params: AddFeaturesToSetByQueryParams{Merge: new(false)},
 			want:   map[string]string{"merge": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestAddFeaturesToSetByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: AddFeaturesToSetByQueryParams{Version: func(i int) *int { return &i }(42)},
+			params: AddFeaturesToSetByQueryParams{Version: new(42)},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version=0",
-			params: AddFeaturesToSetByQueryParams{Version: func(i int) *int { return &i }(0)},
+			params: AddFeaturesToSetByQueryParams{Version: new(0)},
 			want:   map[string]string{"version": "0"},
 		},
 	}

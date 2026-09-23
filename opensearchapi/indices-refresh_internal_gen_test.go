@@ -26,12 +26,12 @@ func TestIndicesRefreshParams_get(t *testing.T) {
 		{name: "empty", params: IndicesRefreshParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesRefreshParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesRefreshParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesRefreshParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesRefreshParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesRefreshParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesRefreshParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesRefreshParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesRefreshParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesRefreshParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 	}

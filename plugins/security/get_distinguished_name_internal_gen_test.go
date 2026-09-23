@@ -26,12 +26,12 @@ func TestGetDistinguishedNameParams_get(t *testing.T) {
 		{name: "empty", params: GetDistinguishedNameParams{}, want: nil},
 		{
 			name:   "show_all=true",
-			params: GetDistinguishedNameParams{ShowAll: func(b bool) *bool { return &b }(true)},
+			params: GetDistinguishedNameParams{ShowAll: new(true)},
 			want:   map[string]string{"show_all": "true"},
 		},
 		{
 			name:   "show_all=false",
-			params: GetDistinguishedNameParams{ShowAll: func(b bool) *bool { return &b }(false)},
+			params: GetDistinguishedNameParams{ShowAll: new(false)},
 			want:   map[string]string{"show_all": "false"},
 		},
 	}

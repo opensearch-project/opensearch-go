@@ -31,12 +31,12 @@ func TestCatShardsParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: CatShardsParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatShardsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatShardsParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatShardsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{

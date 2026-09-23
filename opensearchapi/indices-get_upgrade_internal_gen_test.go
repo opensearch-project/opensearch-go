@@ -26,12 +26,12 @@ func TestIndicesGetUpgradeParams_get(t *testing.T) {
 		{name: "empty", params: IndicesGetUpgradeParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesGetUpgradeParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetUpgradeParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesGetUpgradeParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetUpgradeParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesGetUpgradeParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesGetUpgradeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetUpgradeParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesGetUpgradeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetUpgradeParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 	}

@@ -26,52 +26,52 @@ func TestStatsParams_get(t *testing.T) {
 		{name: "empty", params: StatsParams{}, want: nil},
 		{
 			name:   "flat_stat_paths=true",
-			params: StatsParams{FlatStatPaths: func(b bool) *bool { return &b }(true)},
+			params: StatsParams{FlatStatPaths: new(true)},
 			want:   map[string]string{"flat_stat_paths": "true"},
 		},
 		{
 			name:   "flat_stat_paths=false",
-			params: StatsParams{FlatStatPaths: func(b bool) *bool { return &b }(false)},
+			params: StatsParams{FlatStatPaths: new(false)},
 			want:   map[string]string{"flat_stat_paths": "false"},
 		},
 		{
 			name:   "include_all_nodes=true",
-			params: StatsParams{IncludeAllNodes: func(b bool) *bool { return &b }(true)},
+			params: StatsParams{IncludeAllNodes: new(true)},
 			want:   map[string]string{"include_all_nodes": "true"},
 		},
 		{
 			name:   "include_all_nodes=false",
-			params: StatsParams{IncludeAllNodes: func(b bool) *bool { return &b }(false)},
+			params: StatsParams{IncludeAllNodes: new(false)},
 			want:   map[string]string{"include_all_nodes": "false"},
 		},
 		{
 			name:   "include_individual_nodes=true",
-			params: StatsParams{IncludeIndividualNodes: func(b bool) *bool { return &b }(true)},
+			params: StatsParams{IncludeIndividualNodes: new(true)},
 			want:   map[string]string{"include_individual_nodes": "true"},
 		},
 		{
 			name:   "include_individual_nodes=false",
-			params: StatsParams{IncludeIndividualNodes: func(b bool) *bool { return &b }(false)},
+			params: StatsParams{IncludeIndividualNodes: new(false)},
 			want:   map[string]string{"include_individual_nodes": "false"},
 		},
 		{
 			name:   "include_info=true",
-			params: StatsParams{IncludeInfo: func(b bool) *bool { return &b }(true)},
+			params: StatsParams{IncludeInfo: new(true)},
 			want:   map[string]string{"include_info": "true"},
 		},
 		{
 			name:   "include_info=false",
-			params: StatsParams{IncludeInfo: func(b bool) *bool { return &b }(false)},
+			params: StatsParams{IncludeInfo: new(false)},
 			want:   map[string]string{"include_info": "false"},
 		},
 		{
 			name:   "include_metadata=true",
-			params: StatsParams{IncludeMetadata: func(b bool) *bool { return &b }(true)},
+			params: StatsParams{IncludeMetadata: new(true)},
 			want:   map[string]string{"include_metadata": "true"},
 		},
 		{
 			name:   "include_metadata=false",
-			params: StatsParams{IncludeMetadata: func(b bool) *bool { return &b }(false)},
+			params: StatsParams{IncludeMetadata: new(false)},
 			want:   map[string]string{"include_metadata": "false"},
 		},
 	}

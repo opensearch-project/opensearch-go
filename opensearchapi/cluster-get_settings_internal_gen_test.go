@@ -26,22 +26,22 @@ func TestClusterGetSettingsParams_get(t *testing.T) {
 		{name: "empty", params: ClusterGetSettingsParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: ClusterGetSettingsParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: ClusterGetSettingsParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: ClusterGetSettingsParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: ClusterGetSettingsParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "include_defaults=true",
-			params: ClusterGetSettingsParams{IncludeDefaults: func(b bool) *bool { return &b }(true)},
+			params: ClusterGetSettingsParams{IncludeDefaults: new(true)},
 			want:   map[string]string{"include_defaults": "true"},
 		},
 		{
 			name:   "include_defaults=false",
-			params: ClusterGetSettingsParams{IncludeDefaults: func(b bool) *bool { return &b }(false)},
+			params: ClusterGetSettingsParams{IncludeDefaults: new(false)},
 			want:   map[string]string{"include_defaults": "false"},
 		},
 	}

@@ -26,12 +26,12 @@ func TestClusterDeleteVotingConfigExclusionsParams_get(t *testing.T) {
 		{name: "empty", params: ClusterDeleteVotingConfigExclusionsParams{}, want: nil},
 		{
 			name:   "wait_for_removal=true",
-			params: ClusterDeleteVotingConfigExclusionsParams{WaitForRemoval: func(b bool) *bool { return &b }(true)},
+			params: ClusterDeleteVotingConfigExclusionsParams{WaitForRemoval: new(true)},
 			want:   map[string]string{"wait_for_removal": "true"},
 		},
 		{
 			name:   "wait_for_removal=false",
-			params: ClusterDeleteVotingConfigExclusionsParams{WaitForRemoval: func(b bool) *bool { return &b }(false)},
+			params: ClusterDeleteVotingConfigExclusionsParams{WaitForRemoval: new(false)},
 			want:   map[string]string{"wait_for_removal": "false"},
 		},
 	}

@@ -31,12 +31,12 @@ func TestCatTasksParams_get(t *testing.T) {
 		},
 		{
 			name:   "detailed=true",
-			params: CatTasksParams{Detailed: func(b bool) *bool { return &b }(true)},
+			params: CatTasksParams{Detailed: new(true)},
 			want:   map[string]string{"format": "json", "detailed": "true"},
 		},
 		{
 			name:   "detailed=false",
-			params: CatTasksParams{Detailed: func(b bool) *bool { return &b }(false)},
+			params: CatTasksParams{Detailed: new(false)},
 			want:   map[string]string{"format": "json", "detailed": "false"},
 		},
 		{

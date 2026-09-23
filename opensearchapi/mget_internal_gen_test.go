@@ -46,12 +46,12 @@ func TestMGetParams_get(t *testing.T) {
 		},
 		{
 			name:   "realtime=true",
-			params: MGetParams{Realtime: func(b bool) *bool { return &b }(true)},
+			params: MGetParams{Realtime: new(true)},
 			want:   map[string]string{"realtime": "true"},
 		},
 		{
 			name:   "realtime=false",
-			params: MGetParams{Realtime: func(b bool) *bool { return &b }(false)},
+			params: MGetParams{Realtime: new(false)},
 			want:   map[string]string{"realtime": "false"},
 		},
 		{

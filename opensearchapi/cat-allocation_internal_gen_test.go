@@ -31,12 +31,12 @@ func TestCatAllocationParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: CatAllocationParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatAllocationParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatAllocationParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatAllocationParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

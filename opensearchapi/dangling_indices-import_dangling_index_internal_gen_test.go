@@ -26,12 +26,12 @@ func TestDanglingIndicesImportDanglingIndexParams_get(t *testing.T) {
 		{name: "empty", params: DanglingIndicesImportDanglingIndexParams{}, want: nil},
 		{
 			name:   "accept_data_loss=true",
-			params: DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(true)},
+			params: DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: new(true)},
 			want:   map[string]string{"accept_data_loss": "true"},
 		},
 		{
 			name:   "accept_data_loss=false",
-			params: DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(false)},
+			params: DanglingIndicesImportDanglingIndexParams{AcceptDataLoss: new(false)},
 			want:   map[string]string{"accept_data_loss": "false"},
 		},
 	}

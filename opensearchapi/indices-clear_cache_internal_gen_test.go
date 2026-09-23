@@ -26,12 +26,12 @@ func TestIndicesClearCacheParams_get(t *testing.T) {
 		{name: "empty", params: IndicesClearCacheParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesClearCacheParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesClearCacheParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesClearCacheParams_get(t *testing.T) {
 		},
 		{
 			name:   "fielddata=true",
-			params: IndicesClearCacheParams{Fielddata: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{Fielddata: new(true)},
 			want:   map[string]string{"fielddata": "true"},
 		},
 		{
 			name:   "fielddata=false",
-			params: IndicesClearCacheParams{Fielddata: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{Fielddata: new(false)},
 			want:   map[string]string{"fielddata": "false"},
 		},
 		{
@@ -56,22 +56,22 @@ func TestIndicesClearCacheParams_get(t *testing.T) {
 		},
 		{
 			name:   "file=true",
-			params: IndicesClearCacheParams{File: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{File: new(true)},
 			want:   map[string]string{"file": "true"},
 		},
 		{
 			name:   "file=false",
-			params: IndicesClearCacheParams{File: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{File: new(false)},
 			want:   map[string]string{"file": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesClearCacheParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesClearCacheParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
@@ -81,22 +81,22 @@ func TestIndicesClearCacheParams_get(t *testing.T) {
 		},
 		{
 			name:   "query=true",
-			params: IndicesClearCacheParams{Query: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{Query: new(true)},
 			want:   map[string]string{"query": "true"},
 		},
 		{
 			name:   "query=false",
-			params: IndicesClearCacheParams{Query: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{Query: new(false)},
 			want:   map[string]string{"query": "false"},
 		},
 		{
 			name:   "request=true",
-			params: IndicesClearCacheParams{Request: func(b bool) *bool { return &b }(true)},
+			params: IndicesClearCacheParams{Request: new(true)},
 			want:   map[string]string{"request": "true"},
 		},
 		{
 			name:   "request=false",
-			params: IndicesClearCacheParams{Request: func(b bool) *bool { return &b }(false)},
+			params: IndicesClearCacheParams{Request: new(false)},
 			want:   map[string]string{"request": "false"},
 		},
 	}

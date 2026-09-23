@@ -37,22 +37,22 @@ func TestReindexParams_get(t *testing.T) {
 		},
 		{
 			name:   "requests_per_second",
-			params: ReindexParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			params: ReindexParams{RequestsPerSecond: new(1.5)},
 			want:   map[string]string{"requests_per_second": "1.5"},
 		},
 		{
 			name:   "requests_per_second=0",
-			params: ReindexParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			params: ReindexParams{RequestsPerSecond: new(0.0)},
 			want:   map[string]string{"requests_per_second": "0"},
 		},
 		{
 			name:   "require_alias=true",
-			params: ReindexParams{RequireAlias: func(b bool) *bool { return &b }(true)},
+			params: ReindexParams{RequireAlias: new(true)},
 			want:   map[string]string{"require_alias": "true"},
 		},
 		{
 			name:   "require_alias=false",
-			params: ReindexParams{RequireAlias: func(b bool) *bool { return &b }(false)},
+			params: ReindexParams{RequireAlias: new(false)},
 			want:   map[string]string{"require_alias": "false"},
 		},
 		{
@@ -72,12 +72,12 @@ func TestReindexParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: ReindexParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: ReindexParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: ReindexParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: ReindexParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

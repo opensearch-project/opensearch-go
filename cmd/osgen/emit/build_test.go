@@ -120,16 +120,16 @@ func TestParamTestCases(t *testing.T) {
 			name:  "*int emits 42 and a deliberate 0",
 			param: ir.QueryParam{GoName: "Version", WireName: "version", GoType: "*int", Kind: ir.ParamInt},
 			want: []emit.ParamTestCase{
-				{Name: "version", FieldAssign: "Version: func(i int) *int { return &i }(42)", WantAssign: `"version": "42"`},
-				{Name: "version=0", FieldAssign: "Version: func(i int) *int { return &i }(0)", WantAssign: `"version": "0"`},
+				{Name: "version", FieldAssign: "Version: new(42)", WantAssign: `"version": "42"`},
+				{Name: "version=0", FieldAssign: "Version: new(0)", WantAssign: `"version": "0"`},
 			},
 		},
 		{
 			name:  "*bool emits true and false",
 			param: ir.QueryParam{GoName: "Pretty", WireName: "pretty", GoType: "*bool", Kind: ir.ParamBool},
 			want: []emit.ParamTestCase{
-				{Name: "pretty=true", FieldAssign: "Pretty: func(b bool) *bool { return &b }(true)", WantAssign: `"pretty": "true"`},
-				{Name: "pretty=false", FieldAssign: "Pretty: func(b bool) *bool { return &b }(false)", WantAssign: `"pretty": "false"`},
+				{Name: "pretty=true", FieldAssign: "Pretty: new(true)", WantAssign: `"pretty": "true"`},
+				{Name: "pretty=false", FieldAssign: "Pretty: new(false)", WantAssign: `"pretty": "false"`},
 			},
 		},
 		{
@@ -138,12 +138,12 @@ func TestParamTestCases(t *testing.T) {
 			want: []emit.ParamTestCase{
 				{
 					Name:        "requests_per_second",
-					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)",
+					FieldAssign: "RequestsPerSecond: new(1.5)",
 					WantAssign:  `"requests_per_second": "1.5"`,
 				},
 				{
 					Name:        "requests_per_second=0",
-					FieldAssign: "RequestsPerSecond: func(f float64) *float64 { return &f }(0)",
+					FieldAssign: "RequestsPerSecond: new(0.0)",
 					WantAssign:  `"requests_per_second": "0"`,
 				},
 			},

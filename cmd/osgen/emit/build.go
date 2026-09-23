@@ -289,19 +289,19 @@ func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 // emit both 42 and 0 for the same reason: a != 0 guard would silently drop a
 // deliberate 0 (version=0 under external versioning, if_seq_no=0, search size=0).
 //
-// White-box tests for both the core package and plugin packages reference the
-// package-local `func(b bool) *bool { return &b }(...)` literal.
+// White-box tests for both the core package and plugin packages use Go 1.26's
+// native `new(value)` form for pointer-valued parameters.
 func paramTestCases(p ir.QueryParam) []ParamTestCase {
 	if p.Kind == ir.ParamBool {
 		return []ParamTestCase{
 			{
 				Name:        p.WireName + "=true",
-				FieldAssign: fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(true)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "true"),
 			},
 			{
 				Name:        p.WireName + "=false",
-				FieldAssign: fmt.Sprintf("%s: func(b bool) *bool { return &b }(false)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(false)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "false"),
 			},
 		}
@@ -313,12 +313,12 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 		return []ParamTestCase{
 			{
 				Name:        p.WireName,
-				FieldAssign: fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1.5)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(1.5)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "1.5"),
 			},
 			{
 				Name:        p.WireName + "=0",
-				FieldAssign: fmt.Sprintf("%s: func(f float64) *float64 { return &f }(0)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(0.0)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "0"),
 			},
 		}
@@ -327,12 +327,12 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 		return []ParamTestCase{
 			{
 				Name:        p.WireName,
-				FieldAssign: fmt.Sprintf("%s: func(i int) *int { return &i }(42)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(42)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "42"),
 			},
 			{
 				Name:        p.WireName + "=0",
-				FieldAssign: fmt.Sprintf("%s: func(i int) *int { return &i }(0)", p.GoName),
+				FieldAssign: fmt.Sprintf("%s: new(0)", p.GoName),
 				WantAssign:  fmt.Sprintf("%q: %q", p.WireName, "0"),
 			},
 		}
@@ -343,10 +343,9 @@ func paramTestCases(p ir.QueryParam) []ParamTestCase {
 }
 
 // paramTestValues returns the field assignment and expected map entry for one
-// query param case. White-box tests for both the core package and plugin
-// packages use the inline `func(b bool) *bool { return &b }(...)` literal
-// emitted directly into the test source for *bool params, so no per-package
-// helper is required.
+// query param case. Pointer-valued params use Go 1.26's native `new(value)`
+// form directly in the generated test source, so no per-package helper is
+// required.
 func paramTestValues(p ir.QueryParam) (string, string) {
 	var fieldAssign, wantAssign string
 	switch p.Kind {
@@ -354,21 +353,21 @@ func paramTestValues(p ir.QueryParam) (string, string) {
 		fieldAssign = fmt.Sprintf("%s: 5 * time.Second", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "5000ms")
 	case ir.ParamBool:
-		fieldAssign = fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName)
+		fieldAssign = fmt.Sprintf("%s: new(true)", p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "true")
 	case ir.ParamList:
 		fieldAssign = fmt.Sprintf(`%s: []string{"a", "b"}`, p.GoName)
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "a,b")
 	case ir.ParamInt:
 		if p.GoType == "*int" {
-			fieldAssign = fmt.Sprintf("%s: func(i int) *int { return &i }(42)", p.GoName)
+			fieldAssign = fmt.Sprintf("%s: new(42)", p.GoName)
 		} else {
 			fieldAssign = fmt.Sprintf("%s: 42", p.GoName)
 		}
 		wantAssign = fmt.Sprintf("%q: %q", p.WireName, "42")
 	case ir.ParamFloat:
 		if p.GoType == "*float64" {
-			fieldAssign = fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1.5)", p.GoName)
+			fieldAssign = fmt.Sprintf("%s: new(1.5)", p.GoName)
 		} else {
 			fieldAssign = fmt.Sprintf("%s: 1.5", p.GoName)
 		}
@@ -1329,17 +1328,17 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamDuration:
 			fields = append(fields, p.GoName+": 5 * time.Minute")
 		case ir.ParamBool:
-			// Integ tests use a local bool var and pointer for required bool params.
-			fields = append(fields, fmt.Sprintf("%s: func(b bool) *bool { return &b }(true)", p.GoName))
+			// Integ tests use a pointer for required bool params.
+			fields = append(fields, fmt.Sprintf("%s: new(true)", p.GoName))
 		case ir.ParamInt:
 			if p.GoType == "*int" {
-				fields = append(fields, fmt.Sprintf("%s: func(i int) *int { return &i }(1)", p.GoName))
+				fields = append(fields, fmt.Sprintf("%s: new(1)", p.GoName))
 			} else {
 				fields = append(fields, p.GoName+": 1")
 			}
 		case ir.ParamFloat:
 			if p.GoType == "*float64" {
-				fields = append(fields, fmt.Sprintf("%s: func(f float64) *float64 { return &f }(1)", p.GoName))
+				fields = append(fields, fmt.Sprintf("%s: new(1.0)", p.GoName))
 			} else {
 				fields = append(fields, p.GoName+": 1")
 			}

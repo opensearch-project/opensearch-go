@@ -31,12 +31,12 @@ func TestCatHealthParams_get(t *testing.T) {
 		},
 		{
 			name:   "ts=true",
-			params: CatHealthParams{Ts: func(b bool) *bool { return &b }(true)},
+			params: CatHealthParams{Ts: new(true)},
 			want:   map[string]string{"format": "json", "ts": "true"},
 		},
 		{
 			name:   "ts=false",
-			params: CatHealthParams{Ts: func(b bool) *bool { return &b }(false)},
+			params: CatHealthParams{Ts: new(false)},
 			want:   map[string]string{"format": "json", "ts": "false"},
 		},
 	}

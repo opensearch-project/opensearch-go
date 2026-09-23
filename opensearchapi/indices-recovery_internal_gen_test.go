@@ -26,22 +26,22 @@ func TestIndicesRecoveryParams_get(t *testing.T) {
 		{name: "empty", params: IndicesRecoveryParams{}, want: nil},
 		{
 			name:   "active_only=true",
-			params: IndicesRecoveryParams{ActiveOnly: func(b bool) *bool { return &b }(true)},
+			params: IndicesRecoveryParams{ActiveOnly: new(true)},
 			want:   map[string]string{"active_only": "true"},
 		},
 		{
 			name:   "active_only=false",
-			params: IndicesRecoveryParams{ActiveOnly: func(b bool) *bool { return &b }(false)},
+			params: IndicesRecoveryParams{ActiveOnly: new(false)},
 			want:   map[string]string{"active_only": "false"},
 		},
 		{
 			name:   "detailed=true",
-			params: IndicesRecoveryParams{Detailed: func(b bool) *bool { return &b }(true)},
+			params: IndicesRecoveryParams{Detailed: new(true)},
 			want:   map[string]string{"detailed": "true"},
 		},
 		{
 			name:   "detailed=false",
-			params: IndicesRecoveryParams{Detailed: func(b bool) *bool { return &b }(false)},
+			params: IndicesRecoveryParams{Detailed: new(false)},
 			want:   map[string]string{"detailed": "false"},
 		},
 	}

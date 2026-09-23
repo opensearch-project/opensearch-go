@@ -26,12 +26,12 @@ func TestClusterExistsComponentTemplateParams_get(t *testing.T) {
 		{name: "empty", params: ClusterExistsComponentTemplateParams{}, want: nil},
 		{
 			name:   "local=true",
-			params: ClusterExistsComponentTemplateParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ClusterExistsComponentTemplateParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ClusterExistsComponentTemplateParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ClusterExistsComponentTemplateParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

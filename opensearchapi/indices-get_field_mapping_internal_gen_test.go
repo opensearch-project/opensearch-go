@@ -26,12 +26,12 @@ func TestIndicesGetFieldMappingParams_get(t *testing.T) {
 		{name: "empty", params: IndicesGetFieldMappingParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesGetFieldMappingParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetFieldMappingParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesGetFieldMappingParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetFieldMappingParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,32 +41,32 @@ func TestIndicesGetFieldMappingParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesGetFieldMappingParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetFieldMappingParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesGetFieldMappingParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetFieldMappingParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "include_defaults=true",
-			params: IndicesGetFieldMappingParams{IncludeDefaults: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetFieldMappingParams{IncludeDefaults: new(true)},
 			want:   map[string]string{"include_defaults": "true"},
 		},
 		{
 			name:   "include_defaults=false",
-			params: IndicesGetFieldMappingParams{IncludeDefaults: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetFieldMappingParams{IncludeDefaults: new(false)},
 			want:   map[string]string{"include_defaults": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesGetFieldMappingParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetFieldMappingParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesGetFieldMappingParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetFieldMappingParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

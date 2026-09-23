@@ -27,12 +27,12 @@ func TestCreatePITParams_get(t *testing.T) {
 		{name: "empty", params: CreatePITParams{}, want: nil},
 		{
 			name:   "allow_partial_pit_creation=true",
-			params: CreatePITParams{AllowPartialPITCreation: func(b bool) *bool { return &b }(true)},
+			params: CreatePITParams{AllowPartialPITCreation: new(true)},
 			want:   map[string]string{"allow_partial_pit_creation": "true"},
 		},
 		{
 			name:   "allow_partial_pit_creation=false",
-			params: CreatePITParams{AllowPartialPITCreation: func(b bool) *bool { return &b }(false)},
+			params: CreatePITParams{AllowPartialPITCreation: new(false)},
 			want:   map[string]string{"allow_partial_pit_creation": "false"},
 		},
 		{

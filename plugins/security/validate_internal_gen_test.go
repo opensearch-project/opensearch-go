@@ -26,12 +26,12 @@ func TestValidateParams_get(t *testing.T) {
 		{name: "empty", params: ValidateParams{}, want: nil},
 		{
 			name:   "accept_invalid=true",
-			params: ValidateParams{AcceptInvalid: func(b bool) *bool { return &b }(true)},
+			params: ValidateParams{AcceptInvalid: new(true)},
 			want:   map[string]string{"accept_invalid": "true"},
 		},
 		{
 			name:   "accept_invalid=false",
-			params: ValidateParams{AcceptInvalid: func(b bool) *bool { return &b }(false)},
+			params: ValidateParams{AcceptInvalid: new(false)},
 			want:   map[string]string{"accept_invalid": "false"},
 		},
 	}

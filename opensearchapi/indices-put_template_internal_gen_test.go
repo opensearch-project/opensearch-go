@@ -26,12 +26,12 @@ func TestIndicesPutTemplateParams_get(t *testing.T) {
 		{name: "empty", params: IndicesPutTemplateParams{}, want: nil},
 		{
 			name:   "create=true",
-			params: IndicesPutTemplateParams{Create: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutTemplateParams{Create: new(true)},
 			want:   map[string]string{"create": "true"},
 		},
 		{
 			name:   "create=false",
-			params: IndicesPutTemplateParams{Create: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutTemplateParams{Create: new(false)},
 			want:   map[string]string{"create": "false"},
 		},
 		{

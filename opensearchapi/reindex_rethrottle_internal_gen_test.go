@@ -26,12 +26,12 @@ func TestReindexRethrottleParams_get(t *testing.T) {
 		{name: "empty", params: ReindexRethrottleParams{}, want: nil},
 		{
 			name:   "requests_per_second",
-			params: ReindexRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			params: ReindexRethrottleParams{RequestsPerSecond: new(1.5)},
 			want:   map[string]string{"requests_per_second": "1.5"},
 		},
 		{
 			name:   "requests_per_second=0",
-			params: ReindexRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			params: ReindexRethrottleParams{RequestsPerSecond: new(0.0)},
 			want:   map[string]string{"requests_per_second": "0"},
 		},
 	}

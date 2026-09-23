@@ -56,12 +56,12 @@ func TestBulkParams_get(t *testing.T) {
 		},
 		{
 			name:   "require_alias=true",
-			params: BulkParams{RequireAlias: func(b bool) *bool { return &b }(true)},
+			params: BulkParams{RequireAlias: new(true)},
 			want:   map[string]string{"require_alias": "true"},
 		},
 		{
 			name:   "require_alias=false",
-			params: BulkParams{RequireAlias: func(b bool) *bool { return &b }(false)},
+			params: BulkParams{RequireAlias: new(false)},
 			want:   map[string]string{"require_alias": "false"},
 		},
 		{

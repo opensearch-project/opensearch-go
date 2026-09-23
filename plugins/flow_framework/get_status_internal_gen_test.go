@@ -26,12 +26,12 @@ func TestGetStatusParams_get(t *testing.T) {
 		{name: "empty", params: GetStatusParams{}, want: nil},
 		{
 			name:   "all=true",
-			params: GetStatusParams{All: func(b bool) *bool { return &b }(true)},
+			params: GetStatusParams{All: new(true)},
 			want:   map[string]string{"all": "true"},
 		},
 		{
 			name:   "all=false",
-			params: GetStatusParams{All: func(b bool) *bool { return &b }(false)},
+			params: GetStatusParams{All: new(false)},
 			want:   map[string]string{"all": "false"},
 		},
 	}

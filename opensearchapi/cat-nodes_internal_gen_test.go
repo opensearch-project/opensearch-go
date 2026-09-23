@@ -36,12 +36,12 @@ func TestCatNodesParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: CatNodesParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatNodesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatNodesParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatNodesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{

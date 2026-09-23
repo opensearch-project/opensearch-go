@@ -24,8 +24,8 @@ func TestParamsTestFragment_Body(t *testing.T) {
 		HasDuration: true,
 		Cases: []emit.ParamTestCase{
 			{Name: "timeout", FieldAssign: "Timeout: 5 * time.Second", WantAssign: `"timeout": "5000ms"`},
-			{Name: "local=true", FieldAssign: "Local: func(b bool) *bool { return &b }(true)", WantAssign: `"local": "true"`},
-			{Name: "local=false", FieldAssign: "Local: func(b bool) *bool { return &b }(false)", WantAssign: `"local": "false"`},
+			{Name: "local=true", FieldAssign: "Local: new(true)", WantAssign: `"local": "true"`},
+			{Name: "local=false", FieldAssign: "Local: new(false)", WantAssign: `"local": "false"`},
 		},
 	}
 
@@ -41,7 +41,7 @@ func TestParamsTestFragment_Body(t *testing.T) {
 		{name: "timeout case", want: `name:   "timeout"`},
 		{name: "local true case", want: `name:   "local=true"`},
 		{name: "local false case", want: `name:   "local=false"`},
-		{name: "false literal", want: "func(b bool) *bool { return &b }(false)"},
+		{name: "false literal", want: "new(false)"},
 		{name: "params type", want: "ClusterHealthParams{"},
 		{name: "require.Equal", want: "require.Equal(t, tt.want, tt.params.get())"},
 	}
@@ -165,7 +165,7 @@ func TestNewParamsTestFile_BuildTag(t *testing.T) {
 
 	frag := &emit.ParamsTestFragment{
 		TypePrefix: "ClusterHealth",
-		Cases:      []emit.ParamTestCase{{Name: "x", FieldAssign: "X: func(b bool) *bool { return &b }(true)", WantAssign: `"x": "true"`}},
+		Cases:      []emit.ParamTestCase{{Name: "x", FieldAssign: "X: new(true)", WantAssign: `"x": "true"`}},
 	}
 
 	target := emit.NewParamsTestFile("/tmp/test", ir.DefaultCorePkgName, "api_cluster-health", frag)

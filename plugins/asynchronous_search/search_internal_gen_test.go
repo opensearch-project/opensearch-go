@@ -36,12 +36,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "keep_on_completion=true",
-			params: SearchParams{KeepOnCompletion: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{KeepOnCompletion: new(true)},
 			want:   map[string]string{"keep_on_completion": "true"},
 		},
 		{
 			name:   "keep_on_completion=false",
-			params: SearchParams{KeepOnCompletion: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{KeepOnCompletion: new(false)},
 			want:   map[string]string{"keep_on_completion": "false"},
 		},
 		{
