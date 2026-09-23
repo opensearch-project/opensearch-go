@@ -41,12 +41,12 @@ func TestExplainParams_get(t *testing.T) {
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: ExplainParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: ExplainParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: ExplainParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: ExplainParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -66,12 +66,12 @@ func TestExplainParams_get(t *testing.T) {
 		},
 		{
 			name:   "lenient=true",
-			params: ExplainParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: ExplainParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: ExplainParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: ExplainParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{

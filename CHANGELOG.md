@@ -8,6 +8,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed
 
+- Replace package-local `ptr` helpers and generated anonymous pointer factories with Go 1.26's native `new(value)` form in tests, benchmarks, and samples ([#873](https://github.com/opensearch-project/opensearch-go/issues/873), [#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))
+
 ### Deprecated
 
 ### Removed

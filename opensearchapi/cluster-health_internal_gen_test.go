@@ -41,12 +41,12 @@ func TestClusterHealthParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: ClusterHealthParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ClusterHealthParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ClusterHealthParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ClusterHealthParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 		{
@@ -61,22 +61,22 @@ func TestClusterHealthParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_no_initializing_shards=true",
-			params: ClusterHealthParams{WaitForNoInitializingShards: func(b bool) *bool { return &b }(true)},
+			params: ClusterHealthParams{WaitForNoInitializingShards: new(true)},
 			want:   map[string]string{"wait_for_no_initializing_shards": "true"},
 		},
 		{
 			name:   "wait_for_no_initializing_shards=false",
-			params: ClusterHealthParams{WaitForNoInitializingShards: func(b bool) *bool { return &b }(false)},
+			params: ClusterHealthParams{WaitForNoInitializingShards: new(false)},
 			want:   map[string]string{"wait_for_no_initializing_shards": "false"},
 		},
 		{
 			name:   "wait_for_no_relocating_shards=true",
-			params: ClusterHealthParams{WaitForNoRelocatingShards: func(b bool) *bool { return &b }(true)},
+			params: ClusterHealthParams{WaitForNoRelocatingShards: new(true)},
 			want:   map[string]string{"wait_for_no_relocating_shards": "true"},
 		},
 		{
 			name:   "wait_for_no_relocating_shards=false",
-			params: ClusterHealthParams{WaitForNoRelocatingShards: func(b bool) *bool { return &b }(false)},
+			params: ClusterHealthParams{WaitForNoRelocatingShards: new(false)},
 			want:   map[string]string{"wait_for_no_relocating_shards": "false"},
 		},
 		{

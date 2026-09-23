@@ -31,12 +31,12 @@ func TestShardsParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: ShardsParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ShardsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ShardsParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ShardsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{

@@ -27,7 +27,7 @@ func TestDanglingIndicesDeleteDanglingIndex(t *testing.T) {
 	name := testutil.MustUniqueString(t, "test-dangling-indices-delete-dangling-index")
 
 	t.Run("success", func(t *testing.T) {
-		resp, err := client.Dangling.DeleteDanglingIndex(t.Context(), opensearchapi.DanglingIndicesDeleteDanglingIndexReq{Params: &opensearchapi.DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(true)}, IndexUUID: name})
+		resp, err := client.Dangling.DeleteDanglingIndex(t.Context(), opensearchapi.DanglingIndicesDeleteDanglingIndexReq{Params: &opensearchapi.DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: new(true)}, IndexUUID: name})
 		require.NoError(t, err)
 		require.NotNil(t, resp)
 		testutil.CompareRawJSONwithParsedJSON(t, resp, resp.Inspect().Response)

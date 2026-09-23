@@ -26,12 +26,12 @@ func TestIndicesRolloverParams_get(t *testing.T) {
 		{name: "empty", params: IndicesRolloverParams{}, want: nil},
 		{
 			name:   "dry_run=true",
-			params: IndicesRolloverParams{DryRun: func(b bool) *bool { return &b }(true)},
+			params: IndicesRolloverParams{DryRun: new(true)},
 			want:   map[string]string{"dry_run": "true"},
 		},
 		{
 			name:   "dry_run=false",
-			params: IndicesRolloverParams{DryRun: func(b bool) *bool { return &b }(false)},
+			params: IndicesRolloverParams{DryRun: new(false)},
 			want:   map[string]string{"dry_run": "false"},
 		},
 		{

@@ -27,12 +27,12 @@ func TestIndicesSplitParams_get(t *testing.T) {
 		{name: "empty", params: IndicesSplitParams{}, want: nil},
 		{
 			name:   "copy_settings=true",
-			params: IndicesSplitParams{CopySettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesSplitParams{CopySettings: new(true)},
 			want:   map[string]string{"copy_settings": "true"},
 		},
 		{
 			name:   "copy_settings=false",
-			params: IndicesSplitParams{CopySettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesSplitParams{CopySettings: new(false)},
 			want:   map[string]string{"copy_settings": "false"},
 		},
 		{
@@ -47,12 +47,12 @@ func TestIndicesSplitParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesSplitParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesSplitParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesSplitParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesSplitParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

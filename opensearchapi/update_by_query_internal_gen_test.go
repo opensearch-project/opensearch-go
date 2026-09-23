@@ -42,22 +42,22 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: UpdateByQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: UpdateByQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: UpdateByQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: UpdateByQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -92,22 +92,22 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: UpdateByQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: UpdateByQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "lenient=true",
-			params: UpdateByQueryParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: UpdateByQueryParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{
@@ -137,22 +137,22 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "request_cache=true",
-			params: UpdateByQueryParams{RequestCache: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{RequestCache: new(true)},
 			want:   map[string]string{"request_cache": "true"},
 		},
 		{
 			name:   "request_cache=false",
-			params: UpdateByQueryParams{RequestCache: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{RequestCache: new(false)},
 			want:   map[string]string{"request_cache": "false"},
 		},
 		{
 			name:   "requests_per_second",
-			params: UpdateByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			params: UpdateByQueryParams{RequestsPerSecond: new(1.5)},
 			want:   map[string]string{"requests_per_second": "1.5"},
 		},
 		{
 			name:   "requests_per_second=0",
-			params: UpdateByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			params: UpdateByQueryParams{RequestsPerSecond: new(0.0)},
 			want:   map[string]string{"requests_per_second": "0"},
 		},
 		{
@@ -207,12 +207,12 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "version=true",
-			params: UpdateByQueryParams{Version: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{Version: new(true)},
 			want:   map[string]string{"version": "true"},
 		},
 		{
 			name:   "version=false",
-			params: UpdateByQueryParams{Version: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{Version: new(false)},
 			want:   map[string]string{"version": "false"},
 		},
 		{
@@ -222,12 +222,12 @@ func TestUpdateByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: UpdateByQueryParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: UpdateByQueryParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: UpdateByQueryParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: UpdateByQueryParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

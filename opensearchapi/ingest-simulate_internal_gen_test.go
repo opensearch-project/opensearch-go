@@ -26,12 +26,12 @@ func TestIngestSimulateParams_get(t *testing.T) {
 		{name: "empty", params: IngestSimulateParams{}, want: nil},
 		{
 			name:   "verbose=true",
-			params: IngestSimulateParams{Verbose: func(b bool) *bool { return &b }(true)},
+			params: IngestSimulateParams{Verbose: new(true)},
 			want:   map[string]string{"verbose": "true"},
 		},
 		{
 			name:   "verbose=false",
-			params: IngestSimulateParams{Verbose: func(b bool) *bool { return &b }(false)},
+			params: IngestSimulateParams{Verbose: new(false)},
 			want:   map[string]string{"verbose": "false"},
 		},
 	}

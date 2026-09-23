@@ -26,22 +26,22 @@ func TestClusterRerouteParams_get(t *testing.T) {
 		{name: "empty", params: ClusterRerouteParams{}, want: nil},
 		{
 			name:   "dry_run=true",
-			params: ClusterRerouteParams{DryRun: func(b bool) *bool { return &b }(true)},
+			params: ClusterRerouteParams{DryRun: new(true)},
 			want:   map[string]string{"dry_run": "true"},
 		},
 		{
 			name:   "dry_run=false",
-			params: ClusterRerouteParams{DryRun: func(b bool) *bool { return &b }(false)},
+			params: ClusterRerouteParams{DryRun: new(false)},
 			want:   map[string]string{"dry_run": "false"},
 		},
 		{
 			name:   "explain=true",
-			params: ClusterRerouteParams{Explain: func(b bool) *bool { return &b }(true)},
+			params: ClusterRerouteParams{Explain: new(true)},
 			want:   map[string]string{"explain": "true"},
 		},
 		{
 			name:   "explain=false",
-			params: ClusterRerouteParams{Explain: func(b bool) *bool { return &b }(false)},
+			params: ClusterRerouteParams{Explain: new(false)},
 			want:   map[string]string{"explain": "false"},
 		},
 		{
@@ -51,12 +51,12 @@ func TestClusterRerouteParams_get(t *testing.T) {
 		},
 		{
 			name:   "retry_failed=true",
-			params: ClusterRerouteParams{RetryFailed: func(b bool) *bool { return &b }(true)},
+			params: ClusterRerouteParams{RetryFailed: new(true)},
 			want:   map[string]string{"retry_failed": "true"},
 		},
 		{
 			name:   "retry_failed=false",
-			params: ClusterRerouteParams{RetryFailed: func(b bool) *bool { return &b }(false)},
+			params: ClusterRerouteParams{RetryFailed: new(false)},
 			want:   map[string]string{"retry_failed": "false"},
 		},
 	}

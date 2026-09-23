@@ -26,12 +26,12 @@ func TestClusterPendingTasksParams_get(t *testing.T) {
 		{name: "empty", params: ClusterPendingTasksParams{}, want: nil},
 		{
 			name:   "local=true",
-			params: ClusterPendingTasksParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ClusterPendingTasksParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ClusterPendingTasksParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ClusterPendingTasksParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

@@ -26,12 +26,12 @@ func TestIndicesForceMergeParams_get(t *testing.T) {
 		{name: "empty", params: IndicesForceMergeParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesForceMergeParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesForceMergeParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestIndicesForceMergeParams_get(t *testing.T) {
 		},
 		{
 			name:   "flush=true",
-			params: IndicesForceMergeParams{Flush: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{Flush: new(true)},
 			want:   map[string]string{"flush": "true"},
 		},
 		{
 			name:   "flush=false",
-			params: IndicesForceMergeParams{Flush: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{Flush: new(false)},
 			want:   map[string]string{"flush": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesForceMergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesForceMergeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
@@ -66,32 +66,32 @@ func TestIndicesForceMergeParams_get(t *testing.T) {
 		},
 		{
 			name:   "only_expunge_deletes=true",
-			params: IndicesForceMergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{OnlyExpungeDeletes: new(true)},
 			want:   map[string]string{"only_expunge_deletes": "true"},
 		},
 		{
 			name:   "only_expunge_deletes=false",
-			params: IndicesForceMergeParams{OnlyExpungeDeletes: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{OnlyExpungeDeletes: new(false)},
 			want:   map[string]string{"only_expunge_deletes": "false"},
 		},
 		{
 			name:   "primary_only=true",
-			params: IndicesForceMergeParams{PrimaryOnly: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{PrimaryOnly: new(true)},
 			want:   map[string]string{"primary_only": "true"},
 		},
 		{
 			name:   "primary_only=false",
-			params: IndicesForceMergeParams{PrimaryOnly: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{PrimaryOnly: new(false)},
 			want:   map[string]string{"primary_only": "false"},
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesForceMergeParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesForceMergeParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesForceMergeParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesForceMergeParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

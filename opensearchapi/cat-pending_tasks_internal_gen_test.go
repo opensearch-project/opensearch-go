@@ -26,12 +26,12 @@ func TestCatPendingTasksParams_get(t *testing.T) {
 		{name: "empty", params: CatPendingTasksParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatPendingTasksParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatPendingTasksParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatPendingTasksParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatPendingTasksParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{

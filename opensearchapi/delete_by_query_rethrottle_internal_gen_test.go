@@ -26,12 +26,12 @@ func TestDeleteByQueryRethrottleParams_get(t *testing.T) {
 		{name: "empty", params: DeleteByQueryRethrottleParams{}, want: nil},
 		{
 			name:   "requests_per_second",
-			params: DeleteByQueryRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			params: DeleteByQueryRethrottleParams{RequestsPerSecond: new(1.5)},
 			want:   map[string]string{"requests_per_second": "1.5"},
 		},
 		{
 			name:   "requests_per_second=0",
-			params: DeleteByQueryRethrottleParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			params: DeleteByQueryRethrottleParams{RequestsPerSecond: new(0.0)},
 			want:   map[string]string{"requests_per_second": "0"},
 		},
 	}

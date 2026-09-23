@@ -26,12 +26,12 @@ func TestMSearchTemplateParams_get(t *testing.T) {
 		{name: "empty", params: MSearchTemplateParams{}, want: nil},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: MSearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{CcsMinimizeRoundtrips: new(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: MSearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{CcsMinimizeRoundtrips: new(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestMSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: MSearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: MSearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
@@ -56,12 +56,12 @@ func TestMSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "typed_keys=true",
-			params: MSearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: MSearchTemplateParams{TypedKeys: new(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: MSearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: MSearchTemplateParams{TypedKeys: new(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 	}

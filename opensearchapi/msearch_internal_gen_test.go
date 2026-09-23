@@ -26,22 +26,22 @@ func TestMSearchParams_get(t *testing.T) {
 		{name: "empty", params: MSearchParams{}, want: nil},
 		{
 			name:   "allow_partial_results=true",
-			params: MSearchParams{AllowPartialResults: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{AllowPartialResults: new(true)},
 			want:   map[string]string{"allow_partial_results": "true"},
 		},
 		{
 			name:   "allow_partial_results=false",
-			params: MSearchParams{AllowPartialResults: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{AllowPartialResults: new(false)},
 			want:   map[string]string{"allow_partial_results": "false"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: MSearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{CcsMinimizeRoundtrips: new(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: MSearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{CcsMinimizeRoundtrips: new(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
@@ -61,12 +61,12 @@ func TestMSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: MSearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: MSearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
@@ -76,12 +76,12 @@ func TestMSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "typed_keys=true",
-			params: MSearchParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: MSearchParams{TypedKeys: new(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: MSearchParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: MSearchParams{TypedKeys: new(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 	}

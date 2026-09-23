@@ -41,12 +41,12 @@ func TestTasksCancelParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: TasksCancelParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: TasksCancelParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: TasksCancelParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: TasksCancelParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

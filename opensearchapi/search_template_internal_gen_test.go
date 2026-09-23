@@ -27,22 +27,22 @@ func TestSearchTemplateParams_get(t *testing.T) {
 		{name: "empty", params: SearchTemplateParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: SearchTemplateParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: SearchTemplateParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: SearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{CcsMinimizeRoundtrips: new(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: SearchTemplateParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{CcsMinimizeRoundtrips: new(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
@@ -52,42 +52,42 @@ func TestSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "explain=true",
-			params: SearchTemplateParams{Explain: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{Explain: new(true)},
 			want:   map[string]string{"explain": "true"},
 		},
 		{
 			name:   "explain=false",
-			params: SearchTemplateParams{Explain: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{Explain: new(false)},
 			want:   map[string]string{"explain": "false"},
 		},
 		{
 			name:   "ignore_throttled=true",
-			params: SearchTemplateParams{IgnoreThrottled: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{IgnoreThrottled: new(true)},
 			want:   map[string]string{"ignore_throttled": "true"},
 		},
 		{
 			name:   "ignore_throttled=false",
-			params: SearchTemplateParams{IgnoreThrottled: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{IgnoreThrottled: new(false)},
 			want:   map[string]string{"ignore_throttled": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: SearchTemplateParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SearchTemplateParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "phase_took=true",
-			params: SearchTemplateParams{PhaseTook: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{PhaseTook: new(true)},
 			want:   map[string]string{"phase_took": "true"},
 		},
 		{
 			name:   "phase_took=false",
-			params: SearchTemplateParams{PhaseTook: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{PhaseTook: new(false)},
 			want:   map[string]string{"phase_took": "false"},
 		},
 		{
@@ -97,22 +97,22 @@ func TestSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "profile=true",
-			params: SearchTemplateParams{Profile: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{Profile: new(true)},
 			want:   map[string]string{"profile": "true"},
 		},
 		{
 			name:   "profile=false",
-			params: SearchTemplateParams{Profile: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{Profile: new(false)},
 			want:   map[string]string{"profile": "false"},
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: SearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: SearchTemplateParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
@@ -137,12 +137,12 @@ func TestSearchTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "typed_keys=true",
-			params: SearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: SearchTemplateParams{TypedKeys: new(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: SearchTemplateParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: SearchTemplateParams{TypedKeys: new(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 	}

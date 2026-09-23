@@ -26,22 +26,22 @@ func TestCountParams_get(t *testing.T) {
 		{name: "empty", params: CountParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: CountParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: CountParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: CountParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: CountParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: CountParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: CountParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: CountParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: CountParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -66,32 +66,32 @@ func TestCountParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_throttled=true",
-			params: CountParams{IgnoreThrottled: func(b bool) *bool { return &b }(true)},
+			params: CountParams{IgnoreThrottled: new(true)},
 			want:   map[string]string{"ignore_throttled": "true"},
 		},
 		{
 			name:   "ignore_throttled=false",
-			params: CountParams{IgnoreThrottled: func(b bool) *bool { return &b }(false)},
+			params: CountParams{IgnoreThrottled: new(false)},
 			want:   map[string]string{"ignore_throttled": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: CountParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: CountParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: CountParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: CountParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "lenient=true",
-			params: CountParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: CountParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: CountParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: CountParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{

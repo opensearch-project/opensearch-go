@@ -42,32 +42,32 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: SearchParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: SearchParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "allow_partial_search_results=true",
-			params: SearchParams{AllowPartialSearchResults: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{AllowPartialSearchResults: new(true)},
 			want:   map[string]string{"allow_partial_search_results": "true"},
 		},
 		{
 			name:   "allow_partial_search_results=false",
-			params: SearchParams{AllowPartialSearchResults: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{AllowPartialSearchResults: new(false)},
 			want:   map[string]string{"allow_partial_search_results": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: SearchParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: SearchParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -87,12 +87,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: SearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{CcsMinimizeRoundtrips: new(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: SearchParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{CcsMinimizeRoundtrips: new(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
@@ -117,12 +117,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "explain=true",
-			params: SearchParams{Explain: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{Explain: new(true)},
 			want:   map[string]string{"explain": "true"},
 		},
 		{
 			name:   "explain=false",
-			params: SearchParams{Explain: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{Explain: new(false)},
 			want:   map[string]string{"explain": "false"},
 		},
 		{
@@ -132,32 +132,32 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_throttled=true",
-			params: SearchParams{IgnoreThrottled: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{IgnoreThrottled: new(true)},
 			want:   map[string]string{"ignore_throttled": "true"},
 		},
 		{
 			name:   "ignore_throttled=false",
-			params: SearchParams{IgnoreThrottled: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{IgnoreThrottled: new(false)},
 			want:   map[string]string{"ignore_throttled": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: SearchParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SearchParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "include_named_queries_score=true",
-			params: SearchParams{IncludeNamedQueriesScore: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{IncludeNamedQueriesScore: new(true)},
 			want:   map[string]string{"include_named_queries_score": "true"},
 		},
 		{
 			name:   "include_named_queries_score=false",
-			params: SearchParams{IncludeNamedQueriesScore: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{IncludeNamedQueriesScore: new(false)},
 			want:   map[string]string{"include_named_queries_score": "false"},
 		},
 		{
@@ -167,12 +167,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "lenient=true",
-			params: SearchParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: SearchParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{
@@ -182,12 +182,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "phase_took=true",
-			params: SearchParams{PhaseTook: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{PhaseTook: new(true)},
 			want:   map[string]string{"phase_took": "true"},
 		},
 		{
 			name:   "phase_took=false",
-			params: SearchParams{PhaseTook: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{PhaseTook: new(false)},
 			want:   map[string]string{"phase_took": "false"},
 		},
 		{
@@ -207,22 +207,22 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "request_cache=true",
-			params: SearchParams{RequestCache: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{RequestCache: new(true)},
 			want:   map[string]string{"request_cache": "true"},
 		},
 		{
 			name:   "request_cache=false",
-			params: SearchParams{RequestCache: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{RequestCache: new(false)},
 			want:   map[string]string{"request_cache": "false"},
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: SearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: SearchParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
@@ -247,22 +247,22 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "seq_no_primary_term=true",
-			params: SearchParams{SeqNoPrimaryTerm: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{SeqNoPrimaryTerm: new(true)},
 			want:   map[string]string{"seq_no_primary_term": "true"},
 		},
 		{
 			name:   "seq_no_primary_term=false",
-			params: SearchParams{SeqNoPrimaryTerm: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{SeqNoPrimaryTerm: new(false)},
 			want:   map[string]string{"seq_no_primary_term": "false"},
 		},
 		{
 			name:   "size",
-			params: SearchParams{Size: func(i int) *int { return &i }(42)},
+			params: SearchParams{Size: new(42)},
 			want:   map[string]string{"size": "42"},
 		},
 		{
 			name:   "size=0",
-			params: SearchParams{Size: func(i int) *int { return &i }(0)},
+			params: SearchParams{Size: new(0)},
 			want:   map[string]string{"size": "0"},
 		},
 		{
@@ -307,12 +307,12 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "track_scores=true",
-			params: SearchParams{TrackScores: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{TrackScores: new(true)},
 			want:   map[string]string{"track_scores": "true"},
 		},
 		{
 			name:   "track_scores=false",
-			params: SearchParams{TrackScores: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{TrackScores: new(false)},
 			want:   map[string]string{"track_scores": "false"},
 		},
 		{
@@ -322,32 +322,32 @@ func TestSearchParams_get(t *testing.T) {
 		},
 		{
 			name:   "typed_keys=true",
-			params: SearchParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{TypedKeys: new(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: SearchParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{TypedKeys: new(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 		{
 			name:   "verbose_pipeline=true",
-			params: SearchParams{VerbosePipeline: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{VerbosePipeline: new(true)},
 			want:   map[string]string{"verbose_pipeline": "true"},
 		},
 		{
 			name:   "verbose_pipeline=false",
-			params: SearchParams{VerbosePipeline: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{VerbosePipeline: new(false)},
 			want:   map[string]string{"verbose_pipeline": "false"},
 		},
 		{
 			name:   "version=true",
-			params: SearchParams{Version: func(b bool) *bool { return &b }(true)},
+			params: SearchParams{Version: new(true)},
 			want:   map[string]string{"version": "true"},
 		},
 		{
 			name:   "version=false",
-			params: SearchParams{Version: func(b bool) *bool { return &b }(false)},
+			params: SearchParams{Version: new(false)},
 			want:   map[string]string{"version": "false"},
 		},
 	}

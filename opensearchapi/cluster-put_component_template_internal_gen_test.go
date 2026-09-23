@@ -26,12 +26,12 @@ func TestClusterPutComponentTemplateParams_get(t *testing.T) {
 		{name: "empty", params: ClusterPutComponentTemplateParams{}, want: nil},
 		{
 			name:   "create=true",
-			params: ClusterPutComponentTemplateParams{Create: func(b bool) *bool { return &b }(true)},
+			params: ClusterPutComponentTemplateParams{Create: new(true)},
 			want:   map[string]string{"create": "true"},
 		},
 		{
 			name:   "create=false",
-			params: ClusterPutComponentTemplateParams{Create: func(b bool) *bool { return &b }(false)},
+			params: ClusterPutComponentTemplateParams{Create: new(false)},
 			want:   map[string]string{"create": "false"},
 		},
 	}

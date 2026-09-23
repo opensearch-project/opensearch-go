@@ -26,12 +26,12 @@ func TestFieldCapsParams_get(t *testing.T) {
 		{name: "empty", params: FieldCapsParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: FieldCapsParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: FieldCapsParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: FieldCapsParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: FieldCapsParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -46,22 +46,22 @@ func TestFieldCapsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: FieldCapsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: FieldCapsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: FieldCapsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: FieldCapsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "include_unmapped=true",
-			params: FieldCapsParams{IncludeUnmapped: func(b bool) *bool { return &b }(true)},
+			params: FieldCapsParams{IncludeUnmapped: new(true)},
 			want:   map[string]string{"include_unmapped": "true"},
 		},
 		{
 			name:   "include_unmapped=false",
-			params: FieldCapsParams{IncludeUnmapped: func(b bool) *bool { return &b }(false)},
+			params: FieldCapsParams{IncludeUnmapped: new(false)},
 			want:   map[string]string{"include_unmapped": "false"},
 		},
 	}

@@ -41,22 +41,22 @@ func TestIndicesParams_get(t *testing.T) {
 		},
 		{
 			name:   "include_unloaded_segments=true",
-			params: IndicesParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(true)},
+			params: IndicesParams{IncludeUnloadedSegments: new(true)},
 			want:   map[string]string{"format": "json", "include_unloaded_segments": "true"},
 		},
 		{
 			name:   "include_unloaded_segments=false",
-			params: IndicesParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(false)},
+			params: IndicesParams{IncludeUnloadedSegments: new(false)},
 			want:   map[string]string{"format": "json", "include_unloaded_segments": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{
@@ -66,12 +66,12 @@ func TestIndicesParams_get(t *testing.T) {
 		},
 		{
 			name:   "pri=true",
-			params: IndicesParams{Pri: func(b bool) *bool { return &b }(true)},
+			params: IndicesParams{Pri: new(true)},
 			want:   map[string]string{"format": "json", "pri": "true"},
 		},
 		{
 			name:   "pri=false",
-			params: IndicesParams{Pri: func(b bool) *bool { return &b }(false)},
+			params: IndicesParams{Pri: new(false)},
 			want:   map[string]string{"format": "json", "pri": "false"},
 		},
 		{

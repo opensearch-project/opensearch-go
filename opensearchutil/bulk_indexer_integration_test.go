@@ -188,13 +188,13 @@ func TestBulkIndexerIntegration(t *testing.T) {
 		t.Cleanup(func() {
 			client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
 				Indices: []string{indexName},
-				Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+				Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 			})
 		})
 
 		client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
 			Indices: []string{indexName},
-			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 		})
 		createResp, err := client.Indices.Create(
 			ctx,
@@ -343,7 +343,7 @@ func TestBulkIndexerIntegration(t *testing.T) {
 					t.Cleanup(func() {
 						client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{
 							Indices: []string{indexA, indexB, indexC},
-							Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+							Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 						})
 					})
 
