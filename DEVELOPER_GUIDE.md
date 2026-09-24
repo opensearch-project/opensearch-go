@@ -409,9 +409,9 @@ make gh.checks.failed     # Only failed checks
 
 ## Code Generation
 
-The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) and API consumer files (`v5preview/opensearchapi/`, `v5preview/opensearchapi/plugins/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, and `x-error-responses` extensions from the spec to produce version-aware Go source.
+The `cmd/osgen` tool generates typed path builder structs (`internal/path/`) from the published [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification). It reads `x-operation-group`, `x-version-added`, `x-version-deprecated`, `x-version-removed`, and `x-error-responses` extensions from the spec to produce version-aware Go source.
 
-The `v5preview/opensearchapi/` package is the v5-track API surface and coexists with the hand-written `opensearchapi/` package during the v4 -> v5 transition. New code should target `v5preview/opensearchapi/`; see `v5preview/opensearchapi/README.md` for usage and `UPGRADING.md` for migration guidance.
+The `opensearchapi/` package on this branch is hand-written. The generated API surface ships as `github.com/opensearch-project/opensearch-go/v5/opensearchapi` and is developed on the `main` branch; `osgen api` has no output target on v4 and `make gen` does not run it. See `UPGRADING.md` for migration guidance.
 
 > **PRs that edit `*_gen.go` will be rejected.** These files are generated. To change them, send a PR against `cmd/osgen` (the generator) or against the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification) (the input).
 
@@ -419,7 +419,7 @@ The `v5preview/opensearchapi/` package is the v5-track API surface and coexists 
 
 ### Partial-failure error generation
 
-The `x-error-responses` extension on a spec operation declares the categories of partial failure that operation can produce. For each category named on an operation, osgen emits:
+The `x-error-responses` extension on a spec operation declares the categories of partial failure that operation can produce. For each category named on an operation, `osgen api` emits the following into the v5 `opensearchapi` package:
 
 - A typed Go error (e.g. `*PartialBulkError`, `*PartialSearchError`, `*ShardFailureError`, `*MultiSearchItemError`) decoded from the response body when that category fires.
 - A bit on `errmask.ErrorMask` (PascalCase, e.g. `errmask.BulkItems`) plus the corresponding env-var token (`bulk_items`) so callers can suppress or surface it via `Config.Errors` or `OPENSEARCH_GO_ERROR_MASK`.
@@ -428,7 +428,7 @@ The `x-error-responses` extension on a spec operation declares the categories of
 
 Operations that declare two or more categories also get a per-op error container (e.g. `*MSearchErrors`) implementing `Unwrap() []error`, used when more than one category fires on a single response.
 
-The user-facing partial-failure model and best-practices guidance live in [`v5preview/opensearchapi/README.md`](v5preview/opensearchapi/README.md#partial-failure-errors) and [`guides/error_handling.md`](guides/error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
+The user-facing partial-failure model and best-practices guidance live in the [v5 `opensearchapi` README](https://github.com/opensearch-project/opensearch-go/blob/v5.0.0/opensearchapi/README.md#partial-failure-errors) and [`guides/error_handling.md`](guides/error_handling.md). They deliberately omit `x-error-responses` terminology because callers don't need to read the spec to use the resulting errors. The spec-driven mechanics are documented here and in [`cmd/osgen/README.md`](cmd/osgen/README.md).
 
 To regenerate (downloads the spec automatically if not cached):
 

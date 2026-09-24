@@ -168,7 +168,7 @@ linters:
       # template level.
       - linters:
           - lll
-        path: _integ_gen_test\.go|internal/path/builders_gen(_test)?\.go|v5preview/opensearchapi/.*_gen\.go
+        path: internal/path/builders_gen(_test)?\.go
     paths:
       - third_party$
       - builtin$

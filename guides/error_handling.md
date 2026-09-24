@@ -2,6 +2,8 @@
 
 > **Note:** Examples in this guide use raw JSON strings for request bodies because the `opensearchapi` package accepts `io.Reader`. When building bodies from user-supplied values, always use `opensearchutil.NewJSONReader` with a Go struct or map instead of string interpolation. See [Security](security.md#request-body-construction) for details.
 
+> **v5:** This guide covers the v4 `opensearchapi` package. For `github.com/opensearch-project/opensearch-go/v5/opensearchapi`, see the [v5 error handling guide](https://github.com/opensearch-project/opensearch-go/blob/v5.0.0/guides/usage-error_handling.md) and the [v4 to v5 migration guide](https://github.com/opensearch-project/opensearch-go/blob/v5.0.0/opensearchapi/UPGRADING_V4_TO_V5.md).
+
 ## Overview
 
 OpenSearch is a distributed system in which operations may partially succeed. Understanding how to detect and handle partial failures is essential for building reliable applications.
@@ -54,8 +56,6 @@ client, err := opensearchapi.NewClient(opensearchapi.Config{
 
 When the `BulkItems` bit is unmasked, bulk operations return a `*PartialBulkError` whenever any items fail. The response is still fully populated -- callers can inspect both the error and the response.
 
-**v4** (`github.com/opensearch-project/opensearch-go/v4/opensearchapi`):
-
 ```go
 resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
 for _, sub := range opensearchapi.Errors(err) {
@@ -75,66 +75,14 @@ for _, sub := range opensearchapi.Errors(err) {
 }
 ```
 
-**v5preview** (`github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi`):
-
-```go
-resp, err := client.Bulk(ctx, opensearchapi.BulkReq{Body: body})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialBulkError:
-        log.Printf("%d/%d items failed",
-            len(e.FailedItems),
-            e.SucceededCount+len(e.FailedItems))
-        for _, item := range e.FailedItems {
-            // BulkRespItem.ID, BulkRespItem.Error, and ErrorCause.Reason are pointers in v5preview.
-            id := ""
-            if item.ID != nil {
-                id = *item.ID
-            }
-            if item.Error != nil {
-                reason := ""
-                if item.Error.Reason != nil {
-                    reason = *item.Error.Reason
-                }
-                log.Printf("  %s %s/%s: %s",
-                    item.Error.Type, item.Index, id, reason)
-            }
-        }
-    default:
-        return err
-    }
-}
-```
-
 ### Search Operations
 
 Search operations return a `*PartialSearchError` when shards fail. The response contains whatever hits came back from the successful shards.
-
-**v4** (`SearchReq` field is `Indices`):
 
 ```go
 resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Indices: []string{"events"},
     Body:    body,
-})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.PartialSearchError:
-        log.Printf("%d/%d shards failed, got %d hits",
-            e.FailedShards, e.TotalShards,
-            len(resp.Hits.Hits))
-    default:
-        return err
-    }
-}
-```
-
-**v5preview** (`SearchReq` field is `Index`):
-
-```go
-resp, err := client.Search(ctx, &opensearchapi.SearchReq{
-    Index: []string{"events"},
-    Body:  body,
 })
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
@@ -154,32 +102,11 @@ Multi-search (`MSearch`, `MSearchTemplate`) and scroll (`Scroll.Get`) operations
 
 Index, Create, Update, and Delete operations return a `*ShardFailureError` when the primary shard succeeds but replica shards fail. The `Operation` field identifies which write operation was performed.
 
-**v4** (document ID field is `DocumentID`):
-
 ```go
 resp, err := client.Index(ctx, opensearchapi.IndexReq{
     Index:      "test",
     DocumentID: "1",
     Body:       strings.NewReader(`{"field": "value"}`),
-})
-for _, sub := range opensearchapi.Errors(err) {
-    switch e := sub.(type) {
-    case *opensearchapi.ShardFailureError:
-        log.Printf("%s: %d/%d shards failed (primary succeeded)",
-            e.Operation, e.FailedShards, e.TotalShards)
-    default:
-        return err
-    }
-}
-```
-
-**v5preview** (document ID field is `ID`):
-
-```go
-resp, err := client.Index(ctx, opensearchapi.IndexReq{
-    Index: "test",
-    ID:    "1",
-    Body:  strings.NewReader(`{"field": "value"}`),
 })
 for _, sub := range opensearchapi.Errors(err) {
     switch e := sub.(type) {
@@ -224,8 +151,7 @@ if err != nil {
     return err
 }
 // resp is fully populated; partial failures (if any) are folded into err
-// when the wrapper bits are unmasked (the v5preview default, or v4 with
-// Config.Errors: errmask.New()).
+// when the wrapper bits are unmasked (Config.Errors: errmask.New()).
 ```
 
 **Inspect categories with a `for`/`switch`** -- when partial error handling is appropriate. Partial error handling lets the client and its application recover from known failure modes they can tolerate (e.g. continue serving a search with a few failed shards, or retry only the bulk items the server rejected) instead of failing the whole operation. The `default` arm catches transport / HTTP / decode errors and any partial-failure category added in a future release:
@@ -312,34 +238,22 @@ Treat `As`/`Has` and the per-Resp helpers against the partial-failure error type
 
 ### Error Type Reference
 
-| Error Type               | Returned By                                                                                              | Key fields                                                                      |
-| ------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `*PartialBulkError`      | `Bulk`, `BulkStream` (v5preview)                                                                         | `FailedItems []BulkRespItem`, `SucceededCount int`                              |
-| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT` (v5preview) | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
-| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                                  | `Operation string`, `FailedShards int`, `TotalShards int`                       |
-| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                                         | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
-| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                                          | `Unwrap() []error` (multi-error contract)                                       |
-| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                                  | `Unwrap() []error`                                                              |
+| Error Type               | Returned By                                                            | Key fields                                                                |
+| ------------------------ | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `*PartialBulkError`      | `Bulk`                                                                 | `FailedItems []BulkRespItem`, `SucceededCount int`                        |
+| `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get` | `FailedShards int`, `TotalShards int`, `Failures []ResponseShardsFailure` |
+| `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                | `Operation string`, `FailedShards int`, `TotalShards int`                 |
+| `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)       | `Items []MultiSearchItemFailure`, `SucceededCount int`                    |
+| `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                        | `Unwrap() []error` (multi-error contract)                                 |
+| `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                | `Unwrap() []error`                                                        |
 
 Every single-bit error type implements the `PartialFailureError` interface and works with `errors.As`. Per-op multi-error containers (`*MSearchErrors`, ...) implement `Unwrap() []error`, so `errors.As` against any sub-error type still matches whether the response carried one or many.
-
-The high-level error type names match across `opensearchapi/` (v4) and `v5preview/opensearchapi/`. The internal field types diverge because v5preview is generated from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification):
-
-| Field role                      | v4 (`opensearchapi`)    | v5preview (`v5preview/opensearchapi`) |
-| ------------------------------- | ----------------------- | ------------------------------------- |
-| Per-shard failure element       | `ResponseShardsFailure` | `ShardSearchFailure`                  |
-| Per-sub-response error envelope | inline `*DocumentError` | embedded `ErrorRespBase`              |
-| Shard envelope on responses     | `ResponseShards`        | `ShardStatistics`                     |
-
-Code that only reads top-level fields (`PartialSearchError.FailedShards`, `.TotalShards`) compiles unchanged across both surfaces. Code that walks the per-shard failure slice needs to switch type names. Multi-index `Req` types also diverge: v4's `SearchReq.Indices` is `Index` in v5preview (see [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full surface delta).
 
 ---
 
 ## Manual Partial Failure Checking
 
 When the relevant wrapper bits are masked (the v4 default), callers must inspect response fields directly. The sections below document this pattern.
-
-> **Field-name note for v5preview readers**: examples in this section use v4 field names. v5preview callers should substitute `Index` for `Indices` on multi-index Req types (e.g. `SearchReq.Index`), use `ID` instead of `DocumentID` on `IndexReq`, and switch the import path to `github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi`. See [`v5preview/opensearchapi/MIGRATING.md`](../v5preview/opensearchapi/MIGRATING.md) for the full delta.
 
 ### 1. Bulk Operations
 

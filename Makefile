@@ -185,10 +185,8 @@ build-coverage:
 OPENAPI_SPEC := $(REPO_ROOT)/opensearch-openapi.yaml
 OPENAPI_SPEC_URL := https://github.com/opensearch-project/opensearch-api-specification/releases/latest/download/opensearch-openapi.yaml
 
-# Generated code output directories.
+# Generated code output directory.
 GEN_PATH_DIR    := $(REPO_ROOT)/internal/path
-GEN_OSAPI_DIR   := $(REPO_ROOT)/v5preview/opensearchapi
-GEN_PLUGINS_DIR := $(GEN_OSAPI_DIR)/plugins
 
 # Version filtering defaults for code generation.
 # Override on the command line to scope generated code to a version window:
@@ -210,11 +208,9 @@ fetch-opensearch-spec-force: ## Re-download the OpenSearch OpenAPI spec from ups
 	@printf "\033[2m-> Downloading %s...\033[0m\n" "$(OPENAPI_SPEC)"
 	@curl -sSfL "$(OPENAPI_SPEC_URL)" -o "$(OPENAPI_SPEC)"
 
-clean-gen:  ## Remove all generated Go files (v5preview/opensearchapi, plugins, internal/path)
+clean-gen:  ## Remove all generated Go files (internal/path)
 	@printf "\033[2m-> Removing generated files...\033[0m\n"
 	@rm -f $(GEN_PATH_DIR)/builders_gen.go $(GEN_PATH_DIR)/builders_gen_test.go
-	@rm -f $(GEN_OSAPI_DIR)/*_gen.go $(GEN_OSAPI_DIR)/*_gen_test.go
-	@find $(GEN_PLUGINS_DIR) -name '*_gen.go' -o -name '*_gen_test.go' | xargs rm -f 2>/dev/null || true
 
 gen-paths: fetch-opensearch-spec  ## Regenerate path builders only
 	@printf "\033[2m-> Regenerating path builders...\033[0m\n"
@@ -227,26 +223,12 @@ gen-paths: fetch-opensearch-spec  ## Regenerate path builders only
 		-max-version=$(GEN_MAX_VERSION) \
 		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
 
-gen-api: fetch-opensearch-spec  ## Regenerate API consumer files only
-	@printf "\033[2m-> Regenerating API consumer files...\033[0m\n"
-	cd $(REPO_ROOT)/cmd/osgen && go run . api \
-		-spec $(OPENAPI_SPEC) \
-		-out $(GEN_OSAPI_DIR) \
-		-pkg opensearchapi \
-		-plugins-out $(GEN_PLUGINS_DIR) \
-		-min-version=$(GEN_MIN_VERSION) \
-		-max-version=$(GEN_MAX_VERSION) \
-		-remove-deprecated=$(GEN_REMOVE_DEPRECATED)
-
-gen: gen-paths gen-api  ## Regenerate all code from OpenAPI spec (run gen-paths and gen-api in parallel with `make -j gen`)
+gen: gen-paths  ## Regenerate all code from OpenAPI spec
 
 regen: clean-gen gen  ## Clean generated files then regenerate from spec
 
-test-gen: regen  ## Regen then run unit + integration tests (ensures tests use fresh output)
+test-gen: regen  ## Regen then run unit tests (ensures tests use fresh output)
 	@$(MAKE) test-unit
-	@printf "\033[2m-> Running integration tests...\033[0m\n"
-	$(eval SECURE_INTEGRATION ?= true)
-	@SECURE_INTEGRATION=$(SECURE_INTEGRATION) go test -v -tags=integration -count=1 -timeout=5m ./v5preview/opensearchapi/...
 
 lint:  ## Run lint on the package
 	@$(MAKE) linters
@@ -380,7 +362,6 @@ godoc: ## Display documentation for the package
 	@printf "\033[2m-> Generating documentation...\033[0m\n"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchapi"
-	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/v4/v5preview/opensearchapi"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchtransport"
 	@echo "* http://localhost:6060/pkg/github.com/opensearch-project/opensearch-go/opensearchutil"
 	@printf "\n"

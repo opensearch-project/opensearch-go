@@ -31,9 +31,4 @@ coverage:
           - "opensearchapi/"
         target: 14%
         threshold: 2%
-      opensearchapiv5:
-        paths:
-          - "v5preview/opensearchapi/"
-        target: 25%
-        threshold: 5%
     patch: off
