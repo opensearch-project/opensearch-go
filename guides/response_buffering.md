@@ -2,6 +2,8 @@
 
 The OpenSearch Go client exposes two entry points for issuing requests, each with a different response-body ownership contract. Pick the one that matches your use case; do not mix them.
 
+> **v5:** This guide covers the v4 client. For `github.com/opensearch-project/opensearch-go/v5`, see the [v5 response buffering guide](https://github.com/opensearch-project/opensearch-go/blob/v5.0.0/guides/transport-response_buffering.md).
+
 | Entry point                         | Body ownership | Buffering            | Use when                                                                 |
 | ----------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
 | `opensearch.Do[T]`                  | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |
@@ -11,7 +13,7 @@ There is intentionally no typed streaming helper. "Stream and decode into `T`" i
 
 ## `Do[T]`: typed, buffered, default
 
-`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi`, `v5preview/opensearchapi`, and `plugins/*`) call into `opensearchtransport.Client.Perform`, which:
+`opensearch.Do[T]` (and the per-API `do(...)` helpers in `opensearchapi` and `plugins/*`) call into `opensearchtransport.Client.Perform`, which:
 
 1. Reads the entire response body into memory.
 2. Closes the underlying body.

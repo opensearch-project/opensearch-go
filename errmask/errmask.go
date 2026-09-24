@@ -31,10 +31,6 @@
 // Because [Empty] and [All] are constants they are not addressable; use
 // [New] to obtain the *ErrorMask the Config field expects (New() with no
 // arguments yields a pointer to [Empty]).
-//
-// The same ErrorMask value is consumed by both the v4 opensearchapi
-// package and the generated v5preview/opensearchapi package, so callers
-// can reason about error behavior uniformly across the two surfaces.
 package errmask
 
 import (

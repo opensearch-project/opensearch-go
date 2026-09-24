@@ -14,10 +14,10 @@ jobs:
       - name: Fetch OpenAPI spec
         run: make fetch-opensearch-spec
       - name: Regenerate code from spec
-        run: make -j gen
+        run: make gen
       - name: Check for diff
         run: |
-          if ! git diff --exit-code internal/path/builders_gen.go internal/path/builders_gen_test.go v5preview/opensearchapi/; then
+          if ! git diff --exit-code internal/path/builders_gen.go internal/path/builders_gen_test.go; then
             echo "::warning::Generated code is out of date. Run 'make gen' and commit the result."
             exit 1
           fi

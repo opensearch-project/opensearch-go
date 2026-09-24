@@ -14,8 +14,7 @@ import (
 // with per-Resp helper methods that detect each category. The
 // per-category methods (e.g. SearchShardFailures) absorb every
 // shape-specific concern: pointer guards on optional `_shards`
-// envelopes, per-sub-response iteration, union-branch dispatch (in
-// v5preview).
+// envelopes and per-sub-response iteration.
 //
 // Two surfaces are exposed for each op:
 //
