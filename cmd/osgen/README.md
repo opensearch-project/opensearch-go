@@ -80,16 +80,16 @@ go run . paths \
 
 ### api
 
-Generates API consumer files for the v5 `opensearchapi` package and its plugin directories. The v5 package is developed on the `main` branch, so on v4 this subcommand has no output target and `make gen` does not run it. See the [`main` branch README](https://github.com/opensearch-project/opensearch-go/blob/main/cmd/osgen/README.md) for usage examples.
+Generates API consumer files for the v5 `opensearchapi` package and its plugin directories. The v5 package is developed on the `main` branch, so on v4 this subcommand has no output target (its defaults still name the removed `v5preview/` directory) and `make gen` does not run it. See the [`main` branch README](https://github.com/opensearch-project/opensearch-go/blob/main/cmd/osgen/README.md) for usage examples.
 
 #### Flags
 
 | Flag                             | Default  | Description                                                             |
 | -------------------------------- | -------- | ----------------------------------------------------------------------- |
 | `-spec`                          | required | Path to the combined OpenAPI spec YAML                                  |
-| `-out`                           | required | Output directory for core API files (e.g. `opensearchapi/`)             |
+| `-out`                           | required | Output directory for core API files (on `main`: `opensearchapi/`)       |
 | `-pkg`                           | required | Go package name for generated files (e.g. `opensearchapi`)              |
-| `-plugins-out`                   | (none)   | Output directory for plugin files (e.g. `opensearchapi/plugins/`)       |
+| `-plugins-out`                   | (none)   | Output directory for plugin files (on `main`: `plugins/`)               |
 | `-groups`                        | (all)    | Comma-separated `x-operation-group` filter                              |
 | `-min-version`                   | `epoch`  | Minimum OpenSearch version (default operator: `>=`)                     |
 | `-max-version`                   | `latest` | Maximum OpenSearch version (default operator: `<=`)                     |

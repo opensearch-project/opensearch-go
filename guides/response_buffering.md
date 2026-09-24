@@ -2,6 +2,8 @@
 
 The OpenSearch Go client exposes two entry points for issuing requests, each with a different response-body ownership contract. Pick the one that matches your use case; do not mix them.
 
+> **v5:** This guide covers the v4 client. For `github.com/opensearch-project/opensearch-go/v5`, see the [v5 response buffering guide](https://github.com/opensearch-project/opensearch-go/blob/v5.0.0/guides/transport-response_buffering.md).
+
 | Entry point                         | Body ownership | Buffering            | Use when                                                                 |
 | ----------------------------------- | -------------- | -------------------- | ------------------------------------------------------------------------ |
 | `opensearch.Do[T]`                  | SDK            | Buffered (in memory) | You want a typed, decoded Go value (CRUD, search, cluster ops). Default. |

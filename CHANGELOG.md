@@ -11,7 +11,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Removed
 
-- **BREAKING**: Remove the `v5preview/opensearchapi/` package and its `plugins/` subpackages. The generated API it previewed shipped as `github.com/opensearch-project/opensearch-go/v5/opensearchapi` in 5.0.0 and is maintained there. The two have drifted apart since, so switching takes more than an import-path edit: v5 multi-index `Req` types use `Indices`, for example, where v5preview used `Index`. `make gen` now regenerates only the `internal/path` builders, the `gen-api` target is gone, and the check-gen workflow no longer diffs `v5preview/`. Move to v5, fall back to v4's hand-written `opensearchapi`, or pin 4.7.3. See [`UPGRADING.md`](UPGRADING.md#v5previewopensearchapi-package-removed)
+- **BREAKING**: Remove the `v5preview/opensearchapi/` package and its `plugins/` subpackages. The generated API it previewed shipped as `github.com/opensearch-project/opensearch-go/v5/opensearchapi` in 5.0.0 and is maintained there. The two have drifted apart since, so switching takes more than an import-path edit: v5 multi-index `Req` types use `Indices`, for example, where v5preview used `Index`. `make gen` now regenerates only the `internal/path` builders, the `gen-api` target is gone, and the check-gen workflow no longer diffs `v5preview/`. Move to v5, fall back to v4's hand-written `opensearchapi`, or pin 4.7.3. See [`UPGRADING.md`](UPGRADING.md#v5previewopensearchapi-package-removed) ([#1171](https://github.com/opensearch-project/opensearch-go/pull/1171))
 
 ### Fixed
 
@@ -27,9 +27,9 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
-- Raise the `go` directive from 1.26.0 to 1.26.8 in the root module and `cmd/osgen` to pick up the standard-library security fixes released since 1.26.0. Building against v4 now needs Go 1.26.8 or newer
-- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.33.4 to 1.33.5, `github.com/tidwall/gjson` from 1.18.0 to 1.19.0, and `github.com/tidwall/match` from 1.1.1 to 1.2.0
-- Bump `golang.org/x/text` from 0.40.0 to 0.42.0 and `github.com/go-openapi/jsonpointer` from 0.22.5 to 1.0.1 in `cmd/osgen`
+- Raise the `go` directive from 1.26.0 to 1.26.8 in the root module and `cmd/osgen` to pick up the standard-library security fixes released since 1.26.0. Building against v4 now needs Go 1.26.8 or newer ([#1171](https://github.com/opensearch-project/opensearch-go/pull/1171))
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.33.4 to 1.33.5, `github.com/tidwall/gjson` from 1.18.0 to 1.19.0, and `github.com/tidwall/match` from 1.1.1 to 1.2.0 ([#1171](https://github.com/opensearch-project/opensearch-go/pull/1171))
+- Bump `golang.org/x/text` from 0.40.0 to 0.42.0 and `github.com/go-openapi/jsonpointer` from 0.22.5 to 1.0.1 in `cmd/osgen` ([#1171](https://github.com/opensearch-project/opensearch-go/pull/1171))
 
 ## [4.7.3]
 
