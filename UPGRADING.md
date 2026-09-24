@@ -78,7 +78,7 @@ The v5 surface ports the same model with internal field types regenerated from t
 
 ### Default Router Injection in v5
 
-v5's `opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v4/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
+v5's `opensearchapi.NewClient` (and `NewDefaultClient`) inject [`opensearchtransport.NewDefaultRouter`](https://pkg.go.dev/github.com/opensearch-project/opensearch-go/v5/opensearchtransport#NewDefaultRouter) when the caller leaves `config.Client.Router` nil. The `OPENSEARCH_GO_ROUTER` environment variable acts as an opt-out:
 
 | `OPENSEARCH_GO_ROUTER` | v4                                                  | v5                                                          |
 | ---------------------- | --------------------------------------------------- | ----------------------------------------------------------- |

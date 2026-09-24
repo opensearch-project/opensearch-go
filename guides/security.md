@@ -137,7 +137,7 @@ Here is a concrete example showing input validation for a multi-tenant applicati
 // WRONG: user input flows directly into a destructive operation.
 // A user supplying "*" would delete all indices.
 func handleDeleteIndex(userInput string) error {
-    _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+    _, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
         Indices: []string{userInput},
     })
     return err
@@ -155,7 +155,7 @@ func handleDeleteIndex(tenantID, userInput string) error {
     if !strings.HasPrefix(userInput, expected) {
         return fmt.Errorf("index %q is not in tenant namespace", userInput)
     }
-    _, err := client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+    _, err := client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
         Indices: []string{userInput},
     })
     return err
@@ -211,7 +211,7 @@ idx, err := osx.LiteralIndex(req.TenantIndex)
 if err != nil {
     return fmt.Errorf("invalid tenant index: %w", err)
 }
-_, err = client.Indices.Delete(ctx, &opensearchapi.IndicesDeleteReq{
+_, err = client.Indices.Delete(ctx, opensearchapi.IndicesDeleteReq{
     Indices: []string{idx},
 })
 ```
@@ -246,7 +246,7 @@ The inverse case (your code constructs a pattern on purpose) benefits from the s
   })
   ```
 
-- For destructive multi-target operations, prefer two steps: resolve the pattern with a read API first (for example `CatIndicesReq` or `IndicesResolveIndexReq`), inspect or log the concrete target list, then act on that list. This trades one round trip for an auditable record of exactly which indices were affected.
+- For destructive multi-target operations, prefer two steps: resolve the pattern with a read API first (for example `CatIndicesReq` or `IndicesResolveReq`), inspect or log the concrete target list, then act on that list. This trades one round trip for an auditable record of exactly which indices were affected.
 
 ### Document IDs and Other Path Parameters
 
