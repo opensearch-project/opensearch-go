@@ -25,6 +25,12 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - Fix `rendezvousTopK` sorting the live connection list when shard placement is unknown. `rankByHash` sorts in place, and the empty-placement path (`/_cat/shards` not yet populated: first requests, a new index, or `-cat_shards`) aliased the caller's `activeConns`/`sortedConns` slice instead of copying into the pooled buffer the shard-names path already used. Concurrent `Route()` then raced with discovery, and the RTT-bucket order that rendezvous filling "MUST" preserve — rebuilt on health checks, not per request — was destroyed. Both branches now copy before ranking ([#1090](https://github.com/opensearch-project/opensearch-go/pull/1090))
 - Fix `Stream` leaking the caller's request body once it has snapshotted it, for both the gzip path and the retry buffer. `compress()` only copies, and `Stream` then replaces `req.Body` with an `io.NopCloser` over the snapshot, so the body `net/http` closes after the round trip is the replacement rather than what the caller passed in. Nothing generated is affected -- `opensearchapi` wraps a byte slice in `io.NopCloser`, whose `Close` is a no-op -- but a caller handing `Stream` a body that owns a resource, such as an `*os.File` or a tracing wrapper, leaked it on every request. The close happens after the snapshot has fully consumed the body and before the first attempt, so no retry reads a closed body; a `compress()` error leaves the original attached and closed by `net/http` as before ([#1150](https://github.com/opensearch-project/opensearch-go/pull/1150))
 
+### Dependencies
+
+- Raise the `go` directive from 1.26.0 to 1.26.8 in the root module and `cmd/osgen` to pick up the standard-library security fixes released since 1.26.0. Building against v4 now needs Go 1.26.8 or newer
+- Bump `github.com/aws/aws-sdk-go-v2/config` from 1.33.4 to 1.33.5, `github.com/tidwall/gjson` from 1.18.0 to 1.19.0, and `github.com/tidwall/match` from 1.1.1 to 1.2.0
+- Bump `golang.org/x/text` from 0.40.0 to 0.42.0 and `github.com/go-openapi/jsonpointer` from 0.22.5 to 1.0.1 in `cmd/osgen`
+
 ## [4.7.3]
 
 ### Changed
