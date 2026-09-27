@@ -24,8 +24,8 @@ github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0 h1:obhahQXDEdVEv8y5bTKXR30L
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0/go.mod h1:6twZZ/aXHNy1vXUO8koUbp++MYzMASkOgEBdkbJYmO0=
 github.com/aws/aws-sdk-go-v2/service/sts v1.51.0 h1:Zpnqa6XtrNzXZnwbdCqHOXpXhMsa01ql/pcRQ1sb4hk=
 github.com/aws/aws-sdk-go-v2/service/sts v1.51.0/go.mod h1:/8JRcdTt//hG0Q4BTmGbuOplT7ABe+5rdtqUHqXvYIM=
-github.com/aws/smithy-go v1.28.1 h1:R/nXH00c8qcfCzQVELtRw+eLQWtzv+VAIEFJ1/xxXlQ=
-github.com/aws/smithy-go v1.28.1/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
+github.com/aws/smithy-go v1.28.2 h1:myhcykQcatTul2B/zITjDk203G7t0awUAs1hVry5Bvg=
+github.com/aws/smithy-go v1.28.2/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529 h1:18kd+8ZUlt/ARXhljq+14TwAoKa61q6dX8jtwOf6DH8=
 github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529/go.mod h1:qe5TWALJ8/a1Lqznoc5BDHpYX/8HU60Hm2AwRmqzxqA=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
