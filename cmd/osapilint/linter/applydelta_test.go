@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	testV4Root = "github.com/opensearch-project/opensearch-go/v4"
-	testV4API  = testV4Root + "/opensearchapi"
+	testV4Root    = "github.com/opensearch-project/opensearch-go/v4"
+	testV4API     = testV4Root + "/opensearchapi"
+	testAPIName   = "opensearchapi"
+	testUnrelated = "net/http" // a path outside every opensearch-go module
 )
 
 func TestUnderModule(t *testing.T) {
@@ -33,7 +35,7 @@ func TestUnderModule(t *testing.T) {
 		{name: "nested sub-package", path: testV4Root + "/plugins/security", want: true},
 		{name: "sibling sharing the prefix", path: testV4Root + "x/opensearchapi", want: false},
 		{name: "other major", path: "github.com/opensearch-project/opensearch-go/v5", want: false},
-		{name: "unrelated", path: "net/http", want: false},
+		{name: "unrelated", path: testUnrelated, want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -54,7 +56,7 @@ func TestIsHelperPkgPath(t *testing.T) {
 		{name: "source opensearchapi", path: testV4API, want: true},
 		{name: "any opensearchapi", path: "github.com/opensearch-project/opensearch-go/v5/opensearchapi", want: true},
 		{name: "other source sub-package", path: testV4Root + "/opensearchtransport", want: false},
-		{name: "unrelated", path: "net/http", want: false},
+		{name: "unrelated", path: testUnrelated, want: false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
@@ -68,7 +70,7 @@ func TestSourceImportsOf(t *testing.T) {
 	prefixes := [][2]string{{testV4Root, "github.com/opensearch-project/opensearch-go/v5"}}
 	resolved := map[string]*packages.Package{
 		testV4Root: {Name: "opensearch"},
-		testV4API:  {Name: "opensearchapi"},
+		testV4API:  {Name: testAPIName},
 	}
 	for _, tc := range []struct {
 		name    string
@@ -80,7 +82,7 @@ func TestSourceImportsOf(t *testing.T) {
 			name:    "unnamed imports take the package's real name",
 			imports: `"` + testV4Root + `"` + "\n" + `"` + testV4API + `"`,
 			pkgs:    resolved,
-			want:    map[string]string{testV4Root: "opensearch", testV4API: "opensearchapi"},
+			want:    map[string]string{testV4Root: "opensearch", testV4API: testAPIName},
 		},
 		{
 			name:    "aliased import takes its alias",
@@ -102,8 +104,8 @@ func TestSourceImportsOf(t *testing.T) {
 		},
 		{
 			name:    "imports outside the source module are skipped",
-			imports: `"net/http"` + "\n" + `"` + testV4Root + `x"`,
-			pkgs:    map[string]*packages.Package{"net/http": {Name: "http"}, testV4Root + "x": {Name: "x"}},
+			imports: `"` + testUnrelated + `"` + "\n" + `"` + testV4Root + `x"`,
+			pkgs:    map[string]*packages.Package{testUnrelated: {Name: "http"}, testV4Root + "x": {Name: "x"}},
 			want:    map[string]string{},
 		},
 	} {
