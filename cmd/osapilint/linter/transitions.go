@@ -60,8 +60,8 @@ type methodRegroup struct {
 //     closed, discrete table; a vanished field with no ruling is "unclassified"
 //     and fails loudly if used (see apirev.FieldDisposition).
 //   - MethodRegroups:    client call-site moves onto new sub-client paths.
-//   - RemovedHelpers:    package-level opensearchapi helpers removed across the
-//     hop, mapped to an linter action ("addressOf" or "manual").
+//   - RemovedHelpers:    package-level opensearchapi or root-package helpers
+//     removed across the hop, mapped to an linter action ("nativeNew" or "manual").
 //   - SemanticFollowups: behavioral changes that cannot be mechanically
 //     rewritten, reported to the operator after a rewrite.
 type hop struct {

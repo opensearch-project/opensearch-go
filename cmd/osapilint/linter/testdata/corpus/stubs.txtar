@@ -255,8 +255,9 @@ go 1.24
 // compatible open source license.
 
 // Package opensearch is a minimal stand-in for opensearch-go/v4's root package,
-// carrying just enough for a fixture to construct a typed client. See the
-// sibling v2/v3 stubs for the general rationale.
+// carrying just enough for a fixture to construct a typed client, plus
+// ToPointer, which v5 removes. See the sibling v2/v3 stubs for the general
+// rationale.
 package opensearch
 
 import "net/http"
@@ -270,6 +271,11 @@ type Config struct {
 type Client struct {
 	Transport http.RoundTripper
 }
+
+// ToPointer matches v4's signature; v5 removes it in favor of new(value).
+func ToPointer[V any](value V) *V {
+	return &value
+}
 -- stub-v4/opensearchapi/opensearchapi.go --
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -278,9 +284,10 @@ type Client struct {
 // compatible open source license.
 
 // Package opensearchapi is a minimal stand-in for opensearch-go/v4's
-// opensearchapi package. It carries the nested Config, the typed Client, and
+// opensearchapi package. It carries the nested Config, the typed Client,
 // AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
-// reference the removed type and exercise the cross-hop removed-type diagnostic.
+// reference the removed type and exercise the cross-hop removed-type diagnostic,
+// and ToPointer, a v4 helper removed in v5.
 package opensearchapi
 
 import "github.com/opensearch-project/opensearch-go/v4"
@@ -305,4 +312,9 @@ func NewClient(config Config) (*Client, error) {
 // v4 -> v5 hop.
 type AliasDeleteResp struct {
 	Acknowledged bool
+}
+
+// ToPointer matches v4's signature; v5 removes it in favor of new(value).
+func ToPointer[V any](value V) *V {
+	return &value
 }

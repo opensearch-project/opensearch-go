@@ -98,14 +98,15 @@ var hopV4toV5 = hop{
 		{FromPath: []string{"UpdateByQuery"}, ToPath: []string{"UpdateByQuery"}, PtrArg: true},
 	},
 
-	// RemovedHelpers handles opensearchapi package-level helpers removed in v5.
-	//   - ToPointer(x): the identity-ish helper is gone; v5 methods take *Req, so
-	//     a call ToPointer(x) becomes &x ("addressOf").
+	// RemovedHelpers handles package-level helpers removed in v5, from
+	// opensearchapi or the root package.
+	//   - ToPointer(x): v4 exports it from both packages; v5 requires Go 1.26, so
+	//     a call ToPointer(x) becomes the native new(x) ("nativeNew").
 	//   - NewFromClient(c): removed; flagged MANUAL because the v5 replacement
 	//     (constructing opensearchapi.Client from a transport client) is
 	//     consumer-specific and cannot be mechanically synthesized.
 	RemovedHelpers: map[string]string{
-		"ToPointer":     "addressOf", // special-cased in the linter: wrap arg in &
+		"ToPointer":     "nativeNew", // special-cased in the linter: ToPointer(x) -> new(x)
 		"NewFromClient": "manual",    // report only
 	},
 

@@ -669,25 +669,29 @@ func renameEmbeddedKey(key *ast.Ident, info *types.Info, renameByFrom map[string
 
 // rewriteCall handles call-site rules: removed opensearchapi helpers and client
 // method regrouping onto target sub-clients. It uses the cursor so it can
-// replace the whole call node (e.g. ToPointer(x) -> &x).
+// replace the whole call node (e.g. ToPointer(x) -> new(x)).
 func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules rewriteRules) []string {
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return nil
 	}
 
-	// (a) opensearchapi.<Helper>(...) removals.
+	// (a) Removed package-level helpers: opensearchapi.<Helper>(...), or the
+	// source root module's <Helper>(...) (v4 exports ToPointer from both).
 	if pkgIdent, ok := sel.X.(*ast.Ident); ok {
-		if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && isOpenSearchAPIPath(pn.Imported().Path()) {
+		if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && isHelperPkgPath(pn.Imported().Path(), rules.importPrefixes) {
+			pkgName := pn.Imported().Name()
 			switch rules.removedHelpers[sel.Sel.Name] {
-			case "addressOf":
-				// ToPointer(x) -> &x (target methods take *Req directly).
+			case "nativeNew":
+				// ToPointer(x) -> new(x). Like ToPointer, new(x) points at a copy of
+				// x and accepts non-addressable operands (new(true), new(42)), which
+				// &x does not.
 				if len(call.Args) == 1 {
-					c.Replace(&ast.UnaryExpr{Op: token.AND, X: call.Args[0]})
-					return []string{"opensearchapi.ToPointer(x) -> &x"}
+					c.Replace(&ast.CallExpr{Fun: ast.NewIdent("new"), Args: call.Args})
+					return []string{fmt.Sprintf("%s.%s(x) -> new(x)", pkgName, sel.Sel.Name)}
 				}
 			case apirev.KindManual:
-				return []string{fmt.Sprintf("MANUAL opensearchapi.%s removed - replace by hand (no mechanical target equivalent)", sel.Sel.Name)}
+				return []string{fmt.Sprintf("MANUAL %s.%s removed - replace by hand (no mechanical target equivalent)", pkgName, sel.Sel.Name)}
 			}
 		}
 	}
@@ -697,6 +701,12 @@ func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules 
 		return []string{e}
 	}
 	return nil
+}
+
+// isHelperPkgPath reports whether path is a package whose removed helpers
+// rewriteCall handles: any opensearchapi package, or a hop's source root module.
+func isHelperPkgPath(path string, importPrefixes [][2]string) bool {
+	return isOpenSearchAPIPath(path) || slices.ContainsFunc(importPrefixes, func(m [2]string) bool { return path == m[0] })
 }
 
 // isOpenSearchAPIPath reports whether path is a v4 or v5 opensearchapi package.

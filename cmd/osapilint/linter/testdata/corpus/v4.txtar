@@ -54,3 +54,40 @@ func removedType() bool {
 	var r opensearchapi.AliasDeleteResp
 	return r.Acknowledged
 }
+-- topointer.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// toPointer exercises the removed ToPointer helper on the v4 -> v5 hop, from
+// both packages v4 exports it from. The literal arguments are not addressable,
+// so the rewrite must emit new(x); &true and &42 would not compile. ToPointer is
+// each import's only use, so both imports must be dropped once it is rewritten.
+func toPointer() (*bool, *int) {
+	return opensearchapi.ToPointer(true), opensearch.ToPointer(42)
+}
+-- topointer.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+// toPointer exercises the removed ToPointer helper on the v4 -> v5 hop, from
+// both packages v4 exports it from. The literal arguments are not addressable,
+// so the rewrite must emit new(x); &true and &42 would not compile. ToPointer is
+// each import's only use, so both imports must be dropped once it is rewritten.
+func toPointer() (*bool, *int) {
+	return new(true), new(42)
+}
