@@ -114,18 +114,13 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 	// isV2Hop gates the v2->v3 idiom-2 pass: the source module prefix being the v2
 	// root module is the cheap, explicit hop marker (see plan.go importPrefixes).
 	isV2Hop := len(rules.importPrefixes) > 0 && rules.importPrefixes[0][0] == v2root
-	// Root import bookkeeping, captured before RewriteImports bumps the path: the
-	// idiom-2 pass repoints *opensearch.Client (root) -> *opensearchapi.Client, so
-	// a file whose ONLY use of the root package was that type ends up with the
-	// bumped root import unreferenced. rootSpecName is the spec's literal name (""
-	// when unnamed, needed to delete it); rootEffectiveName is the name references
-	// actually use ("opensearch" when unnamed, needed to scan for surviving uses).
-	var apiName, apiImportPath, rootSpecName, rootEffectiveName, rootBumpedPath string
+	// Captured before RewriteImports bumps the paths, so each unnamed import still
+	// resolves in pkg.Imports; the post-walk prune scans these for surviving uses.
+	sourceImports := sourceImportsOf(file, pkg, rules.importPrefixes)
+	var apiName, apiImportPath string
 	if isV2Hop {
 		apiName = idiom2ImportNames(file)
 		apiImportPath = rules.importPrefixes[0][1] + "/opensearchapi"
-		rootBumpedPath = rules.importPrefixes[0][1]
-		rootSpecName, rootEffectiveName = rootImportName(file, pkg)
 	}
 	var needImports []string // v3 import paths to inject after the walk
 
@@ -195,42 +190,62 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 		astutil.AddImport(pkg.Fset, file, p)
 	}
 
-	// Prune the root import if the idiom-2 pass rendered it dead. When a file's
-	// only use of the root package was the *opensearch.Client type, that reference
-	// was repointed to *opensearchapi.Client, and RewriteImports still bumped the
-	// root spec v2->v3 in place - leaving a bumped-but-unreferenced import that
-	// fails to compile with "imported and not used". Delete it once no
-	// <rootName>.X reference survives in the file. Uses the spec's literal name so
-	// an aliased root import is matched exactly.
-	if isV2Hop && rootEffectiveName != "" && !usesPkgIdent(file, rootEffectiveName) {
-		if astutil.DeleteNamedImport(pkg.Fset, file, rootSpecName, rootBumpedPath) {
-			res.edits = append(res.edits, fmt.Sprintf("drop now-unused root import %q (idiom2)", rootBumpedPath))
+	// Prune source-module imports the rewrite rendered dead. The input compiled,
+	// so every one of them was referenced; one that no longer is lost its last
+	// use to a rewrite - the idiom-2 pass repointing *opensearch.Client to
+	// *opensearchapi.Client, or a removed ToPointer(x) call being rewritten - and
+	// would fail to compile with "imported and not used". Uses the spec's literal
+	// name so an aliased import is matched exactly.
+	for _, si := range sourceImports {
+		if usesPkgIdent(file, si.name) {
+			continue
+		}
+		var specName string
+		if si.spec.Name != nil {
+			specName = si.spec.Name.Name
+		}
+		path := strings.Trim(si.spec.Path.Value, `"`)
+		if astutil.DeleteNamedImport(pkg.Fset, file, specName, path) {
+			res.edits = append(res.edits, fmt.Sprintf("drop now-unused import %q", path))
 		}
 	}
 	return res
 }
 
-// rootImportName returns the file's import of the v2 root package as
-// (specName, effectiveName): specName is the spec's literal local name ("" when
-// unnamed, which DeleteNamedImport needs to match the spec), and effectiveName
-// is the identifier references actually use - the spec name, or the package's
-// real name (from pkg.Imports) when the spec is unnamed. Both are "" when the
-// file does not import the root package. The pkg.Imports lookup keys on the
-// pre-bump v2root path, so it must run before RewriteImports mutates the spec.
-func rootImportName(file *ast.File, pkg *packages.Package) (string, string) {
+// sourceImport is a file's import of a source-module package, paired with the
+// identifier references to it use.
+type sourceImport struct {
+	spec *ast.ImportSpec
+	name string // the spec's alias, or the package's real name when unnamed
+}
+
+// sourceImportsOf returns the file's imports of packages under the hop's source
+// module prefixes, skipping blank and dot imports (which have no pkg.X uses to
+// scan for) and unnamed imports whose package does not resolve. The pkg.Imports
+// lookup keys on the pre-bump path, so it must run before RewriteImports mutates
+// the specs.
+func sourceImportsOf(file *ast.File, pkg *packages.Package, importPrefixes [][2]string) []sourceImport {
+	var out []sourceImport
 	for _, imp := range file.Imports {
-		if imp.Path == nil || strings.Trim(imp.Path.Value, `"`) != v2root {
+		if imp.Path == nil {
 			continue
 		}
-		if imp.Name != nil {
-			return imp.Name.Name, imp.Name.Name
+		path := strings.Trim(imp.Path.Value, `"`)
+		if !slices.ContainsFunc(importPrefixes, func(m [2]string) bool {
+			return path == m[0] || strings.HasPrefix(path, m[0]+"/")
+		}) {
+			continue
 		}
-		if dep := pkg.Imports[v2root]; dep != nil {
-			return "", dep.Name
+		switch {
+		case imp.Name != nil:
+			if imp.Name.Name != "_" && imp.Name.Name != "." {
+				out = append(out, sourceImport{spec: imp, name: imp.Name.Name})
+			}
+		case pkg.Imports[path] != nil:
+			out = append(out, sourceImport{spec: imp, name: pkg.Imports[path].Name})
 		}
-		return "", "" // unnamed and unresolved: cannot scan for uses, leave it
 	}
-	return "", ""
+	return out
 }
 
 // FileImportsPath reports whether file already imports path, regardless of the
