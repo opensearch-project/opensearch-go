@@ -101,13 +101,13 @@ var hopV4toV5 = hop{
 	// RemovedHelpers handles package-level helpers removed in v5, from
 	// opensearchapi or the root package.
 	//   - ToPointer(x): v4 exports it from both packages; v5 requires Go 1.26, so
-	//     a call ToPointer(x) becomes the native new(x) ("nativeNew").
+	//     a call ToPointer(x) becomes the native new(x) (helperNativeNew).
 	//   - NewFromClient(c): removed; flagged MANUAL because the v5 replacement
 	//     (constructing opensearchapi.Client from a transport client) is
 	//     consumer-specific and cannot be mechanically synthesized.
 	RemovedHelpers: map[string]string{
-		"ToPointer":     "nativeNew", // special-cased in the linter: ToPointer(x) -> new(x)
-		"NewFromClient": "manual",    // report only
+		"ToPointer":     helperNativeNew,   // special-cased in the linter: ToPointer(x) -> new(x)
+		"NewFromClient": apirev.KindManual, // report only
 	},
 
 	// SemanticFollowups are v4->v5 changes that cannot be mechanically rewritten

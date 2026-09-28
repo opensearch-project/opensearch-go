@@ -231,9 +231,7 @@ func sourceImportsOf(file *ast.File, pkg *packages.Package, importPrefixes [][2]
 			continue
 		}
 		path := strings.Trim(imp.Path.Value, `"`)
-		if !slices.ContainsFunc(importPrefixes, func(m [2]string) bool {
-			return path == m[0] || strings.HasPrefix(path, m[0]+"/")
-		}) {
+		if !slices.ContainsFunc(importPrefixes, func(m [2]string) bool { return underModule(path, m[0]) }) {
 			continue
 		}
 		switch {
@@ -418,7 +416,7 @@ func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 		}
 		val := strings.Trim(imp.Path.Value, `"`)
 		for _, m := range importPrefixes {
-			if val == m[0] || strings.HasPrefix(val, m[0]+"/") {
+			if underModule(val, m[0]) {
 				newVal := m[1] + strings.TrimPrefix(val, m[0])
 				imp.Path.Value = `"` + newVal + `"`
 				edits = append(edits, fmt.Sprintf("import %s -> %s", val, newVal))
@@ -427,6 +425,11 @@ func RewriteImports(file *ast.File, importPrefixes [][2]string) []string {
 		}
 	}
 	return edits
+}
+
+// underModule reports whether path is module or one of its sub-packages.
+func underModule(path, module string) bool {
+	return path == module || strings.HasPrefix(path, module+"/")
 }
 
 // flagFieldAccess detects a read of a field that became "manual" (relocated into
@@ -682,7 +685,7 @@ func rewriteCall(c *astutil.Cursor, call *ast.CallExpr, info *types.Info, rules 
 		if pn, ok := info.Uses[pkgIdent].(*types.PkgName); ok && isHelperPkgPath(pn.Imported().Path(), rules.importPrefixes) {
 			pkgName := pn.Imported().Name()
 			switch rules.removedHelpers[sel.Sel.Name] {
-			case "nativeNew":
+			case helperNativeNew:
 				// ToPointer(x) -> new(x). Like ToPointer, new(x) points at a copy of
 				// x and accepts non-addressable operands (new(true), new(42)), which
 				// &x does not.

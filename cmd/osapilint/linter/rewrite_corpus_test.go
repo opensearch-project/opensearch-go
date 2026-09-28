@@ -99,7 +99,7 @@ func TestRewriteCorpus(t *testing.T) {
 			src:     4,
 			dst:     5,
 			corpus:  "v4",
-			goldens: []string{"removedtype.go", "topointer.go"}, // import bumps; the removed-type ref stays put
+			goldens: []string{"removedtype.go", "topointer.go"}, // removedtype: import bumps, the removed-type ref stays put
 			// topointer is marker-free and has no removed-type ref, so its golden
 			// must be import-clean compiling v5.
 			compileClean: []string{"topointer.go"},

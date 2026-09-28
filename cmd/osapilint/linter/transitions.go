@@ -61,7 +61,8 @@ type methodRegroup struct {
 //     and fails loudly if used (see apirev.FieldDisposition).
 //   - MethodRegroups:    client call-site moves onto new sub-client paths.
 //   - RemovedHelpers:    package-level opensearchapi or root-package helpers
-//     removed across the hop, mapped to an linter action ("nativeNew" or "manual").
+//     removed across the hop, mapped to a linter action (helperNativeNew or
+//     apirev.KindManual).
 //   - SemanticFollowups: behavioral changes that cannot be mechanically
 //     rewritten, reported to the operator after a rewrite.
 type hop struct {
@@ -72,6 +73,10 @@ type hop struct {
 	RemovedHelpers    map[string]string
 	SemanticFollowups []string
 }
+
+// helperNativeNew is the RemovedHelpers action that rewrites a call Helper(x)
+// to the native new(x).
+const helperNativeNew = "nativeNew"
 
 // hops is the registry of adjacent transitions, keyed by source major. A
 // coworker completing the multi-version work appends v3->v4, v2->v3 entries here

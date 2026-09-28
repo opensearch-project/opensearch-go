@@ -74,7 +74,7 @@ client.Search(ctx, &opensearchapi.SearchReq{
 
 Pointer-typed `Params` lets callers pass `nil` when no parameters are needed and keeps the struct cheap to copy. `Size` itself has been `*int` since v4.0.0 and is unchanged here -- only the surrounding `Params` value became a pointer.
 
-> The v4 examples use `opensearch.ToPointer`, which v5 removes. v5 requires Go 1.26, so v5 code uses the native `new(value)` form instead; both produce the same pointer.
+> The v4 examples use `opensearch.ToPointer`, which v5 removes. v5 requires Go 1.26, so v5 code uses the native `new(value)` form instead; both return a pointer to a fresh copy of the value.
 
 ### Shared parameters move into embedded structs
 
