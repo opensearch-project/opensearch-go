@@ -287,7 +287,7 @@ func ToPointer[V any](value V) *V {
 // opensearchapi package. It carries the nested Config, the typed Client,
 // AliasDeleteResp - a v4 response type removed outright in v5 - so a fixture can
 // reference the removed type and exercise the cross-hop removed-type diagnostic,
-// and ToPointer, a v4 helper removed in v5.
+// and ToPointer and NewFromClient, v4 helpers removed in v5.
 package opensearchapi
 
 import "github.com/opensearch-project/opensearch-go/v4"
@@ -305,6 +305,12 @@ type Client struct {
 // NewClient builds a typed client from Config.
 func NewClient(config Config) (*Client, error) {
 	return &Client{}, nil
+}
+
+// NewFromClient matches v4's signature; v5 removes it with no mechanical
+// replacement.
+func NewFromClient(client *opensearch.Client) *Client {
+	return &Client{Client: client}
 }
 
 // AliasDeleteResp is a v4 response type with no v5 counterpart (removed in the

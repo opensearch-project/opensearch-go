@@ -94,15 +94,17 @@ func TestRewriteCorpus(t *testing.T) {
 			// v5, so a reference to it must be reported as a MANUAL worklist item.
 			// topointer: the removed ToPointer helper, from both opensearchapi and
 			// the root package, becomes native new(x), and the imports it was the
-			// only use of are dropped.
+			// only use of are dropped. importprune: an aliased import losing its
+			// last use is dropped, and one keeping a use survives. newfromclient:
+			// the removed NewFromClient helper is reported MANUAL, not rewritten.
 			name:    "v4_to_v5",
 			src:     4,
 			dst:     5,
 			corpus:  "v4",
-			goldens: []string{"removedtype.go", "topointer.go"}, // removedtype: import bumps, the removed-type ref stays put
-			// topointer is marker-free and has no removed-type ref, so its golden
-			// must be import-clean compiling v5.
-			compileClean: []string{"topointer.go"},
+			goldens: []string{"removedtype.go", "topointer.go", "importprune.go"}, // removedtype: import bumps, the removed-type ref stays put
+			// topointer and importprune are marker-free and have no removed-type
+			// ref, so their goldens must be import-clean compiling v5.
+			compileClean: []string{"topointer.go", "importprune.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
 				"opensearchapi.ToPointer(x) -> new(x)",
@@ -110,6 +112,7 @@ func TestRewriteCorpus(t *testing.T) {
 				`drop now-unused import "github.com/opensearch-project/opensearch-go/v5"`,
 				`drop now-unused import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.AliasDeleteResp" removed`,
+				"MANUAL opensearchapi.NewFromClient removed - replace by hand",
 			},
 		},
 	} {
