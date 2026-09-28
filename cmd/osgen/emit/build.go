@@ -288,9 +288,6 @@ func buildParamsTestFrag(op *ir.Operation) *ParamsTestFragment {
 // would silently drop the param when nil-pointer means "absent"). *int params
 // emit both 42 and 0 for the same reason: a != 0 guard would silently drop a
 // deliberate 0 (version=0 under external versioning, if_seq_no=0, search size=0).
-//
-// White-box tests for both the core package and plugin packages use Go 1.26's
-// native `new(value)` form for pointer-valued parameters.
 func paramTestCases(p ir.QueryParam) []ParamTestCase {
 	if p.Kind == ir.ParamBool {
 		return []ParamTestCase{
@@ -1328,7 +1325,6 @@ func buildIntegParams(op *ir.Operation, pkg, corePkg string) string {
 		case ir.ParamDuration:
 			fields = append(fields, p.GoName+": 5 * time.Minute")
 		case ir.ParamBool:
-			// Integ tests use a pointer for required bool params.
 			fields = append(fields, fmt.Sprintf("%s: new(true)", p.GoName))
 		case ir.ParamInt:
 			if p.GoType == "*int" {

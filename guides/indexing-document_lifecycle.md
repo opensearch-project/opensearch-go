@@ -375,7 +375,7 @@ To clean up the resources created in this guide, delete the `movies` index:
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"movies"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 		},
 	)
 	if err != nil {

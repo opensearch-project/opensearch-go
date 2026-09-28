@@ -334,8 +334,7 @@ func TestRecalculateWarmupParams(t *testing.T) {
 
 	t.Run("respects explicit cap config", func(t *testing.T) {
 		t.Parallel()
-		explicitCap := 2
-		pool := &multiServerPool{activeListCapConfig: &explicitCap}
+		pool := &multiServerPool{activeListCapConfig: new(2)}
 		pool.mu.activeListCap = 2
 		pool.recalculateWarmupParamsWithLock(5)
 

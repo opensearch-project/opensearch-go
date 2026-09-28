@@ -7,10 +7,9 @@ This guide covers OpenSearch node discovery and role-based node management in th
 ### Enabling Node Discovery
 
 ```go
-discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
-    DiscoverNodesOnStart:  &discoverOnStart, // In Go >=1.26, callers can use the updated syntax: new(true)
+    DiscoverNodesOnStart:  new(true),
     DiscoverNodesInterval: 5 * time.Minute,
 })
 ```
@@ -26,10 +25,9 @@ When discovery is enabled, the client calls `/_nodes/http` to retrieve the full 
 The on-start discovery runs asynchronously -- `NewClient` returns immediately while discovery proceeds in the background. If your application needs topology data before sending the first request, call `DiscoverNodes` after construction:
 
 ```go
-discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
-    DiscoverNodesOnStart:  &discoverOnStart, // In Go >=1.26, callers can use the updated syntax: new(true)
+    DiscoverNodesOnStart:  new(true),
     DiscoverNodesInterval: 5 * time.Minute,
 })
 if err != nil {
@@ -144,10 +142,9 @@ These nodes are INCLUDED (they have data-serving capabilities):
 - Pure `remote_cluster_client` nodes (effectively coordinating-only)
 
 ```go
-discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:            []string{"https://localhost:9200"},
-    DiscoverNodesOnStart: &discoverOnStart,
+    DiscoverNodesOnStart: new(true),
 
     // Default: false (excludes dedicated cluster managers)
     IncludeDedicatedClusterManagers: false,
@@ -258,12 +255,11 @@ func main() {
         log.Fatal(err)
     }
 
-    discoverOnStart := true
     client, err := opensearch.NewClient(opensearch.Config{
         Addresses:             []string{"https://localhost:9200"},
         Username:              "admin",
         Password:              "changeme",
-        DiscoverNodesOnStart:  &discoverOnStart,
+        DiscoverNodesOnStart:  new(true),
         DiscoverNodesInterval: 5 * time.Minute,
         Router:                router,
     })

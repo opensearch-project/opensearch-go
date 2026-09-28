@@ -171,7 +171,7 @@ func TestNewClient_RouterTruthyEnablesDiscovery(t *testing.T) {
 			name:              "env truthy, caller set DiscoverNodesOnStart=false: caller's choice wins",
 			envSet:            true,
 			envValue:          "true",
-			callerSetDiscover: func() *bool { v := false; return &v }(),
+			callerSetDiscover: new(false),
 			wantClientBuilds:  true,
 		},
 		{

@@ -156,11 +156,10 @@ func TestApplyPolicyOverrides_DisableAllRole(t *testing.T) {
 	root, err := NewDefaultPolicy()
 	require.NoError(t, err)
 
-	b := false
 	overrides := []policyOverride{{
 		typeName: "role",
 		envKey:   "OPENSEARCH_GO_POLICY_ROLE",
-		applyAll: &b,
+		applyAll: new(false),
 	}}
 
 	applyPolicyOverrides(root, overrides)
@@ -179,11 +178,10 @@ func TestApplyPolicyOverrides_EnableNoOp(t *testing.T) {
 	root, err := NewDefaultPolicy()
 	require.NoError(t, err)
 
-	b := true
 	overrides := []policyOverride{{
 		typeName: "role",
 		envKey:   "OPENSEARCH_GO_POLICY_ROLE",
-		applyAll: &b,
+		applyAll: new(true),
 	}}
 
 	applyPolicyOverrides(root, overrides)

@@ -56,12 +56,11 @@ For high-throughput bulk operations, you can configure the client to automatical
 		return err
 	}
 
-	discoverOnStart := true
 	advancedClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery to find all cluster nodes
-		DiscoverNodesOnStart:  &discoverOnStart,
+		DiscoverNodesOnStart:  new(true),
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure routing: bulk operations go to ingest nodes, searches go to data nodes
@@ -379,7 +378,7 @@ For production environments with dedicated ingest nodes, you can optimize bulk o
 			Addresses: []string{"http://localhost:9200"},
 
 			// Enable node discovery
-			DiscoverNodesOnStart:  ptr(true),
+			DiscoverNodesOnStart:  new(true),
 			DiscoverNodesInterval: 5 * time.Minute,
 
 			// Use default router for automatic operation routing (recommended)
@@ -455,7 +454,7 @@ To clean up the resources created in this guide, delete the `movies` and `books`
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices: []string{"movies", "books"},
-			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+			Params:  &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 		},
 	)
 	if err != nil {

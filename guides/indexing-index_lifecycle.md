@@ -241,7 +241,7 @@ We can also delete multiple indices at once:
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"movies", "paintings", "burner"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 		},
 	)
 	if err != nil {

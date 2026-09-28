@@ -135,10 +135,9 @@ func TestApplyPoolAIMD_MultiplicativeDecrease_WaitTime(t *testing.T) {
 
 	// Poll with high wait time (congested RESIZABLE pool).
 	// wait_per_completed = 10ms = 10_000_000ns >> 1ms threshold.
-	wait := int64(10_000_000) // 10ms total wait for 1 completed
 	applyPoolAIMD(pc, ThreadPoolStats{
 		Completed:            1,
-		TotalWaitTimeInNanos: &wait,
+		TotalWaitTimeInNanos: new(int64(10_000_000)), // 10ms total wait for 1 completed
 	})
 	require.Equal(t, int32(5), pc.cwnd.Load(), "congestion should halve cwnd")
 
@@ -591,12 +590,11 @@ func TestMaxCwndOrDefault(t *testing.T) {
 
 // makeTestSample creates a nodeSearchSample with the given cumulative stats.
 func makeTestSample(conn *Connection, completed int64, waitNanos int64, maxCwnd int32) nodeSearchSample {
-	wn := waitNanos
 	return nodeSearchSample{
 		conn: conn,
 		stats: ThreadPoolStats{
 			Completed:            completed,
-			TotalWaitTimeInNanos: &wn,
+			TotalWaitTimeInNanos: new(waitNanos),
 		},
 		maxCwnd: maxCwnd,
 	}

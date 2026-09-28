@@ -73,14 +73,13 @@ For full usage and rationale see [`guides/config-envvars.md` Default router inje
 
 The previous "fire-and-forget" behavior masked discovery failures: a caller that handed control back after a failing discovery saw `err == nil` and continued against a stale node list. The new behavior surfaces the failure synchronously so callers can react (retry, alert, fall back to seed nodes).
 
-Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `&true`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: &false` and `DiscoverNodesInterval: 0` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
+Client construction itself never blocks on discovery: when `Config.DiscoverNodesOnStart` is `new(true)`, `opensearch.NewClient` launches a detached goroutine that calls `DiscoverNodes()`, then returns. Callers who want fully manual control set `DiscoverNodesOnStart: new(false)` and `DiscoverNodesInterval: 0` -- no on-start goroutine, no polling loop -- and call `client.DiscoverNodes(ctx)` themselves before issuing requests:
 
 ```go
-discoverOnStart := false
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://localhost:9200"},
-    DiscoverNodesOnStart:  &discoverOnStart, // skip auto-discovery
-    DiscoverNodesInterval: 0,                // disable polling loop
+    DiscoverNodesOnStart:  new(false), // skip auto-discovery
+    DiscoverNodesInterval: 0,          // disable polling loop
 })
 if err != nil {
     log.Fatal(err)
@@ -397,7 +396,7 @@ To turn caching off process-wide, set `OPENSEARCH_GO_DEFAULT_CLIENT_TTL` to a ne
 
 ## Document `version` query parameters are `*int`
 
-`cmd/osgen` typed the document `version` query parameter as `int`, so `version=0` was dropped by the `!= 0` emission guard. External versioning allows version ≥ 0; sending `version_type=external` without `version` makes the server fall back to internal versioning. `version` is now `*int` (`nil` omits, `&0` sends 0), matching `if_seq_no` and search `size`.
+`cmd/osgen` typed the document `version` query parameter as `int`, so `version=0` was dropped by the `!= 0` emission guard. External versioning allows version ≥ 0; sending `version_type=external` without `version` makes the server fall back to internal versioning. `version` is now `*int` (`nil` omits, `new(0)` sends 0), matching `if_seq_no` and search `size`.
 
 Applies to `IndexParams`, `CreateParams`, `DeleteParams`, `GetParams`, `ExistsParams`, `GetSourceParams`, `ExistsSourceParams`, `TermVectorsParams`, `MTermVectorsParams`, and the LTR `AddFeaturesToSet` / `AddFeaturesToSetByQuery` params. Search / delete-by-query / update-by-query `version` is a boolean "include `_version` in hits" flag and is unchanged.
 
@@ -409,23 +408,23 @@ Params: &opensearchapi.IndexParams{Version: 0, VersionType: opensearchapi.Versio
 
 // After
 Params: &opensearchapi.IndexParams{
-    Version:     ptr(0),
+    Version:     new(0),
     VersionType: opensearchapi.VersionTypeExternal,
 }
 ```
 
-`ptr` is a one-line helper (`func ptr[T any](v T) *T { return &v }`). Once your module's `go` directive reaches 1.26, `new(0)` works directly. See [`opensearch.ToPointer` removed](#opensearchtopointer-removed).
+See [`opensearch.ToPointer` removed](#opensearchtopointer-removed) for the `new(value)` form.
 
 ## Number query parameters are `float64`
 
 `cmd/osgen` typed OpenAPI `number` query parameters as `int`, so fractional values could not be sent and `0` was dropped by the `!= 0` emission guard. `number` now maps to `float64`. Parameters whose `0` is a documented wire value (the `requests_per_second` pause, and plugin `if_primary_term` schemas the spec types as `number`) are `*float64`, matching the `*int` pattern used for zero-meaningful integers.
 
-| Param                                                                                                                                    | Was    | Now                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------- |
-| `CountParams.MinScore`                                                                                                                   | `int`  | `float64`                             |
-| `RequestsPerSecond` on reindex / delete-by-query / update-by-query and their rethrottles                                                 | `int`  | `*float64` (`nil` omits; `&0` pauses) |
-| Plugin `if_primary_term` query params typed as `number` in the spec (`ism.put_policy` / `put_policies`, `rollups.put`, `transforms.put`) | `*int` | `*float64`                            |
-| `transforms.search` `from` / `size`                                                                                                      | `int`  | `float64`                             |
+| Param                                                                                                                                    | Was    | Now                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------- |
+| `CountParams.MinScore`                                                                                                                   | `int`  | `float64`                                   |
+| `RequestsPerSecond` on reindex / delete-by-query / update-by-query and their rethrottles                                                 | `int`  | `*float64` (`nil` omits; `new(0.0)` pauses) |
+| Plugin `if_primary_term` query params typed as `number` in the spec (`ism.put_policy` / `put_policies`, `rollups.put`, `transforms.put`) | `*int` | `*float64`                                  |
+| `transforms.search` `from` / `size`                                                                                                      | `int`  | `float64`                                   |
 
 Core document `if_primary_term` (`index` / `update` / `delete`) stays `*int` because those schemas are `type: integer`. Search-body `MinScore` and response `RequestsPerSecond` were already floating-point and are unchanged.
 
@@ -437,7 +436,7 @@ Params: &opensearchapi.ReindexParams{RequestsPerSecond: 42}
 
 // After
 Params: &opensearchapi.ReindexParams{
-    RequestsPerSecond: ptr(42.0),
+    RequestsPerSecond: new(42.0),
 }
 ```
 
@@ -445,7 +444,7 @@ Params: &opensearchapi.ReindexParams{
 
 ```go
 Params: &opensearchapi.ReindexRethrottleParams{
-    RequestsPerSecond: ptr(0.0),
+    RequestsPerSecond: new(0.0),
 }
 ```
 
@@ -487,12 +486,12 @@ SpanTerm: map[string]opensearchapi.CommonQueryDSLSpanTermQuery{
 The full form is a second branch, named for the key it requires, which the shorthand-only type could not express:
 
 ```go
-query := opensearchapi.NewFieldValueFromString("hello")
-operator := "and"
-
 Match: map[string]opensearchapi.CommonQueryDSLMatchQuery{
     "title": opensearchapi.NewCommonQueryDSLMatchQueryFromQuery(
-        opensearchapi.CommonQueryDSLMatchQueryQuery{Query: &query, Operator: &operator},
+        opensearchapi.CommonQueryDSLMatchQueryQuery{
+            Query:    new(opensearchapi.NewFieldValueFromString("hello")),
+            Operator: new("and"),
+        },
     ),
 },
 ```
@@ -623,19 +622,13 @@ The same error is what `Flush(ctx)` returns on the explicit-flush path, which do
 
 ## `opensearch.ToPointer` removed
 
-`opensearch.ToPointer` is removed. It was a thin, exported wrapper (`return ptr(value)`) kept around only for callers building `*T` request parameters; it was never needed internally, since call sites within this module use an unexported per-package `ptr` helper instead.
-
-Replace a call site with a one-line helper of your own:
+`opensearch.ToPointer` is removed. It was a thin, exported wrapper kept around only for callers building `*T` request parameters. v5 requires Go 1.26, so the native `new(value)` form replaces it:
 
 ```go
-func ptr[T any](v T) *T { return &v }
+// Before
+Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: opensearch.ToPointer(true)},
 
-Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
-```
-
-Once your module's `go` directive reaches 1.26, you can drop the helper entirely and use the native `new(value)` literal form instead:
-
-```go
+// After
 Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 ```
 
