@@ -17,6 +17,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
+- Skip request-body compression when the request already carries a `Content-Encoding` header. With `CompressRequestBody: true`, a caller-supplied pre-gzipped body was gzipped again while the header stayed a single `gzip`, so the server inflated once and saw garbage. The retry buffer path still snapshots the body when compression is skipped
 - `cmd/osapilint`: rewrite v4's `ToPointer(x)` to `new(x)` on the v4 -> v5 hop, whether it comes from `opensearchapi` or the root `opensearch` package. The rewrite used to emit `&x`, which did not compile for a literal argument such as `ToPointer(true)` and aliased the caller's variable where `ToPointer` returned a pointer to a copy. It also skipped `opensearch.ToPointer` entirely. Every hop now drops an opensearch-go import the rewrite left unreferenced, such as one whose only use was `ToPointer`; before, only the v2 root import was pruned ([#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))
 
 ### Security

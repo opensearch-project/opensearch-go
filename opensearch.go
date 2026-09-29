@@ -161,7 +161,9 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
-	CompressRequestBody bool // Default: false.
+	// CompressRequestBody gzip-compresses request bodies (default false).
+	// Skipped when the request already carries a Content-Encoding header.
+	CompressRequestBody bool
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon
 	// as NewClient returns. nil (the default) means "auto": if Router is

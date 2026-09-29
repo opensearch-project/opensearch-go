@@ -208,6 +208,10 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
+	// CompressRequestBody gzip-compresses request bodies and sets
+	// Content-Encoding: gzip. Skipped when the request already carries a
+	// Content-Encoding header, so a caller-supplied pre-encoded body is not
+	// compressed again.
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
@@ -1548,7 +1552,10 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	if req.Body != nil && req.Body != http.NoBody {
 		origBody := req.Body
-		if tr.compressRequestBody {
+		// Skip compression when the caller already set Content-Encoding: the
+		// body is assumed pre-encoded, and gzipping again would leave a single
+		// Content-Encoding: gzip on the wire while the payload is double-gzipped.
+		if tr.compressRequestBody && req.Header.Get("Content-Encoding") == "" {
 			buf, err := tr.pooledGzipCompressor.compress(origBody)
 			defer tr.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
