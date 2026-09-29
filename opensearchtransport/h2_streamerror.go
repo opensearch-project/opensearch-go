@@ -13,11 +13,11 @@ import "fmt"
 // vendored internal http2.StreamError (see net/http h2_error.go) that uses
 // reflection to match target structs by field name and type convertibility.
 // Because h2StreamError has identical field names and convertible types,
-// errors.As(err, &target) succeeds for HTTP/2 stream errors
+// errors.AsType[h2StreamError](err) succeeds for HTTP/2 stream errors
 // returned by net/http without importing golang.org/x/net/http2.
 //
-// Implements error so that errors.As accepts h2StreamError as a target
-// (errors.As panics if the target does not implement error or an interface).
+// Implements error so that h2StreamError satisfies errors.AsType's type
+// constraint.
 //
 // This catches RST_STREAM frames (e.g., REFUSED_STREAM, CANCEL) sent by the
 // server. Note that HTTP/2 GOAWAY is handled transparently by Go's transport

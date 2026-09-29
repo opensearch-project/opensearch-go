@@ -80,8 +80,7 @@ func main() {
 			// A UsageError is a malformed command line: exit 2 by flag
 			// convention. When it carries no message the flag package already
 			// wrote the error and usage, so print nothing more.
-			var ue *linter.UsageError
-			if errors.As(err, &ue) {
+			if ue, ok := errors.AsType[*linter.UsageError](err); ok {
 				if ue.Msg != "" {
 					fmt.Fprintln(os.Stderr, "rewrite:", ue.Msg)
 				}

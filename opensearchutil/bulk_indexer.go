@@ -759,8 +759,8 @@ func (w *worker) flush(ctx context.Context) error {
 // through OnError. When every rejected document has an OnFailure, the return is
 // nil and OnError does not fire. It must be called under a lock.
 func (w *worker) processBulkResp(ctx context.Context, blk *opensearchapi.BulkResp, err error) error {
-	var partial *opensearchapi.PartialBulkError
-	if err != nil && !errors.As(err, &partial) {
+	_, isPartial := errors.AsType[*opensearchapi.PartialBulkError](err) //nolint:errcheck // discarded result is the matched error
+	if err != nil && !isPartial {
 		return w.handleBulkError(ctx, fmt.Errorf("flush: %w", err))
 	}
 

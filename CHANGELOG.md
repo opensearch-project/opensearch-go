@@ -9,6 +9,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
 
 - Replace the package-local pointer helpers, anonymous pointer factories, and address-of-a-local temporaries with Go 1.26's native `new(value)` form across tests, samples, and library code, have `cmd/osgen` emit `new(value)` in generated tests, and update the upgrade guides and examples to use `new(value)` in place of `ToPointer` or a local helper ([#873](https://github.com/opensearch-project/opensearch-go/issues/873), [#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))
+- Use Go 1.26's `errors.AsType` in place of `errors.As` across library and tool code, and `sync.WaitGroup.Go` for the address-resolver fan-out in node discovery. `errors.AsType` matches without reflection, so the transport's timeout check no longer heap-allocates its `net.Error` target unless an error in the chain implements `As` ([#XXXX](https://github.com/opensearch-project/opensearch-go/pull/XXXX))
 
 ### Deprecated
 
