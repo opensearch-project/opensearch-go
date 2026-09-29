@@ -150,7 +150,7 @@ func (r CatPITSegmentsResp) RawBody() io.Reader {
 
 // CatPITSegmentsBody is a typed component of the cat.pit_segments operation.
 type CatPITSegmentsBody struct {
-	PITID []string `json:"pit_id"`
+	PITID []PITID `json:"pit_id"`
 }
 
 // PITSegments lists one or several CAT point-in-time segments.

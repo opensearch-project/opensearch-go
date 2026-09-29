@@ -108,9 +108,16 @@ func (r GetAllPITsResp) RawBody() io.Reader {
 
 // PITDetail is a typed component of the get_all_pits operation.
 type PITDetail struct {
-	CreationTime *int64  `json:"creation_time,omitempty"`
-	KeepAlive    *int64  `json:"keep_alive,omitempty"`
-	PITID        *string `json:"pit_id,omitempty"`
+	CreationTime *int64 `json:"creation_time,omitempty"`
+	KeepAlive    *int64 `json:"keep_alive,omitempty"`
+
+	// PITID. Identifies a point in time (PIT): an opaque base64 token that
+	// encodes index names and node IDs. The create-PIT response returns it,
+	// and every search against the PIT echoes it. A request takes it only in
+	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
+	// segments), never in a path, query parameter, or header, because the
+	// token can be large. A scroll uses its own `scroll_id` instead.
+	PITID *PITID `json:"pit_id,omitempty"`
 }
 
 // GetAll lists all active point in time searches.

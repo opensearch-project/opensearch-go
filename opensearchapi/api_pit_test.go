@@ -74,7 +74,7 @@ func TestManual_PIT(t *testing.T) {
 			testutil.CompareRawJSONwithParsedJSON(t, getAllResp, getAllResp.Inspect().Response)
 
 			deleteResp, err := client.PIT.Delete(t.Context(), &opensearchapi.DeletePITReq{
-				Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}},
+				Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID}},
 			})
 			require.NoError(t, err)
 			require.NotEmpty(t, deleteResp.PITs)

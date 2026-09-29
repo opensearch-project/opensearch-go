@@ -241,6 +241,9 @@ func (w *walker) resolveInlineSchema(schema *openapi3.Schema, schemaKey, group s
 		if name, ok := w.resolveStringEnum(schema, group); ok {
 			return name
 		}
+		if name, ok := w.resolveOpaqueString(schema, group); ok {
+			return name
+		}
 		return goStringType(schema)
 	}
 	if schema.Type.Is(openapi3.TypeInteger) {
@@ -629,6 +632,36 @@ func (w *walker) resolveStringEnum(schema *openapi3.Schema, group string) (strin
 	return "", false
 }
 
+// resolveOpaqueString handles a string schema without an enum that opts into an
+// opaque Go token type via the x-type-name extension. It registers the type
+// once, shared, and returns its Go name, so every field referencing the schema
+// uses the same type. Returns ("", false) when the schema does not opt in.
+func (w *walker) resolveOpaqueString(schema *openapi3.Schema, group string) (string, bool) {
+	name := extensionString(schema.Extensions, extTypeName)
+	if name == "" {
+		return "", false
+	}
+	if !token.IsIdentifier(name) {
+		panic(fmt.Sprintf("resolveOpaqueString: %s value %q is not a valid Go identifier", extTypeName, name))
+	}
+	key := "_common___" + name
+	if existing, ok := w.registry.lookup(key); ok {
+		return existing.Name, true
+	}
+	t := &goType{
+		Name:           name,
+		Pkg:            typePkg(true, group, w.registry),
+		SchemaRef:      key,
+		IsShared:       true,
+		IsOpaqueString: true,
+		Comment:        schema.Description,
+	}
+	if registered, ok := w.registry.register(t); ok {
+		return registered.Name, true
+	}
+	return "", false
+}
+
 // resolveStringEnumConst handles a schema whose oneOf/anyOf branches are all
 // {type: string, const: X} entries (e.g. _common___NodeRole). It registers a
 // shared, string-backed enum type named after the schema key and returns its Go
@@ -882,12 +915,15 @@ func (w *walker) resolvePropertylessSchema(schema *openapi3.Schema, key, group s
 	if len(schema.AllOf) != 0 || isRespBody {
 		return "", false
 	}
-	// A string schema carrying x-enum-name opts into a typed enum even when it
-	// arrives here via a component $ref (resolveInlineSchema's inline-string
-	// branch is bypassed for $ref'd schemas). Check before the plain-primitive
-	// fallback so the marker is honored on either path.
+	// A string schema carrying x-enum-name or x-type-name opts into a named
+	// type even when it arrives here via a component $ref (resolveInlineSchema's
+	// inline-string branch is bypassed for $ref'd schemas). Check before the
+	// plain-primitive fallback so the marker is honored on either path.
 	if schema.Type != nil && schema.Type.Is(openapi3.TypeString) {
 		if name, ok := w.resolveStringEnum(schema, group); ok {
+			return name, true
+		}
+		if name, ok := w.resolveOpaqueString(schema, group); ok {
 			return name, true
 		}
 	}

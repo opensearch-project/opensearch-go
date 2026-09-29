@@ -35,7 +35,22 @@ const (
 	WrapperRankEvalFailures            = "RankEvalFailures"
 	WrapperIngestionShardFailures      = "IngestionShardFailures"
 	WrapperPitNodeFailures             = "PitNodeFailures"
+	WrapperPitDeleteItems              = "PitDeleteItems"
 )
+
+// Error-type names: one constant per x-error-types wrapper schema that has a
+// hand-written Go error in opensearchapi (*<Name>Error, built by
+// wrap<Name>). List each in [ErrorTypes] too.
+const (
+	ErrorTypeSearchContextMissing = "SearchContextMissing"
+)
+
+// ErrorTypes returns every error-type name with a hand-written Go error. The
+// dispatch skips any other name, so a wrapper added to the spec before its Go
+// error exists cannot break the build.
+func ErrorTypes() []string {
+	return []string{ErrorTypeSearchContextMissing}
+}
 
 // Identifiers used by the codegen to populate
 // ShardFailureError.Operation in opensearchapi. These match
@@ -73,6 +88,8 @@ const (
 	GroupMTermvectors                = "mtermvectors"
 	GroupRankEval                    = "rank_eval"
 	GroupGetAllPITs                  = "get_all_pits"
+	GroupDeletePIT                   = "delete_pit"
+	GroupDeleteAllPITs               = "delete_all_pits"
 	GroupIndicesRefresh              = "indices.refresh"
 	GroupIndicesFlush                = "indices.flush"
 	GroupIndicesForceMerge           = "indices.forcemerge"
@@ -123,6 +140,7 @@ func Wrappers() []string {
 		WrapperRankEvalFailures,
 		WrapperIngestionShardFailures,
 		WrapperPitNodeFailures,
+		WrapperPitDeleteItems,
 	}
 }
 
@@ -164,6 +182,8 @@ func OperationWrappers() map[string][]string {
 		GroupMTermvectors:    {WrapperMultiDocItems},
 		GroupRankEval:        {WrapperRankEvalFailures},
 		GroupGetAllPITs:      {WrapperPitNodeFailures},
+		GroupDeletePIT:       {WrapperPitDeleteItems},
+		GroupDeleteAllPITs:   {WrapperPitDeleteItems},
 
 		// indices
 		GroupIndicesRefresh:          {WrapperBroadcastShards},

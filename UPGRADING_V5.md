@@ -660,3 +660,49 @@ indexer, err := opensearchutil.NewBulkIndexer(opensearchutil.BulkIndexerConfig{C
 ```
 
 `OPENSEARCH_GO_LOG=debug` and `Config.DebugLogger` (any `debuglog.Logger`) work the same way; see [Debugging](USER_GUIDE.md#debugging). The records are now structured, carrying fields such as `worker`, `action`, and `doc_id` rather than the old preformatted lines. A `BulkIndexerConfig` that still sets `DebugLogger` is a compile error; delete the field.
+
+## PIT deletes report PITs the server kept
+
+`client.PIT.Delete` and `client.PIT.DeleteAll` answer HTTP 200 even when the server could not delete some of the PITs they name; those `pits[]` entries report `"successful": false`. Under the default v5 error mask the client now returns a `*PartialPITDeleteError` for them, where it used to return nil. The response is still fully populated:
+
+```go
+ids := []opensearchapi.PITID{pit.ID()}
+_, err := client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: ids}})
+if pe, ok := errors.AsType[*opensearchapi.PartialPITDeleteError](err); ok {
+    // pe.Failed lists the PITs the server kept; they stay open until keep_alive runs out.
+}
+```
+
+To keep the old behavior, mask the category with `errmask.PitDeleteItems` in `Config.Errors`, or `pit_delete_items` in `OPENSEARCH_GO_ERROR_MASK`.
+
+## PIT ID fields are `opensearchapi.PITID`
+
+Every generated field that carries a PIT ID now has type `opensearchapi.PITID`, an opaque struct, so tools can follow an ID from where the server returns it to every request that takes it, and a string can't be passed as one by accident. The wire format doesn't change: a `PITID` encodes as the bare string.
+
+| Type                                                                                                             | Field   | Before     | After                  |
+| ---------------------------------------------------------------------------------------------------------------- | ------- | ---------- | ---------------------- |
+| `CreatePITResp`, `SearchResp`, `SearchResult`                                                                    | `PITID` | `*string`  | `*PITID`               |
+| `SearchTemplateResp`, `MSearchMultiSearchItem`, `SearchResultJSONValue`                                          | `PITID` | `*string`  | `*PITID`               |
+| `ScrollResp`, `PITDeleted`, `PITDetail`                                                                          | `PITID` | `*string`  | `*PITID`               |
+| `SearchPointInTimeReference`                                                                                     | `ID`    | `string`   | `PITID`                |
+| `DeletePITBody`, `CatPITSegmentsBody`                                                                            | `PITID` | `[]string` | `[]PITID`              |
+| `search_relevance` `Get*Resp` (experiments, judgments, query sets, scheduled experiments, search configurations) | `PITID` | `*string`  | `*opensearchapi.PITID` |
+
+Passing an ID from one field to another needs no change. Anything that treats it as a `string` does:
+
+```go
+// Before
+Body: &opensearchapi.DeletePITBody{PITID: []string{*createResp.PITID}}
+ref := &opensearchapi.SearchPointInTimeReference{ID: storedID}
+saved := *searchResp.PITID
+if id == "" { ... }
+
+// After
+Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{*createResp.PITID}}
+id, err := opensearchapi.ParsePITID(storedID) // rejects ""
+ref := &opensearchapi.SearchPointInTimeReference{ID: id}
+saved := searchResp.PITID.String()
+if id.IsZero() { ... }
+```
+
+`opensearchapi.SearchCursor`, which holds a PIT ID and a sort position, encodes to and from JSON, so you can store it without handling the ID yourself.

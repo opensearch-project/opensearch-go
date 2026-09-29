@@ -16,6 +16,7 @@ import (
 	"net/http"
 
 	opensearch "github.com/opensearch-project/opensearch-go/v5"
+	"github.com/opensearch-project/opensearch-go/v5/errmask"
 	"github.com/opensearch-project/opensearch-go/v5/internal/build"
 	osparams "github.com/opensearch-project/opensearch-go/v5/internal/params"
 	ospath "github.com/opensearch-project/opensearch-go/v5/internal/path"
@@ -24,6 +25,9 @@ import (
 // DeletePITReq represents the request for the delete_pit operation.
 //
 // Deletes one or more point in time searches based on the IDs passed.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // DELETE /_search/point_in_time
 //
@@ -102,6 +106,9 @@ func (r DeletePITParams) get() map[string]string {
 // DeletePITResp represents the response for the delete_pit operation.
 //
 // Deletes one or more point in time searches based on the IDs passed.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // Available: >= 2.4.0.
 //
@@ -130,10 +137,49 @@ func (r DeletePITResp) RawBody() io.Reader {
 //
 // The point-in-time ids to be deleted
 type DeletePITBody struct {
-	PITID []string `json:"pit_id"`
+	PITID []PITID `json:"pit_id"`
+}
+
+// PitDeleteItemFailures detects PITs the server could not delete on a
+// DeletePITResp: pits[] entries with "successful": false. Returns nil when
+// every PIT was deleted.
+func (r *DeletePITResp) PitDeleteItemFailures() *PartialPITDeleteError {
+	if r == nil {
+		return nil
+	}
+	var failed []PITDeleted
+	for _, p := range r.PITs {
+		if p.Successful != nil && !*p.Successful {
+			failed = append(failed, p)
+		}
+	}
+	if len(failed) == 0 {
+		return nil
+	}
+	return &PartialPITDeleteError{
+		Failed:         failed,
+		SucceededCount: len(r.PITs) - len(failed),
+	}
+}
+
+// PartialFailures returns the partial-failure sub-errors detected on the
+// DeletePITResp, gated by mask. Mask bits suppress their corresponding
+// wrapper category.
+func (r *DeletePITResp) PartialFailures(mask errmask.ErrorMask) []error {
+	var errs []error
+	if !mask.Has(errmask.PitDeleteItems) {
+		if e := r.PitDeleteItemFailures(); e != nil {
+			errs = append(errs, e)
+		}
+	}
+	return errs
 }
 
 // Delete deletes one or more point in time searches based on the IDs passed.
+//
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // DELETE /_search/point_in_time
 //
@@ -157,5 +203,5 @@ func (c PointInTimeClient) Delete(ctx context.Context, req *DeletePITReq) (*Dele
 	); err != nil {
 		return &data, err
 	}
-	return &data, nil
+	return &data, collapsePerOpErrors(data.PartialFailures(c.apiClient.errorMask()), nil)
 }

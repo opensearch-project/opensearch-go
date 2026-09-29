@@ -12,6 +12,8 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/stretchr/testify/require"
+
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
 func TestOperationGroup(t *testing.T) {
@@ -279,6 +281,64 @@ func TestErrorResponseWrappers(t *testing.T) {
 			} else {
 				require.Equal(t, tt.want, got)
 			}
+		})
+	}
+}
+
+func TestErrorTypes(t *testing.T) {
+	t.Parallel()
+
+	const ref = "#/components/schemas/_common.errors___SearchContextMissing"
+	wrapper := func(ext map[string]any) *openapi3.T {
+		return &openapi3.T{Components: &openapi3.Components{Schemas: openapi3.Schemas{
+			"_common.errors___SearchContextMissing": {Value: &openapi3.Schema{Extensions: ext}},
+		}}}
+	}
+	complete := wrapper(map[string]any{
+		extErrorStatus:        json.RawMessage(`404`),
+		extErrorRootCauseType: json.RawMessage(`"search_context_missing_exception"`),
+	})
+	withRef := &openapi3.Operation{Extensions: map[string]any{extErrorTypes: json.RawMessage(`[{"$ref":"` + ref + `"}]`)}}
+
+	tests := []struct {
+		name string
+		op   *openapi3.Operation
+		spec *openapi3.T
+		want []ir.ErrorType
+	}{
+		{name: "nil operation", op: nil, spec: complete, want: nil},
+		{name: "missing key", op: &openapi3.Operation{}, spec: complete, want: nil},
+		{
+			name: "reads status and root cause from the wrapper schema",
+			op:   withRef,
+			spec: complete,
+			want: []ir.ErrorType{{Name: "SearchContextMissing", Status: 404, RootCauseType: "search_context_missing_exception"}},
+		},
+		{
+			name: "loaded values that are not json.RawMessage",
+			op:   &openapi3.Operation{Extensions: map[string]any{extErrorTypes: []any{map[string]any{"$ref": ref}}}},
+			spec: wrapper(map[string]any{extErrorStatus: float64(404), extErrorRootCauseType: "search_context_missing_exception"}),
+			want: []ir.ErrorType{{Name: "SearchContextMissing", Status: 404, RootCauseType: "search_context_missing_exception"}},
+		},
+		{name: "skips a wrapper missing from components", op: withRef, spec: &openapi3.T{Components: &openapi3.Components{}}, want: nil},
+		{
+			name: "skips a wrapper without a status",
+			op:   withRef,
+			spec: wrapper(map[string]any{extErrorRootCauseType: json.RawMessage(`"search_context_missing_exception"`)}),
+			want: nil,
+		},
+		{
+			name: "skips a wrapper without a root cause type",
+			op:   withRef,
+			spec: wrapper(map[string]any{extErrorStatus: json.RawMessage(`404`)}),
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, errorTypes(tt.op, tt.spec))
 		})
 	}
 }

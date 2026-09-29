@@ -11464,6 +11464,8 @@ paths:
       operationId: search.0
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -11536,6 +11538,8 @@ paths:
       operationId: search.1
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -11727,9 +11731,15 @@ paths:
   /_search/point_in_time:
     delete:
       operationId: delete_pit.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___PitDeleteItems'
       x-operation-group: delete_pit
       x-version-added: '2.4'
-      description: Deletes one or more point in time searches based on the IDs passed.
+      description: |-
+        Deletes one or more point in time searches based on the IDs passed.
+        The response lists each PIT with `successful`. The server can answer
+        200 while some entries report `successful: false`; those PITs were not
+        deleted and stay open until their `keep_alive` runs out.
       externalDocs:
         url: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
       requestBody:
@@ -11746,9 +11756,15 @@ paths:
   /_search/point_in_time/_all:
     delete:
       operationId: delete_all_pits.0
+      x-error-responses:
+        - $ref: '#/components/schemas/_common.errors___PitDeleteItems'
       x-operation-group: delete_all_pits
       x-version-added: '2.4'
-      description: Deletes all active point in time searches.
+      description: |-
+        Deletes all active point in time searches.
+        The response lists each PIT with `successful`. The server can answer
+        200 while some entries report `successful: false`; those PITs were not
+        deleted and stay open until their `keep_alive` runs out.
       externalDocs:
         url: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#delete-pits
       responses:
@@ -11803,6 +11819,8 @@ paths:
       operationId: scroll.0
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: scroll
       x-version-added: '1.0'
       description: Allows to retrieve a large numbers of results from a single search request.
@@ -11826,6 +11844,8 @@ paths:
       operationId: scroll.1
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: scroll
       x-version-added: '1.0'
       description: Allows to retrieve a large numbers of results from a single search request.
@@ -11872,6 +11892,8 @@ paths:
           $ref: '#/components/responses/clear_scroll___404'
     get:
       operationId: scroll.2
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: scroll
       deprecated: true
       x-deprecation-message: A scroll id can be quite large and should be specified as part of the body
@@ -11897,6 +11919,8 @@ paths:
           $ref: '#/components/responses/scroll___200'
     post:
       operationId: scroll.3
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: scroll
       deprecated: true
       x-deprecation-message: A scroll id can be quite large and should be specified as part of the body
@@ -14755,6 +14779,8 @@ paths:
       operationId: search.2
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -14828,6 +14854,8 @@ paths:
       operationId: search.3
       x-error-responses:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
+      x-error-types:
+        - $ref: '#/components/schemas/_common.errors___SearchContextMissing'
       x-operation-group: search
       x-version-added: '1.0'
       description: Returns results matching a query.
@@ -14955,7 +14983,12 @@ paths:
         - $ref: '#/components/schemas/_common.errors___SearchShards'
       x-operation-group: create_pit
       x-version-added: '2.4'
-      description: Creates point in time context.
+      description: |-
+        Creates point in time context.
+        The request must set `keep_alive`. The response's `pit_id` goes in the
+        body of later requests: `pit.id` on a search, `pit_id` on a delete.
+        Delete the PIT when done; until then it counts against
+        `search.max_open_pit_context`.
       externalDocs:
         url: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
       parameters:
@@ -21166,7 +21199,11 @@ components:
       name: keep_alive
       in: query
       required: true
-      description: Specify the keep alive for point in time.
+      description: |-
+        Specify the keep alive for point in time.
+        Each search against the PIT restarts it, and a search cannot shorten
+        it. It cannot exceed the `point_in_time.max_keep_alive` cluster
+        setting (24h by default).
       schema:
         $ref: '#/components/schemas/_common___Duration'
     create_pit___query.preference:
@@ -31072,7 +31109,7 @@ components:
               pit_id:
                 type: array
                 items:
-                  type: string
+                  $ref: '#/components/schemas/_common___PitId'
             required:
               - pit_id
     clear_scroll:
@@ -31209,7 +31246,7 @@ components:
               pit_id:
                 type: array
                 items:
-                  type: string
+                  $ref: '#/components/schemas/_common___PitId'
             required:
               - pit_id
     explain:
@@ -34346,7 +34383,7 @@ components:
             type: object
             properties:
               pit_id:
-                type: string
+                $ref: '#/components/schemas/_common___PitId'
               _shards:
                 $ref: '#/components/schemas/_common___ShardStatistics'
               creation_time:
@@ -38900,6 +38937,19 @@ components:
         _nodes:
           $ref: '#/components/schemas/_common___NodeStatistics'
       x-version-added: '1.0'
+    _common.errors___PitDeleteItems:
+      description: |-
+        `_core.delete_pit` and `_core.delete_all_pits` answer HTTP 200 even
+        when the server could not delete some of the PITs: their entries
+        in `pits[]` report `"successful": false`. A PIT that was not
+        deleted stays open until its `keep_alive` runs out.
+      type: object
+      properties:
+        pits:
+          type: array
+          items:
+            $ref: '#/components/schemas/_core.pit___DeletedPit'
+      x-version-added: '2.4'
     _common.errors___PitNodeFailures:
       description: |-
         `_core.get_all_pits` returns per-node failures at the top level
@@ -38924,6 +38974,23 @@ components:
           type: object
           additionalProperties:
             $ref: '#/components/schemas/_common___ErrorCause'
+      x-version-added: '1.0'
+    _common.errors___SearchContextMissing:
+      description: |-
+        Search-family request naming a PIT or scroll context the server no
+        longer has, because it expired or was deleted. The response is a
+        404 `search_phase_execution_exception` whose `error.root_cause[]`
+        includes `search_context_missing_exception`. A client can resume
+        without the context from the last hit's sort values, keeping the
+        position but not the snapshot.
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/_common___ErrorCause'
+        status:
+          type: integer
+      x-error-status: 404
+      x-error-root-cause-type: search_context_missing_exception
       x-version-added: '1.0'
     _common.errors___SearchShards:
       description: |-
@@ -40607,6 +40674,16 @@ components:
         Response format selector for PPL plugin operations. The valid set is
         the union of values accepted across `_plugins/_ppl/*` endpoints;
         defaults and per-endpoint subsets mirror the SQL plugin.
+    _common___PitId:
+      type: string
+      description: |-
+        Identifies a point in time (PIT): an opaque base64 token that encodes
+        index names and node IDs. The create-PIT response returns it, and
+        every search against the PIT echoes it. A request takes it only in
+        its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat
+        PIT segments), never in a path, query parameter, or header, because
+        the token can be large. A scroll uses its own `scroll_id` instead.
+      x-type-name: PITID
     _common___QueryCacheStats:
       type: object
       description: The statistics about query cache usage.
@@ -51579,12 +51656,12 @@ components:
         successful:
           type: boolean
         pit_id:
-          type: string
+          $ref: '#/components/schemas/_common___PitId'
     _core.pit___PitDetail:
       type: object
       properties:
         pit_id:
-          type: string
+          $ref: '#/components/schemas/_common___PitId'
         creation_time:
           type: integer
           format: int64
@@ -52835,7 +52912,7 @@ components:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/_common___Id'
+          $ref: '#/components/schemas/_common___PitId'
         keep_alive:
           $ref: '#/components/schemas/_common___Duration'
       required:
@@ -53062,7 +53139,7 @@ components:
         profile:
           $ref: '#/components/schemas/_core.search___Profile'
         pit_id:
-          $ref: '#/components/schemas/_common___Id'
+          $ref: '#/components/schemas/_common___PitId'
         _scroll_id:
           $ref: '#/components/schemas/_common___ScrollId'
         suggest:

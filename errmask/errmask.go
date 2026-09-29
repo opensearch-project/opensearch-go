@@ -131,6 +131,10 @@ const (
 	// _core.get_all_pits responses (server-side server quirk: not
 	// wrapped in _nodes).
 	PitNodeFailures
+
+	// PitDeleteItems masks pits[] entries with "successful": false on
+	// DeletePIT / DeleteAllPITs responses: PITs the server could not delete.
+	PitDeleteItems
 )
 
 // Empty is the zero value of [ErrorMask]: no categories masked, every
@@ -160,7 +164,7 @@ const All = BulkItems | SearchShards | WriteShards | BroadcastShards |
 	MultiSearchItems | MultiDocItems |
 	SnapshotCreateShardFailures | SnapshotGetShardFailures |
 	SimulateDocFailures | RankEvalFailures | IngestionShardFailures |
-	PitNodeFailures
+	PitNodeFailures | PitDeleteItems
 
 // Token names accepted by [Parse] and emitted by [ErrorMask.String].
 //
@@ -181,6 +185,7 @@ const (
 	TokenRankEvalFailures            = "rank_eval_failures"
 	TokenIngestionShardFailures      = "ingestion_shard_failures"
 	TokenPitNodeFailures             = "pit_node_failures"
+	TokenPitDeleteItems              = "pit_delete_items"
 
 	// TokenAll selects every wrapper bit at once.
 	TokenAll = "all"
@@ -302,6 +307,7 @@ var tokenOrder = []tokenEntry{
 	{RankEvalFailures, TokenRankEvalFailures},
 	{IngestionShardFailures, TokenIngestionShardFailures},
 	{PitNodeFailures, TokenPitNodeFailures},
+	{PitDeleteItems, TokenPitDeleteItems},
 }
 
 // nameToBit maps a snake_case token to its bit pattern. The second

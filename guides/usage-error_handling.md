@@ -126,6 +126,33 @@ for _, sub := range opensearchapi.Errors(err) {
 }
 ```
 
+### PIT Deletes
+
+`client.PIT.Delete` and `client.PIT.DeleteAll` answer HTTP 200 even when the server could not delete some PITs; those entries in `pits[]` report `"successful": false`. The client returns a `*PartialPITDeleteError` for them, unless the error mask hides the `PitDeleteItems` category. A PIT that was not deleted stays open until its `keep_alive` runs out, so retry the delete:
+
+```go
+pitID := *createResp.PITID // an opensearchapi.PITID from client.PIT.Create
+_, err := client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{
+    Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID}},
+})
+if pe, ok := errors.AsType[*opensearchapi.PartialPITDeleteError](err); ok {
+    log.Printf("%d PITs were not deleted", len(pe.Failed))
+}
+```
+
+A PIT handle's `Close` checks for this itself, even when the mask hides it, and reports the failure so a later `Close` can retry.
+
+### Expired PITs and Scrolls
+
+This one is not a partial failure. A search or scroll that names a PIT or scroll context the server no longer has, because it expired or was deleted, fails with HTTP 404. The client returns it as a `*SearchContextMissingError`, which wraps the server's `*opensearch.StructError`. A scan that is being resumed can fall back to `search_after` without the PIT, keeping its position but not its snapshot:
+
+```go
+_, err := client.Search(ctx, req)
+if _, ok := errors.AsType[*opensearchapi.SearchContextMissingError](err); ok {
+    // The PIT or scroll is gone: start over, or page on without it.
+}
+```
+
 ### Helper Functions
 
 Three helper functions simplify common patterns:
@@ -251,6 +278,7 @@ Treat `As`/`Has` and the per-Resp helpers against the partial-failure error type
 | `*PartialSearchError`    | `Search`, `MSearch`, `MSearchTemplate`, `SearchTemplate`, `Scroll.Get`, `Count`, `CreatePIT` | `FailedShards int`, `TotalShards int`, `Failures` (per-shard slice; type below) |
 | `*ShardFailureError`     | `Index`, `Document.Create`, `Document.Delete`, `Update`                                      | `Operation string`, `FailedShards int`, `TotalShards int`                       |
 | `*MultiSearchItemError`  | `MSearch`, `MSearchTemplate` (per-sub-response error inspection)                             | `Items []MultiSearchItemFailure`, `SucceededCount int`                          |
+| `*PartialPITDeleteError` | `PointInTimeClient.Delete`, `PointInTimeClient.DeleteAll`                                    | `Failed []PITDeleted`, `SucceededCount int`                                     |
 | `*MSearchErrors`         | `MSearch` when 2+ wrappers fire                                                              | `Unwrap() []error` (multi-error contract)                                       |
 | `*MSearchTemplateErrors` | `MSearchTemplate` when 2+ wrappers fire                                                      | `Unwrap() []error`                                                              |
 

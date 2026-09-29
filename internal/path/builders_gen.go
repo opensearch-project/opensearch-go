@@ -1907,6 +1907,10 @@ func (p CreatePath) Build() (string, error) {
 // CreatePITPath builds URL paths for the create_pit operation.
 //
 // Creates point in time context.
+// The request must set `keep_alive`. The response's `pit_id` goes in the
+// body of later requests: `pit.id` on a search, `pit_id` on a delete.
+// Delete the PIT when done; until then it counts against
+// `search.max_open_pit_context`.
 //
 // Available: >= 2.4.0
 //
@@ -2033,6 +2037,9 @@ func (p DeletePath) Build() (string, error) {
 // DeleteAllPITsPath builds URL paths for the delete_all_pits operation.
 //
 // Deletes all active point in time searches.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // Available: >= 2.4.0
 //
@@ -2106,6 +2113,9 @@ func (p DeleteByQueryRethrottlePath) Build() (string, error) {
 // DeletePITPath builds URL paths for the delete_pit operation.
 //
 // Deletes one or more point in time searches based on the IDs passed.
+// The response lists each PIT with `successful`. The server can answer
+// 200 while some entries report `successful: false`; those PITs were not
+// deleted and stay open until their `keep_alive` runs out.
 //
 // Available: >= 2.4.0
 //

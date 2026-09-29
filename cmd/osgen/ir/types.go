@@ -100,6 +100,13 @@ type Operation struct {
 	// deterministic.
 	ErrorWrappers []string
 
+	// ErrorTypes lists the non-2xx errors this operation declares in the
+	// proposed x-error-types extension, in spec order. The dispatch wraps
+	// each one that has a hand-written Go error in that typed error, so
+	// callers can tell it apart from other server errors; see
+	// emit.DispatchFragment.
+	ErrorTypes []ErrorType
+
 	// Routing (computed during parse from group name).
 	Package    string
 	ImportPath string
@@ -372,6 +379,9 @@ const (
 	TypeAmbiguousWire
 	TypeEnum       // int-backed iota enum (named int type + const block)
 	TypeStringEnum // string-backed enum (named string type + const block; permissive, unknown values round-trip)
+	// TypeOpaqueString is an opaque token (x-type-name): a struct around an
+	// unexported string, encoded on the wire as that string.
+	TypeOpaqueString
 )
 
 // TypeScope determines where a type is emitted.
@@ -485,6 +495,15 @@ const (
 	PathOpIfEnd                          // close if{} block
 	PathOpExplainCheck                   // emit "if any-optional-set { return explain<T>(p) }"
 )
+
+// ErrorType is a non-2xx error an operation declares with x-error-types: a
+// response with Status whose root_cause includes RootCauseType. Both come from
+// the referenced wrapper schema, so the spec alone says how to recognize it.
+type ErrorType struct {
+	Name          string // wrapper-schema name, e.g. "SearchContextMissing"; the Go error is *<Name>Error
+	Status        int
+	RootCauseType string
+}
 
 // DispatchRoute describes how an operation maps to a client method.
 type DispatchRoute struct {

@@ -99,8 +99,13 @@ type GetScheduledExperimentsResp struct {
 	// Available: >= 2.12.0.
 	PhaseTook *opensearchapi.PhaseTook `json:"phase_took,omitempty"`
 
-	// PITID is the unique identifier for a resource.
-	PITID *string `json:"pit_id,omitempty"`
+	// PITID. Identifies a point in time (PIT): an opaque base64 token that
+	// encodes index names and node IDs. The create-PIT response returns it,
+	// and every search against the PIT echoes it. A request takes it only in
+	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
+	// segments), never in a path, query parameter, or header, because the
+	// token can be large. A scroll uses its own `scroll_id` instead.
+	PITID *opensearchapi.PITID `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.
 	ProcessorResults []opensearchapi.SearchProcessorExecutionDetail `json:"processor_results,omitempty"`

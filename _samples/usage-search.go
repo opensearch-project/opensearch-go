@@ -174,31 +174,31 @@ func example() error {
 
 	//
 
-	pitCreateResp, err := client.PIT.Create(
+	sortByYear := opensearchapi.NewSortFromArray([]opensearchapi.SortCombinations{
+		opensearchapi.NewSortCombinationsFromFieldSortMap(map[string]opensearchapi.FieldSort{"year": {Order: new("desc")}}),
+	})
+
+	// The one-shot iterator creates a PIT, pages it with search_after, and deletes it when the loop ends.
+	hits, errf := client.PIT.SearchAfter(
 		ctx,
-		&opensearchapi.CreatePITReq{
-			Indices: []string{exampleIndex},
-			Params:  &opensearchapi.CreatePITParams{KeepAlive: time.Minute},
-		},
+		&opensearchapi.CreatePITReq{Indices: []string{exampleIndex}, Params: &opensearchapi.CreatePITParams{KeepAlive: time.Minute}},
+		&opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear, Size: new(5)}},
 	)
+	for hit := range hits {
+		fmt.Printf("PIT hit %q: %s\n", *hit.ID, hit.Source)
+	}
+	if err := errf(); err != nil {
+		return err
+	}
+
+	// A PIT handle can be shared and searched more than once; its owner closes it.
+	pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	pitID := ""
-	if pitCreateResp.PITID != nil {
-		pitID = *pitCreateResp.PITID
-	}
+	defer pit.Close()
 
-	searchResp, err = client.Search(
-		ctx,
-		&opensearchapi.SearchReq{
-			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" } }`, pitID)),
-			Params: &opensearchapi.SearchParams{
-				Size: new(5),
-				Sort: []string{"year:desc"},
-			},
-		},
-	)
+	searchResp, err = pit.Search(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear, Size: new(2)}})
 	if err != nil {
 		return err
 	}
@@ -206,29 +206,9 @@ func example() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
+	fmt.Printf("PIT Search Response:\n%s\n", string(respAsJson))
 
-	searchResp, err = client.Search(
-		ctx,
-		&opensearchapi.SearchReq{
-			BodyReader: strings.NewReader(fmt.Sprintf(`{ "pit": { "id": "%s", "keep_alive": "1m" }, "search_after": [ "1994" ] }`, pitID)),
-			Params: &opensearchapi.SearchParams{
-				Size: new(5),
-				Sort: []string{"year:desc"},
-			},
-		},
-	)
-	if err != nil {
-		return err
-	}
-	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
-
-	_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []string{pitID}}})
-	if err != nil {
+	if err := pit.Close(); err != nil {
 		return err
 	}
 

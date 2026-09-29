@@ -164,6 +164,7 @@ Each token is the lowercase snake_case form of the corresponding wrapper-schema 
 | `rank_eval_failures`             | `RankEvalFailures`            | `RankEval`                                                                                   |
 | `ingestion_shard_failures`       | `IngestionShardFailures`      | `Ingestion.Pause`, `Ingestion.Resume`                                                        |
 | `pit_node_failures`              | `PitNodeFailures`             | `GetAllPits`                                                                                 |
+| `pit_delete_items`               | `PitDeleteItems`              | `PointInTimeClient.Delete`, `PointInTimeClient.DeleteAll`                                    |
 
 Special tokens:
 

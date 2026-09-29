@@ -241,76 +241,157 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 
 ### Pagination with Point in Time
 
-The scroll example above has one weakness: if the index is updated while you are scrolling through the results, they will be paginated inconsistently. To avoid this, you should use the "Point in Time" feature. The following example demonstrates how to use the `point_in_time` and `pit_id` parameters to paginate through the search results:
+The scroll example above has one weakness: if the index is updated while you are scrolling through the results, they will be paginated inconsistently. A point in time (PIT) fixes that by freezing the indices at the moment it is created. Pair it with `search_after` to page through the results.
+
+The simplest way is `client.PIT.SearchAfter`. It creates a PIT, pages through it with `search_after`, and deletes the PIT when the loop ends, fails, or you break out early. It always opens its own PIT; to page one you already have, such as one from an earlier request, see [Resuming a PIT across requests](#resuming-a-pit-across-requests). Errors come back from the func it returns, which you call after the loop, as with `bufio.Scanner.Err`:
 
 ```go
-	pitCreateResp, err := client.PIT.Create(
+	hits, errf := client.PIT.SearchAfter(
 		ctx,
-		&opensearchapi.CreatePITReq{
-			Indices:  []string{exampleIndex},
-			Params: &opensearchapi.CreatePITParams{KeepAlive: time.Minute},
-		},
+		&opensearchapi.CreatePITReq{Indices: []string{exampleIndex}},
+		&opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{
+			Sort: &sortByYear, // the last sort key must be unique
+			Size: new(5),
+		}},
 	)
-	if err != nil {
-		return err
+	for hit := range hits {
+		fmt.Printf("%s: %s\n", *hit.ID, hit.Source)
 	}
-
-	searchResp, err = client.Search(
-		ctx,
-		&opensearchapi.SearchReq{
-			BodyReader: opensearchutil.NewJSONReader(map[string]any{
-				"pit": map[string]any{
-					"id":         pitCreateResp.PITID,
-					"keep_alive": "1m",
-				},
-			}),
-			Params: &opensearchapi.SearchParams{
-				Size: new(5),
-				Sort: []string{"year:desc"},
-			},
-		},
-	)
-	if err != nil {
-		return err
-	}
-	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
-
-	searchResp, err = client.Search(
-		ctx,
-		&opensearchapi.SearchReq{
-			BodyReader: opensearchutil.NewJSONReader(map[string]any{
-				"pit": map[string]any{
-					"id":         pitCreateResp.PITID,
-					"keep_alive": "1m",
-				},
-				"search_after": []string{"1994"},
-			}),
-			Params: &opensearchapi.SearchParams{
-				Size: new(5),
-				Sort: []string{"year:desc"},
-			},
-		},
-	)
-	if err != nil {
-		return err
-	}
-	respAsJson, err = json.MarshalIndent(searchResp, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Printf("Search Response:\n%s\n", string(respAsJson))
-
-	_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []string{*pitCreateResp.PITID}}})
-	if err != nil {
+	if err := errf(); err != nil {
 		return err
 	}
 ```
 
-Note that a point-in-time is associated with an index or a set of index. So, when performing a search with a point-in-time, you DO NOT specify the index in the search.
+Where `sortByYear` is:
+
+```go
+	sortByYear := opensearchapi.NewSortFromArray([]opensearchapi.SortCombinations{
+		opensearchapi.NewSortCombinationsFromFieldSortMap(map[string]opensearchapi.FieldSort{"year": {Order: new("desc")}}),
+	})
+```
+
+The sort must end in a field that is unique per document, or pages can skip or repeat documents. `year` is unique in this example; in real data, add a unique field such as an event ID as the last sort key. `Size` sets the page size; it must be positive and defaults to 1000.
+
+`client.PIT.SearchAfterPages` does the same but yields whole pages (`*opensearchapi.SearchResp`), for when you need per-page data such as `took` or aggregations.
+
+They never yield an incomplete page, because `search_after` would move past its missing documents for good and the scan would silently lose data. A page with a failed shard stops the scan with a `*opensearchapi.PartialSearchError`, even if the client's error mask hides partial failures, and a page that timed out or terminated early stops it with `opensearchapi.ErrSearchPageIncomplete`. A page whose failed shards were all rejected by a full search queue, or that timed out, is retried twice with a short backoff before the scan stops, since a PIT returns the same hits each time. The error names the page that stopped the scan and how many hits were yielded before it.
+
+#### Sharing a PIT
+
+To run several searches against the same snapshot, or pass it to other functions, open a PIT handle yourself and close it with `defer`:
+
+```go
+	pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{Indices: []string{exampleIndex}})
+	if err != nil {
+		return err
+	}
+	defer pit.Close()
+
+	hits, errf := pit.SearchAfter(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear}})
+	for hit := range hits {
+		fmt.Println(*hit.ID)
+	}
+	if err := errf(); err != nil {
+		return err
+	}
+
+	resp, err := pit.Search(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Size: new(1)}})
+	if err != nil {
+		return err
+	}
+	fmt.Println(len(resp.Hits.Hits))
+```
+
+A PIT handle is safe for concurrent use. Its iterators and `Search` never close it; its owner does. `Close` is safe to call more than once, still works after `ctx` is cancelled, and waits at most 10 seconds for the delete. Use `CloseContext` to set your own deadline. After a close, `Search` and the iterators return `opensearchapi.ErrPITClosed`.
+
+When you search with a PIT you do not specify indices; the PIT already pins them. `Search` and the iterators reject a request that sets `Indices`.
+
+#### Where a PIT ID goes
+
+A PIT ID has its own type, `opensearchapi.PITID`, and every request and response field that carries one uses it. OpenSearch takes it only in a request body, never in a path, query parameter or header, because the ID is a large base64 token:
+
+| Request                                      | Body field      | Go field                                                                          |
+| -------------------------------------------- | --------------- | --------------------------------------------------------------------------------- |
+| search                                       | `"pit": {"id"}` | `SearchBody.PIT` (`SearchPointInTimeReference.ID`)                                |
+| async search (`plugins/asynchronous_search`) | `"pit": {"id"}` | `AsynchronousSearchSearch.PIT` (`SearchPointInTimeReference.ID`)                  |
+| each search of an msearch                    | `"pit": {"id"}` | none: `MSearchReq.Body` is an `io.Reader`, so encode a `SearchBody` for each line |
+| delete PIT                                   | `"pit_id": []`  | `DeletePITBody.PITID`                                                             |
+| cat PIT segments                             | `"pit_id": []`  | `CatPITSegmentsBody.PITID`                                                        |
+
+It comes back in the create-PIT response (`CreatePITResp.PITID`) and in every search against the PIT (`SearchResp.PITID`). A scroll has its own `scroll_id` and never takes a PIT ID. `PIT.Search`, `PIT.Close` and `SearchCursor.Apply` put the ID in the right place for you.
+
+`PITID` is opaque, so you can't build one from a string literal by accident. To store one, use `id.String()` or encode the whole `SearchCursor` as JSON; to read one back, use `opensearchapi.ParsePITID(s)`, which rejects an empty string. On the wire it is the bare string.
+
+#### Resuming a PIT across requests
+
+A PIT outlives the request that opened it, so you can page through one snapshot over several requests, such as one page per API call. Between requests, keep an `opensearchapi.SearchCursor`: the PIT ID and the last hit's sort values. `resp.Cursor()` reads it from a page, and `cur.Apply(req)` returns the next request with the ID in `Body.PIT` and the sort values in `Body.SearchAfter`. Read that page with `client.SearchAfterPages`. `client.SearchAfter` and `client.SearchAfterPages` page any sorted search, with or without a PIT, with the same checks, retries and incomplete-page guard as the PIT handle.
+
+`nextPage` below serves one page per call. It runs page one without a PIT, so a caller that reads only one page never opens one, and opens the PIT when page two is asked for. If the PIT is gone, it carries on without one. After the last page it deletes the PIT:
+
+```go
+// nextPage serves one page and returns the cursor for the next one, or a zero
+// cursor after the last page. Page one runs without a PIT, so a caller that
+// reads only one page never opens one; the PIT opens when page two is asked for.
+func nextPage(
+	ctx context.Context, client *opensearchapi.Client, cur opensearchapi.SearchCursor,
+) ([]opensearchapi.SearchHit, opensearchapi.SearchCursor, error) {
+	const pageSize = 5
+	if cur.After != nil && cur.PIT.IsZero() {
+		pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{
+			Indices: []string{exampleIndex},
+			Params:  &opensearchapi.CreatePITParams{KeepAlive: 2 * time.Minute},
+		})
+		if err == nil { // without a PIT, page on over the live index
+			cur.PIT = pit.ID()
+		}
+	}
+	req := &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear, Size: new(pageSize)}}
+	if cur.PIT.IsZero() {
+		req.Indices = []string{exampleIndex}
+	}
+	page, err := onePage(ctx, client, cur.Apply(req))
+	if _, ok := errors.AsType[*opensearchapi.SearchContextMissingError](err); ok {
+		// The PIT expired or was deleted: keep the position, lose the snapshot.
+		cur.PIT, req.Indices = opensearchapi.PITID{}, []string{exampleIndex}
+		page, err = onePage(ctx, client, cur.Apply(req))
+	}
+	if err != nil {
+		return nil, opensearchapi.SearchCursor{}, err
+	}
+	next, ok := page.Cursor()
+	if !ok || len(page.Hits.Hits) < pageSize { // the last page: free the PIT now, not at keep_alive
+		if !cur.PIT.IsZero() {
+			_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{cur.PIT}}})
+		}
+		return page.Hits.Hits, opensearchapi.SearchCursor{}, err
+	}
+	return page.Hits.Hits, next, nil
+}
+
+// onePage returns the first page of req, with the iterators' checks, retries
+// and incomplete-page guard. A scan with no hits returns an empty page.
+func onePage(ctx context.Context, client *opensearchapi.Client, req *opensearchapi.SearchReq) (*opensearchapi.SearchResp, error) {
+	pages, errf := client.SearchAfterPages(ctx, req)
+	for page := range pages {
+		return page, nil
+	}
+	return &opensearchapi.SearchResp{}, errf()
+}
+```
+
+The server keeps the `keep_alive` set when the PIT was opened and restarts it on every search, so it must cover the longest gap between two page requests. `client.SearchAfter` and `client.SearchAfterPages` never create or delete a PIT, which is why `nextPage` deletes it after the last page; deleting it ends it for everyone holding its ID. With `Body.PIT` set, the request must not set `Indices`. Page one comes from the live index and later pages from the snapshot taken when page two was asked for, so a document indexed or updated in between can be missed, or repeated if its sort value changed.
+
+Every open PIT counts against the cluster's `search.max_open_pit_context` limit, 300 per node by default, and holds segments on disk. With one PIT per paging session, sessions that are abandoned leave their PIT open until `keep_alive` runs out. So keep `keep_alive` as short as the gap between pages allows, open the PIT only when a second page is requested, and fall back to plain `search_after` on a `*SearchContextMissingError` or when a PIT cannot be opened, as `nextPage` does. The fallback keeps the position but not the snapshot, so documents indexed in the meantime can shift the pages.
+
+A PIT ID encodes index names and node IDs. Wrap or encrypt it before you hand it to clients outside your service.
+
+#### Keep-alive
+
+A PIT stays open on the server until `keep_alive` passes without a search against it. The server restarts that timer on every search, including every page of the iterators, so a PIT in use does not expire. `Open` defaults `keep_alive` to 300 seconds; set `CreatePITReq.Params.KeepAlive` to change it. The server caps it at the `point_in_time.max_keep_alive` cluster setting, 24 hours by default, and rejects a longer one.
+
+Closing the PIT, whether with `defer pit.Close()` or through the one-shot iterators, deletes it right away on every normal exit. `keep_alive` is what frees it if your process crashes before it can close it, so keep it only as long as the longest gap between two searches.
+
+The lower-level `client.PIT.Create` and `client.PIT.Delete` calls are still available if you need full control.
 
 ## Search Performance Optimization
 
