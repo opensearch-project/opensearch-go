@@ -26,12 +26,12 @@ func TestDeleteParams_get(t *testing.T) {
 		{name: "empty", params: DeleteParams{}, want: nil},
 		{
 			name:   "clear_status=true",
-			params: DeleteParams{ClearStatus: func(b bool) *bool { return &b }(true)},
+			params: DeleteParams{ClearStatus: new(true)},
 			want:   map[string]string{"clear_status": "true"},
 		},
 		{
 			name:   "clear_status=false",
-			params: DeleteParams{ClearStatus: func(b bool) *bool { return &b }(false)},
+			params: DeleteParams{ClearStatus: new(false)},
 			want:   map[string]string{"clear_status": "false"},
 		},
 	}

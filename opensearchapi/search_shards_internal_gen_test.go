@@ -26,12 +26,12 @@ func TestSearchShardsParams_get(t *testing.T) {
 		{name: "empty", params: SearchShardsParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: SearchShardsParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: SearchShardsParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: SearchShardsParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: SearchShardsParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestSearchShardsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: SearchShardsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SearchShardsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SearchShardsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SearchShardsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "local=true",
-			params: SearchShardsParams{Local: func(b bool) *bool { return &b }(true)},
+			params: SearchShardsParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: SearchShardsParams{Local: func(b bool) *bool { return &b }(false)},
+			params: SearchShardsParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 		{

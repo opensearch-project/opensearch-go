@@ -41,32 +41,32 @@ func TestCatIndicesParams_get(t *testing.T) {
 		},
 		{
 			name:   "include_unloaded_segments=true",
-			params: CatIndicesParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(true)},
+			params: CatIndicesParams{IncludeUnloadedSegments: new(true)},
 			want:   map[string]string{"format": "json", "include_unloaded_segments": "true"},
 		},
 		{
 			name:   "include_unloaded_segments=false",
-			params: CatIndicesParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(false)},
+			params: CatIndicesParams{IncludeUnloadedSegments: new(false)},
 			want:   map[string]string{"format": "json", "include_unloaded_segments": "false"},
 		},
 		{
 			name:   "local=true",
-			params: CatIndicesParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatIndicesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatIndicesParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatIndicesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 		{
 			name:   "pri=true",
-			params: CatIndicesParams{Pri: func(b bool) *bool { return &b }(true)},
+			params: CatIndicesParams{Pri: new(true)},
 			want:   map[string]string{"format": "json", "pri": "true"},
 		},
 		{
 			name:   "pri=false",
-			params: CatIndicesParams{Pri: func(b bool) *bool { return &b }(false)},
+			params: CatIndicesParams{Pri: new(false)},
 			want:   map[string]string{"format": "json", "pri": "false"},
 		},
 		{

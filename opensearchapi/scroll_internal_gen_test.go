@@ -27,12 +27,12 @@ func TestScrollParams_get(t *testing.T) {
 		{name: "empty", params: ScrollParams{}, want: nil},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: ScrollParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: ScrollParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: ScrollParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: ScrollParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{

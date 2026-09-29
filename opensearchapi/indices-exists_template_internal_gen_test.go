@@ -26,22 +26,22 @@ func TestIndicesExistsTemplateParams_get(t *testing.T) {
 		{name: "empty", params: IndicesExistsTemplateParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: IndicesExistsTemplateParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesExistsTemplateParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: IndicesExistsTemplateParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesExistsTemplateParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesExistsTemplateParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesExistsTemplateParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesExistsTemplateParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesExistsTemplateParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

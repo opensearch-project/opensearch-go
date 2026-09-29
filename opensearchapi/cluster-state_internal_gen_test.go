@@ -27,12 +27,12 @@ func TestClusterStateParams_get(t *testing.T) {
 		{name: "empty", params: ClusterStateParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: ClusterStateParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: ClusterStateParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: ClusterStateParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: ClusterStateParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -42,32 +42,32 @@ func TestClusterStateParams_get(t *testing.T) {
 		},
 		{
 			name:   "flat_settings=true",
-			params: ClusterStateParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: ClusterStateParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: ClusterStateParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: ClusterStateParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: ClusterStateParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: ClusterStateParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: ClusterStateParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: ClusterStateParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "local=true",
-			params: ClusterStateParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ClusterStateParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ClusterStateParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ClusterStateParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 		{

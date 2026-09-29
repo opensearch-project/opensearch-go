@@ -27,12 +27,12 @@ func TestNodesHotThreadsParams_get(t *testing.T) {
 		{name: "empty", params: NodesHotThreadsParams{}, want: nil},
 		{
 			name:   "ignore_idle_threads=true",
-			params: NodesHotThreadsParams{IgnoreIdleThreads: func(b bool) *bool { return &b }(true)},
+			params: NodesHotThreadsParams{IgnoreIdleThreads: new(true)},
 			want:   map[string]string{"ignore_idle_threads": "true"},
 		},
 		{
 			name:   "ignore_idle_threads=false",
-			params: NodesHotThreadsParams{IgnoreIdleThreads: func(b bool) *bool { return &b }(false)},
+			params: NodesHotThreadsParams{IgnoreIdleThreads: new(false)},
 			want:   map[string]string{"ignore_idle_threads": "false"},
 		},
 		{

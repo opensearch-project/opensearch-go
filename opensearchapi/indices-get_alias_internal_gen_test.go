@@ -26,12 +26,12 @@ func TestIndicesGetAliasParams_get(t *testing.T) {
 		{name: "empty", params: IndicesGetAliasParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesGetAliasParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetAliasParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesGetAliasParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetAliasParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestIndicesGetAliasParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesGetAliasParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetAliasParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesGetAliasParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetAliasParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesGetAliasParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetAliasParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesGetAliasParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetAliasParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

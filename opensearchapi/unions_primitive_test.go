@@ -163,22 +163,22 @@ func TestPrimitiveUnionConstructors(t *testing.T) {
 	}{
 		{
 			name:   "IndicesUpdateAliasesAddActionAliases",
-			union:  ptr(opensearchapi.NewIndicesUpdateAliasesAddActionAliasesFromString("logs-write")),
+			union:  new(opensearchapi.NewIndicesUpdateAliasesAddActionAliasesFromString("logs-write")),
 			branch: "String", wire: `"logs-write"`,
 		},
 		{
 			name:   "IndicesUpdateAliasesAddActionAliases",
-			union:  ptr(opensearchapi.NewIndicesUpdateAliasesAddActionAliasesFromArray([]string{"a", "b"})),
+			union:  new(opensearchapi.NewIndicesUpdateAliasesAddActionAliasesFromArray([]string{"a", "b"})),
 			branch: "Array", wire: `["a","b"]`,
 		},
 		{
 			name:   "StringOrStringArray",
-			union:  ptr(opensearchapi.NewStringOrStringArrayFromString("single")),
+			union:  new(opensearchapi.NewStringOrStringArrayFromString("single")),
 			branch: "String", wire: `"single"`,
 		},
 		{
 			name:   "StringifiedEpochTimeUnitMillis",
-			union:  ptr(opensearchapi.NewStringifiedEpochTimeUnitMillisFromInt64(1700000000123)),
+			union:  new(opensearchapi.NewStringifiedEpochTimeUnitMillisFromInt64(1700000000123)),
 			branch: "Int64", wire: `1700000000123`,
 		},
 	}
@@ -263,5 +263,3 @@ func TestPrimitiveUnionSetRawAndReset(t *testing.T) {
 			"the error should name the union")
 	})
 }
-
-func ptr[T any](v T) *T { return &v }

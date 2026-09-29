@@ -26,12 +26,12 @@ func TestIndicesAddBlockParams_get(t *testing.T) {
 		{name: "empty", params: IndicesAddBlockParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesAddBlockParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesAddBlockParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesAddBlockParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesAddBlockParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesAddBlockParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesAddBlockParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesAddBlockParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesAddBlockParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesAddBlockParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 	}

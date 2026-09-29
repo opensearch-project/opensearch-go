@@ -39,10 +39,9 @@ Configure the client's error mask to control which categories of partial failure
 > **Where category names come from.** Partial-failure categories (`BulkItems`, `SearchShards`, `WriteShards`, `MultiSearchItems`, ...) are stable identifiers in the client surface. The bit constant on `errmask` uses the PascalCase form (`errmask.BulkItems`); the env-var token is the lowercase snake_case form (`bulk_items`, `search_shards`, `write_shards`). The categories are derived from the [OpenSearch API specification](https://github.com/opensearch-project/opensearch-api-specification), but you do not need to read the spec to use them -- the [Error Type Reference](#error-type-reference) below lists every Go type, and the exhaustive token list for `OPENSEARCH_GO_ERROR_MASK` (with accepted values, defaults, and examples) is in [config-envvars.md](config-envvars.md#error-masking).
 
 ```go
-mask := errmask.Empty // report every category
 client, err := opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{Addresses: []string{"https://localhost:9200"}},
-    Errors: &mask,
+    Errors: new(errmask.Empty), // report every category
 })
 ```
 
@@ -463,10 +462,9 @@ func safeIndexOperation(client *opensearchapi.Client, ctx context.Context) error
 The simplest way to catch partial failures is to set `Config.Errors` (or the `OPENSEARCH_GO_ERROR_MASK` env var) so the relevant wrapper categories are unmasked. They surface through the standard `error` return, so the idiomatic `if err != nil` catches everything:
 
 ```go
-mask := errmask.Empty // report every category
 client, err := opensearchapi.NewClient(opensearchapi.Config{
     Client: opensearch.Config{Addresses: addrs},
-    Errors: &mask,
+    Errors: new(errmask.Empty), // report every category
 })
 
 resp, err := client.Doc.Bulk(ctx, req)

@@ -26,12 +26,12 @@ func TestRankEvalParams_get(t *testing.T) {
 		{name: "empty", params: RankEvalParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: RankEvalParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: RankEvalParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: RankEvalParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: RankEvalParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestRankEvalParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: RankEvalParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: RankEvalParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: RankEvalParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: RankEvalParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{

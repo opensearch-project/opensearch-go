@@ -26,12 +26,12 @@ func TestDeleteMemoryContainerParams_get(t *testing.T) {
 		{name: "empty", params: DeleteMemoryContainerParams{}, want: nil},
 		{
 			name:   "delete_all_memories=true",
-			params: DeleteMemoryContainerParams{DeleteAllMemories: func(b bool) *bool { return &b }(true)},
+			params: DeleteMemoryContainerParams{DeleteAllMemories: new(true)},
 			want:   map[string]string{"delete_all_memories": "true"},
 		},
 		{
 			name:   "delete_all_memories=false",
-			params: DeleteMemoryContainerParams{DeleteAllMemories: func(b bool) *bool { return &b }(false)},
+			params: DeleteMemoryContainerParams{DeleteAllMemories: new(false)},
 			want:   map[string]string{"delete_all_memories": "false"},
 		},
 		{

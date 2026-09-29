@@ -494,29 +494,25 @@ func (cp *multiServerPool) attemptHealthCheckWithRelock(ctx context.Context, c *
 		// Health check failed, increment failures and retry with new timeout
 		c.failures.Add(1)
 		// Return false to continue loop
-		shouldRetry := false
-		return &shouldRetry
+		return new(false)
 	}
 
 	// Re-check if connection was resurrected during the health check
 	if c.deadSinceIsZero() {
-		shouldReturn := true
-		return &shouldReturn
+		return new(true)
 	}
 
 	// Re-check if connection is still in pool after health check (ready or dead)
 	*stillInPool = slices.Contains(cp.mu.ready, c) || slices.Contains(cp.mu.dead, c)
 	if !*stillInPool {
-		shouldReturn := true
-		return &shouldReturn
+		return new(true)
 	}
 
 	// If connection is still quiescing (draining countdown > 0), continue the health check
 	// loop without incrementing failures. performHealthCheck already decremented the counter,
 	// so the next resurrection interval handles the re-check.
 	if c.drainingQuiescingRemaining.Load() > 0 {
-		shouldRetry := false
-		return &shouldRetry
+		return new(false)
 	}
 
 	// Health check passed and quiescing complete, proceed with resurrection

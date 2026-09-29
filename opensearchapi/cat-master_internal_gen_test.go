@@ -26,12 +26,12 @@ func TestCatMasterParams_get(t *testing.T) {
 		{name: "empty", params: CatMasterParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatMasterParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatMasterParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatMasterParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatMasterParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

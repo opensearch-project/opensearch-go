@@ -54,8 +54,6 @@ import (
 
 var called int
 
-func boolPtr(v bool) *bool { return &v }
-
 var defaultRoundTripFunc = func(req *http.Request) (*http.Response, error) {
 	response := &http.Response{Header: http.Header{}}
 
@@ -212,7 +210,7 @@ func TestClientConfiguration(t *testing.T) {
 			Config{
 				Addresses:            []string{"http://localhost:8080//"},
 				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
-				DiscoverNodesOnStart: boolPtr(true),
+				DiscoverNodesOnStart: new(true),
 			},
 		)
 		require.NoError(t, err)
@@ -461,10 +459,9 @@ func TestDoStreamErrorClassification(t *testing.T) {
 			// Disable on-start discovery: this test swaps c.Transport after
 			// construction, which would race with the discovery goroutine that
 			// the default (router-on) config otherwise spawns.
-			noDiscovery := false
 			c, err := NewClient(Config{
 				Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
-				DiscoverNodesOnStart: &noDiscovery,
+				DiscoverNodesOnStart: new(false),
 			})
 			require.NoError(t, err)
 
@@ -528,10 +525,9 @@ func (h *headerCapturingTransport) Request(req *http.Request) (*http.Response, e
 func TestDoInitializesNilRequestHeader(t *testing.T) {
 	t.Parallel()
 
-	noDiscovery := false
 	c, err := NewClient(Config{
 		Transport:            mockhttp.NewRoundTripFunc(t, defaultRoundTripFunc),
-		DiscoverNodesOnStart: &noDiscovery,
+		DiscoverNodesOnStart: new(false),
 	})
 	require.NoError(t, err)
 
@@ -803,13 +799,13 @@ func TestConfigKey(t *testing.T) {
 			{"same retry-on-status", Config{RetryOnStatus: []int{502, 503}}, Config{RetryOnStatus: []int{502, 503}}, true},
 			{
 				"discover-on-start true vs false",
-				Config{DiscoverNodesOnStart: boolPtr(true)},
-				Config{DiscoverNodesOnStart: boolPtr(false)},
+				Config{DiscoverNodesOnStart: new(true)},
+				Config{DiscoverNodesOnStart: new(false)},
 				false,
 			},
 			{
 				"discover-on-start explicit false vs nil auto",
-				Config{DiscoverNodesOnStart: boolPtr(false)},
+				Config{DiscoverNodesOnStart: new(false)},
 				Config{},
 				false,
 			},

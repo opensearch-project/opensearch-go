@@ -26,12 +26,12 @@ func TestIndicesPutMappingParams_get(t *testing.T) {
 		{name: "empty", params: IndicesPutMappingParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesPutMappingParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutMappingParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesPutMappingParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutMappingParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestIndicesPutMappingParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesPutMappingParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutMappingParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesPutMappingParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutMappingParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "write_index_only=true",
-			params: IndicesPutMappingParams{WriteIndexOnly: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutMappingParams{WriteIndexOnly: new(true)},
 			want:   map[string]string{"write_index_only": "true"},
 		},
 		{
 			name:   "write_index_only=false",
-			params: IndicesPutMappingParams{WriteIndexOnly: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutMappingParams{WriteIndexOnly: new(false)},
 			want:   map[string]string{"write_index_only": "false"},
 		},
 	}

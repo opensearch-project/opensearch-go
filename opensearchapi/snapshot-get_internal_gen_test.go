@@ -26,22 +26,22 @@ func TestSnapshotGetParams_get(t *testing.T) {
 		{name: "empty", params: SnapshotGetParams{}, want: nil},
 		{
 			name:   "ignore_unavailable=true",
-			params: SnapshotGetParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SnapshotGetParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SnapshotGetParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SnapshotGetParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "verbose=true",
-			params: SnapshotGetParams{Verbose: func(b bool) *bool { return &b }(true)},
+			params: SnapshotGetParams{Verbose: new(true)},
 			want:   map[string]string{"verbose": "true"},
 		},
 		{
 			name:   "verbose=false",
-			params: SnapshotGetParams{Verbose: func(b bool) *bool { return &b }(false)},
+			params: SnapshotGetParams{Verbose: new(false)},
 			want:   map[string]string{"verbose": "false"},
 		},
 	}

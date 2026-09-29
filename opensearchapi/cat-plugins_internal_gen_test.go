@@ -26,12 +26,12 @@ func TestCatPluginsParams_get(t *testing.T) {
 		{name: "empty", params: CatPluginsParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatPluginsParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatPluginsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatPluginsParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatPluginsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

@@ -26,12 +26,12 @@ func TestAddFeaturesToSetParams_get(t *testing.T) {
 		{name: "empty", params: AddFeaturesToSetParams{}, want: nil},
 		{
 			name:   "merge=true",
-			params: AddFeaturesToSetParams{Merge: func(b bool) *bool { return &b }(true)},
+			params: AddFeaturesToSetParams{Merge: new(true)},
 			want:   map[string]string{"merge": "true"},
 		},
 		{
 			name:   "merge=false",
-			params: AddFeaturesToSetParams{Merge: func(b bool) *bool { return &b }(false)},
+			params: AddFeaturesToSetParams{Merge: new(false)},
 			want:   map[string]string{"merge": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestAddFeaturesToSetParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: AddFeaturesToSetParams{Version: func(i int) *int { return &i }(42)},
+			params: AddFeaturesToSetParams{Version: new(42)},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version=0",
-			params: AddFeaturesToSetParams{Version: func(i int) *int { return &i }(0)},
+			params: AddFeaturesToSetParams{Version: new(0)},
 			want:   map[string]string{"version": "0"},
 		},
 	}

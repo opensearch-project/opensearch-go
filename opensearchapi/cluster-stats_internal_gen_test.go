@@ -26,12 +26,12 @@ func TestClusterStatsParams_get(t *testing.T) {
 		{name: "empty", params: ClusterStatsParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: ClusterStatsParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: ClusterStatsParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: ClusterStatsParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: ClusterStatsParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 	}

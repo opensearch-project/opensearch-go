@@ -26,22 +26,22 @@ func TestClusterAllocationExplainParams_get(t *testing.T) {
 		{name: "empty", params: ClusterAllocationExplainParams{}, want: nil},
 		{
 			name:   "include_disk_info=true",
-			params: ClusterAllocationExplainParams{IncludeDiskInfo: func(b bool) *bool { return &b }(true)},
+			params: ClusterAllocationExplainParams{IncludeDiskInfo: new(true)},
 			want:   map[string]string{"include_disk_info": "true"},
 		},
 		{
 			name:   "include_disk_info=false",
-			params: ClusterAllocationExplainParams{IncludeDiskInfo: func(b bool) *bool { return &b }(false)},
+			params: ClusterAllocationExplainParams{IncludeDiskInfo: new(false)},
 			want:   map[string]string{"include_disk_info": "false"},
 		},
 		{
 			name:   "include_yes_decisions=true",
-			params: ClusterAllocationExplainParams{IncludeYesDecisions: func(b bool) *bool { return &b }(true)},
+			params: ClusterAllocationExplainParams{IncludeYesDecisions: new(true)},
 			want:   map[string]string{"include_yes_decisions": "true"},
 		},
 		{
 			name:   "include_yes_decisions=false",
-			params: ClusterAllocationExplainParams{IncludeYesDecisions: func(b bool) *bool { return &b }(false)},
+			params: ClusterAllocationExplainParams{IncludeYesDecisions: new(false)},
 			want:   map[string]string{"include_yes_decisions": "false"},
 		},
 	}

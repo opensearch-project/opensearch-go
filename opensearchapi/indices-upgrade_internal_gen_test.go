@@ -26,12 +26,12 @@ func TestIndicesUpgradeParams_get(t *testing.T) {
 		{name: "empty", params: IndicesUpgradeParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesUpgradeParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesUpgradeParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesUpgradeParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesUpgradeParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,32 +41,32 @@ func TestIndicesUpgradeParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesUpgradeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesUpgradeParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesUpgradeParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesUpgradeParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "only_ancient_segments=true",
-			params: IndicesUpgradeParams{OnlyAncientSegments: func(b bool) *bool { return &b }(true)},
+			params: IndicesUpgradeParams{OnlyAncientSegments: new(true)},
 			want:   map[string]string{"only_ancient_segments": "true"},
 		},
 		{
 			name:   "only_ancient_segments=false",
-			params: IndicesUpgradeParams{OnlyAncientSegments: func(b bool) *bool { return &b }(false)},
+			params: IndicesUpgradeParams{OnlyAncientSegments: new(false)},
 			want:   map[string]string{"only_ancient_segments": "false"},
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesUpgradeParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesUpgradeParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesUpgradeParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesUpgradeParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

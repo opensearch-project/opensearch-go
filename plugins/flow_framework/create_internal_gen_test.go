@@ -26,32 +26,32 @@ func TestCreateParams_get(t *testing.T) {
 		{name: "empty", params: CreateParams{}, want: nil},
 		{
 			name:   "provision=true",
-			params: CreateParams{Provision: func(b bool) *bool { return &b }(true)},
+			params: CreateParams{Provision: new(true)},
 			want:   map[string]string{"provision": "true"},
 		},
 		{
 			name:   "provision=false",
-			params: CreateParams{Provision: func(b bool) *bool { return &b }(false)},
+			params: CreateParams{Provision: new(false)},
 			want:   map[string]string{"provision": "false"},
 		},
 		{
 			name:   "reprovision=true",
-			params: CreateParams{Reprovision: func(b bool) *bool { return &b }(true)},
+			params: CreateParams{Reprovision: new(true)},
 			want:   map[string]string{"reprovision": "true"},
 		},
 		{
 			name:   "reprovision=false",
-			params: CreateParams{Reprovision: func(b bool) *bool { return &b }(false)},
+			params: CreateParams{Reprovision: new(false)},
 			want:   map[string]string{"reprovision": "false"},
 		},
 		{
 			name:   "update_fields=true",
-			params: CreateParams{UpdateFields: func(b bool) *bool { return &b }(true)},
+			params: CreateParams{UpdateFields: new(true)},
 			want:   map[string]string{"update_fields": "true"},
 		},
 		{
 			name:   "update_fields=false",
-			params: CreateParams{UpdateFields: func(b bool) *bool { return &b }(false)},
+			params: CreateParams{UpdateFields: new(false)},
 			want:   map[string]string{"update_fields": "false"},
 		},
 		{

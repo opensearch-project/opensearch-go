@@ -135,8 +135,8 @@ func TestWriteMeta(t *testing.T) {
 				Action:        "index",
 				DocumentID:    "42",
 				Index:         testIndex,
-				IfSeqNum:      int64Pointer(5),
-				IfPrimaryTerm: int64Pointer(1),
+				IfSeqNum:      new(int64(5)),
+				IfPrimaryTerm: new(int64(1)),
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","if_seq_no":5,"if_primary_term":1}}`, testIndex) + "\n",
 		},
@@ -145,7 +145,7 @@ func TestWriteMeta(t *testing.T) {
 			args: args{BulkIndexerItem{
 				Action:  "index",
 				Index:   testIndex,
-				Version: int64Pointer(23),
+				Version: new(int64(23)),
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s"}}`, testIndex) + "\n",
 		},
@@ -155,7 +155,7 @@ func TestWriteMeta(t *testing.T) {
 				Action:     "index",
 				DocumentID: "42",
 				Index:      testIndex,
-				Version:    int64Pointer(24),
+				Version:    new(int64(24)),
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":24}}`, testIndex) + "\n",
 		},
@@ -165,8 +165,8 @@ func TestWriteMeta(t *testing.T) {
 				Action:      "index",
 				DocumentID:  "42",
 				Index:       testIndex,
-				Version:     int64Pointer(25),
-				VersionType: strPointer("external"),
+				Version:     new(int64(25)),
+				VersionType: new("external"),
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external"}}`, testIndex) + "\n",
 		},
@@ -176,8 +176,8 @@ func TestWriteMeta(t *testing.T) {
 				Action:              "index",
 				DocumentID:          "42",
 				Index:               testIndex,
-				Version:             int64Pointer(25),
-				VersionType:         strPointer("external"),
+				Version:             new(int64(25)),
+				VersionType:         new("external"),
 				WaitForActiveShards: 1,
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
@@ -189,8 +189,8 @@ func TestWriteMeta(t *testing.T) {
 				Action:              "index",
 				DocumentID:          "42",
 				Index:               testIndex,
-				Version:             int64Pointer(25),
-				VersionType:         strPointer("external"),
+				Version:             new(int64(25)),
+				VersionType:         new("external"),
 				WaitForActiveShards: "all",
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,`+
@@ -202,9 +202,9 @@ func TestWriteMeta(t *testing.T) {
 				Action:          "index",
 				DocumentID:      "42",
 				Index:           testIndex,
-				Version:         int64Pointer(25),
-				VersionType:     strPointer("external"),
-				RetryOnConflict: intPointer(5),
+				Version:         new(int64(25)),
+				VersionType:     new("external"),
+				RetryOnConflict: new(5),
 			}},
 			want: fmt.Sprintf(`{"index":{"_index":"%s","_id":"42","version":25,"version_type":"external","retry_on_conflict":5}}`, testIndex) + "\n",
 		},
@@ -432,7 +432,7 @@ func TestBulkIndexerLifecycle(t *testing.T) {
 						// config would issue node-discovery requests that hit the
 						// mock concurrently with the bulk worker, racing on the
 						// countReqs counter below.
-						DiscoverNodesOnStart: func() *bool { b := false; return &b }(),
+						DiscoverNodesOnStart: new(false),
 					},
 				}
 				if testutil.IsDebugEnabled(t) {
@@ -1155,10 +1155,6 @@ func readItemBody(t *testing.T, item BulkIndexerItem) string {
 	return string(buf)
 }
 
-func strPointer(s string) *string {
-	return &s
-}
-
 // bodyFailure names which io.ReadSeeker method a failingBody fails.
 type bodyFailure int
 
@@ -1200,14 +1196,6 @@ func (b *failingBody) Seek(int64, int) (int64, error) {
 	}
 
 	return 0, nil
-}
-
-func int64Pointer(i int64) *int64 {
-	return &i
-}
-
-func intPointer(i int) *int {
-	return &i
 }
 
 func TestBulkIndexerOwnClientFlag(t *testing.T) {

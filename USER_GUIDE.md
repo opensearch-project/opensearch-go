@@ -47,8 +47,6 @@ func example() error {
 
 	// Surface partial failures (bulk item errors, shard failures) as Go
 	// errors. See guides/usage-error_handling.md for the per-category bitmask.
-	errMask := errmask.Empty
-	discoverOnStart := true
 	client, err := opensearchapi.NewClient(
 		opensearchapi.Config{
 			Client: opensearch.Config{
@@ -58,7 +56,7 @@ func example() error {
 				Password:           "myStrongPassword123!",
 
 				// Optional: Enable node discovery
-				DiscoverNodesOnStart:  &discoverOnStart,
+				DiscoverNodesOnStart:  new(true),
 				DiscoverNodesInterval: 5 * time.Minute,
 
 				// Optional: Enable intelligent request routing
@@ -67,7 +65,7 @@ func example() error {
 
 			// Optional: Surface partial failures (bulk item errors, shard failures)
 			// as Go errors. See guides/usage-error_handling.md for details.
-			Errors: &errMask,
+			Errors: new(errmask.Empty),
 		},
 	)
 	if err != nil {

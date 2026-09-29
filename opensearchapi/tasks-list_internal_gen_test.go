@@ -31,12 +31,12 @@ func TestTasksListParams_get(t *testing.T) {
 		},
 		{
 			name:   "detailed=true",
-			params: TasksListParams{Detailed: func(b bool) *bool { return &b }(true)},
+			params: TasksListParams{Detailed: new(true)},
 			want:   map[string]string{"detailed": "true"},
 		},
 		{
 			name:   "detailed=false",
-			params: TasksListParams{Detailed: func(b bool) *bool { return &b }(false)},
+			params: TasksListParams{Detailed: new(false)},
 			want:   map[string]string{"detailed": "false"},
 		},
 		{
@@ -56,12 +56,12 @@ func TestTasksListParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: TasksListParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: TasksListParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: TasksListParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: TasksListParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

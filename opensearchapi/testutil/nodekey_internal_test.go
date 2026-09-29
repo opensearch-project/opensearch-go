@@ -17,8 +17,6 @@ import (
 func TestNodeKey(t *testing.T) {
 	t.Parallel()
 
-	ptr := func(s string) *string { return &s }
-
 	tests := []struct {
 		name string
 		rec  opensearchapi.CatNodesRecord
@@ -26,27 +24,27 @@ func TestNodeKey(t *testing.T) {
 	}{
 		{
 			name: "id wins when present",
-			rec:  opensearchapi.CatNodesRecord{ID: ptr("g0NX5mUZSdqtKV"), Name: ptr("node-1"), IP: ptr("10.0.0.1")},
+			rec:  opensearchapi.CatNodesRecord{ID: new("g0NX5mUZSdqtKV"), Name: new("node-1"), IP: new("10.0.0.1")},
 			want: "g0NX5mUZSdqtKV",
 		},
 		{
 			name: "name+ip composite when id missing",
-			rec:  opensearchapi.CatNodesRecord{Name: ptr("data"), IP: ptr("10.0.0.1")},
+			rec:  opensearchapi.CatNodesRecord{Name: new("data"), IP: new("10.0.0.1")},
 			want: "data@10.0.0.1",
 		},
 		{
 			name: "two nodes sharing name disambiguate via ip",
-			rec:  opensearchapi.CatNodesRecord{Name: ptr("data"), IP: ptr("10.0.0.2")},
+			rec:  opensearchapi.CatNodesRecord{Name: new("data"), IP: new("10.0.0.2")},
 			want: "data@10.0.0.2",
 		},
 		{
 			name: "ip alone when name missing",
-			rec:  opensearchapi.CatNodesRecord{IP: ptr("10.0.0.3")},
+			rec:  opensearchapi.CatNodesRecord{IP: new("10.0.0.3")},
 			want: "10.0.0.3",
 		},
 		{
 			name: "name alone when ip missing",
-			rec:  opensearchapi.CatNodesRecord{Name: ptr("orphan")},
+			rec:  opensearchapi.CatNodesRecord{Name: new("orphan")},
 			want: "orphan",
 		},
 		{
@@ -67,9 +65,8 @@ func TestNodeKey(t *testing.T) {
 func TestNodeKey_DistinguishesSameNamedNodes(t *testing.T) {
 	t.Parallel()
 
-	ptr := func(s string) *string { return &s }
-	a := opensearchapi.CatNodesRecord{Name: ptr("data"), IP: ptr("10.0.0.1")}
-	b := opensearchapi.CatNodesRecord{Name: ptr("data"), IP: ptr("10.0.0.2")}
+	a := opensearchapi.CatNodesRecord{Name: new("data"), IP: new("10.0.0.1")}
+	b := opensearchapi.CatNodesRecord{Name: new("data"), IP: new("10.0.0.2")}
 
 	require.NotEqual(t, nodeKey(a), nodeKey(b),
 		"two nodes with the same name on different IPs must produce distinct FSM keys")

@@ -26,22 +26,22 @@ func TestIndexParams_get(t *testing.T) {
 		{name: "empty", params: IndexParams{}, want: nil},
 		{
 			name:   "if_primary_term",
-			params: IndexParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
+			params: IndexParams{IfPrimaryTerm: new(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_primary_term=0",
-			params: IndexParams{IfPrimaryTerm: func(i int) *int { return &i }(0)},
+			params: IndexParams{IfPrimaryTerm: new(0)},
 			want:   map[string]string{"if_primary_term": "0"},
 		},
 		{
 			name:   "if_seq_no",
-			params: IndexParams{IfSeqNo: func(i int) *int { return &i }(42)},
+			params: IndexParams{IfSeqNo: new(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{
 			name:   "if_seq_no=0",
-			params: IndexParams{IfSeqNo: func(i int) *int { return &i }(0)},
+			params: IndexParams{IfSeqNo: new(0)},
 			want:   map[string]string{"if_seq_no": "0"},
 		},
 		{
@@ -61,12 +61,12 @@ func TestIndexParams_get(t *testing.T) {
 		},
 		{
 			name:   "require_alias=true",
-			params: IndexParams{RequireAlias: func(b bool) *bool { return &b }(true)},
+			params: IndexParams{RequireAlias: new(true)},
 			want:   map[string]string{"require_alias": "true"},
 		},
 		{
 			name:   "require_alias=false",
-			params: IndexParams{RequireAlias: func(b bool) *bool { return &b }(false)},
+			params: IndexParams{RequireAlias: new(false)},
 			want:   map[string]string{"require_alias": "false"},
 		},
 		{
@@ -76,12 +76,12 @@ func TestIndexParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: IndexParams{Version: func(i int) *int { return &i }(42)},
+			params: IndexParams{Version: new(42)},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version=0",
-			params: IndexParams{Version: func(i int) *int { return &i }(0)},
+			params: IndexParams{Version: new(0)},
 			want:   map[string]string{"version": "0"},
 		},
 		{

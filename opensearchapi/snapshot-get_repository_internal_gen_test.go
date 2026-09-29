@@ -26,12 +26,12 @@ func TestSnapshotGetRepositoryParams_get(t *testing.T) {
 		{name: "empty", params: SnapshotGetRepositoryParams{}, want: nil},
 		{
 			name:   "local=true",
-			params: SnapshotGetRepositoryParams{Local: func(b bool) *bool { return &b }(true)},
+			params: SnapshotGetRepositoryParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: SnapshotGetRepositoryParams{Local: func(b bool) *bool { return &b }(false)},
+			params: SnapshotGetRepositoryParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

@@ -31,12 +31,12 @@ func TestAuthinfoParams_get(t *testing.T) {
 		},
 		{
 			name:   "verbose=true",
-			params: AuthinfoParams{Verbose: func(b bool) *bool { return &b }(true)},
+			params: AuthinfoParams{Verbose: new(true)},
 			want:   map[string]string{"verbose": "true"},
 		},
 		{
 			name:   "verbose=false",
-			params: AuthinfoParams{Verbose: func(b bool) *bool { return &b }(false)},
+			params: AuthinfoParams{Verbose: new(false)},
 			want:   map[string]string{"verbose": "false"},
 		},
 	}

@@ -26,12 +26,12 @@ func TestIndicesSegmentsParams_get(t *testing.T) {
 		{name: "empty", params: IndicesSegmentsParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesSegmentsParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesSegmentsParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesSegmentsParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesSegmentsParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestIndicesSegmentsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesSegmentsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesSegmentsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesSegmentsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesSegmentsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "verbose=true",
-			params: IndicesSegmentsParams{Verbose: func(b bool) *bool { return &b }(true)},
+			params: IndicesSegmentsParams{Verbose: new(true)},
 			want:   map[string]string{"verbose": "true"},
 		},
 		{
 			name:   "verbose=false",
-			params: IndicesSegmentsParams{Verbose: func(b bool) *bool { return &b }(false)},
+			params: IndicesSegmentsParams{Verbose: new(false)},
 			want:   map[string]string{"verbose": "false"},
 		},
 	}

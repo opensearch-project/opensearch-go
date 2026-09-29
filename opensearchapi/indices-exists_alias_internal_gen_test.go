@@ -26,12 +26,12 @@ func TestIndicesExistsAliasParams_get(t *testing.T) {
 		{name: "empty", params: IndicesExistsAliasParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesExistsAliasParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesExistsAliasParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesExistsAliasParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesExistsAliasParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,22 +41,22 @@ func TestIndicesExistsAliasParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesExistsAliasParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesExistsAliasParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesExistsAliasParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesExistsAliasParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesExistsAliasParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesExistsAliasParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesExistsAliasParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesExistsAliasParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

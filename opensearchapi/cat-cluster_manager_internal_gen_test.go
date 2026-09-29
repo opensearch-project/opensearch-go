@@ -26,12 +26,12 @@ func TestCatClusterManagerParams_get(t *testing.T) {
 		{name: "empty", params: CatClusterManagerParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatClusterManagerParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatClusterManagerParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatClusterManagerParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatClusterManagerParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

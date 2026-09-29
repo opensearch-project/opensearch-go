@@ -26,12 +26,12 @@ func TestIndicesCloseParams_get(t *testing.T) {
 		{name: "empty", params: IndicesCloseParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesCloseParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesCloseParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesCloseParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesCloseParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesCloseParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesCloseParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesCloseParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesCloseParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesCloseParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{

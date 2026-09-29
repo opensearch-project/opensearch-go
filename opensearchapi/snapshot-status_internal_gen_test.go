@@ -26,12 +26,12 @@ func TestSnapshotStatusParams_get(t *testing.T) {
 		{name: "empty", params: SnapshotStatusParams{}, want: nil},
 		{
 			name:   "ignore_unavailable=true",
-			params: SnapshotStatusParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SnapshotStatusParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SnapshotStatusParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SnapshotStatusParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 	}

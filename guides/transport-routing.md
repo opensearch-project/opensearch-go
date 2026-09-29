@@ -26,10 +26,9 @@ if err != nil {
     log.Fatal(err)
 }
 
-discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://node1:9200", "https://node2:9200"},
-    DiscoverNodesOnStart:  &discoverOnStart,
+    DiscoverNodesOnStart:  new(true),
     DiscoverNodesInterval: 5 * time.Minute,
     Router:                router,
 })
@@ -1165,7 +1164,7 @@ When an `AddressResolverFunc` is configured, the client calls it for every node 
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:            []string{"https://seed:9200"},
-    DiscoverNodesOnStart: ptr(true),
+    DiscoverNodesOnStart: new(true),
     AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
         // Probe the sidecar proxy on port 9201; fall back to the published address.
         probeURL := &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}
@@ -1238,7 +1237,7 @@ Metrics (`AddressResolverCalls`, `AddressResolverErrors`) are instrumented autom
 ```go
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:            []string{"https://seed:9200"},
-    DiscoverNodesOnStart: ptr(true),
+    DiscoverNodesOnStart: new(true),
     AddressResolver: func(ctx context.Context, node opensearchtransport.NodeInfo) (*url.URL, error) {
         return &url.URL{Scheme: node.URL.Scheme, Host: net.JoinHostPort(node.URL.Hostname(), "9201")}, nil
     },
@@ -1656,10 +1655,9 @@ if err != nil {
     log.Fatal(err)
 }
 
-discoverOnStart := true
 client, err := opensearch.NewClient(opensearch.Config{
     Addresses:             []string{"https://node1:9200", "https://node2:9200"},
-    DiscoverNodesOnStart:  &discoverOnStart,
+    DiscoverNodesOnStart:  new(true),
     DiscoverNodesInterval: 5 * time.Minute,
     Router:                router,
 })

@@ -26,12 +26,12 @@ func TestCloseParams_get(t *testing.T) {
 		{name: "empty", params: CloseParams{}, want: map[string]string{"format": "jdbc"}},
 		{
 			name:   "sanitize=true",
-			params: CloseParams{Sanitize: func(b bool) *bool { return &b }(true)},
+			params: CloseParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "true"},
 		},
 		{
 			name:   "sanitize=false",
-			params: CloseParams{Sanitize: func(b bool) *bool { return &b }(false)},
+			params: CloseParams{Sanitize: new(false)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "false"},
 		},
 	}

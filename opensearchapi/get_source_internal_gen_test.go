@@ -46,12 +46,12 @@ func TestGetSourceParams_get(t *testing.T) {
 		},
 		{
 			name:   "realtime=true",
-			params: GetSourceParams{Realtime: func(b bool) *bool { return &b }(true)},
+			params: GetSourceParams{Realtime: new(true)},
 			want:   map[string]string{"realtime": "true"},
 		},
 		{
 			name:   "realtime=false",
-			params: GetSourceParams{Realtime: func(b bool) *bool { return &b }(false)},
+			params: GetSourceParams{Realtime: new(false)},
 			want:   map[string]string{"realtime": "false"},
 		},
 		{
@@ -66,12 +66,12 @@ func TestGetSourceParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: GetSourceParams{Version: func(i int) *int { return &i }(42)},
+			params: GetSourceParams{Version: new(42)},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version=0",
-			params: GetSourceParams{Version: func(i int) *int { return &i }(0)},
+			params: GetSourceParams{Version: new(0)},
 			want:   map[string]string{"version": "0"},
 		},
 		{

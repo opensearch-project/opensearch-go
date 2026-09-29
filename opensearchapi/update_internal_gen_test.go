@@ -41,22 +41,22 @@ func TestUpdateParams_get(t *testing.T) {
 		},
 		{
 			name:   "if_primary_term",
-			params: UpdateParams{IfPrimaryTerm: func(i int) *int { return &i }(42)},
+			params: UpdateParams{IfPrimaryTerm: new(42)},
 			want:   map[string]string{"if_primary_term": "42"},
 		},
 		{
 			name:   "if_primary_term=0",
-			params: UpdateParams{IfPrimaryTerm: func(i int) *int { return &i }(0)},
+			params: UpdateParams{IfPrimaryTerm: new(0)},
 			want:   map[string]string{"if_primary_term": "0"},
 		},
 		{
 			name:   "if_seq_no",
-			params: UpdateParams{IfSeqNo: func(i int) *int { return &i }(42)},
+			params: UpdateParams{IfSeqNo: new(42)},
 			want:   map[string]string{"if_seq_no": "42"},
 		},
 		{
 			name:   "if_seq_no=0",
-			params: UpdateParams{IfSeqNo: func(i int) *int { return &i }(0)},
+			params: UpdateParams{IfSeqNo: new(0)},
 			want:   map[string]string{"if_seq_no": "0"},
 		},
 		{
@@ -71,12 +71,12 @@ func TestUpdateParams_get(t *testing.T) {
 		},
 		{
 			name:   "require_alias=true",
-			params: UpdateParams{RequireAlias: func(b bool) *bool { return &b }(true)},
+			params: UpdateParams{RequireAlias: new(true)},
 			want:   map[string]string{"require_alias": "true"},
 		},
 		{
 			name:   "require_alias=false",
-			params: UpdateParams{RequireAlias: func(b bool) *bool { return &b }(false)},
+			params: UpdateParams{RequireAlias: new(false)},
 			want:   map[string]string{"require_alias": "false"},
 		},
 		{

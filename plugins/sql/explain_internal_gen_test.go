@@ -26,12 +26,12 @@ func TestExplainParams_get(t *testing.T) {
 		{name: "empty", params: ExplainParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "sanitize=true",
-			params: ExplainParams{Sanitize: func(b bool) *bool { return &b }(true)},
+			params: ExplainParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "json", "sanitize": "true"},
 		},
 		{
 			name:   "sanitize=false",
-			params: ExplainParams{Sanitize: func(b bool) *bool { return &b }(false)},
+			params: ExplainParams{Sanitize: new(false)},
 			want:   map[string]string{"format": "json", "sanitize": "false"},
 		},
 	}

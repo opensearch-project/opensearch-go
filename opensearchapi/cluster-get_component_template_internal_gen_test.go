@@ -26,22 +26,22 @@ func TestClusterGetComponentTemplateParams_get(t *testing.T) {
 		{name: "empty", params: ClusterGetComponentTemplateParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: ClusterGetComponentTemplateParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: ClusterGetComponentTemplateParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: ClusterGetComponentTemplateParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: ClusterGetComponentTemplateParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "local=true",
-			params: ClusterGetComponentTemplateParams{Local: func(b bool) *bool { return &b }(true)},
+			params: ClusterGetComponentTemplateParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: ClusterGetComponentTemplateParams{Local: func(b bool) *bool { return &b }(false)},
+			params: ClusterGetComponentTemplateParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

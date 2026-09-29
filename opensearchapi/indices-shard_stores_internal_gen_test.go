@@ -26,12 +26,12 @@ func TestIndicesShardStoresParams_get(t *testing.T) {
 		{name: "empty", params: IndicesShardStoresParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesShardStoresParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesShardStoresParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesShardStoresParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesShardStoresParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestIndicesShardStoresParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesShardStoresParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesShardStoresParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesShardStoresParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesShardStoresParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{

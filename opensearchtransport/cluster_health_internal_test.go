@@ -1439,9 +1439,8 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 		// fetchAndEvaluateNodeStats(conn, nil). AIMD must still run
 		// (updatePoolCongestion), but overload demotion/promotion must
 		// be skipped because there is no multiServerPool to demote within.
-		waitNanos := int64(500)
 		statsJSON := makeStatsResponseWithThreadPools(30, map[string]ThreadPoolStats{
-			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: &waitNanos},
+			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: new(int64(500))},
 		})
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -1504,9 +1503,8 @@ func TestFetchAndEvaluateNodeStats(t *testing.T) {
 func TestPollNodeStats_SingleServerPool(t *testing.T) {
 	t.Run("polls single connection", func(t *testing.T) {
 		var polled atomic.Int64
-		waitNanos := int64(500)
 		statsJSON := makeStatsResponseWithThreadPools(30, map[string]ThreadPoolStats{
-			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: &waitNanos},
+			"search": {Threads: 13, Active: 5, Completed: 100, TotalWaitTimeInNanos: new(int64(500))},
 		})
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 			polled.Add(1)

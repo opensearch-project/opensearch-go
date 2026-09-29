@@ -26,12 +26,12 @@ func TestDanglingIndicesDeleteDanglingIndexParams_get(t *testing.T) {
 		{name: "empty", params: DanglingIndicesDeleteDanglingIndexParams{}, want: nil},
 		{
 			name:   "accept_data_loss=true",
-			params: DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(true)},
+			params: DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: new(true)},
 			want:   map[string]string{"accept_data_loss": "true"},
 		},
 		{
 			name:   "accept_data_loss=false",
-			params: DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: func(b bool) *bool { return &b }(false)},
+			params: DanglingIndicesDeleteDanglingIndexParams{AcceptDataLoss: new(false)},
 			want:   map[string]string{"accept_data_loss": "false"},
 		},
 	}

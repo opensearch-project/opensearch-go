@@ -26,12 +26,12 @@ func TestIndicesFlushParams_get(t *testing.T) {
 		{name: "empty", params: IndicesFlushParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesFlushParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesFlushParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesFlushParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesFlushParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,32 +41,32 @@ func TestIndicesFlushParams_get(t *testing.T) {
 		},
 		{
 			name:   "force=true",
-			params: IndicesFlushParams{Force: func(b bool) *bool { return &b }(true)},
+			params: IndicesFlushParams{Force: new(true)},
 			want:   map[string]string{"force": "true"},
 		},
 		{
 			name:   "force=false",
-			params: IndicesFlushParams{Force: func(b bool) *bool { return &b }(false)},
+			params: IndicesFlushParams{Force: new(false)},
 			want:   map[string]string{"force": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesFlushParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesFlushParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesFlushParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesFlushParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "wait_if_ongoing=true",
-			params: IndicesFlushParams{WaitIfOngoing: func(b bool) *bool { return &b }(true)},
+			params: IndicesFlushParams{WaitIfOngoing: new(true)},
 			want:   map[string]string{"wait_if_ongoing": "true"},
 		},
 		{
 			name:   "wait_if_ongoing=false",
-			params: IndicesFlushParams{WaitIfOngoing: func(b bool) *bool { return &b }(false)},
+			params: IndicesFlushParams{WaitIfOngoing: new(false)},
 			want:   map[string]string{"wait_if_ongoing": "false"},
 		},
 	}

@@ -26,32 +26,32 @@ func TestIndicesValidateQueryParams_get(t *testing.T) {
 		{name: "empty", params: IndicesValidateQueryParams{}, want: nil},
 		{
 			name:   "all_shards=true",
-			params: IndicesValidateQueryParams{AllShards: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{AllShards: new(true)},
 			want:   map[string]string{"all_shards": "true"},
 		},
 		{
 			name:   "all_shards=false",
-			params: IndicesValidateQueryParams{AllShards: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{AllShards: new(false)},
 			want:   map[string]string{"all_shards": "false"},
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesValidateQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesValidateQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: IndicesValidateQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: IndicesValidateQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -76,32 +76,32 @@ func TestIndicesValidateQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "explain=true",
-			params: IndicesValidateQueryParams{Explain: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{Explain: new(true)},
 			want:   map[string]string{"explain": "true"},
 		},
 		{
 			name:   "explain=false",
-			params: IndicesValidateQueryParams{Explain: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{Explain: new(false)},
 			want:   map[string]string{"explain": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesValidateQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesValidateQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "lenient=true",
-			params: IndicesValidateQueryParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: IndicesValidateQueryParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{
@@ -111,12 +111,12 @@ func TestIndicesValidateQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "rewrite=true",
-			params: IndicesValidateQueryParams{Rewrite: func(b bool) *bool { return &b }(true)},
+			params: IndicesValidateQueryParams{Rewrite: new(true)},
 			want:   map[string]string{"rewrite": "true"},
 		},
 		{
 			name:   "rewrite=false",
-			params: IndicesValidateQueryParams{Rewrite: func(b bool) *bool { return &b }(false)},
+			params: IndicesValidateQueryParams{Rewrite: new(false)},
 			want:   map[string]string{"rewrite": "false"},
 		},
 	}

@@ -31,12 +31,12 @@ func TestCatAliasesParams_get(t *testing.T) {
 		},
 		{
 			name:   "local=true",
-			params: CatAliasesParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatAliasesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatAliasesParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatAliasesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

@@ -46,12 +46,12 @@ func TestExistsParams_get(t *testing.T) {
 		},
 		{
 			name:   "realtime=true",
-			params: ExistsParams{Realtime: func(b bool) *bool { return &b }(true)},
+			params: ExistsParams{Realtime: new(true)},
 			want:   map[string]string{"realtime": "true"},
 		},
 		{
 			name:   "realtime=false",
-			params: ExistsParams{Realtime: func(b bool) *bool { return &b }(false)},
+			params: ExistsParams{Realtime: new(false)},
 			want:   map[string]string{"realtime": "false"},
 		},
 		{
@@ -71,12 +71,12 @@ func TestExistsParams_get(t *testing.T) {
 		},
 		{
 			name:   "version",
-			params: ExistsParams{Version: func(i int) *int { return &i }(42)},
+			params: ExistsParams{Version: new(42)},
 			want:   map[string]string{"version": "42"},
 		},
 		{
 			name:   "version=0",
-			params: ExistsParams{Version: func(i int) *int { return &i }(0)},
+			params: ExistsParams{Version: new(0)},
 			want:   map[string]string{"version": "0"},
 		},
 		{

@@ -62,12 +62,12 @@ func TestBulkStreamParams_get(t *testing.T) {
 		},
 		{
 			name:   "require_alias=true",
-			params: BulkStreamParams{RequireAlias: func(b bool) *bool { return &b }(true)},
+			params: BulkStreamParams{RequireAlias: new(true)},
 			want:   map[string]string{"require_alias": "true"},
 		},
 		{
 			name:   "require_alias=false",
-			params: BulkStreamParams{RequireAlias: func(b bool) *bool { return &b }(false)},
+			params: BulkStreamParams{RequireAlias: new(false)},
 			want:   map[string]string{"require_alias": "false"},
 		},
 		{

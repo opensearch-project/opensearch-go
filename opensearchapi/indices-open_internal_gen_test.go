@@ -27,12 +27,12 @@ func TestIndicesOpenParams_get(t *testing.T) {
 		{name: "empty", params: IndicesOpenParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesOpenParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesOpenParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesOpenParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesOpenParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -42,12 +42,12 @@ func TestIndicesOpenParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesOpenParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesOpenParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesOpenParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesOpenParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
@@ -62,12 +62,12 @@ func TestIndicesOpenParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesOpenParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesOpenParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesOpenParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesOpenParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

@@ -94,7 +94,7 @@ client, _ = opensearchapi.NewClient(opensearchapi.Config{
 })
 ```
 
-A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: &false` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`. For routing semantics (role awareness, AIMD, shard-cost weighting) see [Request Routing](transport-routing.md); for node discovery see [Node Discovery and Roles](transport-node_discovery_and_roles.md).
+A caller-supplied `DiscoverNodesOnStart` value always wins over the env-var-driven side-effect: setting `DiscoverNodesOnStart: new(false)` keeps auto-discovery off even when `OPENSEARCH_GO_ROUTER=true`. For routing semantics (role awareness, AIMD, shard-cost weighting) see [Request Routing](transport-routing.md); for node discovery see [Node Discovery and Roles](transport-node_discovery_and_roles.md).
 
 ## Discovery
 

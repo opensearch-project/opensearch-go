@@ -27,12 +27,12 @@ func TestIndicesShrinkParams_get(t *testing.T) {
 		{name: "empty", params: IndicesShrinkParams{}, want: nil},
 		{
 			name:   "copy_settings=true",
-			params: IndicesShrinkParams{CopySettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesShrinkParams{CopySettings: new(true)},
 			want:   map[string]string{"copy_settings": "true"},
 		},
 		{
 			name:   "copy_settings=false",
-			params: IndicesShrinkParams{CopySettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesShrinkParams{CopySettings: new(false)},
 			want:   map[string]string{"copy_settings": "false"},
 		},
 		{
@@ -47,12 +47,12 @@ func TestIndicesShrinkParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: IndicesShrinkParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: IndicesShrinkParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: IndicesShrinkParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: IndicesShrinkParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}

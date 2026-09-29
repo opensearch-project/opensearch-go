@@ -26,12 +26,12 @@ func TestCatNodeattrsParams_get(t *testing.T) {
 		{name: "empty", params: CatNodeattrsParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatNodeattrsParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatNodeattrsParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatNodeattrsParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatNodeattrsParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

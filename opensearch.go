@@ -550,8 +550,7 @@ func NewClient(cfg Config) (*Client, error) {
 	// on-start discovery; unset or any non-falsy value enables it, matching the
 	// router's on-by-default behavior.
 	if cfg.DiscoverNodesOnStart == nil && cfg.Router == nil && !envvars.Falsy(envRouter) {
-		t := true
-		cfg.DiscoverNodesOnStart = &t
+		cfg.DiscoverNodesOnStart = new(true)
 	}
 
 	if cfg.DiscoverNodesOnStart != nil && *cfg.DiscoverNodesOnStart {

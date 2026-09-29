@@ -54,3 +54,98 @@ func removedType() bool {
 	var r opensearchapi.AliasDeleteResp
 	return r.Acknowledged
 }
+-- topointer.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// toPointer exercises the removed ToPointer helper on the v4 -> v5 hop, from
+// both packages v4 exports it from. The literal arguments are not addressable,
+// so the rewrite must emit new(x); &true and &42 would not compile. ToPointer is
+// each import's only use, so both imports must be dropped once it is rewritten.
+func toPointer() (*bool, *int) {
+	return opensearchapi.ToPointer(true), opensearch.ToPointer(42)
+}
+-- importprune.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	osv4 "github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// importPrune checks the post-rewrite import prune. The aliased root import's
+// only use is ToPointer, so it must be dropped by its alias. opensearchapi keeps
+// a use after its ToPointer call is rewritten, so it must survive, bumped to v5.
+func importPrune() (*int, *bool, opensearchapi.Config) {
+	return osv4.ToPointer(1), opensearchapi.ToPointer(true), opensearchapi.Config{}
+}
+-- newfromclient.go --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+)
+
+// newFromClient calls NewFromClient, which v5 removes with no mechanical
+// replacement: the hop reports it MANUAL and leaves the call in place.
+func newFromClient(c *opensearch.Client) *opensearchapi.Client {
+	return opensearchapi.NewFromClient(c)
+}
+-- topointer.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+// toPointer exercises the removed ToPointer helper on the v4 -> v5 hop, from
+// both packages v4 exports it from. The literal arguments are not addressable,
+// so the rewrite must emit new(x); &true and &42 would not compile. ToPointer is
+// each import's only use, so both imports must be dropped once it is rewritten.
+func toPointer() (*bool, *int) {
+	return new(true), new(42)
+}
+-- importprune.go.golden --
+// SPDX-License-Identifier: Apache-2.0
+//
+// The OpenSearch Contributors require contributions made to
+// this file be licensed under the Apache-2.0 license or a
+// compatible open source license.
+
+package corpus
+
+import (
+	"github.com/opensearch-project/opensearch-go/v5/opensearchapi"
+)
+
+// importPrune checks the post-rewrite import prune. The aliased root import's
+// only use is ToPointer, so it must be dropped by its alias. opensearchapi keeps
+// a use after its ToPointer call is rewritten, so it must survive, bumped to v5.
+func importPrune() (*int, *bool, opensearchapi.Config) {
+	return new(1), new(true), opensearchapi.Config{}
+}

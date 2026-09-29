@@ -31,12 +31,12 @@ func TestIndicesSimulateTemplateParams_get(t *testing.T) {
 		},
 		{
 			name:   "create=true",
-			params: IndicesSimulateTemplateParams{Create: func(b bool) *bool { return &b }(true)},
+			params: IndicesSimulateTemplateParams{Create: new(true)},
 			want:   map[string]string{"create": "true"},
 		},
 		{
 			name:   "create=false",
-			params: IndicesSimulateTemplateParams{Create: func(b bool) *bool { return &b }(false)},
+			params: IndicesSimulateTemplateParams{Create: new(false)},
 			want:   map[string]string{"create": "false"},
 		},
 	}

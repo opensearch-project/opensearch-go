@@ -26,12 +26,12 @@ func TestCatRecoveryParams_get(t *testing.T) {
 		{name: "empty", params: CatRecoveryParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "active_only=true",
-			params: CatRecoveryParams{ActiveOnly: func(b bool) *bool { return &b }(true)},
+			params: CatRecoveryParams{ActiveOnly: new(true)},
 			want:   map[string]string{"format": "json", "active_only": "true"},
 		},
 		{
 			name:   "active_only=false",
-			params: CatRecoveryParams{ActiveOnly: func(b bool) *bool { return &b }(false)},
+			params: CatRecoveryParams{ActiveOnly: new(false)},
 			want:   map[string]string{"format": "json", "active_only": "false"},
 		},
 		{
@@ -41,12 +41,12 @@ func TestCatRecoveryParams_get(t *testing.T) {
 		},
 		{
 			name:   "detailed=true",
-			params: CatRecoveryParams{Detailed: func(b bool) *bool { return &b }(true)},
+			params: CatRecoveryParams{Detailed: new(true)},
 			want:   map[string]string{"format": "json", "detailed": "true"},
 		},
 		{
 			name:   "detailed=false",
-			params: CatRecoveryParams{Detailed: func(b bool) *bool { return &b }(false)},
+			params: CatRecoveryParams{Detailed: new(false)},
 			want:   map[string]string{"format": "json", "detailed": "false"},
 		},
 		{

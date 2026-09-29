@@ -26,12 +26,12 @@ func TestNodesInfoParams_get(t *testing.T) {
 		{name: "empty", params: NodesInfoParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: NodesInfoParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: NodesInfoParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: NodesInfoParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: NodesInfoParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 	}

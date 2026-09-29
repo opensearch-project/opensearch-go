@@ -153,7 +153,7 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
     Indices:    []string{"products"},
     BodyReader: strings.NewReader(`{"query":{"match_all":{}}}`),
     Params: &opensearchapi.SearchParams{
-        Size:           ptr(20),
+        Size:           new(20),
         From:           40,
         Timeout:        5 * time.Second,
         TrackTotalHits: "true",
@@ -164,19 +164,15 @@ resp, err := client.Search(ctx, &opensearchapi.SearchReq{
 
 Duration parameters (timeouts, intervals) accept `time.Duration` and are formatted automatically. Boolean and enum parameters use their Go-native types.
 
-### Pointer helpers
+### Pointer parameters
 
-Some parameters are optional pointers. Define a small `ptr` helper to set them inline:
+Some parameters are optional pointers. Set them inline with the native `new(value)` form:
 
 ```go
-func ptr[T any](v T) *T { return &v }
-
 params := opensearchapi.SomeParams{
-    WaitForActiveShards: ptr("all"),
+    WaitForActiveShards: new("all"),
 }
 ```
-
-Once the module's go directive reaches Go 1.26, you can drop the helper and use the native `new(value)` literal form instead (e.g. `new("all")`). See [`UPGRADING_V5.md`](../UPGRADING_V5.md#opensearchtopointer-removed).
 
 ## Partial Failure Errors
 

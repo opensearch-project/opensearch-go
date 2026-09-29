@@ -26,22 +26,22 @@ func TestIndicesGetIndexTemplateParams_get(t *testing.T) {
 		{name: "empty", params: IndicesGetIndexTemplateParams{}, want: nil},
 		{
 			name:   "flat_settings=true",
-			params: IndicesGetIndexTemplateParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetIndexTemplateParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: IndicesGetIndexTemplateParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetIndexTemplateParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesGetIndexTemplateParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetIndexTemplateParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesGetIndexTemplateParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetIndexTemplateParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

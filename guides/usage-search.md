@@ -57,12 +57,11 @@ For search-heavy applications, you can configure the client to automatically rou
 		return err
 	}
 
-	discoverOnStart := true
 	searchClient, err := opensearch.NewClient(opensearch.Config{
 		Addresses: []string{"http://localhost:9200"},
 
 		// Enable node discovery to find all data nodes
-		DiscoverNodesOnStart:  &discoverOnStart,
+		DiscoverNodesOnStart:  new(true),
 		DiscoverNodesInterval: 5 * time.Minute,
 
 		// Configure automatic routing to data nodes for search operations
@@ -197,7 +196,7 @@ The search API allows you to paginate through the search results. The following 
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
-				Size: ptr(2),
+				Size: new(2),
 				From: 5,
 				Sort: []string{"year:desc"},
 			},
@@ -224,7 +223,7 @@ When retrieving large amounts of non-real-time data, you can use the `scroll` pa
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:      `title: "dark knight"`,
-				Size:   ptr(2),
+				Size:   new(2),
 				Sort:   []string{"year:desc"},
 				Scroll: time.Minute,
 			},
@@ -266,7 +265,7 @@ The scroll example above has one weakness: if the index is updated while you are
 				},
 			}),
 			Params: &opensearchapi.SearchParams{
-				Size: ptr(5),
+				Size: new(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -291,7 +290,7 @@ The scroll example above has one weakness: if the index is updated while you are
 				"search_after": []string{"1994"},
 			}),
 			Params: &opensearchapi.SearchParams{
-				Size: ptr(5),
+				Size: new(5),
 				Sort: []string{"year:desc"},
 			},
 		},
@@ -326,7 +325,7 @@ For production search workloads, you can optimize performance by ensuring search
 			Addresses: []string{"http://localhost:9200"},
 
 			// Enable node discovery
-			DiscoverNodesOnStart:  ptr(true),
+			DiscoverNodesOnStart:  new(true),
 			DiscoverNodesInterval: 5 * time.Minute,
 
 			// Use data-preferred router for search optimization
@@ -350,7 +349,7 @@ For production search workloads, you can optimize performance by ensuring search
 			Indices: []string{exampleIndex},
 			Params: &opensearchapi.SearchParams{
 				Q:    `title: "dark knight"`,
-				Size: ptr(10),
+				Size: new(10),
 			},
 		},
 	)
@@ -380,7 +379,7 @@ The router automatically detects operation types and routes them to the most app
 		Client: opensearch.Config{
 			Addresses: []string{"http://localhost:9200"},
 
-			DiscoverNodesOnStart:  ptr(true),
+			DiscoverNodesOnStart:  new(true),
 			DiscoverNodesInterval: 5 * time.Minute,
 
 			Router: router,
@@ -493,7 +492,7 @@ To exclude certain fields in the source response, use `SourceExcludes` as follow
 		ctx,
 		&opensearchapi.IndicesDeleteReq{
 			Indices:  []string{"movies"},
-			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: ptr(true)},
+			Params: &opensearchapi.IndicesDeleteParams{IgnoreUnavailable: new(true)},
 		},
 	)
 	if err != nil {

@@ -26,12 +26,12 @@ func TestIndicesPutSettingsParams_get(t *testing.T) {
 		{name: "empty", params: IndicesPutSettingsParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesPutSettingsParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutSettingsParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesPutSettingsParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutSettingsParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,32 +41,32 @@ func TestIndicesPutSettingsParams_get(t *testing.T) {
 		},
 		{
 			name:   "flat_settings=true",
-			params: IndicesPutSettingsParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutSettingsParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: IndicesPutSettingsParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutSettingsParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesPutSettingsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutSettingsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesPutSettingsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutSettingsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "preserve_existing=true",
-			params: IndicesPutSettingsParams{PreserveExisting: func(b bool) *bool { return &b }(true)},
+			params: IndicesPutSettingsParams{PreserveExisting: new(true)},
 			want:   map[string]string{"preserve_existing": "true"},
 		},
 		{
 			name:   "preserve_existing=false",
-			params: IndicesPutSettingsParams{PreserveExisting: func(b bool) *bool { return &b }(false)},
+			params: IndicesPutSettingsParams{PreserveExisting: new(false)},
 			want:   map[string]string{"preserve_existing": "false"},
 		},
 	}

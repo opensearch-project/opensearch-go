@@ -46,12 +46,12 @@ func TestNodesStatsParams_get(t *testing.T) {
 		},
 		{
 			name:   "include_segment_file_sizes=true",
-			params: NodesStatsParams{IncludeSegmentFileSizes: func(b bool) *bool { return &b }(true)},
+			params: NodesStatsParams{IncludeSegmentFileSizes: new(true)},
 			want:   map[string]string{"include_segment_file_sizes": "true"},
 		},
 		{
 			name:   "include_segment_file_sizes=false",
-			params: NodesStatsParams{IncludeSegmentFileSizes: func(b bool) *bool { return &b }(false)},
+			params: NodesStatsParams{IncludeSegmentFileSizes: new(false)},
 			want:   map[string]string{"include_segment_file_sizes": "false"},
 		},
 		{

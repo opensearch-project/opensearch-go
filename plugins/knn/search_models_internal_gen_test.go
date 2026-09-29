@@ -42,32 +42,32 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: SearchModelsParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: SearchModelsParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "allow_partial_search_results=true",
-			params: SearchModelsParams{AllowPartialSearchResults: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{AllowPartialSearchResults: new(true)},
 			want:   map[string]string{"allow_partial_search_results": "true"},
 		},
 		{
 			name:   "allow_partial_search_results=false",
-			params: SearchModelsParams{AllowPartialSearchResults: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{AllowPartialSearchResults: new(false)},
 			want:   map[string]string{"allow_partial_search_results": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: SearchModelsParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: SearchModelsParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -82,12 +82,12 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ccs_minimize_roundtrips=true",
-			params: SearchModelsParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{CcsMinimizeRoundtrips: new(true)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "true"},
 		},
 		{
 			name:   "ccs_minimize_roundtrips=false",
-			params: SearchModelsParams{CcsMinimizeRoundtrips: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{CcsMinimizeRoundtrips: new(false)},
 			want:   map[string]string{"ccs_minimize_roundtrips": "false"},
 		},
 		{
@@ -112,12 +112,12 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "explain=true",
-			params: SearchModelsParams{Explain: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{Explain: new(true)},
 			want:   map[string]string{"explain": "true"},
 		},
 		{
 			name:   "explain=false",
-			params: SearchModelsParams{Explain: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{Explain: new(false)},
 			want:   map[string]string{"explain": "false"},
 		},
 		{
@@ -127,32 +127,32 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_throttled=true",
-			params: SearchModelsParams{IgnoreThrottled: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{IgnoreThrottled: new(true)},
 			want:   map[string]string{"ignore_throttled": "true"},
 		},
 		{
 			name:   "ignore_throttled=false",
-			params: SearchModelsParams{IgnoreThrottled: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{IgnoreThrottled: new(false)},
 			want:   map[string]string{"ignore_throttled": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: SearchModelsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: SearchModelsParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "lenient=true",
-			params: SearchModelsParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: SearchModelsParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{
@@ -177,22 +177,22 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "request_cache=true",
-			params: SearchModelsParams{RequestCache: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{RequestCache: new(true)},
 			want:   map[string]string{"request_cache": "true"},
 		},
 		{
 			name:   "request_cache=false",
-			params: SearchModelsParams{RequestCache: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{RequestCache: new(false)},
 			want:   map[string]string{"request_cache": "false"},
 		},
 		{
 			name:   "rest_total_hits_as_int=true",
-			params: SearchModelsParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{RestTotalHitsAsInt: new(true)},
 			want:   map[string]string{"rest_total_hits_as_int": "true"},
 		},
 		{
 			name:   "rest_total_hits_as_int=false",
-			params: SearchModelsParams{RestTotalHitsAsInt: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{RestTotalHitsAsInt: new(false)},
 			want:   map[string]string{"rest_total_hits_as_int": "false"},
 		},
 		{
@@ -212,12 +212,12 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "seq_no_primary_term=true",
-			params: SearchModelsParams{SeqNoPrimaryTerm: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{SeqNoPrimaryTerm: new(true)},
 			want:   map[string]string{"seq_no_primary_term": "true"},
 		},
 		{
 			name:   "seq_no_primary_term=false",
-			params: SearchModelsParams{SeqNoPrimaryTerm: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{SeqNoPrimaryTerm: new(false)},
 			want:   map[string]string{"seq_no_primary_term": "false"},
 		},
 		{
@@ -267,42 +267,42 @@ func TestSearchModelsParams_get(t *testing.T) {
 		},
 		{
 			name:   "track_scores=true",
-			params: SearchModelsParams{TrackScores: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{TrackScores: new(true)},
 			want:   map[string]string{"track_scores": "true"},
 		},
 		{
 			name:   "track_scores=false",
-			params: SearchModelsParams{TrackScores: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{TrackScores: new(false)},
 			want:   map[string]string{"track_scores": "false"},
 		},
 		{
 			name:   "track_total_hits=true",
-			params: SearchModelsParams{TrackTotalHits: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{TrackTotalHits: new(true)},
 			want:   map[string]string{"track_total_hits": "true"},
 		},
 		{
 			name:   "track_total_hits=false",
-			params: SearchModelsParams{TrackTotalHits: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{TrackTotalHits: new(false)},
 			want:   map[string]string{"track_total_hits": "false"},
 		},
 		{
 			name:   "typed_keys=true",
-			params: SearchModelsParams{TypedKeys: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{TypedKeys: new(true)},
 			want:   map[string]string{"typed_keys": "true"},
 		},
 		{
 			name:   "typed_keys=false",
-			params: SearchModelsParams{TypedKeys: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{TypedKeys: new(false)},
 			want:   map[string]string{"typed_keys": "false"},
 		},
 		{
 			name:   "version=true",
-			params: SearchModelsParams{Version: func(b bool) *bool { return &b }(true)},
+			params: SearchModelsParams{Version: new(true)},
 			want:   map[string]string{"version": "true"},
 		},
 		{
 			name:   "version=false",
-			params: SearchModelsParams{Version: func(b bool) *bool { return &b }(false)},
+			params: SearchModelsParams{Version: new(false)},
 			want:   map[string]string{"version": "false"},
 		},
 	}

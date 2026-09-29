@@ -26,12 +26,12 @@ func TestGetStatsParams_get(t *testing.T) {
 		{name: "empty", params: GetStatsParams{}, want: map[string]string{"format": "jdbc"}},
 		{
 			name:   "sanitize=true",
-			params: GetStatsParams{Sanitize: func(b bool) *bool { return &b }(true)},
+			params: GetStatsParams{Sanitize: new(true)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "true"},
 		},
 		{
 			name:   "sanitize=false",
-			params: GetStatsParams{Sanitize: func(b bool) *bool { return &b }(false)},
+			params: GetStatsParams{Sanitize: new(false)},
 			want:   map[string]string{"format": "jdbc", "sanitize": "false"},
 		},
 	}

@@ -26,12 +26,12 @@ func TestIndicesGetParams_get(t *testing.T) {
 		{name: "empty", params: IndicesGetParams{}, want: nil},
 		{
 			name:   "allow_no_indices=true",
-			params: IndicesGetParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: IndicesGetParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
@@ -41,42 +41,42 @@ func TestIndicesGetParams_get(t *testing.T) {
 		},
 		{
 			name:   "flat_settings=true",
-			params: IndicesGetParams{FlatSettings: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetParams{FlatSettings: new(true)},
 			want:   map[string]string{"flat_settings": "true"},
 		},
 		{
 			name:   "flat_settings=false",
-			params: IndicesGetParams{FlatSettings: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetParams{FlatSettings: new(false)},
 			want:   map[string]string{"flat_settings": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: IndicesGetParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: IndicesGetParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "include_defaults=true",
-			params: IndicesGetParams{IncludeDefaults: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetParams{IncludeDefaults: new(true)},
 			want:   map[string]string{"include_defaults": "true"},
 		},
 		{
 			name:   "include_defaults=false",
-			params: IndicesGetParams{IncludeDefaults: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetParams{IncludeDefaults: new(false)},
 			want:   map[string]string{"include_defaults": "false"},
 		},
 		{
 			name:   "local=true",
-			params: IndicesGetParams{Local: func(b bool) *bool { return &b }(true)},
+			params: IndicesGetParams{Local: new(true)},
 			want:   map[string]string{"local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: IndicesGetParams{Local: func(b bool) *bool { return &b }(false)},
+			params: IndicesGetParams{Local: new(false)},
 			want:   map[string]string{"local": "false"},
 		},
 	}

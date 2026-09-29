@@ -26,12 +26,12 @@ func TestCatRepositoriesParams_get(t *testing.T) {
 		{name: "empty", params: CatRepositoriesParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "local=true",
-			params: CatRepositoriesParams{Local: func(b bool) *bool { return &b }(true)},
+			params: CatRepositoriesParams{Local: new(true)},
 			want:   map[string]string{"format": "json", "local": "true"},
 		},
 		{
 			name:   "local=false",
-			params: CatRepositoriesParams{Local: func(b bool) *bool { return &b }(false)},
+			params: CatRepositoriesParams{Local: new(false)},
 			want:   map[string]string{"format": "json", "local": "false"},
 		},
 	}

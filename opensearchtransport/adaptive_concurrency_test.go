@@ -162,70 +162,70 @@ func TestParseShardRequests(t *testing.T) {
 			name:         "empty string",
 			value:        "",
 			wantCfg:      adaptiveConcurrencyConfig{},
-			wantFeatures: ptr(routingFeatures(0)),
+			wantFeatures: new(routingFeatures(0)),
 		},
 		{
 			name:        "true re-enables",
 			value:       "true",
 			inFeatures:  routingSkipAdaptiveConcurrency,
 			wantCfg:     adaptiveConcurrencyConfig{},
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:        "false disables",
 			value:       "false",
 			wantCfg:     adaptiveConcurrencyConfig{},
-			wantEnabled: ptr(false),
+			wantEnabled: new(false),
 		},
 		{
 			name:        "zero disables (ParseBool)",
 			value:       "0",
-			wantEnabled: ptr(false),
+			wantEnabled: new(false),
 		},
 		{
 			name:        "one enables (ParseBool)",
 			value:       "1",
 			inFeatures:  routingSkipAdaptiveConcurrency,
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:        "min:max",
 			value:       "10:512",
 			inFeatures:  routingSkipAdaptiveConcurrency,
 			wantCfg:     adaptiveConcurrencyConfig{minVal: 10, maxVal: 512},
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:        "min only",
 			value:       "10:",
 			wantCfg:     adaptiveConcurrencyConfig{minVal: 10},
 			wantMaxEff:  adaptiveConcurrencyMaxDefault,
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:        "max only",
 			value:       ":512",
 			wantCfg:     adaptiveConcurrencyConfig{maxVal: 512},
 			wantMinEff:  adaptiveConcurrencyMinDefault,
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:        "bare integer as min",
 			value:       "10",
 			wantCfg:     adaptiveConcurrencyConfig{minVal: 10},
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 		{
 			name:         "garbage ignored",
 			value:        "notanumber",
 			wantCfg:      adaptiveConcurrencyConfig{},
-			wantFeatures: ptr(routingFeatures(0)),
+			wantFeatures: new(routingFeatures(0)),
 		},
 		{
 			name:        "whitespace trimmed",
 			value:       "  10:512  ",
 			wantCfg:     adaptiveConcurrencyConfig{minVal: 10, maxVal: 512},
-			wantEnabled: ptr(true),
+			wantEnabled: new(true),
 		},
 	}
 
@@ -457,6 +457,3 @@ func TestParseRoutingConfig_AdaptiveConcurrency(t *testing.T) {
 		})
 	}
 }
-
-// ptr returns a pointer to v.
-func ptr[T any](v T) *T { return &v }

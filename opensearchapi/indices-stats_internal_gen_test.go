@@ -46,12 +46,12 @@ func TestIndicesStatsParams_get(t *testing.T) {
 		},
 		{
 			name:   "forbid_closed_indices=true",
-			params: IndicesStatsParams{ForbidClosedIndices: func(b bool) *bool { return &b }(true)},
+			params: IndicesStatsParams{ForbidClosedIndices: new(true)},
 			want:   map[string]string{"forbid_closed_indices": "true"},
 		},
 		{
 			name:   "forbid_closed_indices=false",
-			params: IndicesStatsParams{ForbidClosedIndices: func(b bool) *bool { return &b }(false)},
+			params: IndicesStatsParams{ForbidClosedIndices: new(false)},
 			want:   map[string]string{"forbid_closed_indices": "false"},
 		},
 		{
@@ -61,22 +61,22 @@ func TestIndicesStatsParams_get(t *testing.T) {
 		},
 		{
 			name:   "include_segment_file_sizes=true",
-			params: IndicesStatsParams{IncludeSegmentFileSizes: func(b bool) *bool { return &b }(true)},
+			params: IndicesStatsParams{IncludeSegmentFileSizes: new(true)},
 			want:   map[string]string{"include_segment_file_sizes": "true"},
 		},
 		{
 			name:   "include_segment_file_sizes=false",
-			params: IndicesStatsParams{IncludeSegmentFileSizes: func(b bool) *bool { return &b }(false)},
+			params: IndicesStatsParams{IncludeSegmentFileSizes: new(false)},
 			want:   map[string]string{"include_segment_file_sizes": "false"},
 		},
 		{
 			name:   "include_unloaded_segments=true",
-			params: IndicesStatsParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(true)},
+			params: IndicesStatsParams{IncludeUnloadedSegments: new(true)},
 			want:   map[string]string{"include_unloaded_segments": "true"},
 		},
 		{
 			name:   "include_unloaded_segments=false",
-			params: IndicesStatsParams{IncludeUnloadedSegments: func(b bool) *bool { return &b }(false)},
+			params: IndicesStatsParams{IncludeUnloadedSegments: new(false)},
 			want:   map[string]string{"include_unloaded_segments": "false"},
 		},
 		{

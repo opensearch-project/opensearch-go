@@ -26,22 +26,22 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 		{name: "empty", params: CatSegmentReplicationParams{}, want: map[string]string{"format": "json"}},
 		{
 			name:   "active_only=true",
-			params: CatSegmentReplicationParams{ActiveOnly: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{ActiveOnly: new(true)},
 			want:   map[string]string{"format": "json", "active_only": "true"},
 		},
 		{
 			name:   "active_only=false",
-			params: CatSegmentReplicationParams{ActiveOnly: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{ActiveOnly: new(false)},
 			want:   map[string]string{"format": "json", "active_only": "false"},
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: CatSegmentReplicationParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"format": "json", "allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: CatSegmentReplicationParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"format": "json", "allow_no_indices": "false"},
 		},
 		{
@@ -51,22 +51,22 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 		},
 		{
 			name:   "completed_only=true",
-			params: CatSegmentReplicationParams{CompletedOnly: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{CompletedOnly: new(true)},
 			want:   map[string]string{"format": "json", "completed_only": "true"},
 		},
 		{
 			name:   "completed_only=false",
-			params: CatSegmentReplicationParams{CompletedOnly: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{CompletedOnly: new(false)},
 			want:   map[string]string{"format": "json", "completed_only": "false"},
 		},
 		{
 			name:   "detailed=true",
-			params: CatSegmentReplicationParams{Detailed: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{Detailed: new(true)},
 			want:   map[string]string{"format": "json", "detailed": "true"},
 		},
 		{
 			name:   "detailed=false",
-			params: CatSegmentReplicationParams{Detailed: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{Detailed: new(false)},
 			want:   map[string]string{"format": "json", "detailed": "false"},
 		},
 		{
@@ -76,22 +76,22 @@ func TestCatSegmentReplicationParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_throttled=true",
-			params: CatSegmentReplicationParams{IgnoreThrottled: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{IgnoreThrottled: new(true)},
 			want:   map[string]string{"format": "json", "ignore_throttled": "true"},
 		},
 		{
 			name:   "ignore_throttled=false",
-			params: CatSegmentReplicationParams{IgnoreThrottled: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{IgnoreThrottled: new(false)},
 			want:   map[string]string{"format": "json", "ignore_throttled": "false"},
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: CatSegmentReplicationParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: CatSegmentReplicationParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"format": "json", "ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: CatSegmentReplicationParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: CatSegmentReplicationParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"format": "json", "ignore_unavailable": "false"},
 		},
 		{

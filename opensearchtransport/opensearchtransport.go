@@ -913,8 +913,7 @@ func New(cfg Config) (*Transport, error) {
 		}
 	case activeListCap < 0:
 		// Explicitly disabled -- store the resolved zero to prevent auto-scaling.
-		disabled := 0
-		activeListCapConfig = &disabled
+		activeListCapConfig = new(0)
 		activeListCap = 0
 	default:
 		// Explicit positive value -- store it.

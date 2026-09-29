@@ -96,12 +96,12 @@ func TestGetConfigsParams_get(t *testing.T) {
 		},
 		{
 			name:   "is_enabled=true",
-			params: GetConfigsParams{IsEnabled: func(b bool) *bool { return &b }(true)},
+			params: GetConfigsParams{IsEnabled: new(true)},
 			want:   map[string]string{"is_enabled": "true"},
 		},
 		{
 			name:   "is_enabled=false",
-			params: GetConfigsParams{IsEnabled: func(b bool) *bool { return &b }(false)},
+			params: GetConfigsParams{IsEnabled: new(false)},
 			want:   map[string]string{"is_enabled": "false"},
 		},
 		{

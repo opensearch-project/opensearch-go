@@ -42,22 +42,22 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "allow_no_indices=true",
-			params: DeleteByQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{AllowNoIndices: new(true)},
 			want:   map[string]string{"allow_no_indices": "true"},
 		},
 		{
 			name:   "allow_no_indices=false",
-			params: DeleteByQueryParams{AllowNoIndices: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{AllowNoIndices: new(false)},
 			want:   map[string]string{"allow_no_indices": "false"},
 		},
 		{
 			name:   "analyze_wildcard=true",
-			params: DeleteByQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{AnalyzeWildcard: new(true)},
 			want:   map[string]string{"analyze_wildcard": "true"},
 		},
 		{
 			name:   "analyze_wildcard=false",
-			params: DeleteByQueryParams{AnalyzeWildcard: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{AnalyzeWildcard: new(false)},
 			want:   map[string]string{"analyze_wildcard": "false"},
 		},
 		{
@@ -92,22 +92,22 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "ignore_unavailable=true",
-			params: DeleteByQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{IgnoreUnavailable: new(true)},
 			want:   map[string]string{"ignore_unavailable": "true"},
 		},
 		{
 			name:   "ignore_unavailable=false",
-			params: DeleteByQueryParams{IgnoreUnavailable: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{IgnoreUnavailable: new(false)},
 			want:   map[string]string{"ignore_unavailable": "false"},
 		},
 		{
 			name:   "lenient=true",
-			params: DeleteByQueryParams{Lenient: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{Lenient: new(true)},
 			want:   map[string]string{"lenient": "true"},
 		},
 		{
 			name:   "lenient=false",
-			params: DeleteByQueryParams{Lenient: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{Lenient: new(false)},
 			want:   map[string]string{"lenient": "false"},
 		},
 		{
@@ -132,22 +132,22 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "request_cache=true",
-			params: DeleteByQueryParams{RequestCache: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{RequestCache: new(true)},
 			want:   map[string]string{"request_cache": "true"},
 		},
 		{
 			name:   "request_cache=false",
-			params: DeleteByQueryParams{RequestCache: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{RequestCache: new(false)},
 			want:   map[string]string{"request_cache": "false"},
 		},
 		{
 			name:   "requests_per_second",
-			params: DeleteByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(1.5)},
+			params: DeleteByQueryParams{RequestsPerSecond: new(1.5)},
 			want:   map[string]string{"requests_per_second": "1.5"},
 		},
 		{
 			name:   "requests_per_second=0",
-			params: DeleteByQueryParams{RequestsPerSecond: func(f float64) *float64 { return &f }(0)},
+			params: DeleteByQueryParams{RequestsPerSecond: new(0.0)},
 			want:   map[string]string{"requests_per_second": "0"},
 		},
 		{
@@ -202,12 +202,12 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "version=true",
-			params: DeleteByQueryParams{Version: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{Version: new(true)},
 			want:   map[string]string{"version": "true"},
 		},
 		{
 			name:   "version=false",
-			params: DeleteByQueryParams{Version: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{Version: new(false)},
 			want:   map[string]string{"version": "false"},
 		},
 		{
@@ -217,12 +217,12 @@ func TestDeleteByQueryParams_get(t *testing.T) {
 		},
 		{
 			name:   "wait_for_completion=true",
-			params: DeleteByQueryParams{WaitForCompletion: func(b bool) *bool { return &b }(true)},
+			params: DeleteByQueryParams{WaitForCompletion: new(true)},
 			want:   map[string]string{"wait_for_completion": "true"},
 		},
 		{
 			name:   "wait_for_completion=false",
-			params: DeleteByQueryParams{WaitForCompletion: func(b bool) *bool { return &b }(false)},
+			params: DeleteByQueryParams{WaitForCompletion: new(false)},
 			want:   map[string]string{"wait_for_completion": "false"},
 		},
 	}
