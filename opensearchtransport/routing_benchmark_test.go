@@ -75,8 +75,7 @@ func BenchmarkConnectionPool(b *testing.B) {
 		pool := &singleServerPool{connection: conn}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c, err := pool.Next()
 			require.NoError(b, err)
 			require.NotNil(b, c)
@@ -97,8 +96,7 @@ func BenchmarkConnectionPool(b *testing.B) {
 		pool := NewConnectionPool(connections, nil)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c, err := pool.Next()
 			require.NoError(b, err)
 			require.NotNil(b, c)
@@ -128,8 +126,7 @@ func BenchmarkPolicy(b *testing.B) {
 		policy := NewNullPolicy()
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.Nil(b, hop.Conn)
@@ -141,8 +138,7 @@ func BenchmarkPolicy(b *testing.B) {
 		configureBenchPolicy(policy, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -154,8 +150,7 @@ func BenchmarkPolicy(b *testing.B) {
 		configureBenchPolicy(policy, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -167,8 +162,7 @@ func BenchmarkPolicy(b *testing.B) {
 		configureBenchPolicy(policy, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.Nil(b, hop.Conn) // No match returns nil conn
@@ -180,8 +174,7 @@ func BenchmarkPolicy(b *testing.B) {
 		configureBenchPolicy(policy, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -200,8 +193,7 @@ func BenchmarkPolicy(b *testing.B) {
 		policy := NewMuxPolicy(routes)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -216,8 +208,7 @@ func BenchmarkPolicy(b *testing.B) {
 		)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.Nil(b, hop.Conn) // NullPolicy returns nil
@@ -237,8 +228,7 @@ func BenchmarkPolicy(b *testing.B) {
 		chain := NewRouter(coordPolicy, dataPolicy, roundRobin).(*PolicyChain)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := chain.Eval(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -260,8 +250,7 @@ func BenchmarkPolicy(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), indexReq)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -285,8 +274,7 @@ func BenchmarkPolicy(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), indexReq)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn)
@@ -307,8 +295,7 @@ func BenchmarkPolicy(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			hop, err := policy.Eval(b.Context(), sysReq)
 			require.NoError(b, err)
 			require.NotNil(b, hop.Conn) // No index -> scores all connections by RTT + congestion
@@ -339,8 +326,7 @@ func BenchmarkRouter(b *testing.B) {
 		configureBenchRouter(router, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conn, err := router.Route(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, conn)
@@ -352,8 +338,7 @@ func BenchmarkRouter(b *testing.B) {
 		configureBenchRouter(router, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conn, err := router.Route(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, conn)
@@ -365,8 +350,7 @@ func BenchmarkRouter(b *testing.B) {
 		configureBenchRouter(router, connections)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conn, err := router.Route(b.Context(), req)
 			require.NoError(b, err)
 			require.NotNil(b, conn)
@@ -389,8 +373,7 @@ func BenchmarkRouter(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conn, err := router.Route(b.Context(), indexReq)
 			require.NoError(b, err)
 			require.NotNil(b, conn)
@@ -452,8 +435,7 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				conn, err := router.Route(b.Context(), req)
 				require.NoError(b, err)
 				require.NotNil(b, conn)
@@ -471,8 +453,7 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				conn, err := router.Route(b.Context(), req)
 				require.NoError(b, err)
 				require.NotNil(b, conn)
@@ -491,8 +472,7 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				conn, err := router.Route(b.Context(), req)
 				require.NoError(b, err)
 				require.NotNil(b, conn)
@@ -510,8 +490,7 @@ func BenchmarkRouterOperations(b *testing.B) {
 			}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				conn, err := router.Route(b.Context(), req)
 				require.NoError(b, err)
 				require.NotNil(b, conn)
@@ -536,8 +515,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			_ = extractIndexFromPath(paths[i%len(paths)])
 		}
 	})
@@ -551,8 +529,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		var jitter atomic.Int64
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = rendezvousTopK("my-index", "", conns, 3, &jitter, nil, nil)
 		}
 	})
@@ -567,8 +544,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		var jitter atomic.Int64
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = rendezvousTopK("my-index", "", conns, 5, &jitter, nil, nil)
 		}
 	})
@@ -587,8 +563,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		var jitter atomic.Int64
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = rendezvousTopK("my-index", "", conns, 5, &jitter, shardNodes, nil)
 		}
 	})
@@ -598,8 +573,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		info := &shardNodeInfo{Primaries: 1, Replicas: 2}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(info), "", true)
 		}
 	})
@@ -608,8 +582,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		conn := createBenchConnection("http://bench-data-1:9200", "bench-data-1", 1*time.Millisecond, 500.0, RoleData)
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = calcConnDefaultScore(conn, shardCostForReads.forNode(nil), "", true)
 		}
 	})
@@ -623,8 +596,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conns := make([]*Connection, len(template))
 			copy(conns, template)
 			sortConnectionsByRTT(conns)
@@ -640,8 +612,7 @@ func BenchmarkRoutingPrimitives(b *testing.B) {
 		}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			conns := make([]*Connection, len(template))
 			copy(conns, template)
 			sortConnectionsByRTT(conns)

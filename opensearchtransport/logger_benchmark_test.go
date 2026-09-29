@@ -59,8 +59,7 @@ func BenchmarkTransportLogger(b *testing.B) {
 		}
 		b.Cleanup(func() { _ = tp.Close() })
 
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Stream(req)
 			if err != nil {
