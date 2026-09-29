@@ -18,6 +18,10 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Dependencies
 
+- Bump the go directive from 1.26.0 to 1.26.8 in the root and all nested modules, so builds use a Go release with the standard library CVE fixes from the 1.26.x patch releases. Consumers now need Go 1.26.8 or later ([#1172](https://github.com/opensearch-project/opensearch-go/pull/1172))
+- Bump `github.com/aws/smithy-go` from v1.28.1 to v1.28.2 ([#1172](https://github.com/opensearch-project/opensearch-go/pull/1172))
+- Bump the `opensearch-go/v5` requirement in `log-slog`, `log-zerolog`, `osotel` and `osprom` from v5.0.0-rc7 to v5.0.0 ([#1172](https://github.com/opensearch-project/opensearch-go/pull/1172))
+
 ## [5.0.0]
 
 ### Added
