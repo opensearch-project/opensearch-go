@@ -1307,14 +1307,10 @@ func (tr *Transport) resolveDiscoveredNodes(ctx context.Context, pending []disco
 				break
 			}
 		}
-		wg.Add(1)
-		go func(i int, p discoveryPendingNode) {
-			defer func() {
-				wg.Done()
-				if sem != nil {
-					sem.Release(1)
-				}
-			}()
+		wg.Go(func() {
+			if sem != nil {
+				defer sem.Release(1)
+			}
 
 			if tr.metrics != nil {
 				tr.metrics.addressResolverCalls.Add(1)
@@ -1351,7 +1347,7 @@ func (tr *Transport) resolveDiscoveredNodes(ctx context.Context, pending []disco
 			node := p.node
 			node.url = tr.applyRewrite(&node, p.defaultURL, resolved, obs)
 			results[i] = resolvedNode{node: node}
-		}(i, p)
+		})
 	}
 	wg.Wait()
 

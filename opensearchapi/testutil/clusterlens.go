@@ -134,20 +134,16 @@ func isPermanentAuthErr(err error) bool {
 	if err == nil {
 		return false
 	}
-	var stringErr opensearch.StringError
-	if errors.As(err, &stringErr) {
+	if stringErr, ok := errors.AsType[opensearch.StringError](err); ok {
 		return stringErr.Status == http.StatusUnauthorized || stringErr.Status == http.StatusForbidden
 	}
-	var structErr opensearch.StructError
-	if errors.As(err, &structErr) {
+	if structErr, ok := errors.AsType[opensearch.StructError](err); ok {
 		return structErr.Status == http.StatusUnauthorized || structErr.Status == http.StatusForbidden
 	}
-	var reasonErr opensearch.ReasonError
-	if errors.As(err, &reasonErr) {
+	if reasonErr, ok := errors.AsType[opensearch.ReasonError](err); ok {
 		return reasonErr.Status == "401" || reasonErr.Status == "403"
 	}
-	var messageErr opensearch.MessageError
-	if errors.As(err, &messageErr) {
+	if messageErr, ok := errors.AsType[opensearch.MessageError](err); ok {
 		return messageErr.Status == "401" || messageErr.Status == "403"
 	}
 	return readiness.IsPermanentAuthErr(err)
