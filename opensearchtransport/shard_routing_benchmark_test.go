@@ -55,8 +55,7 @@ func BenchmarkCalcMultiKeyCost(b *testing.B) {
 
 		b.Run(fmt.Sprintf("keys=%d", numKeys), func(b *testing.B) {
 			b.ReportAllocs()
-			b.ResetTimer()
-			for range b.N {
+			for b.Loop() {
 				candidates, extraCost := calcMultiKeyCost(routingFeatures(0), slot, routingValue, conns)
 				candidates.Release()
 				extraCost.Release()
@@ -86,8 +85,7 @@ func BenchmarkCalcSingleKeyCost(b *testing.B) {
 	routingValue := "s5a0-0" // routes to shard 0
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for range b.N {
+	for b.Loop() {
 		buf, _, _ := calcSingleKeyCost(routingFeatures(0), slot, routingValue, conns)
 		buf.Release()
 	}
@@ -120,8 +118,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 
 	b.Run("8_candidates_no_extraCost", func(b *testing.B) {
 		b.ReportAllocs()
-		b.ResetTimer()
-		for range b.N {
+		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
 				scores.Slice(), nil, nil)
@@ -139,8 +136,7 @@ func BenchmarkConnScoreSelect(b *testing.B) {
 
 	b.Run("8_candidates_with_extraCost", func(b *testing.B) {
 		b.ReportAllocs()
-		b.ResetTimer()
-		for range b.N {
+		for b.Loop() {
 			scores := acquireFloats(len(conns))
 			_ = connScoreSelect(conns, slot, nil, &shardCostForReads, "", true,
 				scores.Slice(), nil, extraCost)

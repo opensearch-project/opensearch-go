@@ -91,15 +91,15 @@ func BenchmarkClient(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("Create client with defaults", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c, err := opensearch.NewClient(opensearch.Config{Transport: newFakeTransport(b, defaultResponse)})
 			if err != nil {
 				b.Fatalf("Unexpected error when creating a client: %q", err)
 			}
 			// Close the underlying transport so the per-client background
 			// goroutines (cluster-health/node-stats tickers) exit. Without
-			// this the bench leaks goroutines linearly with b.N and the Go
-			// runtime eventually starves the bench loop itself.
+			// this the bench leaks goroutines linearly with the iteration
+			// count and the Go runtime eventually starves the bench loop.
 			_ = c.Transport.(*opensearchtransport.Transport).Close()
 		}
 	})
@@ -130,9 +130,7 @@ func BenchmarkClientAPI(b *testing.B) {
 	b.Cleanup(func() { _ = client.Close() })
 
 	b.Run("InfoRequest{}.Do()", func(b *testing.B) {
-		b.ResetTimer()
-
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			if _, err := client.Info(ctx, nil); err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
 			}
@@ -140,10 +138,9 @@ func BenchmarkClientAPI(b *testing.B) {
 	})
 
 	b.Run("client.Index()", func(b *testing.B) {
-		b.ResetTimer()
 		var body strings.Builder
 
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			docID := strconv.FormatInt(int64(i), 10)
 
 			body.Reset()
@@ -174,8 +171,6 @@ func BenchmarkClientAPI(b *testing.B) {
 	})
 
 	b.Run("client.Search()", func(b *testing.B) {
-		b.ResetTimer()
-
 		body := `{"foo" : "bar"}`
 
 		req := &opensearchapi.SearchReq{
@@ -192,7 +187,7 @@ func BenchmarkClientAPI(b *testing.B) {
 			},
 		}
 
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_, err := client.Search(ctx, req)
 			if err != nil {
 				b.Errorf("Unexpected error when getting a response: %s", err)
@@ -201,10 +196,9 @@ func BenchmarkClientAPI(b *testing.B) {
 	})
 
 	b.Run("client.Bulk()", func(b *testing.B) {
-		b.ResetTimer()
 		var body strings.Builder
 
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			docID := strconv.FormatInt(int64(i), 10)
 
 			body.Reset()

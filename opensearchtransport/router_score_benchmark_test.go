@@ -17,7 +17,7 @@ func BenchmarkDecayCounter(b *testing.B) {
 	b.Run("Add", func(b *testing.B) {
 		var c decayCounter
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c.add(0.999, 60.0)
 		}
 	})
@@ -25,7 +25,7 @@ func BenchmarkDecayCounter(b *testing.B) {
 	b.Run("Increment", func(b *testing.B) {
 		var c decayCounter
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c.increment(0.999)
 		}
 	})
@@ -34,7 +34,7 @@ func BenchmarkDecayCounter(b *testing.B) {
 		var c decayCounter
 		c.store(1000.0)
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = c.load()
 		}
 	})
@@ -68,7 +68,7 @@ func BenchmarkTimeWeightedCounter(b *testing.B) {
 	b.Run("Add", func(b *testing.B) {
 		c := timeWeightedCounter{clock: realClock{}}
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			c.add(60.0)
 		}
 	})
@@ -77,7 +77,7 @@ func BenchmarkTimeWeightedCounter(b *testing.B) {
 		c := timeWeightedCounter{clock: realClock{}}
 		c.store(1000.0)
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			_ = c.load()
 		}
 	})
@@ -85,7 +85,7 @@ func BenchmarkTimeWeightedCounter(b *testing.B) {
 	b.Run("AddThenLoad", func(b *testing.B) {
 		c := timeWeightedCounter{clock: realClock{}}
 		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
+		for i := 0; b.Loop(); i++ {
 			if i%2 == 0 {
 				c.add(60.0)
 			} else {

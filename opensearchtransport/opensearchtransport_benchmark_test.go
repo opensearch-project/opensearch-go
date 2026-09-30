@@ -76,8 +76,7 @@ func BenchmarkTransport(b *testing.B) {
 		}
 		b.Cleanup(func() { _ = tp.Close() })
 
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Stream(req)
 			if err != nil {
@@ -102,8 +101,7 @@ func BenchmarkTransport(b *testing.B) {
 		}
 		b.Cleanup(func() { _ = tp.Close() })
 
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
 			res, err := tp.Stream(req)
 			if err != nil {
@@ -138,8 +136,7 @@ func BenchmarkTransportObserverOverhead(b *testing.B) {
 		b.Cleanup(func() { _ = tp.Close() })
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			req, _ := http.NewRequest(http.MethodGet, "/idx/_search", nil)
 			res, err := tp.Request(req)
 			if err != nil {

@@ -65,7 +65,7 @@ func BenchmarkSingleServerPool(b *testing.B) {
 		pool := initSingleServerPool()
 
 		b.Run("Single          ", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := pool.Next()
 				if err != nil {
 					b.Errorf("Unexpected error: %v", err)
@@ -92,7 +92,7 @@ func BenchmarkSingleServerPool(b *testing.B) {
 		b.Run("Single     ", func(b *testing.B) {
 			c, _ := pool.Next()
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if err := pool.OnFailure(c); err != nil {
 					b.Errorf("Unexpected error: %v", err)
 				}
@@ -150,7 +150,7 @@ func BenchmarkMultiServerPool(b *testing.B) {
 		pool := createMultiServerPool(conns)
 
 		b.Run("Single     ", func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				_, err := pool.Next()
 				if err != nil {
 					b.Errorf("Unexpected error: %v", err)
@@ -192,7 +192,7 @@ func BenchmarkMultiServerPool(b *testing.B) {
 				b.Fatalf("Unexpected error: %s", err)
 			}
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if err := pool.OnFailure(c); err != nil {
 					b.Errorf("Unexpected error: %v", err)
 				}
@@ -241,7 +241,7 @@ func BenchmarkMultiServerPool(b *testing.B) {
 				b.Fatalf("Unexpected error: %s", err)
 			}
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				pool.OnSuccess(c)
 			}
 		})
@@ -288,7 +288,7 @@ func BenchmarkMultiServerPool(b *testing.B) {
 				b.Fatalf("Unexpected error: %s", err)
 			}
 
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				pool.mu.Lock()
 				pool.resurrectWithLock(c)
 				pool.mu.Unlock()

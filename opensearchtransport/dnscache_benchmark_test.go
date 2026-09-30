@@ -44,8 +44,7 @@ func BenchmarkDNSResolveStep(b *testing.B) {
 			}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if _, err := r.LookupHost(context.Background(), host); err != nil {
 					b.Fatalf("lookup: %v", err)
 				}
@@ -57,8 +56,7 @@ func BenchmarkDNSResolveStep(b *testing.B) {
 			fr := &fakeResolver{addrs: []string{"127.0.0.1"}, latency: lat.dur}
 
 			b.ReportAllocs()
-			b.ResetTimer()
-			for i := 0; i < b.N; i++ {
+			for b.Loop() {
 				if _, err := fr.LookupHost(context.Background(), host); err != nil {
 					b.Fatalf("lookup: %v", err)
 				}
@@ -92,8 +90,7 @@ func BenchmarkDNSResolveOutage(b *testing.B) {
 		r.RefreshWithOptions(dnscache.ResolverRefreshOptions{ClearUnused: true, PersistOnFailure: true})
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			ips, err := r.LookupHost(context.Background(), host)
 			if err != nil || len(ips) == 0 {
 				b.Fatalf("serve-stale lookup should succeed during outage: %v", err)
@@ -105,8 +102,7 @@ func BenchmarkDNSResolveOutage(b *testing.B) {
 		fr := &fakeResolver{err: outage, latency: outageDelay}
 
 		b.ReportAllocs()
-		b.ResetTimer()
-		for i := 0; i < b.N; i++ {
+		for b.Loop() {
 			if _, err := fr.LookupHost(context.Background(), host); err == nil {
 				b.Fatal("uncached lookup must fail when the resolver is down")
 			}
