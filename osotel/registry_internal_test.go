@@ -8,6 +8,7 @@ package osotel
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -287,7 +288,7 @@ func gaugeValue(t *testing.T, rm metricdata.ResourceMetrics, name, pool, state s
 				continue
 			}
 			g, ok := m.Data.(metricdata.Gauge[int64])
-			require.True(t, ok, "metric %s is an Int64 gauge", name)
+			require.True(t, ok, "metric %q is an Int64 gauge", name)
 			for _, dp := range g.DataPoints {
 				p, _ := dp.Attributes.Value(attrPool)
 				s, _ := dp.Attributes.Value(attrState)
@@ -295,10 +296,10 @@ func gaugeValue(t *testing.T, rm metricdata.ResourceMetrics, name, pool, state s
 					return dp.Value
 				}
 			}
-			t.Fatalf("metric %s has no data point for pool=%s state=%s", name, pool, state)
+			t.Fatalf("metric %q has no data point for pool=%q state=%q", name, pool, state)
 		}
 	}
-	t.Fatalf("metric %s not found", name)
+	t.Fatalf("metric %q not found", name)
 	return 0
 }
 
@@ -309,8 +310,9 @@ func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = reg.Close() })
 
-	reg.OnPromote(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 0})
+	reg.OnPromote(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 2})
 	require.EqualValues(t, 3, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
+	require.EqualValues(t, 2, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "dead"))
 
 	reg.OnOverloadCleared(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 4, DeadCount: 1})
 	require.EqualValues(t, 4, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
@@ -318,10 +320,28 @@ func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
 }
 
 func TestIsErrorClassifiesStatusAndTransportFailures(t *testing.T) {
-	require.False(t, isError(200, nil))
-	require.True(t, isError(404, nil))
-	require.True(t, isError(500, nil))
-	require.True(t, isError(0, fmt.Errorf("connection refused")))
+	t.Parallel()
+	tests := []struct {
+		name string
+		code int
+		err  error
+		want bool
+	}{
+		{name: "no status no error", code: 0, want: false},
+		{name: "2xx", code: http.StatusOK, want: false},
+		{name: "4xx", code: http.StatusNotFound, want: true},
+		{name: "5xx", code: http.StatusInternalServerError, want: true},
+		{name: "transport error", code: 0, err: errors.New("connection refused"), want: true},
+		// Body-read failure after a 200: status is set and so is the error.
+		{name: "2xx with error", code: http.StatusOK, err: errors.New("unexpected EOF"), want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, isError(tt.code, tt.err))
+		})
+	}
 }
 
 func TestRequestFilterSkipsUnrecorded(t *testing.T) {
