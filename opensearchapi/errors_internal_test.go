@@ -228,10 +228,9 @@ func TestCollapsePerOpErrors(t *testing.T) {
 
 // TestRequireSuccessRate_MSearchItemError covers the
 // MultiSearchItemError direct + wrapped branches in
-// RequireSuccessRate's switch. The exported test in errors_test.go
+// partialSuccessCounts. The exported test in errors_test.go
 // covers Bulk/Search/Shard but not MultiSearchItem, leaving the
-// case *MultiSearchItemError and the errors.As(err, &msearchErr)
-// branches uncovered.
+// *MultiSearchItemError branch uncovered.
 func TestRequireSuccessRate_MSearchItemError(t *testing.T) {
 	t.Parallel()
 

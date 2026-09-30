@@ -1792,13 +1792,12 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			// Go 1.21+ added As bridging on the vendored internal http2.StreamError
 			// (h2_error.go), which matches target structs by field name and type
 			// convertibility. The local h2StreamError has the same layout, so
-			// errors.As succeeds without importing x/net/http2.
+			// errors.AsType succeeds without importing x/net/http2.
 			//
 			// Note: GOAWAY is handled transparently by Go's HTTP/2 transport, which
 			// retries affected requests on a new connection. Stream resets (caught here)
 			// are a separate signal indicating the server rejected individual streams.
-			var streamErr h2StreamError
-			if errors.As(err, &streamErr) {
+			if streamErr, ok := errors.AsType[h2StreamError](err); ok {
 				Debug().
 					Str("conn", conn.URLString).
 					Uint32("stream_id", streamErr.StreamID).
@@ -1853,8 +1852,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			}
 
 			// Retry on network errors, but not on timeout errors, unless configured
-			var netError net.Error
-			if errors.As(err, &netError) {
+			if netError, ok := errors.AsType[net.Error](err); ok {
 				if (!netError.Timeout() || tr.enableRetryOnTimeout) && !tr.disableRetry {
 					shouldRetry = true
 				}
@@ -2098,13 +2096,8 @@ func (tr *Transport) roundTripAttempt(
 	// callerCtx Err means the cancellation came from above and the connection is
 	// left alone. If the caller's deadline expires between our timeout firing
 	// and this check the connection is spared, which is the safe direction.
-	//
-	// netErr is declared inside the branch rather than beside it: errors.As takes
-	// it as an any, so the variable escapes, and a function-scope declaration
-	// would heap it on every round trip including the ones that succeed.
 	if err != nil && callerCtx.Err() == nil {
-		var netErr net.Error
-		if errors.As(err, &netErr) && netErr.Timeout() {
+		if netErr, ok := errors.AsType[net.Error](err); ok && netErr.Timeout() {
 			caught := conn.drainingConn.Add(1)
 			Debug().Str("conn", conn.URLString).Int64("timedOut", caught).
 				Msg("Timed out; asking the next request to drain this node's connection")

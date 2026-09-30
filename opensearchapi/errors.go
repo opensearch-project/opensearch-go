@@ -284,8 +284,8 @@ func (e *UnionBranchError) Unwrap() error { return e.Err }
 
 // IsPartialFailure reports whether err is a partial failure.
 func IsPartialFailure(err error) bool {
-	var partial PartialFailureError
-	return errors.As(err, &partial)
+	_, ok := errors.AsType[PartialFailureError](err) //nolint:errcheck // discarded result is the matched error
+	return ok
 }
 
 // Errors returns the partial-failure sub-errors carried by err,
@@ -328,9 +328,12 @@ func Errors(err error) []error {
 // itself a partial failure from being silently exploded into its
 // sub-errors (which would lose its top-level identity).
 func partialSubErrors(err error) []error {
+	type multiError interface {
+		error
+		Unwrap() []error
+	}
 	if IsPartialFailure(err) {
-		var multi interface{ Unwrap() []error }
-		if errors.As(err, &multi) {
+		if multi, ok := errors.AsType[multiError](err); ok {
 			return multi.Unwrap()
 		}
 	}
@@ -368,7 +371,7 @@ func RequireSuccessRate(err error, threshold float64) error {
 
 	// Evaluate every partial-failure sub-error, not just the first match: a
 	// multi-category wrapper (e.g. *MSearchErrors) would otherwise have its
-	// later categories ignored by a single errors.As.
+	// later categories ignored by a single errors.AsType.
 	matched := false
 	for _, sub := range partialSubErrors(err) {
 		succeeded, total, ok := partialSuccessCounts(sub)
@@ -392,24 +395,20 @@ func RequireSuccessRate(err error, threshold float64) error {
 
 // partialSuccessCounts returns the succeeded/total counts for a single
 // concrete partial-failure error, or ok=false if err is not one. Call it on
-// an individual sub-error (not a multi-category wrapper) so errors.As matches
+// an individual sub-error (not a multi-category wrapper) so errors.AsType matches
 // the concrete type directly rather than the first sub-error of a wrapper.
 func partialSuccessCounts(err error) (int, int, bool) {
-	var (
-		bulkErr    *PartialBulkError
-		searchErr  *PartialSearchError
-		shardErr   *ShardFailureError
-		msearchErr *MultiSearchItemError
-	)
-	switch {
-	case errors.As(err, &bulkErr):
-		return bulkErr.SucceededCount, bulkErr.SucceededCount + len(bulkErr.FailedItems), true
-	case errors.As(err, &searchErr):
-		return searchErr.TotalShards - searchErr.FailedShards, searchErr.TotalShards, true
-	case errors.As(err, &shardErr):
-		return shardErr.TotalShards - shardErr.FailedShards, shardErr.TotalShards, true
-	case errors.As(err, &msearchErr):
-		return msearchErr.SucceededCount, msearchErr.SucceededCount + len(msearchErr.Items), true
+	if e, ok := errors.AsType[*PartialBulkError](err); ok {
+		return e.SucceededCount, e.SucceededCount + len(e.FailedItems), true
+	}
+	if e, ok := errors.AsType[*PartialSearchError](err); ok {
+		return e.TotalShards - e.FailedShards, e.TotalShards, true
+	}
+	if e, ok := errors.AsType[*ShardFailureError](err); ok {
+		return e.TotalShards - e.FailedShards, e.TotalShards, true
+	}
+	if e, ok := errors.AsType[*MultiSearchItemError](err); ok {
+		return e.SucceededCount, e.SucceededCount + len(e.Items), true
 	}
 	return 0, 0, false
 }
