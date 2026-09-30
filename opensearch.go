@@ -161,8 +161,8 @@ type Config struct {
 	// 0 = default (10s), <0 = no per-lookup timeout, >0 = explicit timeout.
 	DNSTimeout time.Duration
 
-	// CompressRequestBody gzip-compresses request bodies (default false).
-	// Skipped when the request already carries a Content-Encoding header.
+	// CompressRequestBody gzip-compresses request bodies (default false). See
+	// [opensearchtransport.Config.CompressRequestBody] for when it is skipped.
 	CompressRequestBody bool
 
 	// DiscoverNodesOnStart triggers an asynchronous discovery cycle as soon

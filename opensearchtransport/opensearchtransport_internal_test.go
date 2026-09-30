@@ -1430,106 +1430,119 @@ func TestRequestCompression(t *testing.T) {
 }
 
 // TestRequestCompressionSkipsWhenContentEncodingSet verifies that
-// CompressRequestBody leaves a caller-supplied pre-encoded body alone when
-// Content-Encoding is already set, instead of gzipping it a second time.
+// CompressRequestBody leaves the wire body gzipped exactly once on every
+// attempt: a body whose caller set any non-empty Content-Encoding value is sent
+// as-is, including through the transport's retry snapshot when GetBody is nil,
+// while an empty value or a Content-Encoding from Config.Header does not
+// suppress compression.
 func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
-	const plaintext = "opensearch"
+	t.Parallel()
+
+	const (
+		plaintext  = "opensearch"
+		maxRetries = 3
+	)
 
 	var gzipped bytes.Buffer
 	zw := gzip.NewWriter(&gzipped)
 	_, err := zw.Write([]byte(plaintext))
 	require.NoError(t, err)
 	require.NoError(t, zw.Close())
-	preEncoded := gzipped.Bytes()
 
-	t.Run("single request", func(t *testing.T) {
-		tp, err := New(Config{
-			URLs:                []*url.URL{{}},
-			CompressRequestBody: true,
-			NodeStatsInterval:   -1,
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				if got := req.Header.Get("Content-Encoding"); got != "gzip" {
-					return nil, fmt.Errorf("Content-Encoding: got %q, want gzip", got)
-				}
-				got, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-				if !bytes.Equal(got, preEncoded) {
-					return nil, fmt.Errorf("body was re-compressed: got %d bytes, want %d pre-encoded bytes", len(got), len(preEncoded))
-				}
-				// One inflate must yield plaintext; a second would mean double-gzip.
-				zr, err := gzip.NewReader(bytes.NewReader(got))
-				if err != nil {
-					return nil, fmt.Errorf("wire body is not gzip: %w", err)
-				}
+	tests := []struct {
+		name          string
+		body          []byte
+		header        http.Header
+		globalHeader  http.Header
+		nilGetBody    bool // force the transport's own retry snapshot
+		wantEncodings []string
+	}{
+		{
+			name:          "pre-encoded body",
+			body:          gzipped.Bytes(),
+			header:        http.Header{headerContentEncoding: {"gzip"}},
+			wantEncodings: []string{"gzip"},
+		},
+		{
+			name:          "pre-encoded body without GetBody",
+			body:          gzipped.Bytes(),
+			header:        http.Header{headerContentEncoding: {"gzip"}},
+			nilGetBody:    true,
+			wantEncodings: []string{"gzip"},
+		},
+		{
+			name:          "pre-encoded body behind an empty first value",
+			body:          gzipped.Bytes(),
+			header:        http.Header{headerContentEncoding: {"", "gzip"}},
+			wantEncodings: []string{"", "gzip"},
+		},
+		{
+			name:          "empty value is compressed",
+			body:          []byte(plaintext),
+			header:        http.Header{headerContentEncoding: {""}},
+			wantEncodings: []string{"gzip"},
+		},
+		{
+			name:          "global header is compressed",
+			body:          []byte(plaintext),
+			header:        http.Header{},
+			globalHeader:  http.Header{headerContentEncoding: {"gzip"}},
+			wantEncodings: []string{"gzip"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			type attempt struct {
+				encodings []string
+				body      []byte
+			}
+			var attempts []attempt
+
+			tp, err := New(Config{
+				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				MaxRetries:          maxRetries,
+				CompressRequestBody: true,
+				Header:              tt.globalHeader,
+				NodeStatsInterval:   -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					body, err := io.ReadAll(req.Body)
+					if err != nil {
+						return nil, err
+					}
+					attempts = append(attempts, attempt{encodings: req.Header.Values(headerContentEncoding), body: body})
+					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
+			require.NoError(t, err)
+			req.Header = tt.header.Clone()
+			if tt.nilGetBody {
+				req.GetBody = nil
+			}
+
+			res, err := tp.Stream(req)
+			require.NoError(t, err)
+			require.NotNil(t, res)
+			require.NoError(t, res.Body.Close())
+
+			require.Len(t, attempts, maxRetries+1)
+			for i, a := range attempts {
+				require.Equal(t, tt.wantEncodings, a.encodings, "attempt %d", i)
+				// One inflate must yield plaintext; double-gzip would yield gzip bytes.
+				zr, err := gzip.NewReader(bytes.NewReader(a.body))
+				require.NoError(t, err, "attempt %d", i)
 				plain, err := io.ReadAll(zr)
-				if err != nil {
-					return nil, err
-				}
-				if err := zr.Close(); err != nil {
-					return nil, err
-				}
-				if string(plain) != plaintext {
-					return nil, fmt.Errorf("decompressed body: got %q, want %q", plain, plaintext)
-				}
-				if _, err := gzip.NewReader(bytes.NewReader(plain)); err == nil {
-					return nil, fmt.Errorf("body appears double-gzipped")
-				}
-				return &http.Response{Status: "MOCK", StatusCode: http.StatusOK, Body: http.NoBody}, nil
-			}),
+				require.NoError(t, err, "attempt %d", i)
+				require.Equal(t, plaintext, string(plain), "attempt %d", i)
+			}
 		})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
-
-		req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(preEncoded))
-		require.NoError(t, err)
-		req.Header.Set("Content-Encoding", "gzip")
-
-		res, err := tp.Stream(req)
-		require.NoError(t, err)
-		if res != nil && res.Body != nil {
-			_ = res.Body.Close()
-		}
-		require.Equal(t, "MOCK", res.Status)
-	})
-
-	t.Run("retries reuse pre-encoded body", func(t *testing.T) {
-		var bodies [][]byte
-		u, err := url.Parse("https://foo.com/bar")
-		require.NoError(t, err)
-		tp, err := New(Config{
-			URLs:                []*url.URL{u},
-			MaxRetries:          3,
-			CompressRequestBody: true,
-			NodeStatsInterval:   -1,
-			Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-				body, err := io.ReadAll(req.Body)
-				if err != nil {
-					return nil, err
-				}
-				bodies = append(bodies, body)
-				return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
-			}),
-		})
-		require.NoError(t, err)
-		t.Cleanup(func() { _ = tp.Close() })
-
-		req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(preEncoded))
-		require.NoError(t, err)
-		req.Header.Set("Content-Encoding", "gzip")
-
-		res, err := tp.Stream(req)
-		require.NoError(t, err)
-		if res != nil && res.Body != nil {
-			_ = res.Body.Close()
-		}
-
-		require.Len(t, bodies, 4)
-		for i, body := range bodies {
-			require.Equal(t, preEncoded, body, "attempt %d re-compressed or truncated the pre-encoded body", i)
-		}
-	})
+	}
 }
 
 // TestStreamClosesOriginalRequestBodyAfterSnapshot verifies that compress and

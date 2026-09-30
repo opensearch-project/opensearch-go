@@ -209,9 +209,12 @@ type Config struct {
 	DNSTimeout time.Duration
 
 	// CompressRequestBody gzip-compresses request bodies and sets
-	// Content-Encoding: gzip. Skipped when the request already carries a
-	// Content-Encoding header, so a caller-supplied pre-encoded body is not
-	// compressed again.
+	// Content-Encoding: gzip. Skipped when the caller already set any non-empty
+	// Content-Encoding value on the request: the caller chose the body's
+	// encoding, and compressing would replace their header with a single gzip,
+	// mislabeling a body that was already gzipped. A Content-Encoding in Header
+	// applies to every request and says nothing about a given body, so it does
+	// not count.
 	CompressRequestBody bool
 
 	EnableDebugLogger bool
@@ -1502,6 +1505,10 @@ func (tr *Transport) Request(req *http.Request) (*http.Response, error) {
 	return res, err
 }
 
+// headerContentEncoding is the request header CompressRequestBody sets and
+// checks.
+const headerContentEncoding = "Content-Encoding"
+
 // stream is the shared transport core behind Stream and Request. It performs
 // routing, signing, header injection, request-body compression, retry, metrics,
 // and seed URL fallback, and returns the raw response alongside the timing of
@@ -1520,6 +1527,9 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	// Update request
 	tr.setReqUserAgent(req)
+	// Decide before the global headers merge in; see Config.CompressRequestBody.
+	compressBody := tr.compressRequestBody &&
+		!slices.ContainsFunc(req.Header.Values(headerContentEncoding), func(v string) bool { return v != "" })
 	tr.setReqGlobalHeader(req)
 
 	// Capture request identity while req.URL is still the pristine caller input
@@ -1552,10 +1562,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 
 	if req.Body != nil && req.Body != http.NoBody {
 		origBody := req.Body
-		// Skip compression when the caller already set Content-Encoding: the
-		// body is assumed pre-encoded, and gzipping again would leave a single
-		// Content-Encoding: gzip on the wire while the payload is double-gzipped.
-		if tr.compressRequestBody && req.Header.Get("Content-Encoding") == "" {
+		if compressBody {
 			buf, err := tr.pooledGzipCompressor.compress(origBody)
 			defer tr.pooledGzipCompressor.collectBuffer(buf)
 			if err != nil {
@@ -1570,7 +1577,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
 
-			req.Header.Set("Content-Encoding", "gzip")
+			req.Header.Set(headerContentEncoding, "gzip")
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {
