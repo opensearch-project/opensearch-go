@@ -280,8 +280,14 @@ func TestPoolObserverUSEInstruments(t *testing.T) {
 	require.Contains(t, names, "opensearch.client.pool.health_check_failures") // E
 }
 
-func gaugeValue(t *testing.T, rm metricdata.ResourceMetrics, name, pool, state string) int64 {
+// searchConnections returns the pool.connections gauge value for the "search"
+// pool in the given state.
+func searchConnections(t *testing.T, rm metricdata.ResourceMetrics, state string) int64 {
 	t.Helper()
+	const (
+		name = instrumentPrefix + "pool.connections"
+		pool = "search"
+	)
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
 			if m.Name != name {
@@ -311,12 +317,12 @@ func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
 	t.Cleanup(func() { _ = reg.Close() })
 
 	reg.OnPromote(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 2})
-	require.EqualValues(t, 3, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
-	require.EqualValues(t, 2, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "dead"))
+	require.EqualValues(t, 3, searchConnections(t, collect(), "active"))
+	require.EqualValues(t, 2, searchConnections(t, collect(), "dead"))
 
 	reg.OnOverloadCleared(opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 4, DeadCount: 1})
-	require.EqualValues(t, 4, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "active"))
-	require.EqualValues(t, 1, gaugeValue(t, collect(), "opensearch.client.pool.connections", "search", "dead"))
+	require.EqualValues(t, 4, searchConnections(t, collect(), "active"))
+	require.EqualValues(t, 1, searchConnections(t, collect(), "dead"))
 }
 
 func TestIsErrorClassifiesStatusAndTransportFailures(t *testing.T) {
