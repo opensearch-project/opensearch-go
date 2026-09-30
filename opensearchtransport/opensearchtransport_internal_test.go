@@ -1545,6 +1545,34 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 	}
 }
 
+// TestRequestCompressionReadError verifies that a body read failure during
+// compression aborts the request before any round trip and keeps the read
+// error in the chain.
+func TestRequestCompressionReadError(t *testing.T) {
+	t.Parallel()
+
+	errRead := errors.New("body read failed")
+
+	tp, err := New(Config{
+		URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+		CompressRequestBody: true,
+		NodeStatsInterval:   -1,
+		Transport: mockhttp.NewRoundTripFunc(t, func(*http.Request) (*http.Response, error) {
+			return nil, errors.New("unexpected round trip")
+		}),
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	req, err := http.NewRequest(http.MethodPost, "/abc", &errReadCloser{err: errRead})
+	require.NoError(t, err)
+
+	res, err := tp.Stream(req) //nolint:bodyclose // res is nil on error
+	require.ErrorIs(t, err, errRead)
+	require.ErrorContains(t, err, "failed to compress request body")
+	require.Nil(t, res)
+}
+
 // TestStreamClosesOriginalRequestBodyAfterSnapshot verifies that compress and
 // retry-buffer snapshotting close the caller's Body after replacing it with a
 // NopCloser over the snapshot. RoundTrip closes only the attached Body, so a
