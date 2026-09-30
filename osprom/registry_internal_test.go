@@ -8,6 +8,7 @@ package osprom
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -404,6 +405,43 @@ func TestPoolObserverUSE(t *testing.T) {
 	require.InDelta(t, 1.0, testutil.ToFloat64(po.overloaded.WithLabelValues("search")), 0)
 	require.InDelta(t, 1.0, testutil.ToFloat64(po.demotions.WithLabelValues("search")), 0)
 	require.InDelta(t, 1.0, testutil.ToFloat64(po.healthFails.WithLabelValues("search")), 0)
+}
+
+func TestPoolObserverPromoteAndOverloadCleared(t *testing.T) {
+	po := NewPoolObserver()
+
+	po.OnPromote(&opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 3, DeadCount: 2})
+	require.InDelta(t, 3.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "active")), 0)
+	require.InDelta(t, 2.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "dead")), 0)
+
+	po.OnOverloadCleared(&opensearchtransport.ConnectionEvent{PoolName: "search", ActiveCount: 4, DeadCount: 1})
+	require.InDelta(t, 4.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "active")), 0)
+	require.InDelta(t, 1.0, testutil.ToFloat64(po.connections.WithLabelValues("search", "dead")), 0)
+}
+
+func TestIsErrorClassifiesStatusAndTransportFailures(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		code int
+		err  error
+		want bool
+	}{
+		{name: "no status no error", code: 0, want: false},
+		{name: "2xx", code: http.StatusOK, want: false},
+		{name: "4xx", code: http.StatusNotFound, want: true},
+		{name: "5xx", code: http.StatusInternalServerError, want: true},
+		{name: "transport error", code: 0, err: errors.New("connection refused"), want: true},
+		// Body-read failure after a 200: status is set and so is the error.
+		{name: "2xx with error", code: http.StatusOK, err: errors.New("unexpected EOF"), want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			require.Equal(t, tt.want, isError(tt.code, tt.err))
+		})
+	}
 }
 
 func TestRegistryForwardsLifecycleToSinks(t *testing.T) {
