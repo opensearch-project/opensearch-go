@@ -53,8 +53,7 @@ func benchMetricsTransport(b *testing.B) *opensearchtransport.Transport {
 func BenchmarkMetrics(b *testing.B) {
 	tp := benchMetricsTransport(b)
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := tp.Metrics(); err != nil {
 			b.Fatalf("Unexpected error: %q", err)
 		}
@@ -100,13 +99,11 @@ func BenchmarkMetricsUnderLoad(b *testing.B) {
 	}
 
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := tp.Metrics(); err != nil {
 			b.Fatalf("Unexpected error: %q", err)
 		}
 	}
-	b.StopTimer()
 
 	stop.Store(true)
 	wg.Wait()
