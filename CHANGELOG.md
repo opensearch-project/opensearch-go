@@ -31,6 +31,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 
 - `cmd/osapilint`: rewrite v4's `ToPointer(x)` to `new(x)` on the v4 -> v5 hop, whether it comes from `opensearchapi` or the root `opensearch` package. The rewrite used to emit `&x`, which did not compile for a literal argument such as `ToPointer(true)` and aliased the caller's variable where `ToPointer` returned a pointer to a copy. It also skipped `opensearch.ToPointer` entirely. Every hop now drops an opensearch-go import the rewrite left unreferenced, such as one whose only use was `ToPointer`; before, only the v2 root import was pruned ([#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))
+- Fix `opensearch.Config.CompressRequestBody` and `opensearchtransport.Config.CompressRequestBody` gzipping a body the caller already encoded. When a request has any non-empty `Content-Encoding` value, the transport now sends the body as-is. Before, it gzipped a pre-gzipped body again under a single `gzip` header, so the server inflated once and saw garbage. A `Content-Encoding` set in `Config.Header` does not count ([#1180](https://github.com/opensearch-project/opensearch-go/pull/1180))
 
 ### Security
 
