@@ -86,8 +86,49 @@ func TestDispatchFragment_Body(t *testing.T) {
 					},
 				}
 			},
-			contains:    []string{"return &data, nil"},
-			notContains: []string{"PartialFailures", "collapsePerOpErrors"},
+			contains:    []string{"return &data, nil", "return &data, err\n"},
+			notContains: []string{"PartialFailures", "collapsePerOpErrors", "classifyError"},
+		},
+		{
+			name: "a declared error type classifies the request error",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "search",
+					TypePrefix:  "Search",
+					HTTPMethods: []string{http.MethodPost, http.MethodGet},
+					PrimaryPath: "/_search",
+					Response:    newRespType("Search"),
+					ErrorTypes: []ir.ErrorType{
+						{Name: errwrap.ErrorTypeSearchContextMissing, Status: http.StatusNotFound, RootCauseType: "search_context_missing_exception"},
+					},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "Search", TopLevel: true},
+					},
+				}
+			},
+			contains: []string{
+				`return &data, classifyError(err, errorType{status: 404, ` +
+					`rootCause: "search_context_missing_exception", wrap: wrapSearchContextMissing})`,
+			},
+			notContains: []string{"return &data, err\n"},
+		},
+		{
+			name: "an error type without a hand-written error is skipped",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:       "search",
+					TypePrefix:  "Search",
+					HTTPMethods: []string{http.MethodGet},
+					PrimaryPath: "/_search",
+					Response:    newRespType("Search"),
+					ErrorTypes:  []ir.ErrorType{{Name: "Unknown", Status: http.StatusConflict, RootCauseType: "x"}},
+					DispatchRoutes: []ir.DispatchRoute{
+						{ReceiverType: "Client", MethodName: "Search", TopLevel: true},
+					},
+				}
+			},
+			contains:    []string{"return &data, err\n"},
+			notContains: []string{"classifyError"},
 		},
 		{
 			name: "compat forwarder renders thin forwarding body",
@@ -462,6 +503,35 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 					TypePrefix:    "Create",
 					Response:      newRespType("Create"), // no Shards
 					ErrorWrappers: []string{errwrap.WrapperWriteShards},
+				}
+			},
+			empty: true,
+		},
+		{
+			name: "PITDeleteItems emits per-Resp method + aggregator",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:         "delete_pit",
+					TypePrefix:    "DeletePIT",
+					Response:      newRespType("DeletePIT", ir.Field{GoName: "PITs", GoType: "[]PITDeleted"}),
+					ErrorWrappers: []string{errwrap.WrapperPITDeleteItems},
+				}
+			},
+			contains: []string{
+				"func (r *DeletePITResp) PITDeleteItemFailures() *PartialPITDeleteError",
+				"if !p.Successful",
+				"if !mask.Has(errmask.PITDeleteItems)",
+				"if e := r.PITDeleteItemFailures(); e != nil",
+			},
+		},
+		{
+			name: "PITDeleteItems applies guard skips a response without PITs",
+			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
+				return &ir.Operation{
+					Group:         "delete_pit",
+					TypePrefix:    "DeletePIT",
+					Response:      newRespType("DeletePIT"),
+					ErrorWrappers: []string{errwrap.WrapperPITDeleteItems},
 				}
 			},
 			empty: true,

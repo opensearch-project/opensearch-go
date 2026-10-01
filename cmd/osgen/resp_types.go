@@ -78,6 +78,7 @@ type goType struct {
 	IsAmbiguousWire bool
 	IsEnum          bool             // true for int-backed iota enum types (x-enum-name marker)
 	IsStringEnum    bool             // true for string-backed enum types (oneOf-of-const; permissive)
+	IsOpaqueString  bool             // true for opaque string tokens (x-type-name marker)
 	Branches        []unionBranch    // union branches (only populated when IsUnion)
 	EnumValues      []string         // allowed wire values (int-backed path; also the conflict-check key)
 	EnumConsts      []constEnumValue // per-member values + doc/version metadata (string-backed path)

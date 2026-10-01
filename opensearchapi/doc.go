@@ -122,6 +122,20 @@ client surfaces partial failures as errors, which a caller detects with a type s
 The [Error Handling guide] is the canonical reference for the typed error model, the error mask,
 and the recommended handling pattern.
 
+# Point in time
+
+A point in time (PIT) pins a consistent view of some indices so a scan can page through it
+with search_after. Prefer [PointInTimeClient.Open] over the raw [PointInTimeClient.Create]: it
+defaults keep_alive, which the server requires, and returns a [PIT] handle whose Search and
+iterators set the PIT ID for you and whose Close deletes it. For a scan that ends in one
+function, [PointInTimeClient.SearchAfter] opens and deletes the PIT itself.
+
+A PIT ID has type [PITID] in every field that carries one. OpenSearch takes it only in a
+request body. To resume a scan in a later request, keep the [SearchCursor] from
+[SearchResp.Cursor] and pass it back with [SearchCursor.Apply]. A PIT that expired or was
+deleted comes back as [*SearchContextMissingError]; a delete the server only partly carried
+out comes back as [*PartialPITDeleteError]. The [Search guide] has worked examples.
+
 # Plugin APIs
 
 Plugin APIs (k-NN, ML, ISM, security, and others) live in the plugins packages and wrap the
@@ -130,5 +144,6 @@ plugin has multiple resource families, its own sub-clients following the same mo
 
 [Guides]: https://github.com/opensearch-project/opensearch-go/tree/main/guides
 [Error Handling guide]: https://github.com/opensearch-project/opensearch-go/blob/main/guides/usage-error_handling.md
+[Search guide]: https://github.com/opensearch-project/opensearch-go/blob/main/guides/usage-search.md
 */
 package opensearchapi

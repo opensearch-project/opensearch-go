@@ -63,7 +63,7 @@ func TestErrorMask_String(t *testing.T) {
 				"task_failures", "multi_search_items", "multi_doc_items",
 				"snapshot_create_shard_failures", "snapshot_get_shard_failures",
 				"simulate_doc_failures", "rank_eval_failures",
-				"ingestion_shard_failures", "pit_node_failures",
+				"ingestion_shard_failures", "pit_node_failures", "pit_delete_items",
 			}, ","),
 		},
 	}

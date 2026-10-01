@@ -127,10 +127,14 @@ const (
 	// map on Ingestion.Pause / Ingestion.Resume responses.
 	IngestionShardFailures
 
-	// PitNodeFailures masks the top-level failures[] array on
+	// PITNodeFailures masks the top-level failures[] array on
 	// _core.get_all_pits responses (server-side server quirk: not
 	// wrapped in _nodes).
-	PitNodeFailures
+	PITNodeFailures
+
+	// PITDeleteItems masks pits[] entries with "successful": false on
+	// DeletePIT / DeleteAllPITs responses: PITs the server could not delete.
+	PITDeleteItems
 )
 
 // Empty is the zero value of [ErrorMask]: no categories masked, every
@@ -160,7 +164,12 @@ const All = BulkItems | SearchShards | WriteShards | BroadcastShards |
 	MultiSearchItems | MultiDocItems |
 	SnapshotCreateShardFailures | SnapshotGetShardFailures |
 	SimulateDocFailures | RankEvalFailures | IngestionShardFailures |
-	PitNodeFailures
+	PITNodeFailures | PITDeleteItems
+
+// PitNodeFailures is the old spelling of [PITNodeFailures].
+//
+// Deprecated: Use [PITNodeFailures].
+const PitNodeFailures = PITNodeFailures
 
 // Token names accepted by [Parse] and emitted by [ErrorMask.String].
 //
@@ -180,7 +189,8 @@ const (
 	TokenSimulateDocFailures         = "simulate_doc_failures"
 	TokenRankEvalFailures            = "rank_eval_failures"
 	TokenIngestionShardFailures      = "ingestion_shard_failures"
-	TokenPitNodeFailures             = "pit_node_failures"
+	TokenPITNodeFailures             = "pit_node_failures"
+	TokenPITDeleteItems              = "pit_delete_items"
 
 	// TokenAll selects every wrapper bit at once.
 	TokenAll = "all"
@@ -192,6 +202,11 @@ const (
 	TokenNone    = "none"
 	TokenUnknown = "unknown"
 )
+
+// TokenPitNodeFailures is the old spelling of [TokenPITNodeFailures].
+//
+// Deprecated: Use [TokenPITNodeFailures].
+const TokenPitNodeFailures = TokenPITNodeFailures
 
 // Token prefixes used by [Parse]. A bare token (no prefix) is treated
 // as PrefixSet.
@@ -301,7 +316,8 @@ var tokenOrder = []tokenEntry{
 	{SimulateDocFailures, TokenSimulateDocFailures},
 	{RankEvalFailures, TokenRankEvalFailures},
 	{IngestionShardFailures, TokenIngestionShardFailures},
-	{PitNodeFailures, TokenPitNodeFailures},
+	{PITNodeFailures, TokenPITNodeFailures},
+	{PITDeleteItems, TokenPITDeleteItems},
 }
 
 // nameToBit maps a snake_case token to its bit pattern. The second

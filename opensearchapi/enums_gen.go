@@ -10,6 +10,7 @@ package opensearchapi
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -781,3 +782,54 @@ const (
 	// NodesSampleTypeWait. Samples process wait times.
 	NodesSampleTypeWait NodesSampleType = "wait"
 )
+
+// Identifies a point in time (PIT): an opaque base64 token that encodes
+// index names and node IDs. The create-PIT response returns it, and
+// every search against the PIT echoes it. A request takes it only in
+// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat
+// PIT segments), never in a path, query parameter, or header, because
+// the token can be large. It is not an external ID: don't expose it
+// outside your service, where its value could be tampered with.
+//
+// Build one with ParsePITID; read it with String. It encodes as the bare
+// string on the wire.
+type PITID struct {
+	s string
+}
+
+// errEmptyPITID is returned for an empty PITID, both when parsing one
+// and when one would be sent.
+//
+//nolint:gochecknoglobals // generated read-only sentinel
+var errEmptyPITID = errors.New("opensearchapi: empty PITID")
+
+// ParsePITID returns s as a PITID. The value is opaque, so the only
+// check is that s is not empty.
+func ParsePITID(s string) (PITID, error) {
+	if s == "" {
+		return PITID{}, errEmptyPITID
+	}
+	return PITID{s: s}, nil
+}
+
+// String returns v as sent on the wire.
+func (v PITID) String() string { return v.s }
+
+// IsSet reports whether v holds a value, rather than being the zero PITID.
+func (v PITID) IsSet() bool { return v.s != "" }
+
+// MarshalText returns v as sent on the wire. It fails for an empty PITID,
+// so a request can't carry one by accident; decoding stays lenient, so a
+// response that omits the value still decodes, with IsSet false.
+func (v PITID) MarshalText() ([]byte, error) {
+	if v.s == "" {
+		return nil, errEmptyPITID
+	}
+	return []byte(v.s), nil
+}
+
+// UnmarshalText sets v from its wire form.
+func (v *PITID) UnmarshalText(text []byte) error {
+	v.s = string(text)
+	return nil
+}

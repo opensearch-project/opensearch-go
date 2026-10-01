@@ -38,6 +38,7 @@ func TestClientsFragment_Body(t *testing.T) {
 		{name: "Client struct", want: "type Client struct"},
 		{name: "Client field", want: "Client *opensearch.Client"},
 		{name: "errors mask field", want: "errors *errMaskWidth"},
+		{name: "search_after retry backoff field", want: "searchAfterRetryBackoff time.Duration"},
 		{name: "top-level Cat", want: "Cat CatClient"},
 		{name: "top-level Indices", want: "Indices IndicesClient"},
 		{name: "clientInit", want: "func clientInit(rootClient *opensearch.Client, mask errmask.ErrorMask) *Client"},
@@ -137,7 +138,7 @@ func TestClientsFragment_Imports(t *testing.T) {
 	}}
 
 	imps := frag.Imports()
-	require.Len(t, imps, 3)
+	require.Len(t, imps, 4)
 }
 
 func TestNewClientsFile_Render(t *testing.T) {
