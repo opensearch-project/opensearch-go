@@ -22,10 +22,13 @@ import (
 // leaving room for slow consumers and retry backoff between pages.
 const defaultPITKeepAlive = 300 * time.Second
 
-// pitCloseTimeout bounds the delete [PIT.Close] sends. Close runs after the
-// caller's context may be done, often from a defer during shutdown, so it needs
-// its own limit; [PIT.CloseContext] is the per-call override.
-const pitCloseTimeout = 10 * time.Second
+// oneShotCloseTimeout bounds the delete the one-shot iterators
+// ([PointInTimeClient.SearchAfterPages] and [PointInTimeClient.SearchAfter])
+// send for the PIT they created. Their caller has no way to pass a context for
+// that close, and the request context may be done by then, so without a bound
+// of its own a hung delete would hang the end of the loop. A PIT the delete
+// misses is still freed when its keep_alive runs out.
+const oneShotCloseTimeout = 10 * time.Second
 
 // ErrPITClosed is returned by [PIT.Search] and the PIT iterators once the PIT
 // has been closed. A request that fails validation reports that error instead,
@@ -33,8 +36,8 @@ const pitCloseTimeout = 10 * time.Second
 var ErrPITClosed = errors.New("opensearchapi: PIT is closed")
 
 // PIT is an open point-in-time created by [PointInTimeClient.Open]. It is safe
-// for concurrent use and can be passed between callers. The owner closes it,
-// usually with defer; closing it while a search is in flight makes that search
+// for concurrent use and can be passed between callers. The owner closes it
+// with [PIT.Close]; closing it while a search is in flight makes that search
 // fail with the server's error.
 //
 // Every request and response field that carries a PIT ID has type [PITID]:
@@ -49,8 +52,6 @@ var ErrPITClosed = errors.New("opensearchapi: PIT is closed")
 type PIT struct {
 	client *Client
 	id     PITID
-	//nolint:containedctx // Open's context without its cancellation, so a deferred Close keeps its values after it is done
-	closeCtx context.Context
 
 	mu struct {
 		sync.Mutex
@@ -79,14 +80,10 @@ func (c PointInTimeClient) Open(ctx context.Context, req *CreatePITReq) (*PIT, e
 	if err != nil {
 		return nil, err
 	}
-	if resp.PITID == nil {
+	if !resp.PITID.IsSet() {
 		return nil, errors.New("opensearchapi: create PIT response has no pit_id")
 	}
-	return &PIT{
-		client:   c.apiClient,
-		id:       *resp.PITID,
-		closeCtx: context.WithoutCancel(ctx),
-	}, nil
+	return &PIT{client: c.apiClient, id: resp.PITID}, nil
 }
 
 // ID returns the PIT ID. To resume a scan in a later request or another
@@ -112,20 +109,22 @@ func (p *PIT) Search(ctx context.Context, req *SearchReq) (*SearchResp, error) {
 	return p.client.Search(ctx, &search)
 }
 
-// Close deletes the PIT, waiting at most 10 seconds. It uses the context passed
-// to Open without its cancellation, so it works from a defer after that context
-// is done. See [PIT.CloseContext].
-func (p *PIT) Close() error {
-	ctx, cancel := context.WithTimeout(p.closeCtx, pitCloseTimeout)
-	defer cancel()
-	return p.CloseContext(ctx)
-}
-
-// CloseContext deletes the PIT using ctx as given. Once a delete succeeds, or
-// the server reports the PIT is already gone, the PIT is closed and further
-// closes return nil. After a failed delete, a later Close or CloseContext tries
-// again.
-func (p *PIT) CloseContext(ctx context.Context) error {
+// Close deletes the PIT using ctx; the client adds no timeout of its own. The
+// context that searched the PIT is often done by the time it is closed, as in
+// an error path or a deferred close, so pass one made for the cleanup:
+//
+//	defer func() {
+//		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+//		defer cancel()
+//		if err := pit.Close(closeCtx); err != nil {
+//			log.Printf("close PIT: %v", err)
+//		}
+//	}()
+//
+// Once a delete succeeds, or the server reports the PIT is already gone, the
+// PIT is closed and further closes return nil. After a failed delete, a later
+// Close tries again.
+func (p *PIT) Close(ctx context.Context) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if p.mu.closed {
@@ -135,7 +134,7 @@ func (p *PIT) CloseContext(ctx context.Context) error {
 	if err == nil {
 		// Checked here too because the client's error mask can hide it, and a
 		// PIT the server kept must not count as closed.
-		if failure := resp.PitDeleteItemFailures(); failure != nil {
+		if failure := resp.PITDeleteItemFailures(); failure != nil {
 			err = failure
 		}
 	}
@@ -168,7 +167,7 @@ func (p *PIT) SearchAfterPages(ctx context.Context, req *SearchReq) (iter.Seq[*S
 	if err := checkPITPagingReq(req); err != nil {
 		return func(func(*SearchResp) bool) {}, func() error { return err }
 	}
-	return searchAfterPages(ctx, req, p.Search)
+	return searchAfterPages(ctx, req, p.Search, p.client.retryBackoff())
 }
 
 // SearchAfter is [PIT.SearchAfterPages] flattened to hits.
@@ -179,7 +178,9 @@ func (p *PIT) SearchAfter(ctx context.Context, req *SearchReq) (iter.Seq[SearchH
 
 // SearchAfterPages opens a PIT with createReq, pages req over it as
 // [PIT.SearchAfterPages] does, and closes the PIT when the loop ends, fails, or
-// the caller breaks out early. The returned func reports paging and close
+// the caller breaks out early. The close uses ctx without its cancellation, so
+// the PIT is still deleted when ctx is why the loop ended; it keeps ctx's values
+// and waits at most 10 seconds. The returned func reports paging and close
 // errors together. req is checked before the PIT is created.
 func (c PointInTimeClient) SearchAfterPages(
 	ctx context.Context, createReq *CreatePITReq, req *SearchReq,
@@ -195,10 +196,13 @@ func (c PointInTimeClient) SearchAfterPages(
 			err = oerr
 			return
 		}
-		// Close, not CloseContext(ctx): ctx may be why the loop ended, and the PIT must still be deleted.
-		defer func() { err = errors.Join(err, pit.Close()) }() //nolint:contextcheck // see above
+		defer func() {
+			closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), oneShotCloseTimeout)
+			defer cancel()
+			err = errors.Join(err, pit.Close(closeCtx))
+		}()
 
-		pages, errf := searchAfterPages(ctx, req, pit.Search)
+		pages, errf := searchAfterPages(ctx, req, pit.Search, c.apiClient.retryBackoff())
 		for resp := range pages {
 			if !yield(resp) {
 				break

@@ -47,9 +47,8 @@ func TestManual_PITSegments(t *testing.T) {
 		Params:  &opensearchapi.CreatePITParams{KeepAlive: 1 * time.Minute},
 	})
 	require.NoError(t, err)
-	require.NotNil(t, createResp.PITID)
-	pitID := *createResp.PITID
-	require.NotEmpty(t, pitID)
+	pitID := createResp.PITID
+	require.True(t, pitID.IsSet())
 
 	t.Cleanup(func() {
 		_, _ = client.PIT.Delete(context.Background(), &opensearchapi.DeletePITReq{

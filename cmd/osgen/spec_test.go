@@ -241,6 +241,19 @@ func TestErrorResponseWrappers(t *testing.T) {
 			want: []string{"NodeFailures"},
 		},
 		{
+			name: "spec casing resolves to the Go-cased wrapper constant",
+			op: &openapi3.Operation{
+				Extensions: map[string]any{
+					extErrorResponses: json.RawMessage(`[` +
+						`{"$ref":"#/components/schemas/_common.errors___PitDeleteItems"},` +
+						`{"$ref":"#/components/schemas/_common.errors___PitNodeFailures"},` +
+						`{"$ref":"#/components/schemas/_common.errors___NotAWrapper"}` +
+						`]`),
+				},
+			},
+			want: []string{"PITDeleteItems", "PITNodeFailures", "NotAWrapper"},
+		},
+		{
 			name: "empty array",
 			op: &openapi3.Operation{
 				Extensions: map[string]any{extErrorResponses: json.RawMessage(`[]`)},

@@ -13,6 +13,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 
+	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/errwrap"
 	"github.com/opensearch-project/opensearch-go/cmd/osgen/v5/ir"
 )
 
@@ -237,7 +238,8 @@ func extensionStringSlice(extensions map[string]any, key string) []string {
 }
 
 // errorResponseWrappers reads the x-error-responses extension and returns
-// the wrapper-schema names referenced by each entry (see [wrapperName]).
+// the wrapper-schema names referenced by each entry (see [wrapperName]),
+// each as its [errwrap.Canonical] constant.
 //
 // Returns nil when the extension is absent or empty. Malformed entries
 // are skipped; the caller treats absence as "no auxiliary error
@@ -246,7 +248,7 @@ func errorResponseWrappers(op *openapi3.Operation) []string {
 	var out []string
 	for _, ref := range extensionRefs(op, extErrorResponses) {
 		if name := wrapperName(ref); name != "" {
-			out = append(out, name)
+			out = append(out, errwrap.Canonical(name))
 		}
 	}
 	return out

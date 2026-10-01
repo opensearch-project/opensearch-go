@@ -104,7 +104,8 @@ type GetSearchConfigurationsResp struct {
 	// and every search against the PIT echoes it. A request takes it only in
 	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
 	// segments), never in a path, query parameter, or header, because the
-	// token can be large. A scroll uses its own `scroll_id` instead.
+	// token can be large. It is not an external ID: don't expose it outside
+	// your service, where its value could be tampered with.
 	PITID *opensearchapi.PITID `json:"pit_id,omitempty"`
 
 	// Available: >= 3.0.0.

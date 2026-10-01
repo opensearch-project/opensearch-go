@@ -23,18 +23,18 @@ import (
 	"github.com/opensearch-project/opensearch-go/v5/opensearchapi/testutil"
 )
 
-// pitDocs is how many documents the PIT integration tests index; with a page
+// pitDocs is how many documents most PIT integration tests index; with a page
 // size of 3 it spans a full page, a full page and a short page.
 const pitDocs = 7
 
-// newPITIndex creates an index holding pitDocs documents with n = 1..pitDocs.
-func newPITIndex(t *testing.T, client *opensearchapi.Client) string {
+// newPITIndex creates an index holding docs documents with n = 1..docs.
+func newPITIndex(t *testing.T, client *opensearchapi.Client, docs int) string {
 	t.Helper()
 	index := testutil.MustUniqueString(t, "test-pit-handle")
 	t.Cleanup(func() {
 		_, _ = client.Indices.Delete(context.Background(), &opensearchapi.IndicesDeleteReq{Indices: []string{index}})
 	})
-	for i := 1; i <= pitDocs; i++ {
+	for i := 1; i <= docs; i++ {
 		_, err := client.Doc.Index(t.Context(), opensearchapi.IndexReq{
 			Index: index,
 			ID:    fmt.Sprint(i),
@@ -72,42 +72,48 @@ func findPIT(ctx context.Context, client *opensearchapi.Client, id opensearchapi
 		return false, err
 	}
 	for _, p := range resp.PITs {
-		if p.PITID != nil && *p.PITID == id {
+		if p.PITID == id {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
+// TestIntegration_PITHandle is the PIT lifecycle end to end: create a PIT,
+// page through 6 documents 2 at a time, and delete the PIT.
 func TestIntegration_PITHandle(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, 6)
 
 	// Open relies on the server accepting its default keep_alive, sent as 300000ms.
 	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{index}})
 	require.NoError(t, err)
 	require.True(t, pitExists(t, client, pit.ID()))
 
-	hits, errf := pit.SearchAfter(t.Context(), &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: byN(), Size: new(3)}})
-	var ids []string
-	for h := range hits {
-		ids = append(ids, *h.ID)
+	pages, errf := pit.SearchAfterPages(t.Context(), &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: byN(), Size: new(2)}})
+	var got [][]string
+	for resp := range pages {
+		var ids []string
+		for _, h := range resp.Hits.Hits {
+			ids = append(ids, *h.ID)
+		}
+		got = append(got, ids)
 	}
 	require.NoError(t, errf())
-	require.Equal(t, []string{"1", "2", "3", "4", "5", "6", "7"}, ids)
+	require.Equal(t, [][]string{{"1", "2"}, {"3", "4"}, {"5", "6"}}, got)
 	require.True(t, pitExists(t, client, pit.ID()), "the handle's iterators must leave the PIT open")
 
-	require.NoError(t, pit.Close())
-	require.False(t, pitExists(t, client, pit.ID()))
+	require.NoError(t, pit.Close(t.Context()))
+	require.False(t, pitExists(t, client, pit.ID()), "the PIT must be deleted")
 }
 
 func TestIntegration_PITOneShotSearchAfter(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	pages, errf := client.PIT.SearchAfterPages(t.Context(),
 		&opensearchapi.CreatePITReq{Indices: []string{index}},
@@ -134,7 +140,7 @@ func TestIntegration_SearchAfterResume(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{index}})
 	require.NoError(t, err)
@@ -155,7 +161,7 @@ func TestIntegration_SearchAfterResume(t *testing.T) {
 	require.Equal(t, []string{"4", "5", "6", "7"}, ids)
 	require.True(t, pitExists(t, client, cur.PIT), "the client iterators must leave the PIT open")
 
-	require.NoError(t, pit.Close())
+	require.NoError(t, pit.Close(t.Context()))
 	pages, errf := client.SearchAfterPages(t.Context(), resume)
 	for range pages {
 		require.Fail(t, "a deleted PIT must yield no page")
@@ -169,7 +175,7 @@ func TestIntegration_SearchAfterResume(t *testing.T) {
 func TestIntegration_SearchContextMissing(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	scroll, err := client.Search(t.Context(), &opensearchapi.SearchReq{
 		Indices: []string{index},
@@ -218,7 +224,7 @@ func TestIntegration_SearchContextMissing(t *testing.T) {
 func TestIntegration_SearchAfterNoPIT(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	hits, errf := client.SearchAfter(t.Context(), &opensearchapi.SearchReq{
 		Indices: []string{index},
@@ -238,7 +244,7 @@ func TestIntegration_PITDeleteMissing(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{index}})
 	require.NoError(t, err)
@@ -254,7 +260,7 @@ func TestIntegration_PITDeleteMissing(t *testing.T) {
 	t.Logf("deleting a missing PIT: status=%d err=%q body=%q", status, fmt.Sprint(err), fmt.Sprint(resp.Inspect().Response))
 	require.Contains(t, []int{http.StatusOK, http.StatusNotFound}, status)
 
-	require.NoError(t, pit.Close(), "a PIT the server no longer has counts as closed")
+	require.NoError(t, pit.Close(t.Context()), "a PIT the server no longer has counts as closed")
 	_, err = pit.Search(t.Context(), &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{}})
 	require.ErrorIs(t, err, opensearchapi.ErrPITClosed)
 }
@@ -272,14 +278,14 @@ func TestIntegration_PITKeepAliveRefresh(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
 	testutil.SkipIfVersion(t, client, "<", "2.4", "PIT")
-	index := newPITIndex(t, client)
+	index := newPITIndex(t, client, pitDocs)
 
 	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{
 		Indices: []string{index},
 		Params:  &opensearchapi.CreatePITParams{KeepAlive: 20 * time.Second},
 	})
 	require.NoError(t, err)
-	t.Cleanup(func() { _ = pit.Close() })
+	t.Cleanup(func() { _ = pit.Close(context.Background()) }) // t.Context() is done by cleanup
 
 	ctx := t.Context()
 	gone := func() bool {

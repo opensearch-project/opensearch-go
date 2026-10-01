@@ -140,16 +140,16 @@ type DeletePITBody struct {
 	PITID []PITID `json:"pit_id"`
 }
 
-// PitDeleteItemFailures detects PITs the server could not delete on a
+// PITDeleteItemFailures detects PITs the server could not delete on a
 // DeletePITResp: pits[] entries with "successful": false. Returns nil when
 // every PIT was deleted.
-func (r *DeletePITResp) PitDeleteItemFailures() *PartialPITDeleteError {
+func (r *DeletePITResp) PITDeleteItemFailures() *PartialPITDeleteError {
 	if r == nil {
 		return nil
 	}
 	var failed []PITDeleted
 	for _, p := range r.PITs {
-		if p.Successful != nil && !*p.Successful {
+		if !p.Successful {
 			failed = append(failed, p)
 		}
 	}
@@ -167,8 +167,8 @@ func (r *DeletePITResp) PitDeleteItemFailures() *PartialPITDeleteError {
 // wrapper category.
 func (r *DeletePITResp) PartialFailures(mask errmask.ErrorMask) []error {
 	var errs []error
-	if !mask.Has(errmask.PitDeleteItems) {
-		if e := r.PitDeleteItemFailures(); e != nil {
+	if !mask.Has(errmask.PITDeleteItems) {
+		if e := r.PITDeleteItemFailures(); e != nil {
 			errs = append(errs, e)
 		}
 	}

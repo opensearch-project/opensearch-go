@@ -23,15 +23,24 @@ const defaultSearchAfterPageSize = 1000
 
 // searchAfterPageRetries is how many extra attempts the search_after iterators
 // make at a page whose failure is transient, a rejected shard or a timeout. Two
-// retries ride out a brief spike in a full search queue while a sick cluster
-// still fails fast.
+// retries ride out a brief spike in a full search queue; a scan against a sick
+// cluster stops after them, about 9s after the page first failed.
 const searchAfterPageRetries = 2
 
-// searchAfterRetryBackoff is the wait before the first retry of a page; each
-// later retry waits four times longer, so two retries wait 100ms, then 400ms.
-// That is long enough for a full search queue to drain a little and short
-// enough that a scan against a sick cluster still fails within a second.
-const searchAfterRetryBackoff = 100 * time.Millisecond
+// defaultSearchAfterRetryBackoff is the wait before the first retry of a page;
+// each later retry waits twice as long, so two retries wait 3s, then 6s. That
+// gives a full search queue time to drain before the page is tried again.
+const defaultSearchAfterRetryBackoff = 3 * time.Second
+
+// retryBackoff returns the first retry wait for c's search_after scans: the
+// client's searchAfterRetryBackoff override when set, else
+// [defaultSearchAfterRetryBackoff].
+func (c *Client) retryBackoff() time.Duration {
+	if c.searchAfterRetryBackoff > 0 {
+		return c.searchAfterRetryBackoff
+	}
+	return defaultSearchAfterRetryBackoff
+}
 
 // ErrSearchPageIncomplete is returned by the search_after iterators when a page
 // came back incomplete without a failed shard: the search timed out or
@@ -49,11 +58,12 @@ type searchFunc func(context.Context, *SearchReq) (*SearchResp, error)
 // caller is where the first page starts, so a scan can be resumed from the
 // last hit's sort values.
 //
-// Without a PIT the scan pages the live req.Indices, so documents indexed or
-// deleted during it can shift the pages. With req.Body.PIT set it pages that
-// PIT's snapshot and req.Indices must be empty; the iterators never create or
-// delete a PIT. [PIT.SearchAfterPages] and [PointInTimeClient.SearchAfterPages]
-// manage one for you.
+// Without a PIT, the scan reads the live req.Indices, so documents indexed or
+// deleted during the scan can move between pages. With req.Body.PIT set, it
+// reads that PIT's snapshot, and req.Indices must be empty. SearchAfterPages
+// never creates or deletes a PIT. To scan a PIT you hold, use
+// [PIT.SearchAfterPages]; to have a PIT created and deleted for one scan, use
+// [PointInTimeClient.SearchAfterPages].
 //
 // Call the returned func after the loop to get any error, as with
 // [bufio.Scanner.Err]. The error names the page that stopped the scan and how
@@ -64,14 +74,15 @@ type searchFunc func(context.Context, *SearchReq) (*SearchResp, error)
 // with a [*PartialSearchError], even when the client's error mask hides partial
 // failures; one that timed out or terminated early stops it with
 // [ErrSearchPageIncomplete]. A page whose failed shards were all rejected by a
-// full search queue, or that timed out, is retried twice with a short backoff
-// first. search_after keeps the position, so a retried page does not skip or
-// repeat documents; without a PIT it can see documents indexed in between.
+// full search queue, or that timed out, is retried up to twice, after 3s and
+// then 6s, before the scan stops. search_after keeps the position, so a
+// retried page does not skip or repeat documents; without a PIT it can see
+// documents indexed in between.
 func (c Client) SearchAfterPages(ctx context.Context, req *SearchReq) (iter.Seq[*SearchResp], func() error) {
 	if err := checkPagingReq(req); err != nil {
 		return func(func(*SearchResp) bool) {}, func() error { return err }
 	}
-	return searchAfterPages(ctx, req, c.Search)
+	return searchAfterPages(ctx, req, c.Search, c.retryBackoff())
 }
 
 // SearchAfter is [Client.SearchAfterPages] flattened to hits.
@@ -116,7 +127,7 @@ func (c SearchCursor) Apply(req *SearchReq) *SearchReq {
 	if req.Body != nil {
 		body = *req.Body
 	}
-	if !c.PIT.IsZero() {
+	if c.PIT.IsSet() {
 		body.PIT = &SearchPointInTimeReference{ID: c.PIT}
 	}
 	body.SearchAfter = c.After
@@ -125,8 +136,11 @@ func (c SearchCursor) Apply(req *SearchReq) *SearchReq {
 }
 
 // searchAfterPages is the paging loop behind every search_after iterator. req
-// must already have passed checkPagingReq.
-func searchAfterPages(ctx context.Context, req *SearchReq, search searchFunc) (iter.Seq[*SearchResp], func() error) {
+// must already have passed checkPagingReq. backoff is the wait before a page's
+// first retry.
+func searchAfterPages(
+	ctx context.Context, req *SearchReq, search searchFunc, backoff time.Duration,
+) (iter.Seq[*SearchResp], func() error) {
 	var err error
 	seq := func(yield func(*SearchResp) bool) {
 		body := *req.Body
@@ -137,7 +151,7 @@ func searchAfterPages(ctx context.Context, req *SearchReq, search searchFunc) (i
 		page.Body = &body
 		yielded := 0
 		for n := 1; ; n++ {
-			resp, perr := searchPage(ctx, &page, search)
+			resp, perr := searchPage(ctx, &page, search, backoff)
 			if perr != nil {
 				err = fmt.Errorf("opensearchapi: search_after page %d (%d hits yielded before it): %w", n, yielded, perr)
 				return
@@ -160,7 +174,7 @@ func searchAfterPages(ctx context.Context, req *SearchReq, search searchFunc) (i
 
 // searchPage runs one page of a scan, retrying it while its problem is
 // transient. It returns the page only when it came back complete.
-func searchPage(ctx context.Context, req *SearchReq, search searchFunc) (*SearchResp, error) {
+func searchPage(ctx context.Context, req *SearchReq, search searchFunc, backoff time.Duration) (*SearchResp, error) {
 	for attempt := 0; ; attempt++ {
 		resp, err := search(ctx, req)
 		retryable, problem := pageProblem(resp, err)
@@ -170,7 +184,7 @@ func searchPage(ctx context.Context, req *SearchReq, search searchFunc) (*Search
 		if !retryable || attempt == searchAfterPageRetries {
 			return nil, problem
 		}
-		if werr := waitCtx(ctx, searchAfterRetryBackoff<<(2*attempt)); werr != nil {
+		if werr := waitCtx(ctx, backoff<<attempt); werr != nil {
 			return nil, werr
 		}
 	}

@@ -14,7 +14,10 @@
 // are kept in lock-step with the order of [Wrappers].
 package errwrap
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Wrapper names. One constant per wrapper schema in the proposal's
 // catalog. These strings are also accepted by errmask.Parse (in
@@ -34,8 +37,8 @@ const (
 	WrapperSimulateDocFailures         = "SimulateDocFailures"
 	WrapperRankEvalFailures            = "RankEvalFailures"
 	WrapperIngestionShardFailures      = "IngestionShardFailures"
-	WrapperPitNodeFailures             = "PitNodeFailures"
-	WrapperPitDeleteItems              = "PitDeleteItems"
+	WrapperPITNodeFailures             = "PITNodeFailures"
+	WrapperPITDeleteItems              = "PITDeleteItems"
 )
 
 // Error-type names: one constant per x-error-types wrapper schema that has a
@@ -139,8 +142,8 @@ func Wrappers() []string {
 		WrapperSimulateDocFailures,
 		WrapperRankEvalFailures,
 		WrapperIngestionShardFailures,
-		WrapperPitNodeFailures,
-		WrapperPitDeleteItems,
+		WrapperPITNodeFailures,
+		WrapperPITDeleteItems,
 	}
 }
 
@@ -181,9 +184,9 @@ func OperationWrappers() map[string][]string {
 		GroupMGet:            {WrapperMultiDocItems},
 		GroupMTermvectors:    {WrapperMultiDocItems},
 		GroupRankEval:        {WrapperRankEvalFailures},
-		GroupGetAllPITs:      {WrapperPitNodeFailures},
-		GroupDeletePIT:       {WrapperPitDeleteItems},
-		GroupDeleteAllPITs:   {WrapperPitDeleteItems},
+		GroupGetAllPITs:      {WrapperPITNodeFailures},
+		GroupDeletePIT:       {WrapperPITDeleteItems},
+		GroupDeleteAllPITs:   {WrapperPITDeleteItems},
 
 		// indices
 		GroupIndicesRefresh:          {WrapperBroadcastShards},
@@ -256,4 +259,18 @@ func sortedCanonical(in []string) []string {
 		return idx[out[i]] < idx[out[j]]
 	})
 	return out
+}
+
+// Canonical returns the wrapper constant that name spells, ignoring case, or
+// name unchanged when none matches. The spec names wrapper schemas in its own
+// casing (_common.errors___PitDeleteItems, like _core.pit___PitDetail), while
+// each constant is Go-cased because it is also the errmask identifier
+// (errmask.PITDeleteItems).
+func Canonical(name string) string {
+	for _, w := range Wrappers() {
+		if strings.EqualFold(w, name) {
+			return w
+		}
+	}
+	return name
 }

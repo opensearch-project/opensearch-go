@@ -192,11 +192,16 @@ func example() error {
 	}
 
 	// A PIT handle can be shared and searched more than once; its owner closes it.
+	// The deferred close gets its own context, so it still runs if ctx is done.
 	pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	defer pit.Close()
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+		_ = pit.Close(closeCtx) // a no-op once the Close below succeeds
+	}()
 
 	searchResp, err = pit.Search(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear, Size: new(2)}})
 	if err != nil {
@@ -208,7 +213,7 @@ func example() error {
 	}
 	fmt.Printf("PIT Search Response:\n%s\n", string(respAsJson))
 
-	if err := pit.Close(); err != nil {
+	if err := pit.Close(ctx); err != nil {
 		return err
 	}
 

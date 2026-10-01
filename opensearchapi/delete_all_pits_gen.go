@@ -120,22 +120,23 @@ type PITDeleted struct {
 	// and every search against the PIT echoes it. A request takes it only in
 	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
 	// segments), never in a path, query parameter, or header, because the
-	// token can be large. A scroll uses its own `scroll_id` instead.
-	PITID *PITID `json:"pit_id,omitempty"`
+	// token can be large. It is not an external ID: don't expose it outside
+	// your service, where its value could be tampered with.
+	PITID PITID `json:"pit_id"`
 
-	Successful *bool `json:"successful,omitempty"`
+	Successful bool `json:"successful"`
 }
 
-// PitDeleteItemFailures detects PITs the server could not delete on a
+// PITDeleteItemFailures detects PITs the server could not delete on a
 // DeleteAllPITsResp: pits[] entries with "successful": false. Returns nil when
 // every PIT was deleted.
-func (r *DeleteAllPITsResp) PitDeleteItemFailures() *PartialPITDeleteError {
+func (r *DeleteAllPITsResp) PITDeleteItemFailures() *PartialPITDeleteError {
 	if r == nil {
 		return nil
 	}
 	var failed []PITDeleted
 	for _, p := range r.PITs {
-		if p.Successful != nil && !*p.Successful {
+		if !p.Successful {
 			failed = append(failed, p)
 		}
 	}
@@ -153,8 +154,8 @@ func (r *DeleteAllPITsResp) PitDeleteItemFailures() *PartialPITDeleteError {
 // wrapper category.
 func (r *DeleteAllPITsResp) PartialFailures(mask errmask.ErrorMask) []error {
 	var errs []error
-	if !mask.Has(errmask.PitDeleteItems) {
-		if e := r.PitDeleteItemFailures(); e != nil {
+	if !mask.Has(errmask.PITDeleteItems) {
+		if e := r.PITDeleteItemFailures(); e != nil {
 			errs = append(errs, e)
 		}
 	}

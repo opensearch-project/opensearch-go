@@ -274,18 +274,24 @@ The sort must end in a field that is unique per document, or pages can skip or r
 
 `client.PIT.SearchAfterPages` does the same but yields whole pages (`*opensearchapi.SearchResp`), for when you need per-page data such as `took` or aggregations.
 
-They never yield an incomplete page, because `search_after` would move past its missing documents for good and the scan would silently lose data. A page with a failed shard stops the scan with a `*opensearchapi.PartialSearchError`, even if the client's error mask hides partial failures, and a page that timed out or terminated early stops it with `opensearchapi.ErrSearchPageIncomplete`. A page whose failed shards were all rejected by a full search queue, or that timed out, is retried twice with a short backoff before the scan stops, since a PIT returns the same hits each time. The error names the page that stopped the scan and how many hits were yielded before it.
+They never yield an incomplete page, because `search_after` would move past its missing documents for good and the scan would silently lose data. A page with a failed shard stops the scan with a `*opensearchapi.PartialSearchError`, even if the client's error mask hides partial failures, and a page that timed out or terminated early stops it with `opensearchapi.ErrSearchPageIncomplete`. A page whose failed shards were all rejected by a full search queue, or that timed out, is retried twice, after 3 seconds and then 6, before the scan stops, since a PIT returns the same hits each time. The error names the page that stopped the scan and how many hits were yielded before it.
 
 #### Sharing a PIT
 
-To run several searches against the same snapshot, or pass it to other functions, open a PIT handle yourself and close it with `defer`:
+To run several searches against the same snapshot, or pass it to other functions, open a PIT handle yourself and close it when you are done. `Close` takes a context; give the deferred close its own, so it still runs after `ctx` is cancelled:
 
 ```go
 	pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{Indices: []string{exampleIndex}})
 	if err != nil {
 		return err
 	}
-	defer pit.Close()
+	defer func() {
+		closeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+		if err := pit.Close(closeCtx); err != nil {
+			log.Printf("close PIT: %v", err)
+		}
+	}()
 
 	hits, errf := pit.SearchAfter(ctx, &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear}})
 	for hit := range hits {
@@ -302,7 +308,7 @@ To run several searches against the same snapshot, or pass it to other functions
 	fmt.Println(len(resp.Hits.Hits))
 ```
 
-A PIT handle is safe for concurrent use. Its iterators and `Search` never close it; its owner does. `Close` is safe to call more than once, still works after `ctx` is cancelled, and waits at most 10 seconds for the delete. Use `CloseContext` to set your own deadline. After a close, `Search` and the iterators return `opensearchapi.ErrPITClosed`.
+A PIT handle is safe for concurrent use. Its iterators and `Search` never close it; its owner does. `Close` deletes the PIT within the limits of the context you pass, and the client adds no timeout of its own. It is safe to call more than once, and a failed close can be retried. After a close, `Search` and the iterators return `opensearchapi.ErrPITClosed`.
 
 When you search with a PIT you do not specify indices; the PIT already pins them. `Search` and the iterators reject a request that sets `Indices`.
 
@@ -336,7 +342,7 @@ func nextPage(
 	ctx context.Context, client *opensearchapi.Client, cur opensearchapi.SearchCursor,
 ) ([]opensearchapi.SearchHit, opensearchapi.SearchCursor, error) {
 	const pageSize = 5
-	if cur.After != nil && cur.PIT.IsZero() {
+	if cur.After != nil && !cur.PIT.IsSet() {
 		pit, err := client.PIT.Open(ctx, &opensearchapi.CreatePITReq{
 			Indices: []string{exampleIndex},
 			Params:  &opensearchapi.CreatePITParams{KeepAlive: 2 * time.Minute},
@@ -346,7 +352,7 @@ func nextPage(
 		}
 	}
 	req := &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{Sort: &sortByYear, Size: new(pageSize)}}
-	if cur.PIT.IsZero() {
+	if !cur.PIT.IsSet() {
 		req.Indices = []string{exampleIndex}
 	}
 	page, err := onePage(ctx, client, cur.Apply(req))
@@ -360,7 +366,7 @@ func nextPage(
 	}
 	next, ok := page.Cursor()
 	if !ok || len(page.Hits.Hits) < pageSize { // the last page: free the PIT now, not at keep_alive
-		if !cur.PIT.IsZero() {
+		if cur.PIT.IsSet() {
 			_, err = client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{cur.PIT}}})
 		}
 		return page.Hits.Hits, opensearchapi.SearchCursor{}, err
@@ -389,7 +395,7 @@ A PIT ID encodes index names and node IDs. Wrap or encrypt it before you hand it
 
 A PIT stays open on the server until `keep_alive` passes without a search against it. The server restarts that timer on every search, including every page of the iterators, so a PIT in use does not expire. `Open` defaults `keep_alive` to 300 seconds; set `CreatePITReq.Params.KeepAlive` to change it. The server caps it at the `point_in_time.max_keep_alive` cluster setting, 24 hours by default, and rejects a longer one.
 
-Closing the PIT, whether with `defer pit.Close()` or through the one-shot iterators, deletes it right away on every normal exit. `keep_alive` is what frees it if your process crashes before it can close it, so keep it only as long as the longest gap between two searches.
+Closing the PIT, whether with `pit.Close` or through the one-shot iterators, deletes it right away on every normal exit. `keep_alive` is what frees it if your process crashes before it can close it, so keep it only as long as the longest gap between two searches.
 
 The lower-level `client.PIT.Create` and `client.PIT.Delete` calls are still available if you need full control.
 

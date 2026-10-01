@@ -788,7 +788,8 @@ const (
 // every search against the PIT echoes it. A request takes it only in
 // its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat
 // PIT segments), never in a path, query parameter, or header, because
-// the token can be large. A scroll uses its own `scroll_id` instead.
+// the token can be large. It is not an external ID: don't expose it
+// outside your service, where its value could be tampered with.
 //
 // Build one with ParsePITID; read it with String. It encodes as the bare
 // string on the wire.
@@ -796,11 +797,17 @@ type PITID struct {
 	s string
 }
 
+// errEmptyPITID is returned for an empty PITID, both when parsing one
+// and when one would be sent.
+//
+//nolint:gochecknoglobals // generated read-only sentinel
+var errEmptyPITID = errors.New("opensearchapi: empty PITID")
+
 // ParsePITID returns s as a PITID. The value is opaque, so the only
 // check is that s is not empty.
 func ParsePITID(s string) (PITID, error) {
 	if s == "" {
-		return PITID{}, errors.New("opensearchapi: empty PITID")
+		return PITID{}, errEmptyPITID
 	}
 	return PITID{s: s}, nil
 }
@@ -808,11 +815,18 @@ func ParsePITID(s string) (PITID, error) {
 // String returns v as sent on the wire.
 func (v PITID) String() string { return v.s }
 
-// IsZero reports whether v is the zero PITID.
-func (v PITID) IsZero() bool { return v.s == "" }
+// IsSet reports whether v holds a value, rather than being the zero PITID.
+func (v PITID) IsSet() bool { return v.s != "" }
 
-// MarshalText returns v as sent on the wire.
-func (v PITID) MarshalText() ([]byte, error) { return []byte(v.s), nil }
+// MarshalText returns v as sent on the wire. It fails for an empty PITID,
+// so a request can't carry one by accident; decoding stays lenient, so a
+// response that omits the value still decodes, with IsSet false.
+func (v PITID) MarshalText() ([]byte, error) {
+	if v.s == "" {
+		return nil, errEmptyPITID
+	}
+	return []byte(v.s), nil
+}
 
 // UnmarshalText sets v from its wire form.
 func (v *PITID) UnmarshalText(text []byte) error {

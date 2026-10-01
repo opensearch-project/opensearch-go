@@ -673,7 +673,7 @@ if pe, ok := errors.AsType[*opensearchapi.PartialPITDeleteError](err); ok {
 }
 ```
 
-To keep the old behavior, mask the category with `errmask.PitDeleteItems` in `Config.Errors`, or `pit_delete_items` in `OPENSEARCH_GO_ERROR_MASK`.
+To keep the old behavior, mask the category with `errmask.PITDeleteItems` in `Config.Errors`, or `pit_delete_items` in `OPENSEARCH_GO_ERROR_MASK`.
 
 ## PIT ID fields are `opensearchapi.PITID`
 
@@ -681,14 +681,16 @@ Every generated field that carries a PIT ID now has type `opensearchapi.PITID`, 
 
 | Type                                                                                                             | Field   | Before     | After                  |
 | ---------------------------------------------------------------------------------------------------------------- | ------- | ---------- | ---------------------- |
-| `CreatePITResp`, `SearchResp`, `SearchResult`                                                                    | `PITID` | `*string`  | `*PITID`               |
-| `SearchTemplateResp`, `MSearchMultiSearchItem`, `SearchResultJSONValue`                                          | `PITID` | `*string`  | `*PITID`               |
-| `ScrollResp`, `PITDeleted`, `PITDetail`                                                                          | `PITID` | `*string`  | `*PITID`               |
+| `CreatePITResp`, `PITDeleted`, `PITDetail`                                                                       | `PITID` | `*string`  | `PITID`                |
+| `SearchResp`, `SearchResult`, `SearchTemplateResp`, `MSearchMultiSearchItem`, `SearchResultJSONValue`            | `PITID` | `*string`  | `*PITID`               |
+| `ScrollResp`                                                                                                     | `PITID` | `*string`  | `*PITID`               |
 | `SearchPointInTimeReference`                                                                                     | `ID`    | `string`   | `PITID`                |
 | `DeletePITBody`, `CatPITSegmentsBody`                                                                            | `PITID` | `[]string` | `[]PITID`              |
 | `search_relevance` `Get*Resp` (experiments, judgments, query sets, scheduled experiments, search configurations) | `PITID` | `*string`  | `*opensearchapi.PITID` |
 
-Passing an ID from one field to another needs no change. Anything that treats it as a `string` does:
+The create-PIT response and each `pits[]` entry of a PIT delete now follow the upstream spec, which marks their fields required, so they are values rather than pointers: `CreatePITResp.Shards` (`*ShardStatistics` to `ShardStatistics`), `CreatePITResp.CreationTime` (`*int64` to `int64`) and `PITDeleted.Successful` (`*bool` to `bool`), as well as the `PITID` fields above. `PITDetail.PITID` (each entry of `client.PIT.GetAll`) is a value too: the server always sends it, though upstream's spec doesn't mark it required yet.
+
+Passing an ID from one field to another needs no change beyond dropping a `*` where the field is now a value. Anything that treats it as a `string` does:
 
 ```go
 // Before
@@ -696,13 +698,17 @@ Body: &opensearchapi.DeletePITBody{PITID: []string{*createResp.PITID}}
 ref := &opensearchapi.SearchPointInTimeReference{ID: storedID}
 saved := *searchResp.PITID
 if id == "" { ... }
+if p.Successful != nil && !*p.Successful { ... }
 
 // After
-Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{*createResp.PITID}}
+Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{createResp.PITID}}
 id, err := opensearchapi.ParsePITID(storedID) // rejects ""
 ref := &opensearchapi.SearchPointInTimeReference{ID: id}
 saved := searchResp.PITID.String()
-if id.IsZero() { ... }
+if !id.IsSet() { ... }
+if !p.Successful { ... }
 ```
 
 `opensearchapi.SearchCursor`, which holds a PIT ID and a sort position, encodes to and from JSON, so you can store it without handling the ID yourself.
+
+An empty `PITID` (the zero value) fails to encode, so a request that would send one, such as a delete or a search with `PIT.ID` unset, returns an `empty PITID` error without reaching the server. Decoding is unchanged: a response that omits `pit_id` decodes, and `IsSet` reports false.

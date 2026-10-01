@@ -128,10 +128,10 @@ for _, sub := range opensearchapi.Errors(err) {
 
 ### PIT Deletes
 
-`client.PIT.Delete` and `client.PIT.DeleteAll` answer HTTP 200 even when the server could not delete some PITs; those entries in `pits[]` report `"successful": false`. The client returns a `*PartialPITDeleteError` for them, unless the error mask hides the `PitDeleteItems` category. A PIT that was not deleted stays open until its `keep_alive` runs out, so retry the delete:
+`client.PIT.Delete` and `client.PIT.DeleteAll` answer HTTP 200 even when the server could not delete some PITs; those entries in `pits[]` report `"successful": false`. The client returns a `*PartialPITDeleteError` for them, unless the error mask hides the `PITDeleteItems` category. A PIT that was not deleted stays open until its `keep_alive` runs out, so retry the delete:
 
 ```go
-pitID := *createResp.PITID // an opensearchapi.PITID from client.PIT.Create
+pitID := createResp.PITID // an opensearchapi.PITID from client.PIT.Create
 _, err := client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{
     Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID}},
 })

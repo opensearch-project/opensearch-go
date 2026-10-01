@@ -142,16 +142,17 @@ func (r CreatePITParams) get() map[string]string {
 //
 // See: https://opensearch.org/docs/latest/search-plugins/point-in-time-api/#create-a-pit
 type CreatePITResp struct {
-	Shards       *ShardStatistics `json:"_shards,omitempty"`
-	CreationTime *int64           `json:"creation_time,omitempty"`
+	Shards       ShardStatistics `json:"_shards"`
+	CreationTime int64           `json:"creation_time"`
 
 	// PITID. Identifies a point in time (PIT): an opaque base64 token that
 	// encodes index names and node IDs. The create-PIT response returns it,
 	// and every search against the PIT echoes it. A request takes it only in
 	// its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat PIT
 	// segments), never in a path, query parameter, or header, because the
-	// token can be large. A scroll uses its own `scroll_id` instead.
-	PITID *PITID `json:"pit_id,omitempty"`
+	// token can be large. It is not an external ID: don't expose it outside
+	// your service, where its value could be tampered with.
+	PITID PITID `json:"pit_id"`
 
 	response *opensearch.Response
 }
@@ -175,9 +176,6 @@ func (r CreatePITResp) RawBody() io.Reader {
 // shards failed.
 func (r *CreatePITResp) SearchShardFailures() *PartialSearchError {
 	if r == nil {
-		return nil
-	}
-	if r.Shards == nil {
 		return nil
 	}
 	if r.Shards.Failed == 0 {

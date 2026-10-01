@@ -18,8 +18,9 @@ import (
 // OpaqueStringFragment renders opaque token types (x-type-name): a struct
 // around an unexported string, so callers cannot build one from a string
 // literal or treat it as a string by accident. Each type gets Parse<Name>,
-// which rejects an empty string; String and IsZero; and MarshalText and
+// which rejects an empty string; String and IsSet; and MarshalText and
 // UnmarshalText, which encoding/json uses, so the wire form is the bare string.
+// MarshalText rejects an empty value too, so a request can't send one.
 type OpaqueStringFragment struct {
 	Types []*ir.Type
 }
@@ -61,11 +62,17 @@ type {{$t.Name}} struct {
 	s string
 }
 
+// errEmpty{{$t.Name}} is returned for an empty {{$t.Name}}, both when parsing one
+// and when one would be sent.
+//
+//nolint:gochecknoglobals // generated read-only sentinel
+var errEmpty{{$t.Name}} = errors.New("{{pkgName $t.Package}}: empty {{$t.Name}}")
+
 // Parse{{$t.Name}} returns s as a {{$t.Name}}. The value is opaque, so the only
 // check is that s is not empty.
 func Parse{{$t.Name}}(s string) ({{$t.Name}}, error) {
 	if s == "" {
-		return {{$t.Name}}{}, errors.New("{{pkgName $t.Package}}: empty {{$t.Name}}")
+		return {{$t.Name}}{}, errEmpty{{$t.Name}}
 	}
 	return {{$t.Name}}{s: s}, nil
 }
@@ -73,11 +80,18 @@ func Parse{{$t.Name}}(s string) ({{$t.Name}}, error) {
 // String returns v as sent on the wire.
 func (v {{$t.Name}}) String() string { return v.s }
 
-// IsZero reports whether v is the zero {{$t.Name}}.
-func (v {{$t.Name}}) IsZero() bool { return v.s == "" }
+// IsSet reports whether v holds a value, rather than being the zero {{$t.Name}}.
+func (v {{$t.Name}}) IsSet() bool { return v.s != "" }
 
-// MarshalText returns v as sent on the wire.
-func (v {{$t.Name}}) MarshalText() ([]byte, error) { return []byte(v.s), nil }
+// MarshalText returns v as sent on the wire. It fails for an empty {{$t.Name}},
+// so a request can't carry one by accident; decoding stays lenient, so a
+// response that omits the value still decodes, with IsSet false.
+func (v {{$t.Name}}) MarshalText() ([]byte, error) {
+	if v.s == "" {
+		return nil, errEmpty{{$t.Name}}
+	}
+	return []byte(v.s), nil
+}
 
 // UnmarshalText sets v from its wire form.
 func (v *{{$t.Name}}) UnmarshalText(text []byte) error {

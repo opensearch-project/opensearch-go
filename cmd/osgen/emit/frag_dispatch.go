@@ -168,7 +168,7 @@ const (
 
 // pitDeletedSliceType is the Go type of DeletePIT / DeleteAllPITs `pits[]`.
 // The hand-written PartialPITDeleteError holds []PITDeleted, so the
-// PitDeleteItems emission applies only when the response field has it.
+// PITDeleteItems emission applies only when the response field has it.
 const pitDeletedSliceType = "[]PITDeleted"
 
 // Receiver expressions used at API method call sites. Top-level Client
@@ -426,9 +426,9 @@ var wrappers = map[string]wrapperEmission{
 		Applies:      applyMultiSearchItems,
 		RenderMethod: renderMultiSearchItemsMethod,
 	},
-	errwrap.WrapperPitDeleteItems: {
-		Applies:      applyPitDeleteItems,
-		RenderMethod: renderPitDeleteItemsMethod,
+	errwrap.WrapperPITDeleteItems: {
+		Applies:      applyPITDeleteItems,
+		RenderMethod: renderPITDeleteItemsMethod,
 	},
 }
 
@@ -583,25 +583,25 @@ func (r *{{.RespType}}) WriteShardFailures() *ShardFailureError {
 `, ctx)
 }
 
-// applyPitDeleteItems checks for the DeletePIT / DeleteAllPITs wire shape:
+// applyPITDeleteItems checks for the DeletePIT / DeleteAllPITs wire shape:
 // top-level `pits: []` of PITDeleted.
-func applyPitDeleteItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
+func applyPITDeleteItems(resp *ir.Type, reg *ir.TypeRegistry) bool {
 	f, ok := lookupResponseField(resp, respFieldPITs, reg)
 	return ok && f.GoType == pitDeletedSliceType
 }
 
-func renderPitDeleteItemsMethod(ctx wrapperRenderCtx) (string, error) {
-	return execTpl("PitDeleteItemsMethod", `
-// PitDeleteItemFailures detects PITs the server could not delete on a
+func renderPITDeleteItemsMethod(ctx wrapperRenderCtx) (string, error) {
+	return execTpl("PITDeleteItemsMethod", `
+// PITDeleteItemFailures detects PITs the server could not delete on a
 // {{.RespType}}: pits[] entries with "successful": false. Returns nil when
 // every PIT was deleted.
-func (r *{{.RespType}}) PitDeleteItemFailures() *PartialPITDeleteError {
+func (r *{{.RespType}}) PITDeleteItemFailures() *PartialPITDeleteError {
 	if r == nil {
 		return nil
 	}
 	var failed []PITDeleted
 	for _, p := range r.PITs {
-		if p.Successful != nil && !*p.Successful {
+		if !p.Successful {
 			failed = append(failed, p)
 		}
 	}

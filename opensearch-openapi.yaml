@@ -34389,6 +34389,10 @@ components:
               creation_time:
                 type: integer
                 format: int64
+            required:
+              - _shards
+              - creation_time
+              - pit_id
       description: ''
     create___201:
       content:
@@ -40682,7 +40686,8 @@ components:
         every search against the PIT echoes it. A request takes it only in
         its body (`pit.id` on a search, `pit_id` on a PIT delete or on cat
         PIT segments), never in a path, query parameter, or header, because
-        the token can be large. A scroll uses its own `scroll_id` instead.
+        the token can be large. It is not an external ID: don't expose it
+        outside your service, where its value could be tampered with.
       x-type-name: PITID
     _common___QueryCacheStats:
       type: object
@@ -51657,6 +51662,9 @@ components:
           type: boolean
         pit_id:
           $ref: '#/components/schemas/_common___PitId'
+      required:
+        - pit_id
+        - successful
     _core.pit___PitDetail:
       type: object
       properties:
@@ -51668,6 +51676,8 @@ components:
         keep_alive:
           type: integer
           format: int64
+      required:
+        - pit_id
     _core.rank_eval___DocumentRating:
       type: object
       properties:

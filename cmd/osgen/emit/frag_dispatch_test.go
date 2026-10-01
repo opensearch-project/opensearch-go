@@ -508,30 +508,30 @@ func TestPartialFailureFragment_Body(t *testing.T) {
 			empty: true,
 		},
 		{
-			name: "PitDeleteItems emits per-Resp method + aggregator",
+			name: "PITDeleteItems emits per-Resp method + aggregator",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
 					Group:         "delete_pit",
 					TypePrefix:    "DeletePIT",
 					Response:      newRespType("DeletePIT", ir.Field{GoName: "PITs", GoType: "[]PITDeleted"}),
-					ErrorWrappers: []string{errwrap.WrapperPitDeleteItems},
+					ErrorWrappers: []string{errwrap.WrapperPITDeleteItems},
 				}
 			},
 			contains: []string{
-				"func (r *DeletePITResp) PitDeleteItemFailures() *PartialPITDeleteError",
-				"if p.Successful != nil && !*p.Successful",
-				"if !mask.Has(errmask.PitDeleteItems)",
-				"if e := r.PitDeleteItemFailures(); e != nil",
+				"func (r *DeletePITResp) PITDeleteItemFailures() *PartialPITDeleteError",
+				"if !p.Successful",
+				"if !mask.Has(errmask.PITDeleteItems)",
+				"if e := r.PITDeleteItemFailures(); e != nil",
 			},
 		},
 		{
-			name: "PitDeleteItems applies guard skips a response without PITs",
+			name: "PITDeleteItems applies guard skips a response without PITs",
 			buildOp: func(_ *ir.TypeRegistry) *ir.Operation {
 				return &ir.Operation{
 					Group:         "delete_pit",
 					TypePrefix:    "DeletePIT",
 					Response:      newRespType("DeletePIT"),
-					ErrorWrappers: []string{errwrap.WrapperPitDeleteItems},
+					ErrorWrappers: []string{errwrap.WrapperPITDeleteItems},
 				}
 			},
 			empty: true,

@@ -163,8 +163,8 @@ Each token is the lowercase snake_case form of the corresponding wrapper-schema 
 | `simulate_doc_failures`          | `SimulateDocFailures`         | `Ingest.Simulate`                                                                            |
 | `rank_eval_failures`             | `RankEvalFailures`            | `RankEval`                                                                                   |
 | `ingestion_shard_failures`       | `IngestionShardFailures`      | `Ingestion.Pause`, `Ingestion.Resume`                                                        |
-| `pit_node_failures`              | `PitNodeFailures`             | `GetAllPits`                                                                                 |
-| `pit_delete_items`               | `PitDeleteItems`              | `PointInTimeClient.Delete`, `PointInTimeClient.DeleteAll`                                    |
+| `pit_node_failures`              | `PITNodeFailures`             | `PointInTimeClient.GetAll`                                                                   |
+| `pit_delete_items`               | `PITDeleteItems`              | `PointInTimeClient.Delete`, `PointInTimeClient.DeleteAll`                                    |
 
 Special tokens:
 

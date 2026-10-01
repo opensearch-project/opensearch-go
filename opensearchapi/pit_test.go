@@ -240,6 +240,7 @@ func newPITClient(t *testing.T, f *fakePITCluster) *opensearchapi.Client {
 	client, err := opensearchapi.NewClient(opensearchapi.Config{Client: opensearch.Config{Addresses: []string{ts.URL}}})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = client.Close() })
+	opensearchapi.SetSearchAfterRetryBackoff(client, time.Millisecond) // retry tests must not wait seconds
 	return client
 }
 
@@ -370,80 +371,63 @@ func TestPITSearch(t *testing.T) {
 	}
 }
 
-// closeStep is one close call made by TestPITClose.
-type closeStep func(t *testing.T, p *opensearchapi.PIT) error
+// closeCall is one Close made by TestPITClose.
+type closeCall struct {
+	cancelled bool // Close gets a context that is already cancelled
+	wantErr   bool
+}
 
 func TestPITClose(t *testing.T) {
 	t.Parallel()
-	closePIT := closeStep(func(_ *testing.T, p *opensearchapi.PIT) error { return p.Close() })
-	cancelled := func(t *testing.T) context.Context {
-		t.Helper()
-		ctx, cancel := context.WithCancel(t.Context())
-		cancel()
-		return ctx
-	}
+	succeeds, fails := closeCall{}, closeCall{wantErr: true}
 	tests := []struct {
 		name                string
 		deleteStatuses      []int
 		unsuccessfulDeletes int
-		maskPITDeletes      bool // the client's error mask hides PitDeleteItems
+		maskPITDeletes      bool // the client's error mask hides PITDeleteItems
 		cancelOpenCtx       bool
-		closes              []closeStep
-		wantErrs            []bool // one per close
+		closes              []closeCall
 		wantDeletes         int
 	}{
 		{
 			name:        "a second close is a no-op",
-			closes:      []closeStep{closePIT, closePIT},
-			wantErrs:    []bool{false, false},
+			closes:      []closeCall{succeeds, succeeds},
 			wantDeletes: 1,
 		},
 		{
 			name:           "a failed delete can be retried",
 			deleteStatuses: []int{http.StatusInternalServerError},
-			closes:         []closeStep{closePIT, closePIT, closePIT},
-			wantErrs:       []bool{true, false, false},
+			closes:         []closeCall{fails, succeeds, succeeds},
 			wantDeletes:    2,
 		},
 		{
 			name:                "a 200 delete reporting successful false is an error and can be retried",
 			unsuccessfulDeletes: 1,
-			closes:              []closeStep{closePIT, closePIT},
-			wantErrs:            []bool{true, false},
+			closes:              []closeCall{fails, succeeds},
 			wantDeletes:         2,
 		},
 		{
 			name:                "a successful false delete is an error even when the mask hides it",
 			unsuccessfulDeletes: 1,
 			maskPITDeletes:      true,
-			closes:              []closeStep{closePIT, closePIT},
-			wantErrs:            []bool{true, false},
+			closes:              []closeCall{fails, succeeds},
 			wantDeletes:         2,
 		},
 		{
 			name:           "not found counts as closed",
 			deleteStatuses: []int{http.StatusNotFound},
-			closes:         []closeStep{closePIT, closePIT},
-			wantErrs:       []bool{false, false},
+			closes:         []closeCall{succeeds, succeeds},
 			wantDeletes:    1,
 		},
 		{
-			name:          "Close still works after the Open context is cancelled",
+			name:          "Close does not depend on the Open context",
 			cancelOpenCtx: true,
-			closes:        []closeStep{closePIT},
-			wantErrs:      []bool{false},
+			closes:        []closeCall{succeeds},
 			wantDeletes:   1,
 		},
 		{
-			name: "CloseContext uses its context as given, and Close can follow it",
-			closes: []closeStep{
-				func(t *testing.T, p *opensearchapi.PIT) error {
-					t.Helper()
-					return p.CloseContext(cancelled(t))
-				},
-				closePIT,
-			},
-			wantErrs:    []bool{true, false},
+			name:        "Close uses its context as given, and a later Close can retry",
+			closes:      []closeCall{{cancelled: true, wantErr: true}, succeeds},
 			wantDeletes: 1,
 		},
 	}
@@ -453,7 +437,7 @@ func TestPITClose(t *testing.T) {
 			f := &fakePITCluster{fakePITConfig: fakePITConfig{deleteStatuses: tt.deleteStatuses, unsuccessfulDeletes: tt.unsuccessfulDeletes}}
 			client := newPITClient(t, f)
 			if tt.maskPITDeletes {
-				require.NoError(t, client.SetErrorMask(client.ErrorMask(), errmask.PitDeleteItems))
+				require.NoError(t, client.SetErrorMask(client.ErrorMask(), errmask.PITDeleteItems))
 			}
 			openCtx, cancelOpen := context.WithCancel(t.Context())
 			defer cancelOpen()
@@ -463,9 +447,15 @@ func TestPITClose(t *testing.T) {
 				cancelOpen()
 			}
 
-			for i, closeFn := range tt.closes {
-				err := closeFn(t, pit)
-				if tt.wantErrs[i] {
+			for i, c := range tt.closes {
+				ctx := t.Context()
+				if c.cancelled {
+					cancelledCtx, cancel := context.WithCancel(ctx)
+					cancel()
+					ctx = cancelledCtx
+				}
+				err := pit.Close(ctx)
+				if c.wantErr {
 					require.Error(t, err, "close %d", i)
 					continue
 				}
@@ -480,7 +470,7 @@ func TestPITClose(t *testing.T) {
 	}
 }
 
-// TestPITDeletePartialFailure checks the generated PitDeleteItems category on
+// TestPITDeletePartialFailure checks the generated PITDeleteItems category on
 // client.PIT.Delete: a "successful": false entry is a partial failure unless
 // the error mask hides it.
 func TestPITDeletePartialFailure(t *testing.T) {
@@ -513,7 +503,7 @@ func TestPITDeletePartialFailure(t *testing.T) {
 			t.Parallel()
 			client := newPITClient(t, &fakePITCluster{fakePITConfig: fakePITConfig{unsuccessfulDeletes: 1}})
 			if tt.mask {
-				require.NoError(t, client.SetErrorMask(client.ErrorMask(), errmask.PitDeleteItems))
+				require.NoError(t, client.SetErrorMask(client.ErrorMask(), errmask.PITDeleteItems))
 			}
 
 			pits, err := tt.del(t.Context(), client)
@@ -537,7 +527,7 @@ func TestPITSearchAfterClose(t *testing.T) {
 	client := newPITClient(t, f)
 	pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{"idx"}})
 	require.NoError(t, err)
-	require.NoError(t, pit.Close())
+	require.NoError(t, pit.Close(t.Context()))
 
 	_, err = pit.Search(t.Context(), &opensearchapi.SearchReq{Body: &opensearchapi.SearchBody{}})
 	require.ErrorIs(t, err, opensearchapi.ErrPITClosed)
@@ -567,7 +557,7 @@ func TestPITConcurrentSearchAndClose(t *testing.T) {
 			errs.Unlock()
 		})
 		wg.Go(func() {
-			err := pit.Close()
+			err := pit.Close(t.Context())
 			errs.Lock()
 			errs.closes = append(errs.closes, err)
 			errs.Unlock()
@@ -691,11 +681,11 @@ func TestParsePITID(t *testing.T) {
 			id, err := opensearchapi.ParsePITID(tt.in)
 			if tt.wantErr {
 				require.Error(t, err)
-				require.True(t, id.IsZero())
+				require.False(t, id.IsSet())
 				return
 			}
 			require.NoError(t, err)
-			require.False(t, id.IsZero())
+			require.True(t, id.IsSet())
 			require.Equal(t, tt.in, id.String())
 		})
 	}
@@ -716,7 +706,20 @@ func TestPITIDJSON(t *testing.T) {
 			v:    &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{pitID("a"), pitID("b")}},
 			json: `{"pit_id":["a","b"]}`,
 		},
-		{name: "create response", v: &opensearchapi.CreatePITResp{PITID: new(pitID("pit-9"))}, json: `{"pit_id":"pit-9"}`},
+		{
+			name: "delete response entry",
+			v:    &opensearchapi.PITDeleted{PITID: pitID("pit-9"), Successful: true},
+			json: `{"pit_id":"pit-9","successful":true}`,
+		},
+		{
+			name: "create response",
+			v: &opensearchapi.CreatePITResp{
+				PITID:        pitID("pit-9"),
+				Shards:       opensearchapi.ShardStatistics{Total: 2, Successful: 2},
+				CreationTime: 1700000000000,
+			},
+			json: `{"pit_id":"pit-9","_shards":{"total":2,"successful":2,"failed":0},"creation_time":1700000000000}`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -734,6 +737,57 @@ func TestPITIDJSON(t *testing.T) {
 
 // TestSearchCursorJSON stores a cursor the way a service handing it to its
 // caller would, and gets the same cursor back.
+// TestEmptyPITIDNotSent checks that a request carrying an empty PITID fails in
+// the client instead of reaching the server, which answers it with a
+// misleading error (a 500 security_exception on a delete).
+func TestEmptyPITIDNotSent(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name string
+		send func(context.Context, *opensearchapi.Client) error
+	}{
+		{
+			name: "delete",
+			send: func(ctx context.Context, client *opensearchapi.Client) error {
+				_, err := client.PIT.Delete(ctx, &opensearchapi.DeletePITReq{
+					Body: &opensearchapi.DeletePITBody{PITID: []opensearchapi.PITID{{}}},
+				})
+				return err
+			},
+		},
+		{
+			name: "search",
+			send: func(ctx context.Context, client *opensearchapi.Client) error {
+				_, err := client.Search(ctx, &opensearchapi.SearchReq{
+					Body: &opensearchapi.SearchBody{PIT: &opensearchapi.SearchPointInTimeReference{}},
+				})
+				return err
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			f := &fakePITCluster{}
+			client := newPITClient(t, f)
+
+			err := tt.send(t.Context(), client)
+			require.ErrorContains(t, err, "empty PITID")
+			require.Empty(t, f.requests("", ""), "the request must not be sent")
+		})
+	}
+}
+
+// TestPITIDDecodeMissing checks that decoding stays lenient: a response that
+// omits pit_id decodes with an unset PITID instead of failing.
+func TestPITIDDecodeMissing(t *testing.T) {
+	t.Parallel()
+	var resp opensearchapi.GetAllPITsResp
+	require.NoError(t, json.Unmarshal([]byte(`{"pits":[{"creation_time":1}]}`), &resp))
+	require.Len(t, resp.PITs, 1)
+	require.False(t, resp.PITs[0].PITID.IsSet())
+}
+
 func TestSearchCursorJSON(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
@@ -1116,7 +1170,7 @@ func TestPITSearchAfterPages(t *testing.T) {
 			pit, err := client.PIT.Open(t.Context(), &opensearchapi.CreatePITReq{Indices: []string{"idx"}})
 			require.NoError(t, err)
 			if tt.closeFirst {
-				require.NoError(t, pit.Close())
+				require.NoError(t, pit.Close(t.Context()))
 			}
 			deletesBefore := len(f.deletes())
 			var sizeBefore *int
