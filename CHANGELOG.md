@@ -30,7 +30,7 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
 
-- `cmd/osapilint`: rewrite renamed field accesses as well as literal keys, and classify `CatShardsResp.Shards` and `CatIndicesResp.Indices` as `Records` on the v4 -> v5 hop instead of aborting with an unclassified-field error ([#TBD](https://github.com/opensearch-project/opensearch-go/pull/TBD))
+- `cmd/osapilint`: rewrite renamed field accesses as well as literal keys, and classify `CatShardsResp.Shards` and `CatIndicesResp.Indices` as `Records` on the v4 -> v5 hop instead of aborting with an unclassified-field error ([#1184](https://github.com/opensearch-project/opensearch-go/pull/1184))
 
 - `cmd/osapilint`: rewrite v4's `ToPointer(x)` to `new(x)` on the v4 -> v5 hop, whether it comes from `opensearchapi` or the root `opensearch` package. The rewrite used to emit `&x`, which did not compile for a literal argument such as `ToPointer(true)` and aliased the caller's variable where `ToPointer` returned a pointer to a copy. It also skipped `opensearch.ToPointer` entirely. Every hop now drops an opensearch-go import the rewrite left unreferenced, such as one whose only use was `ToPointer`; before, only the v2 root import was pruned ([#1170](https://github.com/opensearch-project/opensearch-go/pull/1170))
 
