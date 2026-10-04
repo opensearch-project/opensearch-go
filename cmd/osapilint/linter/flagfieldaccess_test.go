@@ -19,7 +19,7 @@ import (
 	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
 )
 
-// flagfieldaccess_test.go pins the promoted-field resolution in flagFieldAccess.
+// flagfieldaccess_test.go pins the promoted-field resolution in rewriteFieldAccess.
 //
 // gensurface flattens promoted fields onto the embedding struct, so a field
 // declared on an embedded (and often removed) type is ruled on the OUTER type in
@@ -90,7 +90,38 @@ func use(c *Client) {
 		},
 	}}
 
-	manual, unclassified := flagFieldAccess(sel, info, delta)
+	manual, unclassified := rewriteFieldAccess(sel, info, delta)
 	require.Empty(t, unclassified)
 	require.Contains(t, manual, "access .Ping", "promoted field access must be flagged against the receiver type")
+}
+
+func TestRewriteFieldAccess_Rename(t *testing.T) {
+	for _, tc := range []struct{ name, receiver, ruledType string }{
+		{"value", "Response", "Response"},
+		{"pointer", "*Response", "Response"},
+		{"promoted declaring type", "*Wrapped", "Response"},
+		{"promoted receiver type", "*Wrapped", "Wrapped"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := `package pkg
+type Response struct { Shards []int }
+type Wrapped struct { *Response }
+func use(r ` + tc.receiver + `) { _ = r.Shards }
+`
+			info, sel := typeCheckSelector(t, src, "Shards")
+			qual := "example.com/pkg." + tc.ruledType
+			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{
+				qual: {
+					From: qual,
+					Changes: []apirev.FieldChange{
+						{Kind: apirev.KindRename, From: "Shards", To: "Records"},
+					},
+				},
+			}}
+			edit, unclassified := rewriteFieldAccess(sel, info, delta)
+			require.Empty(t, unclassified)
+			require.Equal(t, "Records", sel.Sel.Name)
+			require.Contains(t, edit, "field Shards -> Records")
+		})
+	}
 }

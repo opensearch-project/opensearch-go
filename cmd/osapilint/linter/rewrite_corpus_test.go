@@ -97,14 +97,16 @@ func TestRewriteCorpus(t *testing.T) {
 			// only use of are dropped. importprune: an aliased import losing its
 			// last use is dropped, and one keeping a use survives. newfromclient:
 			// the removed NewFromClient helper is reported MANUAL, not rewritten.
+			// catresponses: CAT arrays become Records in selectors and literals,
+			// without changing unrelated fields named Shards or Indices.
 			name:    "v4_to_v5",
 			src:     4,
 			dst:     5,
 			corpus:  "v4",
-			goldens: []string{"removedtype.go", "topointer.go", "importprune.go"}, // removedtype: import bumps, the removed-type ref stays put
-			// topointer and importprune are marker-free and have no removed-type
+			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go"},
+			// topointer, importprune and catresponses are marker-free and have no removed-type
 			// ref, so their goldens must be import-clean compiling v5.
-			compileClean: []string{"topointer.go", "importprune.go"},
+			compileClean: []string{"topointer.go", "importprune.go", "catresponses.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
 				"opensearchapi.ToPointer(x) -> new(x)",

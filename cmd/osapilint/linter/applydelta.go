@@ -153,9 +153,9 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			if e := flagRemovedTypeRef(n, info, rules.delta.RemovedTypes); e != "" {
 				res.edits = append(res.edits, e)
 			}
-			// Field access into a collapsed/removed field: flag as MANUAL, or as an
-			// unclassified-field bug if the field vanished with no disposition.
-			if edit, unclassified := flagFieldAccess(n, info, rules.delta); unclassified != "" {
+			// Rename field accesses, or report MANUAL/unclassified changes that
+			// cannot be rewritten mechanically.
+			if edit, unclassified := rewriteFieldAccess(n, info, rules.delta); unclassified != "" {
 				res.unclassified = append(res.unclassified, unclassified)
 			} else if edit != "" {
 				res.edits = append(res.edits, edit)
@@ -432,18 +432,19 @@ func underModule(path, module string) bool {
 	return path == module || strings.HasPrefix(path, module+"/")
 }
 
-// flagFieldAccess detects a read of a field that became "manual" (relocated into
-// a collapsed raw Body, or whose type changed incompatibly) or "unclassified" (a
+// rewriteFieldAccess renames a field access or reports a field that became
+// "manual" (relocated into a collapsed raw Body, or whose type changed
+// incompatibly) or "unclassified" (a
 // vanished field with no disposition) on a source type, e.g. resp.Deleted or
 // sr.Aggregations. It resolves the field through the SELECTION against two type
 // keys - the declaring type (following embedding, e.g. a consumer's wrapper
 // embedding *opensearchapi.SearchResp maps to the opensearchapi type) and the
 // receiver type (the type the field is accessed through, which matches the
 // root-client dispositions after gensurface flattens promoted fields) - so an
-// access via either shape is caught. It reports (does not rewrite) - the
-// conversion is semantic. It returns (manualEdit, unclassifiedMsg): at most one is
+// access via either shape is caught. Only renames are rewritten; manual changes
+// require semantic conversion. It returns (edit, unclassifiedMsg): at most one is
 // non-empty.
-func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
+func rewriteFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
 	selection, ok := info.Selections[sel]
 	if !ok {
 		return "", ""
@@ -469,27 +470,30 @@ func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta
 		if qual == "" {
 			continue
 		}
-		if manual, unclassified, matched := flagFieldChange(delta, qual, sel.Sel.Name); matched {
-			return manual, unclassified
+		if edit, unclassified, matched := rewriteFieldChange(delta, qual, sel); matched {
+			return edit, unclassified
 		}
 	}
 	return "", ""
 }
 
-// flagFieldChange looks up field on the delta struct qual and reports it if it is
-// a manual/unclassified change. The bool reports whether a change entry for the
-// field was found (so the caller can stop trying alternative type keys); at most
+// rewriteFieldChange looks up the selected field on the delta struct qual and
+// renames it or reports a manual/unclassified change. The bool reports whether an
+// entry for the field was found (so the caller can stop trying alternative type keys); at most
 // one of the two strings is non-empty.
-func flagFieldChange(delta apirev.Delta, qual, field string) (string, string, bool) {
+func rewriteFieldChange(delta apirev.Delta, qual string, sel *ast.SelectorExpr) (string, string, bool) {
 	sd, ok := delta.Structs[qual]
 	if !ok {
 		return "", "", false
 	}
 	for _, ch := range sd.Changes {
-		if ch.From != field {
+		if ch.From != sel.Sel.Name {
 			continue
 		}
 		switch ch.Kind {
+		case apirev.KindRename:
+			sel.Sel.Name = ch.To
+			return fmt.Sprintf("%s: field %s -> %s", sd.From, ch.From, ch.To), "", true
 		case apirev.KindManual:
 			return fmt.Sprintf("MANUAL %q: access .%s - %s", sd.From, ch.From, ch.Note), "", true
 		case apirev.KindUnclassified:

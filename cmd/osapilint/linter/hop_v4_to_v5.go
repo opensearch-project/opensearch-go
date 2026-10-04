@@ -69,7 +69,8 @@ var hopV4toV5 = hop{
 	// FieldDispositions rules on struct fields that vanished on the v5 side. Every
 	// entry here is a rename established from the v4/v5 package SOURCE, not guessed
 	// from name similarity: response-field renames are proven by an identical JSON
-	// wire tag (e.g. v4 `Timeout json:"timed_out"` -> v5 `TimedOut`), and
+	// wire tag (e.g. v4 `Timeout json:"timed_out"` -> v5 `TimedOut`) or the
+	// decoder's response-array destination (CAT responses), and
 	// request-field renames by the v4 code that assembles the field into the
 	// spec-named path/body element (e.g. v4 `ID: r.DocumentID` -> v5 `ID`). All are
 	// same-type-name survivors, so ToType == FromType. A vanished field NOT listed
@@ -125,8 +126,9 @@ var hopV4toV5 = hop{
 }
 
 // fieldRenamesV4toV5 returns the v4->v5 field dispositions. Every rename is
-// proven from source: response fields by a shared JSON wire tag, request fields
-// by the v4 code assembling the field into the spec-named element. Most are
+// proven from source: response fields by a shared JSON wire tag or response-array
+// decoding, request fields by the v4 code assembling the field into the
+// spec-named element. Most are
 // same-type-name survivors (toType == fromType); a few ride across a type rename
 // (e.g. DocumentGetReq#DocumentID -> GetReq#ID), which is why fromType and toType
 // are stated separately. A handful of genuine removals inside type-renamed
@@ -141,6 +143,10 @@ func fieldRenamesV4toV5() []apirev.FieldDisposition {
 		// Response fields - proven by identical JSON tag across v4 and v5.
 		{"SearchResp", "Timeout", "", "TimedOut"},         // json:"timed_out"
 		{"SearchTemplateResp", "Timeout", "", "TimedOut"}, // json:"timed_out"
+		// CAT response arrays: v4 CatClient.Shards/Indices decode into these
+		// fields; v5 CatShardsResp/CatIndicesResp.UnmarshalJSON decode into Records.
+		{"CatShardsResp", "Shards", "", "Records"},
+		{"CatIndicesResp", "Indices", "", "Records"},
 		// Cross-type: field rename riding across a type rename.
 		{"ScrollGetResp", "Timeout", "ScrollResp", "TimedOut"}, // json:"timed_out"
 		{"DocumentGetReq", "DocumentID", "GetReq", "ID"},       // v4 `ID: r.DocumentID`

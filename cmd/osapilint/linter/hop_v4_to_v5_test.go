@@ -86,6 +86,19 @@ func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
 		"expected a followup for the errmask default flip (Config.Errors toggle)")
 }
 
+func TestHopV4toV5_CatResponseFields(t *testing.T) {
+	d := planV4toV5(t).delta
+	for _, tc := range []struct{ typ, field, record string }{
+		{"CatShardsResp", "Shards", "CatShardsRecord"},
+		{"CatIndicesResp", "Indices", "CatIndicesRecord"},
+	} {
+		t.Run(tc.typ, func(t *testing.T) {
+			assertChange(t, d.Structs[v4api+"."+tc.typ].Changes,
+				apirev.FieldChange{Kind: "rename", From: tc.field, To: "Records", NewType: "[]" + v5api + "." + tc.record})
+		})
+	}
+}
+
 // TestHopV4toV5_NoUnclassifiedInCorpus asserts that none of the field changes the
 // v4->v5 delta produces for the referenced types are "unclassified" for the
 // fields our own osv4 wrapper actually sets/reads. A stray unclassified here

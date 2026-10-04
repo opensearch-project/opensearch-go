@@ -320,6 +320,16 @@ type AliasDeleteResp struct {
 	Acknowledged bool
 }
 
+// CatShardsResp carries the v4 CAT shards response array.
+type CatShardsResp struct {
+	Shards []struct{}
+}
+
+// CatIndicesResp carries the v4 CAT indices response array.
+type CatIndicesResp struct {
+	Indices []struct{}
+}
+
 // ToPointer matches v4's signature; v5 removes it in favor of new(value).
 func ToPointer[V any](value V) *V {
 	return &value
