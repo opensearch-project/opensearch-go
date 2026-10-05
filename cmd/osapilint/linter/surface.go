@@ -6,42 +6,56 @@
 
 package linter
 
-// surface.go exports the embedded surface lookup for callers outside this
-// module (e.g. drift guards in another repo) that cannot reach
-// internal/apirev directly - Go's internal-package rule stops at this
-// module's boundary. Field and Struct mirror apirev's shapes narrowed to
-// what such a guard needs: a field's name and its type as apirev recorded
-// it (types.Type.String()).
+import (
+	"sync"
 
-// Field is one exported struct field's name and type.
-type Field struct {
+	"github.com/opensearch-project/opensearch-go/cmd/osapilint/v5/internal/apirev"
+)
+
+// surface.go exports the embedded surface lookup for callers outside this
+// module (e.g. a drift guard in another module) that cannot reach
+// internal/apirev directly - Go's internal-package rule stops at this
+// module's boundary. SurfaceField mirrors apirev's Field narrowed to what such
+// a guard needs: a field's name and its type as apirev recorded it
+// (types.Type.String()).
+
+// SurfaceField is one exported struct field's name and type.
+type SurfaceField struct {
 	Name string
 	Type string
 }
 
-// Struct is the field-level shape of one exported struct type.
-type Struct struct {
-	Fields []Field
-}
+// surfaceDecoders decodes each embedded surface at most once, on first use.
+//
+//nolint:gochecknoglobals // immutable after init; caches the decode per major
+var surfaceDecoders = func() map[major]func() (*apirev.Snapshot, error) {
+	m := make(map[major]func() (*apirev.Snapshot, error), len(surfaces))
+	for v := range surfaces {
+		m[v] = sync.OnceValues(func() (*apirev.Snapshot, error) { return decodeSurface(v) })
+	}
+	return m
+}()
 
-// LookupStruct returns the field shape of the exported struct named pkg.name
-// in the embedded surface for major version m. It reports false if m has no
-// embedded surface, the surface fails to decode, or the struct isn't in it.
-func LookupStruct(m Major, pkg, name string) (Struct, bool) {
-	snap, err := decodeSurface(m)
+// LookupStruct returns the fields of the exported struct named pkg.name in the
+// embedded surface for major version m. It reports false if m has no embedded
+// surface, the surface fails to decode, or the struct isn't in it.
+func LookupStruct(m Major, pkg, name string) ([]SurfaceField, bool) {
+	decode, ok := surfaceDecoders[m]
+	if !ok {
+		return nil, false
+	}
+	snap, err := decode()
 	if err != nil {
-		return Struct{}, false
+		return nil, false
+	}
+	st, ok := snap.Lookup(pkg, name)
+	if !ok {
+		return nil, false
 	}
 
-	for _, st := range snap.Structs {
-		if st.PkgPath != pkg || st.Name != name {
-			continue
-		}
-		fields := make([]Field, len(st.Fields))
-		for i, f := range st.Fields {
-			fields[i] = Field{Name: f.Name, Type: f.Type}
-		}
-		return Struct{Fields: fields}, true
+	fields := make([]SurfaceField, len(st.Fields))
+	for i, f := range st.Fields {
+		fields[i] = SurfaceField{Name: f.Name, Type: f.Type}
 	}
-	return Struct{}, false
+	return fields, true
 }

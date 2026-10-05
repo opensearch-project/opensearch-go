@@ -181,7 +181,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 		var ok bool
 		if r, has := renameByFrom[sFrom.Qualified()]; has {
 			// explicit rename: resolve by the mapped target package + name
-			sTo, ok = to.lookup(r.ToPkgPath, r.ToName)
+			sTo, ok = to.Lookup(r.ToPkgPath, r.ToName)
 		} else {
 			// same-name survivor: pair by version-agnostic package path + name,
 			// because the module major version is baked into the import path

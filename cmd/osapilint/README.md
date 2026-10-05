@@ -71,7 +71,7 @@ for _, h := range hops {
 
 `Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over `MigrateSDK`, so the command and the library apply identical edits.
 
-`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's field names and types for that major version, or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
+`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's fields (name and type) as a `[]SurfaceField` for that major version, or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
 
 ## How it works
 
