@@ -26,7 +26,7 @@ type Struct struct {
 
 // LookupStruct returns the field shape of the exported struct named pkg.name
 // in the embedded surface for major version m. It reports false if m has no
-// embedded surface or the struct isn't in it.
+// embedded surface, the surface fails to decode, or the struct isn't in it.
 func LookupStruct(m Major, pkg, name string) (Struct, bool) {
 	snap, err := decodeSurface(m)
 	if err != nil {

@@ -71,6 +71,8 @@ for _, h := range hops {
 
 `Rewrite(args)` (the `rewrite` subcommand) is a thin CLI shell over `MigrateSDK`, so the command and the library apply identical edits.
 
+`LookupStruct(major, pkg, name)` reads the embedded API surface the hops are keyed against. It returns an exported struct's field names and types for that major version, or false if the version has no embedded surface, the surface fails to decode, or the struct isn't in it, so a tool with its own rewrite tables can check them against the same surface.
+
 ## How it works
 
 Each adjacent transition (vN -> vN+1) is a `hop`: hand-authored tables of type renames, field dispositions, method regroups, removed helpers, and semantic followups, keyed against two committed API surfaces (`surface_vN.json`). A migration request resolves to the ordered list of hops between source and target, applied one at a time - rewrite, rebuild against the intermediate version so the type-aware pass can load, then the next hop. Intermediate versions are not surfaced to the operator.
