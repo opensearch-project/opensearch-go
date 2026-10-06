@@ -97,6 +97,8 @@ A field that vanishes on the target is governed by an explicit `FieldDisposition
 
 A vanished field with no disposition fails the run with an `osapilint bug` error; the tool does not infer rename-versus-remove. Dispositions are verified against the surfaces by `TestHopFieldDispositionsAgainstSurfaces` and are established from source: response-field renames by a shared JSON wire tag, request-field renames by the v4 code that assembles the field into the spec-named element.
 
+A field that keeps its name but becomes a pointer is classified from the surfaces and needs no table entry. If it now points to the same type, a composite-literal value gets `&` and any other value becomes `new(x)`. The exception is a constant whose own type differs from the field's, such as `Created: 1` on an `int64` field (`new(1)` is an `*int`), which is reported `MANUAL`. A raw `Body io.Reader` moves to `BodyReader` when the target has a typed `Body` and a `BodyReader io.Reader`. If the field now points to a different type (`int` -> `*int64`), the tool reports `MANUAL` wherever it is set or read, since even a read that still compiles can change behavior: printing a `*string` prints the pointer.
+
 ### Source detection
 
 The major version is read from import paths (`.../opensearch-go/v4/...`), not `go.mod`: a partially migrated module may `require` both majors, and `go.mod` may name the target while call sites are still source-shaped. A module importing multiple majors migrates from the lowest; the rest are reported.

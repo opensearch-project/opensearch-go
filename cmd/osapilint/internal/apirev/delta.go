@@ -39,14 +39,18 @@ func versionAgnostic(pkgPath string) string {
 //
 // Kinds:
 //   - "rename":      field key/name changed 1:1 (safe to rewrite).
-//   - "pointerWrap": field's value type became a pointer (wrap literal in &).
+//   - "pointerWrap": field's value type became a pointer to the same type (wrap
+//     a literal in &, any other value in new(x)).
 //   - "remove":      field ceased to exist as a settable knob; dropping a
 //     composite-literal key for it is correct (e.g. EnableMetrics). NEVER
 //     applied to a field access - only literal keys. Only emitted when an
 //     explicit FieldDisposition classifies the removal.
 //   - "manual":      field vanished but its data/behavior relocated (e.g. a v5
 //     Resp collapsed to a raw Body json.RawMessage, so resp.Deleted must become
-//     a decode call). Not mechanically rewritable; reported for a human.
+//     a decode call), or its type changed in a way no mechanical rewrite covers
+//     (e.g. it became a pointer to a different type, int -> *int64). Reported
+//     for a human wherever it is set or read: even a read that still compiles
+//     can change behavior (printing a *string prints the pointer).
 //   - "unclassified": field vanished from the target and NO FieldDisposition
 //     covers it. The tool cannot know whether it was renamed (rewrite) or
 //     removed (drop), so it refuses to guess. If the consumer actually
@@ -160,14 +164,20 @@ func fieldDispKey(pkgPath, typeName, field string) string {
 // A source struct with no target counterpart is recorded in RemovedTypes
 // (genuinely removed; not mechanically migratable) so a reference to it is
 // reported as a manual worklist item. Field pairing within a struct: pointerWrap
-// when a surviving field became a pointer; for a vanished field, the
+// when a surviving field became a pointer to the same type, manual when it
+// became a pointer to another type, a rename to BodyReader for a raw Body split
+// (see isBodyReaderSplit); for a vanished field, the
 // FieldDisposition table's action (rename/remove/manual) if present, else
 // "unclassified".
 func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldDisposition) Delta {
 	// Index explicit renames by qualified source key.
 	renameByFrom := map[string]TypeRename{}
+	// renamedType maps a version-agnostic source type string to its target, so a
+	// field whose type follows a type rename still compares equal (see sameElem).
+	renamedType := map[string]string{}
 	for _, r := range renames {
 		renameByFrom[r.FromPkgPath+"."+r.FromName] = r
+		renamedType[versionAgnosticType(r.FromPkgPath+"."+r.FromName)] = versionAgnosticType(r.ToPkgPath + "." + r.ToName)
 	}
 	// Index field dispositions by qualified-source-type + field.
 	dispByFrom := map[string]FieldDisposition{}
@@ -198,7 +208,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 		}
 
 		sd := StructDelta{From: sFrom.Qualified(), To: sTo.Qualified()}
-		sd.Changes = diffFields(sFrom, sTo, dispByFrom)
+		sd.Changes = diffFields(sFrom, sTo, dispByFrom, renamedType)
 		if len(sd.Changes) > 0 {
 			out.Structs[sFrom.Qualified()] = sd
 		}
@@ -216,7 +226,7 @@ func DeriveDelta(from, to *Snapshot, renames []TypeRename, dispositions []FieldD
 // linter fails loudly if the consumer references it. This is deliberate:
 // inferring from name/type similarity silently drops a caller's value whenever a
 // struct changed by more than one field, which is common across a major version.
-func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition) []FieldChange {
+func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition, renamedType map[string]string) []FieldChange {
 	toByName := map[string]Field{}
 	for _, f := range sTo.Fields {
 		toByName[f.Name] = f
@@ -233,8 +243,19 @@ func diffFields(sFrom, sTo Struct, dispByFrom map[string]FieldDisposition) []Fie
 	for _, fFrom := range sFrom.Fields {
 		fTo, still := toByName[fFrom.Name]
 		switch {
-		case still && fTo.IsPointer() && !fFrom.IsPointer():
+		case still && isBodyReaderSplit(fFrom, fTo, toByName):
+			// The raw request body moved to BodyReader when the target added a
+			// typed Body. Same io.Reader value, new field name.
+			changes = append(changes, FieldChange{Kind: KindRename, From: fFrom.Name, To: bodyReaderField, NewType: ioReader})
+		case still && fTo.IsPointer() && !fFrom.IsPointer() && sameElem(fFrom.Type, fTo.Type, renamedType):
 			changes = append(changes, FieldChange{Kind: KindPointerWrap, From: fFrom.Name, NewType: fTo.Type})
+		case still && fTo.IsPointer() && !fFrom.IsPointer():
+			// Became a pointer to a DIFFERENT type (int -> *int64, io.Reader ->
+			// *XBody): neither & nor new(x) would type-check.
+			changes = append(changes, FieldChange{
+				Kind: KindManual, From: fFrom.Name, NewType: fTo.Type,
+				Note: "field type changed from " + fFrom.Type + " to " + fTo.Type + "; migrate this use by hand",
+			})
 		case still && incompatibleTypeChange(fFrom.Type, fTo.Type):
 			// Field kept its name but its type changed in a way that breaks
 			// existing access patterns (e.g. json.RawMessage []byte -> a typed
@@ -315,5 +336,47 @@ func isRawBodyCollapse(s Struct) bool {
 		return false
 	}
 	f := s.Fields[0]
-	return f.Name == "Body" && f.Type == "encoding/json.RawMessage"
+	return f.Name == bodyField && f.Type == "encoding/json.RawMessage"
+}
+
+// Field and type names of the request-body split, where the target replaced a
+// raw Body io.Reader with a typed Body and kept the raw form as BodyReader.
+const (
+	bodyField       = "Body"
+	bodyReaderField = "BodyReader"
+	ioReader        = "io.Reader"
+)
+
+// isBodyReaderSplit reports whether a source Body io.Reader faces a target with
+// a non-io.Reader Body plus a BodyReader io.Reader. The caller's value is the
+// same io.Reader either way, so moving it to BodyReader is exact.
+func isBodyReaderSplit(fFrom, fTo Field, toByName map[string]Field) bool {
+	if fFrom.Name != bodyField || fFrom.Type != ioReader || fTo.Type == ioReader {
+		return false
+	}
+	br, ok := toByName[bodyReaderField]
+	return ok && br.Type == ioReader
+}
+
+// typeMajorVersionSeg matches the "/vN" module-major-version segment inside a
+// types.Type string, where a package path is followed by "/" (sub-package) or
+// "." (type name), e.g. ".../opensearch-go/v4.CausedBy".
+var typeMajorVersionSeg = regexp.MustCompile(`/v[0-9]+([/.])`)
+
+// versionAgnosticType strips module-major-version segments from a type string,
+// the type-string counterpart of versionAgnostic.
+func versionAgnosticType(typ string) string {
+	return typeMajorVersionSeg.ReplaceAllString(typ, "$1")
+}
+
+// sameElem reports whether toType is a pointer to fromType once version
+// segments are normalized and fromType is mapped through the hop's type renames
+// (ResponseShards -> *ShardStatistics). Only then is wrapping the value in &
+// (or new) a correct rewrite.
+func sameElem(fromType, toType string, renamedType map[string]string) bool {
+	from := versionAgnosticType(fromType)
+	if to, ok := renamedType[from]; ok {
+		from = to
+	}
+	return "*"+from == versionAgnosticType(toType)
 }

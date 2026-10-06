@@ -610,9 +610,19 @@ func rewriteCompositeLit(
 			key.Name = ch.To
 			kept = append(kept, kv)
 		case apirev.KindPointerWrap:
-			if inner, ok := kv.Value.(*ast.CompositeLit); ok {
-				kv.Value = &ast.UnaryExpr{Op: token.AND, X: inner}
+			_, isLit := kv.Value.(*ast.CompositeLit)
+			switch {
+			case isLit:
+				kv.Value = &ast.UnaryExpr{Op: token.AND, X: kv.Value}
 				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in & (now pointer)", label, ch.From))
+			case newKeepsFieldType(kv, info):
+				// new(x) points at a copy of x, matching the value semantics of the
+				// source field, and accepts non-addressable operands.
+				kv.Value = &ast.CallExpr{Fun: ast.NewIdent("new"), Args: []ast.Expr{kv.Value}}
+				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in new(x) (now pointer)", label, ch.From))
+			default:
+				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s is now %s - new(x) would not have that type; wrap the value by hand",
+					label, ch.From, ch.NewType))
 			}
 			kept = append(kept, kv)
 		case apirev.KindRemove:
@@ -621,8 +631,9 @@ func rewriteCompositeLit(
 			edits = append(edits, fmt.Sprintf("%s: field %s removed", label, ch.From))
 			// drop it (don't append)
 		case apirev.KindManual:
-			// The field's data relocated (raw Body collapse); we must NOT drop or
-			// rewrite it mechanically. Leave it in place and flag for a human.
+			// The field's data relocated (raw Body collapse) or it was retyped; we
+			// must NOT drop or rewrite it mechanically. Leave it in place and flag
+			// for a human.
 			edits = append(edits, fmt.Sprintf("MANUAL %q: field %s - %s", label, ch.From, ch.Note))
 			kept = append(kept, kv)
 		case apirev.KindUnclassified:
@@ -637,6 +648,59 @@ func rewriteCompositeLit(
 	}
 	lit.Elts = kept
 	return edits, unclassified
+}
+
+// newKeepsFieldType reports whether new(v), for the value v of a keyed literal
+// element, points at the field's own source type, so the pointerWrap rewrite
+// new(v) is exact. A non-constant v already has the field's type. A constant
+// does not: new(v) takes the constant's own type (see constantOwnType), so
+// new(1) is *int even on an int64 field.
+func newKeepsFieldType(kv *ast.KeyValueExpr, info *types.Info) bool {
+	key, ok := kv.Key.(*ast.Ident)
+	if !ok {
+		return false
+	}
+	field, ok := info.Uses[key].(*types.Var)
+	if !ok {
+		return false
+	}
+	tv, ok := info.Types[kv.Value]
+	if !ok {
+		return false
+	}
+	if tv.Value == nil {
+		return types.Identical(tv.Type, field.Type())
+	}
+	own := constantOwnType(kv.Value, info)
+	return own != nil && types.Identical(own, field.Type())
+}
+
+// constantOwnType returns the type new(v) gives the constant v. go/types records
+// an untyped constant under the type it converts to, so that type is recovered
+// from the constant itself: a literal's token kind (a rune literal is int32), or
+// a named constant's declared type, defaulted if untyped. Any other constant
+// expression (int64(1), 1+2) returns nil, leaving it to a human.
+func constantOwnType(v ast.Expr, info *types.Info) types.Type {
+	switch e := v.(type) {
+	case *ast.BasicLit:
+		switch e.Kind { //nolint:exhaustive // a BasicLit's Kind is one of these five literal tokens
+		case token.INT:
+			return types.Typ[types.Int]
+		case token.FLOAT:
+			return types.Typ[types.Float64]
+		case token.IMAG:
+			return types.Typ[types.Complex128]
+		case token.CHAR:
+			return types.Typ[types.Int32]
+		case token.STRING:
+			return types.Typ[types.String]
+		}
+	case *ast.Ident:
+		if c, ok := info.Uses[e].(*types.Const); ok {
+			return types.Default(c.Type())
+		}
+	}
+	return nil
 }
 
 // renameEmbeddedKey handles a composite-literal key that names an embedded
