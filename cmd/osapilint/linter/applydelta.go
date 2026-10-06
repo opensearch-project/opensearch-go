@@ -130,7 +130,7 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 				res.edits = append(res.edits, edits...)
 				needImports = append(needImports, imports...)
 				// Stop descending: the rewritten call's stale selector (or the
-				// synthetic subtree) must not be re-walked, or flagFieldAccess would
+				// synthetic subtree) must not be re-walked, or rewriteFieldAccess would
 				// double-report the same op. Synthetic nodes also carry no
 				// info.Selections, so the type gates are inert on them regardless.
 				return false
@@ -470,7 +470,7 @@ func rewriteFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.De
 		if qual == "" {
 			continue
 		}
-		if edit, unclassified, matched := rewriteFieldChange(delta, qual, sel); matched {
+		if edit, unclassified, matched := rewriteFieldChange(delta, qual, sel, selection, info.Types[sel.X].Addressable()); matched {
 			return edit, unclassified
 		}
 	}
@@ -481,7 +481,9 @@ func rewriteFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.De
 // renames it or reports a manual/unclassified change. The bool reports whether an
 // entry for the field was found (so the caller can stop trying alternative type keys); at most
 // one of the two strings is non-empty.
-func rewriteFieldChange(delta apirev.Delta, qual string, sel *ast.SelectorExpr) (string, string, bool) {
+func rewriteFieldChange(
+	delta apirev.Delta, qual string, sel *ast.SelectorExpr, selection *types.Selection, addressable bool,
+) (string, string, bool) {
 	sd, ok := delta.Structs[qual]
 	if !ok {
 		return "", "", false
@@ -492,8 +494,21 @@ func rewriteFieldChange(delta apirev.Delta, qual string, sel *ast.SelectorExpr) 
 		}
 		switch ch.Kind {
 		case apirev.KindRename:
+			// A promoted rename can bind to an unrelated field or method on a
+			// consumer's wrapper. Check the original receiver before changing the
+			// spelling; a nil object with a non-nil index also signals ambiguity.
+			obj, index, _ := types.LookupFieldOrMethod(selection.Recv(), addressable, selection.Obj().Pkg(), ch.To)
+			if obj != nil || index != nil {
+				return fmt.Sprintf("MANUAL %q: access .%s -> .%s - target name already exists or is ambiguous on the receiver; "+
+					"qualify the intended field by hand",
+					sd.From, ch.From, ch.To), "", true
+			}
 			sel.Sel.Name = ch.To
-			return fmt.Sprintf("%s: field %s -> %s", sd.From, ch.From, ch.To), "", true
+			edit := fmt.Sprintf("%s: field %s -> %s", sd.From, ch.From, ch.To)
+			if ch.Note != "" {
+				edit += fmt.Sprintf("; MANUAL %q: access .%s - %s", sd.From, ch.To, ch.Note)
+			}
+			return edit, "", true
 		case apirev.KindManual:
 			return fmt.Sprintf("MANUAL %q: access .%s - %s", sd.From, ch.From, ch.Note), "", true
 		case apirev.KindUnclassified:
@@ -612,6 +627,9 @@ func rewriteCompositeLit(
 		case apirev.KindRename:
 			edits = append(edits, fmt.Sprintf("%s: field %s -> %s", label, ch.From, ch.To))
 			key.Name = ch.To
+			if ch.Note != "" {
+				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s - %s", label, ch.To, ch.Note))
+			}
 			kept = append(kept, kv)
 		case apirev.KindPointerWrap:
 			if inner, ok := kv.Value.(*ast.CompositeLit); ok {

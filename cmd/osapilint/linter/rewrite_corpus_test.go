@@ -98,15 +98,17 @@ func TestRewriteCorpus(t *testing.T) {
 			// last use is dropped, and one keeping a use survives. newfromclient:
 			// the removed NewFromClient helper is reported MANUAL, not rewritten.
 			// catresponses: CAT arrays become Records in selectors and literals,
-			// without changing unrelated fields named Shards or Indices.
+			// without changing unrelated fields named Shards or Indices. Element
+			// types also change, so accesses and literal keys must report MANUAL.
 			name:    "v4_to_v5",
 			src:     4,
 			dst:     5,
 			corpus:  "v4",
 			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go"},
-			// topointer, importprune and catresponses are marker-free and have no removed-type
+			// topointer and importprune are marker-free and have no removed-type
 			// ref, so their goldens must be import-clean compiling v5.
-			compileClean: []string{"topointer.go", "importprune.go", "catresponses.go"},
+			// catresponses still needs record-field conversion and is not compile-clean.
+			compileClean: []string{"topointer.go", "importprune.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
 				"opensearchapi.ToPointer(x) -> new(x)",
@@ -115,6 +117,10 @@ func TestRewriteCorpus(t *testing.T) {
 				`drop now-unused import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.AliasDeleteResp" removed`,
 				"MANUAL opensearchapi.NewFromClient removed - replace by hand",
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": access .Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": access .Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": field Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": field Records - type changed`,
 			},
 		},
 	} {

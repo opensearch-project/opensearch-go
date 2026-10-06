@@ -98,3 +98,28 @@ func TestDeriveDelta_RemovedTypes(t *testing.T) {
 	require.False(t, d.RemovedTypes[pkg+".Renamed"], "a renamed type is resolved, not removed")
 	require.False(t, d.RemovedTypes[pkg+".InfoResp"], "a same-name survivor is not removed")
 }
+
+func TestDeriveDelta_RenameTypeChange(t *testing.T) {
+	const fromPkg = "example.com/sdk/v4/api"
+	const toPkg = "example.com/sdk/v5/api"
+	for _, tc := range []struct{ name, fromType, toType, note string }{
+		{"unchanged", "string", "string", ""},
+		{"module version only", "[]" + fromPkg + ".Record", "[]" + toPkg + ".Record", ""},
+		{
+			"record type changed", "[]" + fromPkg + ".OldRecord", "[]" + toPkg + ".Record",
+			"type changed from []" + fromPkg + ".OldRecord to []" + toPkg + ".Record",
+		},
+		{"pointer", "string", "*string", "type changed from string to *string"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			from := &Snapshot{Structs: []Struct{{PkgPath: fromPkg, Name: "Response", Fields: []Field{{Name: "Rows", Type: tc.fromType}}}}}
+			to := &Snapshot{Structs: []Struct{{PkgPath: toPkg, Name: "Response", Fields: []Field{{Name: "Records", Type: tc.toType}}}}}
+			d := DeriveDelta(from, to, nil, []FieldDisposition{{
+				FromPkgPath: fromPkg, FromType: "Response", FromField: "Rows", Action: ActionRename,
+				ToPkgPath: toPkg, ToType: "Response", ToField: "Records",
+			}})
+			require.Equal(t, []FieldChange{{Kind: KindRename, From: "Rows", To: "Records", NewType: tc.toType, Note: tc.note}},
+				d.Structs[fromPkg+".Response"].Changes)
+		})
+	}
+}

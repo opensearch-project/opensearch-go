@@ -88,13 +88,16 @@ func TestHopV4toV5_ErrorHandlingFollowups(t *testing.T) {
 
 func TestHopV4toV5_CatResponseFields(t *testing.T) {
 	d := planV4toV5(t).delta
-	for _, tc := range []struct{ typ, field, record string }{
-		{"CatShardsResp", "Shards", "CatShardsRecord"},
-		{"CatIndicesResp", "Indices", "CatIndicesRecord"},
+	for _, tc := range []struct{ typ, field, oldRecord, record string }{
+		{"CatShardsResp", "Shards", "CatShardResp", "CatShardsRecord"},
+		{"CatIndicesResp", "Indices", "CatIndexResp", "CatIndicesRecord"},
 	} {
 		t.Run(tc.typ, func(t *testing.T) {
 			assertChange(t, d.Structs[v4api+"."+tc.typ].Changes,
-				apirev.FieldChange{Kind: "rename", From: tc.field, To: "Records", NewType: "[]" + v5api + "." + tc.record})
+				apirev.FieldChange{
+					Kind: "rename", From: tc.field, To: "Records", NewType: "[]" + v5api + "." + tc.record,
+					Note: "type changed from []" + v4api + "." + tc.oldRecord + " to []" + v5api + "." + tc.record,
+				})
 		})
 	}
 }

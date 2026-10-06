@@ -72,7 +72,7 @@ var hopV4toV5 = hop{
 	// wire tag (e.g. v4 `Timeout json:"timed_out"` -> v5 `TimedOut`) or the
 	// decoder's response-array destination (CAT responses), and
 	// request-field renames by the v4 code that assembles the field into the
-	// spec-named path/body element (e.g. v4 `ID: r.DocumentID` -> v5 `ID`). All are
+	// spec-named path/body element (e.g. v4 `ID: r.DocumentID` -> v5 `ID`). Most are
 	// same-type-name survivors, so ToType == FromType. A vanished field NOT listed
 	// here is reported as "unclassified" and fails the run - that is a signal to
 	// add its ruling, never to guess.

@@ -38,7 +38,7 @@ func versionAgnostic(pkgPath string) string {
 // FieldChange is one field-level change within a single struct.
 //
 // Kinds:
-//   - "rename":      field key/name changed 1:1 (safe to rewrite).
+//   - "rename":      field key/name changed 1:1; a Note warns if its type also changed.
 //   - "pointerWrap": field's value type became a pointer (wrap literal in &).
 //   - "remove":      field ceased to exist as a settable knob; dropping a
 //     composite-literal key for it is correct (e.g. EnableMetrics). NEVER
@@ -58,7 +58,7 @@ type FieldChange struct {
 	From    string `json:"from"`
 	To      string `json:"to,omitempty"`
 	NewType string `json:"newType,omitempty"`
-	Note    string `json:"note,omitempty"` // guidance for "manual"
+	Note    string `json:"note,omitempty"` // manual guidance, including type-changing renames
 }
 
 // FieldChange kinds. See the FieldChange doc comment for the meaning of each.
@@ -285,7 +285,11 @@ func dispositionChange(
 		if renamed, has := toByName[d.ToField]; has {
 			newType = renamed.Type
 		}
-		return FieldChange{Kind: KindRename, From: fFrom.Name, To: d.ToField, NewType: newType}
+		ch := FieldChange{Kind: KindRename, From: fFrom.Name, To: d.ToField, NewType: newType}
+		if versionAgnostic(fFrom.Type) != versionAgnostic(newType) {
+			ch.Note = "type changed from " + fFrom.Type + " to " + newType
+		}
+		return ch
 	case ActionManual:
 		return FieldChange{Kind: KindManual, From: fFrom.Name, Note: d.Note}
 	default: // ActionRemove

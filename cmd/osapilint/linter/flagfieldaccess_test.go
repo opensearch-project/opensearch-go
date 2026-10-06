@@ -125,3 +125,63 @@ func use(r ` + tc.receiver + `) { _ = r.Shards }
 		})
 	}
 }
+
+func TestRewriteFieldAccess_RenameCollision(t *testing.T) {
+	for _, tc := range []struct{ name, declarations, receiver string }{
+		{"direct field", "type Wrapped struct { *Response; Records []int }", "*Wrapped"},
+		{"promoted field", "type Other struct { Records []int }; type Wrapped struct { *Response; Other }", "Wrapped"},
+		{"method", "type Wrapped struct { *Response }; func (*Wrapped) Records() {}", "*Wrapped"},
+		{"addressable pointer method", "type Wrapped struct { *Response }; func (*Wrapped) Records() {}", "Wrapped"},
+		{
+			"ambiguous field",
+			"type A struct { Records []int }; type B struct { Records []int }; type Wrapped struct { *Response; A; B }",
+			"*Wrapped",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			info, sel := typeCheckSelector(t, `package pkg
+type Response struct { Shards []int }
+`+tc.declarations+`
+func use(r `+tc.receiver+`) { _ = r.Shards }
+`, "Shards")
+			const qual = "example.com/pkg.Response"
+			delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
+				From: qual, Changes: []apirev.FieldChange{{Kind: apirev.KindRename, From: "Shards", To: "Records"}},
+			}}}
+			edit, unclassified := rewriteFieldAccess(sel, info, delta)
+			require.Empty(t, unclassified)
+			require.Equal(t, "Shards", sel.Sel.Name, "a colliding selector must not be rewritten")
+			require.Contains(t, edit, "MANUAL")
+			require.Contains(t, edit, "Records")
+		})
+	}
+}
+
+func TestRewriteRename_TypeChangeWarning(t *testing.T) {
+	info, sel := typeCheckSelector(t, `package pkg
+type Response struct { Shards []string }
+func use(r Response) { _ = r.Shards; _ = Response{Shards: nil} }
+`, "Shards")
+	const qual = "example.com/pkg.Response"
+	const note = "type changed from []string to []*string"
+	delta := apirev.Delta{Structs: map[string]apirev.StructDelta{qual: {
+		From: qual, Changes: []apirev.FieldChange{{Kind: apirev.KindRename, From: "Shards", To: "Records", Note: note}},
+	}}}
+	edit, unclassified := rewriteFieldAccess(sel, info, delta)
+	require.Empty(t, unclassified)
+	require.Equal(t, "Records", sel.Sel.Name)
+	require.Contains(t, edit, "MANUAL")
+	require.Contains(t, edit, note)
+
+	var lit *ast.CompositeLit
+	for expr := range info.Types {
+		if candidate, ok := expr.(*ast.CompositeLit); ok {
+			lit = candidate
+		}
+	}
+	require.NotNil(t, lit)
+	edits, unknown := rewriteCompositeLit(lit, info, delta, nil)
+	require.Empty(t, unknown)
+	require.Equal(t, "Records", lit.Elts[0].(*ast.KeyValueExpr).Key.(*ast.Ident).Name)
+	require.Contains(t, edits, `MANUAL "`+qual+`": field Records - `+note)
+}

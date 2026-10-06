@@ -131,6 +131,15 @@ func catResponses(shards api.CatShardsResp, indices *api.CatIndicesResp) int {
 	emptyShards := api.CatShardsResp{Shards: nil}
 	emptyIndices := &api.CatIndicesResp{Indices: nil}
 	other := struct{ Shards, Indices int }{Shards: 1, Indices: 2}
+	for _, index := range indices.Indices {
+		if index.Health == "green" {
+			_ = index.Index
+			_ = index.Primary
+		}
+	}
+	for _, shard := range shards.Shards {
+		_ = shard.Prirep
+	}
 	return len(shards.Shards) + len(indices.Indices) + len(emptyShards.Shards) + len(emptyIndices.Indices) + other.Shards + other.Indices
 }
 -- catresponses.go.golden --
@@ -150,6 +159,15 @@ func catResponses(shards api.CatShardsResp, indices *api.CatIndicesResp) int {
 	emptyShards := api.CatShardsResp{Records: nil}
 	emptyIndices := &api.CatIndicesResp{Records: nil}
 	other := struct{ Shards, Indices int }{Shards: 1, Indices: 2}
+	for _, index := range indices.Records {
+		if index.Health == "green" {
+			_ = index.Index
+			_ = index.Primary
+		}
+	}
+	for _, shard := range shards.Records {
+		_ = shard.Prirep
+	}
 	return len(shards.Records) + len(indices.Records) + len(emptyShards.Records) + len(emptyIndices.Records) + other.Shards + other.Indices
 }
 -- topointer.go.golden --
