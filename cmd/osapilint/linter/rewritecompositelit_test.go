@@ -7,9 +7,11 @@
 package linter
 
 import (
+	"bytes"
 	"go/ast"
 	"go/importer"
 	"go/parser"
+	"go/printer"
 	"go/token"
 	"go/types"
 	"testing"
@@ -123,6 +125,128 @@ func use() Config { return Config{Metrics: true, Addresses: nil} }
 			require.Equal(t, tt.wantKeys, keys)
 			require.Equal(t, tt.wantEdits, edits)
 			require.Equal(t, tt.wantUnclassified, unclassified)
+		})
+	}
+}
+
+// typeCheckNamedLit type-checks src and returns the type info plus the composite
+// literal whose resolved type is named want.
+func typeCheckNamedLit(t *testing.T, src, want string) (*types.Info, *ast.CompositeLit) {
+	t.Helper()
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "src.go", src, 0)
+	require.NoError(t, err)
+
+	info := &types.Info{
+		Uses:  map[*ast.Ident]types.Object{},
+		Defs:  map[*ast.Ident]types.Object{},
+		Types: map[ast.Expr]types.TypeAndValue{},
+	}
+	_, err = (&types.Config{Importer: importer.Default()}).Check("example.com/pkg", fset, []*ast.File{file}, info)
+	require.NoError(t, err)
+
+	var found *ast.CompositeLit
+	ast.Inspect(file, func(n ast.Node) bool {
+		if lit, ok := n.(*ast.CompositeLit); ok && found == nil {
+			if QualifiedType(info.TypeOf(lit)) == want {
+				found = lit
+			}
+		}
+		return true
+	})
+	require.NotNilf(t, found, "no composite literal of type %q in src", want)
+	return info, found
+}
+
+// TestRewriteCompositeLit_ElementShapes pins the elements rewriteCompositeLit
+// passes through untouched, and the one it renames by TYPE rather than by field.
+// A positional element carries no key to match a field change against, and a
+// named map type's keys are values rather than field names, so neither can be
+// rewritten. An embedded field is the exception: its key IS its type's base
+// name, so a type rename has to rename the key or the literal stops compiling.
+func TestRewriteCompositeLit_ElementShapes(t *testing.T) {
+	t.Parallel()
+
+	const src = `package pkg
+
+type Inner struct{ X int }
+
+type Positional struct {
+	Inner
+	Y int
+}
+
+type Keyed struct {
+	Inner
+	Y int
+}
+
+type Lookup map[string]int
+
+func positional() Positional { return Positional{Inner{}, 1} }
+func keyedByType() Keyed     { return Keyed{Inner: Inner{}, Y: 1} }
+func mapKeyed() Lookup       { return Lookup{"a": 1} }
+`
+	// A change on Positional.Y that must not fire, because no element the cases
+	// below present is a keyed identifier naming Y.
+	deltaOnPositional := apirev.Delta{Structs: map[string]apirev.StructDelta{
+		"example.com/pkg.Positional": {
+			From:    "example.com/pkg.Positional",
+			Changes: []apirev.FieldChange{{Kind: apirev.KindRemove, From: "Y"}},
+		},
+	}}
+
+	tests := []struct {
+		name      string
+		litType   string
+		delta     apirev.Delta
+		renames   map[string]apirev.TypeRename
+		wantEdits []string
+		// wantElts is the literal's elements after the rewrite, printed as source.
+		wantElts []string
+	}{
+		{
+			name:     "positional elements have no key to match",
+			litType:  "example.com/pkg.Positional",
+			delta:    deltaOnPositional,
+			wantElts: []string{"Inner{}", "1"},
+		},
+		{
+			name:     "a named map's keys are values, not fields",
+			litType:  "example.com/pkg.Lookup",
+			delta:    deltaOnPositional,
+			wantElts: []string{`"a": 1`},
+		},
+		{
+			name:    "an embedded key follows its type's rename",
+			litType: "example.com/pkg.Keyed",
+			delta:   apirev.Delta{Structs: map[string]apirev.StructDelta{}},
+			renames: map[string]apirev.TypeRename{
+				"example.com/pkg.Inner": {FromPkgPath: "example.com/pkg", FromName: "Inner", ToPkgPath: "example.com/pkg", ToName: "Renamed"},
+			},
+			wantEdits: []string{"embedded key Inner -> Renamed"},
+			wantElts:  []string{"Renamed: Inner{}", "Y: 1"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			info, lit := typeCheckNamedLit(t, src, tt.litType)
+
+			edits, unclassified := rewriteCompositeLit(lit, info, tt.delta, tt.renames)
+
+			require.Equal(t, tt.wantEdits, edits)
+			require.Empty(t, unclassified)
+
+			elts := make([]string, 0, len(lit.Elts))
+			for _, elt := range lit.Elts {
+				var buf bytes.Buffer
+				require.NoError(t, printer.Fprint(&buf, token.NewFileSet(), elt))
+				elts = append(elts, buf.String())
+			}
+			require.Equal(t, tt.wantElts, elts)
 		})
 	}
 }
