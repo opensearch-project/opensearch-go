@@ -136,7 +136,7 @@ func TestPrimitiveUnionRoundTrip(t *testing.T) {
 						res := reflect.ValueOf(u).MethodByName(other).Call(nil)
 						require.False(t, res[1].IsNil(), "%s() must error when %s is set", other, branch)
 
-						err, ok := res[1].Interface().(error)
+						err, ok := reflect.TypeAssert[error](res[1])
 						require.True(t, ok)
 						var ube *opensearchapi.UnionBranchError
 						require.ErrorAs(t, err, &ube)

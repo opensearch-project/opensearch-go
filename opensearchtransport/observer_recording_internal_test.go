@@ -55,9 +55,11 @@ func (o *recordingObserver) getRouteEvents() []RouteEvent {
 func (o *recordingObserver) OnPromote(e ConnectionEvent)          { o.record("promote", e) }
 func (o *recordingObserver) OnDemote(e ConnectionEvent)           { o.record("demote", e) }
 func (o *recordingObserver) OnOverloadDetected(e ConnectionEvent) { o.record("overload_detected", e) }
-func (o *recordingObserver) OnOverloadCleared(e ConnectionEvent)  { o.record("overload_cleared", e) }
-func (o *recordingObserver) OnDiscoveryAdd(e ConnectionEvent)     { o.record("discovery_add", e) }
-func (o *recordingObserver) OnDiscoveryRemove(e ConnectionEvent)  { o.record("discovery_remove", e) }
+
+func (o *recordingObserver) OnOverloadCleared(e ConnectionEvent) { o.record("overload_cleared", e) }
+func (o *recordingObserver) OnDiscoveryAdd(e ConnectionEvent)    { o.record("discovery_add", e) }
+func (o *recordingObserver) OnDiscoveryRemove(e ConnectionEvent) { o.record("discovery_remove", e) }
+
 func (o *recordingObserver) OnDiscoveryUnchanged(e ConnectionEvent) {
 	o.record("discovery_unchanged", e)
 }

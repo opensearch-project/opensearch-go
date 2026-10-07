@@ -539,9 +539,9 @@ func (o *integrationShardObserver) lastEvent() *RouteEvent {
 
 // querySearchShardsWithNodes calls /{index}/_search_shards?routing=X and
 // returns both the shard number and the set of node names hosting that shard.
-func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns document the two result values
+func querySearchShardsWithNodes(
 	t *testing.T, transport *Transport, ctx context.Context, index, routing string,
-) (shardNum int, nodeNames map[string]struct{}) {
+) (int, map[string]struct{}) {
 	t.Helper()
 
 	p, _ := ospath.SearchShardsPath{Indices: []string{index}}.Build()
@@ -575,10 +575,10 @@ func querySearchShardsWithNodes( //nolint:nonamedreturns // named returns docume
 	require.NotEmpty(t, result.Shards,
 		"_search_shards returned no shards for routing=%q", routing)
 
-	shardNum = result.Shards[0][0].Shard
+	shardNum := result.Shards[0][0].Shard
 
 	// Build the set of node names that host this shard.
-	nodeNames = make(map[string]struct{})
+	nodeNames := make(map[string]struct{})
 	for _, copy := range result.Shards[0] {
 		require.Equal(t, shardNum, copy.Shard)
 		if node, ok := result.Nodes[copy.Node]; ok {

@@ -745,6 +745,12 @@ func TestEmptyPITIDNotSent(t *testing.T) {
 	tests := []struct {
 		name string
 		send func(context.Context, *opensearchapi.Client) error
+		// method and suffix select the operation's own request, the one that must
+		// not appear. A client probes the server version and runs on-start node
+		// discovery of its own accord, so a fake cluster always sees some traffic
+		// and "no request at all" is never true.
+		method string // "" matches any method
+		suffix string
 	}{
 		{
 			name: "delete",
@@ -754,6 +760,8 @@ func TestEmptyPITIDNotSent(t *testing.T) {
 				})
 				return err
 			},
+			method: http.MethodDelete,
+			suffix: "/_search/point_in_time",
 		},
 		{
 			name: "search",
@@ -763,6 +771,7 @@ func TestEmptyPITIDNotSent(t *testing.T) {
 				})
 				return err
 			},
+			suffix: "/_search",
 		},
 	}
 	for _, tt := range tests {
@@ -773,7 +782,7 @@ func TestEmptyPITIDNotSent(t *testing.T) {
 
 			err := tt.send(t.Context(), client)
 			require.ErrorContains(t, err, "empty PITID")
-			require.Empty(t, f.requests("", ""), "the request must not be sent")
+			require.Empty(t, f.requests(tt.method, tt.suffix), "the request must not be sent")
 		})
 	}
 }

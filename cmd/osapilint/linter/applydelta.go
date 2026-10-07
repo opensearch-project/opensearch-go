@@ -130,7 +130,7 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 				res.edits = append(res.edits, edits...)
 				needImports = append(needImports, imports...)
 				// Stop descending: the rewritten call's stale selector (or the
-				// synthetic subtree) must not be re-walked, or flagFieldAccess would
+				// synthetic subtree) must not be re-walked, or rewriteFieldAccess would
 				// double-report the same op. Synthetic nodes also carry no
 				// info.Selections, so the type gates are inert on them regardless.
 				return false
@@ -153,9 +153,9 @@ func rewriteFileTyped(pkg *packages.Package, file *ast.File, rules rewriteRules)
 			if e := flagRemovedTypeRef(n, info, rules.delta.RemovedTypes); e != "" {
 				res.edits = append(res.edits, e)
 			}
-			// Field access into a collapsed/removed field: flag as MANUAL, or as an
-			// unclassified-field bug if the field vanished with no disposition.
-			if edit, unclassified := flagFieldAccess(n, info, rules.delta); unclassified != "" {
+			// Rename field accesses, or report MANUAL/unclassified changes that
+			// cannot be rewritten mechanically.
+			if edit, unclassified := rewriteFieldAccess(n, info, rules.delta); unclassified != "" {
 				res.unclassified = append(res.unclassified, unclassified)
 			} else if edit != "" {
 				res.edits = append(res.edits, edit)
@@ -432,18 +432,19 @@ func underModule(path, module string) bool {
 	return path == module || strings.HasPrefix(path, module+"/")
 }
 
-// flagFieldAccess detects a read of a field that became "manual" (relocated into
-// a collapsed raw Body, or whose type changed incompatibly) or "unclassified" (a
+// rewriteFieldAccess renames a field access or reports a field that became
+// "manual" (relocated into a collapsed raw Body, or whose type changed
+// incompatibly) or "unclassified" (a
 // vanished field with no disposition) on a source type, e.g. resp.Deleted or
 // sr.Aggregations. It resolves the field through the SELECTION against two type
 // keys - the declaring type (following embedding, e.g. a consumer's wrapper
 // embedding *opensearchapi.SearchResp maps to the opensearchapi type) and the
 // receiver type (the type the field is accessed through, which matches the
 // root-client dispositions after gensurface flattens promoted fields) - so an
-// access via either shape is caught. It reports (does not rewrite) - the
-// conversion is semantic. It returns (manualEdit, unclassifiedMsg): at most one is
+// access via either shape is caught. Only renames are rewritten; manual changes
+// require semantic conversion. It returns (edit, unclassifiedMsg): at most one is
 // non-empty.
-func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
+func rewriteFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta) (string, string) {
 	selection, ok := info.Selections[sel]
 	if !ok {
 		return "", ""
@@ -469,27 +470,45 @@ func flagFieldAccess(sel *ast.SelectorExpr, info *types.Info, delta apirev.Delta
 		if qual == "" {
 			continue
 		}
-		if manual, unclassified, matched := flagFieldChange(delta, qual, sel.Sel.Name); matched {
-			return manual, unclassified
+		if edit, unclassified, matched := rewriteFieldChange(delta, qual, sel, selection, info.Types[sel.X].Addressable()); matched {
+			return edit, unclassified
 		}
 	}
 	return "", ""
 }
 
-// flagFieldChange looks up field on the delta struct qual and reports it if it is
-// a manual/unclassified change. The bool reports whether a change entry for the
-// field was found (so the caller can stop trying alternative type keys); at most
+// rewriteFieldChange looks up the selected field on the delta struct qual and
+// renames it or reports a manual/unclassified change. The bool reports whether an
+// entry for the field was found (so the caller can stop trying alternative type keys); at most
 // one of the two strings is non-empty.
-func flagFieldChange(delta apirev.Delta, qual, field string) (string, string, bool) {
+func rewriteFieldChange(
+	delta apirev.Delta, qual string, sel *ast.SelectorExpr, selection *types.Selection, addressable bool,
+) (string, string, bool) {
 	sd, ok := delta.Structs[qual]
 	if !ok {
 		return "", "", false
 	}
 	for _, ch := range sd.Changes {
-		if ch.From != field {
+		if ch.From != sel.Sel.Name {
 			continue
 		}
 		switch ch.Kind {
+		case apirev.KindRename:
+			// A promoted rename can bind to an unrelated field or method on a
+			// consumer's wrapper. Check the original receiver before changing the
+			// spelling; a nil object with a non-nil index also signals ambiguity.
+			obj, index, _ := types.LookupFieldOrMethod(selection.Recv(), addressable, selection.Obj().Pkg(), ch.To)
+			if obj != nil || index != nil {
+				return fmt.Sprintf("MANUAL %q: access .%s -> .%s - target name already exists or is ambiguous on the receiver; "+
+					"qualify the intended field by hand",
+					sd.From, ch.From, ch.To), "", true
+			}
+			sel.Sel.Name = ch.To
+			edit := fmt.Sprintf("%q: field %s -> %s", sd.From, ch.From, ch.To)
+			if ch.Note != "" {
+				edit += fmt.Sprintf("; MANUAL %q: access .%s - %s", sd.From, ch.To, ch.Note)
+			}
+			return edit, "", true
 		case apirev.KindManual:
 			return fmt.Sprintf("MANUAL %q: access .%s - %s", sd.From, ch.From, ch.Note), "", true
 		case apirev.KindUnclassified:
@@ -606,20 +625,23 @@ func rewriteCompositeLit(
 		}
 		switch ch.Kind {
 		case apirev.KindRename:
-			edits = append(edits, fmt.Sprintf("%s: field %s -> %s", label, ch.From, ch.To))
+			edits = append(edits, fmt.Sprintf("%q: field %s -> %s", label, ch.From, ch.To))
 			key.Name = ch.To
+			if ch.Note != "" {
+				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s - %s", label, ch.To, ch.Note))
+			}
 			kept = append(kept, kv)
 		case apirev.KindPointerWrap:
 			_, isLit := kv.Value.(*ast.CompositeLit)
 			switch {
 			case isLit:
 				kv.Value = &ast.UnaryExpr{Op: token.AND, X: kv.Value}
-				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in & (now pointer)", label, ch.From))
+				edits = append(edits, fmt.Sprintf("%q: field %s wrapped in & (now pointer)", label, ch.From))
 			case newKeepsFieldType(kv, info):
 				// new(x) points at a copy of x, matching the value semantics of the
 				// source field, and accepts non-addressable operands.
 				kv.Value = &ast.CallExpr{Fun: ast.NewIdent("new"), Args: []ast.Expr{kv.Value}}
-				edits = append(edits, fmt.Sprintf("%s: field %s wrapped in new(x) (now pointer)", label, ch.From))
+				edits = append(edits, fmt.Sprintf("%q: field %s wrapped in new(x) (now pointer)", label, ch.From))
 			default:
 				edits = append(edits, fmt.Sprintf("MANUAL %q: field %s is now %s - new(x) would not have that type; wrap the value by hand",
 					label, ch.From, ch.NewType))
@@ -628,7 +650,7 @@ func rewriteCompositeLit(
 		case apirev.KindRemove:
 			// Safe only for a literal key: the field is a knob that no longer
 			// exists (e.g. EnableMetrics). Dropping the key is correct.
-			edits = append(edits, fmt.Sprintf("%s: field %s removed", label, ch.From))
+			edits = append(edits, fmt.Sprintf("%q: field %s removed", label, ch.From))
 			// drop it (don't append)
 		case apirev.KindManual:
 			// The field's data relocated (raw Body collapse) or it was retyped; we

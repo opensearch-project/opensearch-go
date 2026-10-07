@@ -469,7 +469,7 @@ func buildRoleRoutes(r roleRoutes) []Route {
 		NewRoute("POST /_cluster/voting_config_exclusions", r.clusterMgrWrite).Op(OpClusterVotingConfigEx).MustBuild(),
 		NewRoute("DELETE /_cluster/voting_config_exclusions", r.clusterMgrWrite).Op(OpClusterVotingConfigEx).MustBuild(),
 
-		// -- Cat APIs -- reads; cluster-state-derived on management pool, node-local on searchMgmt
+		// -- CAT APIs -- reads; cluster-state-derived on management pool, node-local on searchMgmt
 		NewRoute("GET /_cat/indices", r.searchMgmt).Op(OpCatIndices).MustBuild(),
 		NewRoute("GET /_cat/indices/{index}", r.searchMgmt).Op(OpCatIndices).MustBuild(),
 		NewRoute("GET /_cat/nodes", r.searchMgmt).Op(OpCatNodes).MustBuild(),

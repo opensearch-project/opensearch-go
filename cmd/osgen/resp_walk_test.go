@@ -777,7 +777,7 @@ func TestWalkerRawMessageOmitEmpty(t *testing.T) {
 
 // omitempty on a json.RawMessage does not lose an explicit null: nil is len 0
 // and dropped, while `null` is len 4 and survives. Omitting omitempty is what
-// conflates the two. This pins the encoding/json behaviour the tag decision in
+// conflates the two. This pins the encoding/json behavior the tag decision in
 // walkProperties relies on.
 func TestRawMessageOmitEmptyPreservesExplicitNull(t *testing.T) {
 	t.Parallel()
