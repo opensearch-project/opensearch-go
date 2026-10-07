@@ -780,6 +780,7 @@ func (cp *multiServerPool) shuffleActiveWithLock() {
 	if cp.mu.activeCount <= 1 {
 		return
 	}
+	//nolint:gosec // G404: load distribution, not security
 	rand.Shuffle(cp.mu.activeCount, func(i, j int) {
 		cp.mu.ready[i], cp.mu.ready[j] = cp.mu.ready[j], cp.mu.ready[i]
 	})

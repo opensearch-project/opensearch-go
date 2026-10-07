@@ -176,6 +176,7 @@ func (c *Cache[T]) GetOrCreate(ctx context.Context, item Cacheable[T]) (T, func(
 	}
 	c.cache.Store(key, e)
 	c.mu.mapKeys[key] = struct{}{}
+	//nolint:contextcheck // the worker outlives this call; Close cancels it
 	c.ensureWorkerWithLock()
 	c.mu.Unlock()
 	return e.Obj, releaseFn(e), nil

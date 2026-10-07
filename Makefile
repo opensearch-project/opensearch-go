@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 # Tool versions
-GOLANGCI_LINT_VERSION := v2.12.2
+GOLANGCI_LINT_VERSION := v2.14.0
 
 # Build tags for linting.
 #

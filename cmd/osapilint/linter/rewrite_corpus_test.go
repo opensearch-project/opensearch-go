@@ -37,7 +37,7 @@ import (
 //
 //	UPDATE_GOLDEN=1 go test ./cmd/osapilint -run TestRewriteCorpus
 func TestRewriteCorpus(t *testing.T) {
-	for _, tc := range []struct {
+	tests := []struct {
 		name    string
 		src     major
 		dst     major
@@ -97,6 +97,9 @@ func TestRewriteCorpus(t *testing.T) {
 			// only use of are dropped. importprune: an aliased import losing its
 			// last use is dropped, and one keeping a use survives. newfromclient:
 			// the removed NewFromClient helper is reported MANUAL, not rewritten.
+			// catresponses: CAT arrays become Records in selectors and literals,
+			// without changing unrelated fields named Shards or Indices. Element
+			// types also change, so accesses and literal keys must report MANUAL.
 			// reqshapes: Body moves to BodyReader where v5 added a typed Body, and a
 			// Params value that became a pointer gains & (literal) or new(x) (any
 			// other value). retype: a field retyped to a pointer of another type is
@@ -107,9 +110,10 @@ func TestRewriteCorpus(t *testing.T) {
 			dst:    5,
 			corpus: "v4",
 			// removedtype: import bumps, the removed-type ref stays put.
-			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "reqshapes.go", "retype.go"},
+			goldens: []string{"removedtype.go", "topointer.go", "importprune.go", "catresponses.go", "reqshapes.go", "retype.go"},
 			// topointer, importprune and reqshapes are marker-free and have no
 			// removed-type ref, so their goldens must be import-clean compiling v5.
+			// catresponses still needs record-field conversion and is not compile-clean.
 			compileClean: []string{"topointer.go", "importprune.go", "reqshapes.go"},
 			edits: []string{
 				"import github.com/opensearch-project/opensearch-go/v4",
@@ -119,20 +123,26 @@ func TestRewriteCorpus(t *testing.T) {
 				`drop now-unused import "github.com/opensearch-project/opensearch-go/v5/opensearchapi"`,
 				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.AliasDeleteResp" removed`,
 				"MANUAL opensearchapi.NewFromClient removed - replace by hand",
-				"SnapshotRestoreReq: field Body -> BodyReader",
-				"SearchReq: field Params wrapped in new(x) (now pointer)",
-				"SearchHit: field Index wrapped in new(x) (now pointer)",
-				"BulkByScrollTaskStatus: field Updated wrapped in new(x) (now pointer)",
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": access .Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": access .Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatShardsResp": field Records - type changed`,
+				`MANUAL "github.com/opensearch-project/opensearch-go/v4/opensearchapi.CatIndicesResp": field Records - type changed`,
+				`SnapshotRestoreReq": field Body -> BodyReader`,
+				`SearchReq": field Params wrapped in new(x) (now pointer)`,
+				`SearchHit": field Index wrapped in new(x) (now pointer)`,
+				`BulkByScrollTaskStatus": field Updated wrapped in new(x) (now pointer)`,
 				`opensearchapi.BulkByScrollTaskStatus": field Created is now *int64 - new(x) would not have that type`,
-				`opensearchapi.SearchHit": field Score - field type changed from float32 to *float64`,
-				`opensearchapi.SearchHit": access .Score - field type changed from float32 to *float64`,
+				`opensearchapi.SearchHit": field Score - field type changed from "float32" to "*float64"`,
+				`opensearchapi.SearchHit": access .Score - field type changed from "float32" to "*float64"`,
 			},
 		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			dir := stageCorpus(t, tc.corpus)
+	}
 
-			plans, err := planChain(tc.src, tc.dst)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := stageCorpus(t, tt.corpus)
+
+			plans, err := planChain(tt.src, tt.dst)
 			require.NoError(t, err)
 			require.Len(t, plans, 1, "corpus test covers a single hop")
 			p := plans[0]
@@ -150,16 +160,16 @@ func TestRewriteCorpus(t *testing.T) {
 			require.NoError(t, err)
 
 			report := reportText(results)
-			for _, want := range tc.edits {
+			for _, want := range tt.edits {
 				require.Contains(t, report, want, "report must mention %q\nfull report:\n%s", want, report)
 			}
 
-			archivePath := filepath.Join("testdata", "corpus", tc.corpus+".txtar")
+			archivePath := filepath.Join("testdata", "corpus", tt.corpus+".txtar")
 			archive, err := txtar.ParseFile(archivePath)
 			require.NoError(t, err, "parse %s", archivePath)
 			updateGolden := os.Getenv("UPDATE_GOLDEN") != ""
 
-			for _, file := range tc.goldens {
+			for _, file := range tt.goldens {
 				got, err := os.ReadFile(filepath.Join(dir, file))
 				require.NoError(t, err)
 
@@ -179,7 +189,7 @@ func TestRewriteCorpus(t *testing.T) {
 				require.NoError(t, os.WriteFile(archivePath, txtar.Format(archive), 0o600))
 			}
 
-			for _, file := range tc.compileClean {
+			for _, file := range tt.compileClean {
 				got, err := os.ReadFile(filepath.Join(dir, file))
 				require.NoError(t, err)
 				require.NotContains(t, string(got), markerPrefix,

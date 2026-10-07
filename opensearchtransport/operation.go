@@ -769,7 +769,7 @@ const (
 // String
 // ---------------------------------------------------------------------------
 
-//nolint:cyclop,gocyclo,exhaustive,goconst // intentional large switch with default fallback
+//nolint:cyclop,gocyclo,exhaustive // intentional large switch with default fallback
 func (op OperationID) String() string {
 	switch op {
 	case OpSearch:
