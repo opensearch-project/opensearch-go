@@ -213,9 +213,10 @@ type Config struct {
 	//
 	// A compressor is skipped for a request whose caller already set any
 	// non-empty Content-Encoding value: the caller chose the body's encoding,
-	// and compressing would replace their header with a single gzip, mislabeling
-	// a body that was already gzipped. A Content-Encoding in Header applies to
-	// every request and says nothing about a given body, so it does not count.
+	// and compressing would replace their header with the compressor's own
+	// encoding, mislabeling a body that was already encoded. A Content-Encoding
+	// in Header applies to every request and says nothing about a given body, so
+	// it does not count.
 	Compressor Compressor
 
 	// CompressRequestBody gzip-compresses request bodies at the default level

@@ -67,7 +67,7 @@ func (*gzipCompressor) contentEncoding() string { return "gzip" }
 func newGzipCompressor(level int) (*gzipCompressor, error) {
 	// Validate once so the pool's New can ignore the error.
 	if _, err := gzip.NewWriterLevel(io.Discard, level); err != nil {
-		return nil, fmt.Errorf("invalid gzip compression level %d: %w", level, err)
+		return nil, fmt.Errorf("opensearchtransport: %w", err)
 	}
 
 	gzipWriterPool := sync.Pool{

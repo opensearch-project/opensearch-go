@@ -151,9 +151,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if tp.compressor != nil {
-			t.Errorf("Unexpected compressor: %v", tp.compressor)
-		}
+		require.Nil(t, tp.compressor)
 	})
 
 	t.Run("Custom", func(t *testing.T) {
@@ -182,9 +180,7 @@ func TestTransportConfig(t *testing.T) {
 			t.Errorf("Unexpected maxRetries: %v", tp.maxRetries)
 		}
 
-		if tp.compressor == nil {
-			t.Errorf("Unexpected compressor: %v", tp.compressor)
-		}
+		require.NotNil(t, tp.compressor)
 	})
 }
 

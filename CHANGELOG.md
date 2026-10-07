@@ -16,6 +16,8 @@ Inspired from [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Deprecated
 
+- Deprecate `CompressRequestBody` on `opensearch.Config` and `opensearchtransport.Config` in favor of `Compressor`. The field keeps gzipping request bodies at the default level when `Compressor` is nil ([#1180](https://github.com/opensearch-project/opensearch-go/pull/1180))
+
 ### Removed
 
 ### Fixed
