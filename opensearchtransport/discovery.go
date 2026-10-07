@@ -995,6 +995,7 @@ func (tr *Transport) createOrUpdateMultiNodePoolWithLock(readyConnections, deadC
 
 	// Shuffle connections for load distribution unless disabled
 	if !tr.skipConnectionShuffle && len(allReadyConns) > 1 {
+		//nolint:gosec // G404: load distribution, not security
 		rand.Shuffle(len(allReadyConns), func(i, j int) {
 			allReadyConns[i], allReadyConns[j] = allReadyConns[j], allReadyConns[i]
 		})

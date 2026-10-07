@@ -22,8 +22,8 @@ import (
 
 // The typed UpdateBody is the generated user surface, distinct from the
 // BodyReader escape hatch every other update test uses. Each case here 400'd
-// before json.RawMessage fields honoured omitempty, because an unset Doc or
-// Upsert marshalled to an explicit null.
+// before json.RawMessage fields honored omitempty, because an unset Doc or
+// Upsert marshaled to an explicit null.
 func TestManual_UpdateTypedBody(t *testing.T) {
 	client, err := testutil.NewClient(t)
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestManual_SearchTypedBody(t *testing.T) {
 				Body:    &opensearchapi.SearchBody{Query: &tt.container},
 			})
 			require.NoError(t, err)
-			require.Equal(t, 1, len(resp.Hits.Hits))
+			require.Len(t, resp.Hits.Hits, 1)
 		})
 	}
 }
