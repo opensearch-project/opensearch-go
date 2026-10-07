@@ -1549,6 +1549,99 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 	}
 }
 
+// TestCompressedBodyOutlivesStream verifies that a compressed request body
+// stays intact after Stream returns, for a reader that has not consumed it yet:
+// net/http can still be writing Body after RoundTrip returns, and a caller can
+// call GetBody on the request it kept. Each round holds one request's readers
+// unread, sends a same-length body through the transport, then reads the held
+// readers. A compressed buffer recycled for the second request overwrites the
+// held bytes. Reuse is deterministic apart from sync.Pool occasionally dropping
+// a Put, so the rounds make a false pass on the old behavior vanishingly
+// unlikely, while a request that owns its buffer can never fail.
+func TestCompressedBodyOutlivesStream(t *testing.T) {
+	t.Parallel()
+
+	const rounds = 32
+
+	tests := []struct {
+		name string
+		read func(t *testing.T, held *http.Request) []byte
+	}{
+		{
+			name: "Body",
+			read: func(t *testing.T, held *http.Request) []byte {
+				t.Helper()
+				b, err := io.ReadAll(held.Body)
+				require.NoError(t, err)
+				return b
+			},
+		},
+		{
+			name: "GetBody",
+			read: func(t *testing.T, held *http.Request) []byte {
+				t.Helper()
+				rc, err := held.GetBody()
+				require.NoError(t, err)
+				b, err := io.ReadAll(rc)
+				require.NoError(t, err)
+				return b
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gz, err := GZip(gzip.BestSpeed)
+			require.NoError(t, err)
+
+			// The round trip runs inside Stream on this goroutine, so held and
+			// calls need no synchronization.
+			var (
+				held  *http.Request
+				calls int
+			)
+			tp, err := New(Config{
+				URLs:              []*url.URL{{Scheme: "https", Host: "foo.com"}},
+				Compressor:        gz,
+				DisableRetry:      true,
+				NodeStatsInterval: -1,
+				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+					calls++
+					if calls%2 == 1 {
+						held = req // models a RoundTrip that returns before its body is written
+					} else if _, err := io.Copy(io.Discard, req.Body); err != nil {
+						return nil, err
+					}
+					return &http.Response{Status: "MOCK", Body: http.NoBody}, nil
+				}),
+			})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = tp.Close() })
+
+			stream := func(body string) {
+				t.Helper()
+				req, err := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(body))
+				require.NoError(t, err)
+				res, err := tp.Stream(req)
+				require.NoError(t, err)
+				require.NoError(t, res.Body.Close())
+			}
+
+			for i := range rounds {
+				first := strings.Repeat(fmt.Sprintf("held-%02d|", i), 4)
+				second := strings.Repeat(fmt.Sprintf("next-%02d|", i), 4)
+
+				stream(first)
+				stream(second)
+
+				require.Equal(t, first, gunzip(t, tt.read(t, held), "round %d", i))
+			}
+		})
+	}
+}
+
 // TestRequestCompressionReadError verifies that a body read failure during
 // compression aborts the request before any round trip and keeps the read
 // error in the chain.

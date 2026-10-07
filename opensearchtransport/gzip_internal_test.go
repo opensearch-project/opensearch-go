@@ -27,7 +27,6 @@ func TestCompress(t *testing.T) {
 		rc := io.NopCloser(strings.NewReader(body))
 
 		buf, err := gzipCompressor.compress(rc)
-		defer gzipCompressor.collectBuffer(buf)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -48,7 +47,6 @@ func TestCompress(t *testing.T) {
 			rc := io.NopCloser(strings.NewReader(body))
 
 			buf, err := gzipCompressor.compress(rc)
-			defer gzipCompressor.collectBuffer(buf)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
@@ -69,7 +67,6 @@ func TestCompress(t *testing.T) {
 		rc := io.NopCloser(strings.NewReader(body))
 
 		buf, err := gzipCompressor.compress(rc)
-		defer gzipCompressor.collectBuffer(buf)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -90,14 +87,12 @@ func TestCompress(t *testing.T) {
 		rc := io.NopCloser(strings.NewReader(body))
 
 		buf, err := gzipCompressor.compress(rc)
-		defer gzipCompressor.collectBuffer(buf)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		rc = io.NopCloser(buf)
 		buf2, err := gzipCompressor.compress(rc)
-		defer gzipCompressor.collectBuffer(buf2)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -161,7 +156,6 @@ func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
 
 	buf, err := c.compress(io.NopCloser(strings.NewReader(body)))
 	require.NoError(t, err)
-	defer c.collectBuffer(buf)
 
 	require.Equal(t, body, gunzip(t, buf.Bytes()))
 	return buf.Len()

@@ -1570,7 +1570,6 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 		origBody := req.Body
 		if compress {
 			buf, err := tr.compressor.compress(origBody)
-			defer tr.compressor.collectBuffer(buf)
 			if err != nil {
 				return nil, sr, fmt.Errorf("failed to compress request body: %w", err)
 			}

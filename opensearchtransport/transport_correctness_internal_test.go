@@ -9,14 +9,10 @@
 package opensearchtransport
 
 import (
-	"compress/gzip"
 	"errors"
-	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"testing"
-	"testing/iotest"
 
 	"github.com/stretchr/testify/require"
 
@@ -31,41 +27,6 @@ type errReadCloser struct {
 
 func (e *errReadCloser) Read([]byte) (int, error) { return 0, e.err }
 func (e *errReadCloser) Close() error             { e.closed = true; return nil }
-
-// TestGzipCompressorBufferPoolReuse exercises the buffer-pool nil-poisoning fix:
-// compress must hand a non-nil buffer back to the pool even on a read error so a
-// later Get().Reset() does not panic, and collectBuffer must tolerate a nil buffer.
-func TestGzipCompressorBufferPoolReuse(t *testing.T) {
-	t.Parallel()
-
-	t.Run("compress error returns reusable buffer", func(t *testing.T) {
-		t.Parallel()
-
-		gz, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
-		rc := io.NopCloser(iotest.ErrReader(errors.New("boom")))
-
-		buf, err := gz.compress(rc)
-		require.Error(t, err)
-		require.NotNil(t, buf, "compress must return a non-nil buffer on error so the pool is not poisoned")
-
-		// Returning the buffer and reusing the pool must not panic on Reset().
-		gz.collectBuffer(buf)
-		require.NotPanics(t, func() {
-			next, cerr := gz.compress(io.NopCloser(strings.NewReader("opensearch")))
-			require.NoError(t, cerr)
-			gz.collectBuffer(next)
-		})
-	})
-
-	t.Run("collectBuffer tolerates nil", func(t *testing.T) {
-		t.Parallel()
-
-		gz, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
-		require.NotPanics(t, func() { gz.collectBuffer(nil) })
-	})
-}
 
 // TestSetReqGlobalHeaderOverride pins the per-request header override semantics:
 // a request-level header value must fully suppress the matching global default,

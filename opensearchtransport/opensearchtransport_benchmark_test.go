@@ -29,6 +29,7 @@
 package opensearchtransport_test
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"net/http"
@@ -103,6 +104,35 @@ func BenchmarkTransport(b *testing.B) {
 
 		for b.Loop() {
 			req, _ := http.NewRequest(http.MethodGet, "/abc", nil)
+			res, err := tp.Stream(req)
+			if err != nil {
+				b.Fatalf("Unexpected error: %q", err)
+			}
+			res.Body.Close()
+		}
+	})
+
+	// Compressed measures the per-request cost of gzipping a JSON-sized body.
+	b.Run("Compressed", func(b *testing.B) {
+		gz, err := opensearchtransport.GZip(gzip.DefaultCompression)
+		if err != nil {
+			b.Fatalf("Unexpected error: %q", err)
+		}
+		tp, err := opensearchtransport.New(opensearchtransport.Config{
+			URLs:              []*url.URL{{Scheme: "http", Host: "foo"}},
+			Compressor:        gz,
+			Transport:         newFakeTransport(b),
+			NodeStatsInterval: -1,
+		})
+		if err != nil {
+			b.Fatalf("Unexpected error: %q", err)
+		}
+		b.Cleanup(func() { _ = tp.Close() })
+
+		body := strings.Repeat(`{"field":"value","n":12345}`, 150) // about 4 KiB
+
+		for b.Loop() {
+			req, _ := http.NewRequest(http.MethodPost, "/abc", strings.NewReader(body))
 			res, err := tp.Stream(req)
 			if err != nil {
 				b.Fatalf("Unexpected error: %q", err)

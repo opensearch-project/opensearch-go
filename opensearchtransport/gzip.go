@@ -21,7 +21,6 @@ type Compressor interface {
 	// contentEncoding is the Content-Encoding value for compressed bodies.
 	contentEncoding() string
 	compress(io.ReadCloser) (*bytes.Buffer, error)
-	collectBuffer(*bytes.Buffer)
 }
 
 // noneCompressor leaves bodies unmodified. The transport treats it as "no
@@ -33,8 +32,6 @@ func (noneCompressor) contentEncoding() string { return "" }
 func (noneCompressor) compress(io.ReadCloser) (*bytes.Buffer, error) {
 	return nil, fmt.Errorf("opensearchtransport: noneCompressor does not compress")
 }
-
-func (noneCompressor) collectBuffer(*bytes.Buffer) {}
 
 // None returns a Compressor that sends request bodies unmodified. Unlike a nil
 // Config.Compressor, it takes precedence over the deprecated
@@ -59,7 +56,6 @@ const encodingGzip = "gzip"
 
 type gzipCompressor struct {
 	gzipWriterPool *sync.Pool
-	bufferPool     *sync.Pool
 }
 
 func (*gzipCompressor) contentEncoding() string { return encodingGzip }
@@ -78,40 +74,25 @@ func newGzipCompressor(level int) (*gzipCompressor, error) {
 		},
 	}
 
-	bufferPool := sync.Pool{
-		New: func() any {
-			return new(bytes.Buffer)
-		},
-	}
-
-	return &gzipCompressor{
-		gzipWriterPool: &gzipWriterPool,
-		bufferPool:     &bufferPool,
-	}, nil
+	return &gzipCompressor{gzipWriterPool: &gzipWriterPool}, nil
 }
 
+// compress returns a buffer the caller owns: it is never pooled, because the
+// request body and GetBody readers keep reading it after stream returns.
 func (pg *gzipCompressor) compress(rc io.ReadCloser) (*bytes.Buffer, error) {
 	writer := pg.gzipWriterPool.Get().(*gzip.Writer)
 	defer pg.gzipWriterPool.Put(writer)
 
-	buf := pg.bufferPool.Get().(*bytes.Buffer)
-	buf.Reset()
+	buf := new(bytes.Buffer)
 	writer.Reset(buf)
 
 	if _, err := io.Copy(writer, rc); err != nil {
-		return buf, fmt.Errorf("failed to compress request body: %w", err)
+		return nil, fmt.Errorf("failed to compress request body: %w", err)
 	}
 	if err := writer.Close(); err != nil {
-		return buf, fmt.Errorf("failed to compress request body (during close): %w", err)
+		return nil, fmt.Errorf("failed to compress request body (during close): %w", err)
 	}
 	return buf, nil
-}
-
-func (pg *gzipCompressor) collectBuffer(buf *bytes.Buffer) {
-	if buf == nil {
-		return
-	}
-	pg.bufferPool.Put(buf)
 }
 
 // resolveCompressor returns the compressor stream applies, or nil when request
