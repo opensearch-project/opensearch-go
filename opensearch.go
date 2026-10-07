@@ -505,7 +505,7 @@ func NewClient(cfg Config) (*Client, error) {
 		DNSTimeout:      cfg.DNSTimeout,
 
 		Compressor:          cfg.Compressor,
-		CompressRequestBody: cfg.CompressRequestBody,
+		CompressRequestBody: cfg.CompressRequestBody, //nolint:staticcheck // SA1019: passes the deprecated field to the transport.
 
 		EnableDebugLogger: cfg.EnableDebugLogger,
 
