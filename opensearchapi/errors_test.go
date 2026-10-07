@@ -221,7 +221,7 @@ func TestErrorsAs(t *testing.T) {
 			wantMatch: true,
 			check: func(t *testing.T, target any) {
 				t.Helper()
-				e := *(target.(**opensearchapi.PartialBulkError))
+				e := *target.(**opensearchapi.PartialBulkError)
 				require.Equal(t, 5, e.SucceededCount)
 				require.Len(t, e.FailedItems, 2)
 			},
@@ -239,7 +239,7 @@ func TestErrorsAs(t *testing.T) {
 			wantMatch: true,
 			check: func(t *testing.T, target any) {
 				t.Helper()
-				e := *(target.(**opensearchapi.PartialBulkError))
+				e := *target.(**opensearchapi.PartialBulkError)
 				require.Equal(t, 5, e.SucceededCount)
 			},
 		},
@@ -253,7 +253,7 @@ func TestErrorsAs(t *testing.T) {
 			wantMatch: true,
 			check: func(t *testing.T, target any) {
 				t.Helper()
-				e := *(target.(**opensearchapi.PartialSearchError))
+				e := *target.(**opensearchapi.PartialSearchError)
 				require.Equal(t, 2, e.FailedShards)
 			},
 		},
@@ -269,7 +269,7 @@ func TestErrorsAs(t *testing.T) {
 			wantMatch: true,
 			check: func(t *testing.T, target any) {
 				t.Helper()
-				e := *(target.(**opensearchapi.ShardFailureError))
+				e := *target.(**opensearchapi.ShardFailureError)
 				require.Equal(t, opensearchapi.OperationDelete, e.Operation)
 			},
 		},
@@ -283,7 +283,7 @@ func TestErrorsAs(t *testing.T) {
 			wantMatch: true,
 			check: func(t *testing.T, target any) {
 				t.Helper()
-				e := *(target.(*opensearchapi.PartialFailureError))
+				e := *target.(*opensearchapi.PartialFailureError)
 				require.True(t, e.IsPartial())
 			},
 		},
