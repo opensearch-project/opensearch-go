@@ -130,21 +130,39 @@ func generateRandomString() string {
 	return string(randomBytes)
 }
 
+// gzipBytes returns s gzipped at the default level.
+func gzipBytes(t *testing.T, s string) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	zw := gzip.NewWriter(&buf)
+	_, err := zw.Write([]byte(s))
+	require.NoError(t, err)
+	require.NoError(t, zw.Close())
+	return buf.Bytes()
+}
+
+// gunzip inflates b exactly once, so a double-gzipped body comes back as gzip
+// bytes rather than plaintext.
+func gunzip(t *testing.T, b []byte, msgAndArgs ...any) string {
+	t.Helper()
+
+	zr, err := gzip.NewReader(bytes.NewReader(b))
+	require.NoError(t, err, msgAndArgs...)
+	plain, err := io.ReadAll(zr)
+	require.NoError(t, err, msgAndArgs...)
+	return string(plain)
+}
+
 func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
 	t.Helper()
 
 	buf, err := c.compress(io.NopCloser(strings.NewReader(body)))
 	require.NoError(t, err)
 	defer c.collectBuffer(buf)
-	size := buf.Len()
 
-	zr, err := gzip.NewReader(bytes.NewReader(buf.Bytes()))
-	require.NoError(t, err)
-	plain, err := io.ReadAll(zr)
-	require.NoError(t, err)
-	require.Equal(t, body, string(plain))
-
-	return size
+	require.Equal(t, body, gunzip(t, buf.Bytes()))
+	return buf.Len()
 }
 
 func TestGZipLevel(t *testing.T) {

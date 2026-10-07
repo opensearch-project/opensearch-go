@@ -1439,11 +1439,20 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 		maxRetries = 3
 	)
 
-	var gzipped bytes.Buffer
-	zw := gzip.NewWriter(&gzipped)
-	_, err := zw.Write([]byte(plaintext))
+	gzipped := gzipBytes(t, plaintext)
+
+	gzipBestSpeed, err := GZip(gzip.BestSpeed)
 	require.NoError(t, err)
-	require.NoError(t, zw.Close())
+
+	// Both ways of enabling compression must honor a caller-set Content-Encoding.
+	configs := []struct {
+		name       string
+		legacyFlag bool
+		compressor Compressor
+	}{
+		{name: "legacy flag", legacyFlag: true},
+		{name: "GZip", compressor: gzipBestSpeed},
+	}
 
 	tests := []struct {
 		name          string
@@ -1455,20 +1464,20 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 	}{
 		{
 			name:          "pre-encoded body",
-			body:          gzipped.Bytes(),
+			body:          gzipped,
 			header:        http.Header{headerContentEncoding: {"gzip"}},
 			wantEncodings: []string{"gzip"},
 		},
 		{
 			name:          "pre-encoded body without GetBody",
-			body:          gzipped.Bytes(),
+			body:          gzipped,
 			header:        http.Header{headerContentEncoding: {"gzip"}},
 			nilGetBody:    true,
 			wantEncodings: []string{"gzip"},
 		},
 		{
 			name:          "pre-encoded body behind an empty first value",
-			body:          gzipped.Bytes(),
+			body:          gzipped,
 			header:        http.Header{headerContentEncoding: {"", "gzip"}},
 			wantEncodings: []string{"", "gzip"},
 		},
@@ -1487,57 +1496,55 @@ func TestRequestCompressionSkipsWhenContentEncodingSet(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+	for _, cfg := range configs {
+		for _, tt := range tests {
+			t.Run(cfg.name+"/"+tt.name, func(t *testing.T) {
+				t.Parallel()
 
-			type attempt struct {
-				encodings []string
-				body      []byte
-			}
-			var attempts []attempt
+				type attempt struct {
+					encodings []string
+					body      []byte
+				}
+				var attempts []attempt
 
-			tp, err := New(Config{
-				URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
-				MaxRetries:          maxRetries,
-				CompressRequestBody: true,
-				Header:              tt.globalHeader,
-				NodeStatsInterval:   -1,
-				Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
-					body, err := io.ReadAll(req.Body)
-					if err != nil {
-						return nil, err
-					}
-					attempts = append(attempts, attempt{encodings: req.Header.Values(headerContentEncoding), body: body})
-					return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
-				}),
+				tp, err := New(Config{
+					URLs:                []*url.URL{{Scheme: "https", Host: "foo.com"}},
+					MaxRetries:          maxRetries,
+					CompressRequestBody: cfg.legacyFlag,
+					Compressor:          cfg.compressor,
+					Header:              tt.globalHeader,
+					NodeStatsInterval:   -1,
+					Transport: mockhttp.NewRoundTripFunc(t, func(req *http.Request) (*http.Response, error) {
+						body, err := io.ReadAll(req.Body)
+						if err != nil {
+							return nil, err
+						}
+						attempts = append(attempts, attempt{encodings: req.Header.Values(headerContentEncoding), body: body})
+						return &http.Response{Status: "MOCK", StatusCode: http.StatusBadGateway, Body: http.NoBody}, nil
+					}),
+				})
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = tp.Close() })
+
+				req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
+				require.NoError(t, err)
+				req.Header = tt.header.Clone()
+				if tt.nilGetBody {
+					req.GetBody = nil
+				}
+
+				res, err := tp.Stream(req)
+				require.NoError(t, err)
+				require.NotNil(t, res)
+				require.NoError(t, res.Body.Close())
+
+				require.Len(t, attempts, maxRetries+1)
+				for i, a := range attempts {
+					require.Equal(t, tt.wantEncodings, a.encodings, "attempt %d", i)
+					require.Equal(t, plaintext, gunzip(t, a.body, "attempt %d", i), "attempt %d", i)
+				}
 			})
-			require.NoError(t, err)
-			t.Cleanup(func() { _ = tp.Close() })
-
-			req, err := http.NewRequest(http.MethodPost, "/abc", bytes.NewReader(tt.body))
-			require.NoError(t, err)
-			req.Header = tt.header.Clone()
-			if tt.nilGetBody {
-				req.GetBody = nil
-			}
-
-			res, err := tp.Stream(req)
-			require.NoError(t, err)
-			require.NotNil(t, res)
-			require.NoError(t, res.Body.Close())
-
-			require.Len(t, attempts, maxRetries+1)
-			for i, a := range attempts {
-				require.Equal(t, tt.wantEncodings, a.encodings, "attempt %d", i)
-				// One inflate must yield plaintext; double-gzip would yield gzip bytes.
-				zr, err := gzip.NewReader(bytes.NewReader(a.body))
-				require.NoError(t, err, "attempt %d", i)
-				plain, err := io.ReadAll(zr)
-				require.NoError(t, err, "attempt %d", i)
-				require.Equal(t, plaintext, string(plain), "attempt %d", i)
-			}
-		})
+		}
 	}
 }
 
@@ -1578,11 +1585,7 @@ func TestRequestCompressor(t *testing.T) {
 
 	const plaintext = "opensearch"
 
-	var gzipped bytes.Buffer
-	zw := gzip.NewWriter(&gzipped)
-	_, err := zw.Write([]byte(plaintext))
-	require.NoError(t, err)
-	require.NoError(t, zw.Close())
+	gzipped := gzipBytes(t, plaintext)
 
 	gzipDefault, err := GZip(gzip.DefaultCompression)
 	require.NoError(t, err)
@@ -1634,7 +1637,7 @@ func TestRequestCompressor(t *testing.T) {
 		{
 			name:          "GZip skips a caller-set Content-Encoding",
 			compressor:    gzipBestSpeed,
-			body:          gzipped.Bytes(),
+			body:          gzipped,
 			header:        http.Header{headerContentEncoding: {"gzip"}},
 			wantEncodings: []string{"gzip"},
 			wantGzipped:   true,
@@ -1642,7 +1645,7 @@ func TestRequestCompressor(t *testing.T) {
 		{
 			name:          "None leaves a caller-set Content-Encoding alone",
 			compressor:    none,
-			body:          gzipped.Bytes(),
+			body:          gzipped,
 			header:        http.Header{headerContentEncoding: {"gzip"}},
 			wantEncodings: []string{"gzip"},
 			wantGzipped:   true,
@@ -1690,11 +1693,7 @@ func TestRequestCompressor(t *testing.T) {
 				require.Equal(t, plaintext, string(wire))
 				return
 			}
-			zr, err := gzip.NewReader(bytes.NewReader(wire))
-			require.NoError(t, err)
-			plain, err := io.ReadAll(zr)
-			require.NoError(t, err)
-			require.Equal(t, plaintext, string(plain))
+			require.Equal(t, plaintext, gunzip(t, wire))
 		})
 	}
 }
