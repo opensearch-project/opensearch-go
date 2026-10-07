@@ -209,7 +209,9 @@ type Config struct {
 	DNSTimeout time.Duration
 
 	// Compressor encodes request bodies and sets the matching Content-Encoding
-	// header; see [GZip] and [None]. nil leaves the choice to CompressRequestBody.
+	// header; see [GZip] and [None], or implement [Compressor] to use another
+	// codec. nil leaves the choice to CompressRequestBody. New returns an error
+	// for a Compressor that is not usable; see [Compressor].
 	//
 	// A compressor is skipped for a request whose caller already set any
 	// non-empty Content-Encoding value: the caller chose the body's encoding,
@@ -556,7 +558,7 @@ type Transport struct {
 
 	// compressor is nil when request compression is off, so stream can skip the
 	// Content-Encoding scan; New normalizes [None] to nil.
-	compressor Compressor
+	compressor *requestCompressor
 
 	metrics *metrics
 
@@ -667,6 +669,16 @@ func cloneForTLS(rt http.RoundTripper, setting string) (*http.Transport, error) 
 
 // New creates new transport client.
 func New(cfg Config) (*Transport, error) {
+	// Validate the compressor first, before any clone or goroutine exists, so a
+	// broken one fails here rather than on its first request.
+	var compressor *requestCompressor
+	if c := resolveCompressor(cfg.Compressor, cfg.CompressRequestBody); c != nil {
+		var err error
+		if compressor, err = newRequestCompressor(c); err != nil {
+			return nil, err
+		}
+	}
+
 	// customTransport records that the caller supplied their own Transport. When
 	// false, we built one from http.DefaultTransport and may safely install the
 	// DNS-cache dialer on it later (after the root context exists). This package
@@ -1089,7 +1101,7 @@ func New(cfg Config) (*Transport, error) {
 		overloadedHeapThreshold: overloadedHeapThreshold,
 		overloadedBreakerRatio:  overloadedBreakerRatio,
 
-		compressor: resolveCompressor(cfg.Compressor, cfg.CompressRequestBody),
+		compressor: compressor,
 
 		transport:  cfg.Transport,
 		logger:     cfg.Logger,
@@ -1582,7 +1594,7 @@ func (tr *Transport) stream(req *http.Request) (*http.Response, streamResult, er
 			//nolint:errcheck // error is always nil
 			req.Body, _ = req.GetBody()
 
-			req.Header.Set(headerContentEncoding, tr.compressor.contentEncoding())
+			req.Header.Set(headerContentEncoding, tr.compressor.encoding)
 			req.ContentLength = int64(buf.Len())
 		} else if req.GetBody == nil {
 			if !tr.disableRetry || (tr.logger != nil && tr.logger.RequestBodyEnabled()) {

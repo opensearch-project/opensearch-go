@@ -9,28 +9,55 @@ package opensearchtransport
 import (
 	"bytes"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 )
 
-// Compressor encodes request bodies before they are sent. Obtain one from
-// [None] or [GZip] and set it as Config.Compressor. The method set is sealed so
-// further encodings can be added without a breaking change.
+// Compressor encodes request bodies before they are sent. Set one as
+// Config.Compressor: [GZip] returns one backed by the standard library, and a
+// type that implements this interface plugs in another codec, such as zstd,
+// without the client depending on it.
+//
+// A Compressor is shared by every request of a Transport, so ContentEncoding
+// must return the same value on every call and NewEncoder must be safe for
+// concurrent use. New returns an error for a Compressor whose ContentEncoding
+// is not a valid HTTP token (RFC 9110, section 5.6.2) or whose
+// NewEncoder(io.Discard) or Close fails.
 type Compressor interface {
-	// contentEncoding is the Content-Encoding value for compressed bodies.
-	contentEncoding() string
-	compress(io.ReadCloser) (*bytes.Buffer, error)
+	// ContentEncoding returns the Content-Encoding value for bodies the
+	// Compressor encodes, such as "gzip".
+	ContentEncoding() string
+
+	// NewEncoder returns an Encoder that writes the encoded stream to w.
+	NewEncoder(w io.Writer) (Encoder, error)
+}
+
+// Encoder encodes one request body at a time and is used by one goroutine at a
+// time. *gzip.Writer, *flate.Writer and *zlib.Writer satisfy it.
+//
+// The transport writes a body to the Encoder, then calls Close, which must
+// flush all remaining output to the writer. Before reusing a closed Encoder it
+// calls Reset with the next destination. If Write or Close returns an error,
+// the transport discards the Encoder: it is never Reset or reused. If writing
+// the body fails, the transport calls Close once and ignores its result.
+type Encoder interface {
+	io.WriteCloser
+
+	// Reset redirects a closed Encoder to write a new stream to w.
+	Reset(w io.Writer)
 }
 
 // noneCompressor leaves bodies unmodified. The transport treats it as "no
-// compressor" and never calls compress.
+// compressor" and never calls NewEncoder.
 type noneCompressor struct{}
 
-func (noneCompressor) contentEncoding() string { return "" }
+func (noneCompressor) ContentEncoding() string { return "" }
 
-func (noneCompressor) compress(io.ReadCloser) (*bytes.Buffer, error) {
-	return nil, fmt.Errorf("opensearchtransport: noneCompressor does not compress")
+func (noneCompressor) NewEncoder(io.Writer) (Encoder, error) {
+	return nil, errors.New("opensearchtransport: None does not encode")
 }
 
 // None returns a Compressor that sends request bodies unmodified. Unlike a nil
@@ -44,63 +71,126 @@ func None() Compressor { return noneCompressor{} }
 // [gzip.HuffmanOnly]) or a value between them. It returns an error for a level
 // outside that range.
 func GZip(level int) (Compressor, error) {
-	c, err := newGzipCompressor(level)
-	if err != nil {
-		return nil, err
+	// Validate once so NewEncoder can ignore the error.
+	if _, err := gzip.NewWriterLevel(io.Discard, level); err != nil {
+		return nil, fmt.Errorf("opensearchtransport: %w", err)
 	}
-	return c, nil
+	return gzipCompressor{level: level}, nil
 }
 
 // encodingGzip is the Content-Encoding value of a gzipped body.
 const encodingGzip = "gzip"
 
 type gzipCompressor struct {
-	gzipWriterPool *sync.Pool
+	level int
 }
 
-func (*gzipCompressor) contentEncoding() string { return encodingGzip }
+func (gzipCompressor) ContentEncoding() string { return encodingGzip }
 
-// newGzipCompressor returns a new gzipCompressor that uses a sync.Pool to reuse gzip.Writers.
-func newGzipCompressor(level int) (*gzipCompressor, error) {
-	// Validate once so the pool's New can ignore the error.
-	if _, err := gzip.NewWriterLevel(io.Discard, level); err != nil {
-		return nil, fmt.Errorf("opensearchtransport: %w", err)
+func (c gzipCompressor) NewEncoder(w io.Writer) (Encoder, error) {
+	zw, err := gzip.NewWriterLevel(w, c.level)
+	if err != nil {
+		// Return an untyped nil: a nil *gzip.Writer in an Encoder is not nil.
+		return nil, err
 	}
-
-	gzipWriterPool := sync.Pool{
-		New: func() any {
-			w, _ := gzip.NewWriterLevel(io.Discard, level) //nolint:errcheck // level validated above
-			return w
-		},
-	}
-
-	return &gzipCompressor{gzipWriterPool: &gzipWriterPool}, nil
+	return zw, nil
 }
 
-// compress returns a buffer the caller owns: it is never pooled, because the
-// request body and GetBody readers keep reading it after stream returns.
-func (pg *gzipCompressor) compress(rc io.ReadCloser) (*bytes.Buffer, error) {
-	writer := pg.gzipWriterPool.Get().(*gzip.Writer)
-	defer pg.gzipWriterPool.Put(writer)
+// requestCompressor applies a Compressor to request bodies and owns the pool of
+// its closed Encoders. It is safe for concurrent use.
+type requestCompressor struct {
+	// encoding is the Content-Encoding value sent with compressed bodies, as
+	// newRequestCompressor validated it.
+	encoding string
+	c        Compressor
 
+	// pool holds closed Encoders of c. It has no New func: a miss falls back to
+	// c.NewEncoder.
+	pool sync.Pool
+}
+
+// newRequestCompressor validates c and returns the compressor the transport
+// applies. It rejects a ContentEncoding that is not an HTTP token, and a
+// Compressor whose NewEncoder or Close fails, so a broken Compressor fails when
+// the transport is built rather than on its first request.
+func newRequestCompressor(c Compressor) (*requestCompressor, error) {
+	encoding := c.ContentEncoding()
+	if !validToken(encoding) {
+		return nil, fmt.Errorf("opensearchtransport: Compressor content encoding %q is not a valid HTTP token", encoding)
+	}
+
+	// The probe encoder is discarded rather than pooled, so the pool only ever
+	// holds Encoders that served a request.
+	enc, err := c.NewEncoder(io.Discard)
+	if err != nil {
+		return nil, fmt.Errorf("opensearchtransport: Compressor NewEncoder: %w", err)
+	}
+	if enc == nil {
+		return nil, errors.New("opensearchtransport: Compressor NewEncoder returned a nil Encoder")
+	}
+	if err := enc.Close(); err != nil {
+		return nil, fmt.Errorf("opensearchtransport: Compressor Encoder Close: %w", err)
+	}
+
+	return &requestCompressor{encoding: encoding, c: c}, nil
+}
+
+// validToken reports whether s is an HTTP token (RFC 9110, section 5.6.2): one
+// or more ASCII letters, digits, or the punctuation tchar allows.
+func validToken(s string) bool {
+	if s == "" {
+		return false
+	}
+	for i := range len(s) {
+		b := s[i]
+		switch {
+		case 'a' <= b && b <= 'z', 'A' <= b && b <= 'Z', '0' <= b && b <= '9':
+		case strings.IndexByte("!#$%&'*+-.^_`|~", b) >= 0:
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// compress encodes body into a buffer the caller owns: the buffer is never
+// pooled, because the request body and GetBody readers keep reading it after
+// stream returns.
+func (rc *requestCompressor) compress(body io.Reader) (*bytes.Buffer, error) {
 	buf := new(bytes.Buffer)
-	writer.Reset(buf)
 
-	if _, err := io.Copy(writer, rc); err != nil {
+	enc, err := rc.encoder(buf)
+	if err != nil {
 		return nil, fmt.Errorf("failed to compress request body: %w", err)
 	}
-	if err := writer.Close(); err != nil {
+
+	if _, err := io.Copy(enc, body); err != nil {
+		_ = enc.Close() // the Encoder is discarded; Close releases what it holds
+		return nil, fmt.Errorf("failed to compress request body: %w", err)
+	}
+	if err := enc.Close(); err != nil {
 		return nil, fmt.Errorf("failed to compress request body (during close): %w", err)
 	}
+
+	// Only an Encoder that closed cleanly goes back to the pool.
+	rc.pool.Put(enc)
 	return buf, nil
+}
+
+// encoder returns a pooled Encoder reset to write to dst, or a new one.
+func (rc *requestCompressor) encoder(dst io.Writer) (Encoder, error) {
+	if enc, ok := rc.pool.Get().(Encoder); ok {
+		enc.Reset(dst)
+		return enc, nil
+	}
+	return rc.c.NewEncoder(dst)
 }
 
 // resolveCompressor returns the compressor stream applies, or nil when request
 // compression is off. A non-nil c wins over the legacy flag.
 func resolveCompressor(c Compressor, legacyGzip bool) Compressor {
 	if c == nil && legacyGzip {
-		gz, _ := newGzipCompressor(gzip.DefaultCompression) //nolint:errcheck // the default level is always valid
-		return gz
+		return gzipCompressor{level: gzip.DefaultCompression}
 	}
 	if _, ok := c.(noneCompressor); ok {
 		return nil

@@ -162,8 +162,9 @@ type Config struct {
 	DNSTimeout time.Duration
 
 	// Compressor encodes request bodies; see [opensearchtransport.GZip] and
-	// [opensearchtransport.None], and [opensearchtransport.Config.Compressor]
-	// for when a body is skipped. It takes precedence over CompressRequestBody.
+	// [opensearchtransport.None], or implement [opensearchtransport.Compressor]
+	// to use another codec. See [opensearchtransport.Config.Compressor] for when
+	// a body is skipped. It takes precedence over CompressRequestBody.
 	Compressor opensearchtransport.Compressor
 
 	// CompressRequestBody gzip-compresses request bodies (default false) when

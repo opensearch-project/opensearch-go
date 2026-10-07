@@ -21,8 +21,7 @@ import (
 
 func TestCompress(t *testing.T) {
 	t.Run("initialize & compress", func(t *testing.T) {
-		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
+		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -40,8 +39,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("gzip multiple times", func(t *testing.T) {
-		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
+		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
 		for range 5 {
 			body := generateRandomString()
 			rc := io.NopCloser(strings.NewReader(body))
@@ -61,8 +59,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("ensure gzipped data is smaller and different from original", func(t *testing.T) {
-		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
+		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -81,8 +78,7 @@ func TestCompress(t *testing.T) {
 	})
 
 	t.Run("compressing data twice", func(t *testing.T) {
-		gzipCompressor, err := newGzipCompressor(gzip.DefaultCompression)
-		require.NoError(t, err)
+		gzipCompressor := newGzipRequestCompressor(t, gzip.DefaultCompression)
 		body := generateRandomString()
 		rc := io.NopCloser(strings.NewReader(body))
 
@@ -149,12 +145,25 @@ func gunzip(t *testing.T, b []byte, msgAndArgs ...any) string {
 	return string(plain)
 }
 
+// newGzipRequestCompressor returns the transport's compressor for GZip(level).
+func newGzipRequestCompressor(t *testing.T, level int) *requestCompressor {
+	t.Helper()
+
+	c, err := GZip(level)
+	require.NoError(t, err)
+	rc, err := newRequestCompressor(c)
+	require.NoError(t, err)
+	return rc
+}
+
 // gzipRoundTrip compresses body with c, requires it to inflate back to body,
 // and returns the compressed length.
 func gzipRoundTrip(t *testing.T, c Compressor, body string) int {
 	t.Helper()
 
-	buf, err := c.compress(io.NopCloser(strings.NewReader(body)))
+	rc, err := newRequestCompressor(c)
+	require.NoError(t, err)
+	buf, err := rc.compress(strings.NewReader(body))
 	require.NoError(t, err)
 
 	require.Equal(t, body, gunzip(t, buf.Bytes()))
@@ -191,7 +200,7 @@ func TestGZipLevel(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, encodingGzip, c.contentEncoding())
+			require.Equal(t, encodingGzip, c.ContentEncoding())
 			gzipRoundTrip(t, c, body)
 		})
 	}
